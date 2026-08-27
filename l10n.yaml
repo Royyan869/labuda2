@@ -1,0 +1,10 @@
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+output-dir: lib/generated
+nullable-getter: false
+header-comment: |
+  /// LABUDA - Social Commerce Platform untuk Komunitas Koi Indonesia
+  /// Generated localization files - DO NOT MODIFY
+preferred-supported-locales: ["en", "id"]

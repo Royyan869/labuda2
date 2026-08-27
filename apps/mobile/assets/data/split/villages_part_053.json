@@ -1,0 +1,5002 @@
+[
+  {
+    "id": "52.04.14.2012",
+    "name": "Lamenta",
+    "district_id": "52.04.14"
+  },
+  {
+    "id": "52.04.14.2013",
+    "name": "Gapit",
+    "district_id": "52.04.14"
+  },
+  {
+    "id": "52.04.14.2014",
+    "name": "Pamanto",
+    "district_id": "52.04.14"
+  },
+  {
+    "id": "52.04.14.2015",
+    "name": "Bunga Eja",
+    "district_id": "52.04.14"
+  },
+  {
+    "id": "52.04.14.2016",
+    "name": "Jotang Beru",
+    "district_id": "52.04.14"
+  },
+  {
+    "id": "52.04.17.2001",
+    "name": "Mapin Rea",
+    "district_id": "52.04.17"
+  },
+  {
+    "id": "52.04.17.2002",
+    "name": "Mapin Kebak",
+    "district_id": "52.04.17"
+  },
+  {
+    "id": "52.04.17.2003",
+    "name": "Labuhan Mapin",
+    "district_id": "52.04.17"
+  },
+  {
+    "id": "52.04.17.2004",
+    "name": "Lekong",
+    "district_id": "52.04.17"
+  },
+  {
+    "id": "52.04.17.2005",
+    "name": "Gontar",
+    "district_id": "52.04.17"
+  },
+  {
+    "id": "52.04.17.2006",
+    "name": "Usar Mapin",
+    "district_id": "52.04.17"
+  },
+  {
+    "id": "52.04.17.2007",
+    "name": "Gontar Baru",
+    "district_id": "52.04.17"
+  },
+  {
+    "id": "52.04.17.2008",
+    "name": "Mapin Beru",
+    "district_id": "52.04.17"
+  },
+  {
+    "id": "52.04.18.2001",
+    "name": "Labuhan Badas",
+    "district_id": "52.04.18"
+  },
+  {
+    "id": "52.04.18.2002",
+    "name": "Karang Dima",
+    "district_id": "52.04.18"
+  },
+  {
+    "id": "52.04.18.2003",
+    "name": "Labuhan Sumbawa",
+    "district_id": "52.04.18"
+  },
+  {
+    "id": "52.04.18.2004",
+    "name": "Labuhan Aji",
+    "district_id": "52.04.18"
+  },
+  {
+    "id": "52.04.18.2005",
+    "name": "Sebotok",
+    "district_id": "52.04.18"
+  },
+  {
+    "id": "52.04.18.2006",
+    "name": "Bajo Medang",
+    "district_id": "52.04.18"
+  },
+  {
+    "id": "52.04.18.2007",
+    "name": "Bugis Medang",
+    "district_id": "52.04.18"
+  },
+  {
+    "id": "52.04.19.2001",
+    "name": "Labangka",
+    "district_id": "52.04.19"
+  },
+  {
+    "id": "52.04.19.2002",
+    "name": "Sekokat",
+    "district_id": "52.04.19"
+  },
+  {
+    "id": "52.04.19.2003",
+    "name": "Suka Mulya",
+    "district_id": "52.04.19"
+  },
+  {
+    "id": "52.04.19.2004",
+    "name": "Suka Damai",
+    "district_id": "52.04.19"
+  },
+  {
+    "id": "52.04.19.2005",
+    "name": "Jaya Makmur",
+    "district_id": "52.04.19"
+  },
+  {
+    "id": "52.04.20.2001",
+    "name": "Tarusa",
+    "district_id": "52.04.20"
+  },
+  {
+    "id": "52.04.20.2002",
+    "name": "Juru Mapin",
+    "district_id": "52.04.20"
+  },
+  {
+    "id": "52.04.20.2003",
+    "name": "Kalabeso",
+    "district_id": "52.04.20"
+  },
+  {
+    "id": "52.04.20.2004",
+    "name": "Labuhan Burung",
+    "district_id": "52.04.20"
+  },
+  {
+    "id": "52.04.20.2005",
+    "name": "Pulau Kaung",
+    "district_id": "52.04.20"
+  },
+  {
+    "id": "52.04.20.2006",
+    "name": "Buin Baru",
+    "district_id": "52.04.20"
+  },
+  {
+    "id": "52.04.21.2001",
+    "name": "Rhee",
+    "district_id": "52.04.21"
+  },
+  {
+    "id": "52.04.21.2002",
+    "name": "Sampe",
+    "district_id": "52.04.21"
+  },
+  {
+    "id": "52.04.21.2003",
+    "name": "Luk",
+    "district_id": "52.04.21"
+  },
+  {
+    "id": "52.04.21.2004",
+    "name": "Rhee Loka",
+    "district_id": "52.04.21"
+  },
+  {
+    "id": "52.04.22.2001",
+    "name": "Pelat",
+    "district_id": "52.04.22"
+  },
+  {
+    "id": "52.04.22.2002",
+    "name": "Kerekeh",
+    "district_id": "52.04.22"
+  },
+  {
+    "id": "52.04.22.2003",
+    "name": "Boak",
+    "district_id": "52.04.22"
+  },
+  {
+    "id": "52.04.22.2004",
+    "name": "Jorok",
+    "district_id": "52.04.22"
+  },
+  {
+    "id": "52.04.22.2005",
+    "name": "Kerato",
+    "district_id": "52.04.22"
+  },
+  {
+    "id": "52.04.22.2006",
+    "name": "Pungka",
+    "district_id": "52.04.22"
+  },
+  {
+    "id": "52.04.22.2007",
+    "name": "Uma Beringin",
+    "district_id": "52.04.22"
+  },
+  {
+    "id": "52.04.22.2008",
+    "name": "Nijang",
+    "district_id": "52.04.22"
+  },
+  {
+    "id": "52.04.23.2001",
+    "name": "Pungkit",
+    "district_id": "52.04.23"
+  },
+  {
+    "id": "52.04.23.2002",
+    "name": "Sebewe",
+    "district_id": "52.04.23"
+  },
+  {
+    "id": "52.04.23.2003",
+    "name": "Penyaring",
+    "district_id": "52.04.23"
+  },
+  {
+    "id": "52.04.23.2004",
+    "name": "Kukin",
+    "district_id": "52.04.23"
+  },
+  {
+    "id": "52.04.23.2005",
+    "name": "Baru Tahan",
+    "district_id": "52.04.23"
+  },
+  {
+    "id": "52.04.23.2006",
+    "name": "Songkar",
+    "district_id": "52.04.23"
+  },
+  {
+    "id": "52.04.24.2001",
+    "name": "Simu",
+    "district_id": "52.04.24"
+  },
+  {
+    "id": "52.04.24.2002",
+    "name": "Maronge",
+    "district_id": "52.04.24"
+  },
+  {
+    "id": "52.04.24.2003",
+    "name": "Pemasar",
+    "district_id": "52.04.24"
+  },
+  {
+    "id": "52.04.24.2004",
+    "name": "Labuhan Sangoro",
+    "district_id": "52.04.24"
+  },
+  {
+    "id": "52.04.25.2001",
+    "name": "Bantulanteh",
+    "district_id": "52.04.25"
+  },
+  {
+    "id": "52.04.25.2002",
+    "name": "Labuhan Bontong",
+    "district_id": "52.04.25"
+  },
+  {
+    "id": "52.04.25.2003",
+    "name": "Labuhan Aji",
+    "district_id": "52.04.25"
+  },
+  {
+    "id": "52.04.25.2004",
+    "name": "Labuhan Jambu",
+    "district_id": "52.04.25"
+  },
+  {
+    "id": "52.04.25.2005",
+    "name": "Mata",
+    "district_id": "52.04.25"
+  },
+  {
+    "id": "52.04.25.2007",
+    "name": "Banda",
+    "district_id": "52.04.25"
+  },
+  {
+    "id": "52.04.25.2008",
+    "name": "Labuhan Pidang",
+    "district_id": "52.04.25"
+  },
+  {
+    "id": "52.04.26.2001",
+    "name": "Pungkit",
+    "district_id": "52.04.26"
+  },
+  {
+    "id": "52.04.26.2002",
+    "name": "Berora",
+    "district_id": "52.04.26"
+  },
+  {
+    "id": "52.04.26.2003",
+    "name": "Lopok",
+    "district_id": "52.04.26"
+  },
+  {
+    "id": "52.04.26.2004",
+    "name": "Langam",
+    "district_id": "52.04.26"
+  },
+  {
+    "id": "52.04.26.2005",
+    "name": "Mama",
+    "district_id": "52.04.26"
+  },
+  {
+    "id": "52.04.26.2006",
+    "name": "Lopok Beru",
+    "district_id": "52.04.26"
+  },
+  {
+    "id": "52.04.26.2007",
+    "name": "Tatede",
+    "district_id": "52.04.26"
+  },
+  {
+    "id": "52.04.27.2001",
+    "name": "Tatebal",
+    "district_id": "52.04.27"
+  },
+  {
+    "id": "52.04.27.2002",
+    "name": "Lenangguar",
+    "district_id": "52.04.27"
+  },
+  {
+    "id": "52.04.27.2003",
+    "name": "Ledang",
+    "district_id": "52.04.27"
+  },
+  {
+    "id": "52.04.27.2004",
+    "name": "Telaga",
+    "district_id": "52.04.27"
+  },
+  {
+    "id": "52.04.28.2001",
+    "name": "Senawang",
+    "district_id": "52.04.28"
+  },
+  {
+    "id": "52.04.28.2002",
+    "name": "Kelawis",
+    "district_id": "52.04.28"
+  },
+  {
+    "id": "52.04.28.2003",
+    "name": "Mungkin",
+    "district_id": "52.04.28"
+  },
+  {
+    "id": "52.04.28.2004",
+    "name": "Sebeok",
+    "district_id": "52.04.28"
+  },
+  {
+    "id": "52.04.29.2001",
+    "name": "Lantung",
+    "district_id": "52.04.29"
+  },
+  {
+    "id": "52.04.29.2002",
+    "name": "Sepukur",
+    "district_id": "52.04.29"
+  },
+  {
+    "id": "52.04.29.2003",
+    "name": "Ai Mual",
+    "district_id": "52.04.29"
+  },
+  {
+    "id": "52.04.29.2004",
+    "name": "Padesa",
+    "district_id": "52.04.29"
+  },
+  {
+    "id": "52.05.01.1001",
+    "name": "Bada",
+    "district_id": "52.05.01"
+  },
+  {
+    "id": "52.05.01.1002",
+    "name": "Bali",
+    "district_id": "52.05.01"
+  },
+  {
+    "id": "52.05.01.1003",
+    "name": "Potu",
+    "district_id": "52.05.01"
+  },
+  {
+    "id": "52.05.01.1004",
+    "name": "Karijawa",
+    "district_id": "52.05.01"
+  },
+  {
+    "id": "52.05.01.1005",
+    "name": "Dora Tangga",
+    "district_id": "52.05.01"
+  },
+  {
+    "id": "52.05.01.1006",
+    "name": "Kandai I",
+    "district_id": "52.05.01"
+  },
+  {
+    "id": "52.05.01.2008",
+    "name": "Katua",
+    "district_id": "52.05.01"
+  },
+  {
+    "id": "52.05.01.2009",
+    "name": "Karamabura",
+    "district_id": "52.05.01"
+  },
+  {
+    "id": "52.05.01.2010",
+    "name": "Mbawi",
+    "district_id": "52.05.01"
+  },
+  {
+    "id": "52.05.01.2011",
+    "name": "Dore Bara",
+    "district_id": "52.05.01"
+  },
+  {
+    "id": "52.05.01.2012",
+    "name": "Kareke",
+    "district_id": "52.05.01"
+  },
+  {
+    "id": "52.05.01.2013",
+    "name": "Mangge Nae",
+    "district_id": "52.05.01"
+  },
+  {
+    "id": "52.05.01.2014",
+    "name": "Manggeasi",
+    "district_id": "52.05.01"
+  },
+  {
+    "id": "52.05.01.2015",
+    "name": "Sori Sakolo",
+    "district_id": "52.05.01"
+  },
+  {
+    "id": "52.05.02.2001",
+    "name": "Kempo",
+    "district_id": "52.05.02"
+  },
+  {
+    "id": "52.05.02.2003",
+    "name": "Soro",
+    "district_id": "52.05.02"
+  },
+  {
+    "id": "52.05.02.2004",
+    "name": "Konte",
+    "district_id": "52.05.02"
+  },
+  {
+    "id": "52.05.02.2005",
+    "name": "Tolo Kalo",
+    "district_id": "52.05.02"
+  },
+  {
+    "id": "52.05.02.2006",
+    "name": "Songgaja",
+    "district_id": "52.05.02"
+  },
+  {
+    "id": "52.05.02.2007",
+    "name": "Doro Kobo",
+    "district_id": "52.05.02"
+  },
+  {
+    "id": "52.05.02.2008",
+    "name": "Soro Barat",
+    "district_id": "52.05.02"
+  },
+  {
+    "id": "52.05.03.2001",
+    "name": "Rasa Bou",
+    "district_id": "52.05.03"
+  },
+  {
+    "id": "52.05.03.2002",
+    "name": "Daha",
+    "district_id": "52.05.03"
+  },
+  {
+    "id": "52.05.03.2004",
+    "name": "Adu",
+    "district_id": "52.05.03"
+  },
+  {
+    "id": "52.05.03.2005",
+    "name": "Cempi Jaya",
+    "district_id": "52.05.03"
+  },
+  {
+    "id": "52.05.03.2006",
+    "name": "Merada",
+    "district_id": "52.05.03"
+  },
+  {
+    "id": "52.05.03.2007",
+    "name": "Jala",
+    "district_id": "52.05.03"
+  },
+  {
+    "id": "52.05.03.2008",
+    "name": "Sawe",
+    "district_id": "52.05.03"
+  },
+  {
+    "id": "52.05.04.2001",
+    "name": "Malaju",
+    "district_id": "52.05.04"
+  },
+  {
+    "id": "52.05.04.2002",
+    "name": "Lasi",
+    "district_id": "52.05.04"
+  },
+  {
+    "id": "52.05.04.2003",
+    "name": "Mbuju",
+    "district_id": "52.05.04"
+  },
+  {
+    "id": "52.05.04.2004",
+    "name": "Kiwu",
+    "district_id": "52.05.04"
+  },
+  {
+    "id": "52.05.04.2005",
+    "name": "Taropo",
+    "district_id": "52.05.04"
+  },
+  {
+    "id": "52.05.04.2006",
+    "name": "Karama",
+    "district_id": "52.05.04"
+  },
+  {
+    "id": "52.05.05.1001",
+    "name": "Monta Baru",
+    "district_id": "52.05.05"
+  },
+  {
+    "id": "52.05.05.1002",
+    "name": "Kandai II",
+    "district_id": "52.05.05"
+  },
+  {
+    "id": "52.05.05.1003",
+    "name": "Simpasai",
+    "district_id": "52.05.05"
+  },
+  {
+    "id": "52.05.05.2004",
+    "name": "Saneo",
+    "district_id": "52.05.05"
+  },
+  {
+    "id": "52.05.05.2005",
+    "name": "Wawonduru",
+    "district_id": "52.05.05"
+  },
+  {
+    "id": "52.05.05.2006",
+    "name": "Matua",
+    "district_id": "52.05.05"
+  },
+  {
+    "id": "52.05.05.2007",
+    "name": "Nowa",
+    "district_id": "52.05.05"
+  },
+  {
+    "id": "52.05.05.2008",
+    "name": "Bara",
+    "district_id": "52.05.05"
+  },
+  {
+    "id": "52.05.05.2009",
+    "name": "Mada Prama",
+    "district_id": "52.05.05"
+  },
+  {
+    "id": "52.05.05.2010",
+    "name": "Riwo",
+    "district_id": "52.05.05"
+  },
+  {
+    "id": "52.05.05.2011",
+    "name": "Mumbu",
+    "district_id": "52.05.05"
+  },
+  {
+    "id": "52.05.05.2012",
+    "name": "Sera Kapi",
+    "district_id": "52.05.05"
+  },
+  {
+    "id": "52.05.05.2013",
+    "name": "Raba Baka",
+    "district_id": "52.05.05"
+  },
+  {
+    "id": "52.05.05.2014",
+    "name": "Baka Jaya",
+    "district_id": "52.05.05"
+  },
+  {
+    "id": "52.05.06.2001",
+    "name": "Pekat",
+    "district_id": "52.05.06"
+  },
+  {
+    "id": "52.05.06.2002",
+    "name": "Nangamiro",
+    "district_id": "52.05.06"
+  },
+  {
+    "id": "52.05.06.2003",
+    "name": "Kadindi",
+    "district_id": "52.05.06"
+  },
+  {
+    "id": "52.05.06.2004",
+    "name": "Beringin Jaya",
+    "district_id": "52.05.06"
+  },
+  {
+    "id": "52.05.06.2005",
+    "name": "Sori Nomo",
+    "district_id": "52.05.06"
+  },
+  {
+    "id": "52.05.06.2006",
+    "name": "Tambora",
+    "district_id": "52.05.06"
+  },
+  {
+    "id": "52.05.06.2007",
+    "name": "Doro Peti",
+    "district_id": "52.05.06"
+  },
+  {
+    "id": "52.05.06.2008",
+    "name": "Karombo",
+    "district_id": "52.05.06"
+  },
+  {
+    "id": "52.05.06.2009",
+    "name": "Kadindi Barat",
+    "district_id": "52.05.06"
+  },
+  {
+    "id": "52.05.06.2010",
+    "name": "Nangakara",
+    "district_id": "52.05.06"
+  },
+  {
+    "id": "52.05.06.2011",
+    "name": "Sori Tatanga",
+    "district_id": "52.05.06"
+  },
+  {
+    "id": "52.05.06.2012",
+    "name": "Calabai",
+    "district_id": "52.05.06"
+  },
+  {
+    "id": "52.05.07.2001",
+    "name": "Soriutu",
+    "district_id": "52.05.07"
+  },
+  {
+    "id": "52.05.07.2002",
+    "name": "Banggo",
+    "district_id": "52.05.07"
+  },
+  {
+    "id": "52.05.07.2003",
+    "name": "Kwangko",
+    "district_id": "52.05.07"
+  },
+  {
+    "id": "52.05.07.2004",
+    "name": "Lanci Jaya",
+    "district_id": "52.05.07"
+  },
+  {
+    "id": "52.05.07.2005",
+    "name": "Suka Damai",
+    "district_id": "52.05.07"
+  },
+  {
+    "id": "52.05.07.2006",
+    "name": "Nusa Jaya",
+    "district_id": "52.05.07"
+  },
+  {
+    "id": "52.05.07.2007",
+    "name": "Doromelo",
+    "district_id": "52.05.07"
+  },
+  {
+    "id": "52.05.07.2008",
+    "name": "Nangatumpu",
+    "district_id": "52.05.07"
+  },
+  {
+    "id": "52.05.07.2009",
+    "name": "Kampasi Meci",
+    "district_id": "52.05.07"
+  },
+  {
+    "id": "52.05.07.2010",
+    "name": "Teka Sire",
+    "district_id": "52.05.07"
+  },
+  {
+    "id": "52.05.07.2011",
+    "name": "Anamina",
+    "district_id": "52.05.07"
+  },
+  {
+    "id": "52.05.07.2012",
+    "name": "Tanju",
+    "district_id": "52.05.07"
+  },
+  {
+    "id": "52.05.08.2001",
+    "name": "Ranggo",
+    "district_id": "52.05.08"
+  },
+  {
+    "id": "52.05.08.2002",
+    "name": "Jambu",
+    "district_id": "52.05.08"
+  },
+  {
+    "id": "52.05.08.2003",
+    "name": "Lepadi",
+    "district_id": "52.05.08"
+  },
+  {
+    "id": "52.05.08.2004",
+    "name": "Lune",
+    "district_id": "52.05.08"
+  },
+  {
+    "id": "52.05.08.2005",
+    "name": "Woko",
+    "district_id": "52.05.08"
+  },
+  {
+    "id": "52.05.08.2006",
+    "name": "Tembal Lae",
+    "district_id": "52.05.08"
+  },
+  {
+    "id": "52.06.01.2005",
+    "name": "Tolotangga",
+    "district_id": "52.06.01"
+  },
+  {
+    "id": "52.06.01.2006",
+    "name": "Sondo",
+    "district_id": "52.06.01"
+  },
+  {
+    "id": "52.06.01.2007",
+    "name": "Simpasai",
+    "district_id": "52.06.01"
+  },
+  {
+    "id": "52.06.01.2008",
+    "name": "Sie",
+    "district_id": "52.06.01"
+  },
+  {
+    "id": "52.06.01.2009",
+    "name": "Tangga",
+    "district_id": "52.06.01"
+  },
+  {
+    "id": "52.06.01.2010",
+    "name": "Monta",
+    "district_id": "52.06.01"
+  },
+  {
+    "id": "52.06.01.2011",
+    "name": "Sakuru",
+    "district_id": "52.06.01"
+  },
+  {
+    "id": "52.06.01.2012",
+    "name": "Baralau",
+    "district_id": "52.06.01"
+  },
+  {
+    "id": "52.06.01.2014",
+    "name": "Tolouwi",
+    "district_id": "52.06.01"
+  },
+  {
+    "id": "52.06.01.2015",
+    "name": "Wilamaci",
+    "district_id": "52.06.01"
+  },
+  {
+    "id": "52.06.01.2016",
+    "name": "Pela",
+    "district_id": "52.06.01"
+  },
+  {
+    "id": "52.06.01.2017",
+    "name": "Tangga Baru",
+    "district_id": "52.06.01"
+  },
+  {
+    "id": "52.06.01.2018",
+    "name": "Nontotera",
+    "district_id": "52.06.01"
+  },
+  {
+    "id": "52.06.01.2019",
+    "name": "Waro",
+    "district_id": "52.06.01"
+  },
+  {
+    "id": "52.06.02.2001",
+    "name": "Tambe",
+    "district_id": "52.06.02"
+  },
+  {
+    "id": "52.06.02.2002",
+    "name": "Rasabou",
+    "district_id": "52.06.02"
+  },
+  {
+    "id": "52.06.02.2003",
+    "name": "Rato",
+    "district_id": "52.06.02"
+  },
+  {
+    "id": "52.06.02.2004",
+    "name": "Kananga",
+    "district_id": "52.06.02"
+  },
+  {
+    "id": "52.06.02.2005",
+    "name": "Leu",
+    "district_id": "52.06.02"
+  },
+  {
+    "id": "52.06.02.2006",
+    "name": "Timu",
+    "district_id": "52.06.02"
+  },
+  {
+    "id": "52.06.02.2007",
+    "name": "Bontokape",
+    "district_id": "52.06.02"
+  },
+  {
+    "id": "52.06.02.2008",
+    "name": "Sondosia",
+    "district_id": "52.06.02"
+  },
+  {
+    "id": "52.06.02.2009",
+    "name": "Nggembe",
+    "district_id": "52.06.02"
+  },
+  {
+    "id": "52.06.02.2010",
+    "name": "Sanolo",
+    "district_id": "52.06.02"
+  },
+  {
+    "id": "52.06.02.2011",
+    "name": "Tumpu",
+    "district_id": "52.06.02"
+  },
+  {
+    "id": "52.06.02.2012",
+    "name": "Rada",
+    "district_id": "52.06.02"
+  },
+  {
+    "id": "52.06.02.2013",
+    "name": "Kara",
+    "district_id": "52.06.02"
+  },
+  {
+    "id": "52.06.02.2014",
+    "name": "Darussalam",
+    "district_id": "52.06.02"
+  },
+  {
+    "id": "52.06.03.2001",
+    "name": "Keli",
+    "district_id": "52.06.03"
+  },
+  {
+    "id": "52.06.03.2002",
+    "name": "Tenga",
+    "district_id": "52.06.03"
+  },
+  {
+    "id": "52.06.03.2003",
+    "name": "Tente",
+    "district_id": "52.06.03"
+  },
+  {
+    "id": "52.06.03.2004",
+    "name": "Rabakodo",
+    "district_id": "52.06.03"
+  },
+  {
+    "id": "52.06.03.2005",
+    "name": "Samili",
+    "district_id": "52.06.03"
+  },
+  {
+    "id": "52.06.03.2006",
+    "name": "Kalampa",
+    "district_id": "52.06.03"
+  },
+  {
+    "id": "52.06.03.2007",
+    "name": "Risa",
+    "district_id": "52.06.03"
+  },
+  {
+    "id": "52.06.03.2008",
+    "name": "Pandai",
+    "district_id": "52.06.03"
+  },
+  {
+    "id": "52.06.03.2009",
+    "name": "Donggobolo",
+    "district_id": "52.06.03"
+  },
+  {
+    "id": "52.06.03.2010",
+    "name": "Dadibou",
+    "district_id": "52.06.03"
+  },
+  {
+    "id": "52.06.03.2011",
+    "name": "Talabiu",
+    "district_id": "52.06.03"
+  },
+  {
+    "id": "52.06.03.2012",
+    "name": "Naru",
+    "district_id": "52.06.03"
+  },
+  {
+    "id": "52.06.03.2013",
+    "name": "Nisa",
+    "district_id": "52.06.03"
+  },
+  {
+    "id": "52.06.03.2014",
+    "name": "Waduwani",
+    "district_id": "52.06.03"
+  },
+  {
+    "id": "52.06.03.2015",
+    "name": "Penapali",
+    "district_id": "52.06.03"
+  },
+  {
+    "id": "52.06.04.2001",
+    "name": "Ncera",
+    "district_id": "52.06.04"
+  },
+  {
+    "id": "52.06.04.2002",
+    "name": "Lido",
+    "district_id": "52.06.04"
+  },
+  {
+    "id": "52.06.04.2003",
+    "name": "Ngali",
+    "district_id": "52.06.04"
+  },
+  {
+    "id": "52.06.04.2004",
+    "name": "Renda",
+    "district_id": "52.06.04"
+  },
+  {
+    "id": "52.06.04.2005",
+    "name": "Cenggu",
+    "district_id": "52.06.04"
+  },
+  {
+    "id": "52.06.04.2006",
+    "name": "Runggu",
+    "district_id": "52.06.04"
+  },
+  {
+    "id": "52.06.04.2014",
+    "name": "Soki",
+    "district_id": "52.06.04"
+  },
+  {
+    "id": "52.06.04.2015",
+    "name": "Roka",
+    "district_id": "52.06.04"
+  },
+  {
+    "id": "52.06.04.2016",
+    "name": "Diha",
+    "district_id": "52.06.04"
+  },
+  {
+    "id": "52.06.05.2001",
+    "name": "Tarlawi",
+    "district_id": "52.06.05"
+  },
+  {
+    "id": "52.06.05.2005",
+    "name": "Ntori",
+    "district_id": "52.06.05"
+  },
+  {
+    "id": "52.06.05.2006",
+    "name": "Maria",
+    "district_id": "52.06.05"
+  },
+  {
+    "id": "52.06.05.2007",
+    "name": "Pesa",
+    "district_id": "52.06.05"
+  },
+  {
+    "id": "52.06.05.2008",
+    "name": "Raba",
+    "district_id": "52.06.05"
+  },
+  {
+    "id": "52.06.05.2011",
+    "name": "Kambilo",
+    "district_id": "52.06.05"
+  },
+  {
+    "id": "52.06.05.2012",
+    "name": "Maria Utara",
+    "district_id": "52.06.05"
+  },
+  {
+    "id": "52.06.05.2013",
+    "name": "Kombo",
+    "district_id": "52.06.05"
+  },
+  {
+    "id": "52.06.05.2014",
+    "name": "Riamau",
+    "district_id": "52.06.05"
+  },
+  {
+    "id": "52.06.06.2001",
+    "name": "Sari",
+    "district_id": "52.06.06"
+  },
+  {
+    "id": "52.06.06.2002",
+    "name": "Boke",
+    "district_id": "52.06.06"
+  },
+  {
+    "id": "52.06.06.2003",
+    "name": "Jia",
+    "district_id": "52.06.06"
+  },
+  {
+    "id": "52.06.06.2004",
+    "name": "Bugis",
+    "district_id": "52.06.06"
+  },
+  {
+    "id": "52.06.06.2005",
+    "name": "Naru",
+    "district_id": "52.06.06"
+  },
+  {
+    "id": "52.06.06.2006",
+    "name": "Rasabou",
+    "district_id": "52.06.06"
+  },
+  {
+    "id": "52.06.06.2007",
+    "name": "Sangia",
+    "district_id": "52.06.06"
+  },
+  {
+    "id": "52.06.06.2009",
+    "name": "Rai Oi",
+    "district_id": "52.06.06"
+  },
+  {
+    "id": "52.06.06.2010",
+    "name": "Parangina",
+    "district_id": "52.06.06"
+  },
+  {
+    "id": "52.06.06.2011",
+    "name": "Kowo",
+    "district_id": "52.06.06"
+  },
+  {
+    "id": "52.06.06.2012",
+    "name": "Buncu",
+    "district_id": "52.06.06"
+  },
+  {
+    "id": "52.06.06.2013",
+    "name": "Poja",
+    "district_id": "52.06.06"
+  },
+  {
+    "id": "52.06.06.2014",
+    "name": "Bajo Pulau",
+    "district_id": "52.06.06"
+  },
+  {
+    "id": "52.06.06.2015",
+    "name": "Naru Barat",
+    "district_id": "52.06.06"
+  },
+  {
+    "id": "52.06.06.2016",
+    "name": "Tanah Putih",
+    "district_id": "52.06.06"
+  },
+  {
+    "id": "52.06.06.2017",
+    "name": "Lamere",
+    "district_id": "52.06.06"
+  },
+  {
+    "id": "52.06.06.2018",
+    "name": "Oi Maci",
+    "district_id": "52.06.06"
+  },
+  {
+    "id": "52.06.07.2001",
+    "name": "Ntoke",
+    "district_id": "52.06.07"
+  },
+  {
+    "id": "52.06.07.2002",
+    "name": "Pai",
+    "district_id": "52.06.07"
+  },
+  {
+    "id": "52.06.07.2003",
+    "name": "Nunggi",
+    "district_id": "52.06.07"
+  },
+  {
+    "id": "52.06.07.2004",
+    "name": "Tawali",
+    "district_id": "52.06.07"
+  },
+  {
+    "id": "52.06.07.2005",
+    "name": "Hidirasa",
+    "district_id": "52.06.07"
+  },
+  {
+    "id": "52.06.07.2006",
+    "name": "Wora",
+    "district_id": "52.06.07"
+  },
+  {
+    "id": "52.06.07.2007",
+    "name": "Sangiang",
+    "district_id": "52.06.07"
+  },
+  {
+    "id": "52.06.07.2008",
+    "name": "Bala",
+    "district_id": "52.06.07"
+  },
+  {
+    "id": "52.06.07.2009",
+    "name": "Oi Tui",
+    "district_id": "52.06.07"
+  },
+  {
+    "id": "52.06.07.2010",
+    "name": "Tadewa",
+    "district_id": "52.06.07"
+  },
+  {
+    "id": "52.06.07.2011",
+    "name": "Nanga Wera",
+    "district_id": "52.06.07"
+  },
+  {
+    "id": "52.06.07.2012",
+    "name": "Ranggasolo",
+    "district_id": "52.06.07"
+  },
+  {
+    "id": "52.06.07.2013",
+    "name": "Kalajena",
+    "district_id": "52.06.07"
+  },
+  {
+    "id": "52.06.07.2014",
+    "name": "Mandala",
+    "district_id": "52.06.07"
+  },
+  {
+    "id": "52.06.08.2005",
+    "name": "Doridungga",
+    "district_id": "52.06.08"
+  },
+  {
+    "id": "52.06.08.2006",
+    "name": "Kala",
+    "district_id": "52.06.08"
+  },
+  {
+    "id": "52.06.08.2008",
+    "name": "Mbawa",
+    "district_id": "52.06.08"
+  },
+  {
+    "id": "52.06.08.2009",
+    "name": "Palama",
+    "district_id": "52.06.08"
+  },
+  {
+    "id": "52.06.08.2010",
+    "name": "Rora",
+    "district_id": "52.06.08"
+  },
+  {
+    "id": "52.06.08.2012",
+    "name": "Mpili",
+    "district_id": "52.06.08"
+  },
+  {
+    "id": "52.06.08.2013",
+    "name": "Bumi Pajo",
+    "district_id": "52.06.08"
+  },
+  {
+    "id": "52.06.09.2001",
+    "name": "Piong",
+    "district_id": "52.06.09"
+  },
+  {
+    "id": "52.06.09.2002",
+    "name": "Boro",
+    "district_id": "52.06.09"
+  },
+  {
+    "id": "52.06.09.2003",
+    "name": "Kore",
+    "district_id": "52.06.09"
+  },
+  {
+    "id": "52.06.09.2004",
+    "name": "Taloko",
+    "district_id": "52.06.09"
+  },
+  {
+    "id": "52.06.09.2005",
+    "name": "Oi Saro",
+    "district_id": "52.06.09"
+  },
+  {
+    "id": "52.06.09.2006",
+    "name": "Sandue",
+    "district_id": "52.06.09"
+  },
+  {
+    "id": "52.06.10.2001",
+    "name": "Nipa",
+    "district_id": "52.06.10"
+  },
+  {
+    "id": "52.06.10.2002",
+    "name": "Tolowata",
+    "district_id": "52.06.10"
+  },
+  {
+    "id": "52.06.10.2003",
+    "name": "Rite",
+    "district_id": "52.06.10"
+  },
+  {
+    "id": "52.06.10.2004",
+    "name": "Mawu",
+    "district_id": "52.06.10"
+  },
+  {
+    "id": "52.06.10.2005",
+    "name": "Talapiti",
+    "district_id": "52.06.10"
+  },
+  {
+    "id": "52.06.10.2006",
+    "name": "Kole",
+    "district_id": "52.06.10"
+  },
+  {
+    "id": "52.06.11.2001",
+    "name": "Waworada",
+    "district_id": "52.06.11"
+  },
+  {
+    "id": "52.06.11.2002",
+    "name": "Karumbu",
+    "district_id": "52.06.11"
+  },
+  {
+    "id": "52.06.11.2003",
+    "name": "Rupe",
+    "district_id": "52.06.11"
+  },
+  {
+    "id": "52.06.11.2004",
+    "name": "Kalodu",
+    "district_id": "52.06.11"
+  },
+  {
+    "id": "52.06.11.2005",
+    "name": "Kawuwu",
+    "district_id": "52.06.11"
+  },
+  {
+    "id": "52.06.11.2007",
+    "name": "Laju",
+    "district_id": "52.06.11"
+  },
+  {
+    "id": "52.06.11.2008",
+    "name": "Kangga",
+    "district_id": "52.06.11"
+  },
+  {
+    "id": "52.06.11.2009",
+    "name": "Karampi",
+    "district_id": "52.06.11"
+  },
+  {
+    "id": "52.06.11.2010",
+    "name": "Waduruka",
+    "district_id": "52.06.11"
+  },
+  {
+    "id": "52.06.11.2011",
+    "name": "Dumu",
+    "district_id": "52.06.11"
+  },
+  {
+    "id": "52.06.11.2012",
+    "name": "Rompo",
+    "district_id": "52.06.11"
+  },
+  {
+    "id": "52.06.11.2013",
+    "name": "Sarae Ruma",
+    "district_id": "52.06.11"
+  },
+  {
+    "id": "52.06.11.2014",
+    "name": "Pusu",
+    "district_id": "52.06.11"
+  },
+  {
+    "id": "52.06.11.2015",
+    "name": "Sambane",
+    "district_id": "52.06.11"
+  },
+  {
+    "id": "52.06.12.2001",
+    "name": "Kaleo",
+    "district_id": "52.06.12"
+  },
+  {
+    "id": "52.06.12.2002",
+    "name": "Simpasai",
+    "district_id": "52.06.12"
+  },
+  {
+    "id": "52.06.12.2003",
+    "name": "Mangge",
+    "district_id": "52.06.12"
+  },
+  {
+    "id": "52.06.12.2004",
+    "name": "Lanta",
+    "district_id": "52.06.12"
+  },
+  {
+    "id": "52.06.12.2005",
+    "name": "Nggelu",
+    "district_id": "52.06.12"
+  },
+  {
+    "id": "52.06.12.2006",
+    "name": "Rato",
+    "district_id": "52.06.12"
+  },
+  {
+    "id": "52.06.12.2007",
+    "name": "Sumi",
+    "district_id": "52.06.12"
+  },
+  {
+    "id": "52.06.12.2008",
+    "name": "Soro",
+    "district_id": "52.06.12"
+  },
+  {
+    "id": "52.06.12.2009",
+    "name": "Lambu",
+    "district_id": "52.06.12"
+  },
+  {
+    "id": "52.06.12.2010",
+    "name": "Hidirasa",
+    "district_id": "52.06.12"
+  },
+  {
+    "id": "52.06.12.2011",
+    "name": "Lanta Barat",
+    "district_id": "52.06.12"
+  },
+  {
+    "id": "52.06.12.2012",
+    "name": "Melayu",
+    "district_id": "52.06.12"
+  },
+  {
+    "id": "52.06.12.2013",
+    "name": "Sangga",
+    "district_id": "52.06.12"
+  },
+  {
+    "id": "52.06.12.2014",
+    "name": "Monta Baru",
+    "district_id": "52.06.12"
+  },
+  {
+    "id": "52.06.13.2001",
+    "name": "Woro",
+    "district_id": "52.06.13"
+  },
+  {
+    "id": "52.06.13.2002",
+    "name": "Campa",
+    "district_id": "52.06.13"
+  },
+  {
+    "id": "52.06.13.2003",
+    "name": "Mpuri",
+    "district_id": "52.06.13"
+  },
+  {
+    "id": "52.06.13.2004",
+    "name": "Ndano",
+    "district_id": "52.06.13"
+  },
+  {
+    "id": "52.06.13.2005",
+    "name": "Monggo",
+    "district_id": "52.06.13"
+  },
+  {
+    "id": "52.06.13.2006",
+    "name": "Dena",
+    "district_id": "52.06.13"
+  },
+  {
+    "id": "52.06.13.2007",
+    "name": "Rade",
+    "district_id": "52.06.13"
+  },
+  {
+    "id": "52.06.13.2008",
+    "name": "Tonda",
+    "district_id": "52.06.13"
+  },
+  {
+    "id": "52.06.13.2009",
+    "name": "Bolo",
+    "district_id": "52.06.13"
+  },
+  {
+    "id": "52.06.13.2010",
+    "name": "Madawau",
+    "district_id": "52.06.13"
+  },
+  {
+    "id": "52.06.13.2011",
+    "name": "Ncandi",
+    "district_id": "52.06.13"
+  },
+  {
+    "id": "52.06.14.2001",
+    "name": "Labuan Kananga",
+    "district_id": "52.06.14"
+  },
+  {
+    "id": "52.06.14.2002",
+    "name": "Kawinda Nae",
+    "district_id": "52.06.14"
+  },
+  {
+    "id": "52.06.14.2003",
+    "name": "Kawinda Toi",
+    "district_id": "52.06.14"
+  },
+  {
+    "id": "52.06.14.2004",
+    "name": "Oi Panihi",
+    "district_id": "52.06.14"
+  },
+  {
+    "id": "52.06.14.2005",
+    "name": "Oi Bura",
+    "district_id": "52.06.14"
+  },
+  {
+    "id": "52.06.14.2006",
+    "name": "Oi Katupa",
+    "district_id": "52.06.14"
+  },
+  {
+    "id": "52.06.14.2007",
+    "name": "Rasabou",
+    "district_id": "52.06.14"
+  },
+  {
+    "id": "52.06.15.2001",
+    "name": "Bajo",
+    "district_id": "52.06.15"
+  },
+  {
+    "id": "52.06.15.2002",
+    "name": "Punti",
+    "district_id": "52.06.15"
+  },
+  {
+    "id": "52.06.15.2003",
+    "name": "Wadukopa",
+    "district_id": "52.06.15"
+  },
+  {
+    "id": "52.06.15.2004",
+    "name": "Kananta",
+    "district_id": "52.06.15"
+  },
+  {
+    "id": "52.06.15.2005",
+    "name": "Sai",
+    "district_id": "52.06.15"
+  },
+  {
+    "id": "52.06.15.2006",
+    "name": "Sampungu",
+    "district_id": "52.06.15"
+  },
+  {
+    "id": "52.06.15.2007",
+    "name": "Lewintana",
+    "district_id": "52.06.15"
+  },
+  {
+    "id": "52.06.16.2001",
+    "name": "Paradowane",
+    "district_id": "52.06.16"
+  },
+  {
+    "id": "52.06.16.2002",
+    "name": "Paradorato",
+    "district_id": "52.06.16"
+  },
+  {
+    "id": "52.06.16.2003",
+    "name": "Kuta",
+    "district_id": "52.06.16"
+  },
+  {
+    "id": "52.06.16.2004",
+    "name": "Kanca",
+    "district_id": "52.06.16"
+  },
+  {
+    "id": "52.06.16.2005",
+    "name": "Lere",
+    "district_id": "52.06.16"
+  },
+  {
+    "id": "52.06.17.2001",
+    "name": "Kaboro",
+    "district_id": "52.06.17"
+  },
+  {
+    "id": "52.06.17.2002",
+    "name": "Kuta",
+    "district_id": "52.06.17"
+  },
+  {
+    "id": "52.06.17.2003",
+    "name": "Sambori",
+    "district_id": "52.06.17"
+  },
+  {
+    "id": "52.06.17.2004",
+    "name": "Teta",
+    "district_id": "52.06.17"
+  },
+  {
+    "id": "52.06.17.2005",
+    "name": "Kaowa",
+    "district_id": "52.06.17"
+  },
+  {
+    "id": "52.06.17.2006",
+    "name": "Londu",
+    "district_id": "52.06.17"
+  },
+  {
+    "id": "52.06.18.2001",
+    "name": "Panda",
+    "district_id": "52.06.18"
+  },
+  {
+    "id": "52.06.18.2002",
+    "name": "Belo",
+    "district_id": "52.06.18"
+  },
+  {
+    "id": "52.06.18.2003",
+    "name": "Tonggondoa",
+    "district_id": "52.06.18"
+  },
+  {
+    "id": "52.06.18.2004",
+    "name": "Tonggorisa",
+    "district_id": "52.06.18"
+  },
+  {
+    "id": "52.06.18.2005",
+    "name": "Teke",
+    "district_id": "52.06.18"
+  },
+  {
+    "id": "52.06.18.2006",
+    "name": "Ntonggu",
+    "district_id": "52.06.18"
+  },
+  {
+    "id": "52.06.18.2007",
+    "name": "Nata",
+    "district_id": "52.06.18"
+  },
+  {
+    "id": "52.06.18.2008",
+    "name": "Dore",
+    "district_id": "52.06.18"
+  },
+  {
+    "id": "52.06.18.2009",
+    "name": "Roi",
+    "district_id": "52.06.18"
+  },
+  {
+    "id": "52.06.18.2011",
+    "name": "Ragi",
+    "district_id": "52.06.18"
+  },
+  {
+    "id": "52.06.18.2012",
+    "name": "Padolo",
+    "district_id": "52.06.18"
+  },
+  {
+    "id": "52.06.18.2013",
+    "name": "Bre",
+    "district_id": "52.06.18"
+  },
+  {
+    "id": "52.07.01.2001",
+    "name": "Goa",
+    "district_id": "52.07.01"
+  },
+  {
+    "id": "52.07.01.2002",
+    "name": "Belo",
+    "district_id": "52.07.01"
+  },
+  {
+    "id": "52.07.01.2003",
+    "name": "Beru",
+    "district_id": "52.07.01"
+  },
+  {
+    "id": "52.07.01.2009",
+    "name": "Dasan Anyar",
+    "district_id": "52.07.01"
+  },
+  {
+    "id": "52.07.02.1004",
+    "name": "Menala",
+    "district_id": "52.07.02"
+  },
+  {
+    "id": "52.07.02.1005",
+    "name": "Kuang",
+    "district_id": "52.07.02"
+  },
+  {
+    "id": "52.07.02.1006",
+    "name": "Bugis",
+    "district_id": "52.07.02"
+  },
+  {
+    "id": "52.07.02.1007",
+    "name": "Dalam",
+    "district_id": "52.07.02"
+  },
+  {
+    "id": "52.07.02.1008",
+    "name": "Sampir",
+    "district_id": "52.07.02"
+  },
+  {
+    "id": "52.07.02.1012",
+    "name": "Telaga Bertong",
+    "district_id": "52.07.02"
+  },
+  {
+    "id": "52.07.02.1019",
+    "name": "Arab Kenangan",
+    "district_id": "52.07.02"
+  },
+  {
+    "id": "52.07.02.2001",
+    "name": "Labuhan Lalar",
+    "district_id": "52.07.02"
+  },
+  {
+    "id": "52.07.02.2009",
+    "name": "Lalar Liang",
+    "district_id": "52.07.02"
+  },
+  {
+    "id": "52.07.02.2010",
+    "name": "Labuhan Kertasari",
+    "district_id": "52.07.02"
+  },
+  {
+    "id": "52.07.02.2011",
+    "name": "Seloto",
+    "district_id": "52.07.02"
+  },
+  {
+    "id": "52.07.02.2013",
+    "name": "Tamekan",
+    "district_id": "52.07.02"
+  },
+  {
+    "id": "52.07.02.2014",
+    "name": "Banjar",
+    "district_id": "52.07.02"
+  },
+  {
+    "id": "52.07.02.2015",
+    "name": "Batu Putih",
+    "district_id": "52.07.02"
+  },
+  {
+    "id": "52.07.02.2020",
+    "name": "Sermong",
+    "district_id": "52.07.02"
+  },
+  {
+    "id": "52.07.02.2021",
+    "name": "Lamunga",
+    "district_id": "52.07.02"
+  },
+  {
+    "id": "52.07.03.2001",
+    "name": "Meraran",
+    "district_id": "52.07.03"
+  },
+  {
+    "id": "52.07.03.2002",
+    "name": "Air Suning",
+    "district_id": "52.07.03"
+  },
+  {
+    "id": "52.07.03.2003",
+    "name": "Rempe",
+    "district_id": "52.07.03"
+  },
+  {
+    "id": "52.07.03.2004",
+    "name": "Seteluk Atas",
+    "district_id": "52.07.03"
+  },
+  {
+    "id": "52.07.03.2005",
+    "name": "Seteluk Tengah",
+    "district_id": "52.07.03"
+  },
+  {
+    "id": "52.07.03.2008",
+    "name": "Kelanir",
+    "district_id": "52.07.03"
+  },
+  {
+    "id": "52.07.03.2011",
+    "name": "Tapir",
+    "district_id": "52.07.03"
+  },
+  {
+    "id": "52.07.03.2013",
+    "name": "Lamusung",
+    "district_id": "52.07.03"
+  },
+  {
+    "id": "52.07.03.2014",
+    "name": "Seran",
+    "district_id": "52.07.03"
+  },
+  {
+    "id": "52.07.03.2015",
+    "name": "Desaloka",
+    "district_id": "52.07.03"
+  },
+  {
+    "id": "52.07.04.2001",
+    "name": "Sekongkang Atas",
+    "district_id": "52.07.04"
+  },
+  {
+    "id": "52.07.04.2002",
+    "name": "Sekongkang Bawah",
+    "district_id": "52.07.04"
+  },
+  {
+    "id": "52.07.04.2003",
+    "name": "Tongo",
+    "district_id": "52.07.04"
+  },
+  {
+    "id": "52.07.04.2004",
+    "name": "Ai Kangkung",
+    "district_id": "52.07.04"
+  },
+  {
+    "id": "52.07.04.2005",
+    "name": "Tatar",
+    "district_id": "52.07.04"
+  },
+  {
+    "id": "52.07.04.2006",
+    "name": "Talonang Baru",
+    "district_id": "52.07.04"
+  },
+  {
+    "id": "52.07.04.2007",
+    "name": "Kemuning",
+    "district_id": "52.07.04"
+  },
+  {
+    "id": "52.07.05.2001",
+    "name": "Desa Beru",
+    "district_id": "52.07.05"
+  },
+  {
+    "id": "52.07.05.2002",
+    "name": "Tepas",
+    "district_id": "52.07.05"
+  },
+  {
+    "id": "52.07.05.2003",
+    "name": "Bangkat Monteh",
+    "district_id": "52.07.05"
+  },
+  {
+    "id": "52.07.05.2004",
+    "name": "Sapugara Bree",
+    "district_id": "52.07.05"
+  },
+  {
+    "id": "52.07.05.2005",
+    "name": "Tepas Sepakat",
+    "district_id": "52.07.05"
+  },
+  {
+    "id": "52.07.05.2006",
+    "name": "Lamuntet",
+    "district_id": "52.07.05"
+  },
+  {
+    "id": "52.07.05.2007",
+    "name": "Rarak Ronges",
+    "district_id": "52.07.05"
+  },
+  {
+    "id": "52.07.05.2008",
+    "name": "Moteng",
+    "district_id": "52.07.05"
+  },
+  {
+    "id": "52.07.05.2009",
+    "name": "Seminar Salit",
+    "district_id": "52.07.05"
+  },
+  {
+    "id": "52.07.06.2001",
+    "name": "Senayan",
+    "district_id": "52.07.06"
+  },
+  {
+    "id": "52.07.06.2002",
+    "name": "Mantar",
+    "district_id": "52.07.06"
+  },
+  {
+    "id": "52.07.06.2003",
+    "name": "Kiantar",
+    "district_id": "52.07.06"
+  },
+  {
+    "id": "52.07.06.2004",
+    "name": "Poto Tano",
+    "district_id": "52.07.06"
+  },
+  {
+    "id": "52.07.06.2005",
+    "name": "UPT Tambak Sari",
+    "district_id": "52.07.06"
+  },
+  {
+    "id": "52.07.06.2006",
+    "name": "Kokarlian",
+    "district_id": "52.07.06"
+  },
+  {
+    "id": "52.07.06.2007",
+    "name": "Tebo",
+    "district_id": "52.07.06"
+  },
+  {
+    "id": "52.07.06.2008",
+    "name": "Tuananga",
+    "district_id": "52.07.06"
+  },
+  {
+    "id": "52.07.07.2001",
+    "name": "Mura",
+    "district_id": "52.07.07"
+  },
+  {
+    "id": "52.07.07.2002",
+    "name": "Kalimantong",
+    "district_id": "52.07.07"
+  },
+  {
+    "id": "52.07.07.2003",
+    "name": "Lampok",
+    "district_id": "52.07.07"
+  },
+  {
+    "id": "52.07.07.2004",
+    "name": "Manemeng",
+    "district_id": "52.07.07"
+  },
+  {
+    "id": "52.07.07.2005",
+    "name": "Mujahiddin",
+    "district_id": "52.07.07"
+  },
+  {
+    "id": "52.07.07.2006",
+    "name": "Mataiyang",
+    "district_id": "52.07.07"
+  },
+  {
+    "id": "52.07.08.2001",
+    "name": "Maluk",
+    "district_id": "52.07.08"
+  },
+  {
+    "id": "52.07.08.2002",
+    "name": "Benete",
+    "district_id": "52.07.08"
+  },
+  {
+    "id": "52.07.08.2003",
+    "name": "Bukit Damai",
+    "district_id": "52.07.08"
+  },
+  {
+    "id": "52.07.08.2004",
+    "name": "Mantun",
+    "district_id": "52.07.08"
+  },
+  {
+    "id": "52.07.08.2005",
+    "name": "Pasir Putih",
+    "district_id": "52.07.08"
+  },
+  {
+    "id": "52.08.01.2001",
+    "name": "Tanjung",
+    "district_id": "52.08.01"
+  },
+  {
+    "id": "52.08.01.2002",
+    "name": "Sokong",
+    "district_id": "52.08.01"
+  },
+  {
+    "id": "52.08.01.2003",
+    "name": "Jenggala",
+    "district_id": "52.08.01"
+  },
+  {
+    "id": "52.08.01.2004",
+    "name": "Tegal Maja",
+    "district_id": "52.08.01"
+  },
+  {
+    "id": "52.08.01.2005",
+    "name": "Sigar Penjalin",
+    "district_id": "52.08.01"
+  },
+  {
+    "id": "52.08.01.2006",
+    "name": "Medana",
+    "district_id": "52.08.01"
+  },
+  {
+    "id": "52.08.01.2007",
+    "name": "Teniga",
+    "district_id": "52.08.01"
+  },
+  {
+    "id": "52.08.01.2008",
+    "name": "Sama Guna",
+    "district_id": "52.08.01"
+  },
+  {
+    "id": "52.08.02.2001",
+    "name": "Gondang",
+    "district_id": "52.08.02"
+  },
+  {
+    "id": "52.08.02.2002",
+    "name": "Bentek",
+    "district_id": "52.08.02"
+  },
+  {
+    "id": "52.08.02.2003",
+    "name": "Genggelang",
+    "district_id": "52.08.02"
+  },
+  {
+    "id": "52.08.02.2004",
+    "name": "Rempek",
+    "district_id": "52.08.02"
+  },
+  {
+    "id": "52.08.02.2005",
+    "name": "Sambik Bangkol",
+    "district_id": "52.08.02"
+  },
+  {
+    "id": "52.08.02.2006",
+    "name": "Selelos",
+    "district_id": "52.08.02"
+  },
+  {
+    "id": "52.08.02.2007",
+    "name": "Rempek Darussalam",
+    "district_id": "52.08.02"
+  },
+  {
+    "id": "52.08.02.2008",
+    "name": "Segara Katon",
+    "district_id": "52.08.02"
+  },
+  {
+    "id": "52.08.03.2001",
+    "name": "Kayangan",
+    "district_id": "52.08.03"
+  },
+  {
+    "id": "52.08.03.2002",
+    "name": "Santong",
+    "district_id": "52.08.03"
+  },
+  {
+    "id": "52.08.03.2003",
+    "name": "Selengen",
+    "district_id": "52.08.03"
+  },
+  {
+    "id": "52.08.03.2004",
+    "name": "Sesait",
+    "district_id": "52.08.03"
+  },
+  {
+    "id": "52.08.03.2005",
+    "name": "Gumantar",
+    "district_id": "52.08.03"
+  },
+  {
+    "id": "52.08.03.2006",
+    "name": "Salut",
+    "district_id": "52.08.03"
+  },
+  {
+    "id": "52.08.03.2007",
+    "name": "Dangiang",
+    "district_id": "52.08.03"
+  },
+  {
+    "id": "52.08.03.2008",
+    "name": "Pendua",
+    "district_id": "52.08.03"
+  },
+  {
+    "id": "52.08.03.2009",
+    "name": "Pansor",
+    "district_id": "52.08.03"
+  },
+  {
+    "id": "52.08.03.2010",
+    "name": "Santong Mulia",
+    "district_id": "52.08.03"
+  },
+  {
+    "id": "52.08.04.2001",
+    "name": "Bayan",
+    "district_id": "52.08.04"
+  },
+  {
+    "id": "52.08.04.2002",
+    "name": "Loloan",
+    "district_id": "52.08.04"
+  },
+  {
+    "id": "52.08.04.2003",
+    "name": "Anyar",
+    "district_id": "52.08.04"
+  },
+  {
+    "id": "52.08.04.2004",
+    "name": "Sukadana",
+    "district_id": "52.08.04"
+  },
+  {
+    "id": "52.08.04.2005",
+    "name": "Akar Akar",
+    "district_id": "52.08.04"
+  },
+  {
+    "id": "52.08.04.2006",
+    "name": "Senaru",
+    "district_id": "52.08.04"
+  },
+  {
+    "id": "52.08.04.2007",
+    "name": "Mumbul Sari",
+    "district_id": "52.08.04"
+  },
+  {
+    "id": "52.08.04.2008",
+    "name": "Sambik Elen",
+    "district_id": "52.08.04"
+  },
+  {
+    "id": "52.08.04.2009",
+    "name": "Karang Bajo",
+    "district_id": "52.08.04"
+  },
+  {
+    "id": "52.08.04.2010",
+    "name": "Gunjan Asri",
+    "district_id": "52.08.04"
+  },
+  {
+    "id": "52.08.04.2011",
+    "name": "Andalan",
+    "district_id": "52.08.04"
+  },
+  {
+    "id": "52.08.04.2012",
+    "name": "Batu Rakit",
+    "district_id": "52.08.04"
+  },
+  {
+    "id": "52.08.05.2001",
+    "name": "Pemenang Timur",
+    "district_id": "52.08.05"
+  },
+  {
+    "id": "52.08.05.2002",
+    "name": "Pemenang Barat",
+    "district_id": "52.08.05"
+  },
+  {
+    "id": "52.08.05.2003",
+    "name": "Gili Indah",
+    "district_id": "52.08.05"
+  },
+  {
+    "id": "52.08.05.2004",
+    "name": "Malaka",
+    "district_id": "52.08.05"
+  },
+  {
+    "id": "52.08.05.2005",
+    "name": "Menggala",
+    "district_id": "52.08.05"
+  },
+  {
+    "id": "52.71.01.1004",
+    "name": "Ampenan Selatan",
+    "district_id": "52.71.01"
+  },
+  {
+    "id": "52.71.01.1005",
+    "name": "Ampenan Tengah",
+    "district_id": "52.71.01"
+  },
+  {
+    "id": "52.71.01.1006",
+    "name": "Pejeruk",
+    "district_id": "52.71.01"
+  },
+  {
+    "id": "52.71.01.1007",
+    "name": "Ampenan Utara",
+    "district_id": "52.71.01"
+  },
+  {
+    "id": "52.71.01.1008",
+    "name": "Taman Sari",
+    "district_id": "52.71.01"
+  },
+  {
+    "id": "52.71.01.1009",
+    "name": "Banjar",
+    "district_id": "52.71.01"
+  },
+  {
+    "id": "52.71.01.1010",
+    "name": "Kebun Sari",
+    "district_id": "52.71.01"
+  },
+  {
+    "id": "52.71.01.1011",
+    "name": "Pejarakan Karya",
+    "district_id": "52.71.01"
+  },
+  {
+    "id": "52.71.01.1012",
+    "name": "Dayan Peken",
+    "district_id": "52.71.01"
+  },
+  {
+    "id": "52.71.01.1013",
+    "name": "Bintaro",
+    "district_id": "52.71.01"
+  },
+  {
+    "id": "52.71.02.1001",
+    "name": "Pagesangan",
+    "district_id": "52.71.02"
+  },
+  {
+    "id": "52.71.02.1002",
+    "name": "Mataram Timur",
+    "district_id": "52.71.02"
+  },
+  {
+    "id": "52.71.02.1008",
+    "name": "Pagutan",
+    "district_id": "52.71.02"
+  },
+  {
+    "id": "52.71.02.1009",
+    "name": "Pagesangan Barat",
+    "district_id": "52.71.02"
+  },
+  {
+    "id": "52.71.02.1010",
+    "name": "Pagesangan Timur",
+    "district_id": "52.71.02"
+  },
+  {
+    "id": "52.71.02.1011",
+    "name": "Pejanggik",
+    "district_id": "52.71.02"
+  },
+  {
+    "id": "52.71.02.1012",
+    "name": "Punia",
+    "district_id": "52.71.02"
+  },
+  {
+    "id": "52.71.02.1013",
+    "name": "Pagutan Timur",
+    "district_id": "52.71.02"
+  },
+  {
+    "id": "52.71.02.1014",
+    "name": "Pagutan Barat",
+    "district_id": "52.71.02"
+  },
+  {
+    "id": "52.71.03.1004",
+    "name": "Cakranegara Selatan",
+    "district_id": "52.71.03"
+  },
+  {
+    "id": "52.71.03.1005",
+    "name": "Cakranegara Barat",
+    "district_id": "52.71.03"
+  },
+  {
+    "id": "52.71.03.1006",
+    "name": "Cakranegara Timur",
+    "district_id": "52.71.03"
+  },
+  {
+    "id": "52.71.03.1007",
+    "name": "Cakranegara Utara",
+    "district_id": "52.71.03"
+  },
+  {
+    "id": "52.71.03.1009",
+    "name": "Sayang-sayang",
+    "district_id": "52.71.03"
+  },
+  {
+    "id": "52.71.03.1010",
+    "name": "Cakranegara Selatan Baru",
+    "district_id": "52.71.03"
+  },
+  {
+    "id": "52.71.03.1011",
+    "name": "Sapta Marga",
+    "district_id": "52.71.03"
+  },
+  {
+    "id": "52.71.03.1012",
+    "name": "Cilinaya",
+    "district_id": "52.71.03"
+  },
+  {
+    "id": "52.71.03.1013",
+    "name": "Mayura",
+    "district_id": "52.71.03"
+  },
+  {
+    "id": "52.71.03.1014",
+    "name": "Karang Taliwang",
+    "district_id": "52.71.03"
+  },
+  {
+    "id": "52.71.04.1001",
+    "name": "Karang Pule",
+    "district_id": "52.71.04"
+  },
+  {
+    "id": "52.71.04.1002",
+    "name": "Tanjung Karang",
+    "district_id": "52.71.04"
+  },
+  {
+    "id": "52.71.04.1003",
+    "name": "Jempong Baru",
+    "district_id": "52.71.04"
+  },
+  {
+    "id": "52.71.04.1004",
+    "name": "Tanjung Karang Permai",
+    "district_id": "52.71.04"
+  },
+  {
+    "id": "52.71.04.1005",
+    "name": "Kekalik Jaya",
+    "district_id": "52.71.04"
+  },
+  {
+    "id": "52.71.05.1001",
+    "name": "Mataram Barat",
+    "district_id": "52.71.05"
+  },
+  {
+    "id": "52.71.05.1002",
+    "name": "Dasan Agung",
+    "district_id": "52.71.05"
+  },
+  {
+    "id": "52.71.05.1003",
+    "name": "Monjok",
+    "district_id": "52.71.05"
+  },
+  {
+    "id": "52.71.05.1004",
+    "name": "Karang Baru",
+    "district_id": "52.71.05"
+  },
+  {
+    "id": "52.71.05.1005",
+    "name": "Rembiga",
+    "district_id": "52.71.05"
+  },
+  {
+    "id": "52.71.05.1006",
+    "name": "Gomong",
+    "district_id": "52.71.05"
+  },
+  {
+    "id": "52.71.05.1007",
+    "name": "Dasan Agung Baru",
+    "district_id": "52.71.05"
+  },
+  {
+    "id": "52.71.05.1008",
+    "name": "Monjok Timur",
+    "district_id": "52.71.05"
+  },
+  {
+    "id": "52.71.05.1009",
+    "name": "Monjok Barat",
+    "district_id": "52.71.05"
+  },
+  {
+    "id": "52.71.06.1001",
+    "name": "Dasan Cermen",
+    "district_id": "52.71.06"
+  },
+  {
+    "id": "52.71.06.1002",
+    "name": "Babakan",
+    "district_id": "52.71.06"
+  },
+  {
+    "id": "52.71.06.1003",
+    "name": "Bertais",
+    "district_id": "52.71.06"
+  },
+  {
+    "id": "52.71.06.1004",
+    "name": "Selagalas",
+    "district_id": "52.71.06"
+  },
+  {
+    "id": "52.71.06.1005",
+    "name": "Abian Tubuh Baru",
+    "district_id": "52.71.06"
+  },
+  {
+    "id": "52.71.06.1006",
+    "name": "Turida",
+    "district_id": "52.71.06"
+  },
+  {
+    "id": "52.71.06.1007",
+    "name": "Mandalika",
+    "district_id": "52.71.06"
+  },
+  {
+    "id": "52.72.01.1001",
+    "name": "Paruga",
+    "district_id": "52.72.01"
+  },
+  {
+    "id": "52.72.01.1002",
+    "name": "Nae",
+    "district_id": "52.72.01"
+  },
+  {
+    "id": "52.72.01.1003",
+    "name": "Sarae",
+    "district_id": "52.72.01"
+  },
+  {
+    "id": "52.72.01.1004",
+    "name": "Tanjung",
+    "district_id": "52.72.01"
+  },
+  {
+    "id": "52.72.01.1013",
+    "name": "Pane",
+    "district_id": "52.72.01"
+  },
+  {
+    "id": "52.72.01.1014",
+    "name": "Dara",
+    "district_id": "52.72.01"
+  },
+  {
+    "id": "52.72.02.1004",
+    "name": "Kumbe",
+    "district_id": "52.72.02"
+  },
+  {
+    "id": "52.72.02.1008",
+    "name": "Lampe",
+    "district_id": "52.72.02"
+  },
+  {
+    "id": "52.72.02.1009",
+    "name": "Dodu",
+    "district_id": "52.72.02"
+  },
+  {
+    "id": "52.72.02.1011",
+    "name": "Nungga",
+    "district_id": "52.72.02"
+  },
+  {
+    "id": "52.72.02.1018",
+    "name": "Kodo",
+    "district_id": "52.72.02"
+  },
+  {
+    "id": "52.72.02.1020",
+    "name": "Lelamase",
+    "district_id": "52.72.02"
+  },
+  {
+    "id": "52.72.02.1021",
+    "name": "Oimbo",
+    "district_id": "52.72.02"
+  },
+  {
+    "id": "52.72.03.1001",
+    "name": "Melayu",
+    "district_id": "52.72.03"
+  },
+  {
+    "id": "52.72.03.1002",
+    "name": "Jatiwangi",
+    "district_id": "52.72.03"
+  },
+  {
+    "id": "52.72.03.1003",
+    "name": "Jatibaru",
+    "district_id": "52.72.03"
+  },
+  {
+    "id": "52.72.03.1004",
+    "name": "Kolo",
+    "district_id": "52.72.03"
+  },
+  {
+    "id": "52.72.03.1005",
+    "name": "Jatibaru Timur",
+    "district_id": "52.72.03"
+  },
+  {
+    "id": "52.72.03.1006",
+    "name": "Ule",
+    "district_id": "52.72.03"
+  },
+  {
+    "id": "52.72.04.1001",
+    "name": "Penaraga",
+    "district_id": "52.72.04"
+  },
+  {
+    "id": "52.72.04.1002",
+    "name": "Rontu",
+    "district_id": "52.72.04"
+  },
+  {
+    "id": "52.72.04.1003",
+    "name": "PenanaE",
+    "district_id": "52.72.04"
+  },
+  {
+    "id": "52.72.04.1004",
+    "name": "Kendo",
+    "district_id": "52.72.04"
+  },
+  {
+    "id": "52.72.04.1005",
+    "name": "Ntobo",
+    "district_id": "52.72.04"
+  },
+  {
+    "id": "52.72.04.1006",
+    "name": "Nitu",
+    "district_id": "52.72.04"
+  },
+  {
+    "id": "52.72.04.1007",
+    "name": "Rabangodu Selatan",
+    "district_id": "52.72.04"
+  },
+  {
+    "id": "52.72.04.1008",
+    "name": "Rabadompu Timur",
+    "district_id": "52.72.04"
+  },
+  {
+    "id": "52.72.04.1009",
+    "name": "Rite",
+    "district_id": "52.72.04"
+  },
+  {
+    "id": "52.72.04.1010",
+    "name": "Rabadompu Barat",
+    "district_id": "52.72.04"
+  },
+  {
+    "id": "52.72.04.1011",
+    "name": "Rabangodu Utara",
+    "district_id": "52.72.04"
+  },
+  {
+    "id": "52.72.05.1001",
+    "name": "Monggonao",
+    "district_id": "52.72.05"
+  },
+  {
+    "id": "52.72.05.1002",
+    "name": "Sadia",
+    "district_id": "52.72.05"
+  },
+  {
+    "id": "52.72.05.1003",
+    "name": "Santi",
+    "district_id": "52.72.05"
+  },
+  {
+    "id": "52.72.05.1004",
+    "name": "Sambinae",
+    "district_id": "52.72.05"
+  },
+  {
+    "id": "52.72.05.1005",
+    "name": "Penatoi",
+    "district_id": "52.72.05"
+  },
+  {
+    "id": "52.72.05.1006",
+    "name": "Lewirato",
+    "district_id": "52.72.05"
+  },
+  {
+    "id": "52.72.05.1007",
+    "name": "Mande",
+    "district_id": "52.72.05"
+  },
+  {
+    "id": "52.72.05.1008",
+    "name": "Panggi",
+    "district_id": "52.72.05"
+  },
+  {
+    "id": "52.72.05.1009",
+    "name": "Manggemaci",
+    "district_id": "52.72.05"
+  },
+  {
+    "id": "53.01.04.2003",
+    "name": "Bokonusan",
+    "district_id": "53.01.04"
+  },
+  {
+    "id": "53.01.04.2004",
+    "name": "Otan",
+    "district_id": "53.01.04"
+  },
+  {
+    "id": "53.01.04.2005",
+    "name": "Uitao",
+    "district_id": "53.01.04"
+  },
+  {
+    "id": "53.01.04.2006",
+    "name": "Uiasa",
+    "district_id": "53.01.04"
+  },
+  {
+    "id": "53.01.04.2008",
+    "name": "Hansisi",
+    "district_id": "53.01.04"
+  },
+  {
+    "id": "53.01.04.2009",
+    "name": "Huilelot",
+    "district_id": "53.01.04"
+  },
+  {
+    "id": "53.01.04.2011",
+    "name": "Batuinan",
+    "district_id": "53.01.04"
+  },
+  {
+    "id": "53.01.04.2013",
+    "name": "Letbaun",
+    "district_id": "53.01.04"
+  },
+  {
+    "id": "53.01.05.1001",
+    "name": "Oenesu",
+    "district_id": "53.01.05"
+  },
+  {
+    "id": "53.01.05.1002",
+    "name": "Batakte",
+    "district_id": "53.01.05"
+  },
+  {
+    "id": "53.01.05.2003",
+    "name": "Manulai I",
+    "district_id": "53.01.05"
+  },
+  {
+    "id": "53.01.05.2004",
+    "name": "Sumlili",
+    "district_id": "53.01.05"
+  },
+  {
+    "id": "53.01.05.2005",
+    "name": "Lifuleo",
+    "district_id": "53.01.05"
+  },
+  {
+    "id": "53.01.05.2006",
+    "name": "Tesabela",
+    "district_id": "53.01.05"
+  },
+  {
+    "id": "53.01.05.2007",
+    "name": "Oematnunu",
+    "district_id": "53.01.05"
+  },
+  {
+    "id": "53.01.05.2008",
+    "name": "Kuanheun",
+    "district_id": "53.01.05"
+  },
+  {
+    "id": "53.01.05.2009",
+    "name": "Nitneo",
+    "district_id": "53.01.05"
+  },
+  {
+    "id": "53.01.05.2010",
+    "name": "Bolok",
+    "district_id": "53.01.05"
+  },
+  {
+    "id": "53.01.05.2011",
+    "name": "Tablolong",
+    "district_id": "53.01.05"
+  },
+  {
+    "id": "53.01.05.2012",
+    "name": "Oenaek",
+    "district_id": "53.01.05"
+  },
+  {
+    "id": "53.01.06.1001",
+    "name": "Babau",
+    "district_id": "53.01.06"
+  },
+  {
+    "id": "53.01.06.1003",
+    "name": "Naibonat",
+    "district_id": "53.01.06"
+  },
+  {
+    "id": "53.01.06.1004",
+    "name": "Oesao",
+    "district_id": "53.01.06"
+  },
+  {
+    "id": "53.01.06.1005",
+    "name": "Merdeka",
+    "district_id": "53.01.06"
+  },
+  {
+    "id": "53.01.06.1008",
+    "name": "Tuatuka",
+    "district_id": "53.01.06"
+  },
+  {
+    "id": "53.01.06.2002",
+    "name": "Nunkurus",
+    "district_id": "53.01.06"
+  },
+  {
+    "id": "53.01.06.2006",
+    "name": "Tuapukan",
+    "district_id": "53.01.06"
+  },
+  {
+    "id": "53.01.06.2007",
+    "name": "Oefafi",
+    "district_id": "53.01.06"
+  },
+  {
+    "id": "53.01.06.2011",
+    "name": "Pukdale",
+    "district_id": "53.01.06"
+  },
+  {
+    "id": "53.01.06.2015",
+    "name": "Oesao",
+    "district_id": "53.01.06"
+  },
+  {
+    "id": "53.01.06.2016",
+    "name": "Manusak",
+    "district_id": "53.01.06"
+  },
+  {
+    "id": "53.01.06.2017",
+    "name": "Tanah Putih",
+    "district_id": "53.01.06"
+  },
+  {
+    "id": "53.01.06.2018",
+    "name": "Oelatimo",
+    "district_id": "53.01.06"
+  },
+  {
+    "id": "53.01.07.1001",
+    "name": "Sulamu",
+    "district_id": "53.01.07"
+  },
+  {
+    "id": "53.01.07.2002",
+    "name": "Pitai",
+    "district_id": "53.01.07"
+  },
+  {
+    "id": "53.01.07.2003",
+    "name": "Pariti",
+    "district_id": "53.01.07"
+  },
+  {
+    "id": "53.01.07.2004",
+    "name": "Oeteta",
+    "district_id": "53.01.07"
+  },
+  {
+    "id": "53.01.07.2005",
+    "name": "Bipolo",
+    "district_id": "53.01.07"
+  },
+  {
+    "id": "53.01.07.2006",
+    "name": "Pantai Beringin",
+    "district_id": "53.01.07"
+  },
+  {
+    "id": "53.01.07.2007",
+    "name": "Pantulan",
+    "district_id": "53.01.07"
+  },
+  {
+    "id": "53.01.08.1007",
+    "name": "Tarus",
+    "district_id": "53.01.08"
+  },
+  {
+    "id": "53.01.08.2006",
+    "name": "Oelnasi",
+    "district_id": "53.01.08"
+  },
+  {
+    "id": "53.01.08.2008",
+    "name": "Noelbaki",
+    "district_id": "53.01.08"
+  },
+  {
+    "id": "53.01.08.2009",
+    "name": "Oelpuah",
+    "district_id": "53.01.08"
+  },
+  {
+    "id": "53.01.08.2010",
+    "name": "Oebelo",
+    "district_id": "53.01.08"
+  },
+  {
+    "id": "53.01.08.2011",
+    "name": "Penfui Timur",
+    "district_id": "53.01.08"
+  },
+  {
+    "id": "53.01.08.2012",
+    "name": "Tanah Merah",
+    "district_id": "53.01.08"
+  },
+  {
+    "id": "53.01.08.2013",
+    "name": "Mata Air",
+    "district_id": "53.01.08"
+  },
+  {
+    "id": "53.01.09.1002",
+    "name": "Nonbes",
+    "district_id": "53.01.09"
+  },
+  {
+    "id": "53.01.09.2001",
+    "name": "Oesena",
+    "district_id": "53.01.09"
+  },
+  {
+    "id": "53.01.09.2003",
+    "name": "Ponain",
+    "district_id": "53.01.09"
+  },
+  {
+    "id": "53.01.09.2004",
+    "name": "Kotabes",
+    "district_id": "53.01.09"
+  },
+  {
+    "id": "53.01.09.2005",
+    "name": "Tesbatan",
+    "district_id": "53.01.09"
+  },
+  {
+    "id": "53.01.09.2006",
+    "name": "Oenoni",
+    "district_id": "53.01.09"
+  },
+  {
+    "id": "53.01.09.2007",
+    "name": "Apren",
+    "district_id": "53.01.09"
+  },
+  {
+    "id": "53.01.09.2008",
+    "name": "Oenoni II",
+    "district_id": "53.01.09"
+  },
+  {
+    "id": "53.01.09.2009",
+    "name": "Tesbatan II",
+    "district_id": "53.01.09"
+  },
+  {
+    "id": "53.01.10.1001",
+    "name": "Camplong I",
+    "district_id": "53.01.10"
+  },
+  {
+    "id": "53.01.10.2007",
+    "name": "Camplong II",
+    "district_id": "53.01.10"
+  },
+  {
+    "id": "53.01.10.2008",
+    "name": "Naunnu",
+    "district_id": "53.01.10"
+  },
+  {
+    "id": "53.01.10.2009",
+    "name": "Oebola",
+    "district_id": "53.01.10"
+  },
+  {
+    "id": "53.01.10.2010",
+    "name": "Sillu",
+    "district_id": "53.01.10"
+  },
+  {
+    "id": "53.01.10.2011",
+    "name": "Ekateta",
+    "district_id": "53.01.10"
+  },
+  {
+    "id": "53.01.10.2012",
+    "name": "Kuimasi",
+    "district_id": "53.01.10"
+  },
+  {
+    "id": "53.01.10.2013",
+    "name": "Tolnaku",
+    "district_id": "53.01.10"
+  },
+  {
+    "id": "53.01.10.2014",
+    "name": "Oebola Dalam",
+    "district_id": "53.01.10"
+  },
+  {
+    "id": "53.01.10.2015",
+    "name": "Kiuoni",
+    "district_id": "53.01.10"
+  },
+  {
+    "id": "53.01.11.1007",
+    "name": "Takari",
+    "district_id": "53.01.11"
+  },
+  {
+    "id": "53.01.11.2001",
+    "name": "Noelmina",
+    "district_id": "53.01.11"
+  },
+  {
+    "id": "53.01.11.2002",
+    "name": "Benu",
+    "district_id": "53.01.11"
+  },
+  {
+    "id": "53.01.11.2003",
+    "name": "Hueknutu",
+    "district_id": "53.01.11"
+  },
+  {
+    "id": "53.01.11.2004",
+    "name": "Oelnaineno",
+    "district_id": "53.01.11"
+  },
+  {
+    "id": "53.01.11.2005",
+    "name": "Tanini",
+    "district_id": "53.01.11"
+  },
+  {
+    "id": "53.01.11.2006",
+    "name": "Kauniki",
+    "district_id": "53.01.11"
+  },
+  {
+    "id": "53.01.11.2008",
+    "name": "Tuapanaf",
+    "district_id": "53.01.11"
+  },
+  {
+    "id": "53.01.11.2009",
+    "name": "Fatukona",
+    "district_id": "53.01.11"
+  },
+  {
+    "id": "53.01.11.2010",
+    "name": "Oesusu",
+    "district_id": "53.01.11"
+  },
+  {
+    "id": "53.01.12.1003",
+    "name": "Lelogama",
+    "district_id": "53.01.12"
+  },
+  {
+    "id": "53.01.12.2001",
+    "name": "Fatusuki",
+    "district_id": "53.01.12"
+  },
+  {
+    "id": "53.01.12.2002",
+    "name": "Oelbanu",
+    "district_id": "53.01.12"
+  },
+  {
+    "id": "53.01.12.2004",
+    "name": "Fatumetan",
+    "district_id": "53.01.12"
+  },
+  {
+    "id": "53.01.12.2008",
+    "name": "Leloboko",
+    "district_id": "53.01.12"
+  },
+  {
+    "id": "53.01.13.1002",
+    "name": "Naikliu",
+    "district_id": "53.01.13"
+  },
+  {
+    "id": "53.01.13.2001",
+    "name": "Afoan",
+    "district_id": "53.01.13"
+  },
+  {
+    "id": "53.01.13.2003",
+    "name": "Fatunaus",
+    "district_id": "53.01.13"
+  },
+  {
+    "id": "53.01.13.2004",
+    "name": "Kolabe",
+    "district_id": "53.01.13"
+  },
+  {
+    "id": "53.01.13.2005",
+    "name": "Bakuin",
+    "district_id": "53.01.13"
+  },
+  {
+    "id": "53.01.13.2010",
+    "name": "Lilmus",
+    "district_id": "53.01.13"
+  },
+  {
+    "id": "53.01.16.2001",
+    "name": "Oelomin",
+    "district_id": "53.01.16"
+  },
+  {
+    "id": "53.01.16.2002",
+    "name": "Tasikona",
+    "district_id": "53.01.16"
+  },
+  {
+    "id": "53.01.16.2003",
+    "name": "Oemasi",
+    "district_id": "53.01.16"
+  },
+  {
+    "id": "53.01.16.2004",
+    "name": "Usapi Sonbai",
+    "district_id": "53.01.16"
+  },
+  {
+    "id": "53.01.16.2005",
+    "name": "Oenif",
+    "district_id": "53.01.16"
+  },
+  {
+    "id": "53.01.16.2006",
+    "name": "Tunfeu",
+    "district_id": "53.01.16"
+  },
+  {
+    "id": "53.01.16.2007",
+    "name": "Oepaha",
+    "district_id": "53.01.16"
+  },
+  {
+    "id": "53.01.16.2008",
+    "name": "Bone",
+    "district_id": "53.01.16"
+  },
+  {
+    "id": "53.01.16.2009",
+    "name": "Taloetan",
+    "district_id": "53.01.16"
+  },
+  {
+    "id": "53.01.16.2010",
+    "name": "Oben",
+    "district_id": "53.01.16"
+  },
+  {
+    "id": "53.01.16.2011",
+    "name": "Bismarak",
+    "district_id": "53.01.16"
+  },
+  {
+    "id": "53.01.17.1001",
+    "name": "Teunbaun",
+    "district_id": "53.01.17"
+  },
+  {
+    "id": "53.01.17.2002",
+    "name": "Soba",
+    "district_id": "53.01.17"
+  },
+  {
+    "id": "53.01.17.2003",
+    "name": "Toobaun",
+    "district_id": "53.01.17"
+  },
+  {
+    "id": "53.01.17.2004",
+    "name": "Niukbaun",
+    "district_id": "53.01.17"
+  },
+  {
+    "id": "53.01.17.2005",
+    "name": "Tunbaun",
+    "district_id": "53.01.17"
+  },
+  {
+    "id": "53.01.17.2006",
+    "name": "Nekbaun",
+    "district_id": "53.01.17"
+  },
+  {
+    "id": "53.01.17.2007",
+    "name": "Merbaun",
+    "district_id": "53.01.17"
+  },
+  {
+    "id": "53.01.17.2008",
+    "name": "Erbaun",
+    "district_id": "53.01.17"
+  },
+  {
+    "id": "53.01.18.1001",
+    "name": "Buraen",
+    "district_id": "53.01.18"
+  },
+  {
+    "id": "53.01.18.1002",
+    "name": "Sonraen",
+    "district_id": "53.01.18"
+  },
+  {
+    "id": "53.01.18.2003",
+    "name": "Nekmese",
+    "district_id": "53.01.18"
+  },
+  {
+    "id": "53.01.18.2004",
+    "name": "Retraen",
+    "district_id": "53.01.18"
+  },
+  {
+    "id": "53.01.18.2005",
+    "name": "Sahraen",
+    "district_id": "53.01.18"
+  },
+  {
+    "id": "53.01.19.2001",
+    "name": "Oebesi",
+    "district_id": "53.01.19"
+  },
+  {
+    "id": "53.01.19.2002",
+    "name": "Pakubaun",
+    "district_id": "53.01.19"
+  },
+  {
+    "id": "53.01.19.2003",
+    "name": "Rabeka",
+    "district_id": "53.01.19"
+  },
+  {
+    "id": "53.01.19.2004",
+    "name": "Enoraen",
+    "district_id": "53.01.19"
+  },
+  {
+    "id": "53.01.20.2001",
+    "name": "Seki",
+    "district_id": "53.01.20"
+  },
+  {
+    "id": "53.01.20.2002",
+    "name": "Oemofa",
+    "district_id": "53.01.20"
+  },
+  {
+    "id": "53.01.20.2003",
+    "name": "Nunmafo",
+    "district_id": "53.01.20"
+  },
+  {
+    "id": "53.01.20.2004",
+    "name": "Muke",
+    "district_id": "53.01.20"
+  },
+  {
+    "id": "53.01.20.2005",
+    "name": "Pathau",
+    "district_id": "53.01.20"
+  },
+  {
+    "id": "53.01.20.2006",
+    "name": "Oeniko",
+    "district_id": "53.01.20"
+  },
+  {
+    "id": "53.01.20.2007",
+    "name": "Oenuntono",
+    "district_id": "53.01.20"
+  },
+  {
+    "id": "53.01.20.2008",
+    "name": "Oemolo",
+    "district_id": "53.01.20"
+  },
+  {
+    "id": "53.01.20.2009",
+    "name": "Enolanan",
+    "district_id": "53.01.20"
+  },
+  {
+    "id": "53.01.20.2010",
+    "name": "Oenaunu",
+    "district_id": "53.01.20"
+  },
+  {
+    "id": "53.01.21.2001",
+    "name": "Manubelon",
+    "district_id": "53.01.21"
+  },
+  {
+    "id": "53.01.21.2002",
+    "name": "Letkole",
+    "district_id": "53.01.21"
+  },
+  {
+    "id": "53.01.21.2003",
+    "name": "Nefoneut",
+    "district_id": "53.01.21"
+  },
+  {
+    "id": "53.01.21.2004",
+    "name": "Bioba Baru",
+    "district_id": "53.01.21"
+  },
+  {
+    "id": "53.01.22.2001",
+    "name": "Soliu",
+    "district_id": "53.01.22"
+  },
+  {
+    "id": "53.01.22.2002",
+    "name": "Saukibe",
+    "district_id": "53.01.22"
+  },
+  {
+    "id": "53.01.22.2003",
+    "name": "Oelfatu",
+    "district_id": "53.01.22"
+  },
+  {
+    "id": "53.01.22.2004",
+    "name": "Timau",
+    "district_id": "53.01.22"
+  },
+  {
+    "id": "53.01.22.2005",
+    "name": "Honuk",
+    "district_id": "53.01.22"
+  },
+  {
+    "id": "53.01.22.2006",
+    "name": "Faumes",
+    "district_id": "53.01.22"
+  },
+  {
+    "id": "53.01.23.2001",
+    "name": "Akle",
+    "district_id": "53.01.23"
+  },
+  {
+    "id": "53.01.23.2002",
+    "name": "Uitiuh Ana",
+    "district_id": "53.01.23"
+  },
+  {
+    "id": "53.01.23.2003",
+    "name": "Onansila",
+    "district_id": "53.01.23"
+  },
+  {
+    "id": "53.01.23.2004",
+    "name": "Uitiuh Tuan",
+    "district_id": "53.01.23"
+  },
+  {
+    "id": "53.01.23.2005",
+    "name": "Naikean",
+    "district_id": "53.01.23"
+  },
+  {
+    "id": "53.01.23.2006",
+    "name": "Uiboa",
+    "district_id": "53.01.23"
+  },
+  {
+    "id": "53.01.24.2001",
+    "name": "Oeltuah",
+    "district_id": "53.01.24"
+  },
+  {
+    "id": "53.01.24.2002",
+    "name": "Baumata",
+    "district_id": "53.01.24"
+  },
+  {
+    "id": "53.01.24.2003",
+    "name": "Kuaklalo",
+    "district_id": "53.01.24"
+  },
+  {
+    "id": "53.01.24.2004",
+    "name": "Oeletsala",
+    "district_id": "53.01.24"
+  },
+  {
+    "id": "53.01.24.2005",
+    "name": "Bokong",
+    "district_id": "53.01.24"
+  },
+  {
+    "id": "53.01.24.2006",
+    "name": "Baumata Utara",
+    "district_id": "53.01.24"
+  },
+  {
+    "id": "53.01.24.2007",
+    "name": "Baumata Timur",
+    "district_id": "53.01.24"
+  },
+  {
+    "id": "53.01.24.2008",
+    "name": "Baumata Barat",
+    "district_id": "53.01.24"
+  },
+  {
+    "id": "53.01.25.2001",
+    "name": "Fatukanutu",
+    "district_id": "53.01.25"
+  },
+  {
+    "id": "53.01.25.2002",
+    "name": "Kairane",
+    "district_id": "53.01.25"
+  },
+  {
+    "id": "53.01.25.2003",
+    "name": "Raknamo",
+    "district_id": "53.01.25"
+  },
+  {
+    "id": "53.01.25.2004",
+    "name": "Kuanheum",
+    "district_id": "53.01.25"
+  },
+  {
+    "id": "53.01.25.2005",
+    "name": "Fatuteta",
+    "district_id": "53.01.25"
+  },
+  {
+    "id": "53.01.25.2006",
+    "name": "Oefeto",
+    "district_id": "53.01.25"
+  },
+  {
+    "id": "53.01.25.2007",
+    "name": "Niunbaun",
+    "district_id": "53.01.25"
+  },
+  {
+    "id": "53.01.26.2001",
+    "name": "Nunuanah",
+    "district_id": "53.01.26"
+  },
+  {
+    "id": "53.01.26.2002",
+    "name": "Kifu",
+    "district_id": "53.01.26"
+  },
+  {
+    "id": "53.01.26.2003",
+    "name": "Netemnanu Selatan",
+    "district_id": "53.01.26"
+  },
+  {
+    "id": "53.01.26.2004",
+    "name": "Netemnanu Utara",
+    "district_id": "53.01.26"
+  },
+  {
+    "id": "53.01.26.2005",
+    "name": "Netemnanu",
+    "district_id": "53.01.26"
+  },
+  {
+    "id": "53.01.27.2001",
+    "name": "Poto",
+    "district_id": "53.01.27"
+  },
+  {
+    "id": "53.01.27.2002",
+    "name": "Nuataus",
+    "district_id": "53.01.27"
+  },
+  {
+    "id": "53.01.27.2003",
+    "name": "Kalali",
+    "district_id": "53.01.27"
+  },
+  {
+    "id": "53.01.27.2004",
+    "name": "Tuakau",
+    "district_id": "53.01.27"
+  },
+  {
+    "id": "53.01.27.2005",
+    "name": "Naitae",
+    "district_id": "53.01.27"
+  },
+  {
+    "id": "53.01.28.2001",
+    "name": "Oelbiteno",
+    "district_id": "53.01.28"
+  },
+  {
+    "id": "53.01.28.2002",
+    "name": "Nonbaun",
+    "district_id": "53.01.28"
+  },
+  {
+    "id": "53.01.28.2003",
+    "name": "Nunsaen",
+    "district_id": "53.01.28"
+  },
+  {
+    "id": "53.01.28.2004",
+    "name": "Passi",
+    "district_id": "53.01.28"
+  },
+  {
+    "id": "53.01.30.2001",
+    "name": "Fatumonas",
+    "district_id": "53.01.30"
+  },
+  {
+    "id": "53.01.30.2002",
+    "name": "Binafun",
+    "district_id": "53.01.30"
+  },
+  {
+    "id": "53.01.30.2003",
+    "name": "Bitobe",
+    "district_id": "53.01.30"
+  },
+  {
+    "id": "53.01.30.2004",
+    "name": "Bonmuti",
+    "district_id": "53.01.30"
+  },
+  {
+    "id": "53.02.01.1001",
+    "name": "SoE",
+    "district_id": "53.02.01"
+  },
+  {
+    "id": "53.02.01.1002",
+    "name": "Cendana",
+    "district_id": "53.02.01"
+  },
+  {
+    "id": "53.02.01.1003",
+    "name": "Oebesa",
+    "district_id": "53.02.01"
+  },
+  {
+    "id": "53.02.01.1004",
+    "name": "Taubneno",
+    "district_id": "53.02.01"
+  },
+  {
+    "id": "53.02.01.1005",
+    "name": "Nonohonis",
+    "district_id": "53.02.01"
+  },
+  {
+    "id": "53.02.01.1006",
+    "name": "Karang Sirih",
+    "district_id": "53.02.01"
+  },
+  {
+    "id": "53.02.01.1007",
+    "name": "Nunumeu",
+    "district_id": "53.02.01"
+  },
+  {
+    "id": "53.02.01.1008",
+    "name": "Kobekamusa",
+    "district_id": "53.02.01"
+  },
+  {
+    "id": "53.02.01.1009",
+    "name": "Oe Kefan",
+    "district_id": "53.02.01"
+  },
+  {
+    "id": "53.02.01.1010",
+    "name": "Kota Baru",
+    "district_id": "53.02.01"
+  },
+  {
+    "id": "53.02.01.1011",
+    "name": "Kampung Baru",
+    "district_id": "53.02.01"
+  },
+  {
+    "id": "53.02.01.2012",
+    "name": "Kuatae",
+    "district_id": "53.02.01"
+  },
+  {
+    "id": "53.02.01.2013",
+    "name": "Noemeto",
+    "district_id": "53.02.01"
+  },
+  {
+    "id": "53.02.02.2001",
+    "name": "Biloto",
+    "district_id": "53.02.02"
+  },
+  {
+    "id": "53.02.02.2003",
+    "name": "Kesetnana",
+    "district_id": "53.02.02"
+  },
+  {
+    "id": "53.02.02.2006",
+    "name": "Tuasene",
+    "district_id": "53.02.02"
+  },
+  {
+    "id": "53.02.02.2008",
+    "name": "Oinlasi",
+    "district_id": "53.02.02"
+  },
+  {
+    "id": "53.02.02.2010",
+    "name": "Bisene",
+    "district_id": "53.02.02"
+  },
+  {
+    "id": "53.02.02.2012",
+    "name": "Noinbila",
+    "district_id": "53.02.02"
+  },
+  {
+    "id": "53.02.02.2013",
+    "name": "Bikekneno",
+    "district_id": "53.02.02"
+  },
+  {
+    "id": "53.02.03.2002",
+    "name": "Eonbesi",
+    "district_id": "53.02.03"
+  },
+  {
+    "id": "53.02.03.2003",
+    "name": "Bosen",
+    "district_id": "53.02.03"
+  },
+  {
+    "id": "53.02.03.2004",
+    "name": "Sebot",
+    "district_id": "53.02.03"
+  },
+  {
+    "id": "53.02.03.2007",
+    "name": "Ajaobaki",
+    "district_id": "53.02.03"
+  },
+  {
+    "id": "53.02.03.2008",
+    "name": "Netpala",
+    "district_id": "53.02.03"
+  },
+  {
+    "id": "53.02.03.2009",
+    "name": "Tunua",
+    "district_id": "53.02.03"
+  },
+  {
+    "id": "53.02.03.2010",
+    "name": "Bijaepunu",
+    "district_id": "53.02.03"
+  },
+  {
+    "id": "53.02.03.2011",
+    "name": "Nefokoko",
+    "district_id": "53.02.03"
+  },
+  {
+    "id": "53.02.03.2012",
+    "name": "Leloboko",
+    "district_id": "53.02.03"
+  },
+  {
+    "id": "53.02.03.2013",
+    "name": "Lelobatan",
+    "district_id": "53.02.03"
+  },
+  {
+    "id": "53.02.03.2014",
+    "name": "Halmei",
+    "district_id": "53.02.03"
+  },
+  {
+    "id": "53.02.03.2015",
+    "name": "Fatukoto",
+    "district_id": "53.02.03"
+  },
+  {
+    "id": "53.02.03.2018",
+    "name": "Taiftob",
+    "district_id": "53.02.03"
+  },
+  {
+    "id": "53.02.03.2019",
+    "name": "Iusmolo",
+    "district_id": "53.02.03"
+  },
+  {
+    "id": "53.02.04.2001",
+    "name": "Billa",
+    "district_id": "53.02.04"
+  },
+  {
+    "id": "53.02.04.2002",
+    "name": "Oelet",
+    "district_id": "53.02.04"
+  },
+  {
+    "id": "53.02.04.2004",
+    "name": "Pisan",
+    "district_id": "53.02.04"
+  },
+  {
+    "id": "53.02.04.2005",
+    "name": "Mauleum",
+    "district_id": "53.02.04"
+  },
+  {
+    "id": "53.02.04.2007",
+    "name": "Nifukiu",
+    "district_id": "53.02.04"
+  },
+  {
+    "id": "53.02.04.2008",
+    "name": "Mnelaanen",
+    "district_id": "53.02.04"
+  },
+  {
+    "id": "53.02.04.2009",
+    "name": "Teluk",
+    "district_id": "53.02.04"
+  },
+  {
+    "id": "53.02.04.2016",
+    "name": "Sini",
+    "district_id": "53.02.04"
+  },
+  {
+    "id": "53.02.04.2017",
+    "name": "Tliu",
+    "district_id": "53.02.04"
+  },
+  {
+    "id": "53.02.05.1010",
+    "name": "Niki-Niki",
+    "district_id": "53.02.05"
+  },
+  {
+    "id": "53.02.05.2001",
+    "name": "Taebesa",
+    "district_id": "53.02.05"
+  },
+  {
+    "id": "53.02.05.2002",
+    "name": "Nakfunu",
+    "district_id": "53.02.05"
+  },
+  {
+    "id": "53.02.05.2004",
+    "name": "Baki",
+    "district_id": "53.02.05"
+  },
+  {
+    "id": "53.02.05.2005",
+    "name": "Tumu",
+    "district_id": "53.02.05"
+  },
+  {
+    "id": "53.02.05.2006",
+    "name": "Noebesa",
+    "district_id": "53.02.05"
+  },
+  {
+    "id": "53.02.05.2007",
+    "name": "Nobi-Nobi",
+    "district_id": "53.02.05"
+  },
+  {
+    "id": "53.02.05.2008",
+    "name": "Sopo",
+    "district_id": "53.02.05"
+  },
+  {
+    "id": "53.02.05.2009",
+    "name": "Bone",
+    "district_id": "53.02.05"
+  },
+  {
+    "id": "53.02.05.2011",
+    "name": "Maunum Niki-Niki",
+    "district_id": "53.02.05"
+  },
+  {
+    "id": "53.02.06.2001",
+    "name": "Pollo",
+    "district_id": "53.02.06"
+  },
+  {
+    "id": "53.02.06.2002",
+    "name": "Oekiu",
+    "district_id": "53.02.06"
+  },
+  {
+    "id": "53.02.06.2003",
+    "name": "Oebelo",
+    "district_id": "53.02.06"
+  },
+  {
+    "id": "53.02.06.2004",
+    "name": "Noemuke",
+    "district_id": "53.02.06"
+  },
+  {
+    "id": "53.02.06.2010",
+    "name": "Kiubaat",
+    "district_id": "53.02.06"
+  },
+  {
+    "id": "53.02.06.2011",
+    "name": "Linamnutu",
+    "district_id": "53.02.06"
+  },
+  {
+    "id": "53.02.06.2014",
+    "name": "Mio",
+    "district_id": "53.02.06"
+  },
+  {
+    "id": "53.02.06.2015",
+    "name": "Batnun",
+    "district_id": "53.02.06"
+  },
+  {
+    "id": "53.02.06.2018",
+    "name": "Bena",
+    "district_id": "53.02.06"
+  },
+  {
+    "id": "53.02.06.2019",
+    "name": "Eno Neten",
+    "district_id": "53.02.06"
+  },
+  {
+    "id": "53.02.07.2007",
+    "name": "Tublopo",
+    "district_id": "53.02.07"
+  },
+  {
+    "id": "53.02.07.2008",
+    "name": "Nule",
+    "district_id": "53.02.07"
+  },
+  {
+    "id": "53.02.07.2009",
+    "name": "Nusa",
+    "district_id": "53.02.07"
+  },
+  {
+    "id": "53.02.07.2010",
+    "name": "Mnelalete",
+    "district_id": "53.02.07"
+  },
+  {
+    "id": "53.02.07.2011",
+    "name": "Pusu",
+    "district_id": "53.02.07"
+  },
+  {
+    "id": "53.02.07.2012",
+    "name": "Tubuhue",
+    "district_id": "53.02.07"
+  },
+  {
+    "id": "53.02.07.2013",
+    "name": "Haumeni Baki",
+    "district_id": "53.02.07"
+  },
+  {
+    "id": "53.02.07.2015",
+    "name": "Nifukani",
+    "district_id": "53.02.07"
+  },
+  {
+    "id": "53.02.08.2001",
+    "name": "Oinlasi",
+    "district_id": "53.02.08"
+  },
+  {
+    "id": "53.02.08.2003",
+    "name": "Kokoi",
+    "district_id": "53.02.08"
+  },
+  {
+    "id": "53.02.08.2004",
+    "name": "Fenun",
+    "district_id": "53.02.08"
+  },
+  {
+    "id": "53.02.08.2006",
+    "name": "Lanu",
+    "district_id": "53.02.08"
+  },
+  {
+    "id": "53.02.08.2007",
+    "name": "Sunu",
+    "district_id": "53.02.08"
+  },
+  {
+    "id": "53.02.08.2008",
+    "name": "Anin",
+    "district_id": "53.02.08"
+  },
+  {
+    "id": "53.02.08.2010",
+    "name": "Nifuleo",
+    "district_id": "53.02.08"
+  },
+  {
+    "id": "53.02.08.2011",
+    "name": "Fatulunu",
+    "district_id": "53.02.08"
+  },
+  {
+    "id": "53.02.08.2012",
+    "name": "Fae",
+    "district_id": "53.02.08"
+  },
+  {
+    "id": "53.02.08.2013",
+    "name": "Netutnana",
+    "district_id": "53.02.08"
+  },
+  {
+    "id": "53.02.09.2001",
+    "name": "Lilo",
+    "district_id": "53.02.09"
+  },
+  {
+    "id": "53.02.09.2002",
+    "name": "Fotilo",
+    "district_id": "53.02.09"
+  },
+  {
+    "id": "53.02.09.2003",
+    "name": "Nasi",
+    "district_id": "53.02.09"
+  },
+  {
+    "id": "53.02.09.2004",
+    "name": "Snok",
+    "district_id": "53.02.09"
+  },
+  {
+    "id": "53.02.09.2005",
+    "name": "Tumu",
+    "district_id": "53.02.09"
+  },
+  {
+    "id": "53.02.09.2006",
+    "name": "Fatu Oni",
+    "district_id": "53.02.09"
+  },
+  {
+    "id": "53.02.09.2007",
+    "name": "Sono",
+    "district_id": "53.02.09"
+  },
+  {
+    "id": "53.02.09.2009",
+    "name": "Tauanas",
+    "district_id": "53.02.09"
+  },
+  {
+    "id": "53.02.09.2015",
+    "name": "Muna",
+    "district_id": "53.02.09"
+  },
+  {
+    "id": "53.02.10.2001",
+    "name": "Pilli",
+    "district_id": "53.02.10"
+  },
+  {
+    "id": "53.02.10.2002",
+    "name": "Falas",
+    "district_id": "53.02.10"
+  },
+  {
+    "id": "53.02.10.2003",
+    "name": "Oenai",
+    "district_id": "53.02.10"
+  },
+  {
+    "id": "53.02.10.2004",
+    "name": "Belle",
+    "district_id": "53.02.10"
+  },
+  {
+    "id": "53.02.10.2005",
+    "name": "Napi",
+    "district_id": "53.02.10"
+  },
+  {
+    "id": "53.02.10.2006",
+    "name": "Boti",
+    "district_id": "53.02.10"
+  },
+  {
+    "id": "53.02.10.2007",
+    "name": "Fatuulan",
+    "district_id": "53.02.10"
+  },
+  {
+    "id": "53.02.10.2008",
+    "name": "Tesiayofanu",
+    "district_id": "53.02.10"
+  },
+  {
+    "id": "53.02.10.2009",
+    "name": "Oinlasi",
+    "district_id": "53.02.10"
+  },
+  {
+    "id": "53.02.10.2010",
+    "name": "Nekmese",
+    "district_id": "53.02.10"
+  },
+  {
+    "id": "53.02.10.2011",
+    "name": "Eno Napi",
+    "district_id": "53.02.10"
+  },
+  {
+    "id": "53.02.10.2012",
+    "name": "Fatukusi",
+    "district_id": "53.02.10"
+  },
+  {
+    "id": "53.02.11.2001",
+    "name": "Olais",
+    "district_id": "53.02.11"
+  },
+  {
+    "id": "53.02.11.2002",
+    "name": "Lasi",
+    "district_id": "53.02.11"
+  },
+  {
+    "id": "53.02.11.2003",
+    "name": "Kakan",
+    "district_id": "53.02.11"
+  },
+  {
+    "id": "53.02.11.2005",
+    "name": "Basmuti",
+    "district_id": "53.02.11"
+  },
+  {
+    "id": "53.02.11.2006",
+    "name": "Kusi",
+    "district_id": "53.02.11"
+  },
+  {
+    "id": "53.02.11.2007",
+    "name": "Kuanfatu",
+    "district_id": "53.02.11"
+  },
+  {
+    "id": "53.02.11.2008",
+    "name": "Kelle",
+    "district_id": "53.02.11"
+  },
+  {
+    "id": "53.02.11.2009",
+    "name": "Taupi",
+    "district_id": "53.02.11"
+  },
+  {
+    "id": "53.02.11.2010",
+    "name": "Oebo",
+    "district_id": "53.02.11"
+  },
+  {
+    "id": "53.02.11.2011",
+    "name": "Kusi Utara",
+    "district_id": "53.02.11"
+  },
+  {
+    "id": "53.02.11.2012",
+    "name": "Kelle Tunan",
+    "district_id": "53.02.11"
+  },
+  {
+    "id": "53.02.11.2013",
+    "name": "Noebeba",
+    "district_id": "53.02.11"
+  },
+  {
+    "id": "53.02.11.2014",
+    "name": "Oehan",
+    "district_id": "53.02.11"
+  },
+  {
+    "id": "53.02.12.2001",
+    "name": "Nenas",
+    "district_id": "53.02.12"
+  },
+  {
+    "id": "53.02.12.2004",
+    "name": "Fatumnasi",
+    "district_id": "53.02.12"
+  },
+  {
+    "id": "53.02.12.2005",
+    "name": "Nuapin",
+    "district_id": "53.02.12"
+  },
+  {
+    "id": "53.02.12.2009",
+    "name": "Kuanoel",
+    "district_id": "53.02.12"
+  },
+  {
+    "id": "53.02.12.2010",
+    "name": "Mutis",
+    "district_id": "53.02.12"
+  },
+  {
+    "id": "53.02.13.2001",
+    "name": "Konbaki",
+    "district_id": "53.02.13"
+  },
+  {
+    "id": "53.02.13.2002",
+    "name": "Fatumnutu",
+    "district_id": "53.02.13"
+  },
+  {
+    "id": "53.02.13.2003",
+    "name": "Bijeli",
+    "district_id": "53.02.13"
+  },
+  {
+    "id": "53.02.13.2004",
+    "name": "Loli",
+    "district_id": "53.02.13"
+  },
+  {
+    "id": "53.02.13.2005",
+    "name": "Usapimnasi",
+    "district_id": "53.02.13"
+  },
+  {
+    "id": "53.02.13.2006",
+    "name": "Mnesatbubuk",
+    "district_id": "53.02.13"
+  },
+  {
+    "id": "53.02.13.2007",
+    "name": "Puna",
+    "district_id": "53.02.13"
+  },
+  {
+    "id": "53.02.13.2008",
+    "name": "Laob",
+    "district_id": "53.02.13"
+  },
+  {
+    "id": "53.02.13.2009",
+    "name": "Oelnunuh",
+    "district_id": "53.02.13"
+  },
+  {
+    "id": "53.02.13.2010",
+    "name": "Balu",
+    "district_id": "53.02.13"
+  },
+  {
+    "id": "53.02.13.2011",
+    "name": "Sainoni",
+    "district_id": "53.02.13"
+  },
+  {
+    "id": "53.02.14.2001",
+    "name": "Benlutu",
+    "district_id": "53.02.14"
+  },
+  {
+    "id": "53.02.14.2002",
+    "name": "Boentuka",
+    "district_id": "53.02.14"
+  },
+  {
+    "id": "53.02.14.2003",
+    "name": "Hane",
+    "district_id": "53.02.14"
+  },
+  {
+    "id": "53.02.14.2004",
+    "name": "Oebobo",
+    "district_id": "53.02.14"
+  },
+  {
+    "id": "53.02.14.2005",
+    "name": "Tupan",
+    "district_id": "53.02.14"
+  },
+  {
+    "id": "53.02.14.2006",
+    "name": "Tuakole",
+    "district_id": "53.02.14"
+  },
+  {
+    "id": "53.02.14.2007",
+    "name": "Oehela",
+    "district_id": "53.02.14"
+  },
+  {
+    "id": "53.02.15.2006",
+    "name": "Sabun",
+    "district_id": "53.02.15"
+  },
+  {
+    "id": "53.02.15.2007",
+    "name": "Nano",
+    "district_id": "53.02.15"
+  },
+  {
+    "id": "53.02.15.2009",
+    "name": "Boking",
+    "district_id": "53.02.15"
+  },
+  {
+    "id": "53.02.15.2010",
+    "name": "Baus",
+    "district_id": "53.02.15"
+  },
+  {
+    "id": "53.02.15.2011",
+    "name": "Meusin",
+    "district_id": "53.02.15"
+  },
+  {
+    "id": "53.02.15.2013",
+    "name": "Leonmeni",
+    "district_id": "53.02.15"
+  },
+  {
+    "id": "53.02.15.2014",
+    "name": "Fatu Manufui",
+    "district_id": "53.02.15"
+  },
+  {
+    "id": "53.02.16.2001",
+    "name": "Toianas",
+    "district_id": "53.02.16"
+  },
+  {
+    "id": "53.02.16.2002",
+    "name": "Skinu",
+    "district_id": "53.02.16"
+  },
+  {
+    "id": "53.02.16.2003",
+    "name": "Oeleu",
+    "district_id": "53.02.16"
+  },
+  {
+    "id": "53.02.16.2004",
+    "name": "Sanbet",
+    "district_id": "53.02.16"
+  },
+  {
+    "id": "53.02.16.2005",
+    "name": "Bokong",
+    "district_id": "53.02.16"
+  },
+  {
+    "id": "53.02.16.2006",
+    "name": "Tuataum",
+    "district_id": "53.02.16"
+  },
+  {
+    "id": "53.02.16.2007",
+    "name": "Lobus",
+    "district_id": "53.02.16"
+  },
+  {
+    "id": "53.02.16.2008",
+    "name": "Noeolin",
+    "district_id": "53.02.16"
+  },
+  {
+    "id": "53.02.16.2009",
+    "name": "Milli",
+    "district_id": "53.02.16"
+  },
+  {
+    "id": "53.02.17.2001",
+    "name": "OP",
+    "district_id": "53.02.17"
+  },
+  {
+    "id": "53.02.17.2002",
+    "name": "Sahan",
+    "district_id": "53.02.17"
+  },
+  {
+    "id": "53.02.17.2003",
+    "name": "Nenoat",
+    "district_id": "53.02.17"
+  },
+  {
+    "id": "53.02.17.2004",
+    "name": "Haineno",
+    "district_id": "53.02.17"
+  },
+  {
+    "id": "53.02.17.2005",
+    "name": "Nunkolo",
+    "district_id": "53.02.17"
+  },
+  {
+    "id": "53.02.17.2006",
+    "name": "Saenam",
+    "district_id": "53.02.17"
+  },
+  {
+    "id": "53.02.17.2007",
+    "name": "Fat",
+    "district_id": "53.02.17"
+  },
+  {
+    "id": "53.02.17.2008",
+    "name": "Haumeni",
+    "district_id": "53.02.17"
+  },
+  {
+    "id": "53.02.17.2009",
+    "name": "Putun",
+    "district_id": "53.02.17"
+  },
+  {
+    "id": "53.02.18.2001",
+    "name": "Neke",
+    "district_id": "53.02.18"
+  },
+  {
+    "id": "53.02.18.2002",
+    "name": "Pene Utara",
+    "district_id": "53.02.18"
+  },
+  {
+    "id": "53.02.18.2003",
+    "name": "Noenoni",
+    "district_id": "53.02.18"
+  },
+  {
+    "id": "53.02.18.2004",
+    "name": "Hoi",
+    "district_id": "53.02.18"
+  },
+  {
+    "id": "53.02.18.2005",
+    "name": "Niki Niki Un",
+    "district_id": "53.02.18"
+  },
+  {
+    "id": "53.02.18.2006",
+    "name": "Oenino",
+    "district_id": "53.02.18"
+  },
+  {
+    "id": "53.02.18.2007",
+    "name": "Abi",
+    "district_id": "53.02.18"
+  },
+  {
+    "id": "53.02.19.2001",
+    "name": "Kolbano",
+    "district_id": "53.02.19"
+  },
+  {
+    "id": "53.02.19.2002",
+    "name": "Noesiu",
+    "district_id": "53.02.19"
+  },
+  {
+    "id": "53.02.19.2003",
+    "name": "Pene Selatan",
+    "district_id": "53.02.19"
+  },
+  {
+    "id": "53.02.19.2004",
+    "name": "Oetuke",
+    "district_id": "53.02.19"
+  },
+  {
+    "id": "53.02.19.2005",
+    "name": "Babuin",
+    "district_id": "53.02.19"
+  },
+  {
+    "id": "53.02.19.2006",
+    "name": "Oeleu",
+    "district_id": "53.02.19"
+  },
+  {
+    "id": "53.02.19.2008",
+    "name": "Nununamat",
+    "district_id": "53.02.19"
+  },
+  {
+    "id": "53.02.19.2009",
+    "name": "Pana",
+    "district_id": "53.02.19"
+  },
+  {
+    "id": "53.02.19.2010",
+    "name": "Haunobenak",
+    "district_id": "53.02.19"
+  },
+  {
+    "id": "53.02.19.2011",
+    "name": "Ofu",
+    "district_id": "53.02.19"
+  },
+  {
+    "id": "53.02.19.2012",
+    "name": "Spaha",
+    "district_id": "53.02.19"
+  },
+  {
+    "id": "53.02.20.2002",
+    "name": "Nunbena",
+    "district_id": "53.02.20"
+  },
+  {
+    "id": "53.02.20.2003",
+    "name": "Fatuat",
+    "district_id": "53.02.20"
+  },
+  {
+    "id": "53.02.20.2004",
+    "name": "Hoibeti",
+    "district_id": "53.02.20"
+  },
+  {
+    "id": "53.02.20.2005",
+    "name": "Nualunat",
+    "district_id": "53.02.20"
+  },
+  {
+    "id": "53.02.20.2006",
+    "name": "Binenok",
+    "district_id": "53.02.20"
+  },
+  {
+    "id": "53.02.20.2007",
+    "name": "Ponite",
+    "district_id": "53.02.20"
+  },
+  {
+    "id": "53.02.21.2001",
+    "name": "Kualin",
+    "district_id": "53.02.21"
+  },
+  {
+    "id": "53.02.21.2002",
+    "name": "Oni",
+    "district_id": "53.02.21"
+  },
+  {
+    "id": "53.02.21.2003",
+    "name": "Nunusunu",
+    "district_id": "53.02.21"
+  },
+  {
+    "id": "53.02.21.2004",
+    "name": "Tuapakas",
+    "district_id": "53.02.21"
+  },
+  {
+    "id": "53.02.21.2005",
+    "name": "Toineke",
+    "district_id": "53.02.21"
+  },
+  {
+    "id": "53.02.21.2006",
+    "name": "Tuafanu",
+    "district_id": "53.02.21"
+  },
+  {
+    "id": "53.02.21.2007",
+    "name": "Kiufatu",
+    "district_id": "53.02.21"
+  },
+  {
+    "id": "53.02.21.2008",
+    "name": "Oemaman",
+    "district_id": "53.02.21"
+  },
+  {
+    "id": "53.02.22.2001",
+    "name": "Besana",
+    "district_id": "53.02.22"
+  },
+  {
+    "id": "53.02.22.2002",
+    "name": "Fatukoko",
+    "district_id": "53.02.22"
+  },
+  {
+    "id": "53.02.22.2003",
+    "name": "Koa",
+    "district_id": "53.02.22"
+  },
+  {
+    "id": "53.02.22.2004",
+    "name": "Oel Uban",
+    "district_id": "53.02.22"
+  },
+  {
+    "id": "53.02.22.2005",
+    "name": "Salbait",
+    "district_id": "53.02.22"
+  },
+  {
+    "id": "53.02.23.2001",
+    "name": "Lotas",
+    "district_id": "53.02.23"
+  },
+  {
+    "id": "53.02.23.2002",
+    "name": "Sabnala",
+    "district_id": "53.02.23"
+  },
+  {
+    "id": "53.02.23.2003",
+    "name": "Koloto",
+    "district_id": "53.02.23"
+  },
+  {
+    "id": "53.02.23.2004",
+    "name": "Niti",
+    "district_id": "53.02.23"
+  },
+  {
+    "id": "53.02.23.2005",
+    "name": "Obaki",
+    "district_id": "53.02.23"
+  },
+  {
+    "id": "53.02.23.2006",
+    "name": "Benehe",
+    "district_id": "53.02.23"
+  },
+  {
+    "id": "53.02.24.2001",
+    "name": "Noebana",
+    "district_id": "53.02.24"
+  },
+  {
+    "id": "53.02.24.2002",
+    "name": "Fatumnasi",
+    "district_id": "53.02.24"
+  },
+  {
+    "id": "53.02.24.2003",
+    "name": "Suni",
+    "district_id": "53.02.24"
+  },
+  {
+    "id": "53.02.24.2004",
+    "name": "Mella",
+    "district_id": "53.02.24"
+  },
+  {
+    "id": "53.02.24.2005",
+    "name": "Mnelapetu",
+    "district_id": "53.02.24"
+  },
+  {
+    "id": "53.02.25.2001",
+    "name": "Santian",
+    "district_id": "53.02.25"
+  },
+  {
+    "id": "53.02.25.2002",
+    "name": "Poli",
+    "district_id": "53.02.25"
+  },
+  {
+    "id": "53.02.25.2003",
+    "name": "Manufui",
+    "district_id": "53.02.25"
+  },
+  {
+    "id": "53.02.25.2004",
+    "name": "Nenotes",
+    "district_id": "53.02.25"
+  },
+  {
+    "id": "53.02.25.2005",
+    "name": "Naifatu",
+    "district_id": "53.02.25"
+  },
+  {
+    "id": "53.02.26.2001",
+    "name": "Naip",
+    "district_id": "53.02.26"
+  },
+  {
+    "id": "53.02.26.2002",
+    "name": "Fatutnana",
+    "district_id": "53.02.26"
+  },
+  {
+    "id": "53.02.26.2003",
+    "name": "Oepliki",
+    "district_id": "53.02.26"
+  },
+  {
+    "id": "53.02.26.2005",
+    "name": "Teas",
+    "district_id": "53.02.26"
+  },
+  {
+    "id": "53.02.26.2006",
+    "name": "Oebaki",
+    "district_id": "53.02.26"
+  },
+  {
+    "id": "53.02.26.2007",
+    "name": "Eno Nabuasa",
+    "district_id": "53.02.26"
+  },
+  {
+    "id": "53.02.27.2001",
+    "name": "Tetaf",
+    "district_id": "53.02.27"
+  },
+  {
+    "id": "53.02.27.2002",
+    "name": "Naukae",
+    "district_id": "53.02.27"
+  },
+  {
+    "id": "53.02.27.2003",
+    "name": "Supul",
+    "district_id": "53.02.27"
+  },
+  {
+    "id": "53.02.27.2004",
+    "name": "Lakat",
+    "district_id": "53.02.27"
+  },
+  {
+    "id": "53.02.27.2005",
+    "name": "Enoneontes",
+    "district_id": "53.02.27"
+  },
+  {
+    "id": "53.02.27.2007",
+    "name": "Tubmonas",
+    "district_id": "53.02.27"
+  },
+  {
+    "id": "53.02.27.2008",
+    "name": "Oe Oe",
+    "district_id": "53.02.27"
+  },
+  {
+    "id": "53.02.28.2001",
+    "name": "Sillu",
+    "district_id": "53.02.28"
+  },
+  {
+    "id": "53.02.28.2002",
+    "name": "Nunukhniti",
+    "district_id": "53.02.28"
+  },
+  {
+    "id": "53.02.28.2003",
+    "name": "Kaeneno",
+    "district_id": "53.02.28"
+  },
+  {
+    "id": "53.02.28.2004",
+    "name": "Oeleon",
+    "district_id": "53.02.28"
+  },
+  {
+    "id": "53.02.28.2005",
+    "name": "Tunis",
+    "district_id": "53.02.28"
+  },
+  {
+    "id": "53.02.28.2006",
+    "name": "Bileon",
+    "district_id": "53.02.28"
+  },
+  {
+    "id": "53.02.29.2001",
+    "name": "Fatukopa",
+    "district_id": "53.02.29"
+  },
+  {
+    "id": "53.02.29.2002",
+    "name": "Besnam",
+    "district_id": "53.02.29"
+  },
+  {
+    "id": "53.02.29.2003",
+    "name": "Taebone",
+    "district_id": "53.02.29"
+  },
+  {
+    "id": "53.02.29.2004",
+    "name": "Nunfutu",
+    "district_id": "53.02.29"
+  },
+  {
+    "id": "53.02.29.2005",
+    "name": "Kiki",
+    "district_id": "53.02.29"
+  },
+  {
+    "id": "53.02.29.2006",
+    "name": "Ello",
+    "district_id": "53.02.29"
+  },
+  {
+    "id": "53.02.29.2007",
+    "name": "Nifulinah",
+    "district_id": "53.02.29"
+  },
+  {
+    "id": "53.02.30.2001",
+    "name": "Oelbubuk",
+    "district_id": "53.02.30"
+  },
+  {
+    "id": "53.02.30.2002",
+    "name": "Nekemunifeto",
+    "district_id": "53.02.30"
+  },
+  {
+    "id": "53.02.30.2003",
+    "name": "Binaus",
+    "district_id": "53.02.30"
+  },
+  {
+    "id": "53.02.30.2005",
+    "name": "Kualeu",
+    "district_id": "53.02.30"
+  },
+  {
+    "id": "53.02.30.2006",
+    "name": "Pika",
+    "district_id": "53.02.30"
+  },
+  {
+    "id": "53.02.31.2001",
+    "name": "Tobu",
+    "district_id": "53.02.31"
+  },
+  {
+    "id": "53.02.31.2002",
+    "name": "Tutem",
+    "district_id": "53.02.31"
+  },
+  {
+    "id": "53.02.31.2003",
+    "name": "Tune",
+    "district_id": "53.02.31"
+  },
+  {
+    "id": "53.02.31.2004",
+    "name": "Bonleu",
+    "district_id": "53.02.31"
+  },
+  {
+    "id": "53.02.31.2005",
+    "name": "Pubasu",
+    "district_id": "53.02.31"
+  },
+  {
+    "id": "53.02.31.2006",
+    "name": "Huetalan",
+    "district_id": "53.02.31"
+  },
+  {
+    "id": "53.02.31.2007",
+    "name": "Saubalan",
+    "district_id": "53.02.31"
+  },
+  {
+    "id": "53.02.31.2008",
+    "name": "Bestobe",
+    "district_id": "53.02.31"
+  },
+  {
+    "id": "53.02.32.2001",
+    "name": "Lill ana",
+    "district_id": "53.02.32"
+  },
+  {
+    "id": "53.02.32.2002",
+    "name": "Nunbena",
+    "district_id": "53.02.32"
+  },
+  {
+    "id": "53.02.32.2003",
+    "name": "Noebesi",
+    "district_id": "53.02.32"
+  },
+  {
+    "id": "53.02.32.2004",
+    "name": "Taneotob",
+    "district_id": "53.02.32"
+  },
+  {
+    "id": "53.02.32.2005",
+    "name": "Feto Mone",
+    "district_id": "53.02.32"
+  },
+  {
+    "id": "53.02.32.2006",
+    "name": "Tunbes",
+    "district_id": "53.02.32"
+  },
+  {
+    "id": "53.03.01.2005",
+    "name": "Bokon",
+    "district_id": "53.03.01"
+  },
+  {
+    "id": "53.03.01.2006",
+    "name": "Bitefa",
+    "district_id": "53.03.01"
+  },
+  {
+    "id": "53.03.01.2007",
+    "name": "Keanbaun",
+    "district_id": "53.03.01"
+  },
+  {
+    "id": "53.03.01.2018",
+    "name": "Amol",
+    "district_id": "53.03.01"
+  },
+  {
+    "id": "53.03.01.2019",
+    "name": "Fatusene",
+    "district_id": "53.03.01"
+  },
+  {
+    "id": "53.03.01.2020",
+    "name": "Oesena",
+    "district_id": "53.03.01"
+  },
+  {
+    "id": "53.03.01.2021",
+    "name": "Jak",
+    "district_id": "53.03.01"
+  },
+  {
+    "id": "53.03.01.2022",
+    "name": "Tuntun",
+    "district_id": "53.03.01"
+  },
+  {
+    "id": "53.03.01.2023",
+    "name": "Tunoe",
+    "district_id": "53.03.01"
+  },
+  {
+    "id": "53.03.01.2024",
+    "name": "Femnasi",
+    "district_id": "53.03.01"
+  },
+  {
+    "id": "53.03.01.2025",
+    "name": "Taekas",
+    "district_id": "53.03.01"
+  },
+  {
+    "id": "53.03.02.2001",
+    "name": "Noepesu",
+    "district_id": "53.03.02"
+  },
+  {
+    "id": "53.03.02.2002",
+    "name": "Fatuneno",
+    "district_id": "53.03.02"
+  },
+  {
+    "id": "53.03.02.2003",
+    "name": "Suanae",
+    "district_id": "53.03.02"
+  },
+  {
+    "id": "53.03.02.2004",
+    "name": "Lemon",
+    "district_id": "53.03.02"
+  },
+  {
+    "id": "53.03.02.2005",
+    "name": "Fatunisuan",
+    "district_id": "53.03.02"
+  },
+  {
+    "id": "53.03.02.2006",
+    "name": "Haulasi",
+    "district_id": "53.03.02"
+  },
+  {
+    "id": "53.03.02.2018",
+    "name": "Neotoko",
+    "district_id": "53.03.02"
+  },
+  {
+    "id": "53.03.02.2019",
+    "name": "Fatutasu",
+    "district_id": "53.03.02"
+  },
+  {
+    "id": "53.03.02.2020",
+    "name": "Manusasi",
+    "district_id": "53.03.02"
+  },
+  {
+    "id": "53.03.02.2025",
+    "name": "Saenam",
+    "district_id": "53.03.02"
+  },
+  {
+    "id": "53.03.02.2026",
+    "name": "Eban",
+    "district_id": "53.03.02"
+  },
+  {
+    "id": "53.03.02.2027",
+    "name": "Sallu",
+    "district_id": "53.03.02"
+  }
+]

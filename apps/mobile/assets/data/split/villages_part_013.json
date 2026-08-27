@@ -1,0 +1,5002 @@
+[
+  {
+    "id": "12.25.06.2012",
+    "name": "Hilimbowo",
+    "district_id": "12.25.06"
+  },
+  {
+    "id": "12.25.07.2001",
+    "name": "Sisobawino II",
+    "district_id": "12.25.07"
+  },
+  {
+    "id": "12.25.07.2002",
+    "name": "Duria",
+    "district_id": "12.25.07"
+  },
+  {
+    "id": "12.25.07.2003",
+    "name": "Ambukha",
+    "district_id": "12.25.07"
+  },
+  {
+    "id": "12.25.07.2004",
+    "name": "Hilimbowo Mau",
+    "district_id": "12.25.07"
+  },
+  {
+    "id": "12.25.07.2005",
+    "name": "Hilimbuasi",
+    "district_id": "12.25.07"
+  },
+  {
+    "id": "12.25.07.2006",
+    "name": "Lolofitu",
+    "district_id": "12.25.07"
+  },
+  {
+    "id": "12.25.07.2007",
+    "name": "Hiliuso",
+    "district_id": "12.25.07"
+  },
+  {
+    "id": "12.25.07.2008",
+    "name": "Wango",
+    "district_id": "12.25.07"
+  },
+  {
+    "id": "12.25.08.2001",
+    "name": "Bukit Tinggi",
+    "district_id": "12.25.08"
+  },
+  {
+    "id": "12.25.08.2002",
+    "name": "Lawelu",
+    "district_id": "12.25.08"
+  },
+  {
+    "id": "12.25.08.2003",
+    "name": "Saloo",
+    "district_id": "12.25.08"
+  },
+  {
+    "id": "12.25.08.2004",
+    "name": "Hilisangawola",
+    "district_id": "12.25.08"
+  },
+  {
+    "id": "12.25.08.2005",
+    "name": "Hilibadalu",
+    "district_id": "12.25.08"
+  },
+  {
+    "id": "12.71.01.1001",
+    "name": "Pasar Baru",
+    "district_id": "12.71.01"
+  },
+  {
+    "id": "12.71.01.1002",
+    "name": "Pusat Pasar",
+    "district_id": "12.71.01"
+  },
+  {
+    "id": "12.71.01.1003",
+    "name": "Sei Rengas I",
+    "district_id": "12.71.01"
+  },
+  {
+    "id": "12.71.01.1004",
+    "name": "Mesjid",
+    "district_id": "12.71.01"
+  },
+  {
+    "id": "12.71.01.1005",
+    "name": "Pandau Hulu I",
+    "district_id": "12.71.01"
+  },
+  {
+    "id": "12.71.01.1006",
+    "name": "Kotamatsum III",
+    "district_id": "12.71.01"
+  },
+  {
+    "id": "12.71.01.1007",
+    "name": "Pasar Merah Barat",
+    "district_id": "12.71.01"
+  },
+  {
+    "id": "12.71.01.1008",
+    "name": "Teladan Timur",
+    "district_id": "12.71.01"
+  },
+  {
+    "id": "12.71.01.1009",
+    "name": "Teladan Barat",
+    "district_id": "12.71.01"
+  },
+  {
+    "id": "12.71.01.1010",
+    "name": "Sudirejo 1",
+    "district_id": "12.71.01"
+  },
+  {
+    "id": "12.71.01.1011",
+    "name": "Sudirejo II",
+    "district_id": "12.71.01"
+  },
+  {
+    "id": "12.71.01.1012",
+    "name": "Sitirejo I",
+    "district_id": "12.71.01"
+  },
+  {
+    "id": "12.71.02.1001",
+    "name": "Lalang",
+    "district_id": "12.71.02"
+  },
+  {
+    "id": "12.71.02.1002",
+    "name": "Sei Sikambing B",
+    "district_id": "12.71.02"
+  },
+  {
+    "id": "12.71.02.1003",
+    "name": "Sunggal",
+    "district_id": "12.71.02"
+  },
+  {
+    "id": "12.71.02.1004",
+    "name": "Babura Sunggal",
+    "district_id": "12.71.02"
+  },
+  {
+    "id": "12.71.02.1005",
+    "name": "Tanjung Rejo",
+    "district_id": "12.71.02"
+  },
+  {
+    "id": "12.71.02.1006",
+    "name": "Simpang Tanjung",
+    "district_id": "12.71.02"
+  },
+  {
+    "id": "12.71.03.1001",
+    "name": "Helvetia",
+    "district_id": "12.71.03"
+  },
+  {
+    "id": "12.71.03.1002",
+    "name": "Helvetia Tengah",
+    "district_id": "12.71.03"
+  },
+  {
+    "id": "12.71.03.1003",
+    "name": "Helvetia Timur",
+    "district_id": "12.71.03"
+  },
+  {
+    "id": "12.71.03.1004",
+    "name": "Tanjung Gusta",
+    "district_id": "12.71.03"
+  },
+  {
+    "id": "12.71.03.1005",
+    "name": "Cinta Damai",
+    "district_id": "12.71.03"
+  },
+  {
+    "id": "12.71.03.1006",
+    "name": "Dwi Kora",
+    "district_id": "12.71.03"
+  },
+  {
+    "id": "12.71.03.1007",
+    "name": "Sei Sikambing C II",
+    "district_id": "12.71.03"
+  },
+  {
+    "id": "12.71.04.1001",
+    "name": "Tegal S Mandala I",
+    "district_id": "12.71.04"
+  },
+  {
+    "id": "12.71.04.1002",
+    "name": "Tegal S Mandala II",
+    "district_id": "12.71.04"
+  },
+  {
+    "id": "12.71.04.1003",
+    "name": "Tegal S Mandala III",
+    "district_id": "12.71.04"
+  },
+  {
+    "id": "12.71.04.1004",
+    "name": "Denai",
+    "district_id": "12.71.04"
+  },
+  {
+    "id": "12.71.04.1005",
+    "name": "Binjai",
+    "district_id": "12.71.04"
+  },
+  {
+    "id": "12.71.04.1006",
+    "name": "Medan Tenggara",
+    "district_id": "12.71.04"
+  },
+  {
+    "id": "12.71.05.1001",
+    "name": "Kesawan",
+    "district_id": "12.71.05"
+  },
+  {
+    "id": "12.71.05.1002",
+    "name": "Silalas",
+    "district_id": "12.71.05"
+  },
+  {
+    "id": "12.71.05.1003",
+    "name": "Glugur Kota",
+    "district_id": "12.71.05"
+  },
+  {
+    "id": "12.71.05.1004",
+    "name": "Pulo Berayan Kota",
+    "district_id": "12.71.05"
+  },
+  {
+    "id": "12.71.05.1005",
+    "name": "Sei Agul",
+    "district_id": "12.71.05"
+  },
+  {
+    "id": "12.71.05.1006",
+    "name": "Karang Berombak",
+    "district_id": "12.71.05"
+  },
+  {
+    "id": "12.71.06.1001",
+    "name": "Titipapan",
+    "district_id": "12.71.06"
+  },
+  {
+    "id": "12.71.06.1002",
+    "name": "Tanjung Mulia Hilir",
+    "district_id": "12.71.06"
+  },
+  {
+    "id": "12.71.06.1003",
+    "name": "Tanjung Mulya",
+    "district_id": "12.71.06"
+  },
+  {
+    "id": "12.71.06.1004",
+    "name": "Kota Bangun",
+    "district_id": "12.71.06"
+  },
+  {
+    "id": "12.71.06.1005",
+    "name": "Mabar",
+    "district_id": "12.71.06"
+  },
+  {
+    "id": "12.71.06.1006",
+    "name": "Mabar Hilir",
+    "district_id": "12.71.06"
+  },
+  {
+    "id": "12.71.07.1001",
+    "name": "Tanjung Selamat",
+    "district_id": "12.71.07"
+  },
+  {
+    "id": "12.71.07.1002",
+    "name": "Simpang Selayang",
+    "district_id": "12.71.07"
+  },
+  {
+    "id": "12.71.07.1003",
+    "name": "Namo Gajah",
+    "district_id": "12.71.07"
+  },
+  {
+    "id": "12.71.07.1004",
+    "name": "Kemenangan Tani",
+    "district_id": "12.71.07"
+  },
+  {
+    "id": "12.71.07.1005",
+    "name": "Laucih",
+    "district_id": "12.71.07"
+  },
+  {
+    "id": "12.71.07.1006",
+    "name": "Sidomulyo",
+    "district_id": "12.71.07"
+  },
+  {
+    "id": "12.71.07.1007",
+    "name": "Ladang Bambu",
+    "district_id": "12.71.07"
+  },
+  {
+    "id": "12.71.07.1008",
+    "name": "Simalingkar B",
+    "district_id": "12.71.07"
+  },
+  {
+    "id": "12.71.07.1009",
+    "name": "Mangga",
+    "district_id": "12.71.07"
+  },
+  {
+    "id": "12.71.08.1001",
+    "name": "Belawan I",
+    "district_id": "12.71.08"
+  },
+  {
+    "id": "12.71.08.1002",
+    "name": "Belawan II",
+    "district_id": "12.71.08"
+  },
+  {
+    "id": "12.71.08.1003",
+    "name": "Belawan Bahagia",
+    "district_id": "12.71.08"
+  },
+  {
+    "id": "12.71.08.1004",
+    "name": "Belawan Bahari",
+    "district_id": "12.71.08"
+  },
+  {
+    "id": "12.71.08.1005",
+    "name": "Belawan Sicanang",
+    "district_id": "12.71.08"
+  },
+  {
+    "id": "12.71.08.1006",
+    "name": "Bagan Deli",
+    "district_id": "12.71.08"
+  },
+  {
+    "id": "12.71.09.1001",
+    "name": "Amplas",
+    "district_id": "12.71.09"
+  },
+  {
+    "id": "12.71.09.1002",
+    "name": "Sitirejo II",
+    "district_id": "12.71.09"
+  },
+  {
+    "id": "12.71.09.1003",
+    "name": "Sitirejo III",
+    "district_id": "12.71.09"
+  },
+  {
+    "id": "12.71.09.1004",
+    "name": "Harjosari I",
+    "district_id": "12.71.09"
+  },
+  {
+    "id": "12.71.09.1005",
+    "name": "Harjosari II",
+    "district_id": "12.71.09"
+  },
+  {
+    "id": "12.71.09.1006",
+    "name": "Timbang Deli",
+    "district_id": "12.71.09"
+  },
+  {
+    "id": "12.71.09.1007",
+    "name": "Bangun Mulia",
+    "district_id": "12.71.09"
+  },
+  {
+    "id": "12.71.10.1001",
+    "name": "Sukaramai I",
+    "district_id": "12.71.10"
+  },
+  {
+    "id": "12.71.10.1002",
+    "name": "Sukaramai II",
+    "district_id": "12.71.10"
+  },
+  {
+    "id": "12.71.10.1003",
+    "name": "Sei Rengas II",
+    "district_id": "12.71.10"
+  },
+  {
+    "id": "12.71.10.1004",
+    "name": "S. Rengas Permata",
+    "district_id": "12.71.10"
+  },
+  {
+    "id": "12.71.10.1005",
+    "name": "Pandau Hulu II",
+    "district_id": "12.71.10"
+  },
+  {
+    "id": "12.71.10.1006",
+    "name": "Kota Matsum I",
+    "district_id": "12.71.10"
+  },
+  {
+    "id": "12.71.10.1007",
+    "name": "Kota Matsum II",
+    "district_id": "12.71.10"
+  },
+  {
+    "id": "12.71.10.1008",
+    "name": "Kota Matsum IV",
+    "district_id": "12.71.10"
+  },
+  {
+    "id": "12.71.10.1009",
+    "name": "Pasar Merah Timur",
+    "district_id": "12.71.10"
+  },
+  {
+    "id": "12.71.10.1010",
+    "name": "Tegal Sari I",
+    "district_id": "12.71.10"
+  },
+  {
+    "id": "12.71.10.1011",
+    "name": "Tegal Sari II",
+    "district_id": "12.71.10"
+  },
+  {
+    "id": "12.71.10.1012",
+    "name": "Tegal Sari III",
+    "district_id": "12.71.10"
+  },
+  {
+    "id": "12.71.11.1001",
+    "name": "Suka Maju",
+    "district_id": "12.71.11"
+  },
+  {
+    "id": "12.71.11.1002",
+    "name": "Titi Kuning",
+    "district_id": "12.71.11"
+  },
+  {
+    "id": "12.71.11.1003",
+    "name": "Kedai Durian",
+    "district_id": "12.71.11"
+  },
+  {
+    "id": "12.71.11.1004",
+    "name": "Pangkalan Mansur",
+    "district_id": "12.71.11"
+  },
+  {
+    "id": "12.71.11.1005",
+    "name": "Gedung Johor",
+    "district_id": "12.71.11"
+  },
+  {
+    "id": "12.71.11.1006",
+    "name": "Kwala Bekala",
+    "district_id": "12.71.11"
+  },
+  {
+    "id": "12.71.12.1001",
+    "name": "Labuhan Deli",
+    "district_id": "12.71.12"
+  },
+  {
+    "id": "12.71.12.1002",
+    "name": "Rengas Pulau",
+    "district_id": "12.71.12"
+  },
+  {
+    "id": "12.71.12.1003",
+    "name": "Terjun",
+    "district_id": "12.71.12"
+  },
+  {
+    "id": "12.71.12.1004",
+    "name": "Tanah Enam Ratus",
+    "district_id": "12.71.12"
+  },
+  {
+    "id": "12.71.12.1005",
+    "name": "Paya Pasir",
+    "district_id": "12.71.12"
+  },
+  {
+    "id": "12.71.13.1001",
+    "name": "Pekan Labuhan",
+    "district_id": "12.71.13"
+  },
+  {
+    "id": "12.71.13.1002",
+    "name": "Sei Mati",
+    "district_id": "12.71.13"
+  },
+  {
+    "id": "12.71.13.1003",
+    "name": "Besar",
+    "district_id": "12.71.13"
+  },
+  {
+    "id": "12.71.13.1004",
+    "name": "Martubung",
+    "district_id": "12.71.13"
+  },
+  {
+    "id": "12.71.13.1005",
+    "name": "Nelayan Indah",
+    "district_id": "12.71.13"
+  },
+  {
+    "id": "12.71.13.1006",
+    "name": "Tangkahan",
+    "district_id": "12.71.13"
+  },
+  {
+    "id": "12.71.14.1001",
+    "name": "Indra Kasih",
+    "district_id": "12.71.14"
+  },
+  {
+    "id": "12.71.14.1002",
+    "name": "Sidorejo Hilir",
+    "district_id": "12.71.14"
+  },
+  {
+    "id": "12.71.14.1003",
+    "name": "Sidorejo",
+    "district_id": "12.71.14"
+  },
+  {
+    "id": "12.71.14.1004",
+    "name": "Bantan",
+    "district_id": "12.71.14"
+  },
+  {
+    "id": "12.71.14.1005",
+    "name": "Tembung",
+    "district_id": "12.71.14"
+  },
+  {
+    "id": "12.71.14.1006",
+    "name": "Bandar Selamat",
+    "district_id": "12.71.14"
+  },
+  {
+    "id": "12.71.14.1007",
+    "name": "Bantan Timur",
+    "district_id": "12.71.14"
+  },
+  {
+    "id": "12.71.15.1001",
+    "name": "Aur",
+    "district_id": "12.71.15"
+  },
+  {
+    "id": "12.71.15.1002",
+    "name": "Hamdan",
+    "district_id": "12.71.15"
+  },
+  {
+    "id": "12.71.15.1003",
+    "name": "Jati",
+    "district_id": "12.71.15"
+  },
+  {
+    "id": "12.71.15.1004",
+    "name": "Sukaraja",
+    "district_id": "12.71.15"
+  },
+  {
+    "id": "12.71.15.1005",
+    "name": "Sei Mati",
+    "district_id": "12.71.15"
+  },
+  {
+    "id": "12.71.15.1006",
+    "name": "Kampung Baru",
+    "district_id": "12.71.15"
+  },
+  {
+    "id": "12.71.16.1001",
+    "name": "Madras Hulu",
+    "district_id": "12.71.16"
+  },
+  {
+    "id": "12.71.16.1002",
+    "name": "Polonia",
+    "district_id": "12.71.16"
+  },
+  {
+    "id": "12.71.16.1003",
+    "name": "Sari Rejo",
+    "district_id": "12.71.16"
+  },
+  {
+    "id": "12.71.16.1004",
+    "name": "Suka Damai",
+    "district_id": "12.71.16"
+  },
+  {
+    "id": "12.71.16.1005",
+    "name": "Anggrung",
+    "district_id": "12.71.16"
+  },
+  {
+    "id": "12.71.17.1001",
+    "name": "Petisah Hulu",
+    "district_id": "12.71.17"
+  },
+  {
+    "id": "12.71.17.1002",
+    "name": "Babura",
+    "district_id": "12.71.17"
+  },
+  {
+    "id": "12.71.17.1003",
+    "name": "Merdeka",
+    "district_id": "12.71.17"
+  },
+  {
+    "id": "12.71.17.1004",
+    "name": "Darat",
+    "district_id": "12.71.17"
+  },
+  {
+    "id": "12.71.17.1005",
+    "name": "Padang Bulan",
+    "district_id": "12.71.17"
+  },
+  {
+    "id": "12.71.17.1006",
+    "name": "Titi Rante",
+    "district_id": "12.71.17"
+  },
+  {
+    "id": "12.71.18.1001",
+    "name": "Pandau Hilir",
+    "district_id": "12.71.18"
+  },
+  {
+    "id": "12.71.18.1002",
+    "name": "Pahlawan",
+    "district_id": "12.71.18"
+  },
+  {
+    "id": "12.71.18.1003",
+    "name": "Sei Kera Hilir I",
+    "district_id": "12.71.18"
+  },
+  {
+    "id": "12.71.18.1004",
+    "name": "Sei Kera Hilir II",
+    "district_id": "12.71.18"
+  },
+  {
+    "id": "12.71.18.1005",
+    "name": "Sei Kera Hulu",
+    "district_id": "12.71.18"
+  },
+  {
+    "id": "12.71.18.1006",
+    "name": "Sidorame Timur",
+    "district_id": "12.71.18"
+  },
+  {
+    "id": "12.71.18.1007",
+    "name": "Sidorame Barat I",
+    "district_id": "12.71.18"
+  },
+  {
+    "id": "12.71.18.1008",
+    "name": "Sidorame Barat II",
+    "district_id": "12.71.18"
+  },
+  {
+    "id": "12.71.18.1009",
+    "name": "Tegalrejo",
+    "district_id": "12.71.18"
+  },
+  {
+    "id": "12.71.19.1001",
+    "name": "Petisah Tengah",
+    "district_id": "12.71.19"
+  },
+  {
+    "id": "12.71.19.1002",
+    "name": "Sekip",
+    "district_id": "12.71.19"
+  },
+  {
+    "id": "12.71.19.1003",
+    "name": "Sei Sikambing D",
+    "district_id": "12.71.19"
+  },
+  {
+    "id": "12.71.19.1004",
+    "name": "Sei Putih Barat",
+    "district_id": "12.71.19"
+  },
+  {
+    "id": "12.71.19.1005",
+    "name": "Sei Putih Tengah",
+    "district_id": "12.71.19"
+  },
+  {
+    "id": "12.71.19.1006",
+    "name": "Sei Putih Timur I",
+    "district_id": "12.71.19"
+  },
+  {
+    "id": "12.71.19.1007",
+    "name": "Sei Putih Timur II",
+    "district_id": "12.71.19"
+  },
+  {
+    "id": "12.71.20.1001",
+    "name": "Gang Buntu",
+    "district_id": "12.71.20"
+  },
+  {
+    "id": "12.71.20.1002",
+    "name": "Sidodadi",
+    "district_id": "12.71.20"
+  },
+  {
+    "id": "12.71.20.1003",
+    "name": "Durian",
+    "district_id": "12.71.20"
+  },
+  {
+    "id": "12.71.20.1004",
+    "name": "Glugur Darat I",
+    "district_id": "12.71.20"
+  },
+  {
+    "id": "12.71.20.1005",
+    "name": "Glugur Darat II",
+    "district_id": "12.71.20"
+  },
+  {
+    "id": "12.71.20.1006",
+    "name": "P Berayan Darat I",
+    "district_id": "12.71.20"
+  },
+  {
+    "id": "12.71.20.1007",
+    "name": "P Berayan Darat II",
+    "district_id": "12.71.20"
+  },
+  {
+    "id": "12.71.20.1008",
+    "name": "P Berayan Bengkel",
+    "district_id": "12.71.20"
+  },
+  {
+    "id": "12.71.20.1009",
+    "name": "PB Bengkel Baru",
+    "district_id": "12.71.20"
+  },
+  {
+    "id": "12.71.20.1010",
+    "name": "Perintis",
+    "district_id": "12.71.20"
+  },
+  {
+    "id": "12.71.20.1011",
+    "name": "Gaharu",
+    "district_id": "12.71.20"
+  },
+  {
+    "id": "12.71.21.1001",
+    "name": "Asam Kumbang",
+    "district_id": "12.71.21"
+  },
+  {
+    "id": "12.71.21.1002",
+    "name": "Tanjungsari",
+    "district_id": "12.71.21"
+  },
+  {
+    "id": "12.71.21.1003",
+    "name": "P Bulan Selayang II",
+    "district_id": "12.71.21"
+  },
+  {
+    "id": "12.71.21.1004",
+    "name": "Beringin",
+    "district_id": "12.71.21"
+  },
+  {
+    "id": "12.71.21.1005",
+    "name": "P Bulan Selayang I",
+    "district_id": "12.71.21"
+  },
+  {
+    "id": "12.71.21.1006",
+    "name": "Sempakata",
+    "district_id": "12.71.21"
+  },
+  {
+    "id": "12.72.01.1001",
+    "name": "Kebun Sayur",
+    "district_id": "12.72.01"
+  },
+  {
+    "id": "12.72.01.1002",
+    "name": "Tomuan",
+    "district_id": "12.72.01"
+  },
+  {
+    "id": "12.72.01.1003",
+    "name": "Pahlawan",
+    "district_id": "12.72.01"
+  },
+  {
+    "id": "12.72.01.1004",
+    "name": "Asuhan",
+    "district_id": "12.72.01"
+  },
+  {
+    "id": "12.72.01.1005",
+    "name": "Merdeka",
+    "district_id": "12.72.01"
+  },
+  {
+    "id": "12.72.01.1006",
+    "name": "Pardomuan",
+    "district_id": "12.72.01"
+  },
+  {
+    "id": "12.72.01.1007",
+    "name": "Siopat Suhu",
+    "district_id": "12.72.01"
+  },
+  {
+    "id": "12.72.02.1001",
+    "name": "Dwikora",
+    "district_id": "12.72.02"
+  },
+  {
+    "id": "12.72.02.1002",
+    "name": "Proklamasi",
+    "district_id": "12.72.02"
+  },
+  {
+    "id": "12.72.02.1003",
+    "name": "Bantan",
+    "district_id": "12.72.02"
+  },
+  {
+    "id": "12.72.02.1004",
+    "name": "Timbang Galung",
+    "district_id": "12.72.02"
+  },
+  {
+    "id": "12.72.02.1005",
+    "name": "Simarito",
+    "district_id": "12.72.02"
+  },
+  {
+    "id": "12.72.02.1006",
+    "name": "Sipinggolpinggol",
+    "district_id": "12.72.02"
+  },
+  {
+    "id": "12.72.02.1007",
+    "name": "Banjar",
+    "district_id": "12.72.02"
+  },
+  {
+    "id": "12.72.02.1008",
+    "name": "Teladan",
+    "district_id": "12.72.02"
+  },
+  {
+    "id": "12.72.03.1001",
+    "name": "Melayu",
+    "district_id": "12.72.03"
+  },
+  {
+    "id": "12.72.03.1002",
+    "name": "Martoba",
+    "district_id": "12.72.03"
+  },
+  {
+    "id": "12.72.03.1003",
+    "name": "Baru",
+    "district_id": "12.72.03"
+  },
+  {
+    "id": "12.72.03.1004",
+    "name": "Sukadame",
+    "district_id": "12.72.03"
+  },
+  {
+    "id": "12.72.03.1005",
+    "name": "Kahean",
+    "district_id": "12.72.03"
+  },
+  {
+    "id": "12.72.03.1006",
+    "name": "Sigulanggulang",
+    "district_id": "12.72.03"
+  },
+  {
+    "id": "12.72.03.1007",
+    "name": "Bane",
+    "district_id": "12.72.03"
+  },
+  {
+    "id": "12.72.04.1001",
+    "name": "Toba",
+    "district_id": "12.72.04"
+  },
+  {
+    "id": "12.72.04.1002",
+    "name": "Karo",
+    "district_id": "12.72.04"
+  },
+  {
+    "id": "12.72.04.1003",
+    "name": "Simalungun",
+    "district_id": "12.72.04"
+  },
+  {
+    "id": "12.72.04.1004",
+    "name": "Martimbang",
+    "district_id": "12.72.04"
+  },
+  {
+    "id": "12.72.04.1005",
+    "name": "Kristen",
+    "district_id": "12.72.04"
+  },
+  {
+    "id": "12.72.04.1006",
+    "name": "Aek Nauli",
+    "district_id": "12.72.04"
+  },
+  {
+    "id": "12.72.05.1002",
+    "name": "Sukaraja",
+    "district_id": "12.72.05"
+  },
+  {
+    "id": "12.72.05.1005",
+    "name": "Baringin Pancur Nauli",
+    "district_id": "12.72.05"
+  },
+  {
+    "id": "12.72.05.1006",
+    "name": "Pardamean",
+    "district_id": "12.72.05"
+  },
+  {
+    "id": "12.72.05.1007",
+    "name": "Sukamaju",
+    "district_id": "12.72.05"
+  },
+  {
+    "id": "12.72.05.1008",
+    "name": "Parhorasan Nauli",
+    "district_id": "12.72.05"
+  },
+  {
+    "id": "12.72.05.1009",
+    "name": "Sukamakmur",
+    "district_id": "12.72.05"
+  },
+  {
+    "id": "12.72.05.1010",
+    "name": "Mekar Nauli",
+    "district_id": "12.72.05"
+  },
+  {
+    "id": "12.72.06.1001",
+    "name": "Sumber Jaya",
+    "district_id": "12.72.06"
+  },
+  {
+    "id": "12.72.06.1003",
+    "name": "Tambun Nabolon",
+    "district_id": "12.72.06"
+  },
+  {
+    "id": "12.72.06.1007",
+    "name": "Naga Pita",
+    "district_id": "12.72.06"
+  },
+  {
+    "id": "12.72.06.1008",
+    "name": "Pondok Sayur",
+    "district_id": "12.72.06"
+  },
+  {
+    "id": "12.72.06.1009",
+    "name": "Tanjung Tongah",
+    "district_id": "12.72.06"
+  },
+  {
+    "id": "12.72.06.1010",
+    "name": "Naga Pitu",
+    "district_id": "12.72.06"
+  },
+  {
+    "id": "12.72.06.1011",
+    "name": "Tanjung Pinggir",
+    "district_id": "12.72.06"
+  },
+  {
+    "id": "12.72.07.1001",
+    "name": "Gurilla",
+    "district_id": "12.72.07"
+  },
+  {
+    "id": "12.72.07.1002",
+    "name": "Bah Kapul",
+    "district_id": "12.72.07"
+  },
+  {
+    "id": "12.72.07.1003",
+    "name": "Setia Negara",
+    "district_id": "12.72.07"
+  },
+  {
+    "id": "12.72.07.1004",
+    "name": "Bukit Sofa",
+    "district_id": "12.72.07"
+  },
+  {
+    "id": "12.72.07.1005",
+    "name": "Bah Sorma",
+    "district_id": "12.72.07"
+  },
+  {
+    "id": "12.72.08.1001",
+    "name": "Simarimbun",
+    "district_id": "12.72.08"
+  },
+  {
+    "id": "12.72.08.1002",
+    "name": "Tong Marimbun",
+    "district_id": "12.72.08"
+  },
+  {
+    "id": "12.72.08.1003",
+    "name": "Naga Huta",
+    "district_id": "12.72.08"
+  },
+  {
+    "id": "12.72.08.1004",
+    "name": "Naga Huta Timur",
+    "district_id": "12.72.08"
+  },
+  {
+    "id": "12.72.08.1005",
+    "name": "Pematang Marihat",
+    "district_id": "12.72.08"
+  },
+  {
+    "id": "12.72.08.1006",
+    "name": "Marihat Jaya",
+    "district_id": "12.72.08"
+  },
+  {
+    "id": "12.73.01.1001",
+    "name": "Huta Barangan",
+    "district_id": "12.73.01"
+  },
+  {
+    "id": "12.73.01.1002",
+    "name": "Angin Nauli",
+    "district_id": "12.73.01"
+  },
+  {
+    "id": "12.73.01.1003",
+    "name": "Huta Tonga-tonga",
+    "district_id": "12.73.01"
+  },
+  {
+    "id": "12.73.01.1004",
+    "name": "Sibolga Ilir",
+    "district_id": "12.73.01"
+  },
+  {
+    "id": "12.73.01.1005",
+    "name": "Simare-Mare",
+    "district_id": "12.73.01"
+  },
+  {
+    "id": "12.73.02.1001",
+    "name": "Kota Baringin",
+    "district_id": "12.73.02"
+  },
+  {
+    "id": "12.73.02.1002",
+    "name": "Pasar Baru",
+    "district_id": "12.73.02"
+  },
+  {
+    "id": "12.73.02.1003",
+    "name": "Pasar Belakang",
+    "district_id": "12.73.02"
+  },
+  {
+    "id": "12.73.02.1004",
+    "name": "Pancuran Gerobak",
+    "district_id": "12.73.02"
+  },
+  {
+    "id": "12.73.03.1001",
+    "name": "Aek Habil",
+    "district_id": "12.73.03"
+  },
+  {
+    "id": "12.73.03.1002",
+    "name": "Aek Manis",
+    "district_id": "12.73.03"
+  },
+  {
+    "id": "12.73.03.1003",
+    "name": "Aek Muara Pinang",
+    "district_id": "12.73.03"
+  },
+  {
+    "id": "12.73.03.1004",
+    "name": "Aek Parombunan",
+    "district_id": "12.73.03"
+  },
+  {
+    "id": "12.73.04.1001",
+    "name": "Pancuran Kerambil",
+    "district_id": "12.73.04"
+  },
+  {
+    "id": "12.73.04.1002",
+    "name": "Pancuran Dewa",
+    "district_id": "12.73.04"
+  },
+  {
+    "id": "12.73.04.1003",
+    "name": "Pancuran Pinang",
+    "district_id": "12.73.04"
+  },
+  {
+    "id": "12.73.04.1004",
+    "name": "Pancuran Bambu",
+    "district_id": "12.73.04"
+  },
+  {
+    "id": "12.74.01.1001",
+    "name": "Tanjungbalai Kota I",
+    "district_id": "12.74.01"
+  },
+  {
+    "id": "12.74.01.1002",
+    "name": "Tanjungbalai Kota II",
+    "district_id": "12.74.01"
+  },
+  {
+    "id": "12.74.01.1003",
+    "name": "Perwira",
+    "district_id": "12.74.01"
+  },
+  {
+    "id": "12.74.01.1004",
+    "name": "Karya",
+    "district_id": "12.74.01"
+  },
+  {
+    "id": "12.74.01.1005",
+    "name": "Pantai Burung",
+    "district_id": "12.74.01"
+  },
+  {
+    "id": "12.74.01.1006",
+    "name": "Indra Sakti",
+    "district_id": "12.74.01"
+  },
+  {
+    "id": "12.74.02.1001",
+    "name": "Tanjungbalai Kota III",
+    "district_id": "12.74.02"
+  },
+  {
+    "id": "12.74.02.1002",
+    "name": "Tanjungbalai Kota IV",
+    "district_id": "12.74.02"
+  },
+  {
+    "id": "12.74.02.1003",
+    "name": "Sejahtera",
+    "district_id": "12.74.02"
+  },
+  {
+    "id": "12.74.02.1004",
+    "name": "Kuala Silo Bestari",
+    "district_id": "12.74.02"
+  },
+  {
+    "id": "12.74.02.1005",
+    "name": "Matahalasan",
+    "district_id": "12.74.02"
+  },
+  {
+    "id": "12.74.03.1001",
+    "name": "Keramat Kubah",
+    "district_id": "12.74.03"
+  },
+  {
+    "id": "12.74.03.1002",
+    "name": "Sumber Sari",
+    "district_id": "12.74.03"
+  },
+  {
+    "id": "12.74.03.1003",
+    "name": "Muara Sentosa",
+    "district_id": "12.74.03"
+  },
+  {
+    "id": "12.74.03.1004",
+    "name": "Pasar Baru",
+    "district_id": "12.74.03"
+  },
+  {
+    "id": "12.74.03.1005",
+    "name": "Sei Raja",
+    "district_id": "12.74.03"
+  },
+  {
+    "id": "12.74.04.1001",
+    "name": "Sei Merbau",
+    "district_id": "12.74.04"
+  },
+  {
+    "id": "12.74.04.1002",
+    "name": "Pematang Pasir",
+    "district_id": "12.74.04"
+  },
+  {
+    "id": "12.74.04.1003",
+    "name": "Perjuangan",
+    "district_id": "12.74.04"
+  },
+  {
+    "id": "12.74.04.1004",
+    "name": "Kapias Pulau Buaya",
+    "district_id": "12.74.04"
+  },
+  {
+    "id": "12.74.04.1005",
+    "name": "Beting Kuala Kapias",
+    "district_id": "12.74.04"
+  },
+  {
+    "id": "12.74.05.1003",
+    "name": "Gading",
+    "district_id": "12.74.05"
+  },
+  {
+    "id": "12.74.05.1004",
+    "name": "Sirantau",
+    "district_id": "12.74.05"
+  },
+  {
+    "id": "12.74.05.1005",
+    "name": "Sijambi",
+    "district_id": "12.74.05"
+  },
+  {
+    "id": "12.74.05.1006",
+    "name": "Pahang",
+    "district_id": "12.74.05"
+  },
+  {
+    "id": "12.74.05.1010",
+    "name": "Pantai Johor",
+    "district_id": "12.74.05"
+  },
+  {
+    "id": "12.74.06.1001",
+    "name": "Pulau Simardan",
+    "district_id": "12.74.06"
+  },
+  {
+    "id": "12.74.06.1002",
+    "name": "Semula Jadi",
+    "district_id": "12.74.06"
+  },
+  {
+    "id": "12.74.06.1003",
+    "name": "Selat Lancang",
+    "district_id": "12.74.06"
+  },
+  {
+    "id": "12.74.06.1004",
+    "name": "Bunga Tanjung",
+    "district_id": "12.74.06"
+  },
+  {
+    "id": "12.74.06.1005",
+    "name": "Selat Tanjung Medan",
+    "district_id": "12.74.06"
+  },
+  {
+    "id": "12.75.01.1001",
+    "name": "Pahlawan",
+    "district_id": "12.75.01"
+  },
+  {
+    "id": "12.75.01.1002",
+    "name": "Jati Negara",
+    "district_id": "12.75.01"
+  },
+  {
+    "id": "12.75.01.1003",
+    "name": "Nangka",
+    "district_id": "12.75.01"
+  },
+  {
+    "id": "12.75.01.1004",
+    "name": "Damai",
+    "district_id": "12.75.01"
+  },
+  {
+    "id": "12.75.01.1005",
+    "name": "Kebun Lada",
+    "district_id": "12.75.01"
+  },
+  {
+    "id": "12.75.01.1006",
+    "name": "Cengkeh Turi",
+    "district_id": "12.75.01"
+  },
+  {
+    "id": "12.75.01.1007",
+    "name": "Jati Utomo",
+    "district_id": "12.75.01"
+  },
+  {
+    "id": "12.75.01.1008",
+    "name": "Jati Makmur",
+    "district_id": "12.75.01"
+  },
+  {
+    "id": "12.75.01.1009",
+    "name": "Jati Karya",
+    "district_id": "12.75.01"
+  },
+  {
+    "id": "12.75.02.1001",
+    "name": "Berngam",
+    "district_id": "12.75.02"
+  },
+  {
+    "id": "12.75.02.1002",
+    "name": "Satria",
+    "district_id": "12.75.02"
+  },
+  {
+    "id": "12.75.02.1003",
+    "name": "Setia",
+    "district_id": "12.75.02"
+  },
+  {
+    "id": "12.75.02.1004",
+    "name": "Kartini",
+    "district_id": "12.75.02"
+  },
+  {
+    "id": "12.75.02.1005",
+    "name": "Tangsi",
+    "district_id": "12.75.02"
+  },
+  {
+    "id": "12.75.02.1006",
+    "name": "Binjai",
+    "district_id": "12.75.02"
+  },
+  {
+    "id": "12.75.02.1007",
+    "name": "Pekan Binjai",
+    "district_id": "12.75.02"
+  },
+  {
+    "id": "12.75.03.1001",
+    "name": "Bandar Senembah",
+    "district_id": "12.75.03"
+  },
+  {
+    "id": "12.75.03.1002",
+    "name": "Limau Mungkur",
+    "district_id": "12.75.03"
+  },
+  {
+    "id": "12.75.03.1003",
+    "name": "Limau Sundai",
+    "district_id": "12.75.03"
+  },
+  {
+    "id": "12.75.03.1004",
+    "name": "Paya Roba",
+    "district_id": "12.75.03"
+  },
+  {
+    "id": "12.75.03.1005",
+    "name": "Suka Maju",
+    "district_id": "12.75.03"
+  },
+  {
+    "id": "12.75.03.1006",
+    "name": "Sukaramai",
+    "district_id": "12.75.03"
+  },
+  {
+    "id": "12.75.04.1001",
+    "name": "Tanah Tinggi",
+    "district_id": "12.75.04"
+  },
+  {
+    "id": "12.75.04.1002",
+    "name": "Dataran Tinggi",
+    "district_id": "12.75.04"
+  },
+  {
+    "id": "12.75.04.1003",
+    "name": "Timbang Langkat",
+    "district_id": "12.75.04"
+  },
+  {
+    "id": "12.75.04.1004",
+    "name": "Mencirim",
+    "district_id": "12.75.04"
+  },
+  {
+    "id": "12.75.04.1005",
+    "name": "Tunggurono",
+    "district_id": "12.75.04"
+  },
+  {
+    "id": "12.75.04.1006",
+    "name": "Sumber Mulyorejo",
+    "district_id": "12.75.04"
+  },
+  {
+    "id": "12.75.04.1007",
+    "name": "Sumber Karya",
+    "district_id": "12.75.04"
+  },
+  {
+    "id": "12.75.05.1001",
+    "name": "Tanah Merah",
+    "district_id": "12.75.05"
+  },
+  {
+    "id": "12.75.05.1002",
+    "name": "Binjai Estate",
+    "district_id": "12.75.05"
+  },
+  {
+    "id": "12.75.05.1003",
+    "name": "Bhakti Karya",
+    "district_id": "12.75.05"
+  },
+  {
+    "id": "12.75.05.1004",
+    "name": "Rambung Dalam",
+    "district_id": "12.75.05"
+  },
+  {
+    "id": "12.75.05.1005",
+    "name": "Pujidadi",
+    "district_id": "12.75.05"
+  },
+  {
+    "id": "12.75.05.1006",
+    "name": "Tanah Seribu",
+    "district_id": "12.75.05"
+  },
+  {
+    "id": "12.75.05.1007",
+    "name": "Rambung Barat",
+    "district_id": "12.75.05"
+  },
+  {
+    "id": "12.75.05.1008",
+    "name": "Rambung Timur",
+    "district_id": "12.75.05"
+  },
+  {
+    "id": "12.76.01.1001",
+    "name": "Pabatu",
+    "district_id": "12.76.01"
+  },
+  {
+    "id": "12.76.01.1002",
+    "name": "Lubuk Baru",
+    "district_id": "12.76.01"
+  },
+  {
+    "id": "12.76.01.1006",
+    "name": "Persiakan",
+    "district_id": "12.76.01"
+  },
+  {
+    "id": "12.76.01.1007",
+    "name": "Bandar Sono",
+    "district_id": "12.76.01"
+  },
+  {
+    "id": "12.76.01.1010",
+    "name": "Tualang",
+    "district_id": "12.76.01"
+  },
+  {
+    "id": "12.76.01.1011",
+    "name": "Padang Merbau",
+    "district_id": "12.76.01"
+  },
+  {
+    "id": "12.76.01.1012",
+    "name": "Lubuk Raya",
+    "district_id": "12.76.01"
+  },
+  {
+    "id": "12.76.02.1004",
+    "name": "Rantau Laban",
+    "district_id": "12.76.02"
+  },
+  {
+    "id": "12.76.02.1007",
+    "name": "Karya Jaya",
+    "district_id": "12.76.02"
+  },
+  {
+    "id": "12.76.02.1009",
+    "name": "Lalang",
+    "district_id": "12.76.02"
+  },
+  {
+    "id": "12.76.02.1010",
+    "name": "Tanjung Marulak",
+    "district_id": "12.76.02"
+  },
+  {
+    "id": "12.76.02.1011",
+    "name": "Sri Padang",
+    "district_id": "12.76.02"
+  },
+  {
+    "id": "12.76.02.1012",
+    "name": "Tanjung Marulak Hilir",
+    "district_id": "12.76.02"
+  },
+  {
+    "id": "12.76.02.1013",
+    "name": "Mekar Sentosa",
+    "district_id": "12.76.02"
+  },
+  {
+    "id": "12.76.03.1001",
+    "name": "Bagelen",
+    "district_id": "12.76.03"
+  },
+  {
+    "id": "12.76.03.1002",
+    "name": "Tambangan",
+    "district_id": "12.76.03"
+  },
+  {
+    "id": "12.76.03.1004",
+    "name": "Tebing Tinggi",
+    "district_id": "12.76.03"
+  },
+  {
+    "id": "12.76.03.1006",
+    "name": "Satria",
+    "district_id": "12.76.03"
+  },
+  {
+    "id": "12.76.03.1007",
+    "name": "Damar Sari",
+    "district_id": "12.76.03"
+  },
+  {
+    "id": "12.76.03.1008",
+    "name": "Tambangan Hulu",
+    "district_id": "12.76.03"
+  },
+  {
+    "id": "12.76.03.1009",
+    "name": "Deblod Sundoro",
+    "district_id": "12.76.03"
+  },
+  {
+    "id": "12.76.04.1001",
+    "name": "Durian",
+    "district_id": "12.76.04"
+  },
+  {
+    "id": "12.76.04.1002",
+    "name": "Pelita",
+    "district_id": "12.76.04"
+  },
+  {
+    "id": "12.76.04.1003",
+    "name": "Bulian",
+    "district_id": "12.76.04"
+  },
+  {
+    "id": "12.76.04.1004",
+    "name": "Berohol",
+    "district_id": "12.76.04"
+  },
+  {
+    "id": "12.76.04.1005",
+    "name": "Bandar Sakti",
+    "district_id": "12.76.04"
+  },
+  {
+    "id": "12.76.04.1006",
+    "name": "Pinang Mancung",
+    "district_id": "12.76.04"
+  },
+  {
+    "id": "12.76.04.1007",
+    "name": "Teluk Karang",
+    "district_id": "12.76.04"
+  },
+  {
+    "id": "12.76.05.1001",
+    "name": "Mandailing",
+    "district_id": "12.76.05"
+  },
+  {
+    "id": "12.76.05.1002",
+    "name": "Pasar Baru",
+    "district_id": "12.76.05"
+  },
+  {
+    "id": "12.76.05.1003",
+    "name": "Pasar Gambir",
+    "district_id": "12.76.05"
+  },
+  {
+    "id": "12.76.05.1004",
+    "name": "Badak Bejuang",
+    "district_id": "12.76.05"
+  },
+  {
+    "id": "12.76.05.1005",
+    "name": "Bandar Utama",
+    "district_id": "12.76.05"
+  },
+  {
+    "id": "12.76.05.1006",
+    "name": "Rambung",
+    "district_id": "12.76.05"
+  },
+  {
+    "id": "12.76.05.1007",
+    "name": "Tebing Tinggi Lama",
+    "district_id": "12.76.05"
+  },
+  {
+    "id": "12.77.01.1001",
+    "name": "Wek I",
+    "district_id": "12.77.01"
+  },
+  {
+    "id": "12.77.01.1002",
+    "name": "Wek II",
+    "district_id": "12.77.01"
+  },
+  {
+    "id": "12.77.01.1003",
+    "name": "Wek III",
+    "district_id": "12.77.01"
+  },
+  {
+    "id": "12.77.01.1004",
+    "name": "Wek IV",
+    "district_id": "12.77.01"
+  },
+  {
+    "id": "12.77.01.1005",
+    "name": "Tanobato",
+    "district_id": "12.77.01"
+  },
+  {
+    "id": "12.77.01.1006",
+    "name": "Tobat",
+    "district_id": "12.77.01"
+  },
+  {
+    "id": "12.77.01.1007",
+    "name": "Batang Ayumi Jae",
+    "district_id": "12.77.01"
+  },
+  {
+    "id": "12.77.01.1008",
+    "name": "Batang Ayumi Julu",
+    "district_id": "12.77.01"
+  },
+  {
+    "id": "12.77.01.1009",
+    "name": "Sadabuan",
+    "district_id": "12.77.01"
+  },
+  {
+    "id": "12.77.01.1010",
+    "name": "Panyanggar",
+    "district_id": "12.77.01"
+  },
+  {
+    "id": "12.77.01.1011",
+    "name": "Bonan Dolok",
+    "district_id": "12.77.01"
+  },
+  {
+    "id": "12.77.01.1012",
+    "name": "Losung Batu",
+    "district_id": "12.77.01"
+  },
+  {
+    "id": "12.77.01.1013",
+    "name": "Timbangan",
+    "district_id": "12.77.01"
+  },
+  {
+    "id": "12.77.01.1014",
+    "name": "Bincar",
+    "district_id": "12.77.01"
+  },
+  {
+    "id": "12.77.01.1015",
+    "name": "Kantin",
+    "district_id": "12.77.01"
+  },
+  {
+    "id": "12.77.01.1016",
+    "name": "Kayu Ombun",
+    "district_id": "12.77.01"
+  },
+  {
+    "id": "12.77.02.1001",
+    "name": "Wek V",
+    "district_id": "12.77.02"
+  },
+  {
+    "id": "12.77.02.1002",
+    "name": "Wek VI",
+    "district_id": "12.77.02"
+  },
+  {
+    "id": "12.77.02.1003",
+    "name": "Losung",
+    "district_id": "12.77.02"
+  },
+  {
+    "id": "12.77.02.1004",
+    "name": "Sitamiang",
+    "district_id": "12.77.02"
+  },
+  {
+    "id": "12.77.02.1005",
+    "name": "Ujung Padang",
+    "district_id": "12.77.02"
+  },
+  {
+    "id": "12.77.02.1006",
+    "name": "Aek Tampang",
+    "district_id": "12.77.02"
+  },
+  {
+    "id": "12.77.02.1007",
+    "name": "Padang Matinggi",
+    "district_id": "12.77.02"
+  },
+  {
+    "id": "12.77.02.1008",
+    "name": "Silandit",
+    "district_id": "12.77.02"
+  },
+  {
+    "id": "12.77.02.1009",
+    "name": "Sidangkal",
+    "district_id": "12.77.02"
+  },
+  {
+    "id": "12.77.02.1010",
+    "name": "Hanopan",
+    "district_id": "12.77.02"
+  },
+  {
+    "id": "12.77.02.1011",
+    "name": "Padang Matinggi Lestari",
+    "district_id": "12.77.02"
+  },
+  {
+    "id": "12.77.02.1012",
+    "name": "Sitamiang Baru",
+    "district_id": "12.77.02"
+  },
+  {
+    "id": "12.77.03.1001",
+    "name": "Batunadua Jae",
+    "district_id": "12.77.03"
+  },
+  {
+    "id": "12.77.03.1002",
+    "name": "Batunadua Julu",
+    "district_id": "12.77.03"
+  },
+  {
+    "id": "12.77.03.2003",
+    "name": "Purwodadi",
+    "district_id": "12.77.03"
+  },
+  {
+    "id": "12.77.03.2004",
+    "name": "Gunung Hasahatan",
+    "district_id": "12.77.03"
+  },
+  {
+    "id": "12.77.03.2005",
+    "name": "Ujunggurap",
+    "district_id": "12.77.03"
+  },
+  {
+    "id": "12.77.03.2006",
+    "name": "Aek Tuhul",
+    "district_id": "12.77.03"
+  },
+  {
+    "id": "12.77.03.2007",
+    "name": "Baruas",
+    "district_id": "12.77.03"
+  },
+  {
+    "id": "12.77.03.2008",
+    "name": "Siloting",
+    "district_id": "12.77.03"
+  },
+  {
+    "id": "12.77.03.2009",
+    "name": "Aek Bayur",
+    "district_id": "12.77.03"
+  },
+  {
+    "id": "12.77.03.2010",
+    "name": "Pudun Jae",
+    "district_id": "12.77.03"
+  },
+  {
+    "id": "12.77.03.2011",
+    "name": "Pudun Julu",
+    "district_id": "12.77.03"
+  },
+  {
+    "id": "12.77.03.2012",
+    "name": "Batang Bahal",
+    "district_id": "12.77.03"
+  },
+  {
+    "id": "12.77.03.2013",
+    "name": "Aek Najaji",
+    "district_id": "12.77.03"
+  },
+  {
+    "id": "12.77.03.2014",
+    "name": "Simirik",
+    "district_id": "12.77.03"
+  },
+  {
+    "id": "12.77.03.2015",
+    "name": "Bargottopong",
+    "district_id": "12.77.03"
+  },
+  {
+    "id": "12.77.04.1001",
+    "name": "Hutaimbaru",
+    "district_id": "12.77.04"
+  },
+  {
+    "id": "12.77.04.1002",
+    "name": "Lubuk Raya",
+    "district_id": "12.77.04"
+  },
+  {
+    "id": "12.77.04.1003",
+    "name": "Sabungan Jae",
+    "district_id": "12.77.04"
+  },
+  {
+    "id": "12.77.04.1004",
+    "name": "Lembah Lubuk Manik",
+    "district_id": "12.77.04"
+  },
+  {
+    "id": "12.77.04.1005",
+    "name": "Palopat Maria",
+    "district_id": "12.77.04"
+  },
+  {
+    "id": "12.77.04.2006",
+    "name": "Sabungan Sipabangun",
+    "district_id": "12.77.04"
+  },
+  {
+    "id": "12.77.04.2007",
+    "name": "Singali",
+    "district_id": "12.77.04"
+  },
+  {
+    "id": "12.77.04.2008",
+    "name": "Huta Padang",
+    "district_id": "12.77.04"
+  },
+  {
+    "id": "12.77.04.2009",
+    "name": "Partihaman Saroha",
+    "district_id": "12.77.04"
+  },
+  {
+    "id": "12.77.04.2010",
+    "name": "Tinjoman Lama",
+    "district_id": "12.77.04"
+  },
+  {
+    "id": "12.77.05.1001",
+    "name": "Sihitang",
+    "district_id": "12.77.05"
+  },
+  {
+    "id": "12.77.05.1002",
+    "name": "Pijor Koling",
+    "district_id": "12.77.05"
+  },
+  {
+    "id": "12.77.05.2003",
+    "name": "Palopat Pijor Koling",
+    "district_id": "12.77.05"
+  },
+  {
+    "id": "12.77.05.2004",
+    "name": "Salambue",
+    "district_id": "12.77.05"
+  },
+  {
+    "id": "12.77.05.2005",
+    "name": "Purbatua Pijor Koling",
+    "district_id": "12.77.05"
+  },
+  {
+    "id": "12.77.05.2006",
+    "name": "Sigulang",
+    "district_id": "12.77.05"
+  },
+  {
+    "id": "12.77.05.2007",
+    "name": "Manunggang Julu",
+    "district_id": "12.77.05"
+  },
+  {
+    "id": "12.77.05.2008",
+    "name": "Goti",
+    "district_id": "12.77.05"
+  },
+  {
+    "id": "12.77.05.2009",
+    "name": "Manegen",
+    "district_id": "12.77.05"
+  },
+  {
+    "id": "12.77.05.2010",
+    "name": "Huta Koje",
+    "district_id": "12.77.05"
+  },
+  {
+    "id": "12.77.05.2011",
+    "name": "Hutalimbong",
+    "district_id": "12.77.05"
+  },
+  {
+    "id": "12.77.05.2012",
+    "name": "Huta Padang",
+    "district_id": "12.77.05"
+  },
+  {
+    "id": "12.77.05.2013",
+    "name": "Perkebunan Pijor Koling",
+    "district_id": "12.77.05"
+  },
+  {
+    "id": "12.77.05.2014",
+    "name": "Labuhan Labo",
+    "district_id": "12.77.05"
+  },
+  {
+    "id": "12.77.05.2015",
+    "name": "Huta Lombang",
+    "district_id": "12.77.05"
+  },
+  {
+    "id": "12.77.05.2016",
+    "name": "Manunggang Jae",
+    "district_id": "12.77.05"
+  },
+  {
+    "id": "12.77.05.2017",
+    "name": "Labuhan Rasoki",
+    "district_id": "12.77.05"
+  },
+  {
+    "id": "12.77.05.2018",
+    "name": "Tarutung Baru",
+    "district_id": "12.77.05"
+  },
+  {
+    "id": "12.77.06.2001",
+    "name": "Joring Lombang",
+    "district_id": "12.77.06"
+  },
+  {
+    "id": "12.77.06.2002",
+    "name": "Batu Layan",
+    "district_id": "12.77.06"
+  },
+  {
+    "id": "12.77.06.2003",
+    "name": "Simasom",
+    "district_id": "12.77.06"
+  },
+  {
+    "id": "12.77.06.2004",
+    "name": "Pintu Langit Jae",
+    "district_id": "12.77.06"
+  },
+  {
+    "id": "12.77.06.2005",
+    "name": "Mompang",
+    "district_id": "12.77.06"
+  },
+  {
+    "id": "12.77.06.2006",
+    "name": "Rimba Soping",
+    "district_id": "12.77.06"
+  },
+  {
+    "id": "12.77.06.2007",
+    "name": "Simatohir",
+    "district_id": "12.77.06"
+  },
+  {
+    "id": "12.77.06.2008",
+    "name": "Joring Natobang",
+    "district_id": "12.77.06"
+  },
+  {
+    "id": "12.78.01.1030",
+    "name": "Pasar Gunungsitoli",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.1031",
+    "name": "Saombo",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.1032",
+    "name": "Ilir",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2001",
+    "name": "Bawodesolo",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2002",
+    "name": "Boyo",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2003",
+    "name": "Dahadano Gawu-Gawu",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2004",
+    "name": "Dahana Tabaloho",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2005",
+    "name": "Fadoro Lasara",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2006",
+    "name": "Hilihao",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2007",
+    "name": "Hilimbaruzo",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2009",
+    "name": "Iraonogeba",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2010",
+    "name": "Lasara Bahili",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2012",
+    "name": "Madula",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2013",
+    "name": "Madolaoli",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2014",
+    "name": "Mudik",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2015",
+    "name": "Miga",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2017",
+    "name": "Ombolata Ulu",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2018",
+    "name": "Onowaembo",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2019",
+    "name": "Onozitoli Olora",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2020",
+    "name": "Onozitoli Sifaoroasi",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2021",
+    "name": "Saewe",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2022",
+    "name": "Sifalaete Tabaloho",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2023",
+    "name": "Sifalaete Ulu",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2025",
+    "name": "Simandraolo",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2026",
+    "name": "Sisarahiligamo",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2027",
+    "name": "Sisarahili Sisambualahe",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2028",
+    "name": "Sisobahili Tabaloho",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.01.2029",
+    "name": "Tuhemberua Ulu",
+    "district_id": "12.78.01"
+  },
+  {
+    "id": "12.78.02.2001",
+    "name": "Ononamolo I Lot",
+    "district_id": "12.78.02"
+  },
+  {
+    "id": "12.78.02.2002",
+    "name": "Fodo",
+    "district_id": "12.78.02"
+  },
+  {
+    "id": "12.78.02.2003",
+    "name": "Faekhu",
+    "district_id": "12.78.02"
+  },
+  {
+    "id": "12.78.02.2004",
+    "name": "Lolofaoso Tabaloho",
+    "district_id": "12.78.02"
+  },
+  {
+    "id": "12.78.02.2005",
+    "name": "Lolomboli",
+    "district_id": "12.78.02"
+  },
+  {
+    "id": "12.78.02.2006",
+    "name": "Mazingo Tabaloho",
+    "district_id": "12.78.02"
+  },
+  {
+    "id": "12.78.02.2007",
+    "name": "Onozitoli Tabaloho",
+    "district_id": "12.78.02"
+  },
+  {
+    "id": "12.78.02.2008",
+    "name": "Lololakha",
+    "district_id": "12.78.02"
+  },
+  {
+    "id": "12.78.02.2010",
+    "name": "Ombolata Simenari",
+    "district_id": "12.78.02"
+  },
+  {
+    "id": "12.78.02.2011",
+    "name": "Hiligara",
+    "district_id": "12.78.02"
+  },
+  {
+    "id": "12.78.02.2012",
+    "name": "Luahalaraga",
+    "district_id": "12.78.02"
+  },
+  {
+    "id": "12.78.02.2014",
+    "name": "Hiligodu Ombolata",
+    "district_id": "12.78.02"
+  },
+  {
+    "id": "12.78.02.2015",
+    "name": "Tetehosi Ombolata",
+    "district_id": "12.78.02"
+  },
+  {
+    "id": "12.78.03.2001",
+    "name": "Afia",
+    "district_id": "12.78.03"
+  },
+  {
+    "id": "12.78.03.2003",
+    "name": "Lasara Sowu",
+    "district_id": "12.78.03"
+  },
+  {
+    "id": "12.78.03.2004",
+    "name": "Telukbelukar",
+    "district_id": "12.78.03"
+  },
+  {
+    "id": "12.78.03.2005",
+    "name": "Tetehosi Afia",
+    "district_id": "12.78.03"
+  },
+  {
+    "id": "12.78.03.2006",
+    "name": "Hambawa",
+    "district_id": "12.78.03"
+  },
+  {
+    "id": "12.78.03.2008",
+    "name": "Olora",
+    "district_id": "12.78.03"
+  },
+  {
+    "id": "12.78.03.2009",
+    "name": "Hilimbowo Olora",
+    "district_id": "12.78.03"
+  },
+  {
+    "id": "12.78.03.2010",
+    "name": "Hiligodu Ulu",
+    "district_id": "12.78.03"
+  },
+  {
+    "id": "12.78.04.2001",
+    "name": "Sifalaete",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2002",
+    "name": "Hilimbawodesolo",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2003",
+    "name": "Dahana",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2004",
+    "name": "Bawodesolo",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2005",
+    "name": "Tuhegeo I",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2006",
+    "name": "Simanaere",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2007",
+    "name": "Humene",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2008",
+    "name": "Siwalubanua II",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2009",
+    "name": "Helefanikha",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2010",
+    "name": "Tetehosi I",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2011",
+    "name": "Fowa",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2012",
+    "name": "Binaka",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2013",
+    "name": "Idanotae",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2014",
+    "name": "Tetehosi II",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2016",
+    "name": "Siwalubanua I",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2017",
+    "name": "Hilihambawa",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2019",
+    "name": "Lewuoguru Idanoi",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2020",
+    "name": "Fadoro",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2021",
+    "name": "Hiliweto Idanoi",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2022",
+    "name": "Hilimbowo Idanoi",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2023",
+    "name": "Onowaembo",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2024",
+    "name": "Ombolata",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2025",
+    "name": "Samasi",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.04.2026",
+    "name": "Tuhegeo II",
+    "district_id": "12.78.04"
+  },
+  {
+    "id": "12.78.05.2003",
+    "name": "Iraonolase",
+    "district_id": "12.78.05"
+  },
+  {
+    "id": "12.78.05.2005",
+    "name": "Tarakhaini",
+    "district_id": "12.78.05"
+  },
+  {
+    "id": "12.78.05.2006",
+    "name": "Fadoro Hilimbowo",
+    "district_id": "12.78.05"
+  },
+  {
+    "id": "12.78.05.2007",
+    "name": "Fadoro You",
+    "district_id": "12.78.05"
+  },
+  {
+    "id": "12.78.05.2008",
+    "name": "Lololawa",
+    "district_id": "12.78.05"
+  },
+  {
+    "id": "12.78.05.2009",
+    "name": "Nazalou Lolowua",
+    "district_id": "12.78.05"
+  },
+  {
+    "id": "12.78.06.2001",
+    "name": "Tumori",
+    "district_id": "12.78.06"
+  },
+  {
+    "id": "12.78.06.2002",
+    "name": "Tumori Balohili",
+    "district_id": "12.78.06"
+  },
+  {
+    "id": "12.78.06.2003",
+    "name": "Orahili Tumori",
+    "district_id": "12.78.06"
+  },
+  {
+    "id": "12.78.06.2004",
+    "name": "Gada",
+    "district_id": "12.78.06"
+  },
+  {
+    "id": "12.78.06.2005",
+    "name": "Lolomoyo Tuhemberua",
+    "district_id": "12.78.06"
+  },
+  {
+    "id": "12.78.06.2007",
+    "name": "Hilinakhe",
+    "district_id": "12.78.06"
+  },
+  {
+    "id": "12.78.06.2008",
+    "name": "Onozikho",
+    "district_id": "12.78.06"
+  },
+  {
+    "id": "13.01.01.2001",
+    "name": "Inderapura",
+    "district_id": "13.01.01"
+  },
+  {
+    "id": "13.01.01.2002",
+    "name": "Muaro Sakai Inderapura",
+    "district_id": "13.01.01"
+  },
+  {
+    "id": "13.01.01.2003",
+    "name": "Tiga Sepakat Inderapura",
+    "district_id": "13.01.01"
+  },
+  {
+    "id": "13.01.01.2004",
+    "name": "Inderapura Barat",
+    "district_id": "13.01.01"
+  },
+  {
+    "id": "13.01.01.2005",
+    "name": "Kudo-Kudo Inderapura",
+    "district_id": "13.01.01"
+  },
+  {
+    "id": "13.01.01.2006",
+    "name": "Inderapura Selatan",
+    "district_id": "13.01.01"
+  },
+  {
+    "id": "13.01.01.2009",
+    "name": "Simpang Lama Inderapura",
+    "district_id": "13.01.01"
+  },
+  {
+    "id": "13.01.01.2010",
+    "name": "Tigo Sungai Inderapura",
+    "district_id": "13.01.01"
+  },
+  {
+    "id": "13.01.01.2011",
+    "name": "Tluk Amplu Inderapura",
+    "district_id": "13.01.01"
+  },
+  {
+    "id": "13.01.01.2012",
+    "name": "Inderapura Tengah",
+    "district_id": "13.01.01"
+  },
+  {
+    "id": "13.01.02.2001",
+    "name": "Pelangai",
+    "district_id": "13.01.02"
+  },
+  {
+    "id": "13.01.02.2002",
+    "name": "Sungai Tunu",
+    "district_id": "13.01.02"
+  },
+  {
+    "id": "13.01.02.2003",
+    "name": "Sungai Tunu Utara",
+    "district_id": "13.01.02"
+  },
+  {
+    "id": "13.01.02.2004",
+    "name": "Sungai Tunu Barat",
+    "district_id": "13.01.02"
+  },
+  {
+    "id": "13.01.02.2005",
+    "name": "Nyiur Melambai Pelangai",
+    "district_id": "13.01.02"
+  },
+  {
+    "id": "13.01.02.2006",
+    "name": "Sungai Liku Pelangai",
+    "district_id": "13.01.02"
+  },
+  {
+    "id": "13.01.02.2007",
+    "name": "Koto VIII Pelangai",
+    "district_id": "13.01.02"
+  },
+  {
+    "id": "13.01.02.2008",
+    "name": "Pelangai Gadang",
+    "district_id": "13.01.02"
+  },
+  {
+    "id": "13.01.02.2009",
+    "name": "Pelangai Kaciak",
+    "district_id": "13.01.02"
+  },
+  {
+    "id": "13.01.02.2010",
+    "name": "Pasia Pelangai",
+    "district_id": "13.01.02"
+  },
+  {
+    "id": "13.01.03.2001",
+    "name": "Kambang",
+    "district_id": "13.01.03"
+  },
+  {
+    "id": "13.01.03.2002",
+    "name": "Lakitan",
+    "district_id": "13.01.03"
+  },
+  {
+    "id": "13.01.03.2003",
+    "name": "Kambang Utara",
+    "district_id": "13.01.03"
+  },
+  {
+    "id": "13.01.03.2004",
+    "name": "Kambang Timur",
+    "district_id": "13.01.03"
+  },
+  {
+    "id": "13.01.03.2005",
+    "name": "Kambang Barat",
+    "district_id": "13.01.03"
+  },
+  {
+    "id": "13.01.03.2006",
+    "name": "Lakitan Utara",
+    "district_id": "13.01.03"
+  },
+  {
+    "id": "13.01.03.2007",
+    "name": "Lakitan Selatan",
+    "district_id": "13.01.03"
+  },
+  {
+    "id": "13.01.03.2008",
+    "name": "Lakitan Timur",
+    "district_id": "13.01.03"
+  },
+  {
+    "id": "13.01.03.2009",
+    "name": "Lakitan Tengah",
+    "district_id": "13.01.03"
+  },
+  {
+    "id": "13.01.04.2001",
+    "name": "IV Koto Hilie",
+    "district_id": "13.01.04"
+  },
+  {
+    "id": "13.01.04.2002",
+    "name": "IV Koto Mudiek",
+    "district_id": "13.01.04"
+  },
+  {
+    "id": "13.01.04.2003",
+    "name": "Taluak",
+    "district_id": "13.01.04"
+  },
+  {
+    "id": "13.01.04.2004",
+    "name": "Koto Nan Duo IV Koto Hilie",
+    "district_id": "13.01.04"
+  },
+  {
+    "id": "13.01.04.2005",
+    "name": "Koto Nan Tigo IV Koto Hilie",
+    "district_id": "13.01.04"
+  },
+  {
+    "id": "13.01.04.2006",
+    "name": "Teratak Tempatih IV Koto Mudiek",
+    "district_id": "13.01.04"
+  },
+  {
+    "id": "13.01.04.2007",
+    "name": "Tuik IV Koto Mudiek",
+    "district_id": "13.01.04"
+  },
+  {
+    "id": "13.01.04.2008",
+    "name": "Sungai Nyalo IV Koto Mudiek",
+    "district_id": "13.01.04"
+  },
+  {
+    "id": "13.01.04.2009",
+    "name": "Taluk Tigo Sakato",
+    "district_id": "13.01.04"
+  },
+  {
+    "id": "13.01.05.2001",
+    "name": "Painan",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2002",
+    "name": "Tambang",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2003",
+    "name": "Salido",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2004",
+    "name": "Lumpo",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2005",
+    "name": "Bunga Pasang Salido",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2006",
+    "name": "Sago Salido",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2007",
+    "name": "Salido Sari Bulan",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2008",
+    "name": "Koto Rawang",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2009",
+    "name": "Limau Gadang Lumpo",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2010",
+    "name": "Batu Kunik Lumpo",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2011",
+    "name": "Taratak Tangah Lumpo",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2012",
+    "name": "Ampuan Lumpo",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2013",
+    "name": "Ampang Tareh Lumpo",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2014",
+    "name": "Balai Sinayan Lumpo",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2015",
+    "name": "Sungai Gayo Lumpo",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2016",
+    "name": "Sungai Sariak Lumpo",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2017",
+    "name": "Bukik Kaciak Lumpo",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2018",
+    "name": "Gunung Bungkuak Lumpo",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2019",
+    "name": "Painan Selatan Painan",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.05.2020",
+    "name": "Painan Timur Painan",
+    "district_id": "13.01.05"
+  },
+  {
+    "id": "13.01.06.2005",
+    "name": "Koto Berapak",
+    "district_id": "13.01.06"
+  },
+  {
+    "id": "13.01.06.2006",
+    "name": "Talaok",
+    "district_id": "13.01.06"
+  },
+  {
+    "id": "13.01.06.2007",
+    "name": "Pasar Baru",
+    "district_id": "13.01.06"
+  },
+  {
+    "id": "13.01.06.2008",
+    "name": "Gurun Panjang",
+    "district_id": "13.01.06"
+  },
+  {
+    "id": "13.01.06.2009",
+    "name": "Api-api Pasar Baru",
+    "district_id": "13.01.06"
+  },
+  {
+    "id": "13.01.06.2010",
+    "name": "Tanjung Durian Pasar Baru",
+    "district_id": "13.01.06"
+  },
+  {
+    "id": "13.01.06.2011",
+    "name": "Asam Kamba Pasar Baru",
+    "district_id": "13.01.06"
+  },
+  {
+    "id": "13.01.06.2012",
+    "name": "Sawah Laweh Pasar Baru",
+    "district_id": "13.01.06"
+  },
+  {
+    "id": "13.01.06.2013",
+    "name": "Kapeh Panji Jaya Talaok",
+    "district_id": "13.01.06"
+  },
+  {
+    "id": "13.01.06.2014",
+    "name": "Aur Begalung Talaok",
+    "district_id": "13.01.06"
+  },
+  {
+    "id": "13.01.06.2015",
+    "name": "Kapelgam Koto Berapak",
+    "district_id": "13.01.06"
+  },
+  {
+    "id": "13.01.06.2016",
+    "name": "Koto Baru Koto Berapak",
+    "district_id": "13.01.06"
+  },
+  {
+    "id": "13.01.06.2017",
+    "name": "Kubang Koto Berapak",
+    "district_id": "13.01.06"
+  },
+  {
+    "id": "13.01.06.2018",
+    "name": "Kapujan Koto Berapak",
+    "district_id": "13.01.06"
+  },
+  {
+    "id": "13.01.06.2019",
+    "name": "Gurun Panjang Utara",
+    "district_id": "13.01.06"
+  },
+  {
+    "id": "13.01.06.2020",
+    "name": "Gurun Panjang Barat",
+    "district_id": "13.01.06"
+  },
+  {
+    "id": "13.01.06.2021",
+    "name": "Gurun Panjang Selatan",
+    "district_id": "13.01.06"
+  },
+  {
+    "id": "13.01.07.2001",
+    "name": "Siguntur",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2002",
+    "name": "Sungai Pinang",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2003",
+    "name": "Duku",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2004",
+    "name": "Batu Hampa",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2005",
+    "name": "Nanggalo",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2006",
+    "name": "Ampang Pulai",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2007",
+    "name": "Kapuh",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2008",
+    "name": "Barung-Barung Balantai",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2009",
+    "name": "Barung-Barung Balantai Selatan",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2010",
+    "name": "Mandeh",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2011",
+    "name": "Kapuah Utara",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2012",
+    "name": "Taratak Sungai Lundang",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2013",
+    "name": "Siguntur Tua",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2014",
+    "name": "Kampung Baru Korong Nan Ampek",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2015",
+    "name": "Duku Utara",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2016",
+    "name": "Pulau Karam Ampang Pulai",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2017",
+    "name": "Jinang Kampung Pansur Ampang Pulai",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2018",
+    "name": "Cerocok Anau Ampang Pulai",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2019",
+    "name": "Sungai Nyalo Mudiak Aia",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2020",
+    "name": "Batu Hampar Selatan",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2021",
+    "name": "Barung-Barung Balantai Timur",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2022",
+    "name": "Barung-Barung Balantai Tengah",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.07.2023",
+    "name": "Setara Nanggalo",
+    "district_id": "13.01.07"
+  },
+  {
+    "id": "13.01.08.2001",
+    "name": "Taratak",
+    "district_id": "13.01.08"
+  },
+  {
+    "id": "13.01.08.2002",
+    "name": "Surantih",
+    "district_id": "13.01.08"
+  },
+  {
+    "id": "13.01.08.2003",
+    "name": "Amping Parak",
+    "district_id": "13.01.08"
+  },
+  {
+    "id": "13.01.08.2004",
+    "name": "Amping Parak Timur",
+    "district_id": "13.01.08"
+  },
+  {
+    "id": "13.01.08.2005",
+    "name": "Koto Taratak",
+    "district_id": "13.01.08"
+  },
+  {
+    "id": "13.01.08.2006",
+    "name": "Lansano Taratak",
+    "district_id": "13.01.08"
+  },
+  {
+    "id": "13.01.08.2007",
+    "name": "Aur Duri Surantih",
+    "district_id": "13.01.08"
+  },
+  {
+    "id": "13.01.08.2008",
+    "name": "Rawang Gunung Malelo Surantih",
+    "district_id": "13.01.08"
+  },
+  {
+    "id": "13.01.08.2009",
+    "name": "Koto Nan Tigo Selatan Surantih",
+    "district_id": "13.01.08"
+  },
+  {
+    "id": "13.01.08.2010",
+    "name": "Koto Nan Tigo Utara Surantih",
+    "district_id": "13.01.08"
+  },
+  {
+    "id": "13.01.08.2011",
+    "name": "Ganting Mudiak Selatan Surantih",
+    "district_id": "13.01.08"
+  },
+  {
+    "id": "13.01.08.2012",
+    "name": "Ganting Mudiak Utara Surantih",
+    "district_id": "13.01.08"
+  },
+  {
+    "id": "13.01.09.2001",
+    "name": "Punggasan",
+    "district_id": "13.01.09"
+  },
+  {
+    "id": "13.01.09.2002",
+    "name": "Air Haji",
+    "district_id": "13.01.09"
+  },
+  {
+    "id": "13.01.09.2003",
+    "name": "Punggasan Utara",
+    "district_id": "13.01.09"
+  },
+  {
+    "id": "13.01.09.2004",
+    "name": "Punggasan Timur",
+    "district_id": "13.01.09"
+  },
+  {
+    "id": "13.01.09.2005",
+    "name": "Padang XI Punggasan",
+    "district_id": "13.01.09"
+  },
+  {
+    "id": "13.01.09.2006",
+    "name": "Lagan Mudik Punggasan",
+    "district_id": "13.01.09"
+  },
+  {
+    "id": "13.01.09.2007",
+    "name": "Lagan Hilir Punggasan",
+    "district_id": "13.01.09"
+  },
+  {
+    "id": "13.01.09.2008",
+    "name": "Air Haji Tenggara",
+    "district_id": "13.01.09"
+  },
+  {
+    "id": "13.01.09.2009",
+    "name": "Pasar Lama Muara Air Haji",
+    "district_id": "13.01.09"
+  },
+  {
+    "id": "13.01.09.2010",
+    "name": "Pasar Bukit Air Haji",
+    "district_id": "13.01.09"
+  },
+  {
+    "id": "13.01.09.2011",
+    "name": "Air Haji Barat",
+    "district_id": "13.01.09"
+  },
+  {
+    "id": "13.01.09.2012",
+    "name": "Air Haji Tengah",
+    "district_id": "13.01.09"
+  },
+  {
+    "id": "13.01.09.2013",
+    "name": "Rantau Simalenang Air Haji",
+    "district_id": "13.01.09"
+  },
+  {
+    "id": "13.01.09.2014",
+    "name": "Muara Gadang Air Haji",
+    "district_id": "13.01.09"
+  },
+  {
+    "id": "13.01.09.2015",
+    "name": "Sungai Sirah Air Haji",
+    "district_id": "13.01.09"
+  },
+  {
+    "id": "13.01.09.2016",
+    "name": "Muara Kandis Punggasan",
+    "district_id": "13.01.09"
+  },
+  {
+    "id": "13.01.10.2001",
+    "name": "Lunang",
+    "district_id": "13.01.10"
+  },
+  {
+    "id": "13.01.10.2003",
+    "name": "Lunang Utara",
+    "district_id": "13.01.10"
+  },
+  {
+    "id": "13.01.10.2004",
+    "name": "Lunang Selatan",
+    "district_id": "13.01.10"
+  },
+  {
+    "id": "13.01.10.2005",
+    "name": "Lunang Barat",
+    "district_id": "13.01.10"
+  },
+  {
+    "id": "13.01.10.2015",
+    "name": "Sindang Lunang",
+    "district_id": "13.01.10"
+  },
+  {
+    "id": "13.01.10.2016",
+    "name": "Pondok Parian Lunang",
+    "district_id": "13.01.10"
+  },
+  {
+    "id": "13.01.10.2017",
+    "name": "Lunang Tengah",
+    "district_id": "13.01.10"
+  },
+  {
+    "id": "13.01.10.2018",
+    "name": "Lunang Satu",
+    "district_id": "13.01.10"
+  },
+  {
+    "id": "13.01.10.2019",
+    "name": "Lunang Dua",
+    "district_id": "13.01.10"
+  },
+  {
+    "id": "13.01.10.2020",
+    "name": "Lunang Tiga",
+    "district_id": "13.01.10"
+  },
+  {
+    "id": "13.01.11.2001",
+    "name": "Tapan",
+    "district_id": "13.01.11"
+  },
+  {
+    "id": "13.01.11.2002",
+    "name": "Pasar Tapan",
+    "district_id": "13.01.11"
+  },
+  {
+    "id": "13.01.11.2007",
+    "name": "Batang Arah Tapan",
+    "district_id": "13.01.11"
+  },
+  {
+    "id": "13.01.11.2008",
+    "name": "Ampang Tulak Tapan",
+    "district_id": "13.01.11"
+  },
+  {
+    "id": "13.01.11.2009",
+    "name": "Tanjung Pondok Tapan",
+    "district_id": "13.01.11"
+  },
+  {
+    "id": "13.01.11.2010",
+    "name": "Batang Betung Tapan",
+    "district_id": "13.01.11"
+  },
+  {
+    "id": "13.01.11.2016",
+    "name": "Bukit Buai Tapan",
+    "district_id": "13.01.11"
+  },
+  {
+    "id": "13.01.11.2017",
+    "name": "Riak Danau Tapan",
+    "district_id": "13.01.11"
+  },
+  {
+    "id": "13.01.11.2018",
+    "name": "Koto Anau Tapan",
+    "district_id": "13.01.11"
+  },
+  {
+    "id": "13.01.11.2019",
+    "name": "Dusun Baru Tapan",
+    "district_id": "13.01.11"
+  },
+  {
+    "id": "13.01.12.2001",
+    "name": "Puluik-Puluik",
+    "district_id": "13.01.12"
+  },
+  {
+    "id": "13.01.12.2002",
+    "name": "Koto Ranah",
+    "district_id": "13.01.12"
+  },
+  {
+    "id": "13.01.12.2003",
+    "name": "Muaro Aie",
+    "district_id": "13.01.12"
+  },
+  {
+    "id": "13.01.12.2004",
+    "name": "Pancuang Taba",
+    "district_id": "13.01.12"
+  },
+  {
+    "id": "13.01.12.2005",
+    "name": "Puluik-Puluik Selatan",
+    "district_id": "13.01.12"
+  },
+  {
+    "id": "13.01.12.2006",
+    "name": "Limau Gadang Pancung Taba",
+    "district_id": "13.01.12"
+  },
+  {
+    "id": "13.01.13.2001",
+    "name": "Inderapura Utara",
+    "district_id": "13.01.13"
+  },
+  {
+    "id": "13.01.13.2002",
+    "name": "Muara Inderapura",
+    "district_id": "13.01.13"
+  },
+  {
+    "id": "13.01.13.2003",
+    "name": "Damar Lapan Batang Inderapura",
+    "district_id": "13.01.13"
+  },
+  {
+    "id": "13.01.13.2004",
+    "name": "Lalang Panjang Inderapura",
+    "district_id": "13.01.13"
+  },
+  {
+    "id": "13.01.13.2005",
+    "name": "Palokan Inderapura",
+    "district_id": "13.01.13"
+  },
+  {
+    "id": "13.01.13.2006",
+    "name": "Lubuk Betung Inderapura",
+    "district_id": "13.01.13"
+  },
+  {
+    "id": "13.01.13.2007",
+    "name": "Tluk Kualo Inderapura",
+    "district_id": "13.01.13"
+  },
+  {
+    "id": "13.01.13.2008",
+    "name": "Tanah Bakali Inderapura",
+    "district_id": "13.01.13"
+  },
+  {
+    "id": "13.01.13.2009",
+    "name": "Inderapura Timur",
+    "district_id": "13.01.13"
+  },
+  {
+    "id": "13.01.13.2010",
+    "name": "Pulau Rajo Inderapura",
+    "district_id": "13.01.13"
+  },
+  {
+    "id": "13.01.14.2001",
+    "name": "Sungai Gambir Sako Tapan",
+    "district_id": "13.01.14"
+  },
+  {
+    "id": "13.01.14.2002",
+    "name": "Limau Purut Tapan",
+    "district_id": "13.01.14"
+  },
+  {
+    "id": "13.01.14.2003",
+    "name": "Talang Balarik Tapan",
+    "district_id": "13.01.14"
+  },
+  {
+    "id": "13.01.14.2004",
+    "name": "Tebing Tinggi Tapan",
+    "district_id": "13.01.14"
+  },
+  {
+    "id": "13.01.14.2005",
+    "name": "Binjai Tapan",
+    "district_id": "13.01.14"
+  },
+  {
+    "id": "13.01.14.2006",
+    "name": "Sungai Pinang Tapan",
+    "district_id": "13.01.14"
+  },
+  {
+    "id": "13.01.14.2007",
+    "name": "Talang Koto Pulai Tapan",
+    "district_id": "13.01.14"
+  },
+  {
+    "id": "13.01.14.2008",
+    "name": "Kampung Tengah Tapan",
+    "district_id": "13.01.14"
+  },
+  {
+    "id": "13.01.14.2009",
+    "name": "Kubu Tapan",
+    "district_id": "13.01.14"
+  },
+  {
+    "id": "13.01.14.2010",
+    "name": "Simpang Gunung Tapan",
+    "district_id": "13.01.14"
+  },
+  {
+    "id": "13.01.15.2001",
+    "name": "Silaut",
+    "district_id": "13.01.15"
+  },
+  {
+    "id": "13.01.15.2002",
+    "name": "Sungai Sirah",
+    "district_id": "13.01.15"
+  },
+  {
+    "id": "13.01.15.2003",
+    "name": "Sungai Sarik",
+    "district_id": "13.01.15"
+  },
+  {
+    "id": "13.01.15.2004",
+    "name": "Sungai Pulai",
+    "district_id": "13.01.15"
+  },
+  {
+    "id": "13.01.15.2005",
+    "name": "Pasir Binjai",
+    "district_id": "13.01.15"
+  },
+  {
+    "id": "13.01.15.2006",
+    "name": "Talang Binjai",
+    "district_id": "13.01.15"
+  },
+  {
+    "id": "13.01.15.2007",
+    "name": "Durian Seribu",
+    "district_id": "13.01.15"
+  },
+  {
+    "id": "13.01.15.2008",
+    "name": "Lubuk Bunta",
+    "district_id": "13.01.15"
+  },
+  {
+    "id": "13.01.15.2009",
+    "name": "Air Hitam",
+    "district_id": "13.01.15"
+  },
+  {
+    "id": "13.01.15.2010",
+    "name": "Sambungo",
+    "district_id": "13.01.15"
+  },
+  {
+    "id": "13.02.03.2001",
+    "name": "Lolo",
+    "district_id": "13.02.03"
+  },
+  {
+    "id": "13.02.03.2002",
+    "name": "Surian",
+    "district_id": "13.02.03"
+  },
+  {
+    "id": "13.02.04.2001",
+    "name": "Alahan Panjang",
+    "district_id": "13.02.04"
+  },
+  {
+    "id": "13.02.04.2002",
+    "name": "Sungai Nanam",
+    "district_id": "13.02.04"
+  },
+  {
+    "id": "13.02.04.2003",
+    "name": "Salimpat",
+    "district_id": "13.02.04"
+  },
+  {
+    "id": "13.02.04.2004",
+    "name": "Aie Dingin",
+    "district_id": "13.02.04"
+  },
+  {
+    "id": "13.02.05.2001",
+    "name": "Supayang",
+    "district_id": "13.02.05"
+  },
+  {
+    "id": "13.02.05.2002",
+    "name": "Sirukam",
+    "district_id": "13.02.05"
+  },
+  {
+    "id": "13.02.05.2003",
+    "name": "Aie Luo",
+    "district_id": "13.02.05"
+  },
+  {
+    "id": "13.02.06.2001",
+    "name": "Batu Banyak",
+    "district_id": "13.02.06"
+  },
+  {
+    "id": "13.02.06.2002",
+    "name": "Batu Bajanjang",
+    "district_id": "13.02.06"
+  },
+  {
+    "id": "13.02.06.2003",
+    "name": "Koto Laweh",
+    "district_id": "13.02.06"
+  },
+  {
+    "id": "13.02.06.2004",
+    "name": "Limau Lunggo",
+    "district_id": "13.02.06"
+  },
+  {
+    "id": "13.02.06.2005",
+    "name": "Koto Gadang Koto Anau",
+    "district_id": "13.02.06"
+  },
+  {
+    "id": "13.02.06.2006",
+    "name": "Selayo Tanang B. Sileh",
+    "district_id": "13.02.06"
+  },
+  {
+    "id": "13.02.07.2001",
+    "name": "Cupak",
+    "district_id": "13.02.07"
+  },
+  {
+    "id": "13.02.07.2002",
+    "name": "Talang",
+    "district_id": "13.02.07"
+  },
+  {
+    "id": "13.02.07.2003",
+    "name": "Koto Gadang Guguak",
+    "district_id": "13.02.07"
+  },
+  {
+    "id": "13.02.07.2004",
+    "name": "Jawi Jawi",
+    "district_id": "13.02.07"
+  },
+  {
+    "id": "13.02.07.2005",
+    "name": "Sungai Janiah",
+    "district_id": "13.02.07"
+  },
+  {
+    "id": "13.02.07.2006",
+    "name": "Batang Barus",
+    "district_id": "13.02.07"
+  },
+  {
+    "id": "13.02.07.2007",
+    "name": "Aie Batumbuak",
+    "district_id": "13.02.07"
+  },
+  {
+    "id": "13.02.07.2008",
+    "name": "Koto Gaek Guguk",
+    "district_id": "13.02.07"
+  },
+  {
+    "id": "13.02.08.2001",
+    "name": "Muaro Paneh",
+    "district_id": "13.02.08"
+  },
+  {
+    "id": "13.02.08.2002",
+    "name": "Kinari",
+    "district_id": "13.02.08"
+  },
+  {
+    "id": "13.02.08.2003",
+    "name": "Bukit Tandang",
+    "district_id": "13.02.08"
+  },
+  {
+    "id": "13.02.08.2004",
+    "name": "Parambahan",
+    "district_id": "13.02.08"
+  },
+  {
+    "id": "13.02.08.2005",
+    "name": "Dilam",
+    "district_id": "13.02.08"
+  },
+  {
+    "id": "13.02.09.2001",
+    "name": "Taruang-Taruang",
+    "district_id": "13.02.09"
+  },
+  {
+    "id": "13.02.09.2002",
+    "name": "Siaro-Aro",
+    "district_id": "13.02.09"
+  },
+  {
+    "id": "13.02.09.2003",
+    "name": "Pianggu",
+    "district_id": "13.02.09"
+  },
+  {
+    "id": "13.02.09.2004",
+    "name": "Sungai Durian",
+    "district_id": "13.02.09"
+  },
+  {
+    "id": "13.02.09.2005",
+    "name": "Bukik Bais",
+    "district_id": "13.02.09"
+  },
+  {
+    "id": "13.02.09.2006",
+    "name": "Sungai Jambur",
+    "district_id": "13.02.09"
+  },
+  {
+    "id": "13.02.09.2007",
+    "name": "Guguak Sarai",
+    "district_id": "13.02.09"
+  },
+  {
+    "id": "13.02.09.2008",
+    "name": "Koto Laweh",
+    "district_id": "13.02.09"
+  },
+  {
+    "id": "13.02.09.2009",
+    "name": "Indudur",
+    "district_id": "13.02.09"
+  },
+  {
+    "id": "13.02.10.2001",
+    "name": "Koto Baru",
+    "district_id": "13.02.10"
+  },
+  {
+    "id": "13.02.10.2002",
+    "name": "Selayo",
+    "district_id": "13.02.10"
+  },
+  {
+    "id": "13.02.10.2003",
+    "name": "Panyakalan",
+    "district_id": "13.02.10"
+  },
+  {
+    "id": "13.02.10.2004",
+    "name": "Gaung",
+    "district_id": "13.02.10"
+  },
+  {
+    "id": "13.02.10.2005",
+    "name": "Gantuang Ciri",
+    "district_id": "13.02.10"
+  },
+  {
+    "id": "13.02.10.2006",
+    "name": "Saok Laweh",
+    "district_id": "13.02.10"
+  },
+  {
+    "id": "13.02.10.2007",
+    "name": "Koto Hilalang",
+    "district_id": "13.02.10"
+  },
+  {
+    "id": "13.02.10.2008",
+    "name": "Tanjung Bingkung",
+    "district_id": "13.02.10"
+  },
+  {
+    "id": "13.02.11.2001",
+    "name": "Sumani",
+    "district_id": "13.02.11"
+  },
+  {
+    "id": "13.02.11.2002",
+    "name": "Tikalak",
+    "district_id": "13.02.11"
+  },
+  {
+    "id": "13.02.11.2003",
+    "name": "Koto Sani",
+    "district_id": "13.02.11"
+  },
+  {
+    "id": "13.02.11.2004",
+    "name": "Singkarak",
+    "district_id": "13.02.11"
+  },
+  {
+    "id": "13.02.11.2005",
+    "name": "Aripan",
+    "district_id": "13.02.11"
+  },
+  {
+    "id": "13.02.11.2006",
+    "name": "Kacang",
+    "district_id": "13.02.11"
+  },
+  {
+    "id": "13.02.11.2007",
+    "name": "Tanjung Alai",
+    "district_id": "13.02.11"
+  },
+  {
+    "id": "13.02.11.2008",
+    "name": "Saniangbaka",
+    "district_id": "13.02.11"
+  },
+  {
+    "id": "13.02.12.2001",
+    "name": "Sulit Air",
+    "district_id": "13.02.12"
+  },
+  {
+    "id": "13.02.12.2002",
+    "name": "Tanjung Balik",
+    "district_id": "13.02.12"
+  },
+  {
+    "id": "13.02.12.2003",
+    "name": "Paninjauan",
+    "district_id": "13.02.12"
+  },
+  {
+    "id": "13.02.12.2004",
+    "name": "Kuncir",
+    "district_id": "13.02.12"
+  },
+  {
+    "id": "13.02.12.2005",
+    "name": "Katialo",
+    "district_id": "13.02.12"
+  },
+  {
+    "id": "13.02.12.2006",
+    "name": "Pasilihan",
+    "district_id": "13.02.12"
+  },
+  {
+    "id": "13.02.12.2007",
+    "name": "Bukit Kanduang",
+    "district_id": "13.02.12"
+  },
+  {
+    "id": "13.02.12.2008",
+    "name": "Sibarambang",
+    "district_id": "13.02.12"
+  },
+  {
+    "id": "13.02.12.2009",
+    "name": "Labuh Panjang",
+    "district_id": "13.02.12"
+  },
+  {
+    "id": "13.02.13.2001",
+    "name": "Paninggahan",
+    "district_id": "13.02.13"
+  },
+  {
+    "id": "13.02.13.2002",
+    "name": "Muaro Pingai",
+    "district_id": "13.02.13"
+  },
+  {
+    "id": "13.02.17.2001",
+    "name": "Talang Babungo",
+    "district_id": "13.02.17"
+  },
+  {
+    "id": "13.02.17.2002",
+    "name": "Sariak Alahan Tigo",
+    "district_id": "13.02.17"
+  },
+  {
+    "id": "13.02.17.2003",
+    "name": "Sungai Abu",
+    "district_id": "13.02.17"
+  },
+  {
+    "id": "13.02.18.2001",
+    "name": "Rangkiang Luluih",
+    "district_id": "13.02.18"
+  },
+  {
+    "id": "13.02.18.2002",
+    "name": "Batu Bajanjang",
+    "district_id": "13.02.18"
+  },
+  {
+    "id": "13.02.18.2003",
+    "name": "Garabak Data",
+    "district_id": "13.02.18"
+  },
+  {
+    "id": "13.02.18.2004",
+    "name": "Tanjung Balik Sumiso",
+    "district_id": "13.02.18"
+  },
+  {
+    "id": "13.02.18.2005",
+    "name": "Simanau",
+    "district_id": "13.02.18"
+  },
+  {
+    "id": "13.02.19.2001",
+    "name": "Simpang Tj. Nan IV",
+    "district_id": "13.02.19"
+  },
+  {
+    "id": "13.02.19.2002",
+    "name": "Kampung Batu Dalam",
+    "district_id": "13.02.19"
+  },
+  {
+    "id": "13.03.03.2001",
+    "name": "Timbulun",
+    "district_id": "13.03.03"
+  },
+  {
+    "id": "13.03.03.2002",
+    "name": "Tanjung Gadang",
+    "district_id": "13.03.03"
+  },
+  {
+    "id": "13.03.03.2003",
+    "name": "Taratak Baru",
+    "district_id": "13.03.03"
+  },
+  {
+    "id": "13.03.03.2004",
+    "name": "Pulasan",
+    "district_id": "13.03.03"
+  },
+  {
+    "id": "13.03.03.2005",
+    "name": "Langki",
+    "district_id": "13.03.03"
+  },
+  {
+    "id": "13.03.03.2006",
+    "name": "Sibakur",
+    "district_id": "13.03.03"
+  },
+  {
+    "id": "13.03.03.2007",
+    "name": "Tanjung Lolo",
+    "district_id": "13.03.03"
+  },
+  {
+    "id": "13.03.03.2008",
+    "name": "Taratak Baru Utara",
+    "district_id": "13.03.03"
+  },
+  {
+    "id": "13.03.03.2009",
+    "name": "Sinyamu",
+    "district_id": "13.03.03"
+  },
+  {
+    "id": "13.03.04.2001",
+    "name": "Muaro",
+    "district_id": "13.03.04"
+  },
+  {
+    "id": "13.03.04.2002",
+    "name": "Kandang Baru",
+    "district_id": "13.03.04"
+  },
+  {
+    "id": "13.03.04.2003",
+    "name": "Silokek",
+    "district_id": "13.03.04"
+  },
+  {
+    "id": "13.03.04.2004",
+    "name": "Pematang Panjang",
+    "district_id": "13.03.04"
+  },
+  {
+    "id": "13.03.04.2005",
+    "name": "Solok Ambah",
+    "district_id": "13.03.04"
+  },
+  {
+    "id": "13.03.04.2006",
+    "name": "Paru",
+    "district_id": "13.03.04"
+  },
+  {
+    "id": "13.03.04.2007",
+    "name": "Durian Gadang",
+    "district_id": "13.03.04"
+  },
+  {
+    "id": "13.03.04.2008",
+    "name": "Aie Angek",
+    "district_id": "13.03.04"
+  },
+  {
+    "id": "13.03.04.2009",
+    "name": "Sijunjung",
+    "district_id": "13.03.04"
+  },
+  {
+    "id": "13.03.05.2001",
+    "name": "Palangki",
+    "district_id": "13.03.05"
+  },
+  {
+    "id": "13.03.05.2002",
+    "name": "Koto Baru",
+    "district_id": "13.03.05"
+  },
+  {
+    "id": "13.03.05.2003",
+    "name": "Muaro Bodi",
+    "district_id": "13.03.05"
+  },
+  {
+    "id": "13.03.05.2004",
+    "name": "Mundam Sakti",
+    "district_id": "13.03.05"
+  },
+  {
+    "id": "13.03.05.2005",
+    "name": "Koto Tuo",
+    "district_id": "13.03.05"
+  },
+  {
+    "id": "13.03.06.2001",
+    "name": "Sungai Lansek",
+    "district_id": "13.03.06"
+  },
+  {
+    "id": "13.03.06.2002",
+    "name": "Kamang",
+    "district_id": "13.03.06"
+  },
+  {
+    "id": "13.03.06.2003",
+    "name": "Muaro Takuang",
+    "district_id": "13.03.06"
+  },
+  {
+    "id": "13.03.06.2004",
+    "name": "Aie Amo",
+    "district_id": "13.03.06"
+  },
+  {
+    "id": "13.03.06.2005",
+    "name": "Sungai Batuang",
+    "district_id": "13.03.06"
+  },
+  {
+    "id": "13.03.06.2006",
+    "name": "Kunangan Parik Rantang",
+    "district_id": "13.03.06"
+  },
+  {
+    "id": "13.03.06.2007",
+    "name": "Tanjung Kaliang",
+    "district_id": "13.03.06"
+  },
+  {
+    "id": "13.03.06.2008",
+    "name": "Padang Tarok",
+    "district_id": "13.03.06"
+  },
+  {
+    "id": "13.03.06.2009",
+    "name": "Siaur",
+    "district_id": "13.03.06"
+  },
+  {
+    "id": "13.03.06.2010",
+    "name": "Lubuk Tarantang",
+    "district_id": "13.03.06"
+  },
+  {
+    "id": "13.03.06.2011",
+    "name": "Maloro",
+    "district_id": "13.03.06"
+  },
+  {
+    "id": "13.03.07.2001",
+    "name": "Lubuak Tarok",
+    "district_id": "13.03.07"
+  },
+  {
+    "id": "13.03.07.2002",
+    "name": "Lalan",
+    "district_id": "13.03.07"
+  },
+  {
+    "id": "13.03.07.2003",
+    "name": "Buluah Kasok",
+    "district_id": "13.03.07"
+  },
+  {
+    "id": "13.03.07.2004",
+    "name": "Kampung Dalam",
+    "district_id": "13.03.07"
+  },
+  {
+    "id": "13.03.07.2005",
+    "name": "Silongo",
+    "district_id": "13.03.07"
+  },
+  {
+    "id": "13.03.07.2006",
+    "name": "Latang",
+    "district_id": "13.03.07"
+  },
+  {
+    "id": "13.03.08.2001",
+    "name": "Limo Koto",
+    "district_id": "13.03.08"
+  },
+  {
+    "id": "13.03.08.2002",
+    "name": "Palaluar",
+    "district_id": "13.03.08"
+  },
+  {
+    "id": "13.03.08.2003",
+    "name": "Guguak",
+    "district_id": "13.03.08"
+  },
+  {
+    "id": "13.03.08.2004",
+    "name": "Padang Laweh",
+    "district_id": "13.03.08"
+  },
+  {
+    "id": "13.03.08.2005",
+    "name": "Tanjung",
+    "district_id": "13.03.08"
+  },
+  {
+    "id": "13.03.08.2006",
+    "name": "Bukit Bual",
+    "district_id": "13.03.08"
+  },
+  {
+    "id": "13.03.08.2007",
+    "name": "Padang Laweh Selatan",
+    "district_id": "13.03.08"
+  },
+  {
+    "id": "13.03.09.2001",
+    "name": "Silantai",
+    "district_id": "13.03.09"
+  },
+  {
+    "id": "13.03.09.2002",
+    "name": "Sisawah",
+    "district_id": "13.03.09"
+  },
+  {
+    "id": "13.03.09.2003",
+    "name": "Unggan",
+    "district_id": "13.03.09"
+  },
+  {
+    "id": "13.03.09.2004",
+    "name": "Tanjung Bonai Aur",
+    "district_id": "13.03.09"
+  },
+  {
+    "id": "13.03.09.2005",
+    "name": "Sumpur Kudus",
+    "district_id": "13.03.09"
+  },
+  {
+    "id": "13.03.09.2006",
+    "name": "Tamparungo",
+    "district_id": "13.03.09"
+  },
+  {
+    "id": "13.03.09.2007",
+    "name": "Kumanis",
+    "district_id": "13.03.09"
+  },
+  {
+    "id": "13.03.09.2008",
+    "name": "Manganti",
+    "district_id": "13.03.09"
+  },
+  {
+    "id": "13.03.09.2009",
+    "name": "Sumpur Kudus Selatan",
+    "district_id": "13.03.09"
+  },
+  {
+    "id": "13.03.09.2010",
+    "name": "Tanjung Labuah",
+    "district_id": "13.03.09"
+  },
+  {
+    "id": "13.03.09.2011",
+    "name": "Tanjung Bonai Aur Selatan",
+    "district_id": "13.03.09"
+  },
+  {
+    "id": "13.03.10.2001",
+    "name": "Batu Manjulur",
+    "district_id": "13.03.10"
+  },
+  {
+    "id": "13.03.10.2002",
+    "name": "Pamuatan",
+    "district_id": "13.03.10"
+  },
+  {
+    "id": "13.03.10.2003",
+    "name": "Padang Sibusuk",
+    "district_id": "13.03.10"
+  },
+  {
+    "id": "13.03.10.2004",
+    "name": "Desa Kampung Baru",
+    "district_id": "13.03.10"
+  },
+  {
+    "id": "13.04.01.2001",
+    "name": "Tambangan",
+    "district_id": "13.04.01"
+  },
+  {
+    "id": "13.04.01.2002",
+    "name": "Jaho",
+    "district_id": "13.04.01"
+  },
+  {
+    "id": "13.04.01.2003",
+    "name": "Singgalang",
+    "district_id": "13.04.01"
+  },
+  {
+    "id": "13.04.01.2004",
+    "name": "Paninjauan",
+    "district_id": "13.04.01"
+  },
+  {
+    "id": "13.04.01.2005",
+    "name": "Panyalaian",
+    "district_id": "13.04.01"
+  },
+  {
+    "id": "13.04.01.2006",
+    "name": "Koto Laweh",
+    "district_id": "13.04.01"
+  },
+  {
+    "id": "13.04.01.2007",
+    "name": "Aie Angek",
+    "district_id": "13.04.01"
+  },
+  {
+    "id": "13.04.01.2008",
+    "name": "Pandai Sikek",
+    "district_id": "13.04.01"
+  },
+  {
+    "id": "13.04.01.2009",
+    "name": "Koto Baru",
+    "district_id": "13.04.01"
+  },
+  {
+    "id": "13.04.02.2001",
+    "name": "Andaleh",
+    "district_id": "13.04.02"
+  },
+  {
+    "id": "13.04.02.2002",
+    "name": "Sabu",
+    "district_id": "13.04.02"
+  },
+  {
+    "id": "13.04.02.2003",
+    "name": "Batipuah Ateh",
+    "district_id": "13.04.02"
+  },
+  {
+    "id": "13.04.02.2004",
+    "name": "Batipuah Baruah",
+    "district_id": "13.04.02"
+  },
+  {
+    "id": "13.04.02.2005",
+    "name": "Gunuang Rajo",
+    "district_id": "13.04.02"
+  },
+  {
+    "id": "13.04.02.2006",
+    "name": "Pitalah",
+    "district_id": "13.04.02"
+  },
+  {
+    "id": "13.04.02.2007",
+    "name": "Tanjuang Barulak",
+    "district_id": "13.04.02"
+  },
+  {
+    "id": "13.04.02.2008",
+    "name": "Bungo Tanjuang",
+    "district_id": "13.04.02"
+  },
+  {
+    "id": "13.04.03.2001",
+    "name": "Simawang",
+    "district_id": "13.04.03"
+  },
+  {
+    "id": "13.04.03.2002",
+    "name": "Balimbiang",
+    "district_id": "13.04.03"
+  },
+  {
+    "id": "13.04.03.2003",
+    "name": "III Koto",
+    "district_id": "13.04.03"
+  },
+  {
+    "id": "13.04.03.2004",
+    "name": "Padang Magek",
+    "district_id": "13.04.03"
+  },
+  {
+    "id": "13.04.03.2005",
+    "name": "Rambatan",
+    "district_id": "13.04.03"
+  },
+  {
+    "id": "13.04.04.2001",
+    "name": "Baringin",
+    "district_id": "13.04.04"
+  },
+  {
+    "id": "13.04.04.2002",
+    "name": "Limo Kaum",
+    "district_id": "13.04.04"
+  },
+  {
+    "id": "13.04.04.2003",
+    "name": "Parambahan",
+    "district_id": "13.04.04"
+  },
+  {
+    "id": "13.04.04.2004",
+    "name": "Cubadak",
+    "district_id": "13.04.04"
+  },
+  {
+    "id": "13.04.04.2005",
+    "name": "Labuh",
+    "district_id": "13.04.04"
+  },
+  {
+    "id": "13.04.05.2001",
+    "name": "Tanjung Barulak",
+    "district_id": "13.04.05"
+  },
+  {
+    "id": "13.04.05.2002",
+    "name": "Saruaso",
+    "district_id": "13.04.05"
+  },
+  {
+    "id": "13.04.05.2003",
+    "name": "Koto Tangah",
+    "district_id": "13.04.05"
+  },
+  {
+    "id": "13.04.05.2004",
+    "name": "Pagaruyung",
+    "district_id": "13.04.05"
+  },
+  {
+    "id": "13.04.06.2001",
+    "name": "Taluk",
+    "district_id": "13.04.06"
+  },
+  {
+    "id": "13.04.06.2002",
+    "name": "Buo",
+    "district_id": "13.04.06"
+  },
+  {
+    "id": "13.04.06.2003",
+    "name": "Tigo Jangko",
+    "district_id": "13.04.06"
+  },
+  {
+    "id": "13.04.06.2004",
+    "name": "Pangian",
+    "district_id": "13.04.06"
+  },
+  {
+    "id": "13.04.07.2001",
+    "name": "Sungai Patai",
+    "district_id": "13.04.07"
+  },
+  {
+    "id": "13.04.07.2002",
+    "name": "Andaleh Baruh Bukik",
+    "district_id": "13.04.07"
+  },
+  {
+    "id": "13.04.07.2003",
+    "name": "Tanjung",
+    "district_id": "13.04.07"
+  },
+  {
+    "id": "13.04.07.2004",
+    "name": "Sungayang",
+    "district_id": "13.04.07"
+  },
+  {
+    "id": "13.04.07.2005",
+    "name": "Minang Kabau",
+    "district_id": "13.04.07"
+  },
+  {
+    "id": "13.04.08.2001",
+    "name": "Simpuruik",
+    "district_id": "13.04.08"
+  },
+  {
+    "id": "13.04.08.2002",
+    "name": "Sungai Tarab",
+    "district_id": "13.04.08"
+  },
+  {
+    "id": "13.04.08.2003",
+    "name": "Gurun",
+    "district_id": "13.04.08"
+  },
+  {
+    "id": "13.04.08.2004",
+    "name": "Talang Tangah",
+    "district_id": "13.04.08"
+  },
+  {
+    "id": "13.04.08.2005",
+    "name": "Padang Laweh",
+    "district_id": "13.04.08"
+  },
+  {
+    "id": "13.04.08.2006",
+    "name": "Pasie Laweh",
+    "district_id": "13.04.08"
+  },
+  {
+    "id": "13.04.08.2007",
+    "name": "Koto Tuo",
+    "district_id": "13.04.08"
+  },
+  {
+    "id": "13.04.08.2008",
+    "name": "Rao Rao",
+    "district_id": "13.04.08"
+  },
+  {
+    "id": "13.04.08.2009",
+    "name": "Kumango",
+    "district_id": "13.04.08"
+  },
+  {
+    "id": "13.04.08.2010",
+    "name": "Koto Baru",
+    "district_id": "13.04.08"
+  },
+  {
+    "id": "13.04.09.2001",
+    "name": "Batu Basa",
+    "district_id": "13.04.09"
+  },
+  {
+    "id": "13.04.09.2002",
+    "name": "Tabek",
+    "district_id": "13.04.09"
+  },
+  {
+    "id": "13.04.09.2003",
+    "name": "Sawah Tangah",
+    "district_id": "13.04.09"
+  },
+  {
+    "id": "13.04.09.2004",
+    "name": "Simabur",
+    "district_id": "13.04.09"
+  },
+  {
+    "id": "13.04.09.2005",
+    "name": "Pariangan",
+    "district_id": "13.04.09"
+  },
+  {
+    "id": "13.04.09.2006",
+    "name": "Sungai Jambu",
+    "district_id": "13.04.09"
+  },
+  {
+    "id": "13.04.10.2001",
+    "name": "Sumanik",
+    "district_id": "13.04.10"
+  },
+  {
+    "id": "13.04.10.2002",
+    "name": "Situmbuk",
+    "district_id": "13.04.10"
+  },
+  {
+    "id": "13.04.10.2003",
+    "name": "Lawang Mandahiling",
+    "district_id": "13.04.10"
+  },
+  {
+    "id": "13.04.10.2004",
+    "name": "Supayang",
+    "district_id": "13.04.10"
+  },
+  {
+    "id": "13.04.10.2005",
+    "name": "Salimpaung",
+    "district_id": "13.04.10"
+  },
+  {
+    "id": "13.04.10.2006",
+    "name": "Tabek Patah",
+    "district_id": "13.04.10"
+  },
+  {
+    "id": "13.04.11.2001",
+    "name": "Atar",
+    "district_id": "13.04.11"
+  },
+  {
+    "id": "13.04.11.2002",
+    "name": "Padang Ganting",
+    "district_id": "13.04.11"
+  },
+  {
+    "id": "13.04.12.2001",
+    "name": "Tanjuang Alam",
+    "district_id": "13.04.12"
+  },
+  {
+    "id": "13.04.12.2002",
+    "name": "Barulak",
+    "district_id": "13.04.12"
+  },
+  {
+    "id": "13.04.13.2001",
+    "name": "Batu Bulek",
+    "district_id": "13.04.13"
+  },
+  {
+    "id": "13.04.13.2002",
+    "name": "Balai Tangah",
+    "district_id": "13.04.13"
+  },
+  {
+    "id": "13.04.13.2003",
+    "name": "Tanjuang Bonai",
+    "district_id": "13.04.13"
+  },
+  {
+    "id": "13.04.13.2004",
+    "name": "Lubuak Jantan",
+    "district_id": "13.04.13"
+  },
+  {
+    "id": "13.04.13.2005",
+    "name": "Tapi Selo",
+    "district_id": "13.04.13"
+  },
+  {
+    "id": "13.04.14.2001",
+    "name": "Batu Taba",
+    "district_id": "13.04.14"
+  },
+  {
+    "id": "13.04.14.2002",
+    "name": "Sumpur",
+    "district_id": "13.04.14"
+  },
+  {
+    "id": "13.04.14.2003",
+    "name": "Padang Laweh Malalo",
+    "district_id": "13.04.14"
+  },
+  {
+    "id": "13.04.14.2004",
+    "name": "Guguak Malalo",
+    "district_id": "13.04.14"
+  },
+  {
+    "id": "13.05.01.2001",
+    "name": "Lubuk Alung",
+    "district_id": "13.05.01"
+  },
+  {
+    "id": "13.05.01.2002",
+    "name": "Pungguang Kasiak Lubuk Alung",
+    "district_id": "13.05.01"
+  },
+  {
+    "id": "13.05.01.2003",
+    "name": "Pasie Laweh Lubuk Alung",
+    "district_id": "13.05.01"
+  },
+  {
+    "id": "13.05.01.2004",
+    "name": "Aie Tajun Lubuk Alung",
+    "district_id": "13.05.01"
+  },
+  {
+    "id": "13.05.01.2005",
+    "name": "Sikabu Lubuk Alung",
+    "district_id": "13.05.01"
+  },
+  {
+    "id": "13.05.01.2006",
+    "name": "Sungai Abang Lubuk Alung",
+    "district_id": "13.05.01"
+  },
+  {
+    "id": "13.05.01.2007",
+    "name": "Singguliang Lubuk Alung",
+    "district_id": "13.05.01"
+  },
+  {
+    "id": "13.05.01.2008",
+    "name": "Salibutan Lubuk Alung",
+    "district_id": "13.05.01"
+  },
+  {
+    "id": "13.05.01.2009",
+    "name": "Nagari Balah Hilia Lubuk Alung",
+    "district_id": "13.05.01"
+  },
+  {
+    "id": "13.05.02.2001",
+    "name": "Katapiang",
+    "district_id": "13.05.02"
+  },
+  {
+    "id": "13.05.02.2002",
+    "name": "Kasang",
+    "district_id": "13.05.02"
+  },
+  {
+    "id": "13.05.02.2003",
+    "name": "Sungai Buluah",
+    "district_id": "13.05.02"
+  },
+  {
+    "id": "13.05.02.2004",
+    "name": "Buayan Lubuk Alung",
+    "district_id": "13.05.02"
+  },
+  {
+    "id": "13.05.02.2005",
+    "name": "Sungai Buluah Timur",
+    "district_id": "13.05.02"
+  },
+  {
+    "id": "13.05.02.2006",
+    "name": "Sungai Buluah Barat",
+    "district_id": "13.05.02"
+  },
+  {
+    "id": "13.05.02.2007",
+    "name": "Sungai Buluah Utara",
+    "district_id": "13.05.02"
+  },
+  {
+    "id": "13.05.02.2008",
+    "name": "Sungai Buluah Selatan",
+    "district_id": "13.05.02"
+  },
+  {
+    "id": "13.05.03.2001",
+    "name": "Kapalo Koto",
+    "district_id": "13.05.03"
+  },
+  {
+    "id": "13.05.03.2002",
+    "name": "Pauh Kambar",
+    "district_id": "13.05.03"
+  },
+  {
+    "id": "13.05.03.2003",
+    "name": "Padang Bintungan",
+    "district_id": "13.05.03"
+  },
+  {
+    "id": "13.05.03.2004",
+    "name": "Kurai Taji",
+    "district_id": "13.05.03"
+  },
+  {
+    "id": "13.05.03.2005",
+    "name": "Sunua",
+    "district_id": "13.05.03"
+  },
+  {
+    "id": "13.05.03.2006",
+    "name": "Padang Kandang Pulau Air Padang Bintungan",
+    "district_id": "13.05.03"
+  },
+  {
+    "id": "13.05.03.2007",
+    "name": "Sunua Tengah",
+    "district_id": "13.05.03"
+  },
+  {
+    "id": "13.05.03.2008",
+    "name": "Sunua Barat",
+    "district_id": "13.05.03"
+  },
+  {
+    "id": "13.05.03.2009",
+    "name": "Kurai Taji Timur",
+    "district_id": "13.05.03"
+  },
+  {
+    "id": "13.05.04.2002",
+    "name": "Sicincin",
+    "district_id": "13.05.04"
+  },
+  {
+    "id": "13.05.04.2003",
+    "name": "Lubuk Pandan",
+    "district_id": "13.05.04"
+  },
+  {
+    "id": "13.05.04.2004",
+    "name": "Sungai Asam",
+    "district_id": "13.05.04"
+  },
+  {
+    "id": "13.05.05.2001",
+    "name": "Balah Aie",
+    "district_id": "13.05.05"
+  },
+  {
+    "id": "13.05.05.2002",
+    "name": "Sungai Sariak",
+    "district_id": "13.05.05"
+  },
+  {
+    "id": "13.05.05.2003",
+    "name": "Lurah Ampalu",
+    "district_id": "13.05.05"
+  },
+  {
+    "id": "13.05.05.2004",
+    "name": "Lareh Nan Panjang",
+    "district_id": "13.05.05"
+  },
+  {
+    "id": "13.05.05.2005",
+    "name": "Lareh Nan Panjang Selatan",
+    "district_id": "13.05.05"
+  },
+  {
+    "id": "13.05.05.2006",
+    "name": "Lareh Nan Panjang Barat",
+    "district_id": "13.05.05"
+  },
+  {
+    "id": "13.05.05.2007",
+    "name": "Bisati Sungai Sariak",
+    "district_id": "13.05.05"
+  },
+  {
+    "id": "13.05.05.2008",
+    "name": "Ambuang Kapua Sungai Sariak",
+    "district_id": "13.05.05"
+  },
+  {
+    "id": "13.05.05.2009",
+    "name": "Lareh Nan Panjang Sungai Sariak",
+    "district_id": "13.05.05"
+  },
+  {
+    "id": "13.05.05.2010",
+    "name": "Limpato Sungai Sariak",
+    "district_id": "13.05.05"
+  },
+  {
+    "id": "13.05.05.2011",
+    "name": "Balah Aie Utara",
+    "district_id": "13.05.05"
+  },
+  {
+    "id": "13.05.05.2012",
+    "name": "Balah Aie Timur",
+    "district_id": "13.05.05"
+  },
+  {
+    "id": "13.05.06.2001",
+    "name": "Campago",
+    "district_id": "13.05.06"
+  },
+  {
+    "id": "13.05.06.2002",
+    "name": "Sikucua",
+    "district_id": "13.05.06"
+  },
+  {
+    "id": "13.05.06.2003",
+    "name": "Campago Barat",
+    "district_id": "13.05.06"
+  },
+  {
+    "id": "13.05.06.2004",
+    "name": "Campago Selatan",
+    "district_id": "13.05.06"
+  },
+  {
+    "id": "13.05.06.2005",
+    "name": "Sikucua Utara",
+    "district_id": "13.05.06"
+  },
+  {
+    "id": "13.05.06.2006",
+    "name": "Sikucua Timur",
+    "district_id": "13.05.06"
+  },
+  {
+    "id": "13.05.06.2007",
+    "name": "Sikucua Tengah",
+    "district_id": "13.05.06"
+  },
+  {
+    "id": "13.05.06.2008",
+    "name": "Sikucua Barat",
+    "district_id": "13.05.06"
+  },
+  {
+    "id": "13.05.07.2001",
+    "name": "Kuranji Hulu",
+    "district_id": "13.05.07"
+  },
+  {
+    "id": "13.05.07.2002",
+    "name": "Malai III Koto",
+    "district_id": "13.05.07"
+  },
+  {
+    "id": "13.05.07.2003",
+    "name": "Batu Gadang Kuranji Hulu",
+    "district_id": "13.05.07"
+  },
+  {
+    "id": "13.05.07.2004",
+    "name": "Sungai Sirah Kuranji Hulu",
+    "district_id": "13.05.07"
+  },
+  {
+    "id": "13.05.08.2001",
+    "name": "Kuranji Hilir",
+    "district_id": "13.05.08"
+  },
+  {
+    "id": "13.05.08.2002",
+    "name": "Pilubang",
+    "district_id": "13.05.08"
+  },
+  {
+    "id": "13.05.08.2003",
+    "name": "Guguak Kuranji Hilir",
+    "district_id": "13.05.08"
+  },
+  {
+    "id": "13.05.08.2004",
+    "name": "Koto Tinggi Kuranji Hilir",
+    "district_id": "13.05.08"
+  },
+  {
+    "id": "13.05.09.2001",
+    "name": "III Koto Aur Malintang",
+    "district_id": "13.05.09"
+  },
+  {
+    "id": "13.05.09.2002",
+    "name": "III Koto Aur Malintang Utara",
+    "district_id": "13.05.09"
+  },
+  {
+    "id": "13.05.09.2003",
+    "name": "III Koto Aur Malintang Timur",
+    "district_id": "13.05.09"
+  },
+  {
+    "id": "13.05.09.2004",
+    "name": "III Koto Aur Malintang Selatan",
+    "district_id": "13.05.09"
+  },
+  {
+    "id": "13.05.09.2005",
+    "name": "Balai Baiak Malai III Koto",
+    "district_id": "13.05.09"
+  },
+  {
+    "id": "13.05.10.2001",
+    "name": "Tapakih",
+    "district_id": "13.05.10"
+  },
+  {
+    "id": "13.05.10.2002",
+    "name": "Ulakan",
+    "district_id": "13.05.10"
+  },
+  {
+    "id": "13.05.10.2003",
+    "name": "Padang Toboh Ulakan",
+    "district_id": "13.05.10"
+  },
+  {
+    "id": "13.05.10.2004",
+    "name": "Sungai Gimba Ulakan",
+    "district_id": "13.05.10"
+  },
+  {
+    "id": "13.05.10.2005",
+    "name": "Seulayat Ulakan",
+    "district_id": "13.05.10"
+  },
+  {
+    "id": "13.05.10.2006",
+    "name": "Manggopoh Palak Gadang Ulakan",
+    "district_id": "13.05.10"
+  },
+  {
+    "id": "13.05.10.2007",
+    "name": "Sandi Ulakan",
+    "district_id": "13.05.10"
+  },
+  {
+    "id": "13.05.10.2008",
+    "name": "Kampuang Gelapuang Ulakan",
+    "district_id": "13.05.10"
+  },
+  {
+    "id": "13.05.11.2001",
+    "name": "Sintuak",
+    "district_id": "13.05.11"
+  },
+  {
+    "id": "13.05.11.2002",
+    "name": "Toboh Gadang",
+    "district_id": "13.05.11"
+  },
+  {
+    "id": "13.05.11.2003",
+    "name": "Toboh Gadang Selatan",
+    "district_id": "13.05.11"
+  },
+  {
+    "id": "13.05.11.2004",
+    "name": "Toboh Gadang Barat",
+    "district_id": "13.05.11"
+  },
+  {
+    "id": "13.05.11.2005",
+    "name": "Toboh Gadang Timur",
+    "district_id": "13.05.11"
+  },
+  {
+    "id": "13.05.12.2001",
+    "name": "Koto Baru",
+    "district_id": "13.05.12"
+  },
+  {
+    "id": "13.05.12.2002",
+    "name": "Koto Dalam",
+    "district_id": "13.05.12"
+  },
+  {
+    "id": "13.05.12.2003",
+    "name": "Batu Kalang",
+    "district_id": "13.05.12"
+  },
+  {
+    "id": "13.05.12.2004",
+    "name": "Koto Dalam Barat",
+    "district_id": "13.05.12"
+  },
+  {
+    "id": "13.05.12.2005",
+    "name": "Koto Dalam Selatan",
+    "district_id": "13.05.12"
+  },
+  {
+    "id": "13.05.12.2006",
+    "name": "Batu Kalang Utara",
+    "district_id": "13.05.12"
+  },
+  {
+    "id": "13.05.13.2001",
+    "name": "Malai V Suku",
+    "district_id": "13.05.13"
+  },
+  {
+    "id": "13.05.13.2002",
+    "name": "Gasan Gadang",
+    "district_id": "13.05.13"
+  },
+  {
+    "id": "13.05.13.2003",
+    "name": "Malai V Suku Timur",
+    "district_id": "13.05.13"
+  },
+  {
+    "id": "13.05.14.2001",
+    "name": "Kudu Gantiang",
+    "district_id": "13.05.14"
+  },
+  {
+    "id": "13.05.14.2002",
+    "name": "Limau Puruik",
+    "district_id": "13.05.14"
+  },
+  {
+    "id": "13.05.14.2003",
+    "name": "Gunung Padang Alai",
+    "district_id": "13.05.14"
+  },
+  {
+    "id": "13.05.14.2004",
+    "name": "Kudu Gantiang Barat",
+    "district_id": "13.05.14"
+  },
+  {
+    "id": "13.05.15.2001",
+    "name": "Kayu Tanam",
+    "district_id": "13.05.15"
+  },
+  {
+    "id": "13.05.15.2002",
+    "name": "Guguak",
+    "district_id": "13.05.15"
+  },
+  {
+    "id": "13.05.15.2003",
+    "name": "Anduriang",
+    "district_id": "13.05.15"
+  },
+  {
+    "id": "13.05.15.2004",
+    "name": "Kapalo Hilalang",
+    "district_id": "13.05.15"
+  },
+  {
+    "id": "13.05.16.2001",
+    "name": "Sungai Durian",
+    "district_id": "13.05.16"
+  },
+  {
+    "id": "13.05.16.2002",
+    "name": "Tandikek",
+    "district_id": "13.05.16"
+  },
+  {
+    "id": "13.05.16.2003",
+    "name": "Tandikek Utara",
+    "district_id": "13.05.16"
+  },
+  {
+    "id": "13.05.16.2004",
+    "name": "Tandikek Selatan",
+    "district_id": "13.05.16"
+  },
+  {
+    "id": "13.05.16.2005",
+    "name": "Tandikek Barat",
+    "district_id": "13.05.16"
+  },
+  {
+    "id": "13.05.16.2006",
+    "name": "Kampuang Tanjuang Koto Mambang Sungai Durian",
+    "district_id": "13.05.16"
+  },
+  {
+    "id": "13.05.17.2001",
+    "name": "Pakandangan",
+    "district_id": "13.05.17"
+  },
+  {
+    "id": "13.05.17.2002",
+    "name": "Koto Tinggi",
+    "district_id": "13.05.17"
+  },
+  {
+    "id": "13.05.17.2003",
+    "name": "Toboh Ketek",
+    "district_id": "13.05.17"
+  },
+  {
+    "id": "13.05.17.2004",
+    "name": "Parit Malintang",
+    "district_id": "13.05.17"
+  },
+  {
+    "id": "13.05.17.2005",
+    "name": "Gadur",
+    "district_id": "13.05.17"
+  },
+  {
+    "id": "13.06.01.2001",
+    "name": "Tiku Selatan",
+    "district_id": "13.06.01"
+  }
+]

@@ -1,0 +1,17 @@
+-- PASS_18T: distinguish a late gateway-success webhook that arrives after
+-- PaymentExpiryWorker already expired the payment/order from an ordinary
+-- idempotent replay. Without this value, handleWebhookInTransaction had no
+-- way to record the event as anything other than "succeeded", which falsely
+-- implied the platform reconciled the money.
+--
+-- PASS_19B: this migration ONLY adds the enum value. Postgres forbids using a
+-- newly added enum value in the same transaction that added it, and
+-- golang-migrate's postgres driver executes an entire migration file as one
+-- multi-statement Exec, which Postgres implicitly wraps in a single
+-- transaction — so any statement in THIS file that referenced
+-- 'captured_after_expiry' would fail with "unsafe use of new value" every
+-- time this migration runs against a fresh database. The index that uses
+-- this value now lives in a later migration
+-- (000008_payment_webhook_captured_after_expiry_index), which runs in its
+-- own separate transaction after this one has committed.
+ALTER TYPE payment_webhook_status_enum ADD VALUE IF NOT EXISTS 'captured_after_expiry';

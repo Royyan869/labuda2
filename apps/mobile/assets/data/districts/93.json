@@ -1,0 +1,412 @@
+[
+  {
+    "id": "930401",
+    "name": "Agats",
+    "cityId": "9304"
+  },
+  {
+    "id": "930404",
+    "name": "Akat",
+    "cityId": "9304"
+  },
+  {
+    "id": "930211",
+    "name": "Ambatkwi",
+    "cityId": "9302"
+  },
+  {
+    "id": "930113",
+    "name": "Animha",
+    "cityId": "9301"
+  },
+  {
+    "id": "930209",
+    "name": "Arimop",
+    "cityId": "9302"
+  },
+  {
+    "id": "930306",
+    "name": "Assue",
+    "cityId": "9303"
+  },
+  {
+    "id": "930421",
+    "name": "Aswi",
+    "cityId": "9304"
+  },
+  {
+    "id": "930402",
+    "name": "Atsj",
+    "cityId": "9304"
+  },
+  {
+    "id": "930422",
+    "name": "Awyu",
+    "cityId": "9304"
+  },
+  {
+    "id": "930418",
+    "name": "Ayib",
+    "cityId": "9304"
+  },
+  {
+    "id": "930313",
+    "name": "Bamgi",
+    "cityId": "9303"
+  },
+  {
+    "id": "930419",
+    "name": "Betcbamu",
+    "cityId": "9304"
+  },
+  {
+    "id": "930206",
+    "name": "Bomakia",
+    "cityId": "9302"
+  },
+  {
+    "id": "930303",
+    "name": "Citak-Mitak",
+    "cityId": "9303"
+  },
+  {
+    "id": "930414",
+    "name": "Der Koumur",
+    "cityId": "9304"
+  },
+  {
+    "id": "930304",
+    "name": "Edera",
+    "cityId": "9303"
+  },
+  {
+    "id": "930110",
+    "name": "Elikobal",
+    "cityId": "9301"
+  },
+  {
+    "id": "930405",
+    "name": "Fayit",
+    "cityId": "9304"
+  },
+  {
+    "id": "930213",
+    "name": "Firiwage",
+    "cityId": "9302"
+  },
+  {
+    "id": "930210",
+    "name": "Fofi",
+    "cityId": "9302"
+  },
+  {
+    "id": "930305",
+    "name": "Haju",
+    "cityId": "9303"
+  },
+  {
+    "id": "930120",
+    "name": "Ilwayab",
+    "cityId": "9301"
+  },
+  {
+    "id": "930208",
+    "name": "Iniyandit",
+    "cityId": "9302"
+  },
+  {
+    "id": "930107",
+    "name": "Jagebob",
+    "cityId": "9301"
+  },
+  {
+    "id": "930205",
+    "name": "Jair",
+    "cityId": "9302"
+  },
+  {
+    "id": "930413",
+    "name": "Jetsy",
+    "cityId": "9304"
+  },
+  {
+    "id": "930411",
+    "name": "Joerat",
+    "cityId": "9304"
+  },
+  {
+    "id": "930420",
+    "name": "Joutu",
+    "cityId": "9304"
+  },
+  {
+    "id": "930307",
+    "name": "Kaibar",
+    "cityId": "9303"
+  },
+  {
+    "id": "930117",
+    "name": "Kaptel",
+    "cityId": "9301"
+  },
+  {
+    "id": "930220",
+    "name": "Kawagit",
+    "cityId": "9302"
+  },
+  {
+    "id": "930219",
+    "name": "Ki",
+    "cityId": "9302"
+  },
+  {
+    "id": "930104",
+    "name": "Kimaam",
+    "cityId": "9301"
+  },
+  {
+    "id": "930409",
+    "name": "Kolf Braza",
+    "cityId": "9304"
+  },
+  {
+    "id": "930216",
+    "name": "Kombay",
+    "cityId": "9302"
+  },
+  {
+    "id": "930207",
+    "name": "Kombut",
+    "cityId": "9302"
+  },
+  {
+    "id": "930122",
+    "name": "Kontuar",
+    "cityId": "9301"
+  },
+  {
+    "id": "930415",
+    "name": "Kopay",
+    "cityId": "9304"
+  },
+  {
+    "id": "930423",
+    "name": "Koroway Buluanop",
+    "cityId": "9304"
+  },
+  {
+    "id": "930204",
+    "name": "Kouh",
+    "cityId": "9302"
+  },
+  {
+    "id": "930111",
+    "name": "Kurik",
+    "cityId": "9301"
+  },
+  {
+    "id": "930114",
+    "name": "Malind",
+    "cityId": "9301"
+  },
+  {
+    "id": "930302",
+    "name": "Mambioman Bapai",
+    "cityId": "9303"
+  },
+  {
+    "id": "930201",
+    "name": "Mandobo",
+    "cityId": "9302"
+  },
+  {
+    "id": "930212",
+    "name": "Manggelum",
+    "cityId": "9302"
+  },
+  {
+    "id": "930101",
+    "name": "Merauke",
+    "cityId": "9301"
+  },
+  {
+    "id": "930202",
+    "name": "Mindiptana",
+    "cityId": "9302"
+  },
+  {
+    "id": "930309",
+    "name": "Minyamur",
+    "cityId": "9303"
+  },
+  {
+    "id": "930102",
+    "name": "Muting",
+    "cityId": "9301"
+  },
+  {
+    "id": "930112",
+    "name": "Naukenjerai",
+    "cityId": "9301"
+  },
+  {
+    "id": "930116",
+    "name": "Ngguti",
+    "cityId": "9301"
+  },
+  {
+    "id": "930217",
+    "name": "Ninati",
+    "cityId": "9302"
+  },
+  {
+    "id": "930301",
+    "name": "Obaa",
+    "cityId": "9303"
+  },
+  {
+    "id": "930103",
+    "name": "Okaba",
+    "cityId": "9301"
+  },
+  {
+    "id": "930121",
+    "name": "Padua",
+    "cityId": "9301"
+  },
+  {
+    "id": "930406",
+    "name": "Pantai Kasuari",
+    "cityId": "9304"
+  },
+  {
+    "id": "930308",
+    "name": "Passue",
+    "cityId": "9303"
+  },
+  {
+    "id": "930314",
+    "name": "Passue Bawah",
+    "cityId": "9303"
+  },
+  {
+    "id": "930412",
+    "name": "Pulau Tiga",
+    "cityId": "9304"
+  },
+  {
+    "id": "930416",
+    "name": "Safan",
+    "cityId": "9304"
+  },
+  {
+    "id": "930403",
+    "name": "Sawa Erma",
+    "cityId": "9304"
+  },
+  {
+    "id": "930105",
+    "name": "Semangga",
+    "cityId": "9301"
+  },
+  {
+    "id": "930218",
+    "name": "Sesnuk",
+    "cityId": "9302"
+  },
+  {
+    "id": "930417",
+    "name": "Sirets",
+    "cityId": "9304"
+  },
+  {
+    "id": "930425",
+    "name": "Sor Ep",
+    "cityId": "9304"
+  },
+  {
+    "id": "930108",
+    "name": "Sota",
+    "cityId": "9301"
+  },
+  {
+    "id": "930407",
+    "name": "Suator",
+    "cityId": "9304"
+  },
+  {
+    "id": "930215",
+    "name": "Subur",
+    "cityId": "9302"
+  },
+  {
+    "id": "930408",
+    "name": "Suru-suru",
+    "cityId": "9304"
+  },
+  {
+    "id": "930311",
+    "name": "Syahcame",
+    "cityId": "9303"
+  },
+  {
+    "id": "930118",
+    "name": "Tabonji",
+    "cityId": "9301"
+  },
+  {
+    "id": "930106",
+    "name": "Tanah Miring",
+    "cityId": "9301"
+  },
+  {
+    "id": "930315",
+    "name": "Ti Zain",
+    "cityId": "9303"
+  },
+  {
+    "id": "930424",
+    "name": "Tomor Birip",
+    "cityId": "9304"
+  },
+  {
+    "id": "930115",
+    "name": "Tubang",
+    "cityId": "9301"
+  },
+  {
+    "id": "930109",
+    "name": "Ulilin",
+    "cityId": "9301"
+  },
+  {
+    "id": "930410",
+    "name": "Unir Sirau",
+    "cityId": "9304"
+  },
+  {
+    "id": "930310",
+    "name": "Venaha",
+    "cityId": "9303"
+  },
+  {
+    "id": "930119",
+    "name": "Waan",
+    "cityId": "9301"
+  },
+  {
+    "id": "930203",
+    "name": "Waropko",
+    "cityId": "9302"
+  },
+  {
+    "id": "930312",
+    "name": "Yakomi",
+    "cityId": "9303"
+  },
+  {
+    "id": "930214",
+    "name": "Yaniruma",
+    "cityId": "9302"
+  }
+]

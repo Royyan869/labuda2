@@ -1,0 +1,277 @@
+[
+  {
+    "id": "650211",
+    "name": "Bahau Hulu",
+    "cityId": "6502"
+  },
+  {
+    "id": "650404",
+    "name": "Betayau",
+    "cityId": "6504"
+  },
+  {
+    "id": "650110",
+    "name": "Bunyu",
+    "cityId": "6501"
+  },
+  {
+    "id": "650204",
+    "name": "Kayan Hilir",
+    "cityId": "6502"
+  },
+  {
+    "id": "650205",
+    "name": "Kayan Hulu",
+    "cityId": "6502"
+  },
+  {
+    "id": "650210",
+    "name": "Kayan Selatan",
+    "cityId": "6502"
+  },
+  {
+    "id": "650305",
+    "name": "Krayan",
+    "cityId": "6503"
+  },
+  {
+    "id": "650319",
+    "name": "Krayan Barat",
+    "cityId": "6503"
+  },
+  {
+    "id": "650307",
+    "name": "Krayan Selatan",
+    "cityId": "6503"
+  },
+  {
+    "id": "650317",
+    "name": "Krayan Tengah",
+    "cityId": "6503"
+  },
+  {
+    "id": "650318",
+    "name": "Krayan Timur",
+    "cityId": "6503"
+  },
+  {
+    "id": "650304",
+    "name": "Lumbis",
+    "cityId": "6503"
+  },
+  {
+    "id": "650321",
+    "name": "Lumbis Hulu",
+    "cityId": "6503"
+  },
+  {
+    "id": "650315",
+    "name": "Lumbis Ogong",
+    "cityId": "6503"
+  },
+  {
+    "id": "650320",
+    "name": "Lumbis Pansiangan",
+    "cityId": "6503"
+  },
+  {
+    "id": "650208",
+    "name": "Malinau Barat",
+    "cityId": "6502"
+  },
+  {
+    "id": "650202",
+    "name": "Malinau Kota",
+    "cityId": "6502"
+  },
+  {
+    "id": "650206",
+    "name": "Malinau Selatan",
+    "cityId": "6502"
+  },
+  {
+    "id": "650213",
+    "name": "Malinau Selatan Hilir",
+    "cityId": "6502"
+  },
+  {
+    "id": "650214",
+    "name": "Malinau Selatan Hulu",
+    "cityId": "6502"
+  },
+  {
+    "id": "650207",
+    "name": "Malinau Utara",
+    "cityId": "6502"
+  },
+  {
+    "id": "650201",
+    "name": "Mentarang",
+    "cityId": "6502"
+  },
+  {
+    "id": "650212",
+    "name": "Mentarang Hulu",
+    "cityId": "6502"
+  },
+  {
+    "id": "650405",
+    "name": "Muruk Rian",
+    "cityId": "6504"
+  },
+  {
+    "id": "650302",
+    "name": "Nunukan",
+    "cityId": "6503"
+  },
+  {
+    "id": "650309",
+    "name": "Nunukan Selatan",
+    "cityId": "6503"
+  },
+  {
+    "id": "650107",
+    "name": "Peso",
+    "cityId": "6501"
+  },
+  {
+    "id": "650108",
+    "name": "Peso Hilir",
+    "cityId": "6501"
+  },
+  {
+    "id": "650203",
+    "name": "Pujungan",
+    "cityId": "6502"
+  },
+  {
+    "id": "650301",
+    "name": "Sebatik",
+    "cityId": "6503"
+  },
+  {
+    "id": "650308",
+    "name": "Sebatik Barat",
+    "cityId": "6503"
+  },
+  {
+    "id": "650312",
+    "name": "Sebatik Tengah",
+    "cityId": "6503"
+  },
+  {
+    "id": "650310",
+    "name": "Sebatik Timur",
+    "cityId": "6503"
+  },
+  {
+    "id": "650311",
+    "name": "Sebatik Utara",
+    "cityId": "6503"
+  },
+  {
+    "id": "650306",
+    "name": "Sebuku",
+    "cityId": "6503"
+  },
+  {
+    "id": "650313",
+    "name": "Sei Menggaris",
+    "cityId": "6503"
+  },
+  {
+    "id": "650109",
+    "name": "Sekatak",
+    "cityId": "6501"
+  },
+  {
+    "id": "650303",
+    "name": "Sembakung",
+    "cityId": "6503"
+  },
+  {
+    "id": "650316",
+    "name": "Sembakung Atulai",
+    "cityId": "6503"
+  },
+  {
+    "id": "650401",
+    "name": "Sesayap",
+    "cityId": "6504"
+  },
+  {
+    "id": "650402",
+    "name": "Sesayap Hilir",
+    "cityId": "6504"
+  },
+  {
+    "id": "650209",
+    "name": "Sungai Boh",
+    "cityId": "6502"
+  },
+  {
+    "id": "650215",
+    "name": "Sungai Tubu",
+    "cityId": "6502"
+  },
+  {
+    "id": "650403",
+    "name": "Tana Lia",
+    "cityId": "6504"
+  },
+  {
+    "id": "650101",
+    "name": "Tanjung Palas",
+    "cityId": "6501"
+  },
+  {
+    "id": "650102",
+    "name": "Tanjung Palas Barat",
+    "cityId": "6501"
+  },
+  {
+    "id": "650106",
+    "name": "Tanjung Palas Tengah",
+    "cityId": "6501"
+  },
+  {
+    "id": "650104",
+    "name": "Tanjung Palas Timur",
+    "cityId": "6501"
+  },
+  {
+    "id": "650103",
+    "name": "Tanjung Palas Utara",
+    "cityId": "6501"
+  },
+  {
+    "id": "650105",
+    "name": "Tanjung Selor",
+    "cityId": "6501"
+  },
+  {
+    "id": "657101",
+    "name": "Tarakan Barat",
+    "cityId": "6571"
+  },
+  {
+    "id": "657102",
+    "name": "Tarakan Tengah",
+    "cityId": "6571"
+  },
+  {
+    "id": "657103",
+    "name": "Tarakan Timur",
+    "cityId": "6571"
+  },
+  {
+    "id": "657104",
+    "name": "Tarakan Utara",
+    "cityId": "6571"
+  },
+  {
+    "id": "650314",
+    "name": "Tulin Onsoi",
+    "cityId": "6503"
+  }
+]

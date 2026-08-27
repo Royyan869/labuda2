@@ -1,0 +1,116 @@
+[
+  {
+    "id": "1306",
+    "name": "Kabupaten Agam",
+    "provinceId": "13",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1310",
+    "name": "Kabupaten Dharmasraya",
+    "provinceId": "13",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1309",
+    "name": "Kabupaten Kepulauan Mentawai",
+    "provinceId": "13",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1307",
+    "name": "Kabupaten Lima Puluh Kota",
+    "provinceId": "13",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1305",
+    "name": "Kabupaten Padang Pariaman",
+    "provinceId": "13",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1308",
+    "name": "Kabupaten Pasaman",
+    "provinceId": "13",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1312",
+    "name": "Kabupaten Pasaman Barat",
+    "provinceId": "13",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1301",
+    "name": "Kabupaten Pesisir Selatan",
+    "provinceId": "13",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1303",
+    "name": "Kabupaten Sijunjung",
+    "provinceId": "13",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1302",
+    "name": "Kabupaten Solok",
+    "provinceId": "13",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1311",
+    "name": "Kabupaten Solok Selatan",
+    "provinceId": "13",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1304",
+    "name": "Kabupaten Tanah Datar",
+    "provinceId": "13",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1375",
+    "name": "Kota Bukittinggi",
+    "provinceId": "13",
+    "type": "kota"
+  },
+  {
+    "id": "1371",
+    "name": "Kota Padang",
+    "provinceId": "13",
+    "type": "kota"
+  },
+  {
+    "id": "1374",
+    "name": "Kota Padang Panjang",
+    "provinceId": "13",
+    "type": "kota"
+  },
+  {
+    "id": "1377",
+    "name": "Kota Pariaman",
+    "provinceId": "13",
+    "type": "kota"
+  },
+  {
+    "id": "1376",
+    "name": "Kota Payakumbuh",
+    "provinceId": "13",
+    "type": "kota"
+  },
+  {
+    "id": "1373",
+    "name": "Kota Sawahlunto",
+    "provinceId": "13",
+    "type": "kota"
+  },
+  {
+    "id": "1372",
+    "name": "Kota Solok",
+    "provinceId": "13",
+    "type": "kota"
+  }
+]

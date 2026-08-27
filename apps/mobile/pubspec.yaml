@@ -1,0 +1,158 @@
+name: labuda
+description: "LABUDA - Social Commerce Platform untuk Komunitas Koi Indonesia"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Core Dependencies
+  cupertino_icons: ^1.0.8
+
+  # Firebase - Latest versions for Flutter 3.35.3
+  firebase_core: ^4.1.1
+  firebase_auth: ^6.1.0
+  # cloud_firestore: ^6.0.2  # ❌ REMOVED - Firestore sunset 2025-02-20
+  # firebase_storage: ^13.0.2  # ❌ Removed - Migrated to S3 (aws_ipa_service)
+  google_sign_in: ^6.2.1
+  firebase_messaging: ^16.0.3  # Push notifications (Phase 1: notification module)
+  firebase_analytics: ^12.0.3  # Analytics tracking for user behavior
+  firebase_crashlytics: ^5.0.3  # Crash reporting and error tracking (compatible with firebase_core ^4.1.1)
+  firebase_performance: ^0.11.0  # Performance monitoring
+  firebase_remote_config: ^6.0.2  # Remote config for A/B testing and feature flags
+  # firebase_functions: ^4.6.0  # TODO: Enable nanti untuk Functions integration
+
+  # AWS SDK (video storage + deletion)
+  # aws_s3_api: ^2.1.0  # Video storage for large files - not compatible
+  crypto: ^3.0.3  # For AWS Signature V4 authentication
+  bcrypt: ^1.1.3  # PIN hashing for sensitive operations
+
+  # State Management - Latest
+  flutter_riverpod: ^3.0.0
+  riverpod_annotation: ^4.0.0
+
+  # Networking - Latest
+  dio: ^5.7.0
+  web_socket_channel: ^3.0.1  # WebSocket for real-time communication
+
+  # Payment Gateway
+  midtrans_sdk: ^1.1.0  # Midtrans payment gateway for Indonesia
+  webview_flutter: ^4.11.1  # WebView untuk in-app payment flow
+
+  # Local Storage - Latest
+  shared_preferences: ^2.3.2
+  flutter_secure_storage: ^10.0.0
+
+  # UI/UX - Latest
+  go_router: ^17.0.1
+  cached_network_image: ^3.4.1
+  camera: ^0.11.3
+  permission_handler: ^12.0.1
+  image_picker: ^1.1.2
+  image_cropper: ^11.0.0
+  file_picker: ^10.3.3
+  blurhash_dart: ^1.2.1
+  flutter_blurhash: ^0.9.1
+  image: ^4.2.0
+  video_player: ^2.9.2
+  video_player_web: ^2.3.2
+  video_thumbnail: ^0.5.3
+  chewie: ^1.8.5  # Video player with built-in controls
+  shimmer: ^3.0.0  # Shimmer loading effect
+  emoji_picker_flutter: ^4.3.0
+  visibility_detector: ^0.4.0+2
+  flutter_local_notifications: ^20.0.0  # Local notifications (Phase 1: notification module)
+  fl_chart: ^1.1.1  # Charts and graphs for analytics
+  quick_actions: ^1.1.0  # App shortcuts for quick access (long-press app icon)
+
+  # ML Kit for OCR
+  google_mlkit_text_recognition: ^0.15.0
+
+  # Utils - Latest
+  intl: ^0.20.2
+  get_it: ^9.2.0
+  logger: ^2.4.0
+  logging: ^1.3.0
+  meta: ^1.17.0
+  riverpod: ^3.0.0
+  uuid: ^4.5.0
+  equatable: ^2.0.5
+  http: ^1.5.0
+  dartz: ^0.10.1
+  json_annotation: ^4.9.0
+  freezed_annotation: ^3.0.0
+  wechat_assets_picker: ^10.1.0
+  geolocator: ^14.0.2
+  geocoding: ^4.0.0
+  timeago: ^3.7.0
+
+  # Share Module
+  share_plus: ^12.0.1
+  url_launcher: ^6.3.1
+  crop_your_image: ^2.0.0
+  google_maps_flutter: ^2.14.0
+  google_places_flutter: ^2.1.1
+
+  # Contact Picker
+  flutter_contacts: ^1.1.9+2
+
+  # File Export
+  csv: ^6.0.0  # CSV file generation
+  pdf: ^3.11.1  # PDF file generation
+  path_provider: ^2.1.4  # Get device directories for file storage
+
+  # QR Code & Barcode
+  qr_flutter: ^4.1.0  # QR code generation for entry tags
+  mobile_scanner: ^7.1.4  # Barcode scanning for judging
+  printing: ^5.14.2  # PDF printing for entry tags - locked due to 5.14.2 bug
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  mockito: ^5.6.3
+  build_runner: ^2.10.5
+  json_serializable: ^6.8.0
+  freezed: ^3.0.0
+  riverpod_generator: ^4.0.0+1
+  flutter_launcher_icons: ^0.14.1
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    - assets/images/
+    - assets/images/payment_methods/
+    - assets/data/
+    - assets/data/cities/
+    - assets/data/districts/
+    - assets/data/villages/
+
+  # fonts:
+  #   - family: Inter
+  #     fonts:
+  #       - asset: assets/fonts/inter/Inter-Regular.ttf
+  #       - asset: assets/fonts/inter/Inter-Medium.ttf
+  #         weight: 500
+  #       - asset: assets/fonts/inter/Inter-SemiBold.ttf
+  #         weight: 600
+  #       - asset: assets/fonts/inter/Inter-Bold.ttf
+  #         weight: 700
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_logo.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/app_logo.png"
+  remove_alpha_ios: true

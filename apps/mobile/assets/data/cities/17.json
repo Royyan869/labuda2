@@ -1,0 +1,62 @@
+[
+  {
+    "id": "1701",
+    "name": "Kabupaten Bengkulu Selatan",
+    "provinceId": "17",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1709",
+    "name": "Kabupaten Bengkulu Tengah",
+    "provinceId": "17",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1703",
+    "name": "Kabupaten Bengkulu Utara",
+    "provinceId": "17",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1704",
+    "name": "Kabupaten Kaur",
+    "provinceId": "17",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1708",
+    "name": "Kabupaten Kepahiang",
+    "provinceId": "17",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1707",
+    "name": "Kabupaten Lebong",
+    "provinceId": "17",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1706",
+    "name": "Kabupaten Mukomuko",
+    "provinceId": "17",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1702",
+    "name": "Kabupaten Rejang Lebong",
+    "provinceId": "17",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1705",
+    "name": "Kabupaten Seluma",
+    "provinceId": "17",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1771",
+    "name": "Kota Bengkulu",
+    "provinceId": "17",
+    "type": "kota"
+  }
+]

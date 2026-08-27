@@ -1,0 +1,202 @@
+# Claude Code tooling state (internal to the Claude CLI, not project code)
+.claude/
+
+# BINARIES
+*.exe
+*.out
+*.app
+*.so
+*.dylib
+*.dll
+
+# LOGS
+*.log
+*.log.*
+
+# Runtime test/audit artifacts — never track session output
+backend/scenario_logs/
+backend/audit_runs/
+backend/logs/
+
+# TEMP & BUILD
+tmp/
+temp/
+*.tmp
+*.temp
+bin/
+build/
+dist/
+.coverage
+
+# COVERAGE & TESTS
+coverage/
+*.coverprofile
+
+# ========================================
+# MISCELLANEOUS
+# ========================================
+*.class
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code shared config — tracked as allowlist (no secrets, no absolute paths).
+# Personal overrides (.vscode/*.code-workspace, .vscode/*.code-profile) are excluded.
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+apps/mobile/build/
+apps/mobile/coverage/
+
+# Generated files (riverpod, mockito, etc.)
+**/*.g.dart
+**/*.freezed.dart
+**/*.config.dart
+**/*.mocks.dart
+
+# Environment variables and API Keys (NEVER commit these!)
+.env
+.env.*
+!.env.example
+!.env.staging.example
+!backend/.env.example
+!apps/admin/.env.local.example
+!apps/mobile/.env.example
+
+# Firebase & AWS Sensitive Files
+serviceAccount.json
+firebase-adminsdk-*.json
+aws-lambda/**/*.zip
+.firebaserc
+.firebase/
+
+# API Keys & Credentials
+**/api_keys.dart
+**/secrets.dart
+**/*_secret.dart
+**/*_key.dart
+
+# Database exports & sensitive data
+check_user.js
+*.sql
+*.db
+/backend/buyer_token.txt
+/backend/seller_token.txt
+# Re-include migration SQL files — schema source of truth must be tracked.
+# Keep COMPLETE_SCHEMA.sql (snapshot dump) out of git for now.
+!backend/migrations/**/*.sql
+backend/migrations/COMPLETE_SCHEMA.sql
+backend/migrations/snapshots/COMPLETE_SCHEMA.sql
+
+# Node modules & dependencies
+node_modules/
+apps/admin/node_modules/
+apps/admin/dist/
+infra/firebase/functions/node_modules/
+infra/firebase/functions/lib/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+apps/mobile/android/app/debug
+apps/mobile/android/app/profile
+apps/mobile/android/app/release
+
+# Temporary files & backups
+*.backup
+*.tmp
+*.temp
+backup/
+*.bak
+nul
+con
+
+# Screenshots & images (optional - comment out if you want to include)
+*.PNG
+!apps/mobile/assets/images/app_logo.png
+*.jpeg
+*.jpg
+!assets/**/*.png
+!assets/**/*.jpg
+!assets/**/*.jpeg
+
+# Analysis & reports
+**/analyze*.txt
+**/compliance_report*.txt
+**/hanalyze*.txt
+full_violations_scan.txt
+categorization_report.txt
+all_*.txt
+lib_files*.txt
+*_imports.txt
+exports.txt
+parts.txt
+references*.txt
+potentially_unused.txt
+
+# Flutter debug artifacts
+flutter_errors.txt
+**/flutter_errors.txt
+
+# Python scripts & analysis
+*.py
+*.pyc
+
+# Development documentation (optional - keep if needed)
+# card.md
+# check_*.md
+# google-*.md
+
+# Wilayah data dump at repository root
+/wilayah/
+
+# Backend build artifacts
+backend/bin/
+backend/tmp/
+backend/*.out
+backend/*.test
+backend/coverage.html
+
+# Tools & scripts output
+reports/
+scripts/output/
+
+# Test artifacts
+tests/reports/
+tests/coverage/
+
+# Docker volumes & data
+infra/docker/data/
+
+# Old git folder (corrupt)
+.git_old/
+docker/postgres/

@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE fcm_tokens
+    ALTER COLUMN device_id DROP NOT NULL;
+
+COMMIT;

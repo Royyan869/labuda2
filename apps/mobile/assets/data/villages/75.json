@@ -1,0 +1,3632 @@
+[
+  {
+    "id": "7503132005",
+    "name": "Alale",
+    "districtId": "750313"
+  },
+  {
+    "id": "7505022021",
+    "name": "Alata Karya",
+    "districtId": "750502"
+  },
+  {
+    "id": "7503102011",
+    "name": "Alo",
+    "districtId": "750310"
+  },
+  {
+    "id": "7501242004",
+    "name": "Ambara",
+    "districtId": "750124"
+  },
+  {
+    "id": "7502072005",
+    "name": "Apitalawu",
+    "districtId": "750207"
+  },
+  {
+    "id": "7501242007",
+    "name": "Ayuhula",
+    "districtId": "750124"
+  },
+  {
+    "id": "7502042003",
+    "name": "Ayuhulalo",
+    "districtId": "750204"
+  },
+  {
+    "id": "7504032013",
+    "name": "Ayula",
+    "districtId": "750403"
+  },
+  {
+    "id": "7503152001",
+    "name": "Ayula Selatan",
+    "districtId": "750315"
+  },
+  {
+    "id": "7503152006",
+    "name": "Ayula Tilango",
+    "districtId": "750315"
+  },
+  {
+    "id": "7503152007",
+    "name": "Ayula Timur",
+    "districtId": "750315"
+  },
+  {
+    "id": "7503152003",
+    "name": "Ayula Utara",
+    "districtId": "750315"
+  },
+  {
+    "id": "7501162010",
+    "name": "Ayumolingo",
+    "districtId": "750116"
+  },
+  {
+    "id": "7504022012",
+    "name": "Babalonge",
+    "districtId": "750402"
+  },
+  {
+    "id": "7502042008",
+    "name": "Bajo",
+    "districtId": "750204"
+  },
+  {
+    "id": "7501162004",
+    "name": "Bakti",
+    "districtId": "750116"
+  },
+  {
+    "id": "7501042014",
+    "name": "Balahu",
+    "districtId": "750104"
+  },
+  {
+    "id": "7502012025",
+    "name": "Balate Jaya",
+    "districtId": "750201"
+  },
+  {
+    "id": "7504062002",
+    "name": "Balayo",
+    "districtId": "750406"
+  },
+  {
+    "id": "7501092015",
+    "name": "Bandung Rejo",
+    "districtId": "750109"
+  },
+  {
+    "id": "7503052002",
+    "name": "Bandungan",
+    "districtId": "750305"
+  },
+  {
+    "id": "7502072006",
+    "name": "Bangga",
+    "districtId": "750207"
+  },
+  {
+    "id": "7503182002",
+    "name": "Bangio",
+    "districtId": "750318"
+  },
+  {
+    "id": "7504032015",
+    "name": "Banuroja",
+    "districtId": "750403"
+  },
+  {
+    "id": "7501032012",
+    "name": "Barakati",
+    "districtId": "750103"
+  },
+  {
+    "id": "7503042029",
+    "name": "Batu Hijau",
+    "districtId": "750304"
+  },
+  {
+    "id": "7502012020",
+    "name": "Batu Kramat",
+    "districtId": "750201"
+  },
+  {
+    "id": "7501112013",
+    "name": "Batulayar",
+    "districtId": "750111"
+  },
+  {
+    "id": "7501112014",
+    "name": "Batuloreng",
+    "districtId": "750111"
+  },
+  {
+    "id": "7502052004",
+    "name": "Bendungan",
+    "districtId": "750205"
+  },
+  {
+    "id": "7503062014",
+    "name": "Berlian",
+    "districtId": "750306"
+  },
+  {
+    "id": "7505102001",
+    "name": "Biau",
+    "districtId": "750510"
+  },
+  {
+    "id": "7571021010",
+    "name": "Biawao",
+    "districtId": "757102"
+  },
+  {
+    "id": "7571021012",
+    "name": "Biawu",
+    "districtId": "757102"
+  },
+  {
+    "id": "7501212010",
+    "name": "Bihe",
+    "districtId": "750121"
+  },
+  {
+    "id": "7501232002",
+    "name": "Bilato",
+    "districtId": "750123"
+  },
+  {
+    "id": "7503092004",
+    "name": "Bilonlantunga",
+    "districtId": "750309"
+  },
+  {
+    "id": "7503082007",
+    "name": "Biluango",
+    "districtId": "750308"
+  },
+  {
+    "id": "7501202001",
+    "name": "Biluhu Barat",
+    "districtId": "750120"
+  },
+  {
+    "id": "7501202003",
+    "name": "Biluhu Tengah",
+    "districtId": "750120"
+  },
+  {
+    "id": "7501052005",
+    "name": "Biluhu Timur",
+    "districtId": "750105"
+  },
+  {
+    "id": "7503042004",
+    "name": "Bilungala",
+    "districtId": "750304"
+  },
+  {
+    "id": "7503042025",
+    "name": "Bilungala Utara",
+    "districtId": "750304"
+  },
+  {
+    "id": "7501132008",
+    "name": "Bina Jaya",
+    "districtId": "750113"
+  },
+  {
+    "id": "7503082009",
+    "name": "Bintalahe",
+    "districtId": "750308"
+  },
+  {
+    "id": "7505012004",
+    "name": "Bintana",
+    "districtId": "750501"
+  },
+  {
+    "id": "7501011009",
+    "name": "Biyonga",
+    "districtId": "750101"
+  },
+  {
+    "id": "7505102010",
+    "name": "Bohulo",
+    "districtId": "750510"
+  },
+  {
+    "id": "7505062011",
+    "name": "Bohusami",
+    "districtId": "750506"
+  },
+  {
+    "id": "7504112003",
+    "name": "Bohusami",
+    "districtId": "750411"
+  },
+  {
+    "id": "7503052001",
+    "name": "Boidu",
+    "districtId": "750305"
+  },
+  {
+    "id": "7501011004",
+    "name": "Bolihuangga",
+    "districtId": "750101"
+  },
+  {
+    "id": "7502062007",
+    "name": "Bolihutuo",
+    "districtId": "750206"
+  },
+  {
+    "id": "7503032012",
+    "name": "Boludawa",
+    "districtId": "750303"
+  },
+  {
+    "id": "7503122008",
+    "name": "Bondaraya",
+    "districtId": "750312"
+  },
+  {
+    "id": "7503122005",
+    "name": "Bondawuna",
+    "districtId": "750312"
+  },
+  {
+    "id": "7503122004",
+    "name": "Bonedaa",
+    "districtId": "750312"
+  },
+  {
+    "id": "7501052007",
+    "name": "Bongo",
+    "districtId": "750105"
+  },
+  {
+    "id": "7502022002",
+    "name": "Bongo II",
+    "districtId": "750202"
+  },
+  {
+    "id": "7502022003",
+    "name": "Bongo III",
+    "districtId": "750202"
+  },
+  {
+    "id": "7502012005",
+    "name": "Bongo IV",
+    "districtId": "750201"
+  },
+  {
+    "id": "7502012004",
+    "name": "Bongo Nol",
+    "districtId": "750201"
+  },
+  {
+    "id": "7502012011",
+    "name": "Bongo Tua",
+    "districtId": "750201"
+  },
+  {
+    "id": "7501011010",
+    "name": "Bongohulawa",
+    "districtId": "750101"
+  },
+  {
+    "id": "7501112015",
+    "name": "Bongohulawa",
+    "districtId": "750111"
+  },
+  {
+    "id": "7503062013",
+    "name": "Bongohulawa",
+    "districtId": "750306"
+  },
+  {
+    "id": "7503062001",
+    "name": "Bongoime",
+    "districtId": "750306"
+  },
+  {
+    "id": "7501242005",
+    "name": "Bongomeme",
+    "districtId": "750124"
+  },
+  {
+    "id": "7501092020",
+    "name": "Bongongoayu",
+    "districtId": "750109"
+  },
+  {
+    "id": "7503062002",
+    "name": "Bongopini",
+    "districtId": "750306"
+  },
+  {
+    "id": "7501212009",
+    "name": "Bontula",
+    "districtId": "750121"
+  },
+  {
+    "id": "7571081004",
+    "name": "Botu",
+    "districtId": "757108"
+  },
+  {
+    "id": "7503082008",
+    "name": "Botubarani",
+    "districtId": "750308"
+  },
+  {
+    "id": "7504042015",
+    "name": "Botubilotahu",
+    "districtId": "750404"
+  },
+  {
+    "id": "7501242009",
+    "name": "Botubulowe",
+    "districtId": "750124"
+  },
+  {
+    "id": "7502062006",
+    "name": "Botumoito",
+    "districtId": "750206"
+  },
+  {
+    "id": "7501042015",
+    "name": "Botumoputi",
+    "districtId": "750104"
+  },
+  {
+    "id": "7505022025",
+    "name": "Botungobungo",
+    "districtId": "750502"
+  },
+  {
+    "id": "7503082005",
+    "name": "Botutonuo",
+    "districtId": "750308"
+  },
+  {
+    "id": "7505022024",
+    "name": "Botuwombato",
+    "districtId": "750502"
+  },
+  {
+    "id": "7501032002",
+    "name": "Bua",
+    "districtId": "750103"
+  },
+  {
+    "id": "7505022011",
+    "name": "Bualemo",
+    "districtId": "750502"
+  },
+  {
+    "id": "7502012021",
+    "name": "Bualo",
+    "districtId": "750201"
+  },
+  {
+    "id": "7505102008",
+    "name": "Bualo",
+    "districtId": "750510"
+  },
+  {
+    "id": "7505012005",
+    "name": "Buata",
+    "districtId": "750501"
+  },
+  {
+    "id": "7503072004",
+    "name": "Buata",
+    "districtId": "750307"
+  },
+  {
+    "id": "7502072001",
+    "name": "Bubaa",
+    "districtId": "750207"
+  },
+  {
+    "id": "7505112008",
+    "name": "Bubalango",
+    "districtId": "750511"
+  },
+  {
+    "id": "7503032013",
+    "name": "Bube",
+    "districtId": "750303"
+  },
+  {
+    "id": "7503032023",
+    "name": "Bube Baru",
+    "districtId": "750303"
+  },
+  {
+    "id": "7503032022",
+    "name": "Bubeya",
+    "districtId": "750303"
+  },
+  {
+    "id": "7505072004",
+    "name": "Bubode",
+    "districtId": "750507"
+  },
+  {
+    "id": "7571081005",
+    "name": "Bugis",
+    "districtId": "757108"
+  },
+  {
+    "id": "7501222002",
+    "name": "Buhu",
+    "districtId": "750122"
+  },
+  {
+    "id": "7501042007",
+    "name": "Buhu",
+    "districtId": "750104"
+  },
+  {
+    "id": "7504052014",
+    "name": "Buhu Jaya",
+    "districtId": "750405"
+  },
+  {
+    "id": "7501052014",
+    "name": "Buhudaa",
+    "districtId": "750105"
+  },
+  {
+    "id": "7501162011",
+    "name": "Bukit Aren",
+    "districtId": "750116"
+  },
+  {
+    "id": "7504112002",
+    "name": "Bukit Harapan",
+    "districtId": "750411"
+  },
+  {
+    "id": "7503172005",
+    "name": "Bukit Hijau",
+    "districtId": "750317"
+  },
+  {
+    "id": "7502072004",
+    "name": "Bukit Karya",
+    "districtId": "750207"
+  },
+  {
+    "id": "7504012015",
+    "name": "Bukit Tingki",
+    "districtId": "750401"
+  },
+  {
+    "id": "7571011008",
+    "name": "Buladu",
+    "districtId": "757101"
+  },
+  {
+    "id": "7505112005",
+    "name": "Buladu",
+    "districtId": "750511"
+  },
+  {
+    "id": "7505022013",
+    "name": "Bulalo",
+    "districtId": "750502"
+  },
+  {
+    "id": "7504042018",
+    "name": "Bulangita",
+    "districtId": "750404"
+  },
+  {
+    "id": "7505072008",
+    "name": "Bulango Raya",
+    "districtId": "750507"
+  },
+  {
+    "id": "7571011004",
+    "name": "Buliide",
+    "districtId": "757101"
+  },
+  {
+    "id": "7501022011",
+    "name": "Bulila",
+    "districtId": "750102"
+  },
+  {
+    "id": "7504102001",
+    "name": "Bulili",
+    "districtId": "750410"
+  },
+  {
+    "id": "7505042007",
+    "name": "Buloila",
+    "districtId": "750504"
+  },
+  {
+    "id": "7503122001",
+    "name": "Bulontala",
+    "districtId": "750312"
+  },
+  {
+    "id": "7503122006",
+    "name": "Bulontala Timur",
+    "districtId": "750312"
+  },
+  {
+    "id": "7505042002",
+    "name": "Bulontiyo Barat",
+    "districtId": "750504"
+  },
+  {
+    "id": "7505042001",
+    "name": "Bulontiyo Timur",
+    "districtId": "750504"
+  },
+  {
+    "id": "7501011011",
+    "name": "Bulota",
+    "districtId": "750101"
+  },
+  {
+    "id": "7501222005",
+    "name": "Bulota",
+    "districtId": "750122"
+  },
+  {
+    "id": "7571071003",
+    "name": "Bulotadaa Barat",
+    "districtId": "757107"
+  },
+  {
+    "id": "7571071004",
+    "name": "Bulotadaa Timur",
+    "districtId": "757107"
+  },
+  {
+    "id": "7503162001",
+    "name": "Bulotalangi",
+    "districtId": "750316"
+  },
+  {
+    "id": "7503162005",
+    "name": "Bulotalangi Barat",
+    "districtId": "750316"
+  },
+  {
+    "id": "7503162004",
+    "name": "Bulotalangi Timur",
+    "districtId": "750316"
+  },
+  {
+    "id": "7501212001",
+    "name": "Bululi",
+    "districtId": "750121"
+  },
+  {
+    "id": "7505112002",
+    "name": "Buluwatu",
+    "districtId": "750511"
+  },
+  {
+    "id": "7504052010",
+    "name": "Bumbulan",
+    "districtId": "750405"
+  },
+  {
+    "id": "7501232007",
+    "name": "Bumela",
+    "districtId": "750123"
+  },
+  {
+    "id": "7504012020",
+    "name": "Bumi Bahari",
+    "districtId": "750401"
+  },
+  {
+    "id": "7503102014",
+    "name": "Bunga",
+    "districtId": "750310"
+  },
+  {
+    "id": "7501222004",
+    "name": "Bunggalo",
+    "districtId": "750122"
+  },
+  {
+    "id": "7504122005",
+    "name": "Bunto",
+    "districtId": "750412"
+  },
+  {
+    "id": "7504102002",
+    "name": "Buntulia Barat",
+    "districtId": "750410"
+  },
+  {
+    "id": "7504102006",
+    "name": "Buntulia Jaya",
+    "districtId": "750410"
+  },
+  {
+    "id": "7504102003",
+    "name": "Buntulia Selatan",
+    "districtId": "750410"
+  },
+  {
+    "id": "7504092005",
+    "name": "Buntulia Tengah",
+    "districtId": "750409"
+  },
+  {
+    "id": "7504092004",
+    "name": "Buntulia Utara",
+    "districtId": "750409"
+  },
+  {
+    "id": "7503052015",
+    "name": "Bunuo",
+    "districtId": "750305"
+  },
+  {
+    "id": "7504052004",
+    "name": "Bunuyo",
+    "districtId": "750405"
+  },
+  {
+    "id": "7502052006",
+    "name": "Buti",
+    "districtId": "750205"
+  },
+  {
+    "id": "7503062010",
+    "name": "Butu",
+    "districtId": "750306"
+  },
+  {
+    "id": "7504132005",
+    "name": "Butungale",
+    "districtId": "750413"
+  },
+  {
+    "id": "7505052011",
+    "name": "Cempaka Putih",
+    "districtId": "750505"
+  },
+  {
+    "id": "7503092012",
+    "name": "Cendana Putih",
+    "districtId": "750309"
+  },
+  {
+    "id": "7505022023",
+    "name": "Cisadane",
+    "districtId": "750502"
+  },
+  {
+    "id": "7501172004",
+    "name": "Daenaa",
+    "districtId": "750117"
+  },
+  {
+    "id": "7504012018",
+    "name": "Dambalo",
+    "districtId": "750401"
+  },
+  {
+    "id": "7505072001",
+    "name": "Dambalo",
+    "districtId": "750507"
+  },
+  {
+    "id": "7501042003",
+    "name": "Datahu",
+    "districtId": "750104"
+  },
+  {
+    "id": "7505032025",
+    "name": "Datahu",
+    "districtId": "750503"
+  },
+  {
+    "id": "7503182003",
+    "name": "Dataran Hijau",
+    "districtId": "750318"
+  },
+  {
+    "id": "7571011001",
+    "name": "Dembe I",
+    "districtId": "757101"
+  },
+  {
+    "id": "7571031003",
+    "name": "Dembe II",
+    "districtId": "757103"
+  },
+  {
+    "id": "7571031015",
+    "name": "Dembe Jaya",
+    "districtId": "757103"
+  },
+  {
+    "id": "7505112004",
+    "name": "Deme II",
+    "districtId": "750511"
+  },
+  {
+    "id": "7505112001",
+    "name": "Deme i",
+    "districtId": "750511"
+  },
+  {
+    "id": "7505102007",
+    "name": "Didingga",
+    "districtId": "750510"
+  },
+  {
+    "id": "7502012027",
+    "name": "Diloato",
+    "districtId": "750201"
+  },
+  {
+    "id": "7501092006",
+    "name": "Diloniyohu",
+    "districtId": "750109"
+  },
+  {
+    "id": "7502022010",
+    "name": "Dimito",
+    "districtId": "750202"
+  },
+  {
+    "id": "7571091004",
+    "name": "Donggala",
+    "districtId": "757109"
+  },
+  {
+    "id": "7503132003",
+    "name": "Duano",
+    "districtId": "750313"
+  },
+  {
+    "id": "7505032008",
+    "name": "Dudepo",
+    "districtId": "750503"
+  },
+  {
+    "id": "7504062006",
+    "name": "Dudepo",
+    "districtId": "750406"
+  },
+  {
+    "id": "7504132001",
+    "name": "Dudewulo",
+    "districtId": "750413"
+  },
+  {
+    "id": "7504102004",
+    "name": "Duhiadaa",
+    "districtId": "750410"
+  },
+  {
+    "id": "7571061002",
+    "name": "Dulalowo",
+    "districtId": "757106"
+  },
+  {
+    "id": "7571061006",
+    "name": "Dulalowo Timur",
+    "districtId": "757106"
+  },
+  {
+    "id": "7501112001",
+    "name": "Dulamayo",
+    "districtId": "750111"
+  },
+  {
+    "id": "7501022019",
+    "name": "Dulamayo Barat",
+    "districtId": "750102"
+  },
+  {
+    "id": "7501022018",
+    "name": "Dulamayo Selatan",
+    "districtId": "750102"
+  },
+  {
+    "id": "7501102001",
+    "name": "Dulamayo Utara",
+    "districtId": "750110"
+  },
+  {
+    "id": "7502062009",
+    "name": "Dulangeya",
+    "districtId": "750206"
+  },
+  {
+    "id": "7502022014",
+    "name": "Dulohupa",
+    "districtId": "750202"
+  },
+  {
+    "id": "7501092018",
+    "name": "Dulohupa",
+    "districtId": "750109"
+  },
+  {
+    "id": "7501022020",
+    "name": "Dulohupa",
+    "districtId": "750102"
+  },
+  {
+    "id": "7504062005",
+    "name": "Dulomo",
+    "districtId": "750406"
+  },
+  {
+    "id": "7501182002",
+    "name": "Dulomo",
+    "districtId": "750118"
+  },
+  {
+    "id": "7571031010",
+    "name": "Dulomo Selatan",
+    "districtId": "757103"
+  },
+  {
+    "id": "7571031014",
+    "name": "Dulomo Utara",
+    "districtId": "757103"
+  },
+  {
+    "id": "7505112003",
+    "name": "Dulukapa",
+    "districtId": "750511"
+  },
+  {
+    "id": "7502032001",
+    "name": "Dulupi",
+    "districtId": "750203"
+  },
+  {
+    "id": "7501102010",
+    "name": "Dumati",
+    "districtId": "750110"
+  },
+  {
+    "id": "7503112003",
+    "name": "Dumbaya Bulan",
+    "districtId": "750311"
+  },
+  {
+    "id": "7505062002",
+    "name": "Dumolodo",
+    "districtId": "750506"
+  },
+  {
+    "id": "7501242003",
+    "name": "Dungaliyo",
+    "districtId": "750124"
+  },
+  {
+    "id": "7503012006",
+    "name": "Dunggala",
+    "districtId": "750301"
+  },
+  {
+    "id": "7501032014",
+    "name": "Dunggala",
+    "districtId": "750103"
+  },
+  {
+    "id": "7501042008",
+    "name": "Dunggala",
+    "districtId": "750104"
+  },
+  {
+    "id": "7503172007",
+    "name": "Dunggilata",
+    "districtId": "750317"
+  },
+  {
+    "id": "7505092004",
+    "name": "Dunu",
+    "districtId": "750509"
+  },
+  {
+    "id": "7505062010",
+    "name": "Durian",
+    "districtId": "750506"
+  },
+  {
+    "id": "7503022006",
+    "name": "Dutohe",
+    "districtId": "750302"
+  },
+  {
+    "id": "7503022029",
+    "name": "Dutohe Barat",
+    "districtId": "750302"
+  },
+  {
+    "id": "7501011007",
+    "name": "Dutulanaa",
+    "districtId": "750101"
+  },
+  {
+    "id": "7501242006",
+    "name": "Duwanga",
+    "districtId": "750124"
+  },
+  {
+    "id": "7501132016",
+    "name": "Gandaria",
+    "districtId": "750113"
+  },
+  {
+    "id": "7501132003",
+    "name": "Gandasari",
+    "districtId": "750113"
+  },
+  {
+    "id": "7505092005",
+    "name": "Garapia",
+    "districtId": "750509"
+  },
+  {
+    "id": "7505062001",
+    "name": "Gentuma",
+    "districtId": "750506"
+  },
+  {
+    "id": "7502012019",
+    "name": "Girisa",
+    "districtId": "750201"
+  },
+  {
+    "id": "7502022001",
+    "name": "Harapan",
+    "districtId": "750202"
+  },
+  {
+    "id": "7501172009",
+    "name": "Haya-Haya",
+    "districtId": "750117"
+  },
+  {
+    "id": "7571051004",
+    "name": "Heledulaa Selatan",
+    "districtId": "757105"
+  },
+  {
+    "id": "7571051003",
+    "name": "Heledulaa Utara",
+    "districtId": "757105"
+  },
+  {
+    "id": "7505032024",
+    "name": "Helumo",
+    "districtId": "750503"
+  },
+  {
+    "id": "7503032028",
+    "name": "Helumo",
+    "districtId": "750303"
+  },
+  {
+    "id": "7501142002",
+    "name": "Helumo",
+    "districtId": "750114"
+  },
+  {
+    "id": "7501011005",
+    "name": "Hepuhulawa",
+    "districtId": "750101"
+  },
+  {
+    "id": "7501132019",
+    "name": "Himalaya",
+    "districtId": "750113"
+  },
+  {
+    "id": "7505032013",
+    "name": "Hiyalooile",
+    "districtId": "750503"
+  },
+  {
+    "id": "7571041001",
+    "name": "Huangobotu",
+    "districtId": "757104"
+  },
+  {
+    "id": "7503082001",
+    "name": "Huangobotu",
+    "districtId": "750308"
+  },
+  {
+    "id": "7501172002",
+    "name": "Huidu",
+    "districtId": "750117"
+  },
+  {
+    "id": "7505072007",
+    "name": "Huidu Melito",
+    "districtId": "750507"
+  },
+  {
+    "id": "7501172010",
+    "name": "Huidu Utara",
+    "districtId": "750117"
+  },
+  {
+    "id": "7501022016",
+    "name": "Hulawa",
+    "districtId": "750102"
+  },
+  {
+    "id": "7505112006",
+    "name": "Hulawa",
+    "districtId": "750511"
+  },
+  {
+    "id": "7502012024",
+    "name": "Hulawa",
+    "districtId": "750201"
+  },
+  {
+    "id": "7504092001",
+    "name": "Hulawa",
+    "districtId": "750409"
+  },
+  {
+    "id": "7503032014",
+    "name": "Huluduotamo",
+    "districtId": "750303"
+  },
+  {
+    "id": "7502042004",
+    "name": "Hungayonaa",
+    "districtId": "750204"
+  },
+  {
+    "id": "7501011003",
+    "name": "Hunggaluwa",
+    "districtId": "750101"
+  },
+  {
+    "id": "7501032003",
+    "name": "Huntu",
+    "districtId": "750103"
+  },
+  {
+    "id": "7503152011",
+    "name": "Huntu Barat",
+    "districtId": "750315"
+  },
+  {
+    "id": "7501112018",
+    "name": "Huntu Lo Hulawa",
+    "districtId": "750111"
+  },
+  {
+    "id": "7503152004",
+    "name": "Huntu Selatan",
+    "districtId": "750315"
+  },
+  {
+    "id": "7503152002",
+    "name": "Huntu Utara",
+    "districtId": "750315"
+  },
+  {
+    "id": "7501172007",
+    "name": "Hutabohu",
+    "districtId": "750117"
+  },
+  {
+    "id": "7501222001",
+    "name": "Hutadaa",
+    "districtId": "750122"
+  },
+  {
+    "id": "7505042020",
+    "name": "Hutakalo",
+    "districtId": "750504"
+  },
+  {
+    "id": "7502062002",
+    "name": "Hutamonu",
+    "districtId": "750206"
+  },
+  {
+    "id": "7504082005",
+    "name": "Hutamoputi",
+    "districtId": "750408"
+  },
+  {
+    "id": "7501011006",
+    "name": "Hutuo",
+    "districtId": "750101"
+  },
+  {
+    "id": "7502012015",
+    "name": "Huwongo",
+    "districtId": "750201"
+  },
+  {
+    "id": "7501202005",
+    "name": "Huwongo",
+    "districtId": "750120"
+  },
+  {
+    "id": "7504032009",
+    "name": "Huyula",
+    "districtId": "750403"
+  },
+  {
+    "id": "7501142010",
+    "name": "Huyula",
+    "districtId": "750114"
+  },
+  {
+    "id": "7505032014",
+    "name": "Ibarat",
+    "districtId": "750503"
+  },
+  {
+    "id": "7505032001",
+    "name": "Ilangata",
+    "districtId": "750503"
+  },
+  {
+    "id": "7505032021",
+    "name": "Ilodulunga",
+    "districtId": "750503"
+  },
+  {
+    "id": "7503062008",
+    "name": "Iloheluma",
+    "districtId": "750306"
+  },
+  {
+    "id": "7505032017",
+    "name": "Iloheluma",
+    "districtId": "750503"
+  },
+  {
+    "id": "7501092012",
+    "name": "Iloheluma",
+    "districtId": "750109"
+  },
+  {
+    "id": "7504062001",
+    "name": "Iloheluma",
+    "districtId": "750406"
+  },
+  {
+    "id": "7505012013",
+    "name": "Iloheluma",
+    "districtId": "750501"
+  },
+  {
+    "id": "7501032013",
+    "name": "Ilohungayo",
+    "districtId": "750103"
+  },
+  {
+    "id": "7503092010",
+    "name": "Ilohuuwa",
+    "districtId": "750309"
+  },
+  {
+    "id": "7505052017",
+    "name": "Ilomangga",
+    "districtId": "750505"
+  },
+  {
+    "id": "7501192005",
+    "name": "Ilomangga",
+    "districtId": "750119"
+  },
+  {
+    "id": "7505012011",
+    "name": "Ilomata",
+    "districtId": "750501"
+  },
+  {
+    "id": "7501042011",
+    "name": "Ilomata",
+    "districtId": "750104"
+  },
+  {
+    "id": "7503142005",
+    "name": "Ilomata",
+    "districtId": "750314"
+  },
+  {
+    "id": "7501232003",
+    "name": "Ilomata",
+    "districtId": "750123"
+  },
+  {
+    "id": "7501042010",
+    "name": "Iloponu",
+    "districtId": "750104"
+  },
+  {
+    "id": "7501182005",
+    "name": "Ilotidea",
+    "districtId": "750118"
+  },
+  {
+    "id": "7505052018",
+    "name": "Ilotunggula",
+    "districtId": "750505"
+  },
+  {
+    "id": "7501032001",
+    "name": "Iluta",
+    "districtId": "750103"
+  },
+  {
+    "id": "7505012003",
+    "name": "Imana",
+    "districtId": "750501"
+  },
+  {
+    "id": "7504032002",
+    "name": "Imbodu",
+    "districtId": "750403"
+  },
+  {
+    "id": "7503092005",
+    "name": "Inogaluma",
+    "districtId": "750309"
+  },
+  {
+    "id": "7503102001",
+    "name": "Inomata",
+    "districtId": "750310"
+  },
+  {
+    "id": "7571051005",
+    "name": "Ipilo",
+    "districtId": "757105"
+  },
+  {
+    "id": "7505062004",
+    "name": "Ipilo",
+    "districtId": "750506"
+  },
+  {
+    "id": "7501042013",
+    "name": "Isimu Raya",
+    "districtId": "750104"
+  },
+  {
+    "id": "7501042002",
+    "name": "Isimu Selatan",
+    "districtId": "750104"
+  },
+  {
+    "id": "7501042001",
+    "name": "Isimu Utara",
+    "districtId": "750104"
+  },
+  {
+    "id": "7502022007",
+    "name": "Jatimulya",
+    "districtId": "750202"
+  },
+  {
+    "id": "7505072003",
+    "name": "Jembatan Merah",
+    "districtId": "750507"
+  },
+  {
+    "id": "7501232005",
+    "name": "Juriya",
+    "districtId": "750123"
+  },
+  {
+    "id": "7502052002",
+    "name": "Kaaruyan",
+    "districtId": "750205"
+  },
+  {
+    "id": "7503172004",
+    "name": "Kaidundu",
+    "districtId": "750317"
+  },
+  {
+    "id": "7503172002",
+    "name": "Kaidundu Barat",
+    "districtId": "750317"
+  },
+  {
+    "id": "7504072004",
+    "name": "Kalimas",
+    "districtId": "750407"
+  },
+  {
+    "id": "7501242002",
+    "name": "Kaliyoso",
+    "districtId": "750124"
+  },
+  {
+    "id": "7504082003",
+    "name": "Karangetang",
+    "districtId": "750408"
+  },
+  {
+    "id": "7501212008",
+    "name": "Karya Baru",
+    "districtId": "750121"
+  },
+  {
+    "id": "7504082002",
+    "name": "Karya Baru",
+    "districtId": "750408"
+  },
+  {
+    "id": "7501212004",
+    "name": "Karya Indah",
+    "districtId": "750121"
+  },
+  {
+    "id": "7504092002",
+    "name": "Karya Indah",
+    "districtId": "750409"
+  },
+  {
+    "id": "7502012016",
+    "name": "Karya Murni",
+    "districtId": "750201"
+  },
+  {
+    "id": "7501142005",
+    "name": "Karyamukti",
+    "districtId": "750114"
+  },
+  {
+    "id": "7505042009",
+    "name": "Kasia",
+    "districtId": "750504"
+  },
+  {
+    "id": "7505022017",
+    "name": "Katialada",
+    "districtId": "750502"
+  },
+  {
+    "id": "7501011001",
+    "name": "Kayubulan",
+    "districtId": "750101"
+  },
+  {
+    "id": "7501052006",
+    "name": "Kayubulan",
+    "districtId": "750105"
+  },
+  {
+    "id": "7501112025",
+    "name": "Kayumerah",
+    "districtId": "750111"
+  },
+  {
+    "id": "7501011002",
+    "name": "Kayumerah",
+    "districtId": "750101"
+  },
+  {
+    "id": "7504122007",
+    "name": "Kelapa Lima",
+    "districtId": "750412"
+  },
+  {
+    "id": "7504052015",
+    "name": "Kemiri",
+    "districtId": "750405"
+  },
+  {
+    "id": "7503042032",
+    "name": "Kemiri",
+    "districtId": "750304"
+  },
+  {
+    "id": "7504022009",
+    "name": "Kenari",
+    "districtId": "750402"
+  },
+  {
+    "id": "7503012028",
+    "name": "Keramat",
+    "districtId": "750301"
+  },
+  {
+    "id": "7505062008",
+    "name": "Ketapang",
+    "districtId": "750506"
+  },
+  {
+    "id": "7505042010",
+    "name": "Kikia",
+    "districtId": "750504"
+  },
+  {
+    "id": "7505112010",
+    "name": "Koluwoka",
+    "districtId": "750511"
+  },
+  {
+    "id": "7503052010",
+    "name": "Kopi",
+    "districtId": "750305"
+  },
+  {
+    "id": "7505012008",
+    "name": "Kotajin",
+    "districtId": "750501"
+  },
+  {
+    "id": "7505012018",
+    "name": "Kotajin Utara",
+    "districtId": "750501"
+  },
+  {
+    "id": "7502032003",
+    "name": "Kotaraja",
+    "districtId": "750203"
+  },
+  {
+    "id": "7502052008",
+    "name": "Kramat",
+    "districtId": "750205"
+  },
+  {
+    "id": "7502012012",
+    "name": "Kuala Lumpur",
+    "districtId": "750201"
+  },
+  {
+    "id": "7501042005",
+    "name": "Labanu",
+    "districtId": "750104"
+  },
+  {
+    "id": "7502042010",
+    "name": "Lahumbo",
+    "districtId": "750204"
+  },
+  {
+    "id": "7501132002",
+    "name": "Lakeya",
+    "districtId": "750113"
+  },
+  {
+    "id": "7503152008",
+    "name": "Lamahu",
+    "districtId": "750315"
+  },
+  {
+    "id": "7501232008",
+    "name": "Lamahu",
+    "districtId": "750123"
+  },
+  {
+    "id": "7502042011",
+    "name": "Lamu",
+    "districtId": "750204"
+  },
+  {
+    "id": "7501052009",
+    "name": "Lamu",
+    "districtId": "750105"
+  },
+  {
+    "id": "7505032011",
+    "name": "Langge",
+    "districtId": "750503"
+  },
+  {
+    "id": "7503012007",
+    "name": "Langge",
+    "districtId": "750301"
+  },
+  {
+    "id": "7501052015",
+    "name": "Langgula",
+    "districtId": "750105"
+  },
+  {
+    "id": "7505062005",
+    "name": "Langke",
+    "districtId": "750506"
+  },
+  {
+    "id": "7503102012",
+    "name": "Laut Biru",
+    "districtId": "750310"
+  },
+  {
+    "id": "7501182006",
+    "name": "Lauwonu",
+    "districtId": "750118"
+  },
+  {
+    "id": "7571081002",
+    "name": "Leato Selatan",
+    "districtId": "757108"
+  },
+  {
+    "id": "7571081001",
+    "name": "Leato Utara",
+    "districtId": "757108"
+  },
+  {
+    "id": "7505022003",
+    "name": "Leboto",
+    "districtId": "750502"
+  },
+  {
+    "id": "7571011002",
+    "name": "Lekobalo",
+    "districtId": "757101"
+  },
+  {
+    "id": "7505042014",
+    "name": "Lelato",
+    "districtId": "750504"
+  },
+  {
+    "id": "7503042028",
+    "name": "Lembah Hijau",
+    "districtId": "750304"
+  },
+  {
+    "id": "7504112004",
+    "name": "Lembah Permai",
+    "districtId": "750411"
+  },
+  {
+    "id": "7504022001",
+    "name": "Lemito",
+    "districtId": "750402"
+  },
+  {
+    "id": "7504022008",
+    "name": "Lemito Utara",
+    "districtId": "750402"
+  },
+  {
+    "id": "7505072005",
+    "name": "Leyao",
+    "districtId": "750507"
+  },
+  {
+    "id": "7503122002",
+    "name": "Libungo",
+    "districtId": "750312"
+  },
+  {
+    "id": "7571041002",
+    "name": "Libuo",
+    "districtId": "757104"
+  },
+  {
+    "id": "7504051001",
+    "name": "Libuo",
+    "districtId": "750405"
+  },
+  {
+    "id": "7571061003",
+    "name": "Liluwo",
+    "districtId": "757106"
+  },
+  {
+    "id": "7571021013",
+    "name": "Limba B",
+    "districtId": "757102"
+  },
+  {
+    "id": "7571021019",
+    "name": "Limba U I",
+    "districtId": "757102"
+  },
+  {
+    "id": "7571021020",
+    "name": "Limba U II",
+    "districtId": "757102"
+  },
+  {
+    "id": "7502072003",
+    "name": "Limbatihu",
+    "districtId": "750207"
+  },
+  {
+    "id": "7502042001",
+    "name": "Limbato",
+    "districtId": "750204"
+  },
+  {
+    "id": "7505052006",
+    "name": "Limbato",
+    "districtId": "750505"
+  },
+  {
+    "id": "7504112005",
+    "name": "Limbula",
+    "districtId": "750411"
+  },
+  {
+    "id": "7501192003",
+    "name": "Limehe Barat",
+    "districtId": "750119"
+  },
+  {
+    "id": "7501192004",
+    "name": "Limehe Timur",
+    "districtId": "750119"
+  },
+  {
+    "id": "7501192009",
+    "name": "Limehu",
+    "districtId": "750119"
+  },
+  {
+    "id": "7502072002",
+    "name": "Lito",
+    "districtId": "750207"
+  },
+  {
+    "id": "7501112023",
+    "name": "Liyodu",
+    "districtId": "750111"
+  },
+  {
+    "id": "7501112024",
+    "name": "Liyoto",
+    "districtId": "750111"
+  },
+  {
+    "id": "7501202002",
+    "name": "Lobuto",
+    "districtId": "750120"
+  },
+  {
+    "id": "7501202006",
+    "name": "Lobuto Timur",
+    "districtId": "750120"
+  },
+  {
+    "id": "7503052011",
+    "name": "Lomaya",
+    "districtId": "750305"
+  },
+  {
+    "id": "7503132002",
+    "name": "Lombongo",
+    "districtId": "750313"
+  },
+  {
+    "id": "7503132001",
+    "name": "Lompotoo",
+    "districtId": "750313"
+  },
+  {
+    "id": "7504022004",
+    "name": "Lomuli",
+    "districtId": "750402"
+  },
+  {
+    "id": "7504122002",
+    "name": "Londoun",
+    "districtId": "750412"
+  },
+  {
+    "id": "7503052004",
+    "name": "Longalo",
+    "districtId": "750305"
+  },
+  {
+    "id": "7503062006",
+    "name": "Lonuo",
+    "districtId": "750306"
+  },
+  {
+    "id": "7501052008",
+    "name": "Lopo",
+    "districtId": "750105"
+  },
+  {
+    "id": "7501022015",
+    "name": "Luhu",
+    "districtId": "750102"
+  },
+  {
+    "id": "7505102003",
+    "name": "Luhuto",
+    "districtId": "750510"
+  },
+  {
+    "id": "7501202004",
+    "name": "Luluo",
+    "districtId": "750120"
+  },
+  {
+    "id": "7501102007",
+    "name": "Lupoyo",
+    "districtId": "750110"
+  },
+  {
+    "id": "7503072003",
+    "name": "Luwohu",
+    "districtId": "750307"
+  },
+  {
+    "id": "7501222003",
+    "name": "Luwoo",
+    "districtId": "750122"
+  },
+  {
+    "id": "7504072003",
+    "name": "Makarti Jaya",
+    "districtId": "750407"
+  },
+  {
+    "id": "7501132015",
+    "name": "Makmur Abadi",
+    "districtId": "750113"
+  },
+  {
+    "id": "7501011012",
+    "name": "Malahu",
+    "districtId": "750101"
+  },
+  {
+    "id": "7505082002",
+    "name": "Malambe",
+    "districtId": "750508"
+  },
+  {
+    "id": "7504072005",
+    "name": "Malango",
+    "districtId": "750407"
+  },
+  {
+    "id": "7504052012",
+    "name": "Maleo",
+    "districtId": "750405"
+  },
+  {
+    "id": "7504122006",
+    "name": "Maleo",
+    "districtId": "750412"
+  },
+  {
+    "id": "7503172001",
+    "name": "Mamungaa",
+    "districtId": "750317"
+  },
+  {
+    "id": "7503172006",
+    "name": "Mamungaa Timur",
+    "districtId": "750317"
+  },
+  {
+    "id": "7502052005",
+    "name": "Mananggu",
+    "districtId": "750205"
+  },
+  {
+    "id": "7504062004",
+    "name": "Manawa",
+    "districtId": "750406"
+  },
+  {
+    "id": "7504032003",
+    "name": "Manunggal Karya",
+    "districtId": "750403"
+  },
+  {
+    "id": "7501132014",
+    "name": "Margomulya",
+    "districtId": "750113"
+  },
+  {
+    "id": "7504122003",
+    "name": "Marisa",
+    "districtId": "750412"
+  },
+  {
+    "id": "7504042003",
+    "name": "Marisa Selatan",
+    "districtId": "750404"
+  },
+  {
+    "id": "7504042004",
+    "name": "Marisa Utara",
+    "districtId": "750404"
+  },
+  {
+    "id": "7503092009",
+    "name": "Masiaga",
+    "districtId": "750309"
+  },
+  {
+    "id": "7505022032",
+    "name": "Masuru",
+    "districtId": "750502"
+  },
+  {
+    "id": "7505042013",
+    "name": "Mebongo",
+    "districtId": "750504"
+  },
+  {
+    "id": "7504102005",
+    "name": "Mekar Jaya",
+    "districtId": "750410"
+  },
+  {
+    "id": "7502022004",
+    "name": "Mekarjaya",
+    "districtId": "750202"
+  },
+  {
+    "id": "7503012029",
+    "name": "Meranti",
+    "districtId": "750301"
+  },
+  {
+    "id": "7505072002",
+    "name": "Milango",
+    "districtId": "750507"
+  },
+  {
+    "id": "7504122001",
+    "name": "Milangodaa",
+    "districtId": "750412"
+  },
+  {
+    "id": "7501192007",
+    "name": "Moahudu",
+    "districtId": "750119"
+  },
+  {
+    "id": "7501102011",
+    "name": "Modelidu",
+    "districtId": "750110"
+  },
+  {
+    "id": "7503082006",
+    "name": "Modelomo",
+    "districtId": "750308"
+  },
+  {
+    "id": "7502042005",
+    "name": "Modelomo",
+    "districtId": "750204"
+  },
+  {
+    "id": "7501212002",
+    "name": "Mohiyolo",
+    "districtId": "750121"
+  },
+  {
+    "id": "7502042009",
+    "name": "Mohungo",
+    "districtId": "750204"
+  },
+  {
+    "id": "7505092008",
+    "name": "Mokonowu",
+    "districtId": "750509"
+  },
+  {
+    "id": "7501162006",
+    "name": "Molalahu",
+    "districtId": "750116"
+  },
+  {
+    "id": "7503092008",
+    "name": "Molamahu",
+    "districtId": "750309"
+  },
+  {
+    "id": "7501162003",
+    "name": "Molamahu",
+    "districtId": "750116"
+  },
+  {
+    "id": "7504052013",
+    "name": "Molamahu",
+    "districtId": "750405"
+  },
+  {
+    "id": "7505052008",
+    "name": "Molangga",
+    "districtId": "750505"
+  },
+  {
+    "id": "7501112010",
+    "name": "Molanihu",
+    "districtId": "750111"
+  },
+  {
+    "id": "7505072006",
+    "name": "Molantadu",
+    "districtId": "750507"
+  },
+  {
+    "id": "7501112012",
+    "name": "Molas",
+    "districtId": "750111"
+  },
+  {
+    "id": "7505022002",
+    "name": "Molingkapoto",
+    "districtId": "750502"
+  },
+  {
+    "id": "7505022026",
+    "name": "Molingkapoto Selatan",
+    "districtId": "750502"
+  },
+  {
+    "id": "7503122003",
+    "name": "Molintogupo",
+    "districtId": "750312"
+  },
+  {
+    "id": "7501132004",
+    "name": "Molohu",
+    "districtId": "750113"
+  },
+  {
+    "id": "7502012006",
+    "name": "Molombulahe",
+    "districtId": "750201"
+  },
+  {
+    "id": "7505062003",
+    "name": "Molonggota",
+    "districtId": "750506"
+  },
+  {
+    "id": "7501112011",
+    "name": "Molopatodu",
+    "districtId": "750111"
+  },
+  {
+    "id": "7504132004",
+    "name": "Molosipat",
+    "districtId": "750413"
+  },
+  {
+    "id": "7571071005",
+    "name": "Molosipat U",
+    "districtId": "757107"
+  },
+  {
+    "id": "7504132007",
+    "name": "Molosipat Utara",
+    "districtId": "750413"
+  },
+  {
+    "id": "7571011006",
+    "name": "Molosipat W",
+    "districtId": "757101"
+  },
+  {
+    "id": "7501042009",
+    "name": "Molowahu",
+    "districtId": "750104"
+  },
+  {
+    "id": "7505022006",
+    "name": "Moluo",
+    "districtId": "750502"
+  },
+  {
+    "id": "7503082002",
+    "name": "Molutabu",
+    "districtId": "750308"
+  },
+  {
+    "id": "7501242010",
+    "name": "Momala",
+    "districtId": "750124"
+  },
+  {
+    "id": "7503092006",
+    "name": "Monano",
+    "districtId": "750309"
+  },
+  {
+    "id": "7505092001",
+    "name": "Monano",
+    "districtId": "750509"
+  },
+  {
+    "id": "7505092003",
+    "name": "Monas",
+    "districtId": "750509"
+  },
+  {
+    "id": "7501092014",
+    "name": "Monggolito",
+    "districtId": "750109"
+  },
+  {
+    "id": "7505012007",
+    "name": "Monggupo",
+    "districtId": "750501"
+  },
+  {
+    "id": "7503142001",
+    "name": "Mongiilo",
+    "districtId": "750314"
+  },
+  {
+    "id": "7503142003",
+    "name": "Mongiilo Utara",
+    "districtId": "750314"
+  },
+  {
+    "id": "7501022014",
+    "name": "Mongolato",
+    "districtId": "750102"
+  },
+  {
+    "id": "7571051008",
+    "name": "Moodu",
+    "districtId": "757105"
+  },
+  {
+    "id": "7503092003",
+    "name": "Moodulio",
+    "districtId": "750309"
+  },
+  {
+    "id": "7503102010",
+    "name": "Moopiya",
+    "districtId": "750310"
+  },
+  {
+    "id": "7503102015",
+    "name": "Mootawa",
+    "districtId": "750310"
+  },
+  {
+    "id": "7503102004",
+    "name": "Mootayu",
+    "districtId": "750310"
+  },
+  {
+    "id": "7504102008",
+    "name": "Mootilango",
+    "districtId": "750410"
+  },
+  {
+    "id": "7505032009",
+    "name": "Mootilango",
+    "districtId": "750503"
+  },
+  {
+    "id": "7505022010",
+    "name": "Mootinelo",
+    "districtId": "750502"
+  },
+  {
+    "id": "7503102006",
+    "name": "Mootinelo",
+    "districtId": "750310"
+  },
+  {
+    "id": "7503172003",
+    "name": "Mopuya",
+    "districtId": "750317"
+  },
+  {
+    "id": "7505112009",
+    "name": "Motihelumo",
+    "districtId": "750511"
+  },
+  {
+    "id": "7503062009",
+    "name": "Motilango",
+    "districtId": "750306"
+  },
+  {
+    "id": "7501042012",
+    "name": "Motilango",
+    "districtId": "750104"
+  },
+  {
+    "id": "7501192006",
+    "name": "Motinelo",
+    "districtId": "750119"
+  },
+  {
+    "id": "7501092011",
+    "name": "Motoduto",
+    "districtId": "750109"
+  },
+  {
+    "id": "7504032001",
+    "name": "Motolohu",
+    "districtId": "750403"
+  },
+  {
+    "id": "7504032017",
+    "name": "Motolohu Selatan",
+    "districtId": "750403"
+  },
+  {
+    "id": "7505062009",
+    "name": "Motomingo",
+    "districtId": "750506"
+  },
+  {
+    "id": "7503062004",
+    "name": "Moutong",
+    "districtId": "750306"
+  },
+  {
+    "id": "7503092011",
+    "name": "Muara Bone",
+    "districtId": "750309"
+  },
+  {
+    "id": "7501162007",
+    "name": "Mulyonegoro",
+    "districtId": "750116"
+  },
+  {
+    "id": "7502012013",
+    "name": "Mustika",
+    "districtId": "750201"
+  },
+  {
+    "id": "7501232009",
+    "name": "Musyawarah",
+    "districtId": "750123"
+  },
+  {
+    "id": "7502012007",
+    "name": "Mutiara",
+    "districtId": "750201"
+  },
+  {
+    "id": "7505072010",
+    "name": "Mutiara Laut",
+    "districtId": "750507"
+  },
+  {
+    "id": "7505062007",
+    "name": "Nanati Jaya",
+    "districtId": "750506"
+  },
+  {
+    "id": "7503082004",
+    "name": "Olele",
+    "districtId": "750308"
+  },
+  {
+    "id": "7502072008",
+    "name": "Olibu",
+    "districtId": "750207"
+  },
+  {
+    "id": "7501202008",
+    "name": "Olimeyala",
+    "districtId": "750120"
+  },
+  {
+    "id": "7501212007",
+    "name": "Olimohulo",
+    "districtId": "750121"
+  },
+  {
+    "id": "7503021009",
+    "name": "Olohuta",
+    "districtId": "750302"
+  },
+  {
+    "id": "7503021028",
+    "name": "Olohuta Utara",
+    "districtId": "750302"
+  },
+  {
+    "id": "7505012019",
+    "name": "Oluhuta",
+    "districtId": "750501"
+  },
+  {
+    "id": "7503082003",
+    "name": "Oluhuta",
+    "districtId": "750308"
+  },
+  {
+    "id": "7504032012",
+    "name": "Omayuwa",
+    "districtId": "750403"
+  },
+  {
+    "id": "7501172003",
+    "name": "Ombulo",
+    "districtId": "750117"
+  },
+  {
+    "id": "7503042031",
+    "name": "Ombulo Hijau",
+    "districtId": "750304"
+  },
+  {
+    "id": "7501132017",
+    "name": "Ombulo Tango",
+    "districtId": "750113"
+  },
+  {
+    "id": "7505022019",
+    "name": "Ombulodata",
+    "districtId": "750502"
+  },
+  {
+    "id": "7505102002",
+    "name": "Omuto",
+    "districtId": "750510"
+  },
+  {
+    "id": "7505082003",
+    "name": "Otiola",
+    "districtId": "750508"
+  },
+  {
+    "id": "7501112016",
+    "name": "Otopade",
+    "districtId": "750111"
+  },
+  {
+    "id": "7501112022",
+    "name": "Owalanga",
+    "districtId": "750111"
+  },
+  {
+    "id": "7503142002",
+    "name": "Owata",
+    "districtId": "750314"
+  },
+  {
+    "id": "7571051009",
+    "name": "Padebuolo",
+    "districtId": "757105"
+  },
+  {
+    "id": "7504102007",
+    "name": "Padengo",
+    "districtId": "750410"
+  },
+  {
+    "id": "7504132003",
+    "name": "Padengo",
+    "districtId": "750413"
+  },
+  {
+    "id": "7503021008",
+    "name": "Padengo",
+    "districtId": "750302"
+  },
+  {
+    "id": "7501172008",
+    "name": "Padengo",
+    "districtId": "750117"
+  },
+  {
+    "id": "7504082004",
+    "name": "Padengo",
+    "districtId": "750408"
+  },
+  {
+    "id": "7571061005",
+    "name": "Paguyaman",
+    "districtId": "757106"
+  },
+  {
+    "id": "7504042016",
+    "name": "Palopo",
+    "districtId": "750404"
+  },
+  {
+    "id": "7504072001",
+    "name": "Pancakarsa I",
+    "districtId": "750407"
+  },
+  {
+    "id": "7504072002",
+    "name": "Pancakarsa II",
+    "districtId": "750407"
+  },
+  {
+    "id": "7503122007",
+    "name": "Pancuran",
+    "districtId": "750312"
+  },
+  {
+    "id": "7501242008",
+    "name": "Pangadaa",
+    "districtId": "750124"
+  },
+  {
+    "id": "7501212003",
+    "name": "Pangahu",
+    "districtId": "750121"
+  },
+  {
+    "id": "7502022006",
+    "name": "Pangeya",
+    "districtId": "750202"
+  },
+  {
+    "id": "7503112008",
+    "name": "Panggulo",
+    "districtId": "750311"
+  },
+  {
+    "id": "7503072002",
+    "name": "Panggulo",
+    "districtId": "750307"
+  },
+  {
+    "id": "7503072007",
+    "name": "Panggulo Barat",
+    "districtId": "750307"
+  },
+  {
+    "id": "7502032005",
+    "name": "Pangi",
+    "districtId": "750203"
+  },
+  {
+    "id": "7503112010",
+    "name": "Pangi",
+    "districtId": "750311"
+  },
+  {
+    "id": "7501102006",
+    "name": "Pantungo",
+    "districtId": "750110"
+  },
+  {
+    "id": "7505052007",
+    "name": "Papualangi",
+    "districtId": "750505"
+  },
+  {
+    "id": "7501142001",
+    "name": "Paris",
+    "districtId": "750114"
+  },
+  {
+    "id": "7501092004",
+    "name": "Parungi",
+    "districtId": "750109"
+  },
+  {
+    "id": "7505062006",
+    "name": "Pasalae",
+    "districtId": "750506"
+  },
+  {
+    "id": "7503172009",
+    "name": "Patoa",
+    "districtId": "750317"
+  },
+  {
+    "id": "7502062003",
+    "name": "Patoameme",
+    "districtId": "750206"
+  },
+  {
+    "id": "7504032014",
+    "name": "Patuhu",
+    "districtId": "750403"
+  },
+  {
+    "id": "7503021011",
+    "name": "Pauwo",
+    "districtId": "750302"
+  },
+  {
+    "id": "7501142008",
+    "name": "Payu",
+    "districtId": "750114"
+  },
+  {
+    "id": "7501032004",
+    "name": "Payunga",
+    "districtId": "750103"
+  },
+  {
+    "id": "7504032016",
+    "name": "Pelambane",
+    "districtId": "750403"
+  },
+  {
+    "id": "7501232006",
+    "name": "Pelehu",
+    "districtId": "750123"
+  },
+  {
+    "id": "7503042033",
+    "name": "Pelita Hijau",
+    "districtId": "750304"
+  },
+  {
+    "id": "7503102009",
+    "name": "Pelita Jaya",
+    "districtId": "750310"
+  },
+  {
+    "id": "7501102009",
+    "name": "Pentadio Barat",
+    "districtId": "750110"
+  },
+  {
+    "id": "7501102008",
+    "name": "Pentadio Timur",
+    "districtId": "750110"
+  },
+  {
+    "id": "7504051002",
+    "name": "Pentadu",
+    "districtId": "750405"
+  },
+  {
+    "id": "7502042006",
+    "name": "Pentadu Barat",
+    "districtId": "750204"
+  },
+  {
+    "id": "7502042007",
+    "name": "Pentadu Timur",
+    "districtId": "750204"
+  },
+  {
+    "id": "7503092014",
+    "name": "Permata",
+    "districtId": "750309"
+  },
+  {
+    "id": "7502012023",
+    "name": "Permata",
+    "districtId": "750201"
+  },
+  {
+    "id": "7503062011",
+    "name": "Permata",
+    "districtId": "750306"
+  },
+  {
+    "id": "7504132006",
+    "name": "Persatuan",
+    "districtId": "750413"
+  },
+  {
+    "id": "7501032015",
+    "name": "Pilobuhuta",
+    "districtId": "750103"
+  },
+  {
+    "id": "7501022017",
+    "name": "Pilohayanga",
+    "districtId": "750102"
+  },
+  {
+    "id": "7501022021",
+    "name": "Pilohayanga Barat",
+    "districtId": "750102"
+  },
+  {
+    "id": "7505092007",
+    "name": "Pilohulata",
+    "districtId": "750509"
+  },
+  {
+    "id": "7503142004",
+    "name": "Pilolaheya",
+    "districtId": "750314"
+  },
+  {
+    "id": "7501242001",
+    "name": "Pilolalenga",
+    "districtId": "750124"
+  },
+  {
+    "id": "7502042002",
+    "name": "Piloliyanga",
+    "districtId": "750204"
+  },
+  {
+    "id": "7571011003",
+    "name": "Pilolodaa",
+    "districtId": "757101"
+  },
+  {
+    "id": "7501142003",
+    "name": "Pilomonu",
+    "districtId": "750114"
+  },
+  {
+    "id": "7503182001",
+    "name": "Pinogu",
+    "districtId": "750318"
+  },
+  {
+    "id": "7503182004",
+    "name": "Pinogu Permai",
+    "districtId": "750318"
+  },
+  {
+    "id": "7503172008",
+    "name": "Pinomotiga",
+    "districtId": "750317"
+  },
+  {
+    "id": "7505012006",
+    "name": "Pinontoyonga",
+    "districtId": "750501"
+  },
+  {
+    "id": "7503112007",
+    "name": "Poduwoma",
+    "districtId": "750311"
+  },
+  {
+    "id": "7571091002",
+    "name": "Pohe",
+    "districtId": "757109"
+  },
+  {
+    "id": "7504042008",
+    "name": "Pohuwato",
+    "districtId": "750404"
+  },
+  {
+    "id": "7504042017",
+    "name": "Pohuwato Timur",
+    "districtId": "750404"
+  },
+  {
+    "id": "7501011014",
+    "name": "Polohungo",
+    "districtId": "750101"
+  },
+  {
+    "id": "7501132007",
+    "name": "Polohungo",
+    "districtId": "750113"
+  },
+  {
+    "id": "7502032004",
+    "name": "Polohungo",
+    "districtId": "750203"
+  },
+  {
+    "id": "7501172001",
+    "name": "Pone",
+    "districtId": "750117"
+  },
+  {
+    "id": "7505082001",
+    "name": "Ponelo",
+    "districtId": "750508"
+  },
+  {
+    "id": "7501162001",
+    "name": "Pongongaila",
+    "districtId": "750116"
+  },
+  {
+    "id": "7502052007",
+    "name": "Pontolo",
+    "districtId": "750205"
+  },
+  {
+    "id": "7505022001",
+    "name": "Pontolo",
+    "districtId": "750502"
+  },
+  {
+    "id": "7505022030",
+    "name": "Pontolo Atas",
+    "districtId": "750502"
+  },
+  {
+    "id": "7503022013",
+    "name": "Poowo",
+    "districtId": "750302"
+  },
+  {
+    "id": "7503022026",
+    "name": "Poowo Barat",
+    "districtId": "750302"
+  },
+  {
+    "id": "7505032007",
+    "name": "Popalo",
+    "districtId": "750503"
+  },
+  {
+    "id": "7504082001",
+    "name": "Popaya",
+    "districtId": "750408"
+  },
+  {
+    "id": "7504012004",
+    "name": "Popayato",
+    "districtId": "750401"
+  },
+  {
+    "id": "7503162003",
+    "name": "Popodu",
+    "districtId": "750316"
+  },
+  {
+    "id": "7505012015",
+    "name": "Posono",
+    "districtId": "750501"
+  },
+  {
+    "id": "7505022004",
+    "name": "Posso",
+    "districtId": "750502"
+  },
+  {
+    "id": "7505102009",
+    "name": "Potanga",
+    "districtId": "750510"
+  },
+  {
+    "id": "7502062005",
+    "name": "Potanga",
+    "districtId": "750206"
+  },
+  {
+    "id": "7501092010",
+    "name": "Potanga",
+    "districtId": "750109"
+  },
+  {
+    "id": "7501212005",
+    "name": "Prima",
+    "districtId": "750121"
+  },
+  {
+    "id": "7505042016",
+    "name": "Pulohenti",
+    "districtId": "750504"
+  },
+  {
+    "id": "7501162002",
+    "name": "Pulubala",
+    "districtId": "750116"
+  },
+  {
+    "id": "7571061004",
+    "name": "Pulubala",
+    "districtId": "757106"
+  },
+  {
+    "id": "7501162008",
+    "name": "Puncak",
+    "districtId": "750116"
+  },
+  {
+    "id": "7504072006",
+    "name": "Puncak Jaya",
+    "districtId": "750407"
+  },
+  {
+    "id": "7505042019",
+    "name": "Puncak Mandiri",
+    "districtId": "750504"
+  },
+  {
+    "id": "7505032023",
+    "name": "Putiana",
+    "districtId": "750503"
+  },
+  {
+    "id": "7502022012",
+    "name": "Raharja",
+    "districtId": "750202"
+  },
+  {
+    "id": "7502012026",
+    "name": "Rejonegoro",
+    "districtId": "750201"
+  },
+  {
+    "id": "7501042006",
+    "name": "Reksonegoro",
+    "districtId": "750104"
+  },
+  {
+    "id": "7502062008",
+    "name": "Rumbia",
+    "districtId": "750206"
+  },
+  {
+    "id": "7502052003",
+    "name": "Salilama",
+    "districtId": "750205"
+  },
+  {
+    "id": "7502022009",
+    "name": "Sari Tani",
+    "districtId": "750202"
+  },
+  {
+    "id": "7504032008",
+    "name": "Sarimurni",
+    "districtId": "750403"
+  },
+  {
+    "id": "7502012008",
+    "name": "Saripi",
+    "districtId": "750201"
+  },
+  {
+    "id": "7501142004",
+    "name": "Satria",
+    "districtId": "750114"
+  },
+  {
+    "id": "7503152010",
+    "name": "Sejahtera",
+    "districtId": "750315"
+  },
+  {
+    "id": "7505102006",
+    "name": "Sembihingan",
+    "districtId": "750510"
+  },
+  {
+    "id": "7501132010",
+    "name": "Sidoarjo",
+    "districtId": "750113"
+  },
+  {
+    "id": "7501092007",
+    "name": "Sidodadi",
+    "districtId": "750109"
+  },
+  {
+    "id": "7501142007",
+    "name": "Sidomukti",
+    "districtId": "750114"
+  },
+  {
+    "id": "7501092019",
+    "name": "Sidomulya Selatan",
+    "districtId": "750109"
+  },
+  {
+    "id": "7501092001",
+    "name": "Sidomulyo",
+    "districtId": "750109"
+  },
+  {
+    "id": "7504032004",
+    "name": "Sidorukun",
+    "districtId": "750403"
+  },
+  {
+    "id": "7504032018",
+    "name": "Sidowonge",
+    "districtId": "750403"
+  },
+  {
+    "id": "7504051003",
+    "name": "Siduan",
+    "districtId": "750405"
+  },
+  {
+    "id": "7571091005",
+    "name": "Siendeng",
+    "districtId": "757109"
+  },
+  {
+    "id": "7505012016",
+    "name": "Sigaso",
+    "districtId": "750501"
+  },
+  {
+    "id": "7504092007",
+    "name": "Sipatana",
+    "districtId": "750409"
+  },
+  {
+    "id": "7504052005",
+    "name": "Sipayo",
+    "districtId": "750405"
+  },
+  {
+    "id": "7504052006",
+    "name": "Soginti",
+    "districtId": "750405"
+  },
+  {
+    "id": "7503092002",
+    "name": "Sogitia",
+    "districtId": "750309"
+  },
+  {
+    "id": "7505092006",
+    "name": "Sogu",
+    "districtId": "750509"
+  },
+  {
+    "id": "7502012022",
+    "name": "Sosial",
+    "districtId": "750201"
+  },
+  {
+    "id": "7503052012",
+    "name": "Suka Damai",
+    "districtId": "750305"
+  },
+  {
+    "id": "7504022011",
+    "name": "Suka Damai",
+    "districtId": "750402"
+  },
+  {
+    "id": "7501232010",
+    "name": "Suka Damai",
+    "districtId": "750123"
+  },
+  {
+    "id": "7503142006",
+    "name": "Suka Makmur",
+    "districtId": "750314"
+  },
+  {
+    "id": "7504062003",
+    "name": "Suka Makmur",
+    "districtId": "750406"
+  },
+  {
+    "id": "7502022008",
+    "name": "Suka Mulya",
+    "districtId": "750202"
+  },
+  {
+    "id": "7502022005",
+    "name": "Sukamaju",
+    "districtId": "750202"
+  },
+  {
+    "id": "7501142009",
+    "name": "Sukamaju",
+    "districtId": "750114"
+  },
+  {
+    "id": "7501132001",
+    "name": "Sukamakmur",
+    "districtId": "750113"
+  },
+  {
+    "id": "7501132013",
+    "name": "Sukamakmur Utara",
+    "districtId": "750113"
+  },
+  {
+    "id": "7503072009",
+    "name": "Sukma",
+    "districtId": "750307"
+  },
+  {
+    "id": "7502032002",
+    "name": "Tabongo",
+    "districtId": "750203"
+  },
+  {
+    "id": "7501192002",
+    "name": "Tabongo Barat",
+    "districtId": "750119"
+  },
+  {
+    "id": "7501192001",
+    "name": "Tabongo Timur",
+    "districtId": "750119"
+  },
+  {
+    "id": "7502052001",
+    "name": "Tabulo",
+    "districtId": "750205"
+  },
+  {
+    "id": "7502052009",
+    "name": "Tabulo Selatan",
+    "districtId": "750205"
+  },
+  {
+    "id": "7501182004",
+    "name": "Tabumela",
+    "districtId": "750118"
+  },
+  {
+    "id": "7504122004",
+    "name": "Tahele",
+    "districtId": "750412"
+  },
+  {
+    "id": "7503022024",
+    "name": "Talango",
+    "districtId": "750302"
+  },
+  {
+    "id": "7503092001",
+    "name": "Taludaa",
+    "districtId": "750309"
+  },
+  {
+    "id": "7504092003",
+    "name": "Taluduyunu",
+    "districtId": "750409"
+  },
+  {
+    "id": "7504092006",
+    "name": "Taluduyunu Utara",
+    "districtId": "750409"
+  },
+  {
+    "id": "7503012005",
+    "name": "Talulobutu",
+    "districtId": "750301"
+  },
+  {
+    "id": "7503012027",
+    "name": "Talulobutu Selatan",
+    "districtId": "750301"
+  },
+  {
+    "id": "7501102004",
+    "name": "Talumelito",
+    "districtId": "750110"
+  },
+  {
+    "id": "7571081003",
+    "name": "Talumolo",
+    "districtId": "757108"
+  },
+  {
+    "id": "7503012004",
+    "name": "Talumopatu",
+    "districtId": "750301"
+  },
+  {
+    "id": "7501142006",
+    "name": "Talumopatu",
+    "districtId": "750114"
+  },
+  {
+    "id": "7501132009",
+    "name": "Tamaila",
+    "districtId": "750113"
+  },
+  {
+    "id": "7501132018",
+    "name": "Tamaila Utara",
+    "districtId": "750113"
+  },
+  {
+    "id": "7571051011",
+    "name": "Tamalate",
+    "districtId": "757105"
+  },
+  {
+    "id": "7503042003",
+    "name": "Tamboo",
+    "districtId": "750304"
+  },
+  {
+    "id": "7503062007",
+    "name": "Tamboo",
+    "districtId": "750306"
+  },
+  {
+    "id": "7503072006",
+    "name": "Tanah Putih",
+    "districtId": "750307"
+  },
+  {
+    "id": "7502032007",
+    "name": "Tanah Putih",
+    "districtId": "750203"
+  },
+  {
+    "id": "7502032008",
+    "name": "Tangga Barito",
+    "districtId": "750203"
+  },
+  {
+    "id": "7502032006",
+    "name": "Tangga Jaya",
+    "districtId": "750203"
+  },
+  {
+    "id": "7571071001",
+    "name": "Tanggikiki",
+    "districtId": "757107"
+  },
+  {
+    "id": "7503022007",
+    "name": "Tanggilingo",
+    "districtId": "750302"
+  },
+  {
+    "id": "7502012010",
+    "name": "Tangkobu",
+    "districtId": "750201"
+  },
+  {
+    "id": "7502022011",
+    "name": "Tanjung Harapan",
+    "districtId": "750202"
+  },
+  {
+    "id": "7505072009",
+    "name": "Tanjung Karang",
+    "districtId": "750507"
+  },
+  {
+    "id": "7571091001",
+    "name": "Tanjung Kramat",
+    "districtId": "757109"
+  },
+  {
+    "id": "7571071002",
+    "name": "Tapa",
+    "districtId": "757107"
+  },
+  {
+    "id": "7503132006",
+    "name": "Tapadaa",
+    "districtId": "750313"
+  },
+  {
+    "id": "7502062004",
+    "name": "Tapadaa",
+    "districtId": "750206"
+  },
+  {
+    "id": "7501102014",
+    "name": "Tapaluluo",
+    "districtId": "750110"
+  },
+  {
+    "id": "7504012008",
+    "name": "Telaga",
+    "districtId": "750401"
+  },
+  {
+    "id": "7504012019",
+    "name": "Telaga Biru",
+    "districtId": "750401"
+  },
+  {
+    "id": "7571091003",
+    "name": "Tenda",
+    "districtId": "757109"
+  },
+  {
+    "id": "7501182007",
+    "name": "Tenggela",
+    "districtId": "750118"
+  },
+  {
+    "id": "7501011008",
+    "name": "Tenilo",
+    "districtId": "750101"
+  },
+  {
+    "id": "7502042018",
+    "name": "Tenilo",
+    "districtId": "750204"
+  },
+  {
+    "id": "7571011005",
+    "name": "Tenilo",
+    "districtId": "757101"
+  },
+  {
+    "id": "7502012014",
+    "name": "Tenilo",
+    "districtId": "750201"
+  },
+  {
+    "id": "7504042007",
+    "name": "Teratai",
+    "districtId": "750404"
+  },
+  {
+    "id": "7501192008",
+    "name": "Teratai",
+    "districtId": "750119"
+  },
+  {
+    "id": "7505082004",
+    "name": "Tihengo",
+    "districtId": "750508"
+  },
+  {
+    "id": "7503042026",
+    "name": "Tihu",
+    "districtId": "750304"
+  },
+  {
+    "id": "7503112005",
+    "name": "Tilangobula",
+    "districtId": "750311"
+  },
+  {
+    "id": "7501011013",
+    "name": "Tilihuwa",
+    "districtId": "750101"
+  },
+  {
+    "id": "7503182005",
+    "name": "Tilonggibila",
+    "districtId": "750318"
+  },
+  {
+    "id": "7501182003",
+    "name": "Tilote",
+    "districtId": "750118"
+  },
+  {
+    "id": "7503072001",
+    "name": "Timbuolo",
+    "districtId": "750307"
+  },
+  {
+    "id": "7503072008",
+    "name": "Timbuolo Tengah",
+    "districtId": "750307"
+  },
+  {
+    "id": "7503072005",
+    "name": "Timbuolo Timur",
+    "districtId": "750307"
+  },
+  {
+    "id": "7501102013",
+    "name": "Timuato",
+    "districtId": "750110"
+  },
+  {
+    "id": "7501182008",
+    "name": "Tinelo",
+    "districtId": "750118"
+  },
+  {
+    "id": "7501102012",
+    "name": "Tinelo",
+    "districtId": "750110"
+  },
+  {
+    "id": "7503032021",
+    "name": "Tinelo",
+    "districtId": "750303"
+  },
+  {
+    "id": "7503152009",
+    "name": "Tinelo Ayula",
+    "districtId": "750315"
+  },
+  {
+    "id": "7503112011",
+    "name": "Tinemba",
+    "districtId": "750311"
+  },
+  {
+    "id": "7503032011",
+    "name": "Tingkohubu",
+    "districtId": "750303"
+  },
+  {
+    "id": "7503032027",
+    "name": "Tingkohubu Timur",
+    "districtId": "750303"
+  },
+  {
+    "id": "7501212006",
+    "name": "Tiohu",
+    "districtId": "750121"
+  },
+  {
+    "id": "7504072007",
+    "name": "Tirto Asri",
+    "districtId": "750407"
+  },
+  {
+    "id": "7505022005",
+    "name": "Titidu",
+    "districtId": "750502"
+  },
+  {
+    "id": "7501112009",
+    "name": "Tohupo",
+    "districtId": "750111"
+  },
+  {
+    "id": "7505032006",
+    "name": "Tolango",
+    "districtId": "750503"
+  },
+  {
+    "id": "7505052002",
+    "name": "Tolinggula Pantai",
+    "districtId": "750505"
+  },
+  {
+    "id": "7505052001",
+    "name": "Tolinggula Tengah",
+    "districtId": "750505"
+  },
+  {
+    "id": "7505052003",
+    "name": "Tolinggula Ulu",
+    "districtId": "750505"
+  },
+  {
+    "id": "7501092021",
+    "name": "Tolite",
+    "districtId": "750109"
+  },
+  {
+    "id": "7505052014",
+    "name": "Tolite Jaya",
+    "districtId": "750505"
+  },
+  {
+    "id": "7505092009",
+    "name": "Tolitehuyu",
+    "districtId": "750509"
+  },
+  {
+    "id": "7503132004",
+    "name": "Tolomato",
+    "districtId": "750313"
+  },
+  {
+    "id": "7505032002",
+    "name": "Tolongio",
+    "districtId": "750503"
+  },
+  {
+    "id": "7501042004",
+    "name": "Tolotio",
+    "districtId": "750104"
+  },
+  {
+    "id": "7503042008",
+    "name": "Tolotio",
+    "districtId": "750304"
+  },
+  {
+    "id": "7503162002",
+    "name": "Toluwaya",
+    "districtId": "750316"
+  },
+  {
+    "id": "7505012017",
+    "name": "Tombulilato",
+    "districtId": "750501"
+  },
+  {
+    "id": "7571041003",
+    "name": "Tomulabutao",
+    "districtId": "757104"
+  },
+  {
+    "id": "7571041005",
+    "name": "Tomulabutao Selatan",
+    "districtId": "757104"
+  },
+  {
+    "id": "7501102015",
+    "name": "Tonala",
+    "districtId": "750110"
+  },
+  {
+    "id": "7503042012",
+    "name": "Tongo",
+    "districtId": "750304"
+  },
+  {
+    "id": "7501052004",
+    "name": "Tontayuo",
+    "districtId": "750105"
+  },
+  {
+    "id": "7505102005",
+    "name": "Topi",
+    "districtId": "750510"
+  },
+  {
+    "id": "7504012012",
+    "name": "Torosiaje",
+    "districtId": "750401"
+  },
+  {
+    "id": "7504012003",
+    "name": "Torosiaje Jaya",
+    "districtId": "750401"
+  },
+  {
+    "id": "7503022012",
+    "name": "Toto Selatan",
+    "districtId": "750302"
+  },
+  {
+    "id": "7503062003",
+    "name": "Toto Utara",
+    "districtId": "750306"
+  },
+  {
+    "id": "7501232001",
+    "name": "Totopo",
+    "districtId": "750123"
+  },
+  {
+    "id": "7502072007",
+    "name": "Towayu",
+    "districtId": "750207"
+  },
+  {
+    "id": "7501162009",
+    "name": "Toyidito",
+    "districtId": "750116"
+  },
+  {
+    "id": "7501162005",
+    "name": "Tridharma",
+    "districtId": "750116"
+  },
+  {
+    "id": "7504012017",
+    "name": "Trikora",
+    "districtId": "750401"
+  },
+  {
+    "id": "7502022013",
+    "name": "Trirukun",
+    "districtId": "750202"
+  },
+  {
+    "id": "7501182001",
+    "name": "Tualango",
+    "districtId": "750118"
+  },
+  {
+    "id": "7505092002",
+    "name": "Tudi",
+    "districtId": "750509"
+  },
+  {
+    "id": "7503112001",
+    "name": "Tulabolo",
+    "districtId": "750311"
+  },
+  {
+    "id": "7503112009",
+    "name": "Tulabolo Barat",
+    "districtId": "750311"
+  },
+  {
+    "id": "7503112004",
+    "name": "Tulabolo Timur",
+    "districtId": "750311"
+  },
+  {
+    "id": "7501102005",
+    "name": "Tuladenggi",
+    "districtId": "750110"
+  },
+  {
+    "id": "7571041004",
+    "name": "Tuladenggi",
+    "districtId": "757104"
+  },
+  {
+    "id": "7503052009",
+    "name": "Tuloa",
+    "districtId": "750305"
+  },
+  {
+    "id": "7505042012",
+    "name": "Tumba",
+    "districtId": "750504"
+  },
+  {
+    "id": "7503021010",
+    "name": "Tumbihe",
+    "districtId": "750302"
+  },
+  {
+    "id": "7503092007",
+    "name": "Tumbuh Mekar",
+    "districtId": "750309"
+  },
+  {
+    "id": "7503102003",
+    "name": "Tumbulilato",
+    "districtId": "750310"
+  },
+  {
+    "id": "7504012016",
+    "name": "Tunas Harapan",
+    "districtId": "750401"
+  },
+  {
+    "id": "7503042027",
+    "name": "Tunas Jaya",
+    "districtId": "750304"
+  },
+  {
+    "id": "7504132002",
+    "name": "Tunas Jaya",
+    "districtId": "750413"
+  },
+  {
+    "id": "7503062005",
+    "name": "Tunggulo",
+    "districtId": "750306"
+  },
+  {
+    "id": "7501172006",
+    "name": "Tunggulo",
+    "districtId": "750117"
+  },
+  {
+    "id": "7503062012",
+    "name": "Tunggulo Selatan",
+    "districtId": "750306"
+  },
+  {
+    "id": "7503052003",
+    "name": "Tupa",
+    "districtId": "750305"
+  },
+  {
+    "id": "7502062001",
+    "name": "Tutulo",
+    "districtId": "750206"
+  },
+  {
+    "id": "7505032012",
+    "name": "Tutuwoto",
+    "districtId": "750503"
+  },
+  {
+    "id": "7504112007",
+    "name": "Tuweya",
+    "districtId": "750411"
+  },
+  {
+    "id": "7503042005",
+    "name": "Uabanga",
+    "districtId": "750304"
+  },
+  {
+    "id": "7503032020",
+    "name": "Ulanta",
+    "districtId": "750303"
+  },
+  {
+    "id": "7501102002",
+    "name": "Ulapato A",
+    "districtId": "750110"
+  },
+  {
+    "id": "7501102003",
+    "name": "Ulapato B",
+    "districtId": "750110"
+  },
+  {
+    "id": "7501042016",
+    "name": "Ulobua",
+    "districtId": "750104"
+  },
+  {
+    "id": "7501112008",
+    "name": "Upomela",
+    "districtId": "750111"
+  },
+  {
+    "id": "7503092013",
+    "name": "Waluhu",
+    "districtId": "750309"
+  },
+  {
+    "id": "7505012014",
+    "name": "Wapalo",
+    "districtId": "750501"
+  },
+  {
+    "id": "7505102004",
+    "name": "Windu",
+    "districtId": "750510"
+  },
+  {
+    "id": "7502012009",
+    "name": "Wonggahu",
+    "districtId": "750201"
+  },
+  {
+    "id": "7504022002",
+    "name": "Wonggarasi Barat",
+    "districtId": "750402"
+  },
+  {
+    "id": "7504022010",
+    "name": "Wonggarasi Tengah",
+    "districtId": "750402"
+  },
+  {
+    "id": "7504112001",
+    "name": "Wonggarasi Timur",
+    "districtId": "750411"
+  },
+  {
+    "id": "7571031005",
+    "name": "Wongkaditi Barat",
+    "districtId": "757103"
+  },
+  {
+    "id": "7571031004",
+    "name": "Wongkaditi Timur",
+    "districtId": "757103"
+  },
+  {
+    "id": "7505112007",
+    "name": "Wubudu",
+    "districtId": "750511"
+  },
+  {
+    "id": "7571061001",
+    "name": "Wumialo",
+    "districtId": "757106"
+  },
+  {
+    "id": "7504112006",
+    "name": "Yipilo",
+    "districtId": "750411"
+  },
+  {
+    "id": "7501172005",
+    "name": "Yosonegoro",
+    "districtId": "750117"
+  },
+  {
+    "id": "7505092010",
+    "name": "Zuriyati",
+    "districtId": "750509"
+  }
+]

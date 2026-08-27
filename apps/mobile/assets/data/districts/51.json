@@ -1,0 +1,287 @@
+[
+  {
+    "id": "510705",
+    "name": "Abang",
+    "cityId": "5107"
+  },
+  {
+    "id": "510303",
+    "name": "Abiansemal",
+    "cityId": "5103"
+  },
+  {
+    "id": "510602",
+    "name": "Bangli",
+    "cityId": "5106"
+  },
+  {
+    "id": "510804",
+    "name": "Banjar",
+    "cityId": "5108"
+  },
+  {
+    "id": "510502",
+    "name": "Banjarangkan",
+    "cityId": "5105"
+  },
+  {
+    "id": "510209",
+    "name": "Baturiti",
+    "cityId": "5102"
+  },
+  {
+    "id": "510706",
+    "name": "Bebandem",
+    "cityId": "5107"
+  },
+  {
+    "id": "510402",
+    "name": "Blahbatuh",
+    "cityId": "5104"
+  },
+  {
+    "id": "510806",
+    "name": "Buleleng",
+    "cityId": "5108"
+  },
+  {
+    "id": "510803",
+    "name": "Busungbiu",
+    "cityId": "5108"
+  },
+  {
+    "id": "510504",
+    "name": "Dawan",
+    "cityId": "5105"
+  },
+  {
+    "id": "517103",
+    "name": "Denpasar Barat",
+    "cityId": "5171"
+  },
+  {
+    "id": "517101",
+    "name": "Denpasar Selatan",
+    "cityId": "5171"
+  },
+  {
+    "id": "517102",
+    "name": "Denpasar Timur",
+    "cityId": "5171"
+  },
+  {
+    "id": "517104",
+    "name": "Denpasar Utara",
+    "cityId": "5171"
+  },
+  {
+    "id": "510801",
+    "name": "Gerokgak",
+    "cityId": "5108"
+  },
+  {
+    "id": "510403",
+    "name": "Gianyar",
+    "cityId": "5104"
+  },
+  {
+    "id": "510105",
+    "name": "Jembrana",
+    "cityId": "5101"
+  },
+  {
+    "id": "510704",
+    "name": "Karangasem",
+    "cityId": "5107"
+  },
+  {
+    "id": "510206",
+    "name": "Kediri",
+    "cityId": "5102"
+  },
+  {
+    "id": "510204",
+    "name": "Kerambitan",
+    "cityId": "5102"
+  },
+  {
+    "id": "510604",
+    "name": "Kintamani",
+    "cityId": "5106"
+  },
+  {
+    "id": "510503",
+    "name": "Klungkung",
+    "cityId": "5105"
+  },
+  {
+    "id": "510708",
+    "name": "Kubu",
+    "cityId": "5107"
+  },
+  {
+    "id": "510808",
+    "name": "Kubutambahan",
+    "cityId": "5108"
+  },
+  {
+    "id": "510301",
+    "name": "Kuta",
+    "cityId": "5103"
+  },
+  {
+    "id": "510305",
+    "name": "Kuta Selatan",
+    "cityId": "5103"
+  },
+  {
+    "id": "510306",
+    "name": "Kuta Utara",
+    "cityId": "5103"
+  },
+  {
+    "id": "510703",
+    "name": "Manggis",
+    "cityId": "5107"
+  },
+  {
+    "id": "510207",
+    "name": "Marga",
+    "cityId": "5102"
+  },
+  {
+    "id": "510104",
+    "name": "Melaya",
+    "cityId": "5101"
+  },
+  {
+    "id": "510102",
+    "name": "Mendoyo",
+    "cityId": "5101"
+  },
+  {
+    "id": "510302",
+    "name": "Mengwi",
+    "cityId": "5103"
+  },
+  {
+    "id": "510101",
+    "name": "Negara",
+    "cityId": "5101"
+  },
+  {
+    "id": "510501",
+    "name": "Nusa Penida",
+    "cityId": "5105"
+  },
+  {
+    "id": "510407",
+    "name": "Payangan",
+    "cityId": "5104"
+  },
+  {
+    "id": "510103",
+    "name": "Pekutatan",
+    "cityId": "5101"
+  },
+  {
+    "id": "510208",
+    "name": "Penebel",
+    "cityId": "5102"
+  },
+  {
+    "id": "510304",
+    "name": "Petang",
+    "cityId": "5103"
+  },
+  {
+    "id": "510210",
+    "name": "Pupuan",
+    "cityId": "5102"
+  },
+  {
+    "id": "510701",
+    "name": "Rendang",
+    "cityId": "5107"
+  },
+  {
+    "id": "510807",
+    "name": "Sawan",
+    "cityId": "5108"
+  },
+  {
+    "id": "510707",
+    "name": "Selat",
+    "cityId": "5107"
+  },
+  {
+    "id": "510201",
+    "name": "Selemadeg",
+    "cityId": "5102"
+  },
+  {
+    "id": "510203",
+    "name": "Selemadeg Barat",
+    "cityId": "5102"
+  },
+  {
+    "id": "510202",
+    "name": "Selemadeg Timur",
+    "cityId": "5102"
+  },
+  {
+    "id": "510802",
+    "name": "Seririt",
+    "cityId": "5108"
+  },
+  {
+    "id": "510702",
+    "name": "Sidemen",
+    "cityId": "5107"
+  },
+  {
+    "id": "510805",
+    "name": "Sukasada",
+    "cityId": "5108"
+  },
+  {
+    "id": "510401",
+    "name": "Sukawati",
+    "cityId": "5104"
+  },
+  {
+    "id": "510601",
+    "name": "Susut",
+    "cityId": "5106"
+  },
+  {
+    "id": "510205",
+    "name": "Tabanan",
+    "cityId": "5102"
+  },
+  {
+    "id": "510404",
+    "name": "Tampaksiring",
+    "cityId": "5104"
+  },
+  {
+    "id": "510406",
+    "name": "Tegallalang",
+    "cityId": "5104"
+  },
+  {
+    "id": "510809",
+    "name": "Tejakula",
+    "cityId": "5108"
+  },
+  {
+    "id": "510603",
+    "name": "Tembuku",
+    "cityId": "5106"
+  },
+  {
+    "id": "510405",
+    "name": "Ubud",
+    "cityId": "5104"
+  }
+]

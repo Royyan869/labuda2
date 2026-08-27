@@ -1,0 +1,457 @@
+[
+  {
+    "id": "920231",
+    "name": "Aimasi",
+    "cityId": "9202"
+  },
+  {
+    "id": "921201",
+    "name": "Anggi",
+    "cityId": "9212"
+  },
+  {
+    "id": "921202",
+    "name": "Anggi Gida",
+    "cityId": "9212"
+  },
+  {
+    "id": "920604",
+    "name": "Aranday",
+    "cityId": "9206"
+  },
+  {
+    "id": "920313",
+    "name": "Arguni",
+    "cityId": "9203"
+  },
+  {
+    "id": "920616",
+    "name": "Aroba",
+    "cityId": "9206"
+  },
+  {
+    "id": "920603",
+    "name": "Babo",
+    "cityId": "9206"
+  },
+  {
+    "id": "920601",
+    "name": "Bintuni",
+    "cityId": "9206"
+  },
+  {
+    "id": "920618",
+    "name": "Biscoop",
+    "cityId": "9206"
+  },
+  {
+    "id": "920307",
+    "name": "Bomberay",
+    "cityId": "9203"
+  },
+  {
+    "id": "920802",
+    "name": "Buruway",
+    "cityId": "9208"
+  },
+  {
+    "id": "921207",
+    "name": "Catubouw",
+    "cityId": "9212"
+  },
+  {
+    "id": "920613",
+    "name": "Dataran Beimes",
+    "cityId": "9206"
+  },
+  {
+    "id": "921104",
+    "name": "Dataran Isim",
+    "cityId": "9211"
+  },
+  {
+    "id": "921205",
+    "name": "Didohu",
+    "cityId": "9212"
+  },
+  {
+    "id": "920608",
+    "name": "Fafurwar",
+    "cityId": "9206"
+  },
+  {
+    "id": "920301",
+    "name": "Fak-Fak",
+    "cityId": "9203"
+  },
+  {
+    "id": "920302",
+    "name": "Fak-Fak Barat",
+    "cityId": "9203"
+  },
+  {
+    "id": "920305",
+    "name": "Fak-Fak Tengah",
+    "cityId": "9203"
+  },
+  {
+    "id": "920303",
+    "name": "Fak-Fak Timur",
+    "cityId": "9203"
+  },
+  {
+    "id": "920312",
+    "name": "Fakfak Timur Tengah",
+    "cityId": "9203"
+  },
+  {
+    "id": "920316",
+    "name": "Furwagi",
+    "cityId": "9203"
+  },
+  {
+    "id": "921210",
+    "name": "Hingk",
+    "cityId": "9212"
+  },
+  {
+    "id": "920801",
+    "name": "Kaimana",
+    "cityId": "9208"
+  },
+  {
+    "id": "920615",
+    "name": "Kaitaro",
+    "cityId": "9206"
+  },
+  {
+    "id": "920805",
+    "name": "Kambrau",
+    "cityId": "9208"
+  },
+  {
+    "id": "920620",
+    "name": "Kamundan",
+    "cityId": "9206"
+  },
+  {
+    "id": "920306",
+    "name": "Karas",
+    "cityId": "9203"
+  },
+  {
+    "id": "920315",
+    "name": "Kayauni",
+    "cityId": "9203"
+  },
+  {
+    "id": "920304",
+    "name": "Kokas",
+    "cityId": "9203"
+  },
+  {
+    "id": "920308",
+    "name": "Kramongmongga",
+    "cityId": "9203"
+  },
+  {
+    "id": "920610",
+    "name": "Kuri",
+    "cityId": "9206"
+  },
+  {
+    "id": "920709",
+    "name": "Kuri Wamesa",
+    "cityId": "9207"
+  },
+  {
+    "id": "920611",
+    "name": "Manimeri",
+    "cityId": "9206"
+  },
+  {
+    "id": "920212",
+    "name": "Manokwari Barat",
+    "cityId": "9202"
+  },
+  {
+    "id": "920215",
+    "name": "Manokwari Selatan",
+    "cityId": "9202"
+  },
+  {
+    "id": "920213",
+    "name": "Manokwari Timur",
+    "cityId": "9202"
+  },
+  {
+    "id": "920214",
+    "name": "Manokwari Utara",
+    "cityId": "9202"
+  },
+  {
+    "id": "920205",
+    "name": "Masni",
+    "cityId": "9202"
+  },
+  {
+    "id": "920233",
+    "name": "Masni Utara",
+    "cityId": "9202"
+  },
+  {
+    "id": "920617",
+    "name": "Masyeta",
+    "cityId": "9206"
+  },
+  {
+    "id": "920314",
+    "name": "Mbahamdandara",
+    "cityId": "9203"
+  },
+  {
+    "id": "921203",
+    "name": "Membey",
+    "cityId": "9212"
+  },
+  {
+    "id": "920602",
+    "name": "Merdey",
+    "cityId": "9206"
+  },
+  {
+    "id": "920623",
+    "name": "Meyado",
+    "cityId": "9206"
+  },
+  {
+    "id": "921209",
+    "name": "Minyambaouw",
+    "cityId": "9212"
+  },
+  {
+    "id": "920232",
+    "name": "Mokwam",
+    "cityId": "9202"
+  },
+  {
+    "id": "921105",
+    "name": "Momi Waren",
+    "cityId": "9211"
+  },
+  {
+    "id": "920235",
+    "name": "Moruj Mega",
+    "cityId": "9202"
+  },
+  {
+    "id": "920622",
+    "name": "Moskona Barat",
+    "cityId": "9206"
+  },
+  {
+    "id": "920605",
+    "name": "Moskona Selatan",
+    "cityId": "9206"
+  },
+  {
+    "id": "920624",
+    "name": "Moskona Timur",
+    "cityId": "9206"
+  },
+  {
+    "id": "920606",
+    "name": "Moskona Utara",
+    "cityId": "9206"
+  },
+  {
+    "id": "920707",
+    "name": "Naikere",
+    "cityId": "9207"
+  },
+  {
+    "id": "921103",
+    "name": "Neney",
+    "cityId": "9211"
+  },
+  {
+    "id": "920712",
+    "name": "Nikiwar",
+    "cityId": "9207"
+  },
+  {
+    "id": "921102",
+    "name": "Oransbari",
+    "cityId": "9211"
+  },
+  {
+    "id": "920310",
+    "name": "Pariwari",
+    "cityId": "9203"
+  },
+  {
+    "id": "920204",
+    "name": "Prafi",
+    "cityId": "9202"
+  },
+  {
+    "id": "921101",
+    "name": "Ransiki",
+    "cityId": "9211"
+  },
+  {
+    "id": "920708",
+    "name": "Rasiei",
+    "cityId": "9207"
+  },
+  {
+    "id": "920710",
+    "name": "Roon",
+    "cityId": "9207"
+  },
+  {
+    "id": "920711",
+    "name": "Roswar",
+    "cityId": "9207"
+  },
+  {
+    "id": "920706",
+    "name": "Rumberpon",
+    "cityId": "9207"
+  },
+  {
+    "id": "920221",
+    "name": "Sidey",
+    "cityId": "9202"
+  },
+  {
+    "id": "920713",
+    "name": "Soug Jaya",
+    "cityId": "9207"
+  },
+  {
+    "id": "920614",
+    "name": "Sumuri",
+    "cityId": "9206"
+  },
+  {
+    "id": "921204",
+    "name": "Sururey",
+    "cityId": "9212"
+  },
+  {
+    "id": "921106",
+    "name": "Tahota",
+    "cityId": "9211"
+  },
+  {
+    "id": "921206",
+    "name": "Taige",
+    "cityId": "9212"
+  },
+  {
+    "id": "920217",
+    "name": "Tanah Rubuh",
+    "cityId": "9202"
+  },
+  {
+    "id": "920803",
+    "name": "Teluk Arguni Atas",
+    "cityId": "9208"
+  },
+  {
+    "id": "920806",
+    "name": "Teluk Arguni Bawah",
+    "cityId": "9208"
+  },
+  {
+    "id": "920703",
+    "name": "Teluk Duairi",
+    "cityId": "9207"
+  },
+  {
+    "id": "920804",
+    "name": "Teluk Etna",
+    "cityId": "9208"
+  },
+  {
+    "id": "920309",
+    "name": "Teluk Patipi",
+    "cityId": "9203"
+  },
+  {
+    "id": "920609",
+    "name": "Tembuni",
+    "cityId": "9206"
+  },
+  {
+    "id": "921208",
+    "name": "Testega",
+    "cityId": "9212"
+  },
+  {
+    "id": "920317",
+    "name": "Tomage",
+    "cityId": "9203"
+  },
+  {
+    "id": "920619",
+    "name": "Tomu",
+    "cityId": "9206"
+  },
+  {
+    "id": "920612",
+    "name": "Tuhiba",
+    "cityId": "9206"
+  },
+  {
+    "id": "920607",
+    "name": "Wamesa",
+    "cityId": "9206"
+  },
+  {
+    "id": "920705",
+    "name": "Wamesa",
+    "cityId": "9207"
+  },
+  {
+    "id": "920203",
+    "name": "Warmare",
+    "cityId": "9202"
+  },
+  {
+    "id": "920311",
+    "name": "Wartutin",
+    "cityId": "9203"
+  },
+  {
+    "id": "920701",
+    "name": "Wasior",
+    "cityId": "9207"
+  },
+  {
+    "id": "920234",
+    "name": "Wasirawi",
+    "cityId": "9202"
+  },
+  {
+    "id": "920621",
+    "name": "Weriagar",
+    "cityId": "9206"
+  },
+  {
+    "id": "920702",
+    "name": "Windesi",
+    "cityId": "9207"
+  },
+  {
+    "id": "920704",
+    "name": "Wondiboy",
+    "cityId": "9207"
+  },
+  {
+    "id": "920807",
+    "name": "Yamor",
+    "cityId": "9208"
+  }
+]

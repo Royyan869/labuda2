@@ -1,0 +1,104 @@
+[
+  {
+    "id": "7406",
+    "name": "Kabupaten Bombana",
+    "provinceId": "74",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7404",
+    "name": "Kabupaten Buton",
+    "provinceId": "74",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7415",
+    "name": "Kabupaten Buton Selatan",
+    "provinceId": "74",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7414",
+    "name": "Kabupaten Buton Tengah",
+    "provinceId": "74",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7410",
+    "name": "Kabupaten Buton Utara",
+    "provinceId": "74",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7401",
+    "name": "Kabupaten Kolaka",
+    "provinceId": "74",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7411",
+    "name": "Kabupaten Kolaka Timur",
+    "provinceId": "74",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7408",
+    "name": "Kabupaten Kolaka Utara",
+    "provinceId": "74",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7402",
+    "name": "Kabupaten Konawe",
+    "provinceId": "74",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7412",
+    "name": "Kabupaten Konawe Kepulauan",
+    "provinceId": "74",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7405",
+    "name": "Kabupaten Konawe Selatan",
+    "provinceId": "74",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7409",
+    "name": "Kabupaten Konawe Utara",
+    "provinceId": "74",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7403",
+    "name": "Kabupaten Muna",
+    "provinceId": "74",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7413",
+    "name": "Kabupaten Muna Barat",
+    "provinceId": "74",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7407",
+    "name": "Kabupaten Wakatobi",
+    "provinceId": "74",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7472",
+    "name": "Kota Bau Bau",
+    "provinceId": "74",
+    "type": "kota"
+  },
+  {
+    "id": "7471",
+    "name": "Kota Kendari",
+    "provinceId": "74",
+    "type": "kota"
+  }
+]

@@ -1,0 +1,56 @@
+[
+  {
+    "id": "9106",
+    "name": "Kabupaten Biak Numfor",
+    "provinceId": "91",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9103",
+    "name": "Kabupaten Jayapura",
+    "provinceId": "91",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9111",
+    "name": "Kabupaten Keerom",
+    "provinceId": "91",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9105",
+    "name": "Kabupaten Kepulauan Yapen",
+    "provinceId": "91",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9120",
+    "name": "Kabupaten Mamberamo Raya",
+    "provinceId": "91",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9110",
+    "name": "Kabupaten Sarmi",
+    "provinceId": "91",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9119",
+    "name": "Kabupaten Supiori",
+    "provinceId": "91",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9115",
+    "name": "Kabupaten Waropen",
+    "provinceId": "91",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9171",
+    "name": "Kota Jayapura",
+    "provinceId": "91",
+    "type": "kota"
+  }
+]

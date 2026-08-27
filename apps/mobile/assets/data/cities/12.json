@@ -1,0 +1,200 @@
+[
+  {
+    "id": "1209",
+    "name": "Kabupaten Asahan",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1219",
+    "name": "Kabupaten Batu Bara",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1211",
+    "name": "Kabupaten Dairi",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1207",
+    "name": "Kabupaten Deli Serdang",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1216",
+    "name": "Kabupaten Humbang Hasundutan",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1206",
+    "name": "Kabupaten Karo",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1210",
+    "name": "Kabupaten Labuhanbatu",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1222",
+    "name": "Kabupaten Labuhanbatu Selatan",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1223",
+    "name": "Kabupaten Labuhanbatu Utara",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1205",
+    "name": "Kabupaten Langkat",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1213",
+    "name": "Kabupaten Mandailing Natal",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1204",
+    "name": "Kabupaten Nias",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1225",
+    "name": "Kabupaten Nias Barat",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1214",
+    "name": "Kabupaten Nias Selatan",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1224",
+    "name": "Kabupaten Nias Utara",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1221",
+    "name": "Kabupaten Padang Lawas",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1220",
+    "name": "Kabupaten Padang Lawas Utara",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1215",
+    "name": "Kabupaten Pakpak Bharat",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1217",
+    "name": "Kabupaten Samosir",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1218",
+    "name": "Kabupaten Serdang Bedagai",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1208",
+    "name": "Kabupaten Simalungun",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1203",
+    "name": "Kabupaten Tapanuli Selatan",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1201",
+    "name": "Kabupaten Tapanuli Tengah",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1202",
+    "name": "Kabupaten Tapanuli Utara",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1212",
+    "name": "Kabupaten Toba",
+    "provinceId": "12",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1275",
+    "name": "Kota Binjai",
+    "provinceId": "12",
+    "type": "kota"
+  },
+  {
+    "id": "1278",
+    "name": "Kota Gunungsitoli",
+    "provinceId": "12",
+    "type": "kota"
+  },
+  {
+    "id": "1271",
+    "name": "Kota Medan",
+    "provinceId": "12",
+    "type": "kota"
+  },
+  {
+    "id": "1277",
+    "name": "Kota Padangsidimpuan",
+    "provinceId": "12",
+    "type": "kota"
+  },
+  {
+    "id": "1272",
+    "name": "Kota Pematangsiantar",
+    "provinceId": "12",
+    "type": "kota"
+  },
+  {
+    "id": "1273",
+    "name": "Kota Sibolga",
+    "provinceId": "12",
+    "type": "kota"
+  },
+  {
+    "id": "1274",
+    "name": "Kota Tanjungbalai",
+    "provinceId": "12",
+    "type": "kota"
+  },
+  {
+    "id": "1276",
+    "name": "Kota Tebing Tinggi",
+    "provinceId": "12",
+    "type": "kota"
+  }
+]

@@ -1,0 +1,44 @@
+#!/bin/bash
+set -e
+
+echo "🔒 HARD GUARDRAIL: STRUCTURE VALIDATION"
+
+# BLOCK nested structure in staged files
+if git diff --cached --name-only | grep -E "backend/backend|apps/apps|docs/docs"; then
+  echo "❌ BLOCKED: Nested structure detected in staged files"
+  git diff --cached --name-only | grep -E "backend/backend|apps/apps|docs/docs"
+  exit 1
+fi
+
+# BLOCK actual folder existence in working tree
+if find . -type d -path "*/backend/backend" 2>/dev/null | grep .; then
+  echo "❌ BLOCKED: backend/backend folder exists"
+  exit 1
+fi
+
+if find . -type d -path "*/apps/apps" 2>/dev/null | grep .; then
+  echo "❌ BLOCKED: apps/apps folder exists"
+  exit 1
+fi
+
+if find . -type d -path "*/docs/docs" 2>/dev/null | grep .; then
+  echo "❌ BLOCKED: docs/docs folder exists"
+  exit 1
+fi
+
+echo "✅ Structure OK"
+
+echo "🔒 Running logic guards..."
+
+./scripts/guard_no_duplicate_logic.sh || exit 1
+./scripts/guard_event_consistency.sh || exit 1
+./scripts/guard_mutation_event_consistency.sh || exit 1
+./scripts/guard_event_execution_guarantee.sh || exit 1
+
+# B4.2 governance guards (constitution §8.1 safe-now set)
+./scripts/guard_evaluator_no_database_sql.sh || exit 1
+./scripts/guard_viewercontextshadow_scope.sh || exit 1
+./scripts/guard_actor_mutation.sh || exit 1
+
+echo "✅ All guards passed"
+exit 0

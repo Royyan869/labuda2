@@ -1,0 +1,68 @@
+[
+  {
+    "id": "1504",
+    "name": "Kabupaten Batanghari",
+    "provinceId": "15",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1508",
+    "name": "Kabupaten Bungo",
+    "provinceId": "15",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1501",
+    "name": "Kabupaten Kerinci",
+    "provinceId": "15",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1502",
+    "name": "Kabupaten Merangin",
+    "provinceId": "15",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1505",
+    "name": "Kabupaten Muaro Jambi",
+    "provinceId": "15",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1503",
+    "name": "Kabupaten Sarolangun",
+    "provinceId": "15",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1506",
+    "name": "Kabupaten Tanjung Jabung Barat",
+    "provinceId": "15",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1507",
+    "name": "Kabupaten Tanjung Jabung Timur",
+    "provinceId": "15",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1509",
+    "name": "Kabupaten Tebo",
+    "provinceId": "15",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1571",
+    "name": "Kota Jambi",
+    "provinceId": "15",
+    "type": "kota"
+  },
+  {
+    "id": "1572",
+    "name": "Kota Sungai Penuh",
+    "provinceId": "15",
+    "type": "kota"
+  }
+]

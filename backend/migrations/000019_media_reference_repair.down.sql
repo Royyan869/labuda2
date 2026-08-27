@@ -1,0 +1,3 @@
+-- Reversal omitted intentionally.
+-- This migration rewrites legacy raw S3 URLs to storage keys; the original
+-- raw URL values cannot be recovered safely.

@@ -1,0 +1,4 @@
+DROP TRIGGER IF EXISTS trg_content_resource_occurrences_immutable ON content_resource_occurrences;
+DROP FUNCTION IF EXISTS prevent_content_resource_occurrences_update();
+DROP TABLE IF EXISTS content_resource_occurrences;
+DROP TYPE IF EXISTS content_resource_occurrence_operation_enum;

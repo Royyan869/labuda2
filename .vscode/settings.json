@@ -1,0 +1,96 @@
+{
+  // Editor Settings
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.organizeImports": "explicit"
+  },
+  "editor.rulers": [80, 120],
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+
+  // Dart & Flutter Settings
+  "dart.flutterSdkPath": null,
+  "dart.lineLength": 80,
+  "dart.debugExternalPackageLibraries": false,
+  "dart.debugSdkLibraries": false,
+  "[dart]": {
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
+    "editor.selectionHighlight": false,
+    "editor.suggest.snippetsPreventQuickSuggestions": false,
+    "editor.suggestSelection": "first",
+    "editor.tabCompletion": "onlySnippets",
+    "editor.wordBasedSuggestions": "off",
+    "editor.rulers": [80]
+  },
+
+  // Go Settings
+  "[go]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+  "go.useLanguageServer": true,
+  "go.lintTool": "golangci-lint",
+  "go.lintOnSave": "workspace",
+  "go.formatTool": "gofmt",
+
+  // TypeScript/JavaScript Settings
+  "[typescript]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // File Associations
+  "files.associations": {
+    "*.dart": "dart",
+    ".env*": "dotenv",
+    "Makefile": "makefile",
+    "Dockerfile*": "dockerfile"
+  },
+
+  // Search Exclusions
+  "search.exclude": {
+    "**/.dart_tool": true,
+    "**/.flutter-plugins": true,
+    "**/.flutter-plugins-dependencies": true,
+    "**/build": true,
+    "**/node_modules": true,
+    "**/vendor": true,
+    "**/*.freezed.dart": true,
+    "**/*.g.dart": true,
+    "**/*.mocks.dart": true,
+    "**/.firebase": true,
+    "apps/mobile/ios/Pods": true,
+    "apps/mobile/macos/Pods": true
+  },
+
+  // File Watcher Exclusions
+  "files.watcherExclude": {
+    "**/.dart_tool/**": true,
+    "**/build/**": true,
+    "**/node_modules/**": true,
+    "apps/mobile/ios/Pods/**": true,
+    "apps/mobile/macos/Pods/**": true,
+    "backend/bin/**": true
+  },
+
+  // Monorepo Specific Settings
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/*.pyc": true
+  },
+
+  // Terminal Settings
+  "terminal.integrated.cwd": "${workspaceFolder}",
+
+  // Extension Recommendations
+  "extensions.ignoreRecommendations": true
+}

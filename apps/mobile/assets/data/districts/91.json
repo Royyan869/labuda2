@@ -1,0 +1,527 @@
+[
+  {
+    "id": "917103",
+    "name": "Abepura",
+    "cityId": "9171"
+  },
+  {
+    "id": "910619",
+    "name": "Aimando Padaido",
+    "cityId": "9106"
+  },
+  {
+    "id": "910316",
+    "name": "Airu",
+    "cityId": "9103"
+  },
+  {
+    "id": "910614",
+    "name": "Andey",
+    "cityId": "9106"
+  },
+  {
+    "id": "910504",
+    "name": "Angkaisera",
+    "cityId": "9105"
+  },
+  {
+    "id": "910515",
+    "name": "Anotaurei",
+    "cityId": "9105"
+  },
+  {
+    "id": "911009",
+    "name": "Apawer Hulu",
+    "cityId": "9110"
+  },
+  {
+    "id": "911102",
+    "name": "Arso",
+    "cityId": "9111"
+  },
+  {
+    "id": "911108",
+    "name": "Arso Barat",
+    "cityId": "9111"
+  },
+  {
+    "id": "911106",
+    "name": "Arso Timur",
+    "cityId": "9111"
+  },
+  {
+    "id": "912007",
+    "name": "Benuki",
+    "cityId": "9120"
+  },
+  {
+    "id": "910608",
+    "name": "Biak Barat",
+    "cityId": "9106"
+  },
+  {
+    "id": "910601",
+    "name": "Biak Kota",
+    "cityId": "9106"
+  },
+  {
+    "id": "910603",
+    "name": "Biak Timur",
+    "cityId": "9106"
+  },
+  {
+    "id": "910602",
+    "name": "Biak Utara",
+    "cityId": "9106"
+  },
+  {
+    "id": "910621",
+    "name": "Bondifuar",
+    "cityId": "9106"
+  },
+  {
+    "id": "911005",
+    "name": "Bonggo",
+    "cityId": "9110"
+  },
+  {
+    "id": "911015",
+    "name": "Bonggo Timur",
+    "cityId": "9110"
+  },
+  {
+    "id": "910616",
+    "name": "Bruyadori",
+    "cityId": "9106"
+  },
+  {
+    "id": "911513",
+    "name": "Demba",
+    "cityId": "9115"
+  },
+  {
+    "id": "910310",
+    "name": "Demta",
+    "cityId": "9103"
+  },
+  {
+    "id": "910303",
+    "name": "Depapre",
+    "cityId": "9103"
+  },
+  {
+    "id": "910312",
+    "name": "Ebungfao",
+    "cityId": "9103"
+  },
+  {
+    "id": "910318",
+    "name": "Gresi Selatan",
+    "cityId": "9103"
+  },
+  {
+    "id": "917105",
+    "name": "Heram",
+    "cityId": "9171"
+  },
+  {
+    "id": "911509",
+    "name": "Inggerus",
+    "cityId": "9115"
+  },
+  {
+    "id": "917102",
+    "name": "Jayapura Selatan",
+    "cityId": "9171"
+  },
+  {
+    "id": "917101",
+    "name": "Jayapura Utara",
+    "cityId": "9171"
+  },
+  {
+    "id": "911111",
+    "name": "Kaisenar",
+    "cityId": "9111"
+  },
+  {
+    "id": "910311",
+    "name": "Kaureh",
+    "cityId": "9103"
+  },
+  {
+    "id": "910305",
+    "name": "Kemtuk",
+    "cityId": "9103"
+  },
+  {
+    "id": "910306",
+    "name": "Kemtuk Gresi",
+    "cityId": "9103"
+  },
+  {
+    "id": "910510",
+    "name": "Kepulauan Ambai",
+    "cityId": "9105"
+  },
+  {
+    "id": "911904",
+    "name": "Kepulauan Aruri",
+    "cityId": "9119"
+  },
+  {
+    "id": "911510",
+    "name": "Kirihi",
+    "cityId": "9115"
+  },
+  {
+    "id": "910506",
+    "name": "Kosiwo",
+    "cityId": "9105"
+  },
+  {
+    "id": "912005",
+    "name": "Mamberamo Hilir",
+    "cityId": "9120"
+  },
+  {
+    "id": "912002",
+    "name": "Mamberamo Hulu",
+    "cityId": "9120"
+  },
+  {
+    "id": "912001",
+    "name": "Mamberamo Tengah",
+    "cityId": "9120"
+  },
+  {
+    "id": "912004",
+    "name": "Mamberamo Tengah Timur",
+    "cityId": "9120"
+  },
+  {
+    "id": "911109",
+    "name": "Mannem",
+    "cityId": "9111"
+  },
+  {
+    "id": "911503",
+    "name": "Masirei",
+    "cityId": "9115"
+  },
+  {
+    "id": "917104",
+    "name": "Muara Tami",
+    "cityId": "9171"
+  },
+  {
+    "id": "910314",
+    "name": "Nambluong",
+    "cityId": "9103"
+  },
+  {
+    "id": "910308",
+    "name": "Nimbokrang",
+    "cityId": "9103"
+  },
+  {
+    "id": "910307",
+    "name": "Nimboran",
+    "cityId": "9103"
+  },
+  {
+    "id": "910604",
+    "name": "Numfor Barat",
+    "cityId": "9106"
+  },
+  {
+    "id": "910605",
+    "name": "Numfor Timur",
+    "cityId": "9106"
+  },
+  {
+    "id": "910517",
+    "name": "Nusawani",
+    "cityId": "9105"
+  },
+  {
+    "id": "910620",
+    "name": "Oridek",
+    "cityId": "9106"
+  },
+  {
+    "id": "910617",
+    "name": "Orkeri",
+    "cityId": "9106"
+  },
+  {
+    "id": "911511",
+    "name": "Oudate",
+    "cityId": "9115"
+  },
+  {
+    "id": "910610",
+    "name": "Padaido",
+    "cityId": "9106"
+  },
+  {
+    "id": "911003",
+    "name": "Pantai Barat",
+    "cityId": "9110"
+  },
+  {
+    "id": "911004",
+    "name": "Pantai Timur",
+    "cityId": "9110"
+  },
+  {
+    "id": "911014",
+    "name": "Pantai Timur Bagian Barat",
+    "cityId": "9110"
+  },
+  {
+    "id": "910618",
+    "name": "Poiru",
+    "cityId": "9106"
+  },
+  {
+    "id": "910505",
+    "name": "Poom",
+    "cityId": "9105"
+  },
+  {
+    "id": "910513",
+    "name": "Pulau Kurudu",
+    "cityId": "9105"
+  },
+  {
+    "id": "910514",
+    "name": "Pulau Yerui",
+    "cityId": "9105"
+  },
+  {
+    "id": "910508",
+    "name": "Raimbawi",
+    "cityId": "9105"
+  },
+  {
+    "id": "910317",
+    "name": "Raveni Rara",
+    "cityId": "9103"
+  },
+  {
+    "id": "911507",
+    "name": "Risei Sayati",
+    "cityId": "9115"
+  },
+  {
+    "id": "912003",
+    "name": "Rufaer",
+    "cityId": "9120"
+  },
+  {
+    "id": "910612",
+    "name": "Samofa",
+    "cityId": "9106"
+  },
+  {
+    "id": "911001",
+    "name": "Sarmi",
+    "cityId": "9110"
+  },
+  {
+    "id": "911012",
+    "name": "Sarmi Selatan",
+    "cityId": "9110"
+  },
+  {
+    "id": "911013",
+    "name": "Sarmi Timur",
+    "cityId": "9110"
+  },
+  {
+    "id": "912008",
+    "name": "Sawai",
+    "cityId": "9120"
+  },
+  {
+    "id": "911103",
+    "name": "Senggi",
+    "cityId": "9111"
+  },
+  {
+    "id": "910301",
+    "name": "Sentani",
+    "cityId": "9103"
+  },
+  {
+    "id": "910304",
+    "name": "Sentani Barat",
+    "cityId": "9103"
+  },
+  {
+    "id": "910302",
+    "name": "Sentani Timur",
+    "cityId": "9103"
+  },
+  {
+    "id": "911105",
+    "name": "Skanto",
+    "cityId": "9111"
+  },
+  {
+    "id": "911515",
+    "name": "Soyoi Mambai",
+    "cityId": "9115"
+  },
+  {
+    "id": "911905",
+    "name": "Supiori Barat",
+    "cityId": "9119"
+  },
+  {
+    "id": "911901",
+    "name": "Supiori Selatan",
+    "cityId": "9119"
+  },
+  {
+    "id": "911903",
+    "name": "Supiori Timur",
+    "cityId": "9119"
+  },
+  {
+    "id": "911902",
+    "name": "Supiori Utara",
+    "cityId": "9119"
+  },
+  {
+    "id": "910615",
+    "name": "Swandiwe",
+    "cityId": "9106"
+  },
+  {
+    "id": "910509",
+    "name": "Teluk Ampimoi",
+    "cityId": "9105"
+  },
+  {
+    "id": "911002",
+    "name": "Tor Atas",
+    "cityId": "9110"
+  },
+  {
+    "id": "911107",
+    "name": "Towe",
+    "cityId": "9111"
+  },
+  {
+    "id": "910309",
+    "name": "Unurum Guay",
+    "cityId": "9103"
+  },
+  {
+    "id": "911508",
+    "name": "Urei Faisei",
+    "cityId": "9115"
+  },
+  {
+    "id": "910313",
+    "name": "Waibu",
+    "cityId": "9103"
+  },
+  {
+    "id": "911512",
+    "name": "Wapoga",
+    "cityId": "9115"
+  },
+  {
+    "id": "911101",
+    "name": "Waris",
+    "cityId": "9111"
+  },
+  {
+    "id": "912006",
+    "name": "Waropen Atas",
+    "cityId": "9120"
+  },
+  {
+    "id": "911501",
+    "name": "Waropen Bawah",
+    "cityId": "9115"
+  },
+  {
+    "id": "910609",
+    "name": "Warsa",
+    "cityId": "9106"
+  },
+  {
+    "id": "911104",
+    "name": "Web",
+    "cityId": "9111"
+  },
+  {
+    "id": "910512",
+    "name": "Windesi",
+    "cityId": "9105"
+  },
+  {
+    "id": "910511",
+    "name": "Wonawa",
+    "cityId": "9105"
+  },
+  {
+    "id": "911514",
+    "name": "Wonti",
+    "cityId": "9115"
+  },
+  {
+    "id": "911110",
+    "name": "Yaffi",
+    "cityId": "9111"
+  },
+  {
+    "id": "910502",
+    "name": "Yapen Barat",
+    "cityId": "9105"
+  },
+  {
+    "id": "910501",
+    "name": "Yapen Selatan",
+    "cityId": "9105"
+  },
+  {
+    "id": "910503",
+    "name": "Yapen Timur",
+    "cityId": "9105"
+  },
+  {
+    "id": "910507",
+    "name": "Yapen Utara",
+    "cityId": "9105"
+  },
+  {
+    "id": "910315",
+    "name": "Yapsi",
+    "cityId": "9103"
+  },
+  {
+    "id": "910516",
+    "name": "Yawakukat",
+    "cityId": "9105"
+  },
+  {
+    "id": "910613",
+    "name": "Yawosi",
+    "cityId": "9106"
+  },
+  {
+    "id": "910611",
+    "name": "Yendidori",
+    "cityId": "9106"
+  },
+  {
+    "id": "910319",
+    "name": "Yokari",
+    "cityId": "9103"
+  }
+]

@@ -1,0 +1,38 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter: Debug Mobile App",
+      "type": "dart",
+      "request": "launch",
+      "program": "apps/mobile/lib/main.dart",
+      "cwd": "apps/mobile"
+    },
+    {
+      "name": "Flutter: Profile Mobile App",
+      "type": "dart",
+      "request": "launch",
+      "program": "apps/mobile/lib/main.dart",
+      "cwd": "apps/mobile",
+      "flutterMode": "profile"
+    },
+    {
+      "name": "Go: Debug Backend",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/backend/cmd/core_server",
+      "cwd": "${workspaceFolder}/backend",
+      "env": {},
+      "args": []
+    },
+    {
+      "name": "Go: Test Current File",
+      "type": "go",
+      "request": "launch",
+      "mode": "test",
+      "program": "${file}",
+      "cwd": "${workspaceFolder}/backend"
+    }
+  ]
+}

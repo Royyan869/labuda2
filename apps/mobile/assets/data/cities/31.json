@@ -1,0 +1,38 @@
+[
+  {
+    "id": "3101",
+    "name": "Kabupaten Administrasi Kepulauan Seribu",
+    "provinceId": "31",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3173",
+    "name": "Kota Administrasi Jakarta Barat",
+    "provinceId": "31",
+    "type": "kota"
+  },
+  {
+    "id": "3171",
+    "name": "Kota Administrasi Jakarta Pusat",
+    "provinceId": "31",
+    "type": "kota"
+  },
+  {
+    "id": "3174",
+    "name": "Kota Administrasi Jakarta Selatan",
+    "provinceId": "31",
+    "type": "kota"
+  },
+  {
+    "id": "3175",
+    "name": "Kota Administrasi Jakarta Timur",
+    "provinceId": "31",
+    "type": "kota"
+  },
+  {
+    "id": "3172",
+    "name": "Kota Administrasi Jakarta Utara ",
+    "provinceId": "31",
+    "type": "kota"
+  }
+]

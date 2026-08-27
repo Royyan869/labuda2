@@ -1,0 +1,230 @@
+[
+  {
+    "id": "3526",
+    "name": "Kabupaten Bangkalan",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3510",
+    "name": "Kabupaten Banyuwangi",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3505",
+    "name": "Kabupaten Blitar",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3522",
+    "name": "Kabupaten Bojonegoro",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3511",
+    "name": "Kabupaten Bondowoso",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3525",
+    "name": "Kabupaten Gresik",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3509",
+    "name": "Kabupaten Jember",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3517",
+    "name": "Kabupaten Jombang",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3506",
+    "name": "Kabupaten Kediri",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3524",
+    "name": "Kabupaten Lamongan",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3508",
+    "name": "Kabupaten Lumajang",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3519",
+    "name": "Kabupaten Madiun",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3520",
+    "name": "Kabupaten Magetan",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3507",
+    "name": "Kabupaten Malang",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3516",
+    "name": "Kabupaten Mojokerto",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3518",
+    "name": "Kabupaten Nganjuk",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3521",
+    "name": "Kabupaten Ngawi",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3501",
+    "name": "Kabupaten Pacitan",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3528",
+    "name": "Kabupaten Pamekasan",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3514",
+    "name": "Kabupaten Pasuruan",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3502",
+    "name": "Kabupaten Ponorogo",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3513",
+    "name": "Kabupaten Probolinggo",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3527",
+    "name": "Kabupaten Sampang",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3515",
+    "name": "Kabupaten Sidoarjo",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3512",
+    "name": "Kabupaten Situbondo",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3529",
+    "name": "Kabupaten Sumenep",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3503",
+    "name": "Kabupaten Trenggalek",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3523",
+    "name": "Kabupaten Tuban",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3504",
+    "name": "Kabupaten Tulungagung",
+    "provinceId": "35",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3579",
+    "name": "Kota Batu",
+    "provinceId": "35",
+    "type": "kota"
+  },
+  {
+    "id": "3572",
+    "name": "Kota Blitar",
+    "provinceId": "35",
+    "type": "kota"
+  },
+  {
+    "id": "3571",
+    "name": "Kota Kediri",
+    "provinceId": "35",
+    "type": "kota"
+  },
+  {
+    "id": "3577",
+    "name": "Kota Madiun",
+    "provinceId": "35",
+    "type": "kota"
+  },
+  {
+    "id": "3573",
+    "name": "Kota Malang",
+    "provinceId": "35",
+    "type": "kota"
+  },
+  {
+    "id": "3576",
+    "name": "Kota Mojokerto",
+    "provinceId": "35",
+    "type": "kota"
+  },
+  {
+    "id": "3575",
+    "name": "Kota Pasuruan",
+    "provinceId": "35",
+    "type": "kota"
+  },
+  {
+    "id": "3574",
+    "name": "Kota Probolinggo",
+    "provinceId": "35",
+    "type": "kota"
+  },
+  {
+    "id": "3578",
+    "name": "Kota Surabaya",
+    "provinceId": "35",
+    "type": "kota"
+  }
+]

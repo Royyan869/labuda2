@@ -1,0 +1,222 @@
+[
+  {
+    "id": "317506",
+    "name": "Cakung",
+    "cityId": "3175"
+  },
+  {
+    "id": "317105",
+    "name": "Cempaka Putih",
+    "cityId": "3171"
+  },
+  {
+    "id": "317301",
+    "name": "Cengkareng",
+    "cityId": "3173"
+  },
+  {
+    "id": "317406",
+    "name": "Cilandak",
+    "cityId": "3174"
+  },
+  {
+    "id": "317204",
+    "name": "Cilincing",
+    "cityId": "3172"
+  },
+  {
+    "id": "317510",
+    "name": "Cipayung",
+    "cityId": "3175"
+  },
+  {
+    "id": "317509",
+    "name": "Ciracas",
+    "cityId": "3175"
+  },
+  {
+    "id": "317507",
+    "name": "Duren Sawit",
+    "cityId": "3175"
+  },
+  {
+    "id": "317101",
+    "name": "Gambir",
+    "cityId": "3171"
+  },
+  {
+    "id": "317302",
+    "name": "Grogol Petamburan",
+    "cityId": "3173"
+  },
+  {
+    "id": "317409",
+    "name": "Jagakarsa",
+    "cityId": "3174"
+  },
+  {
+    "id": "317503",
+    "name": "Jatinegara",
+    "cityId": "3175"
+  },
+  {
+    "id": "317108",
+    "name": "Johar Baru",
+    "cityId": "3171"
+  },
+  {
+    "id": "317306",
+    "name": "Kalideres",
+    "cityId": "3173"
+  },
+  {
+    "id": "317407",
+    "name": "Kebayoran Baru",
+    "cityId": "3174"
+  },
+  {
+    "id": "317405",
+    "name": "Kebayoran Lama",
+    "cityId": "3174"
+  },
+  {
+    "id": "317305",
+    "name": "Kebon Jeruk",
+    "cityId": "3173"
+  },
+  {
+    "id": "317206",
+    "name": "Kelapa Gading",
+    "cityId": "3172"
+  },
+  {
+    "id": "317103",
+    "name": "Kemayoran",
+    "cityId": "3171"
+  },
+  {
+    "id": "317308",
+    "name": "Kembangan",
+    "cityId": "3173"
+  },
+  {
+    "id": "310102",
+    "name": "Kepulauan Seribu Selatan",
+    "cityId": "3101"
+  },
+  {
+    "id": "310101",
+    "name": "Kepulauan Seribu Utara",
+    "cityId": "3101"
+  },
+  {
+    "id": "317203",
+    "name": "Koja",
+    "cityId": "3172"
+  },
+  {
+    "id": "317504",
+    "name": "Kramatjati",
+    "cityId": "3175"
+  },
+  {
+    "id": "317508",
+    "name": "Makasar",
+    "cityId": "3175"
+  },
+  {
+    "id": "317403",
+    "name": "Mampang Prapatan",
+    "cityId": "3174"
+  },
+  {
+    "id": "317501",
+    "name": "Matraman",
+    "cityId": "3175"
+  },
+  {
+    "id": "317106",
+    "name": "Menteng",
+    "cityId": "3171"
+  },
+  {
+    "id": "317205",
+    "name": "Pademangan",
+    "cityId": "3172"
+  },
+  {
+    "id": "317307",
+    "name": "Pal Merah",
+    "cityId": "3173"
+  },
+  {
+    "id": "317408",
+    "name": "Pancoran",
+    "cityId": "3174"
+  },
+  {
+    "id": "317404",
+    "name": "Pasar Minggu",
+    "cityId": "3174"
+  },
+  {
+    "id": "317505",
+    "name": "Pasar Rebo",
+    "cityId": "3175"
+  },
+  {
+    "id": "317201",
+    "name": "Penjaringan",
+    "cityId": "3172"
+  },
+  {
+    "id": "317410",
+    "name": "Pesanggrahan",
+    "cityId": "3174"
+  },
+  {
+    "id": "317502",
+    "name": "Pulogadung",
+    "cityId": "3175"
+  },
+  {
+    "id": "317102",
+    "name": "Sawah Besar",
+    "cityId": "3171"
+  },
+  {
+    "id": "317104",
+    "name": "Senen",
+    "cityId": "3171"
+  },
+  {
+    "id": "317402",
+    "name": "Setiabudi",
+    "cityId": "3174"
+  },
+  {
+    "id": "317303",
+    "name": "Taman Sari",
+    "cityId": "3173"
+  },
+  {
+    "id": "317304",
+    "name": "Tambora",
+    "cityId": "3173"
+  },
+  {
+    "id": "317107",
+    "name": "Tanah Abang",
+    "cityId": "3171"
+  },
+  {
+    "id": "317202",
+    "name": "Tanjung Priok",
+    "cityId": "3172"
+  },
+  {
+    "id": "317401",
+    "name": "Tebet",
+    "cityId": "3174"
+  }
+]

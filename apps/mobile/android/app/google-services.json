@@ -1,0 +1,62 @@
+{
+  "project_info": {
+    "project_number": "883544146901",
+    "project_id": "labuda-79de2",
+    "storage_bucket": "labuda-79de2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:883544146901:android:c59cbbfae1c15ff8faf35c",
+        "android_client_info": {
+          "package_name": "com.labuda.app.labuda"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "883544146901-b8cuqaf549ch9l269g73qtftr9juq6ft.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.labuda.app.labuda",
+            "certificate_hash": "27ccbc5c56a7343ea70db638f925e466ef023654"
+          }
+        },
+        {
+          "client_id": "883544146901-ql380242uqavde9123mmhl5gftb09p46.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.labuda.app.labuda",
+            "certificate_hash": "02392399946dcaf3e8d3cd87ffd53eec0781df24"
+          }
+        },
+        {
+          "client_id": "883544146901-ao5sfhi182gadokiondg97p2fk86i767.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDS_cixVmoeQhBa7a4euvYV2gd-LVQ6E2U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "883544146901-ao5sfhi182gadokiondg97p2fk86i767.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "883544146901-jjtd1au2p4hktt7mgq9tepu4gorgctlh.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.labuda.app.labuda"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

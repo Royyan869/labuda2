@@ -1,0 +1,32 @@
+{
+  "recommendations": [
+    // Dart & Flutter
+    "dart-code.dart-code",
+    "dart-code.flutter",
+
+    // Go
+    "golang.go",
+
+    // TypeScript/JavaScript
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+
+    // Docker
+    "ms-azuretools.vscode-docker",
+
+    // Git
+    "eamodio.gitlens",
+
+    // Utilities
+    "editorconfig.editorconfig",
+    "streetsidesoftware.code-spell-checker",
+    "wayou.vscode-todo-highlight",
+    "gruntfuggly.todo-tree",
+
+    // Markdown
+    "yzhang.markdown-all-in-one",
+
+    // YAML
+    "redhat.vscode-yaml"
+  ]
+}

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "2101",
+    "name": "Kabupaten Bintan",
+    "provinceId": "21",
+    "type": "kabupaten"
+  },
+  {
+    "id": "2102",
+    "name": "Kabupaten Karimun",
+    "provinceId": "21",
+    "type": "kabupaten"
+  },
+  {
+    "id": "2105",
+    "name": "Kabupaten Kepulauan Anambas",
+    "provinceId": "21",
+    "type": "kabupaten"
+  },
+  {
+    "id": "2104",
+    "name": "Kabupaten Lingga",
+    "provinceId": "21",
+    "type": "kabupaten"
+  },
+  {
+    "id": "2103",
+    "name": "Kabupaten Natuna",
+    "provinceId": "21",
+    "type": "kabupaten"
+  },
+  {
+    "id": "2171",
+    "name": "Kota Batam",
+    "provinceId": "21",
+    "type": "kota"
+  },
+  {
+    "id": "2172",
+    "name": "Kota Tanjung Pinang",
+    "provinceId": "21",
+    "type": "kota"
+  }
+]

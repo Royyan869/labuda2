@@ -1,0 +1,1147 @@
+[
+  {
+    "id": "180306",
+    "name": "Abung Barat",
+    "cityId": "1803"
+  },
+  {
+    "id": "180322",
+    "name": "Abung Kunang",
+    "cityId": "1803"
+  },
+  {
+    "id": "180319",
+    "name": "Abung Pekurun",
+    "cityId": "1803"
+  },
+  {
+    "id": "180307",
+    "name": "Abung Selatan",
+    "cityId": "1803"
+  },
+  {
+    "id": "180313",
+    "name": "Abung Semuli",
+    "cityId": "1803"
+  },
+  {
+    "id": "180314",
+    "name": "Abung Surakarta",
+    "cityId": "1803"
+  },
+  {
+    "id": "180311",
+    "name": "Abung Tengah",
+    "cityId": "1803"
+  },
+  {
+    "id": "180305",
+    "name": "Abung Timur",
+    "cityId": "1803"
+  },
+  {
+    "id": "180312",
+    "name": "Abung Tinggi",
+    "cityId": "1803"
+  },
+  {
+    "id": "181007",
+    "name": "Adiluwih",
+    "cityId": "1810"
+  },
+  {
+    "id": "180419",
+    "name": "Air Hitam",
+    "cityId": "1804"
+  },
+  {
+    "id": "180626",
+    "name": "Air Naningan",
+    "cityId": "1806"
+  },
+  {
+    "id": "181003",
+    "name": "Ambarawa",
+    "cityId": "1810"
+  },
+  {
+    "id": "180227",
+    "name": "Anak Ratu Aji",
+    "cityId": "1802"
+  },
+  {
+    "id": "180221",
+    "name": "Anak Tuha",
+    "cityId": "1802"
+  },
+  {
+    "id": "180805",
+    "name": "Bahuga",
+    "cityId": "1808"
+  },
+  {
+    "id": "180121",
+    "name": "Bakauheni",
+    "cityId": "1801"
+  },
+  {
+    "id": "180404",
+    "name": "Balik Bukit",
+    "cityId": "1804"
+  },
+  {
+    "id": "180218",
+    "name": "Bandar Mataram",
+    "cityId": "1802"
+  },
+  {
+    "id": "180625",
+    "name": "Bandar Negeri Semuong",
+    "cityId": "1806"
+  },
+  {
+    "id": "180423",
+    "name": "Bandar Negeri Suoh",
+    "cityId": "1804"
+  },
+  {
+    "id": "180715",
+    "name": "Bandar Sribhawono",
+    "cityId": "1807"
+  },
+  {
+    "id": "180226",
+    "name": "Bandar Surabaya",
+    "cityId": "1802"
+  },
+  {
+    "id": "181311",
+    "name": "Bangkunat",
+    "cityId": "1813"
+  },
+  {
+    "id": "180202",
+    "name": "Bangun Rejo",
+    "cityId": "1802"
+  },
+  {
+    "id": "180508",
+    "name": "Banjar Agung",
+    "cityId": "1805"
+  },
+  {
+    "id": "180529",
+    "name": "Banjar Baru",
+    "cityId": "1805"
+  },
+  {
+    "id": "180520",
+    "name": "Banjar Margo",
+    "cityId": "1805"
+  },
+  {
+    "id": "180803",
+    "name": "Banjit",
+    "cityId": "1808"
+  },
+  {
+    "id": "181006",
+    "name": "Banyumas",
+    "cityId": "1810"
+  },
+  {
+    "id": "180804",
+    "name": "Baradatu",
+    "cityId": "1808"
+  },
+  {
+    "id": "180706",
+    "name": "Batanghari",
+    "cityId": "1807"
+  },
+  {
+    "id": "180713",
+    "name": "Batanghari Nuban",
+    "cityId": "1807"
+  },
+  {
+    "id": "180410",
+    "name": "Batu Brak",
+    "cityId": "1804"
+  },
+  {
+    "id": "180421",
+    "name": "Batu Ketulis",
+    "cityId": "1804"
+  },
+  {
+    "id": "181209",
+    "name": "Batu Putih",
+    "cityId": "1812"
+  },
+  {
+    "id": "180215",
+    "name": "Bekri",
+    "cityId": "1802"
+  },
+  {
+    "id": "180406",
+    "name": "Belalau",
+    "cityId": "1804"
+  },
+  {
+    "id": "180323",
+    "name": "Blambangan Pagar",
+    "cityId": "1803"
+  },
+  {
+    "id": "180801",
+    "name": "Blambangan Umpu",
+    "cityId": "1808"
+  },
+  {
+    "id": "180722",
+    "name": "Braja Selebah",
+    "cityId": "1807"
+  },
+  {
+    "id": "180813",
+    "name": "Buay Bahuga",
+    "cityId": "1808"
+  },
+  {
+    "id": "180301",
+    "name": "Bukit Kemuning",
+    "cityId": "1803"
+  },
+  {
+    "id": "180627",
+    "name": "Bulok",
+    "cityId": "1806"
+  },
+  {
+    "id": "180814",
+    "name": "Bumi Agung",
+    "cityId": "1808"
+  },
+  {
+    "id": "180714",
+    "name": "Bumi Agung",
+    "cityId": "1807"
+  },
+  {
+    "id": "180224",
+    "name": "Bumi Nabung",
+    "cityId": "1802"
+  },
+  {
+    "id": "180214",
+    "name": "Bumi Ratu Nuban",
+    "cityId": "1802"
+  },
+  {
+    "id": "187120",
+    "name": "Bumi Waras",
+    "cityId": "1871"
+  },
+  {
+    "id": "180316",
+    "name": "Bunga Mayang",
+    "cityId": "1803"
+  },
+  {
+    "id": "180117",
+    "name": "Candipuro",
+    "cityId": "1801"
+  },
+  {
+    "id": "180609",
+    "name": "Cukuh Balak",
+    "cityId": "1806"
+  },
+  {
+    "id": "180525",
+    "name": "Dente Teladas",
+    "cityId": "1805"
+  },
+  {
+    "id": "187117",
+    "name": "Enggal",
+    "cityId": "1871"
+  },
+  {
+    "id": "181002",
+    "name": "Gading Rejo",
+    "cityId": "1810"
+  },
+  {
+    "id": "180901",
+    "name": "Gedong Tataan",
+    "cityId": "1809"
+  },
+  {
+    "id": "180506",
+    "name": "Gedung Aji",
+    "cityId": "1805"
+  },
+  {
+    "id": "180527",
+    "name": "Gedung Aji Baru",
+    "cityId": "1805"
+  },
+  {
+    "id": "180511",
+    "name": "Gedung Meneng",
+    "cityId": "1805"
+  },
+  {
+    "id": "180415",
+    "name": "Gedung Surian",
+    "cityId": "1804"
+  },
+  {
+    "id": "180620",
+    "name": "Gisting",
+    "cityId": "1806"
+  },
+  {
+    "id": "181205",
+    "name": "Gunung Agung",
+    "cityId": "1812"
+  },
+  {
+    "id": "180621",
+    "name": "Gunung Alip",
+    "cityId": "1806"
+  },
+  {
+    "id": "180810",
+    "name": "Gunung Labuhan",
+    "cityId": "1808"
+  },
+  {
+    "id": "180718",
+    "name": "Gunung Pelindung",
+    "cityId": "1807"
+  },
+  {
+    "id": "180204",
+    "name": "Gunung Sugih",
+    "cityId": "1802"
+  },
+  {
+    "id": "181204",
+    "name": "Gunung Terang",
+    "cityId": "1812"
+  },
+  {
+    "id": "180317",
+    "name": "Hulu Sungkai",
+    "cityId": "1803"
+  },
+  {
+    "id": "180703",
+    "name": "Jabung",
+    "cityId": "1807"
+  },
+  {
+    "id": "180113",
+    "name": "Jati Agung",
+    "cityId": "1801"
+  },
+  {
+    "id": "180106",
+    "name": "Kalianda",
+    "cityId": "1801"
+  },
+  {
+    "id": "180201",
+    "name": "Kalirejo",
+    "cityId": "1802"
+  },
+  {
+    "id": "181305",
+    "name": "Karya Penggawa",
+    "cityId": "1813"
+  },
+  {
+    "id": "180802",
+    "name": "Kasui",
+    "cityId": "1808"
+  },
+  {
+    "id": "180108",
+    "name": "Katibung",
+    "cityId": "1801"
+  },
+  {
+    "id": "180418",
+    "name": "Kebun Tebu",
+    "cityId": "1804"
+  },
+  {
+    "id": "187118",
+    "name": "Kedamaian",
+    "cityId": "1871"
+  },
+  {
+    "id": "187101",
+    "name": "Kedaton",
+    "cityId": "1871"
+  },
+  {
+    "id": "180907",
+    "name": "Kedondong",
+    "cityId": "1809"
+  },
+  {
+    "id": "180617",
+    "name": "Kelumbayan",
+    "cityId": "1806"
+  },
+  {
+    "id": "180628",
+    "name": "Kelumbayan Barat",
+    "cityId": "1806"
+  },
+  {
+    "id": "187113",
+    "name": "Kemiling",
+    "cityId": "1871"
+  },
+  {
+    "id": "180114",
+    "name": "Ketapang",
+    "cityId": "1801"
+  },
+  {
+    "id": "180601",
+    "name": "Kota Agung",
+    "cityId": "1806"
+  },
+  {
+    "id": "180618",
+    "name": "Kota Agung Barat",
+    "cityId": "1806"
+  },
+  {
+    "id": "180619",
+    "name": "Kota Agung Timur",
+    "cityId": "1806"
+  },
+  {
+    "id": "180223",
+    "name": "Kota Gajah",
+    "cityId": "1802"
+  },
+  {
+    "id": "180302",
+    "name": "Kotabumi",
+    "cityId": "1803"
+  },
+  {
+    "id": "180310",
+    "name": "Kotabumi Selatan",
+    "cityId": "1803"
+  },
+  {
+    "id": "180309",
+    "name": "Kotabumi Utara",
+    "cityId": "1803"
+  },
+  {
+    "id": "181308",
+    "name": "Krui Selatan",
+    "cityId": "1813"
+  },
+  {
+    "id": "180702",
+    "name": "Labuhan Maringgai",
+    "cityId": "1807"
+  },
+  {
+    "id": "180721",
+    "name": "Labuhan Ratu",
+    "cityId": "1807"
+  },
+  {
+    "id": "187114",
+    "name": "Labuhan Ratu",
+    "cityId": "1871"
+  },
+  {
+    "id": "181207",
+    "name": "Lambu Kibang",
+    "cityId": "1812"
+  },
+  {
+    "id": "187116",
+    "name": "Langkapura",
+    "cityId": "1871"
+  },
+  {
+    "id": "181303",
+    "name": "Lemong",
+    "cityId": "1813"
+  },
+  {
+    "id": "180624",
+    "name": "Limau",
+    "cityId": "1806"
+  },
+  {
+    "id": "180422",
+    "name": "Lumbok Seminung",
+    "cityId": "1804"
+  },
+  {
+    "id": "180908",
+    "name": "Marga Punduh",
+    "cityId": "1809"
+  },
+  {
+    "id": "180724",
+    "name": "Marga Sekampung",
+    "cityId": "1807"
+  },
+  {
+    "id": "180711",
+    "name": "Marga Tiga",
+    "cityId": "1807"
+  },
+  {
+    "id": "180716",
+    "name": "Mataram Baru",
+    "cityId": "1807"
+  },
+  {
+    "id": "180717",
+    "name": "Melinting",
+    "cityId": "1807"
+  },
+  {
+    "id": "180502",
+    "name": "Menggala",
+    "cityId": "1805"
+  },
+  {
+    "id": "180530",
+    "name": "Menggala Timur",
+    "cityId": "1805"
+  },
+  {
+    "id": "180526",
+    "name": "Meraksa Aji",
+    "cityId": "1805"
+  },
+  {
+    "id": "180118",
+    "name": "Merbau Mataram",
+    "cityId": "1801"
+  },
+  {
+    "id": "181101",
+    "name": "Mesuji",
+    "cityId": "1811"
+  },
+  {
+    "id": "181102",
+    "name": "Mesuji Timur",
+    "cityId": "1811"
+  },
+  {
+    "id": "187203",
+    "name": "Metro Barat",
+    "cityId": "1872"
+  },
+  {
+    "id": "180710",
+    "name": "Metro Kibang",
+    "cityId": "1807"
+  },
+  {
+    "id": "187201",
+    "name": "Metro Pusat",
+    "cityId": "1872"
+  },
+  {
+    "id": "187205",
+    "name": "Metro Selatan",
+    "cityId": "1872"
+  },
+  {
+    "id": "187204",
+    "name": "Metro Timur",
+    "cityId": "1872"
+  },
+  {
+    "id": "187202",
+    "name": "Metro Utara",
+    "cityId": "1872"
+  },
+  {
+    "id": "180315",
+    "name": "Muara Sungkai",
+    "cityId": "1803"
+  },
+  {
+    "id": "180104",
+    "name": "Natar",
+    "cityId": "1801"
+  },
+  {
+    "id": "180811",
+    "name": "Negara Batin",
+    "cityId": "1808"
+  },
+  {
+    "id": "180807",
+    "name": "Negeri Agung",
+    "cityId": "1808"
+  },
+  {
+    "id": "180812",
+    "name": "Negeri Besar",
+    "cityId": "1808"
+  },
+  {
+    "id": "180902",
+    "name": "Negeri Katon",
+    "cityId": "1809"
+  },
+  {
+    "id": "181309",
+    "name": "Ngambur",
+    "cityId": "1813"
+  },
+  {
+    "id": "181310",
+    "name": "Ngaras",
+    "cityId": "1813"
+  },
+  {
+    "id": "180905",
+    "name": "Padang Cermin",
+    "cityId": "1809"
+  },
+  {
+    "id": "180203",
+    "name": "Padang Ratu",
+    "cityId": "1802"
+  },
+  {
+    "id": "181208",
+    "name": "Pagar Dewa",
+    "cityId": "1812"
+  },
+  {
+    "id": "180420",
+    "name": "Pagar Dewa",
+    "cityId": "1804"
+  },
+  {
+    "id": "181005",
+    "name": "Pagelaran",
+    "cityId": "1810"
+  },
+  {
+    "id": "181009",
+    "name": "Pagelaran Utara",
+    "cityId": "1810"
+  },
+  {
+    "id": "180806",
+    "name": "Pakuan Ratu",
+    "cityId": "1808"
+  },
+  {
+    "id": "180110",
+    "name": "Palas",
+    "cityId": "1801"
+  },
+  {
+    "id": "181106",
+    "name": "Panca Jaya",
+    "cityId": "1811"
+  },
+  {
+    "id": "187104",
+    "name": "Panjang",
+    "cityId": "1871"
+  },
+  {
+    "id": "181004",
+    "name": "Pardasuka",
+    "cityId": "1810"
+  },
+  {
+    "id": "180719",
+    "name": "Pasir Sakti",
+    "cityId": "1807"
+  },
+  {
+    "id": "180704",
+    "name": "Pekalongan",
+    "cityId": "1807"
+  },
+  {
+    "id": "180616",
+    "name": "Pematang Sawa",
+    "cityId": "1806"
+  },
+  {
+    "id": "180523",
+    "name": "Penawar Aji",
+    "cityId": "1805"
+  },
+  {
+    "id": "180513",
+    "name": "Penawar Tama",
+    "cityId": "1805"
+  },
+  {
+    "id": "180109",
+    "name": "Penengahan",
+    "cityId": "1801"
+  },
+  {
+    "id": "181302",
+    "name": "Pesisir Selatan",
+    "cityId": "1813"
+  },
+  {
+    "id": "181301",
+    "name": "Pesisir Tengah",
+    "cityId": "1813"
+  },
+  {
+    "id": "181304",
+    "name": "Pesisir Utara",
+    "cityId": "1813"
+  },
+  {
+    "id": "181001",
+    "name": "Pringsewu",
+    "cityId": "1810"
+  },
+  {
+    "id": "180219",
+    "name": "Pubian",
+    "cityId": "1802"
+  },
+  {
+    "id": "180611",
+    "name": "Pugung",
+    "cityId": "1806"
+  },
+  {
+    "id": "180604",
+    "name": "Pulau Panggung",
+    "cityId": "1806"
+  },
+  {
+    "id": "181306",
+    "name": "Pulau Pisang",
+    "cityId": "1813"
+  },
+  {
+    "id": "180906",
+    "name": "Punduh Pidada",
+    "cityId": "1809"
+  },
+  {
+    "id": "180206",
+    "name": "Punggur",
+    "cityId": "1802"
+  },
+  {
+    "id": "180708",
+    "name": "Purbolinggo",
+    "cityId": "1807"
+  },
+  {
+    "id": "180228",
+    "name": "Putra Rumbia",
+    "cityId": "1802"
+  },
+  {
+    "id": "180116",
+    "name": "Raja Basa",
+    "cityId": "1801"
+  },
+  {
+    "id": "187110",
+    "name": "Rajabasa",
+    "cityId": "1871"
+  },
+  {
+    "id": "180709",
+    "name": "Raman Utara",
+    "cityId": "1807"
+  },
+  {
+    "id": "180512",
+    "name": "Rawa Jitu Selatan",
+    "cityId": "1805"
+  },
+  {
+    "id": "180518",
+    "name": "Rawa Jitu Timur",
+    "cityId": "1805"
+  },
+  {
+    "id": "181103",
+    "name": "Rawa Jitu Utara",
+    "cityId": "1811"
+  },
+  {
+    "id": "180522",
+    "name": "Rawa Pitu",
+    "cityId": "1805"
+  },
+  {
+    "id": "180809",
+    "name": "Rebang Tangkas",
+    "cityId": "1808"
+  },
+  {
+    "id": "180209",
+    "name": "Rumbia",
+    "cityId": "1802"
+  },
+  {
+    "id": "180705",
+    "name": "Sekampung",
+    "cityId": "1807"
+  },
+  {
+    "id": "180712",
+    "name": "Sekampung Udik",
+    "cityId": "1807"
+  },
+  {
+    "id": "180408",
+    "name": "Sekincau",
+    "cityId": "1804"
+  },
+  {
+    "id": "180220",
+    "name": "Selagai Lingga",
+    "cityId": "1802"
+  },
+  {
+    "id": "180612",
+    "name": "Semaka",
+    "cityId": "1806"
+  },
+  {
+    "id": "180222",
+    "name": "Sendang Agung",
+    "cityId": "1802"
+  },
+  {
+    "id": "180216",
+    "name": "Seputih Agung",
+    "cityId": "1802"
+  },
+  {
+    "id": "180210",
+    "name": "Seputih Banyak",
+    "cityId": "1802"
+  },
+  {
+    "id": "180211",
+    "name": "Seputih Mataram",
+    "cityId": "1802"
+  },
+  {
+    "id": "180208",
+    "name": "Seputih Raman",
+    "cityId": "1802"
+  },
+  {
+    "id": "180212",
+    "name": "Seputih Surabaya",
+    "cityId": "1802"
+  },
+  {
+    "id": "180107",
+    "name": "Sidomulyo",
+    "cityId": "1801"
+  },
+  {
+    "id": "181105",
+    "name": "Simpang Pematang",
+    "cityId": "1811"
+  },
+  {
+    "id": "180115",
+    "name": "Sragi",
+    "cityId": "1801"
+  },
+  {
+    "id": "187112",
+    "name": "Sukabumi",
+    "cityId": "1871"
+  },
+  {
+    "id": "180701",
+    "name": "Sukadana",
+    "cityId": "1807"
+  },
+  {
+    "id": "187102",
+    "name": "Sukarame",
+    "cityId": "1871"
+  },
+  {
+    "id": "180411",
+    "name": "Sukau",
+    "cityId": "1804"
+  },
+  {
+    "id": "181008",
+    "name": "Sukoharjo",
+    "cityId": "1810"
+  },
+  {
+    "id": "180405",
+    "name": "Sumber Jaya",
+    "cityId": "1804"
+  },
+  {
+    "id": "180613",
+    "name": "Sumberejo",
+    "cityId": "1806"
+  },
+  {
+    "id": "180321",
+    "name": "Sungkai Barat",
+    "cityId": "1803"
+  },
+  {
+    "id": "180320",
+    "name": "Sungkai Jaya",
+    "cityId": "1803"
+  },
+  {
+    "id": "180303",
+    "name": "Sungkai Selatan",
+    "cityId": "1803"
+  },
+  {
+    "id": "180318",
+    "name": "Sungkai Tengah",
+    "cityId": "1803"
+  },
+  {
+    "id": "180308",
+    "name": "Sungkai Utara",
+    "cityId": "1803"
+  },
+  {
+    "id": "180409",
+    "name": "Suoh",
+    "cityId": "1804"
+  },
+  {
+    "id": "180602",
+    "name": "Talang Padang",
+    "cityId": "1806"
+  },
+  {
+    "id": "180105",
+    "name": "Tanjung Bintang",
+    "cityId": "1801"
+  },
+  {
+    "id": "180304",
+    "name": "Tanjung Raja",
+    "cityId": "1803"
+  },
+  {
+    "id": "181107",
+    "name": "Tanjung Raya",
+    "cityId": "1811"
+  },
+  {
+    "id": "180122",
+    "name": "Tanjung Sari",
+    "cityId": "1801"
+  },
+  {
+    "id": "187111",
+    "name": "Tanjung Senang",
+    "cityId": "1871"
+  },
+  {
+    "id": "187103",
+    "name": "Tanjungkarang Barat",
+    "cityId": "1871"
+  },
+  {
+    "id": "187106",
+    "name": "Tanjungkarang Pusat",
+    "cityId": "1871"
+  },
+  {
+    "id": "187105",
+    "name": "Tanjungkarang Timur",
+    "cityId": "1871"
+  },
+  {
+    "id": "180903",
+    "name": "Tegineneng",
+    "cityId": "1809"
+  },
+  {
+    "id": "180910",
+    "name": "Teluk Pandan",
+    "cityId": "1809"
+  },
+  {
+    "id": "187108",
+    "name": "Telukbetung Barat",
+    "cityId": "1871"
+  },
+  {
+    "id": "187107",
+    "name": "Telukbetung Selatan",
+    "cityId": "1871"
+  },
+  {
+    "id": "187119",
+    "name": "Telukbetung Timur",
+    "cityId": "1871"
+  },
+  {
+    "id": "187109",
+    "name": "Telukbetung Utara",
+    "cityId": "1871"
+  },
+  {
+    "id": "180207",
+    "name": "Terbanggi Besar",
+    "cityId": "1802"
+  },
+  {
+    "id": "180213",
+    "name": "Terusan Nunyai",
+    "cityId": "1802"
+  },
+  {
+    "id": "180205",
+    "name": "Trimurjo",
+    "cityId": "1802"
+  },
+  {
+    "id": "181201",
+    "name": "Tulang Bawang Tengah",
+    "cityId": "1812"
+  },
+  {
+    "id": "181203",
+    "name": "Tulang Bawang Udik",
+    "cityId": "1812"
+  },
+  {
+    "id": "181202",
+    "name": "Tumijajar",
+    "cityId": "1812"
+  },
+  {
+    "id": "180615",
+    "name": "Ulu Belu",
+    "cityId": "1806"
+  },
+  {
+    "id": "180815",
+    "name": "Umpu Semenguk",
+    "cityId": "1808"
+  },
+  {
+    "id": "180720",
+    "name": "Waway Karya",
+    "cityId": "1807"
+  },
+  {
+    "id": "180723",
+    "name": "Way Bungur",
+    "cityId": "1807"
+  },
+  {
+    "id": "187115",
+    "name": "Way Halim",
+    "cityId": "1871"
+  },
+  {
+    "id": "180707",
+    "name": "Way Jepara",
+    "cityId": "1807"
+  },
+  {
+    "id": "181206",
+    "name": "Way Kenanga",
+    "cityId": "1812"
+  },
+  {
+    "id": "180909",
+    "name": "Way Khilau",
+    "cityId": "1809"
+  },
+  {
+    "id": "181307",
+    "name": "Way Krui",
+    "cityId": "1813"
+  },
+  {
+    "id": "180904",
+    "name": "Way Lima",
+    "cityId": "1809"
+  },
+  {
+    "id": "180124",
+    "name": "Way Panji",
+    "cityId": "1801"
+  },
+  {
+    "id": "180217",
+    "name": "Way Pengubuan",
+    "cityId": "1802"
+  },
+  {
+    "id": "180911",
+    "name": "Way Ratai",
+    "cityId": "1809"
+  },
+  {
+    "id": "180225",
+    "name": "Way Seputih",
+    "cityId": "1802"
+  },
+  {
+    "id": "181104",
+    "name": "Way Serdang",
+    "cityId": "1811"
+  },
+  {
+    "id": "180123",
+    "name": "Way Sulan",
+    "cityId": "1801"
+  },
+  {
+    "id": "180407",
+    "name": "Way Tenong",
+    "cityId": "1804"
+  },
+  {
+    "id": "180808",
+    "name": "Way Tuba",
+    "cityId": "1808"
+  },
+  {
+    "id": "180603",
+    "name": "Wonosobo",
+    "cityId": "1806"
+  }
+]

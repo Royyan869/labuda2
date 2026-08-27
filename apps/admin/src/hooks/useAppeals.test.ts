@@ -1,0 +1,51 @@
+import { renderHook, waitFor } from '@testing-library/react'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
+
+const apiGetMock = vi.hoisted(() => vi.fn())
+
+vi.mock('@/lib/api', () => ({
+  api: {
+    get: apiGetMock,
+  },
+}))
+
+import { useAppeals } from './useAppeals'
+
+describe('useAppeals (PASS_20E envelope unwrap regression)', () => {
+  beforeEach(() => {
+    apiGetMock.mockReset()
+  })
+
+  it('unwraps the {data} envelope so appeals.length never runs on undefined', async () => {
+    apiGetMock.mockResolvedValue({
+      success: true,
+      data: { appeals: [{ id: 'a1' }], page: 1, limit: 20, count: 1 },
+      timestamp: '2026-01-01T00:00:00Z',
+    })
+
+    const { result } = renderHook(() => useAppeals())
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.appeals).toHaveLength(1)
+    expect(result.current.count).toBe(1)
+  })
+
+  it('falls back to an empty array (not undefined) on an unexpected response shape', async () => {
+    // Regression guard: before the PASS_20E fix, this assigned `undefined`
+    // to state with no fallback, which crashed AppealsPage's render at
+    // `appeals.length` — a blank white page with no error boundary.
+    apiGetMock.mockResolvedValue({
+      success: true,
+      data: undefined,
+      timestamp: '2026-01-01T00:00:00Z',
+    })
+
+    const { result } = renderHook(() => useAppeals())
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.appeals).toEqual([])
+    expect(() => result.current.appeals.length).not.toThrow()
+  })
+})

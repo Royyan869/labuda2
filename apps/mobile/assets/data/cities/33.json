@@ -1,0 +1,212 @@
+[
+  {
+    "id": "3304",
+    "name": "Kabupaten Banjarnegara",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3302",
+    "name": "Kabupaten Banyumas",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3325",
+    "name": "Kabupaten Batang",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3316",
+    "name": "Kabupaten Blora",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3309",
+    "name": "Kabupaten Boyolali",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3329",
+    "name": "Kabupaten Brebes",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3301",
+    "name": "Kabupaten Cilacap",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3321",
+    "name": "Kabupaten Demak",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3315",
+    "name": "Kabupaten Grobogan",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3320",
+    "name": "Kabupaten Jepara",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3313",
+    "name": "Kabupaten Karanganyar",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3305",
+    "name": "Kabupaten Kebumen",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3324",
+    "name": "Kabupaten Kendal",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3310",
+    "name": "Kabupaten Klaten",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3319",
+    "name": "Kabupaten Kudus",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3308",
+    "name": "Kabupaten Magelang",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3318",
+    "name": "Kabupaten Pati",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3326",
+    "name": "Kabupaten Pekalongan",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3327",
+    "name": "Kabupaten Pemalang",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3303",
+    "name": "Kabupaten Purbalingga",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3306",
+    "name": "Kabupaten Purworejo",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3317",
+    "name": "Kabupaten Rembang",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3322",
+    "name": "Kabupaten Semarang",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3314",
+    "name": "Kabupaten Sragen",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3311",
+    "name": "Kabupaten Sukoharjo",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3328",
+    "name": "Kabupaten Tegal",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3323",
+    "name": "Kabupaten Temanggung",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3312",
+    "name": "Kabupaten Wonogiri",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3307",
+    "name": "Kabupaten Wonosobo",
+    "provinceId": "33",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3371",
+    "name": "Kota Magelang",
+    "provinceId": "33",
+    "type": "kota"
+  },
+  {
+    "id": "3375",
+    "name": "Kota Pekalongan",
+    "provinceId": "33",
+    "type": "kota"
+  },
+  {
+    "id": "3373",
+    "name": "Kota Salatiga",
+    "provinceId": "33",
+    "type": "kota"
+  },
+  {
+    "id": "3374",
+    "name": "Kota Semarang",
+    "provinceId": "33",
+    "type": "kota"
+  },
+  {
+    "id": "3372",
+    "name": "Kota Surakarta",
+    "provinceId": "33",
+    "type": "kota"
+  },
+  {
+    "id": "3376",
+    "name": "Kota Tegal",
+    "provinceId": "33",
+    "type": "kota"
+  }
+]

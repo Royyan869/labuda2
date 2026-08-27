@@ -1,0 +1,71 @@
+# ---------------------------------------------------------------------------
+# Backend build context ignore rules (context root = backend/).
+#
+# Everything excluded here is NOT copied into the image. Keep only what is
+# needed to compile ./cmd/core_server and ./cmd/migrate and to run migrations
+# at runtime (go.mod, go.sum, source under internal/ pkg/ cmd/core_server
+# cmd/migrate, and migrations/).
+
+# Version control
+.git
+.gitignore
+
+# Local environment and secrets
+.env
+.env.*
+configs/
+**/*.json
+
+# Local binaries and build artifacts
+bin/
+dist/
+build/
+*.exe
+*.test
+*.out
+core_server.exe
+corpus_driver.exe
+migrate.exe
+seed.exe
+dev-reset-data.exe
+http.test.exe
+repository.test.exe
+application.test.exe
+
+# Logs and runtime artifacts
+*.log
+logs/
+tmp/
+temp/
+scenario_logs/
+audit_runs/
+backend-runtime.log
+.codex_*
+
+# Non-runtime command packages (never built into the image)
+cmd/corpus_driver/
+cmd/dev-reset-data/
+cmd/midtrans_sandbox_validation/
+cmd/recon_audit/
+cmd/seed/
+cmd/staging_rollout_ab/
+cmd/verify_partial_refund_semantics/
+cmd/worker_sql_alignment/
+
+# Local dev tooling, validation and test material
+scripts/
+validation/
+tests/
+memory/
+docs/
+tools/
+
+# IDE / OS metadata
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Docker build files (handled by Docker itself; not part of the image)
+Dockerfile
+.dockerignore

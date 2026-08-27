@@ -1,0 +1,50 @@
+[
+  {
+    "id": "9408",
+    "name": "Kabupaten Deiyai",
+    "provinceId": "94",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9406",
+    "name": "Kabupaten Dogiyai",
+    "provinceId": "94",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9407",
+    "name": "Kabupaten Intan Jaya",
+    "provinceId": "94",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9404",
+    "name": "Kabupaten Mimika",
+    "provinceId": "94",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9401",
+    "name": "Kabupaten Nabire",
+    "provinceId": "94",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9403",
+    "name": "Kabupaten Paniai",
+    "provinceId": "94",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9405",
+    "name": "Kabupaten Puncak",
+    "provinceId": "94",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9402",
+    "name": "Kabupaten Puncak Jaya",
+    "provinceId": "94",
+    "type": "kabupaten"
+  }
+]

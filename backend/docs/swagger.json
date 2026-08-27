@@ -1,0 +1,47 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Labuda Financial Core Backend API - Clean Architecture with DDD",
+        "title": "Labuda Core Backend API",
+        "termsOfService": "https://labuda.com/terms",
+        "contact": {
+            "name": "Labuda Support",
+            "url": "https://labuda.com/support",
+            "email": "support@labuda.com"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/api/v1",
+    "paths": {},
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Firebase ID Token (Bearer token). Format: \"Bearer \u003ctoken\u003e\". Obtain token from Firebase Auth after user signs in. Token is validated on each request.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    },
+    "tags": [
+        {
+            "description": "Health check endpoints",
+            "name": "health"
+        },
+        {
+            "description": "Payment processing with Midtrans",
+            "name": "payments"
+        },
+        {
+            "description": "Coin/Loyalty points management",
+            "name": "coins"
+        },
+        {
+            "description": "User management operations",
+            "name": "users"
+        }
+    ]
+}

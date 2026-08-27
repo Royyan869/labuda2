@@ -1,0 +1,1537 @@
+[
+  {
+    "id": "96.04.28.2009",
+    "name": "Ireji",
+    "district_id": "96.04.28"
+  },
+  {
+    "id": "96.04.28.2010",
+    "name": "Kasi Inom",
+    "district_id": "96.04.28"
+  },
+  {
+    "id": "96.04.28.2011",
+    "name": "Meycocforga",
+    "district_id": "96.04.28"
+  },
+  {
+    "id": "96.04.28.2012",
+    "name": "Meyomnar",
+    "district_id": "96.04.28"
+  },
+  {
+    "id": "96.04.29.2001",
+    "name": "Della",
+    "district_id": "96.04.29"
+  },
+  {
+    "id": "96.04.29.2002",
+    "name": "Malayauw",
+    "district_id": "96.04.29"
+  },
+  {
+    "id": "96.04.29.2003",
+    "name": "Klasbon",
+    "district_id": "96.04.29"
+  },
+  {
+    "id": "96.04.29.2004",
+    "name": "Klasei",
+    "district_id": "96.04.29"
+  },
+  {
+    "id": "96.04.29.2005",
+    "name": "Klabili",
+    "district_id": "96.04.29"
+  },
+  {
+    "id": "96.05.01.2001",
+    "name": "Kumurkek",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2002",
+    "name": "Susumuk",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2003",
+    "name": "Kokas",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2004",
+    "name": "Kocuas",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2005",
+    "name": "Kocuwer",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2006",
+    "name": "Bori",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2007",
+    "name": "Werjaya",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2008",
+    "name": "Tehahite",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2009",
+    "name": "Faitmayaf",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2010",
+    "name": "Aisyo",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2011",
+    "name": "Futon",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2012",
+    "name": "Sampika",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2013",
+    "name": "Martaim",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2014",
+    "name": "Frawebo",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2015",
+    "name": "Faitsawe",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2016",
+    "name": "Kocuwer Selatan",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2017",
+    "name": "Faitmayaf Barat",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2018",
+    "name": "Sikof",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2019",
+    "name": "Bori Timur",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2020",
+    "name": "Kumurkek Barat",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2021",
+    "name": "Ainod",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2022",
+    "name": "Kocuas Utara",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.01.2023",
+    "name": "Sunei",
+    "district_id": "96.05.01"
+  },
+  {
+    "id": "96.05.02.2001",
+    "name": "Ayawasi",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2002",
+    "name": "Ayawasi Selatan",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2003",
+    "name": "Ayawasi Timur",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2004",
+    "name": "Susai",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2005",
+    "name": "Fonatu",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2006",
+    "name": "Mosun",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2007",
+    "name": "Wayane",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2008",
+    "name": "Konja",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2009",
+    "name": "Yarat",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2010",
+    "name": "Man",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2011",
+    "name": "Howait",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2012",
+    "name": "Haenkanes",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2013",
+    "name": "Konja Barat",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2014",
+    "name": "Yarat Timur",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2015",
+    "name": "Raha",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2016",
+    "name": "Mowes",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2017",
+    "name": "Irata",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2018",
+    "name": "Neset",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2019",
+    "name": "Mosun Timur",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.02.2020",
+    "name": "Mosun Utara",
+    "district_id": "96.05.02"
+  },
+  {
+    "id": "96.05.03.2001",
+    "name": "Aisa",
+    "district_id": "96.05.03"
+  },
+  {
+    "id": "96.05.03.2002",
+    "name": "Aikrer",
+    "district_id": "96.05.03"
+  },
+  {
+    "id": "96.05.03.2003",
+    "name": "Aitrem",
+    "district_id": "96.05.03"
+  },
+  {
+    "id": "96.05.03.2004",
+    "name": "Sawin",
+    "district_id": "96.05.03"
+  },
+  {
+    "id": "96.05.03.2005",
+    "name": "Sahbuku",
+    "district_id": "96.05.03"
+  },
+  {
+    "id": "96.05.03.2006",
+    "name": "Sasior Frabuku",
+    "district_id": "96.05.03"
+  },
+  {
+    "id": "96.05.03.2007",
+    "name": "Wakom",
+    "district_id": "96.05.03"
+  },
+  {
+    "id": "96.05.03.2008",
+    "name": "Sanem",
+    "district_id": "96.05.03"
+  },
+  {
+    "id": "96.05.03.2009",
+    "name": "Buoh Sa",
+    "district_id": "96.05.03"
+  },
+  {
+    "id": "96.05.04.2001",
+    "name": "Kisor",
+    "district_id": "96.05.04"
+  },
+  {
+    "id": "96.05.04.2002",
+    "name": "Sorry",
+    "district_id": "96.05.04"
+  },
+  {
+    "id": "96.05.04.2003",
+    "name": "Imsun",
+    "district_id": "96.05.04"
+  },
+  {
+    "id": "96.05.04.2004",
+    "name": "Sabah",
+    "district_id": "96.05.04"
+  },
+  {
+    "id": "96.05.04.2005",
+    "name": "Tahsimara",
+    "district_id": "96.05.04"
+  },
+  {
+    "id": "96.05.04.2006",
+    "name": "Fuog",
+    "district_id": "96.05.04"
+  },
+  {
+    "id": "96.05.04.2007",
+    "name": "Asiaf Saman",
+    "district_id": "96.05.04"
+  },
+  {
+    "id": "96.05.04.2008",
+    "name": "Hora Iek",
+    "district_id": "96.05.04"
+  },
+  {
+    "id": "96.05.04.2009",
+    "name": "Fuog Selatan",
+    "district_id": "96.05.04"
+  },
+  {
+    "id": "96.05.04.2010",
+    "name": "Same Rakator",
+    "district_id": "96.05.04"
+  },
+  {
+    "id": "96.05.04.2011",
+    "name": "Roma",
+    "district_id": "96.05.04"
+  },
+  {
+    "id": "96.05.04.2012",
+    "name": "Krus",
+    "district_id": "96.05.04"
+  },
+  {
+    "id": "96.05.04.2013",
+    "name": "Awet Main",
+    "district_id": "96.05.04"
+  },
+  {
+    "id": "96.05.04.2014",
+    "name": "Yeek",
+    "district_id": "96.05.04"
+  },
+  {
+    "id": "96.05.04.2015",
+    "name": "Kaitana",
+    "district_id": "96.05.04"
+  },
+  {
+    "id": "96.05.04.2016",
+    "name": "Tolak",
+    "district_id": "96.05.04"
+  },
+  {
+    "id": "96.05.05.2001",
+    "name": "Kambufatem",
+    "district_id": "96.05.05"
+  },
+  {
+    "id": "96.05.05.2002",
+    "name": "Kambufatem Utara",
+    "district_id": "96.05.05"
+  },
+  {
+    "id": "96.05.05.2003",
+    "name": "Fatase",
+    "district_id": "96.05.05"
+  },
+  {
+    "id": "96.05.05.2004",
+    "name": "Hosyo Ata",
+    "district_id": "96.05.05"
+  },
+  {
+    "id": "96.05.05.2005",
+    "name": "Waybomatah",
+    "district_id": "96.05.05"
+  },
+  {
+    "id": "96.05.05.2006",
+    "name": "Siyo",
+    "district_id": "96.05.05"
+  },
+  {
+    "id": "96.05.05.2007",
+    "name": "Hasweh",
+    "district_id": "96.05.05"
+  },
+  {
+    "id": "96.05.05.2008",
+    "name": "Fatem",
+    "district_id": "96.05.05"
+  },
+  {
+    "id": "96.05.05.2009",
+    "name": "Hosyo Banah",
+    "district_id": "96.05.05"
+  },
+  {
+    "id": "96.05.06.2001",
+    "name": "Aitinyo",
+    "district_id": "96.05.06"
+  },
+  {
+    "id": "96.05.06.2002",
+    "name": "Irohe",
+    "district_id": "96.05.06"
+  },
+  {
+    "id": "96.05.06.2003",
+    "name": "Sris",
+    "district_id": "96.05.06"
+  },
+  {
+    "id": "96.05.06.2004",
+    "name": "Kamro",
+    "district_id": "96.05.06"
+  },
+  {
+    "id": "96.05.06.2005",
+    "name": "Karsu",
+    "district_id": "96.05.06"
+  },
+  {
+    "id": "96.05.06.2006",
+    "name": "Tehak Kecil",
+    "district_id": "96.05.06"
+  },
+  {
+    "id": "96.05.06.2007",
+    "name": "Sira Aya",
+    "district_id": "96.05.06"
+  },
+  {
+    "id": "96.05.06.2008",
+    "name": "Korom",
+    "district_id": "96.05.06"
+  },
+  {
+    "id": "96.05.06.2009",
+    "name": "Sumanis",
+    "district_id": "96.05.06"
+  },
+  {
+    "id": "96.05.06.2010",
+    "name": "Ibasuf",
+    "district_id": "96.05.06"
+  },
+  {
+    "id": "96.05.06.2011",
+    "name": "Sowai Sau",
+    "district_id": "96.05.06"
+  },
+  {
+    "id": "96.05.06.2012",
+    "name": "Subin",
+    "district_id": "96.05.06"
+  },
+  {
+    "id": "96.05.06.2013",
+    "name": "Irohmrar",
+    "district_id": "96.05.06"
+  },
+  {
+    "id": "96.05.06.2014",
+    "name": "Bofait",
+    "district_id": "96.05.06"
+  },
+  {
+    "id": "96.05.06.2015",
+    "name": "Afkrem",
+    "district_id": "96.05.06"
+  },
+  {
+    "id": "96.05.06.2016",
+    "name": "Wiho",
+    "district_id": "96.05.06"
+  },
+  {
+    "id": "96.05.06.2017",
+    "name": "Kamro Selatan",
+    "district_id": "96.05.06"
+  },
+  {
+    "id": "96.05.07.2001",
+    "name": "Fategomi",
+    "district_id": "96.05.07"
+  },
+  {
+    "id": "96.05.07.2002",
+    "name": "Tehak Besar",
+    "district_id": "96.05.07"
+  },
+  {
+    "id": "96.05.07.2003",
+    "name": "Fan",
+    "district_id": "96.05.07"
+  },
+  {
+    "id": "96.05.07.2004",
+    "name": "Gohsames",
+    "district_id": "96.05.07"
+  },
+  {
+    "id": "96.05.07.2005",
+    "name": "Asmuruf U",
+    "district_id": "96.05.07"
+  },
+  {
+    "id": "96.05.07.2006",
+    "name": "Mirafaan",
+    "district_id": "96.05.07"
+  },
+  {
+    "id": "96.05.07.2007",
+    "name": "Asmuruf Tee",
+    "district_id": "96.05.07"
+  },
+  {
+    "id": "96.05.07.2008",
+    "name": "Tehak Tee",
+    "district_id": "96.05.07"
+  },
+  {
+    "id": "96.05.07.2009",
+    "name": "Framafir",
+    "district_id": "96.05.07"
+  },
+  {
+    "id": "96.05.07.2010",
+    "name": "Subrit",
+    "district_id": "96.05.07"
+  },
+  {
+    "id": "96.05.07.2011",
+    "name": "Inta",
+    "district_id": "96.05.07"
+  },
+  {
+    "id": "96.05.07.2012",
+    "name": "Bahwat",
+    "district_id": "96.05.07"
+  },
+  {
+    "id": "96.05.08.1001",
+    "name": "Ayamaru",
+    "district_id": "96.05.08"
+  },
+  {
+    "id": "96.05.08.2002",
+    "name": "Framu",
+    "district_id": "96.05.08"
+  },
+  {
+    "id": "96.05.08.2003",
+    "name": "Mefkajim II",
+    "district_id": "96.05.08"
+  },
+  {
+    "id": "96.05.08.2004",
+    "name": "Fraharo",
+    "district_id": "96.05.08"
+  },
+  {
+    "id": "96.05.08.2005",
+    "name": "Smusswioh",
+    "district_id": "96.05.08"
+  },
+  {
+    "id": "96.05.08.2006",
+    "name": "Twer",
+    "district_id": "96.05.08"
+  },
+  {
+    "id": "96.05.08.2007",
+    "name": "Afes",
+    "district_id": "96.05.08"
+  },
+  {
+    "id": "96.05.08.2008",
+    "name": "Tuso",
+    "district_id": "96.05.08"
+  },
+  {
+    "id": "96.05.09.2001",
+    "name": "Yubiah",
+    "district_id": "96.05.09"
+  },
+  {
+    "id": "96.05.09.2002",
+    "name": "Karetubun",
+    "district_id": "96.05.09"
+  },
+  {
+    "id": "96.05.09.2003",
+    "name": "Setta",
+    "district_id": "96.05.09"
+  },
+  {
+    "id": "96.05.09.2004",
+    "name": "Hohoyor",
+    "district_id": "96.05.09"
+  },
+  {
+    "id": "96.05.09.2005",
+    "name": "Arne",
+    "district_id": "96.05.09"
+  },
+  {
+    "id": "96.05.09.2006",
+    "name": "Aus Tiwit",
+    "district_id": "96.05.09"
+  },
+  {
+    "id": "96.05.09.2007",
+    "name": "Johafah",
+    "district_id": "96.05.09"
+  },
+  {
+    "id": "96.05.09.2008",
+    "name": "Yukase",
+    "district_id": "96.05.09"
+  },
+  {
+    "id": "96.05.09.2009",
+    "name": "Serma",
+    "district_id": "96.05.09"
+  },
+  {
+    "id": "96.05.09.2010",
+    "name": "Kfaa",
+    "district_id": "96.05.09"
+  },
+  {
+    "id": "96.05.09.2011",
+    "name": "Arne Timur",
+    "district_id": "96.05.09"
+  },
+  {
+    "id": "96.05.09.2012",
+    "name": "Nauwita",
+    "district_id": "96.05.09"
+  },
+  {
+    "id": "96.05.10.2001",
+    "name": "Kambuaya",
+    "district_id": "96.05.10"
+  },
+  {
+    "id": "96.05.10.2002",
+    "name": "Huberita",
+    "district_id": "96.05.10"
+  },
+  {
+    "id": "96.05.10.2003",
+    "name": "Faitmajin",
+    "district_id": "96.05.10"
+  },
+  {
+    "id": "96.05.10.2004",
+    "name": "Ismayo",
+    "district_id": "96.05.10"
+  },
+  {
+    "id": "96.05.10.2005",
+    "name": "Sefayit",
+    "district_id": "96.05.10"
+  },
+  {
+    "id": "96.05.10.2006",
+    "name": "Insas",
+    "district_id": "96.05.10"
+  },
+  {
+    "id": "96.05.10.2007",
+    "name": "Faitsiur",
+    "district_id": "96.05.10"
+  },
+  {
+    "id": "96.05.10.2008",
+    "name": "Keyum",
+    "district_id": "96.05.10"
+  },
+  {
+    "id": "96.05.11.2001",
+    "name": "Suswa",
+    "district_id": "96.05.11"
+  },
+  {
+    "id": "96.05.11.2002",
+    "name": "Seya",
+    "district_id": "96.05.11"
+  },
+  {
+    "id": "96.05.11.2003",
+    "name": "Waban",
+    "district_id": "96.05.11"
+  },
+  {
+    "id": "96.05.11.2004",
+    "name": "Kombif",
+    "district_id": "96.05.11"
+  },
+  {
+    "id": "96.05.11.2005",
+    "name": "Rufases",
+    "district_id": "96.05.11"
+  },
+  {
+    "id": "96.05.11.2006",
+    "name": "Bakrabi",
+    "district_id": "96.05.11"
+  },
+  {
+    "id": "96.05.11.2007",
+    "name": "Nafasi",
+    "district_id": "96.05.11"
+  },
+  {
+    "id": "96.05.11.2008",
+    "name": "Mahos",
+    "district_id": "96.05.11"
+  },
+  {
+    "id": "96.05.11.2009",
+    "name": "Sawo",
+    "district_id": "96.05.11"
+  },
+  {
+    "id": "96.05.12.2001",
+    "name": "Mupas",
+    "district_id": "96.05.12"
+  },
+  {
+    "id": "96.05.12.2002",
+    "name": "Kamat",
+    "district_id": "96.05.12"
+  },
+  {
+    "id": "96.05.12.2003",
+    "name": "Frambu",
+    "district_id": "96.05.12"
+  },
+  {
+    "id": "96.05.12.2004",
+    "name": "Ayata",
+    "district_id": "96.05.12"
+  },
+  {
+    "id": "96.05.12.2005",
+    "name": "Aikus",
+    "district_id": "96.05.12"
+  },
+  {
+    "id": "96.05.12.2006",
+    "name": "Aiwesa",
+    "district_id": "96.05.12"
+  },
+  {
+    "id": "96.05.12.2007",
+    "name": "Pitor",
+    "district_id": "96.05.12"
+  },
+  {
+    "id": "96.05.12.2008",
+    "name": "Aifam",
+    "district_id": "96.05.12"
+  },
+  {
+    "id": "96.05.12.2009",
+    "name": "Saud",
+    "district_id": "96.05.12"
+  },
+  {
+    "id": "96.05.12.2010",
+    "name": "Tiam",
+    "district_id": "96.05.12"
+  },
+  {
+    "id": "96.05.12.2011",
+    "name": "Faan Kahrio",
+    "district_id": "96.05.12"
+  },
+  {
+    "id": "96.05.12.2012",
+    "name": "Assem",
+    "district_id": "96.05.12"
+  },
+  {
+    "id": "96.05.13.2001",
+    "name": "Ainesra",
+    "district_id": "96.05.13"
+  },
+  {
+    "id": "96.05.13.2002",
+    "name": "Aimau",
+    "district_id": "96.05.13"
+  },
+  {
+    "id": "96.05.13.2003",
+    "name": "Mesyam",
+    "district_id": "96.05.13"
+  },
+  {
+    "id": "96.05.13.2004",
+    "name": "Aisasior",
+    "district_id": "96.05.13"
+  },
+  {
+    "id": "96.05.13.2005",
+    "name": "Franeway",
+    "district_id": "96.05.13"
+  },
+  {
+    "id": "96.05.13.2006",
+    "name": "Aikingging",
+    "district_id": "96.05.13"
+  },
+  {
+    "id": "96.05.13.2007",
+    "name": "Tiefromen",
+    "district_id": "96.05.13"
+  },
+  {
+    "id": "96.05.14.2001",
+    "name": "Wormu",
+    "district_id": "96.05.14"
+  },
+  {
+    "id": "96.05.14.2002",
+    "name": "Makiri",
+    "district_id": "96.05.14"
+  },
+  {
+    "id": "96.05.14.2003",
+    "name": "Warba",
+    "district_id": "96.05.14"
+  },
+  {
+    "id": "96.05.14.2004",
+    "name": "Winuni",
+    "district_id": "96.05.14"
+  },
+  {
+    "id": "96.05.14.2005",
+    "name": "Srumate",
+    "district_id": "96.05.14"
+  },
+  {
+    "id": "96.05.14.2006",
+    "name": "Womba",
+    "district_id": "96.05.14"
+  },
+  {
+    "id": "96.05.15.2001",
+    "name": "Sauf",
+    "district_id": "96.05.15"
+  },
+  {
+    "id": "96.05.15.2002",
+    "name": "Sembaro",
+    "district_id": "96.05.15"
+  },
+  {
+    "id": "96.05.15.2003",
+    "name": "Koma Koma",
+    "district_id": "96.05.15"
+  },
+  {
+    "id": "96.05.15.2004",
+    "name": "Kanisabar",
+    "district_id": "96.05.15"
+  },
+  {
+    "id": "96.05.15.2005",
+    "name": "Sfarare",
+    "district_id": "96.05.15"
+  },
+  {
+    "id": "96.05.15.2006",
+    "name": "Saneh",
+    "district_id": "96.05.15"
+  },
+  {
+    "id": "96.05.15.2007",
+    "name": "Lemauk Klit",
+    "district_id": "96.05.15"
+  },
+  {
+    "id": "96.05.15.2008",
+    "name": "Hawioh",
+    "district_id": "96.05.15"
+  },
+  {
+    "id": "96.05.15.2009",
+    "name": "Simiyah",
+    "district_id": "96.05.15"
+  },
+  {
+    "id": "96.05.15.2010",
+    "name": "Sagrim",
+    "district_id": "96.05.15"
+  },
+  {
+    "id": "96.05.16.2001",
+    "name": "Adoh",
+    "district_id": "96.05.16"
+  },
+  {
+    "id": "96.05.16.2002",
+    "name": "Temel",
+    "district_id": "96.05.16"
+  },
+  {
+    "id": "96.05.16.2003",
+    "name": "Sosian",
+    "district_id": "96.05.16"
+  },
+  {
+    "id": "96.05.16.2004",
+    "name": "Segior",
+    "district_id": "96.05.16"
+  },
+  {
+    "id": "96.05.16.2005",
+    "name": "Orain",
+    "district_id": "96.05.16"
+  },
+  {
+    "id": "96.05.16.2006",
+    "name": "Rawas",
+    "district_id": "96.05.16"
+  },
+  {
+    "id": "96.05.16.2007",
+    "name": "Orsu",
+    "district_id": "96.05.16"
+  },
+  {
+    "id": "96.05.16.2008",
+    "name": "Soan",
+    "district_id": "96.05.16"
+  },
+  {
+    "id": "96.05.16.2009",
+    "name": "Warbo",
+    "district_id": "96.05.16"
+  },
+  {
+    "id": "96.05.16.2010",
+    "name": "Woman",
+    "district_id": "96.05.16"
+  },
+  {
+    "id": "96.05.17.2001",
+    "name": "Faitsimar",
+    "district_id": "96.05.17"
+  },
+  {
+    "id": "96.05.17.2002",
+    "name": "Asses",
+    "district_id": "96.05.17"
+  },
+  {
+    "id": "96.05.17.2003",
+    "name": "Fait Nigre",
+    "district_id": "96.05.17"
+  },
+  {
+    "id": "96.05.17.2004",
+    "name": "Sufu",
+    "district_id": "96.05.17"
+  },
+  {
+    "id": "96.05.17.2005",
+    "name": "Arus",
+    "district_id": "96.05.17"
+  },
+  {
+    "id": "96.05.17.2006",
+    "name": "Kofait",
+    "district_id": "96.05.17"
+  },
+  {
+    "id": "96.05.17.2007",
+    "name": "Isnum",
+    "district_id": "96.05.17"
+  },
+  {
+    "id": "96.05.18.2001",
+    "name": "Kambuskato",
+    "district_id": "96.05.18"
+  },
+  {
+    "id": "96.05.18.2002",
+    "name": "Kambuskato Utara",
+    "district_id": "96.05.18"
+  },
+  {
+    "id": "96.05.18.2003",
+    "name": "Kambuifa",
+    "district_id": "96.05.18"
+  },
+  {
+    "id": "96.05.18.2004",
+    "name": "Isusu",
+    "district_id": "96.05.18"
+  },
+  {
+    "id": "96.05.18.2005",
+    "name": "Mano",
+    "district_id": "96.05.18"
+  },
+  {
+    "id": "96.05.18.2006",
+    "name": "Sipat",
+    "district_id": "96.05.18"
+  },
+  {
+    "id": "96.05.18.2007",
+    "name": "Faitwosur/Angkasa Pura",
+    "district_id": "96.05.18"
+  },
+  {
+    "id": "96.05.19.2001",
+    "name": "Mapura",
+    "district_id": "96.05.19"
+  },
+  {
+    "id": "96.05.19.2002",
+    "name": "Suwiam",
+    "district_id": "96.05.19"
+  },
+  {
+    "id": "96.05.19.2003",
+    "name": "Tomase",
+    "district_id": "96.05.19"
+  },
+  {
+    "id": "96.05.19.2004",
+    "name": "Frabo",
+    "district_id": "96.05.19"
+  },
+  {
+    "id": "96.05.19.2005",
+    "name": "Karfa",
+    "district_id": "96.05.19"
+  },
+  {
+    "id": "96.05.19.2006",
+    "name": "Kona",
+    "district_id": "96.05.19"
+  },
+  {
+    "id": "96.05.19.2007",
+    "name": "Kosah",
+    "district_id": "96.05.19"
+  },
+  {
+    "id": "96.05.20.2001",
+    "name": "Fiane",
+    "district_id": "96.05.20"
+  },
+  {
+    "id": "96.05.20.2002",
+    "name": "Kartapura",
+    "district_id": "96.05.20"
+  },
+  {
+    "id": "96.05.20.2003",
+    "name": "Men",
+    "district_id": "96.05.20"
+  },
+  {
+    "id": "96.05.20.2004",
+    "name": "Semu",
+    "district_id": "96.05.20"
+  },
+  {
+    "id": "96.05.20.2005",
+    "name": "Isme",
+    "district_id": "96.05.20"
+  },
+  {
+    "id": "96.05.20.2006",
+    "name": "Rindu",
+    "district_id": "96.05.20"
+  },
+  {
+    "id": "96.05.20.2007",
+    "name": "Tut",
+    "district_id": "96.05.20"
+  },
+  {
+    "id": "96.05.20.2008",
+    "name": "Yohwer",
+    "district_id": "96.05.20"
+  },
+  {
+    "id": "96.05.20.2009",
+    "name": "Hufioh",
+    "district_id": "96.05.20"
+  },
+  {
+    "id": "96.05.20.2010",
+    "name": "Bawy",
+    "district_id": "96.05.20"
+  },
+  {
+    "id": "96.05.21.2001",
+    "name": "Soroan",
+    "district_id": "96.05.21"
+  },
+  {
+    "id": "96.05.21.2002",
+    "name": "Fanse",
+    "district_id": "96.05.21"
+  },
+  {
+    "id": "96.05.21.2003",
+    "name": "Chaliat",
+    "district_id": "96.05.21"
+  },
+  {
+    "id": "96.05.21.2004",
+    "name": "Sfacko",
+    "district_id": "96.05.21"
+  },
+  {
+    "id": "96.05.21.2005",
+    "name": "Sehu",
+    "district_id": "96.05.21"
+  },
+  {
+    "id": "96.05.21.2006",
+    "name": "Tbo",
+    "district_id": "96.05.21"
+  },
+  {
+    "id": "96.05.21.2007",
+    "name": "Sien",
+    "district_id": "96.05.21"
+  },
+  {
+    "id": "96.05.21.2008",
+    "name": "Sfaraka",
+    "district_id": "96.05.21"
+  },
+  {
+    "id": "96.05.22.2001",
+    "name": "Yaksoro",
+    "district_id": "96.05.22"
+  },
+  {
+    "id": "96.05.22.2002",
+    "name": "Awit",
+    "district_id": "96.05.22"
+  },
+  {
+    "id": "96.05.22.2003",
+    "name": "Sira",
+    "district_id": "96.05.22"
+  },
+  {
+    "id": "96.05.22.2004",
+    "name": "Eway",
+    "district_id": "96.05.22"
+  },
+  {
+    "id": "96.05.22.2005",
+    "name": "Erokwero",
+    "district_id": "96.05.22"
+  },
+  {
+    "id": "96.05.22.2006",
+    "name": "Sabun",
+    "district_id": "96.05.22"
+  },
+  {
+    "id": "96.05.22.2007",
+    "name": "Itigah",
+    "district_id": "96.05.22"
+  },
+  {
+    "id": "96.05.22.2008",
+    "name": "Sira Tee",
+    "district_id": "96.05.22"
+  },
+  {
+    "id": "96.05.22.2011",
+    "name": "Asnaif",
+    "district_id": "96.05.22"
+  },
+  {
+    "id": "96.05.22.2012",
+    "name": "Iroh Sohser",
+    "district_id": "96.05.22"
+  },
+  {
+    "id": "96.05.22.2013",
+    "name": "Framboh",
+    "district_id": "96.05.22"
+  },
+  {
+    "id": "96.05.22.2014",
+    "name": "Tohmri",
+    "district_id": "96.05.22"
+  },
+  {
+    "id": "96.05.23.2001",
+    "name": "Jitmau",
+    "district_id": "96.05.23"
+  },
+  {
+    "id": "96.05.23.2002",
+    "name": "Ikuf",
+    "district_id": "96.05.23"
+  },
+  {
+    "id": "96.05.23.2003",
+    "name": "Isir",
+    "district_id": "96.05.23"
+  },
+  {
+    "id": "96.05.23.2004",
+    "name": "Jitmau Timur",
+    "district_id": "96.05.23"
+  },
+  {
+    "id": "96.05.23.2005",
+    "name": "Ikuf Utara",
+    "district_id": "96.05.23"
+  },
+  {
+    "id": "96.05.23.2006",
+    "name": "Sarimo",
+    "district_id": "96.05.23"
+  },
+  {
+    "id": "96.05.23.2007",
+    "name": "Kambusabo",
+    "district_id": "96.05.23"
+  },
+  {
+    "id": "96.05.23.2008",
+    "name": "Srirtabam",
+    "district_id": "96.05.23"
+  },
+  {
+    "id": "96.05.23.2009",
+    "name": "Faithowes",
+    "district_id": "96.05.23"
+  },
+  {
+    "id": "96.05.23.2010",
+    "name": "Yumame",
+    "district_id": "96.05.23"
+  },
+  {
+    "id": "96.05.24.2001",
+    "name": "Seni",
+    "district_id": "96.05.24"
+  },
+  {
+    "id": "96.05.24.2002",
+    "name": "Renis",
+    "district_id": "96.05.24"
+  },
+  {
+    "id": "96.05.24.2003",
+    "name": "Sire",
+    "district_id": "96.05.24"
+  },
+  {
+    "id": "96.05.24.2004",
+    "name": "Fase",
+    "district_id": "96.05.24"
+  },
+  {
+    "id": "96.05.24.2005",
+    "name": "Sabes",
+    "district_id": "96.05.24"
+  },
+  {
+    "id": "96.05.24.2006",
+    "name": "Kuraso",
+    "district_id": "96.05.24"
+  },
+  {
+    "id": "96.05.24.2007",
+    "name": "Sidi",
+    "district_id": "96.05.24"
+  },
+  {
+    "id": "96.05.24.2008",
+    "name": "Osom",
+    "district_id": "96.05.24"
+  },
+  {
+    "id": "96.05.24.2009",
+    "name": "Sire Timur",
+    "district_id": "96.05.24"
+  },
+  {
+    "id": "96.71.01.1001",
+    "name": "Remu Utara",
+    "district_id": "96.71.01"
+  },
+  {
+    "id": "96.71.01.1002",
+    "name": "Klademak",
+    "district_id": "96.71.01"
+  },
+  {
+    "id": "96.71.01.1003",
+    "name": "Kofkerbu",
+    "district_id": "96.71.01"
+  },
+  {
+    "id": "96.71.01.1004",
+    "name": "Remu",
+    "district_id": "96.71.01"
+  },
+  {
+    "id": "96.71.02.1001",
+    "name": "Klawalu",
+    "district_id": "96.71.02"
+  },
+  {
+    "id": "96.71.02.1002",
+    "name": "Klamana",
+    "district_id": "96.71.02"
+  },
+  {
+    "id": "96.71.02.1003",
+    "name": "Klawuyuk",
+    "district_id": "96.71.02"
+  },
+  {
+    "id": "96.71.02.1004",
+    "name": "Kladufu",
+    "district_id": "96.71.02"
+  },
+  {
+    "id": "96.71.03.1001",
+    "name": "Rufei",
+    "district_id": "96.71.03"
+  },
+  {
+    "id": "96.71.03.1002",
+    "name": "Klawasi",
+    "district_id": "96.71.03"
+  },
+  {
+    "id": "96.71.03.1003",
+    "name": "Puncak Cendrawasih",
+    "district_id": "96.71.03"
+  },
+  {
+    "id": "96.71.03.1004",
+    "name": "Pal Putih",
+    "district_id": "96.71.03"
+  },
+  {
+    "id": "96.71.04.1001",
+    "name": "Dum Barat",
+    "district_id": "96.71.04"
+  },
+  {
+    "id": "96.71.04.1002",
+    "name": "Dum Timur",
+    "district_id": "96.71.04"
+  },
+  {
+    "id": "96.71.04.1003",
+    "name": "Soop",
+    "district_id": "96.71.04"
+  },
+  {
+    "id": "96.71.04.1004",
+    "name": "Raam",
+    "district_id": "96.71.04"
+  },
+  {
+    "id": "96.71.05.1001",
+    "name": "Malanu",
+    "district_id": "96.71.05"
+  },
+  {
+    "id": "96.71.05.1002",
+    "name": "Malasilen",
+    "district_id": "96.71.05"
+  },
+  {
+    "id": "96.71.05.1003",
+    "name": "Matalamagi",
+    "district_id": "96.71.05"
+  },
+  {
+    "id": "96.71.05.1004",
+    "name": "Sawagumu",
+    "district_id": "96.71.05"
+  },
+  {
+    "id": "96.71.06.1001",
+    "name": "Klaligi",
+    "district_id": "96.71.06"
+  },
+  {
+    "id": "96.71.06.1002",
+    "name": "Malawei",
+    "district_id": "96.71.06"
+  },
+  {
+    "id": "96.71.06.1003",
+    "name": "Malabutor",
+    "district_id": "96.71.06"
+  },
+  {
+    "id": "96.71.06.1004",
+    "name": "Remu Selatan",
+    "district_id": "96.71.06"
+  },
+  {
+    "id": "96.71.06.1005",
+    "name": "Klasabi",
+    "district_id": "96.71.06"
+  },
+  {
+    "id": "96.71.07.1001",
+    "name": "Kampung Baru",
+    "district_id": "96.71.07"
+  },
+  {
+    "id": "96.71.07.1002",
+    "name": "Klabala",
+    "district_id": "96.71.07"
+  },
+  {
+    "id": "96.71.07.1003",
+    "name": "Klasuur",
+    "district_id": "96.71.07"
+  },
+  {
+    "id": "96.71.07.1004",
+    "name": "Klakublik",
+    "district_id": "96.71.07"
+  },
+  {
+    "id": "96.71.08.1001",
+    "name": "Klasuat",
+    "district_id": "96.71.08"
+  },
+  {
+    "id": "96.71.08.1002",
+    "name": "Klablim",
+    "district_id": "96.71.08"
+  },
+  {
+    "id": "96.71.08.1003",
+    "name": "Klasaman",
+    "district_id": "96.71.08"
+  },
+  {
+    "id": "96.71.08.1004",
+    "name": "Giwu",
+    "district_id": "96.71.08"
+  },
+  {
+    "id": "96.71.09.1001",
+    "name": "Klagete",
+    "district_id": "96.71.09"
+  },
+  {
+    "id": "96.71.09.1002",
+    "name": "Malaingkedi",
+    "district_id": "96.71.09"
+  },
+  {
+    "id": "96.71.09.1003",
+    "name": "Malamso",
+    "district_id": "96.71.09"
+  },
+  {
+    "id": "96.71.09.1004",
+    "name": "Klabulu",
+    "district_id": "96.71.09"
+  },
+  {
+    "id": "96.71.10.1001",
+    "name": "Suprau",
+    "district_id": "96.71.10"
+  },
+  {
+    "id": "96.71.10.1002",
+    "name": "Tampa Garam",
+    "district_id": "96.71.10"
+  },
+  {
+    "id": "96.71.10.1003",
+    "name": "Saoka",
+    "district_id": "96.71.10"
+  }
+]

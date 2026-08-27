@@ -1,0 +1,56 @@
+[
+  {
+    "id": "5103",
+    "name": "Kabupaten Badung",
+    "provinceId": "51",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5106",
+    "name": "Kabupaten Bangli",
+    "provinceId": "51",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5108",
+    "name": "Kabupaten Buleleng",
+    "provinceId": "51",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5104",
+    "name": "Kabupaten Gianyar",
+    "provinceId": "51",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5101",
+    "name": "Kabupaten Jembrana",
+    "provinceId": "51",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5107",
+    "name": "Kabupaten Karangasem",
+    "provinceId": "51",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5105",
+    "name": "Kabupaten Klungkung",
+    "provinceId": "51",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5102",
+    "name": "Kabupaten Tabanan",
+    "provinceId": "51",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5171",
+    "name": "Kota Denpasar",
+    "provinceId": "51",
+    "type": "kota"
+  }
+]

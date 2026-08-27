@@ -1,0 +1,96 @@
+# Prometheus configuration for Phase C search shadow observation window.
+#
+# Purpose: Scrape the labuda backend /metrics endpoint to collect
+# search_shadow_* telemetry during the Phase C observation window for
+# /search/content shadow telemetry baseline establishment.
+#
+# Scope: LOCAL OBSERVATION ONLY. This file is not for production use.
+# Targets localhost only. No alerting rules — observation only.
+#
+# Usage:
+#   prometheus --config.file=ops/prometheus/prometheus.phase-c-search-shadow.yml
+#
+# Prerequisites:
+#   1. Backend running on localhost:8080 (go run ./cmd/core_server/)
+#   2. Prometheus binary available in PATH
+#
+# The backend exposes /metrics on the same port as the API (8080) with
+# no authentication required (routes_core.go:57).
+
+global:
+  # 15s scrape interval gives adequate resolution for the Phase C
+  # observation window without excessive storage overhead on a local
+  # development machine. The shadow runner is fire-and-forget (goroutine
+  # per request), so counter increments land within milliseconds of the
+  # request completing.
+  scrape_interval: 15s
+
+  # Evaluation interval for any future recording rules. Matches scrape
+  # interval for simplicity.
+  evaluation_interval: 15s
+
+  # Per-scrape timeout. Backend /metrics endpoint is in-process
+  # (promauto registry) — 5s is more than sufficient.
+  scrape_timeout: 5s
+
+  # External labels attached to all scraped metrics. Allows distinguishing
+  # this local observation scrape from any future production or staging
+  # scrape if Prometheus federation is ever introduced.
+  external_labels:
+    environment: "local_phase_c_observation"
+    observation_window: "search_content_shadow_baseline"
+
+# No alerting rules file during Phase C. Observation only.
+# rule_files: []
+
+# No Alertmanager. Local observation only.
+# alerting: {}
+
+scrape_configs:
+  # =========================================================================
+  # labuda-backend: scrapes the backend /metrics endpoint
+  # =========================================================================
+  - job_name: "labuda-backend"
+
+    # Static target: localhost:8080/metrics
+    # The backend exposes /metrics on the main API port (PORT=8080 per .env).
+    # No authentication required — the /metrics route is registered outside
+    # the /api/v1 authenticated group (routes_core.go:57).
+    static_configs:
+      - targets:
+          - "host.docker.internal:8080"
+        labels:
+          service: "labuda-backend"
+          phase: "phase_c_shadow_observability"
+
+    # Metrics path: /metrics (Prometheus default; backend uses promhttp.Handler)
+    metrics_path: /metrics
+
+    # HTTP scheme: http (backend is plain HTTP in local development)
+    scheme: http
+
+    # Per-target scrape timeout (overrides global if shorter)
+    scrape_timeout: 5s
+
+    # Per-target scrape interval (inherits global 15s)
+    # scrape_interval: 15s  # uncomment to override
+
+    # Honor labels from the scraped endpoint (allow backend to set its own labels)
+    honor_labels: false
+
+    # Relabeling: keep only search_shadow_* metrics and standard Go/process
+    # metrics for local observation. This reduces storage overhead during the
+    # observation window without dropping any metrics needed for analysis.
+    #
+    # To capture ALL metrics (no filtering), comment out this metric_relabel_configs
+    # block entirely.
+    #
+    # IMPORTANT: Multiple sequential `keep` rules behave as AND, not OR.
+    # Each `keep` rule drops metrics that don't match its regex, so only a
+    # single `keep` rule with OR alternatives is correct here.
+    metric_relabel_configs:
+      # Single keep rule covering all namespaces of interest.
+      # Alternatives separated by | are evaluated as OR by RE2 regex.
+      - source_labels: [__name__]
+        regex: "(search_shadow_|labuda_evaluator_shadow_|go_|process_|scrape_|promhttp_).*"
+        action: keep

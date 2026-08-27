@@ -1,0 +1,662 @@
+[
+  {
+    "id": "960406",
+    "name": "Abun",
+    "cityId": "9604"
+  },
+  {
+    "id": "960501",
+    "name": "Aifat",
+    "cityId": "9605"
+  },
+  {
+    "id": "960504",
+    "name": "Aifat Selatan",
+    "cityId": "9605"
+  },
+  {
+    "id": "960503",
+    "name": "Aifat Timur",
+    "cityId": "9605"
+  },
+  {
+    "id": "960513",
+    "name": "Aifat Timur Jauh",
+    "cityId": "9605"
+  },
+  {
+    "id": "960514",
+    "name": "Aifat Timur Selatan",
+    "cityId": "9605"
+  },
+  {
+    "id": "960512",
+    "name": "Aifat Timur Tengah",
+    "cityId": "9605"
+  },
+  {
+    "id": "960502",
+    "name": "Aifat Utara",
+    "cityId": "9605"
+  },
+  {
+    "id": "960105",
+    "name": "Aimas",
+    "cityId": "9601"
+  },
+  {
+    "id": "960506",
+    "name": "Aitinyo",
+    "cityId": "9605"
+  },
+  {
+    "id": "960505",
+    "name": "Aitinyo Barat",
+    "cityId": "9605"
+  },
+  {
+    "id": "960523",
+    "name": "Aitinyo Raya",
+    "cityId": "9605"
+  },
+  {
+    "id": "960522",
+    "name": "Aitinyo Tengah",
+    "cityId": "9605"
+  },
+  {
+    "id": "960507",
+    "name": "Aitinyo Utara",
+    "cityId": "9605"
+  },
+  {
+    "id": "960410",
+    "name": "Amberbaken",
+    "cityId": "9604"
+  },
+  {
+    "id": "960427",
+    "name": "Amberbaken Barat",
+    "cityId": "9604"
+  },
+  {
+    "id": "960415",
+    "name": "Ases",
+    "cityId": "9604"
+  },
+  {
+    "id": "960508",
+    "name": "Ayamaru",
+    "cityId": "9605"
+  },
+  {
+    "id": "960521",
+    "name": "Ayamaru Barat",
+    "cityId": "9605"
+  },
+  {
+    "id": "960516",
+    "name": "Ayamaru Jaya",
+    "cityId": "9605"
+  },
+  {
+    "id": "960515",
+    "name": "Ayamaru Selatan",
+    "cityId": "9605"
+  },
+  {
+    "id": "960517",
+    "name": "Ayamaru Selatan Jaya",
+    "cityId": "9605"
+  },
+  {
+    "id": "960520",
+    "name": "Ayamaru Tengah",
+    "cityId": "9605"
+  },
+  {
+    "id": "960510",
+    "name": "Ayamaru Timur",
+    "cityId": "9605"
+  },
+  {
+    "id": "960518",
+    "name": "Ayamaru Timur Selatan",
+    "cityId": "9605"
+  },
+  {
+    "id": "960509",
+    "name": "Ayamaru Utara",
+    "cityId": "9605"
+  },
+  {
+    "id": "960519",
+    "name": "Ayamaru Utara Timur",
+    "cityId": "9605"
+  },
+  {
+    "id": "960305",
+    "name": "Ayau",
+    "cityId": "9603"
+  },
+  {
+    "id": "960119",
+    "name": "Bagun",
+    "cityId": "9601"
+  },
+  {
+    "id": "960414",
+    "name": "Bamusbama",
+    "cityId": "9604"
+  },
+  {
+    "id": "960324",
+    "name": "Batanta Selatan",
+    "cityId": "9603"
+  },
+  {
+    "id": "960319",
+    "name": "Batanta Utara",
+    "cityId": "9603"
+  },
+  {
+    "id": "960102",
+    "name": "Beraur",
+    "cityId": "9601"
+  },
+  {
+    "id": "960413",
+    "name": "Bikar",
+    "cityId": "9604"
+  },
+  {
+    "id": "960129",
+    "name": "Botain",
+    "cityId": "9601"
+  },
+  {
+    "id": "960122",
+    "name": "Buk",
+    "cityId": "9601"
+  },
+  {
+    "id": "960401",
+    "name": "Fef",
+    "cityId": "9604"
+  },
+  {
+    "id": "960213",
+    "name": "Fokour",
+    "cityId": "9602"
+  },
+  {
+    "id": "960127",
+    "name": "Hobard",
+    "cityId": "9601"
+  },
+  {
+    "id": "960202",
+    "name": "Inanwatan",
+    "cityId": "9602"
+  },
+  {
+    "id": "960417",
+    "name": "Ireres",
+    "cityId": "9604"
+  },
+  {
+    "id": "960208",
+    "name": "Kais",
+    "cityId": "9602"
+  },
+  {
+    "id": "960215",
+    "name": "Kais Darat",
+    "cityId": "9602"
+  },
+  {
+    "id": "960428",
+    "name": "Kasi",
+    "cityId": "9604"
+  },
+  {
+    "id": "960409",
+    "name": "Kebar",
+    "cityId": "9604"
+  },
+  {
+    "id": "960424",
+    "name": "Kebar Selatan",
+    "cityId": "9604"
+  },
+  {
+    "id": "960423",
+    "name": "Kebar Timur",
+    "cityId": "9604"
+  },
+  {
+    "id": "960323",
+    "name": "Kepulauan Ayau",
+    "cityId": "9603"
+  },
+  {
+    "id": "960316",
+    "name": "Kepulauan Sembilan",
+    "cityId": "9603"
+  },
+  {
+    "id": "960111",
+    "name": "Klabot",
+    "cityId": "9601"
+  },
+  {
+    "id": "960106",
+    "name": "Klamono",
+    "cityId": "9601"
+  },
+  {
+    "id": "960126",
+    "name": "Klasafet",
+    "cityId": "9601"
+  },
+  {
+    "id": "960116",
+    "name": "Klaso",
+    "cityId": "9601"
+  },
+  {
+    "id": "967108",
+    "name": "Klaurung",
+    "cityId": "9671"
+  },
+  {
+    "id": "960112",
+    "name": "Klawak",
+    "cityId": "9601"
+  },
+  {
+    "id": "960115",
+    "name": "Klayili",
+    "cityId": "9601"
+  },
+  {
+    "id": "960310",
+    "name": "Kofiau",
+    "cityId": "9603"
+  },
+  {
+    "id": "960204",
+    "name": "Kokoda",
+    "cityId": "9602"
+  },
+  {
+    "id": "960211",
+    "name": "Kokoda Utara",
+    "cityId": "9602"
+  },
+  {
+    "id": "960209",
+    "name": "Konda",
+    "cityId": "9602"
+  },
+  {
+    "id": "960125",
+    "name": "Konhir",
+    "cityId": "9601"
+  },
+  {
+    "id": "960317",
+    "name": "Kota Waisai",
+    "cityId": "9603"
+  },
+  {
+    "id": "960421",
+    "name": "Kwesefo",
+    "cityId": "9604"
+  },
+  {
+    "id": "960404",
+    "name": "Kwoor",
+    "cityId": "9604"
+  },
+  {
+    "id": "960101",
+    "name": "Makbon",
+    "cityId": "9601"
+  },
+  {
+    "id": "960124",
+    "name": "Malabotom",
+    "cityId": "9601"
+  },
+  {
+    "id": "967110",
+    "name": "Maladum Mes",
+    "cityId": "9671"
+  },
+  {
+    "id": "967109",
+    "name": "Malaimsimsa",
+    "cityId": "9671"
+  },
+  {
+    "id": "960425",
+    "name": "Manekar",
+    "cityId": "9604"
+  },
+  {
+    "id": "960511",
+    "name": "Mare",
+    "cityId": "9605"
+  },
+  {
+    "id": "960524",
+    "name": "Mare Selatan",
+    "cityId": "9605"
+  },
+  {
+    "id": "960114",
+    "name": "Mariat",
+    "cityId": "9601"
+  },
+  {
+    "id": "960210",
+    "name": "Matemani",
+    "cityId": "9602"
+  },
+  {
+    "id": "960113",
+    "name": "Maudus",
+    "cityId": "9601"
+  },
+  {
+    "id": "960422",
+    "name": "Mawabuan",
+    "cityId": "9604"
+  },
+  {
+    "id": "960109",
+    "name": "Mayamuk",
+    "cityId": "9601"
+  },
+  {
+    "id": "960311",
+    "name": "Meos Mansar",
+    "cityId": "9603"
+  },
+  {
+    "id": "960301",
+    "name": "Misool (Misool Utara)",
+    "cityId": "9603"
+  },
+  {
+    "id": "960315",
+    "name": "Misool Barat",
+    "cityId": "9603"
+  },
+  {
+    "id": "960312",
+    "name": "Misool Selatan",
+    "cityId": "9603"
+  },
+  {
+    "id": "960306",
+    "name": "Misool Timur",
+    "cityId": "9603"
+  },
+  {
+    "id": "960402",
+    "name": "Miyah",
+    "cityId": "9604"
+  },
+  {
+    "id": "960416",
+    "name": "Miyah Selatan",
+    "cityId": "9604"
+  },
+  {
+    "id": "960117",
+    "name": "Moisegen",
+    "cityId": "9601"
+  },
+  {
+    "id": "960408",
+    "name": "Moraid",
+    "cityId": "9604"
+  },
+  {
+    "id": "960205",
+    "name": "Moswaren",
+    "cityId": "9602"
+  },
+  {
+    "id": "960426",
+    "name": "Mpur",
+    "cityId": "9604"
+  },
+  {
+    "id": "960412",
+    "name": "Mubrani",
+    "cityId": "9604"
+  },
+  {
+    "id": "960123",
+    "name": "Saengkeduk",
+    "cityId": "9601"
+  },
+  {
+    "id": "960212",
+    "name": "Saifi",
+    "cityId": "9602"
+  },
+  {
+    "id": "960103",
+    "name": "Salawati",
+    "cityId": "9601"
+  },
+  {
+    "id": "960320",
+    "name": "Salawati Barat",
+    "cityId": "9603"
+  },
+  {
+    "id": "960110",
+    "name": "Salawati Selatan",
+    "cityId": "9601"
+  },
+  {
+    "id": "960128",
+    "name": "Salawati Tengah",
+    "cityId": "9601"
+  },
+  {
+    "id": "960321",
+    "name": "Salawati Tengah",
+    "cityId": "9603"
+  },
+  {
+    "id": "960304",
+    "name": "Salawati Utara",
+    "cityId": "9603"
+  },
+  {
+    "id": "960214",
+    "name": "Salkma",
+    "cityId": "9602"
+  },
+  {
+    "id": "960405",
+    "name": "Sausapor",
+    "cityId": "9604"
+  },
+  {
+    "id": "960203",
+    "name": "Sawiat",
+    "cityId": "9602"
+  },
+  {
+    "id": "960107",
+    "name": "Sayosa",
+    "cityId": "9601"
+  },
+  {
+    "id": "960130",
+    "name": "Sayosa Timur",
+    "cityId": "9601"
+  },
+  {
+    "id": "960104",
+    "name": "Seget",
+    "cityId": "9601"
+  },
+  {
+    "id": "960108",
+    "name": "Segun",
+    "cityId": "9601"
+  },
+  {
+    "id": "960429",
+    "name": "Selemkai",
+    "cityId": "9604"
+  },
+  {
+    "id": "960411",
+    "name": "Senopi",
+    "cityId": "9604"
+  },
+  {
+    "id": "960206",
+    "name": "Seremuk",
+    "cityId": "9602"
+  },
+  {
+    "id": "960118",
+    "name": "Sorong",
+    "cityId": "9601"
+  },
+  {
+    "id": "967101",
+    "name": "Sorong",
+    "cityId": "9671"
+  },
+  {
+    "id": "967103",
+    "name": "Sorong Barat",
+    "cityId": "9671"
+  },
+  {
+    "id": "967104",
+    "name": "Sorong Kepulauan",
+    "cityId": "9671"
+  },
+  {
+    "id": "967107",
+    "name": "Sorong Kota",
+    "cityId": "9671"
+  },
+  {
+    "id": "967106",
+    "name": "Sorong Manoi",
+    "cityId": "9671"
+  },
+  {
+    "id": "967102",
+    "name": "Sorong Timur",
+    "cityId": "9671"
+  },
+  {
+    "id": "967105",
+    "name": "Sorong Utara",
+    "cityId": "9671"
+  },
+  {
+    "id": "960121",
+    "name": "Sunook",
+    "cityId": "9601"
+  },
+  {
+    "id": "960322",
+    "name": "Supnin",
+    "cityId": "9603"
+  },
+  {
+    "id": "960407",
+    "name": "Syujak",
+    "cityId": "9604"
+  },
+  {
+    "id": "960309",
+    "name": "Teluk Mayalibit",
+    "cityId": "9603"
+  },
+  {
+    "id": "960201",
+    "name": "Teminabuan",
+    "cityId": "9602"
+  },
+  {
+    "id": "960420",
+    "name": "Tinggouw",
+    "cityId": "9604"
+  },
+  {
+    "id": "960318",
+    "name": "Tiplol Mayalibit",
+    "cityId": "9603"
+  },
+  {
+    "id": "960418",
+    "name": "Tobouw",
+    "cityId": "9604"
+  },
+  {
+    "id": "960307",
+    "name": "Waigeo Barat",
+    "cityId": "9603"
+  },
+  {
+    "id": "960314",
+    "name": "Waigeo Barat Kepulauan",
+    "cityId": "9603"
+  },
+  {
+    "id": "960303",
+    "name": "Waigeo Selatan",
+    "cityId": "9603"
+  },
+  {
+    "id": "960308",
+    "name": "Waigeo Timur",
+    "cityId": "9603"
+  },
+  {
+    "id": "960302",
+    "name": "Waigeo Utara",
+    "cityId": "9603"
+  },
+  {
+    "id": "960313",
+    "name": "Warwarbomi",
+    "cityId": "9603"
+  },
+  {
+    "id": "960207",
+    "name": "Wayer",
+    "cityId": "9602"
+  },
+  {
+    "id": "960120",
+    "name": "Wemak",
+    "cityId": "9601"
+  },
+  {
+    "id": "960419",
+    "name": "Wilhem Roumbouts",
+    "cityId": "9604"
+  },
+  {
+    "id": "960403",
+    "name": "Yembun",
+    "cityId": "9604"
+  }
+]

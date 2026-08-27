@@ -1,0 +1,3 @@
+-- Irreversible cleanup migration.
+-- The orphan draft rows were removed after taking a backup and cannot be
+-- reconstructed safely from schema alone.

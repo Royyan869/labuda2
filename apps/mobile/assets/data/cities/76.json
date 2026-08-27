@@ -1,0 +1,38 @@
+[
+  {
+    "id": "7605",
+    "name": "Kabupaten Majene",
+    "provinceId": "76",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7603",
+    "name": "Kabupaten Mamasa",
+    "provinceId": "76",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7602",
+    "name": "Kabupaten Mamuju",
+    "provinceId": "76",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7606",
+    "name": "Kabupaten Mamuju Tengah",
+    "provinceId": "76",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7601",
+    "name": "Kabupaten Pasangkayu",
+    "provinceId": "76",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7604",
+    "name": "Kabupaten Polewali Mandar",
+    "provinceId": "76",
+    "type": "kabupaten"
+  }
+]

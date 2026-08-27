@@ -1,0 +1,104 @@
+[
+  {
+    "id": "1607",
+    "name": "Kabupaten Banyuasin",
+    "provinceId": "16",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1611",
+    "name": "Kabupaten Empat Lawang",
+    "provinceId": "16",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1604",
+    "name": "Kabupaten Lahat",
+    "provinceId": "16",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1603",
+    "name": "Kabupaten Muara Enim",
+    "provinceId": "16",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1606",
+    "name": "Kabupaten Musi Banyuasin",
+    "provinceId": "16",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1605",
+    "name": "Kabupaten Musi Rawas",
+    "provinceId": "16",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1613",
+    "name": "Kabupaten Musi Rawas Utara",
+    "provinceId": "16",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1610",
+    "name": "Kabupaten Ogan Ilir",
+    "provinceId": "16",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1602",
+    "name": "Kabupaten Ogan Komering Ilir",
+    "provinceId": "16",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1601",
+    "name": "Kabupaten Ogan Komering Ulu",
+    "provinceId": "16",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1609",
+    "name": "Kabupaten Ogan Komering Ulu Selatan",
+    "provinceId": "16",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1608",
+    "name": "Kabupaten Ogan Komering Ulu Timur",
+    "provinceId": "16",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1612",
+    "name": "Kabupaten Penukal Abab Lematang Ilir",
+    "provinceId": "16",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1673",
+    "name": "Kota Lubuk Linggau",
+    "provinceId": "16",
+    "type": "kota"
+  },
+  {
+    "id": "1672",
+    "name": "Kota Pagar Alam",
+    "provinceId": "16",
+    "type": "kota"
+  },
+  {
+    "id": "1671",
+    "name": "Kota Palembang",
+    "provinceId": "16",
+    "type": "kota"
+  },
+  {
+    "id": "1674",
+    "name": "Kota Prabumulih",
+    "provinceId": "16",
+    "type": "kota"
+  }
+]

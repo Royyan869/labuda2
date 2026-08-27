@@ -1,0 +1,92 @@
+[
+  {
+    "id": "7101",
+    "name": "Kabupaten Bolaang Mongondow",
+    "provinceId": "71",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7111",
+    "name": "Kabupaten Bolaang Mongondow Selatan",
+    "provinceId": "71",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7110",
+    "name": "Kabupaten Bolaang Mongondow Timur",
+    "provinceId": "71",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7108",
+    "name": "Kabupaten Bolaang Mongondow Utara",
+    "provinceId": "71",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7109",
+    "name": "Kabupaten Kep. Siau Tagulandang Biaro",
+    "provinceId": "71",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7103",
+    "name": "Kabupaten Kepulauan Sangihe",
+    "provinceId": "71",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7104",
+    "name": "Kabupaten Kepulauan Talaud",
+    "provinceId": "71",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7102",
+    "name": "Kabupaten Minahasa",
+    "provinceId": "71",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7105",
+    "name": "Kabupaten Minahasa Selatan",
+    "provinceId": "71",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7107",
+    "name": "Kabupaten Minahasa Tenggara",
+    "provinceId": "71",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7106",
+    "name": "Kabupaten Minahasa Utara",
+    "provinceId": "71",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7172",
+    "name": "Kota Bitung",
+    "provinceId": "71",
+    "type": "kota"
+  },
+  {
+    "id": "7174",
+    "name": "Kota Kotamobagu",
+    "provinceId": "71",
+    "type": "kota"
+  },
+  {
+    "id": "7171",
+    "name": "Kota Manado",
+    "provinceId": "71",
+    "type": "kota"
+  },
+  {
+    "id": "7173",
+    "name": "Kota Tomohon",
+    "provinceId": "71",
+    "type": "kota"
+  }
+]

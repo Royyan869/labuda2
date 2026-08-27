@@ -1,0 +1,164 @@
+[
+  {
+    "id": "3204",
+    "name": "Kabupaten Bandung",
+    "provinceId": "32",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3217",
+    "name": "Kabupaten Bandung Barat",
+    "provinceId": "32",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3216",
+    "name": "Kabupaten Bekasi",
+    "provinceId": "32",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3201",
+    "name": "Kabupaten Bogor",
+    "provinceId": "32",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3207",
+    "name": "Kabupaten Ciamis",
+    "provinceId": "32",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3203",
+    "name": "Kabupaten Cianjur",
+    "provinceId": "32",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3209",
+    "name": "Kabupaten Cirebon",
+    "provinceId": "32",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3205",
+    "name": "Kabupaten Garut",
+    "provinceId": "32",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3212",
+    "name": "Kabupaten Indramayu",
+    "provinceId": "32",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3215",
+    "name": "Kabupaten Karawang",
+    "provinceId": "32",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3208",
+    "name": "Kabupaten Kuningan",
+    "provinceId": "32",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3210",
+    "name": "Kabupaten Majalengka",
+    "provinceId": "32",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3218",
+    "name": "Kabupaten Pangandaran",
+    "provinceId": "32",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3214",
+    "name": "Kabupaten Purwakarta",
+    "provinceId": "32",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3213",
+    "name": "Kabupaten Subang",
+    "provinceId": "32",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3202",
+    "name": "Kabupaten Sukabumi",
+    "provinceId": "32",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3211",
+    "name": "Kabupaten Sumedang",
+    "provinceId": "32",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3206",
+    "name": "Kabupaten Tasikmalaya",
+    "provinceId": "32",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3273",
+    "name": "Kota Bandung",
+    "provinceId": "32",
+    "type": "kota"
+  },
+  {
+    "id": "3279",
+    "name": "Kota Banjar",
+    "provinceId": "32",
+    "type": "kota"
+  },
+  {
+    "id": "3275",
+    "name": "Kota Bekasi",
+    "provinceId": "32",
+    "type": "kota"
+  },
+  {
+    "id": "3271",
+    "name": "Kota Bogor",
+    "provinceId": "32",
+    "type": "kota"
+  },
+  {
+    "id": "3277",
+    "name": "Kota Cimahi",
+    "provinceId": "32",
+    "type": "kota"
+  },
+  {
+    "id": "3274",
+    "name": "Kota Cirebon",
+    "provinceId": "32",
+    "type": "kota"
+  },
+  {
+    "id": "3276",
+    "name": "Kota Depok",
+    "provinceId": "32",
+    "type": "kota"
+  },
+  {
+    "id": "3272",
+    "name": "Kota Sukabumi",
+    "provinceId": "32",
+    "type": "kota"
+  },
+  {
+    "id": "3278",
+    "name": "Kota Tasikmalaya",
+    "provinceId": "32",
+    "type": "kota"
+  }
+]

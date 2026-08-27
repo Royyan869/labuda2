@@ -1,0 +1,592 @@
+[
+  {
+    "id": "820408",
+    "name": "Bacan",
+    "cityId": "8204"
+  },
+  {
+    "id": "820409",
+    "name": "Bacan Barat",
+    "cityId": "8204"
+  },
+  {
+    "id": "820414",
+    "name": "Bacan Barat Utara",
+    "cityId": "8204"
+  },
+  {
+    "id": "820417",
+    "name": "Bacan Selatan",
+    "cityId": "8204"
+  },
+  {
+    "id": "820407",
+    "name": "Bacan Timur",
+    "cityId": "8204"
+  },
+  {
+    "id": "820421",
+    "name": "Bacan Timur Selatan",
+    "cityId": "8204"
+  },
+  {
+    "id": "820422",
+    "name": "Bacan Timur Tengah",
+    "cityId": "8204"
+  },
+  {
+    "id": "820304",
+    "name": "Galela",
+    "cityId": "8203"
+  },
+  {
+    "id": "820314",
+    "name": "Galela Barat",
+    "cityId": "8203"
+  },
+  {
+    "id": "820316",
+    "name": "Galela Selatan",
+    "cityId": "8203"
+  },
+  {
+    "id": "820315",
+    "name": "Galela Utara",
+    "cityId": "8203"
+  },
+  {
+    "id": "820404",
+    "name": "Gane Barat",
+    "cityId": "8204"
+  },
+  {
+    "id": "820423",
+    "name": "Gane Barat Selatan",
+    "cityId": "8204"
+  },
+  {
+    "id": "820424",
+    "name": "Gane Barat Utara",
+    "cityId": "8204"
+  },
+  {
+    "id": "820403",
+    "name": "Gane Timur",
+    "cityId": "8204"
+  },
+  {
+    "id": "820426",
+    "name": "Gane Timur Selatan",
+    "cityId": "8204"
+  },
+  {
+    "id": "820427",
+    "name": "Gane Timur Tengah",
+    "cityId": "8204"
+  },
+  {
+    "id": "820103",
+    "name": "Ibu",
+    "cityId": "8201"
+  },
+  {
+    "id": "820108",
+    "name": "Ibu Selatan",
+    "cityId": "8201"
+  },
+  {
+    "id": "820107",
+    "name": "Ibu Utara",
+    "cityId": "8201"
+  },
+  {
+    "id": "820101",
+    "name": "Jailolo",
+    "cityId": "8201"
+  },
+  {
+    "id": "820105",
+    "name": "Jailolo Selatan",
+    "cityId": "8201"
+  },
+  {
+    "id": "820307",
+    "name": "Kao",
+    "cityId": "8203"
+  },
+  {
+    "id": "820321",
+    "name": "Kao Barat",
+    "cityId": "8203"
+  },
+  {
+    "id": "820322",
+    "name": "Kao Teluk",
+    "cityId": "8203"
+  },
+  {
+    "id": "820320",
+    "name": "Kao Utara",
+    "cityId": "8203"
+  },
+  {
+    "id": "820415",
+    "name": "Kasiruta Barat",
+    "cityId": "8204"
+  },
+  {
+    "id": "820416",
+    "name": "Kasiruta Timur",
+    "cityId": "8204"
+  },
+  {
+    "id": "820402",
+    "name": "Kayoa",
+    "cityId": "8204"
+  },
+  {
+    "id": "820411",
+    "name": "Kayoa Barat",
+    "cityId": "8204"
+  },
+  {
+    "id": "820412",
+    "name": "Kayoa Selatan",
+    "cityId": "8204"
+  },
+  {
+    "id": "820413",
+    "name": "Kayoa Utara",
+    "cityId": "8204"
+  },
+  {
+    "id": "820418",
+    "name": "Kepulauan Botanglomang",
+    "cityId": "8204"
+  },
+  {
+    "id": "820425",
+    "name": "Kepulauan Joronga",
+    "cityId": "8204"
+  },
+  {
+    "id": "820610",
+    "name": "Kota Maba",
+    "cityId": "8206"
+  },
+  {
+    "id": "827102",
+    "name": "Kota Ternate Selatan",
+    "cityId": "8271"
+  },
+  {
+    "id": "827106",
+    "name": "Kota Ternate Tengah",
+    "cityId": "8271"
+  },
+  {
+    "id": "827103",
+    "name": "Kota Ternate Utara",
+    "cityId": "8271"
+  },
+  {
+    "id": "820803",
+    "name": "Lede",
+    "cityId": "8208"
+  },
+  {
+    "id": "820102",
+    "name": "Loloda",
+    "cityId": "8201"
+  },
+  {
+    "id": "820319",
+    "name": "Loloda Kepulauan",
+    "cityId": "8203"
+  },
+  {
+    "id": "820110",
+    "name": "Loloda Tengah",
+    "cityId": "8201"
+  },
+  {
+    "id": "820309",
+    "name": "Loloda Utara",
+    "cityId": "8203"
+  },
+  {
+    "id": "820602",
+    "name": "Maba",
+    "cityId": "8206"
+  },
+  {
+    "id": "820603",
+    "name": "Maba Selatan",
+    "cityId": "8206"
+  },
+  {
+    "id": "820608",
+    "name": "Maba Tengah",
+    "cityId": "8206"
+  },
+  {
+    "id": "820609",
+    "name": "Maba Utara",
+    "cityId": "8206"
+  },
+  {
+    "id": "820410",
+    "name": "Makian Barat",
+    "cityId": "8204"
+  },
+  {
+    "id": "820308",
+    "name": "Malifut",
+    "cityId": "8203"
+  },
+  {
+    "id": "820419",
+    "name": "Mandioli Selatan",
+    "cityId": "8204"
+  },
+  {
+    "id": "820420",
+    "name": "Mandioli Utara",
+    "cityId": "8204"
+  },
+  {
+    "id": "820506",
+    "name": "Mangoli Barat",
+    "cityId": "8205"
+  },
+  {
+    "id": "820512",
+    "name": "Mangoli Selatan",
+    "cityId": "8205"
+  },
+  {
+    "id": "820511",
+    "name": "Mangoli Tengah",
+    "cityId": "8205"
+  },
+  {
+    "id": "820501",
+    "name": "Mangoli Timur",
+    "cityId": "8205"
+  },
+  {
+    "id": "820513",
+    "name": "Mangoli Utara",
+    "cityId": "8205"
+  },
+  {
+    "id": "820510",
+    "name": "Mangoli Utara Timur",
+    "cityId": "8205"
+  },
+  {
+    "id": "820703",
+    "name": "Morotai Jaya",
+    "cityId": "8207"
+  },
+  {
+    "id": "820701",
+    "name": "Morotai Selatan",
+    "cityId": "8207"
+  },
+  {
+    "id": "820702",
+    "name": "Morotai Selatan Barat",
+    "cityId": "8207"
+  },
+  {
+    "id": "820705",
+    "name": "Morotai Timur",
+    "cityId": "8207"
+  },
+  {
+    "id": "820704",
+    "name": "Morotai Utara",
+    "cityId": "8207"
+  },
+  {
+    "id": "827104",
+    "name": "Moti",
+    "cityId": "8271"
+  },
+  {
+    "id": "827203",
+    "name": "Oba",
+    "cityId": "8272"
+  },
+  {
+    "id": "827207",
+    "name": "Oba Selatan",
+    "cityId": "8272"
+  },
+  {
+    "id": "827206",
+    "name": "Oba Tengah",
+    "cityId": "8272"
+  },
+  {
+    "id": "827202",
+    "name": "Oba Utara",
+    "cityId": "8272"
+  },
+  {
+    "id": "820406",
+    "name": "Obi",
+    "cityId": "8204"
+  },
+  {
+    "id": "820428",
+    "name": "Obi Barat",
+    "cityId": "8204"
+  },
+  {
+    "id": "820405",
+    "name": "Obi Selatan",
+    "cityId": "8204"
+  },
+  {
+    "id": "820429",
+    "name": "Obi Timur",
+    "cityId": "8204"
+  },
+  {
+    "id": "820430",
+    "name": "Obi Utara",
+    "cityId": "8204"
+  },
+  {
+    "id": "820202",
+    "name": "Patani",
+    "cityId": "8202"
+  },
+  {
+    "id": "820208",
+    "name": "Patani Barat",
+    "cityId": "8202"
+  },
+  {
+    "id": "820210",
+    "name": "Patani Timur",
+    "cityId": "8202"
+  },
+  {
+    "id": "820206",
+    "name": "Patani Utara",
+    "cityId": "8202"
+  },
+  {
+    "id": "827105",
+    "name": "Pulau Batang Dua",
+    "cityId": "8271"
+  },
+  {
+    "id": "820203",
+    "name": "Pulau Gebe",
+    "cityId": "8202"
+  },
+  {
+    "id": "827107",
+    "name": "Pulau Hiri",
+    "cityId": "8271"
+  },
+  {
+    "id": "820401",
+    "name": "Pulau Makian",
+    "cityId": "8204"
+  },
+  {
+    "id": "820706",
+    "name": "Pulau Rao",
+    "cityId": "8207"
+  },
+  {
+    "id": "827101",
+    "name": "Pulau Ternate",
+    "cityId": "8271"
+  },
+  {
+    "id": "820104",
+    "name": "Sahu",
+    "cityId": "8201"
+  },
+  {
+    "id": "820109",
+    "name": "Sahu Timur",
+    "cityId": "8201"
+  },
+  {
+    "id": "820502",
+    "name": "Sanana",
+    "cityId": "8205"
+  },
+  {
+    "id": "820518",
+    "name": "Sanana Utara",
+    "cityId": "8205"
+  },
+  {
+    "id": "820503",
+    "name": "Sulabesi Barat",
+    "cityId": "8205"
+  },
+  {
+    "id": "820509",
+    "name": "Sulabesi Selatan",
+    "cityId": "8205"
+  },
+  {
+    "id": "820507",
+    "name": "Sulabesi Tengah",
+    "cityId": "8205"
+  },
+  {
+    "id": "820508",
+    "name": "Sulabesi Timur",
+    "cityId": "8205"
+  },
+  {
+    "id": "820808",
+    "name": "Tabona",
+    "cityId": "8208"
+  },
+  {
+    "id": "820801",
+    "name": "Taliabu Barat",
+    "cityId": "8208"
+  },
+  {
+    "id": "820802",
+    "name": "Taliabu Barat Laut",
+    "cityId": "8208"
+  },
+  {
+    "id": "820807",
+    "name": "Taliabu Selatan",
+    "cityId": "8208"
+  },
+  {
+    "id": "820805",
+    "name": "Taliabu Timur",
+    "cityId": "8208"
+  },
+  {
+    "id": "820806",
+    "name": "Taliabu Timur Selatan",
+    "cityId": "8208"
+  },
+  {
+    "id": "820804",
+    "name": "Taliabu Utara",
+    "cityId": "8208"
+  },
+  {
+    "id": "827108",
+    "name": "Ternate Barat",
+    "cityId": "8271"
+  },
+  {
+    "id": "827201",
+    "name": "Tidore",
+    "cityId": "8272"
+  },
+  {
+    "id": "827204",
+    "name": "Tidore Selatan",
+    "cityId": "8272"
+  },
+  {
+    "id": "827208",
+    "name": "Tidore Timur",
+    "cityId": "8272"
+  },
+  {
+    "id": "827205",
+    "name": "Tidore Utara",
+    "cityId": "8272"
+  },
+  {
+    "id": "820305",
+    "name": "Tobelo",
+    "cityId": "8203"
+  },
+  {
+    "id": "820313",
+    "name": "Tobelo Barat",
+    "cityId": "8203"
+  },
+  {
+    "id": "820306",
+    "name": "Tobelo Selatan",
+    "cityId": "8203"
+  },
+  {
+    "id": "820311",
+    "name": "Tobelo Tengah",
+    "cityId": "8203"
+  },
+  {
+    "id": "820312",
+    "name": "Tobelo Timur",
+    "cityId": "8203"
+  },
+  {
+    "id": "820310",
+    "name": "Tobelo Utara",
+    "cityId": "8203"
+  },
+  {
+    "id": "820601",
+    "name": "Wasile",
+    "cityId": "8206"
+  },
+  {
+    "id": "820604",
+    "name": "Wasile Selatan",
+    "cityId": "8206"
+  },
+  {
+    "id": "820605",
+    "name": "Wasile Tengah",
+    "cityId": "8206"
+  },
+  {
+    "id": "820607",
+    "name": "Wasile Timur",
+    "cityId": "8206"
+  },
+  {
+    "id": "820606",
+    "name": "Wasile Utara",
+    "cityId": "8206"
+  },
+  {
+    "id": "820201",
+    "name": "Weda",
+    "cityId": "8202"
+  },
+  {
+    "id": "820205",
+    "name": "Weda Selatan",
+    "cityId": "8202"
+  },
+  {
+    "id": "820207",
+    "name": "Weda Tengah",
+    "cityId": "8202"
+  },
+  {
+    "id": "820209",
+    "name": "Weda Timur",
+    "cityId": "8202"
+  },
+  {
+    "id": "820204",
+    "name": "Weda Utara",
+    "cityId": "8202"
+  }
+]

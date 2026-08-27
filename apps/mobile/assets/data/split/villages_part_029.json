@@ -1,0 +1,5002 @@
+[
+  {
+    "id": "32.07.06.2003",
+    "name": "Cijulang",
+    "district_id": "32.07.06"
+  },
+  {
+    "id": "32.07.06.2004",
+    "name": "Sukamaju",
+    "district_id": "32.07.06"
+  },
+  {
+    "id": "32.07.06.2005",
+    "name": "Sukasetia",
+    "district_id": "32.07.06"
+  },
+  {
+    "id": "32.07.06.2006",
+    "name": "Sumberjaya",
+    "district_id": "32.07.06"
+  },
+  {
+    "id": "32.07.06.2007",
+    "name": "Cihaurbeuti",
+    "district_id": "32.07.06"
+  },
+  {
+    "id": "32.07.06.2008",
+    "name": "Pasirtamiang",
+    "district_id": "32.07.06"
+  },
+  {
+    "id": "32.07.06.2009",
+    "name": "Padamulya",
+    "district_id": "32.07.06"
+  },
+  {
+    "id": "32.07.06.2010",
+    "name": "Pamokolan",
+    "district_id": "32.07.06"
+  },
+  {
+    "id": "32.07.06.2011",
+    "name": "Sukahaji",
+    "district_id": "32.07.06"
+  },
+  {
+    "id": "32.07.07.2001",
+    "name": "Medanglayang",
+    "district_id": "32.07.07"
+  },
+  {
+    "id": "32.07.07.2002",
+    "name": "Panumbangan",
+    "district_id": "32.07.07"
+  },
+  {
+    "id": "32.07.07.2003",
+    "name": "Sukakerta",
+    "district_id": "32.07.07"
+  },
+  {
+    "id": "32.07.07.2004",
+    "name": "Golat",
+    "district_id": "32.07.07"
+  },
+  {
+    "id": "32.07.07.2005",
+    "name": "Sindangherang",
+    "district_id": "32.07.07"
+  },
+  {
+    "id": "32.07.07.2006",
+    "name": "Banjarangsana",
+    "district_id": "32.07.07"
+  },
+  {
+    "id": "32.07.07.2007",
+    "name": "Payungagung",
+    "district_id": "32.07.07"
+  },
+  {
+    "id": "32.07.07.2008",
+    "name": "Tanjungmulya",
+    "district_id": "32.07.07"
+  },
+  {
+    "id": "32.07.07.2009",
+    "name": "Payungsari",
+    "district_id": "32.07.07"
+  },
+  {
+    "id": "32.07.07.2010",
+    "name": "Jayagiri",
+    "district_id": "32.07.07"
+  },
+  {
+    "id": "32.07.07.2011",
+    "name": "Kertaraharja",
+    "district_id": "32.07.07"
+  },
+  {
+    "id": "32.07.07.2012",
+    "name": "Sindangmukti",
+    "district_id": "32.07.07"
+  },
+  {
+    "id": "32.07.07.2013",
+    "name": "Sindangbarang",
+    "district_id": "32.07.07"
+  },
+  {
+    "id": "32.07.07.2014",
+    "name": "Buanamekar",
+    "district_id": "32.07.07"
+  },
+  {
+    "id": "32.07.08.2001",
+    "name": "Panjalu",
+    "district_id": "32.07.08"
+  },
+  {
+    "id": "32.07.08.2002",
+    "name": "Kertamandala",
+    "district_id": "32.07.08"
+  },
+  {
+    "id": "32.07.08.2003",
+    "name": "Ciomas",
+    "district_id": "32.07.08"
+  },
+  {
+    "id": "32.07.08.2004",
+    "name": "Sandingtaman",
+    "district_id": "32.07.08"
+  },
+  {
+    "id": "32.07.08.2005",
+    "name": "Maparah",
+    "district_id": "32.07.08"
+  },
+  {
+    "id": "32.07.08.2009",
+    "name": "Bahara",
+    "district_id": "32.07.08"
+  },
+  {
+    "id": "32.07.08.2012",
+    "name": "Hujungtiwu",
+    "district_id": "32.07.08"
+  },
+  {
+    "id": "32.07.08.2013",
+    "name": "Mandalare",
+    "district_id": "32.07.08"
+  },
+  {
+    "id": "32.07.09.2001",
+    "name": "Kawali",
+    "district_id": "32.07.09"
+  },
+  {
+    "id": "32.07.09.2002",
+    "name": "Talagasari",
+    "district_id": "32.07.09"
+  },
+  {
+    "id": "32.07.09.2004",
+    "name": "Karangpawitan",
+    "district_id": "32.07.09"
+  },
+  {
+    "id": "32.07.09.2005",
+    "name": "Winduraja",
+    "district_id": "32.07.09"
+  },
+  {
+    "id": "32.07.09.2006",
+    "name": "Margamulya",
+    "district_id": "32.07.09"
+  },
+  {
+    "id": "32.07.09.2011",
+    "name": "Citeureup",
+    "district_id": "32.07.09"
+  },
+  {
+    "id": "32.07.09.2013",
+    "name": "Purwasari",
+    "district_id": "32.07.09"
+  },
+  {
+    "id": "32.07.09.2014",
+    "name": "Sindangsari",
+    "district_id": "32.07.09"
+  },
+  {
+    "id": "32.07.09.2015",
+    "name": "Kawalimukti",
+    "district_id": "32.07.09"
+  },
+  {
+    "id": "32.07.09.2016",
+    "name": "Selasari",
+    "district_id": "32.07.09"
+  },
+  {
+    "id": "32.07.09.2019",
+    "name": "Linggapura",
+    "district_id": "32.07.09"
+  },
+  {
+    "id": "32.07.10.2001",
+    "name": "Panawangan",
+    "district_id": "32.07.10"
+  },
+  {
+    "id": "32.07.10.2002",
+    "name": "Sagalaherang",
+    "district_id": "32.07.10"
+  },
+  {
+    "id": "32.07.10.2003",
+    "name": "Nagarapageuh",
+    "district_id": "32.07.10"
+  },
+  {
+    "id": "32.07.10.2004",
+    "name": "Nagarajati",
+    "district_id": "32.07.10"
+  },
+  {
+    "id": "32.07.10.2005",
+    "name": "Nagarajaya",
+    "district_id": "32.07.10"
+  },
+  {
+    "id": "32.07.10.2006",
+    "name": "Kertayasa",
+    "district_id": "32.07.10"
+  },
+  {
+    "id": "32.07.10.2007",
+    "name": "Indragiri",
+    "district_id": "32.07.10"
+  },
+  {
+    "id": "32.07.10.2008",
+    "name": "Cinyasag",
+    "district_id": "32.07.10"
+  },
+  {
+    "id": "32.07.10.2009",
+    "name": "Sadapaingan",
+    "district_id": "32.07.10"
+  },
+  {
+    "id": "32.07.10.2010",
+    "name": "Jagabaya",
+    "district_id": "32.07.10"
+  },
+  {
+    "id": "32.07.10.2011",
+    "name": "Gardujaya",
+    "district_id": "32.07.10"
+  },
+  {
+    "id": "32.07.10.2012",
+    "name": "Karangpaningal",
+    "district_id": "32.07.10"
+  },
+  {
+    "id": "32.07.10.2013",
+    "name": "Bangunjaya",
+    "district_id": "32.07.10"
+  },
+  {
+    "id": "32.07.10.2014",
+    "name": "Girilaya",
+    "district_id": "32.07.10"
+  },
+  {
+    "id": "32.07.10.2015",
+    "name": "Kertajaya",
+    "district_id": "32.07.10"
+  },
+  {
+    "id": "32.07.10.2016",
+    "name": "Nagarawangi",
+    "district_id": "32.07.10"
+  },
+  {
+    "id": "32.07.10.2017",
+    "name": "Mekarbuana",
+    "district_id": "32.07.10"
+  },
+  {
+    "id": "32.07.10.2018",
+    "name": "Natanegara",
+    "district_id": "32.07.10"
+  },
+  {
+    "id": "32.07.11.2001",
+    "name": "Buniseuri",
+    "district_id": "32.07.11"
+  },
+  {
+    "id": "32.07.11.2002",
+    "name": "Selacai",
+    "district_id": "32.07.11"
+  },
+  {
+    "id": "32.07.11.2003",
+    "name": "Jalatrang",
+    "district_id": "32.07.11"
+  },
+  {
+    "id": "32.07.11.2004",
+    "name": "Cipaku",
+    "district_id": "32.07.11"
+  },
+  {
+    "id": "32.07.11.2005",
+    "name": "Cieurih",
+    "district_id": "32.07.11"
+  },
+  {
+    "id": "32.07.11.2006",
+    "name": "Gereba",
+    "district_id": "32.07.11"
+  },
+  {
+    "id": "32.07.11.2007",
+    "name": "Muktisari",
+    "district_id": "32.07.11"
+  },
+  {
+    "id": "32.07.11.2008",
+    "name": "Mekarsari",
+    "district_id": "32.07.11"
+  },
+  {
+    "id": "32.07.11.2009",
+    "name": "Pusakasari",
+    "district_id": "32.07.11"
+  },
+  {
+    "id": "32.07.11.2010",
+    "name": "Bangbayang",
+    "district_id": "32.07.11"
+  },
+  {
+    "id": "32.07.11.2011",
+    "name": "Selamanik",
+    "district_id": "32.07.11"
+  },
+  {
+    "id": "32.07.11.2012",
+    "name": "Ciakar",
+    "district_id": "32.07.11"
+  },
+  {
+    "id": "32.07.11.2013",
+    "name": "Sukawening",
+    "district_id": "32.07.11"
+  },
+  {
+    "id": "32.07.12.2001",
+    "name": "Jatinagara",
+    "district_id": "32.07.12"
+  },
+  {
+    "id": "32.07.12.2002",
+    "name": "Sukanagara",
+    "district_id": "32.07.12"
+  },
+  {
+    "id": "32.07.12.2003",
+    "name": "Cintanagara",
+    "district_id": "32.07.12"
+  },
+  {
+    "id": "32.07.12.2004",
+    "name": "Dayeuhluhur",
+    "district_id": "32.07.12"
+  },
+  {
+    "id": "32.07.12.2005",
+    "name": "Mulyasari",
+    "district_id": "32.07.12"
+  },
+  {
+    "id": "32.07.12.2006",
+    "name": "Bayasari",
+    "district_id": "32.07.12"
+  },
+  {
+    "id": "32.07.13.2001",
+    "name": "Rajadesa",
+    "district_id": "32.07.13"
+  },
+  {
+    "id": "32.07.13.2002",
+    "name": "Tanjungsukur",
+    "district_id": "32.07.13"
+  },
+  {
+    "id": "32.07.13.2003",
+    "name": "Tanjungsari",
+    "district_id": "32.07.13"
+  },
+  {
+    "id": "32.07.13.2004",
+    "name": "Tanjungjaya",
+    "district_id": "32.07.13"
+  },
+  {
+    "id": "32.07.13.2005",
+    "name": "Andapraja",
+    "district_id": "32.07.13"
+  },
+  {
+    "id": "32.07.13.2006",
+    "name": "Sukaharja",
+    "district_id": "32.07.13"
+  },
+  {
+    "id": "32.07.13.2007",
+    "name": "Sukajaya",
+    "district_id": "32.07.13"
+  },
+  {
+    "id": "32.07.13.2008",
+    "name": "Tigaherang",
+    "district_id": "32.07.13"
+  },
+  {
+    "id": "32.07.13.2009",
+    "name": "Sirnabaya",
+    "district_id": "32.07.13"
+  },
+  {
+    "id": "32.07.13.2010",
+    "name": "Sirnajaya",
+    "district_id": "32.07.13"
+  },
+  {
+    "id": "32.07.13.2011",
+    "name": "Purwaraja",
+    "district_id": "32.07.13"
+  },
+  {
+    "id": "32.07.14.2001",
+    "name": "Sukadana",
+    "district_id": "32.07.14"
+  },
+  {
+    "id": "32.07.14.2002",
+    "name": "Salakaria",
+    "district_id": "32.07.14"
+  },
+  {
+    "id": "32.07.14.2003",
+    "name": "Margaharja",
+    "district_id": "32.07.14"
+  },
+  {
+    "id": "32.07.14.2004",
+    "name": "Margajaya",
+    "district_id": "32.07.14"
+  },
+  {
+    "id": "32.07.14.2005",
+    "name": "Bunter",
+    "district_id": "32.07.14"
+  },
+  {
+    "id": "32.07.14.2006",
+    "name": "Ciparigi",
+    "district_id": "32.07.14"
+  },
+  {
+    "id": "32.07.15.2001",
+    "name": "Rancah",
+    "district_id": "32.07.15"
+  },
+  {
+    "id": "32.07.15.2002",
+    "name": "Kiarapayung",
+    "district_id": "32.07.15"
+  },
+  {
+    "id": "32.07.15.2003",
+    "name": "Cileungsir",
+    "district_id": "32.07.15"
+  },
+  {
+    "id": "32.07.15.2004",
+    "name": "Cisontrol",
+    "district_id": "32.07.15"
+  },
+  {
+    "id": "32.07.15.2005",
+    "name": "Situmandala",
+    "district_id": "32.07.15"
+  },
+  {
+    "id": "32.07.15.2006",
+    "name": "Kawunglarang",
+    "district_id": "32.07.15"
+  },
+  {
+    "id": "32.07.15.2007",
+    "name": "Patakaharja",
+    "district_id": "32.07.15"
+  },
+  {
+    "id": "32.07.15.2008",
+    "name": "Bojonggedang",
+    "district_id": "32.07.15"
+  },
+  {
+    "id": "32.07.15.2009",
+    "name": "Karangpari",
+    "district_id": "32.07.15"
+  },
+  {
+    "id": "32.07.15.2010",
+    "name": "Dadiharja",
+    "district_id": "32.07.15"
+  },
+  {
+    "id": "32.07.15.2011",
+    "name": "Jangalaharja",
+    "district_id": "32.07.15"
+  },
+  {
+    "id": "32.07.15.2012",
+    "name": "Giriharja",
+    "district_id": "32.07.15"
+  },
+  {
+    "id": "32.07.15.2013",
+    "name": "Wangunsari",
+    "district_id": "32.07.15"
+  },
+  {
+    "id": "32.07.16.2001",
+    "name": "Tambaksari",
+    "district_id": "32.07.16"
+  },
+  {
+    "id": "32.07.16.2002",
+    "name": "Mekarsari",
+    "district_id": "32.07.16"
+  },
+  {
+    "id": "32.07.16.2003",
+    "name": "Kaso",
+    "district_id": "32.07.16"
+  },
+  {
+    "id": "32.07.16.2004",
+    "name": "Kadupandak",
+    "district_id": "32.07.16"
+  },
+  {
+    "id": "32.07.16.2005",
+    "name": "Sukasari",
+    "district_id": "32.07.16"
+  },
+  {
+    "id": "32.07.16.2006",
+    "name": "Karangpaningal",
+    "district_id": "32.07.16"
+  },
+  {
+    "id": "32.07.17.2006",
+    "name": "Sidaharja",
+    "district_id": "32.07.17"
+  },
+  {
+    "id": "32.07.17.2007",
+    "name": "Kertajaya",
+    "district_id": "32.07.17"
+  },
+  {
+    "id": "32.07.17.2009",
+    "name": "Sukanagara",
+    "district_id": "32.07.17"
+  },
+  {
+    "id": "32.07.17.2010",
+    "name": "Cintajaya",
+    "district_id": "32.07.17"
+  },
+  {
+    "id": "32.07.17.2011",
+    "name": "Cintaratu",
+    "district_id": "32.07.17"
+  },
+  {
+    "id": "32.07.17.2012",
+    "name": "Sindangangin",
+    "district_id": "32.07.17"
+  },
+  {
+    "id": "32.07.17.2013",
+    "name": "Tambakreja",
+    "district_id": "32.07.17"
+  },
+  {
+    "id": "32.07.17.2017",
+    "name": "Baregbeg",
+    "district_id": "32.07.17"
+  },
+  {
+    "id": "32.07.17.2018",
+    "name": "Kalapasawit",
+    "district_id": "32.07.17"
+  },
+  {
+    "id": "32.07.17.2019",
+    "name": "Puloerang",
+    "district_id": "32.07.17"
+  },
+  {
+    "id": "32.07.18.2005",
+    "name": "Kawasen",
+    "district_id": "32.07.18"
+  },
+  {
+    "id": "32.07.18.2006",
+    "name": "Cicapar",
+    "district_id": "32.07.18"
+  },
+  {
+    "id": "32.07.18.2007",
+    "name": "Cibadak",
+    "district_id": "32.07.18"
+  },
+  {
+    "id": "32.07.18.2008",
+    "name": "Banjarsari",
+    "district_id": "32.07.18"
+  },
+  {
+    "id": "32.07.18.2009",
+    "name": "Sindanghayu",
+    "district_id": "32.07.18"
+  },
+  {
+    "id": "32.07.18.2010",
+    "name": "Sindangasih",
+    "district_id": "32.07.18"
+  },
+  {
+    "id": "32.07.18.2012",
+    "name": "Sindangsari",
+    "district_id": "32.07.18"
+  },
+  {
+    "id": "32.07.18.2013",
+    "name": "Ciherang",
+    "district_id": "32.07.18"
+  },
+  {
+    "id": "32.07.18.2014",
+    "name": "Purwasari",
+    "district_id": "32.07.18"
+  },
+  {
+    "id": "32.07.18.2015",
+    "name": "Ratawangi",
+    "district_id": "32.07.18"
+  },
+  {
+    "id": "32.07.18.2016",
+    "name": "Ciulu",
+    "district_id": "32.07.18"
+  },
+  {
+    "id": "32.07.18.2018",
+    "name": "Sukasari",
+    "district_id": "32.07.18"
+  },
+  {
+    "id": "32.07.19.2001",
+    "name": "Pamarican",
+    "district_id": "32.07.19"
+  },
+  {
+    "id": "32.07.19.2002",
+    "name": "Sidamulih",
+    "district_id": "32.07.19"
+  },
+  {
+    "id": "32.07.19.2003",
+    "name": "Kertahayu",
+    "district_id": "32.07.19"
+  },
+  {
+    "id": "32.07.19.2004",
+    "name": "Sukamukti",
+    "district_id": "32.07.19"
+  },
+  {
+    "id": "32.07.19.2005",
+    "name": "Bangunsari",
+    "district_id": "32.07.19"
+  },
+  {
+    "id": "32.07.19.2006",
+    "name": "Neglasari",
+    "district_id": "32.07.19"
+  },
+  {
+    "id": "32.07.19.2007",
+    "name": "Bantarsari",
+    "district_id": "32.07.19"
+  },
+  {
+    "id": "32.07.19.2008",
+    "name": "Margajaya",
+    "district_id": "32.07.19"
+  },
+  {
+    "id": "32.07.19.2009",
+    "name": "Sukajaya",
+    "district_id": "32.07.19"
+  },
+  {
+    "id": "32.07.19.2010",
+    "name": "Sukahurip",
+    "district_id": "32.07.19"
+  },
+  {
+    "id": "32.07.19.2011",
+    "name": "Sukajadi",
+    "district_id": "32.07.19"
+  },
+  {
+    "id": "32.07.19.2012",
+    "name": "Sidaharja",
+    "district_id": "32.07.19"
+  },
+  {
+    "id": "32.07.19.2013",
+    "name": "Pasirnagara",
+    "district_id": "32.07.19"
+  },
+  {
+    "id": "32.07.19.2014",
+    "name": "Mekarmulya",
+    "district_id": "32.07.19"
+  },
+  {
+    "id": "32.07.29.2001",
+    "name": "Cimaragas",
+    "district_id": "32.07.29"
+  },
+  {
+    "id": "32.07.29.2002",
+    "name": "Beber",
+    "district_id": "32.07.29"
+  },
+  {
+    "id": "32.07.29.2003",
+    "name": "Raksabaya",
+    "district_id": "32.07.29"
+  },
+  {
+    "id": "32.07.29.2004",
+    "name": "Bojongmalang",
+    "district_id": "32.07.29"
+  },
+  {
+    "id": "32.07.29.2005",
+    "name": "Jayaraksa",
+    "district_id": "32.07.29"
+  },
+  {
+    "id": "32.07.30.2001",
+    "name": "Cisaga",
+    "district_id": "32.07.30"
+  },
+  {
+    "id": "32.07.30.2002",
+    "name": "Sidamulya",
+    "district_id": "32.07.30"
+  },
+  {
+    "id": "32.07.30.2003",
+    "name": "Kepel",
+    "district_id": "32.07.30"
+  },
+  {
+    "id": "32.07.30.2004",
+    "name": "Wangunjaya",
+    "district_id": "32.07.30"
+  },
+  {
+    "id": "32.07.30.2005",
+    "name": "Sukahurip",
+    "district_id": "32.07.30"
+  },
+  {
+    "id": "32.07.30.2006",
+    "name": "Bangunharja",
+    "district_id": "32.07.30"
+  },
+  {
+    "id": "32.07.30.2007",
+    "name": "Tanjungjaya",
+    "district_id": "32.07.30"
+  },
+  {
+    "id": "32.07.30.2008",
+    "name": "Mekarmukti",
+    "district_id": "32.07.30"
+  },
+  {
+    "id": "32.07.30.2009",
+    "name": "Danasari",
+    "district_id": "32.07.30"
+  },
+  {
+    "id": "32.07.30.2010",
+    "name": "Girimukti",
+    "district_id": "32.07.30"
+  },
+  {
+    "id": "32.07.30.2011",
+    "name": "Karyamulya",
+    "district_id": "32.07.30"
+  },
+  {
+    "id": "32.07.31.2001",
+    "name": "Sindangkasih",
+    "district_id": "32.07.31"
+  },
+  {
+    "id": "32.07.31.2002",
+    "name": "Gunungcupu",
+    "district_id": "32.07.31"
+  },
+  {
+    "id": "32.07.31.2003",
+    "name": "Budiasih",
+    "district_id": "32.07.31"
+  },
+  {
+    "id": "32.07.31.2004",
+    "name": "Budiharja",
+    "district_id": "32.07.31"
+  },
+  {
+    "id": "32.07.31.2005",
+    "name": "Sukaraja",
+    "district_id": "32.07.31"
+  },
+  {
+    "id": "32.07.31.2006",
+    "name": "Sukamanah",
+    "district_id": "32.07.31"
+  },
+  {
+    "id": "32.07.31.2007",
+    "name": "Sukasenang",
+    "district_id": "32.07.31"
+  },
+  {
+    "id": "32.07.31.2008",
+    "name": "Sukaresik",
+    "district_id": "32.07.31"
+  },
+  {
+    "id": "32.07.31.2009",
+    "name": "Wanasigra",
+    "district_id": "32.07.31"
+  },
+  {
+    "id": "32.07.32.2001",
+    "name": "Baregbeg",
+    "district_id": "32.07.32"
+  },
+  {
+    "id": "32.07.32.2002",
+    "name": "Sukamaju",
+    "district_id": "32.07.32"
+  },
+  {
+    "id": "32.07.32.2003",
+    "name": "Mekarjaya",
+    "district_id": "32.07.32"
+  },
+  {
+    "id": "32.07.32.2004",
+    "name": "Saguling",
+    "district_id": "32.07.32"
+  },
+  {
+    "id": "32.07.32.2005",
+    "name": "Petirhilir",
+    "district_id": "32.07.32"
+  },
+  {
+    "id": "32.07.32.2006",
+    "name": "Pusakanagara",
+    "district_id": "32.07.32"
+  },
+  {
+    "id": "32.07.32.2007",
+    "name": "Jelat",
+    "district_id": "32.07.32"
+  },
+  {
+    "id": "32.07.32.2008",
+    "name": "Karangampel",
+    "district_id": "32.07.32"
+  },
+  {
+    "id": "32.07.32.2009",
+    "name": "Sukamulya",
+    "district_id": "32.07.32"
+  },
+  {
+    "id": "32.07.33.2001",
+    "name": "Sukamantri",
+    "district_id": "32.07.33"
+  },
+  {
+    "id": "32.07.33.2002",
+    "name": "Tenggerraharja",
+    "district_id": "32.07.33"
+  },
+  {
+    "id": "32.07.33.2003",
+    "name": "Cibeureum",
+    "district_id": "32.07.33"
+  },
+  {
+    "id": "32.07.33.2004",
+    "name": "Sindanglaya",
+    "district_id": "32.07.33"
+  },
+  {
+    "id": "32.07.33.2005",
+    "name": "Mekarwangi",
+    "district_id": "32.07.33"
+  },
+  {
+    "id": "32.07.34.2001",
+    "name": "Cikupa",
+    "district_id": "32.07.34"
+  },
+  {
+    "id": "32.07.34.2002",
+    "name": "Sukaraharja",
+    "district_id": "32.07.34"
+  },
+  {
+    "id": "32.07.34.2003",
+    "name": "Lumbung",
+    "district_id": "32.07.34"
+  },
+  {
+    "id": "32.07.34.2004",
+    "name": "Lumbungsari",
+    "district_id": "32.07.34"
+  },
+  {
+    "id": "32.07.34.2005",
+    "name": "Awiluar",
+    "district_id": "32.07.34"
+  },
+  {
+    "id": "32.07.34.2006",
+    "name": "Darmaraja",
+    "district_id": "32.07.34"
+  },
+  {
+    "id": "32.07.34.2007",
+    "name": "Rawa",
+    "district_id": "32.07.34"
+  },
+  {
+    "id": "32.07.34.2008",
+    "name": "Sadewata",
+    "district_id": "32.07.34"
+  },
+  {
+    "id": "32.07.35.2001",
+    "name": "Bantardawa",
+    "district_id": "32.07.35"
+  },
+  {
+    "id": "32.07.35.2002",
+    "name": "Purwadadi",
+    "district_id": "32.07.35"
+  },
+  {
+    "id": "32.07.35.2003",
+    "name": "Purwajaya",
+    "district_id": "32.07.35"
+  },
+  {
+    "id": "32.07.35.2004",
+    "name": "Karangpaningal",
+    "district_id": "32.07.35"
+  },
+  {
+    "id": "32.07.35.2005",
+    "name": "Sidarahayu",
+    "district_id": "32.07.35"
+  },
+  {
+    "id": "32.07.35.2006",
+    "name": "Padaringan",
+    "district_id": "32.07.35"
+  },
+  {
+    "id": "32.07.35.2007",
+    "name": "Pasirlawang",
+    "district_id": "32.07.35"
+  },
+  {
+    "id": "32.07.35.2008",
+    "name": "Kutawaringin",
+    "district_id": "32.07.35"
+  },
+  {
+    "id": "32.07.35.2009",
+    "name": "Sukamulya",
+    "district_id": "32.07.35"
+  },
+  {
+    "id": "32.07.37.2001",
+    "name": "Pasawahan",
+    "district_id": "32.07.37"
+  },
+  {
+    "id": "32.07.37.2002",
+    "name": "Banjaranyar",
+    "district_id": "32.07.37"
+  },
+  {
+    "id": "32.07.37.2003",
+    "name": "Cigayam",
+    "district_id": "32.07.37"
+  },
+  {
+    "id": "32.07.37.2004",
+    "name": "Langkapsari",
+    "district_id": "32.07.37"
+  },
+  {
+    "id": "32.07.37.2005",
+    "name": "Kalijaya",
+    "district_id": "32.07.37"
+  },
+  {
+    "id": "32.07.37.2006",
+    "name": "Sindangrasa",
+    "district_id": "32.07.37"
+  },
+  {
+    "id": "32.07.37.2007",
+    "name": "Cikaso",
+    "district_id": "32.07.37"
+  },
+  {
+    "id": "32.07.37.2008",
+    "name": "Cikupa",
+    "district_id": "32.07.37"
+  },
+  {
+    "id": "32.07.37.2009",
+    "name": "Karyamukti",
+    "district_id": "32.07.37"
+  },
+  {
+    "id": "32.07.37.2010",
+    "name": "Tanjungsari",
+    "district_id": "32.07.37"
+  },
+  {
+    "id": "32.08.01.2001",
+    "name": "Sindangjawa",
+    "district_id": "32.08.01"
+  },
+  {
+    "id": "32.08.01.2002",
+    "name": "Ciketak",
+    "district_id": "32.08.01"
+  },
+  {
+    "id": "32.08.01.2003",
+    "name": "Nangka",
+    "district_id": "32.08.01"
+  },
+  {
+    "id": "32.08.01.2004",
+    "name": "Windujanten",
+    "district_id": "32.08.01"
+  },
+  {
+    "id": "32.08.01.2005",
+    "name": "Kadugede",
+    "district_id": "32.08.01"
+  },
+  {
+    "id": "32.08.01.2006",
+    "name": "Babatan",
+    "district_id": "32.08.01"
+  },
+  {
+    "id": "32.08.01.2007",
+    "name": "Cipondok",
+    "district_id": "32.08.01"
+  },
+  {
+    "id": "32.08.01.2008",
+    "name": "Bayuning",
+    "district_id": "32.08.01"
+  },
+  {
+    "id": "32.08.01.2009",
+    "name": "Tinggar",
+    "district_id": "32.08.01"
+  },
+  {
+    "id": "32.08.01.2010",
+    "name": "Ciherang",
+    "district_id": "32.08.01"
+  },
+  {
+    "id": "32.08.01.2011",
+    "name": "Cisukadana",
+    "district_id": "32.08.01"
+  },
+  {
+    "id": "32.08.01.2012",
+    "name": "Margabakti",
+    "district_id": "32.08.01"
+  },
+  {
+    "id": "32.08.02.2001",
+    "name": "Pinara",
+    "district_id": "32.08.02"
+  },
+  {
+    "id": "32.08.02.2002",
+    "name": "Cijemit",
+    "district_id": "32.08.02"
+  },
+  {
+    "id": "32.08.02.2003",
+    "name": "Cipedes",
+    "district_id": "32.08.02"
+  },
+  {
+    "id": "32.08.02.2004",
+    "name": "Ciniru",
+    "district_id": "32.08.02"
+  },
+  {
+    "id": "32.08.02.2005",
+    "name": "Rambatan",
+    "district_id": "32.08.02"
+  },
+  {
+    "id": "32.08.02.2006",
+    "name": "Longkewang",
+    "district_id": "32.08.02"
+  },
+  {
+    "id": "32.08.02.2007",
+    "name": "Mungkaldatar",
+    "district_id": "32.08.02"
+  },
+  {
+    "id": "32.08.02.2008",
+    "name": "Gunungmanik",
+    "district_id": "32.08.02"
+  },
+  {
+    "id": "32.08.02.2009",
+    "name": "Pamupukan",
+    "district_id": "32.08.02"
+  },
+  {
+    "id": "32.08.03.2001",
+    "name": "Tangkolo",
+    "district_id": "32.08.03"
+  },
+  {
+    "id": "32.08.03.2002",
+    "name": "Pamulihan",
+    "district_id": "32.08.03"
+  },
+  {
+    "id": "32.08.03.2003",
+    "name": "Subang",
+    "district_id": "32.08.03"
+  },
+  {
+    "id": "32.08.03.2004",
+    "name": "Gunungaci",
+    "district_id": "32.08.03"
+  },
+  {
+    "id": "32.08.03.2005",
+    "name": "Situgede",
+    "district_id": "32.08.03"
+  },
+  {
+    "id": "32.08.03.2006",
+    "name": "Bangunjaya",
+    "district_id": "32.08.03"
+  },
+  {
+    "id": "32.08.03.2007",
+    "name": "Jatisari",
+    "district_id": "32.08.03"
+  },
+  {
+    "id": "32.08.04.2001",
+    "name": "Sumberjaya",
+    "district_id": "32.08.04"
+  },
+  {
+    "id": "32.08.04.2002",
+    "name": "Cilayung",
+    "district_id": "32.08.04"
+  },
+  {
+    "id": "32.08.04.2003",
+    "name": "Ciwaru",
+    "district_id": "32.08.04"
+  },
+  {
+    "id": "32.08.04.2004",
+    "name": "Garajati",
+    "district_id": "32.08.04"
+  },
+  {
+    "id": "32.08.04.2005",
+    "name": "Baok",
+    "district_id": "32.08.04"
+  },
+  {
+    "id": "32.08.04.2006",
+    "name": "Andamui",
+    "district_id": "32.08.04"
+  },
+  {
+    "id": "32.08.04.2007",
+    "name": "Sagaranten",
+    "district_id": "32.08.04"
+  },
+  {
+    "id": "32.08.04.2008",
+    "name": "Citundun",
+    "district_id": "32.08.04"
+  },
+  {
+    "id": "32.08.04.2009",
+    "name": "Lebakherang",
+    "district_id": "32.08.04"
+  },
+  {
+    "id": "32.08.04.2010",
+    "name": "Karangbaru",
+    "district_id": "32.08.04"
+  },
+  {
+    "id": "32.08.04.2011",
+    "name": "Linggajaya",
+    "district_id": "32.08.04"
+  },
+  {
+    "id": "32.08.04.2012",
+    "name": "Citikur",
+    "district_id": "32.08.04"
+  },
+  {
+    "id": "32.08.05.2001",
+    "name": "Cipondok",
+    "district_id": "32.08.05"
+  },
+  {
+    "id": "32.08.05.2002",
+    "name": "Sindangjawa",
+    "district_id": "32.08.05"
+  },
+  {
+    "id": "32.08.05.2003",
+    "name": "Ciangir",
+    "district_id": "32.08.05"
+  },
+  {
+    "id": "32.08.05.2004",
+    "name": "Cibingbin",
+    "district_id": "32.08.05"
+  },
+  {
+    "id": "32.08.05.2005",
+    "name": "Citenjo",
+    "district_id": "32.08.05"
+  },
+  {
+    "id": "32.08.05.2006",
+    "name": "Dukuhbadag",
+    "district_id": "32.08.05"
+  },
+  {
+    "id": "32.08.05.2007",
+    "name": "Bantarpanjang",
+    "district_id": "32.08.05"
+  },
+  {
+    "id": "32.08.05.2008",
+    "name": "Sukamaju",
+    "district_id": "32.08.05"
+  },
+  {
+    "id": "32.08.05.2009",
+    "name": "Sukaharja",
+    "district_id": "32.08.05"
+  },
+  {
+    "id": "32.08.05.2010",
+    "name": "Cisaat",
+    "district_id": "32.08.05"
+  },
+  {
+    "id": "32.08.06.2001",
+    "name": "Dukuhpicung",
+    "district_id": "32.08.06"
+  },
+  {
+    "id": "32.08.06.2002",
+    "name": "Walaharcageur",
+    "district_id": "32.08.06"
+  },
+  {
+    "id": "32.08.06.2003",
+    "name": "Wilanagara",
+    "district_id": "32.08.06"
+  },
+  {
+    "id": "32.08.06.2004",
+    "name": "Cigedang",
+    "district_id": "32.08.06"
+  },
+  {
+    "id": "32.08.06.2005",
+    "name": "Luragungtonggoh",
+    "district_id": "32.08.06"
+  },
+  {
+    "id": "32.08.06.2006",
+    "name": "Sindangsari",
+    "district_id": "32.08.06"
+  },
+  {
+    "id": "32.08.06.2007",
+    "name": "Cirahayu",
+    "district_id": "32.08.06"
+  },
+  {
+    "id": "32.08.06.2008",
+    "name": "Margasari",
+    "district_id": "32.08.06"
+  },
+  {
+    "id": "32.08.06.2009",
+    "name": "Sindangsuka",
+    "district_id": "32.08.06"
+  },
+  {
+    "id": "32.08.06.2010",
+    "name": "Cikandang",
+    "district_id": "32.08.06"
+  },
+  {
+    "id": "32.08.06.2011",
+    "name": "Panyosogan",
+    "district_id": "32.08.06"
+  },
+  {
+    "id": "32.08.06.2012",
+    "name": "Gunungkarung",
+    "district_id": "32.08.06"
+  },
+  {
+    "id": "32.08.06.2013",
+    "name": "Luragunglandeuh",
+    "district_id": "32.08.06"
+  },
+  {
+    "id": "32.08.06.2014",
+    "name": "Dukuhmaja",
+    "district_id": "32.08.06"
+  },
+  {
+    "id": "32.08.06.2015",
+    "name": "Benda",
+    "district_id": "32.08.06"
+  },
+  {
+    "id": "32.08.06.2016",
+    "name": "Cikaduwetan",
+    "district_id": "32.08.06"
+  },
+  {
+    "id": "32.08.07.2010",
+    "name": "Langseb",
+    "district_id": "32.08.07"
+  },
+  {
+    "id": "32.08.07.2011",
+    "name": "Cinagara",
+    "district_id": "32.08.07"
+  },
+  {
+    "id": "32.08.07.2012",
+    "name": "Cineumbeuy",
+    "district_id": "32.08.07"
+  },
+  {
+    "id": "32.08.07.2013",
+    "name": "Cipetir",
+    "district_id": "32.08.07"
+  },
+  {
+    "id": "32.08.07.2014",
+    "name": "Lebakwangi",
+    "district_id": "32.08.07"
+  },
+  {
+    "id": "32.08.07.2015",
+    "name": "Mancagar",
+    "district_id": "32.08.07"
+  },
+  {
+    "id": "32.08.07.2016",
+    "name": "Bendungan",
+    "district_id": "32.08.07"
+  },
+  {
+    "id": "32.08.07.2017",
+    "name": "Sindang",
+    "district_id": "32.08.07"
+  },
+  {
+    "id": "32.08.07.2018",
+    "name": "Pasayangan",
+    "district_id": "32.08.07"
+  },
+  {
+    "id": "32.08.07.2019",
+    "name": "Pajawankidul",
+    "district_id": "32.08.07"
+  },
+  {
+    "id": "32.08.07.2020",
+    "name": "Pagundan",
+    "district_id": "32.08.07"
+  },
+  {
+    "id": "32.08.07.2021",
+    "name": "Mekarwangi",
+    "district_id": "32.08.07"
+  },
+  {
+    "id": "32.08.07.2025",
+    "name": "Manggari",
+    "district_id": "32.08.07"
+  },
+  {
+    "id": "32.08.08.2001",
+    "name": "Gewok",
+    "district_id": "32.08.08"
+  },
+  {
+    "id": "32.08.08.2002",
+    "name": "Cirukem",
+    "district_id": "32.08.08"
+  },
+  {
+    "id": "32.08.08.2003",
+    "name": "Pakembangan",
+    "district_id": "32.08.08"
+  },
+  {
+    "id": "32.08.08.2004",
+    "name": "Sukaimut",
+    "district_id": "32.08.08"
+  },
+  {
+    "id": "32.08.08.2005",
+    "name": "Cikananga",
+    "district_id": "32.08.08"
+  },
+  {
+    "id": "32.08.08.2006",
+    "name": "Tambakbaya",
+    "district_id": "32.08.08"
+  },
+  {
+    "id": "32.08.08.2007",
+    "name": "Garawangi",
+    "district_id": "32.08.08"
+  },
+  {
+    "id": "32.08.08.2008",
+    "name": "Sukamulya",
+    "district_id": "32.08.08"
+  },
+  {
+    "id": "32.08.08.2009",
+    "name": "Mancagar",
+    "district_id": "32.08.08"
+  },
+  {
+    "id": "32.08.08.2010",
+    "name": "Purwasari",
+    "district_id": "32.08.08"
+  },
+  {
+    "id": "32.08.08.2011",
+    "name": "Lengkong",
+    "district_id": "32.08.08"
+  },
+  {
+    "id": "32.08.08.2023",
+    "name": "Karamatwangi",
+    "district_id": "32.08.08"
+  },
+  {
+    "id": "32.08.08.2024",
+    "name": "Citiusari",
+    "district_id": "32.08.08"
+  },
+  {
+    "id": "32.08.08.2026",
+    "name": "Mekarmulya",
+    "district_id": "32.08.08"
+  },
+  {
+    "id": "32.08.08.2027",
+    "name": "Tembong",
+    "district_id": "32.08.08"
+  },
+  {
+    "id": "32.08.08.2028",
+    "name": "Kutakembaran",
+    "district_id": "32.08.08"
+  },
+  {
+    "id": "32.08.08.2029",
+    "name": "Kadatuan",
+    "district_id": "32.08.08"
+  },
+  {
+    "id": "32.08.09.1001",
+    "name": "Citangtu",
+    "district_id": "32.08.09"
+  },
+  {
+    "id": "32.08.09.1002",
+    "name": "Kuningan",
+    "district_id": "32.08.09"
+  },
+  {
+    "id": "32.08.09.1003",
+    "name": "Winduhaji",
+    "district_id": "32.08.09"
+  },
+  {
+    "id": "32.08.09.1004",
+    "name": "Windusengkahan",
+    "district_id": "32.08.09"
+  },
+  {
+    "id": "32.08.09.1005",
+    "name": "Cijoho",
+    "district_id": "32.08.09"
+  },
+  {
+    "id": "32.08.09.1006",
+    "name": "Purwawinangun",
+    "district_id": "32.08.09"
+  },
+  {
+    "id": "32.08.09.1007",
+    "name": "Cigintung",
+    "district_id": "32.08.09"
+  },
+  {
+    "id": "32.08.09.1008",
+    "name": "Cirendang",
+    "district_id": "32.08.09"
+  },
+  {
+    "id": "32.08.09.1009",
+    "name": "Ciporang",
+    "district_id": "32.08.09"
+  },
+  {
+    "id": "32.08.09.1010",
+    "name": "Awirarangan",
+    "district_id": "32.08.09"
+  },
+  {
+    "id": "32.08.09.2011",
+    "name": "Cibinuang",
+    "district_id": "32.08.09"
+  },
+  {
+    "id": "32.08.09.2012",
+    "name": "Karangtawang",
+    "district_id": "32.08.09"
+  },
+  {
+    "id": "32.08.09.2013",
+    "name": "Kedungarum",
+    "district_id": "32.08.09"
+  },
+  {
+    "id": "32.08.09.2014",
+    "name": "Ancaran",
+    "district_id": "32.08.09"
+  },
+  {
+    "id": "32.08.09.2015",
+    "name": "Kasturi",
+    "district_id": "32.08.09"
+  },
+  {
+    "id": "32.08.09.2016",
+    "name": "Padarek",
+    "district_id": "32.08.09"
+  },
+  {
+    "id": "32.08.10.2001",
+    "name": "Geresik",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2002",
+    "name": "Kadurama",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2003",
+    "name": "Ciawigebang",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2004",
+    "name": "Lebaksiuh",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2005",
+    "name": "Ciputat",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2006",
+    "name": "Pajawanlor",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2007",
+    "name": "Sidaraja",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2008",
+    "name": "Kapandayan",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2009",
+    "name": "Pangkalan",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2010",
+    "name": "Ciomas",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2011",
+    "name": "Sukaraja",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2012",
+    "name": "Cihaur",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2013",
+    "name": "Ciawilor",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2014",
+    "name": "Cigarukgak",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2015",
+    "name": "Sukadana",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2016",
+    "name": "Cihirup",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2017",
+    "name": "Karamatmulya",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2018",
+    "name": "Pamijahan",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2019",
+    "name": "Karangkamulyan",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2020",
+    "name": "Padarama",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2021",
+    "name": "Cikubangmulya",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2022",
+    "name": "Dukuhdalem",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2023",
+    "name": "Mekarjaya",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.10.2024",
+    "name": "Cijagamulya",
+    "district_id": "32.08.10"
+  },
+  {
+    "id": "32.08.11.2001",
+    "name": "Cihideunggirang",
+    "district_id": "32.08.11"
+  },
+  {
+    "id": "32.08.11.2002",
+    "name": "Cihideunghilir",
+    "district_id": "32.08.11"
+  },
+  {
+    "id": "32.08.11.2003",
+    "name": "Cidahu",
+    "district_id": "32.08.11"
+  },
+  {
+    "id": "32.08.11.2004",
+    "name": "Kertawinangun",
+    "district_id": "32.08.11"
+  },
+  {
+    "id": "32.08.11.2005",
+    "name": "Datar",
+    "district_id": "32.08.11"
+  },
+  {
+    "id": "32.08.11.2006",
+    "name": "Legok",
+    "district_id": "32.08.11"
+  },
+  {
+    "id": "32.08.11.2007",
+    "name": "Cikeusik",
+    "district_id": "32.08.11"
+  },
+  {
+    "id": "32.08.11.2008",
+    "name": "Cieurih",
+    "district_id": "32.08.11"
+  },
+  {
+    "id": "32.08.11.2009",
+    "name": "Cibulan",
+    "district_id": "32.08.11"
+  },
+  {
+    "id": "32.08.11.2010",
+    "name": "Nanggela",
+    "district_id": "32.08.11"
+  },
+  {
+    "id": "32.08.11.2011",
+    "name": "Jatimulya",
+    "district_id": "32.08.11"
+  },
+  {
+    "id": "32.08.11.2012",
+    "name": "Bunder",
+    "district_id": "32.08.11"
+  },
+  {
+    "id": "32.08.12.2001",
+    "name": "Sukamukti",
+    "district_id": "32.08.12"
+  },
+  {
+    "id": "32.08.12.2002",
+    "name": "Sidamulya",
+    "district_id": "32.08.12"
+  },
+  {
+    "id": "32.08.12.2003",
+    "name": "Jalaksana",
+    "district_id": "32.08.12"
+  },
+  {
+    "id": "32.08.12.2004",
+    "name": "Sangkanerang",
+    "district_id": "32.08.12"
+  },
+  {
+    "id": "32.08.12.2005",
+    "name": "Sayana",
+    "district_id": "32.08.12"
+  },
+  {
+    "id": "32.08.12.2006",
+    "name": "Peusing",
+    "district_id": "32.08.12"
+  },
+  {
+    "id": "32.08.12.2007",
+    "name": "Sembawa",
+    "district_id": "32.08.12"
+  },
+  {
+    "id": "32.08.12.2008",
+    "name": "Sadamantra",
+    "district_id": "32.08.12"
+  },
+  {
+    "id": "32.08.12.2009",
+    "name": "Maniskidul",
+    "district_id": "32.08.12"
+  },
+  {
+    "id": "32.08.12.2010",
+    "name": "Manislor",
+    "district_id": "32.08.12"
+  },
+  {
+    "id": "32.08.12.2011",
+    "name": "Ciniru",
+    "district_id": "32.08.12"
+  },
+  {
+    "id": "32.08.12.2012",
+    "name": "Padamenak",
+    "district_id": "32.08.12"
+  },
+  {
+    "id": "32.08.12.2013",
+    "name": "Babakanmulya",
+    "district_id": "32.08.12"
+  },
+  {
+    "id": "32.08.12.2014",
+    "name": "Sindangbarang",
+    "district_id": "32.08.12"
+  },
+  {
+    "id": "32.08.12.2015",
+    "name": "Nanggerang",
+    "district_id": "32.08.12"
+  },
+  {
+    "id": "32.08.13.2006",
+    "name": "Bandorasawetan",
+    "district_id": "32.08.13"
+  },
+  {
+    "id": "32.08.13.2007",
+    "name": "Bandorasakulon",
+    "district_id": "32.08.13"
+  },
+  {
+    "id": "32.08.13.2008",
+    "name": "Linggasana",
+    "district_id": "32.08.13"
+  },
+  {
+    "id": "32.08.13.2009",
+    "name": "Linggajati",
+    "district_id": "32.08.13"
+  },
+  {
+    "id": "32.08.13.2010",
+    "name": "Bojong",
+    "district_id": "32.08.13"
+  },
+  {
+    "id": "32.08.13.2015",
+    "name": "Cilimus",
+    "district_id": "32.08.13"
+  },
+  {
+    "id": "32.08.13.2016",
+    "name": "Setianegara",
+    "district_id": "32.08.13"
+  },
+  {
+    "id": "32.08.13.2017",
+    "name": "Cibeureum",
+    "district_id": "32.08.13"
+  },
+  {
+    "id": "32.08.13.2018",
+    "name": "Kaliaren",
+    "district_id": "32.08.13"
+  },
+  {
+    "id": "32.08.13.2019",
+    "name": "Sampora",
+    "district_id": "32.08.13"
+  },
+  {
+    "id": "32.08.13.2020",
+    "name": "Caracas",
+    "district_id": "32.08.13"
+  },
+  {
+    "id": "32.08.13.2023",
+    "name": "Linggamekar",
+    "district_id": "32.08.13"
+  },
+  {
+    "id": "32.08.13.2024",
+    "name": "Linggaindah",
+    "district_id": "32.08.13"
+  },
+  {
+    "id": "32.08.14.2001",
+    "name": "Cirea",
+    "district_id": "32.08.14"
+  },
+  {
+    "id": "32.08.14.2002",
+    "name": "Sukasari",
+    "district_id": "32.08.14"
+  },
+  {
+    "id": "32.08.14.2003",
+    "name": "Seda",
+    "district_id": "32.08.14"
+  },
+  {
+    "id": "32.08.14.2004",
+    "name": "Trijaya",
+    "district_id": "32.08.14"
+  },
+  {
+    "id": "32.08.14.2005",
+    "name": "Randobawagirang",
+    "district_id": "32.08.14"
+  },
+  {
+    "id": "32.08.14.2006",
+    "name": "Pakembangan",
+    "district_id": "32.08.14"
+  },
+  {
+    "id": "32.08.14.2007",
+    "name": "Randobawailir",
+    "district_id": "32.08.14"
+  },
+  {
+    "id": "32.08.14.2008",
+    "name": "Kertawinangun",
+    "district_id": "32.08.14"
+  },
+  {
+    "id": "32.08.14.2009",
+    "name": "Mandirancan",
+    "district_id": "32.08.14"
+  },
+  {
+    "id": "32.08.14.2010",
+    "name": "Nanggela",
+    "district_id": "32.08.14"
+  },
+  {
+    "id": "32.08.14.2011",
+    "name": "Nanggerangjaya",
+    "district_id": "32.08.14"
+  },
+  {
+    "id": "32.08.14.2012",
+    "name": "Salakadomas",
+    "district_id": "32.08.14"
+  },
+  {
+    "id": "32.08.15.2001",
+    "name": "Selajambe",
+    "district_id": "32.08.15"
+  },
+  {
+    "id": "32.08.15.2002",
+    "name": "Cantilan",
+    "district_id": "32.08.15"
+  },
+  {
+    "id": "32.08.15.2003",
+    "name": "Ciberung",
+    "district_id": "32.08.15"
+  },
+  {
+    "id": "32.08.15.2004",
+    "name": "Kutawaringin",
+    "district_id": "32.08.15"
+  },
+  {
+    "id": "32.08.15.2005",
+    "name": "Jamberama",
+    "district_id": "32.08.15"
+  },
+  {
+    "id": "32.08.15.2006",
+    "name": "Bagawat",
+    "district_id": "32.08.15"
+  },
+  {
+    "id": "32.08.15.2007",
+    "name": "Padahurip",
+    "district_id": "32.08.15"
+  },
+  {
+    "id": "32.08.16.2002",
+    "name": "Gereba",
+    "district_id": "32.08.16"
+  },
+  {
+    "id": "32.08.16.2004",
+    "name": "Cilaja",
+    "district_id": "32.08.16"
+  },
+  {
+    "id": "32.08.16.2005",
+    "name": "Cikubangsari",
+    "district_id": "32.08.16"
+  },
+  {
+    "id": "32.08.16.2006",
+    "name": "Bojong",
+    "district_id": "32.08.16"
+  },
+  {
+    "id": "32.08.16.2007",
+    "name": "Cilowa",
+    "district_id": "32.08.16"
+  },
+  {
+    "id": "32.08.16.2008",
+    "name": "Cibentang",
+    "district_id": "32.08.16"
+  },
+  {
+    "id": "32.08.16.2009",
+    "name": "Ragawacana",
+    "district_id": "32.08.16"
+  },
+  {
+    "id": "32.08.16.2010",
+    "name": "Pajambon",
+    "district_id": "32.08.16"
+  },
+  {
+    "id": "32.08.16.2011",
+    "name": "Gandasoli",
+    "district_id": "32.08.16"
+  },
+  {
+    "id": "32.08.16.2012",
+    "name": "Kalapagunung",
+    "district_id": "32.08.16"
+  },
+  {
+    "id": "32.08.16.2013",
+    "name": "Kramatmulya",
+    "district_id": "32.08.16"
+  },
+  {
+    "id": "32.08.16.2014",
+    "name": "Cikaso",
+    "district_id": "32.08.16"
+  },
+  {
+    "id": "32.08.16.2015",
+    "name": "Karangmangu",
+    "district_id": "32.08.16"
+  },
+  {
+    "id": "32.08.16.2017",
+    "name": "Widarasari",
+    "district_id": "32.08.16"
+  },
+  {
+    "id": "32.08.17.2001",
+    "name": "Cimenga",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.17.2002",
+    "name": "Cageur",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.17.2003",
+    "name": "Sakertabarat",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.17.2004",
+    "name": "Sukarasa",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.17.2005",
+    "name": "Paninggaran",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.17.2006",
+    "name": "Cipasung",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.17.2007",
+    "name": "Kawahmanuk",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.17.2008",
+    "name": "Cikupa",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.17.2009",
+    "name": "Parung",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.17.2010",
+    "name": "Darma",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.17.2011",
+    "name": "Jagara",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.17.2012",
+    "name": "Bakom",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.17.2013",
+    "name": "Karanganyar",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.17.2014",
+    "name": "Karangsari",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.17.2015",
+    "name": "Sagarahiang",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.17.2016",
+    "name": "Gunungsirah",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.17.2017",
+    "name": "Sakertatimur",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.17.2018",
+    "name": "Tugumulya",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.17.2019",
+    "name": "Situsari",
+    "district_id": "32.08.17"
+  },
+  {
+    "id": "32.08.18.1001",
+    "name": "Cigugur",
+    "district_id": "32.08.18"
+  },
+  {
+    "id": "32.08.18.1002",
+    "name": "Cigadung",
+    "district_id": "32.08.18"
+  },
+  {
+    "id": "32.08.18.1003",
+    "name": "Winduherang",
+    "district_id": "32.08.18"
+  },
+  {
+    "id": "32.08.18.1004",
+    "name": "Sukamulya",
+    "district_id": "32.08.18"
+  },
+  {
+    "id": "32.08.18.1005",
+    "name": "Cipari",
+    "district_id": "32.08.18"
+  },
+  {
+    "id": "32.08.18.2006",
+    "name": "Cileuleuy",
+    "district_id": "32.08.18"
+  },
+  {
+    "id": "32.08.18.2007",
+    "name": "Puncak",
+    "district_id": "32.08.18"
+  },
+  {
+    "id": "32.08.18.2008",
+    "name": "Gunungkeling",
+    "district_id": "32.08.18"
+  },
+  {
+    "id": "32.08.18.2009",
+    "name": "Cisantana",
+    "district_id": "32.08.18"
+  },
+  {
+    "id": "32.08.18.2010",
+    "name": "Babakanmulya",
+    "district_id": "32.08.18"
+  },
+  {
+    "id": "32.08.19.2001",
+    "name": "Padabeunghar",
+    "district_id": "32.08.19"
+  },
+  {
+    "id": "32.08.19.2002",
+    "name": "Kaduela",
+    "district_id": "32.08.19"
+  },
+  {
+    "id": "32.08.19.2003",
+    "name": "Pasawahan",
+    "district_id": "32.08.19"
+  },
+  {
+    "id": "32.08.19.2004",
+    "name": "Ciwiru",
+    "district_id": "32.08.19"
+  },
+  {
+    "id": "32.08.19.2005",
+    "name": "Cidahu",
+    "district_id": "32.08.19"
+  },
+  {
+    "id": "32.08.19.2006",
+    "name": "Cimara",
+    "district_id": "32.08.19"
+  },
+  {
+    "id": "32.08.19.2007",
+    "name": "Paniis",
+    "district_id": "32.08.19"
+  },
+  {
+    "id": "32.08.19.2008",
+    "name": "Cibuntu",
+    "district_id": "32.08.19"
+  },
+  {
+    "id": "32.08.19.2009",
+    "name": "Singkup",
+    "district_id": "32.08.19"
+  },
+  {
+    "id": "32.08.19.2010",
+    "name": "Padamatang",
+    "district_id": "32.08.19"
+  },
+  {
+    "id": "32.08.20.2001",
+    "name": "Haurkuning",
+    "district_id": "32.08.20"
+  },
+  {
+    "id": "32.08.20.2002",
+    "name": "Kertayuga",
+    "district_id": "32.08.20"
+  },
+  {
+    "id": "32.08.20.2003",
+    "name": "Windusari",
+    "district_id": "32.08.20"
+  },
+  {
+    "id": "32.08.20.2004",
+    "name": "Nusaherang",
+    "district_id": "32.08.20"
+  },
+  {
+    "id": "32.08.20.2005",
+    "name": "Jambar",
+    "district_id": "32.08.20"
+  },
+  {
+    "id": "32.08.20.2006",
+    "name": "Cikadu",
+    "district_id": "32.08.20"
+  },
+  {
+    "id": "32.08.20.2007",
+    "name": "Kertawirama",
+    "district_id": "32.08.20"
+  },
+  {
+    "id": "32.08.20.2008",
+    "name": "Ciasih",
+    "district_id": "32.08.20"
+  },
+  {
+    "id": "32.08.21.2001",
+    "name": "Muncangela",
+    "district_id": "32.08.21"
+  },
+  {
+    "id": "32.08.21.2002",
+    "name": "Karoya",
+    "district_id": "32.08.21"
+  },
+  {
+    "id": "32.08.21.2003",
+    "name": "Susukan",
+    "district_id": "32.08.21"
+  },
+  {
+    "id": "32.08.21.2004",
+    "name": "Cimaranten",
+    "district_id": "32.08.21"
+  },
+  {
+    "id": "32.08.21.2005",
+    "name": "Cipicung",
+    "district_id": "32.08.21"
+  },
+  {
+    "id": "32.08.21.2006",
+    "name": "Pamulihan",
+    "district_id": "32.08.21"
+  },
+  {
+    "id": "32.08.21.2007",
+    "name": "Salareuma",
+    "district_id": "32.08.21"
+  },
+  {
+    "id": "32.08.21.2008",
+    "name": "Suganangan",
+    "district_id": "32.08.21"
+  },
+  {
+    "id": "32.08.21.2009",
+    "name": "Sukamukti",
+    "district_id": "32.08.21"
+  },
+  {
+    "id": "32.08.21.2010",
+    "name": "Mekarsari",
+    "district_id": "32.08.21"
+  },
+  {
+    "id": "32.08.22.2001",
+    "name": "Silebu",
+    "district_id": "32.08.22"
+  },
+  {
+    "id": "32.08.22.2002",
+    "name": "Patalagan",
+    "district_id": "32.08.22"
+  },
+  {
+    "id": "32.08.22.2003",
+    "name": "Kahiyangan",
+    "district_id": "32.08.22"
+  },
+  {
+    "id": "32.08.22.2004",
+    "name": "Tajurbuntu",
+    "district_id": "32.08.22"
+  },
+  {
+    "id": "32.08.22.2005",
+    "name": "Pancalang",
+    "district_id": "32.08.22"
+  },
+  {
+    "id": "32.08.22.2006",
+    "name": "Sumbakeling",
+    "district_id": "32.08.22"
+  },
+  {
+    "id": "32.08.22.2007",
+    "name": "Sarewu",
+    "district_id": "32.08.22"
+  },
+  {
+    "id": "32.08.22.2008",
+    "name": "Sindangkempeng",
+    "district_id": "32.08.22"
+  },
+  {
+    "id": "32.08.22.2009",
+    "name": "Rajawetan",
+    "district_id": "32.08.22"
+  },
+  {
+    "id": "32.08.22.2010",
+    "name": "Tenjolayar",
+    "district_id": "32.08.22"
+  },
+  {
+    "id": "32.08.22.2011",
+    "name": "Mekarjaya",
+    "district_id": "32.08.22"
+  },
+  {
+    "id": "32.08.22.2012",
+    "name": "Tarikolot",
+    "district_id": "32.08.22"
+  },
+  {
+    "id": "32.08.22.2013",
+    "name": "Danalampah",
+    "district_id": "32.08.22"
+  },
+  {
+    "id": "32.08.23.2001",
+    "name": "Garatengah",
+    "district_id": "32.08.23"
+  },
+  {
+    "id": "32.08.23.2002",
+    "name": "Rajadanu",
+    "district_id": "32.08.23"
+  },
+  {
+    "id": "32.08.23.2003",
+    "name": "Singkup",
+    "district_id": "32.08.23"
+  },
+  {
+    "id": "32.08.23.2004",
+    "name": "Japara",
+    "district_id": "32.08.23"
+  },
+  {
+    "id": "32.08.23.2005",
+    "name": "Wano",
+    "district_id": "32.08.23"
+  },
+  {
+    "id": "32.08.23.2006",
+    "name": "Citapen",
+    "district_id": "32.08.23"
+  },
+  {
+    "id": "32.08.23.2007",
+    "name": "Cengal",
+    "district_id": "32.08.23"
+  },
+  {
+    "id": "32.08.23.2008",
+    "name": "Cikeleng",
+    "district_id": "32.08.23"
+  },
+  {
+    "id": "32.08.23.2009",
+    "name": "Kalimati",
+    "district_id": "32.08.23"
+  },
+  {
+    "id": "32.08.23.2010",
+    "name": "Dukuhdalem",
+    "district_id": "32.08.23"
+  },
+  {
+    "id": "32.08.24.2003",
+    "name": "Cileuya",
+    "district_id": "32.08.24"
+  },
+  {
+    "id": "32.08.24.2004",
+    "name": "Margamukti",
+    "district_id": "32.08.24"
+  },
+  {
+    "id": "32.08.24.2005",
+    "name": "Gunungsari",
+    "district_id": "32.08.24"
+  },
+  {
+    "id": "32.08.24.2006",
+    "name": "Cimahi",
+    "district_id": "32.08.24"
+  },
+  {
+    "id": "32.08.24.2007",
+    "name": "Kananga",
+    "district_id": "32.08.24"
+  },
+  {
+    "id": "32.08.24.2008",
+    "name": "Cikeusal",
+    "district_id": "32.08.24"
+  },
+  {
+    "id": "32.08.24.2009",
+    "name": "Mekarjaya",
+    "district_id": "32.08.24"
+  },
+  {
+    "id": "32.08.24.2010",
+    "name": "Sukajaya",
+    "district_id": "32.08.24"
+  },
+  {
+    "id": "32.08.24.2011",
+    "name": "Mulyajaya",
+    "district_id": "32.08.24"
+  },
+  {
+    "id": "32.08.24.2012",
+    "name": "Cimulya",
+    "district_id": "32.08.24"
+  },
+  {
+    "id": "32.08.25.2001",
+    "name": "Legokherang",
+    "district_id": "32.08.25"
+  },
+  {
+    "id": "32.08.25.2002",
+    "name": "Bungurberes",
+    "district_id": "32.08.25"
+  },
+  {
+    "id": "32.08.25.2003",
+    "name": "Cilebak",
+    "district_id": "32.08.25"
+  },
+  {
+    "id": "32.08.25.2004",
+    "name": "Jalatrang",
+    "district_id": "32.08.25"
+  },
+  {
+    "id": "32.08.25.2005",
+    "name": "Patala",
+    "district_id": "32.08.25"
+  },
+  {
+    "id": "32.08.25.2006",
+    "name": "Mandapajaya",
+    "district_id": "32.08.25"
+  },
+  {
+    "id": "32.08.25.2007",
+    "name": "Cilimusari",
+    "district_id": "32.08.25"
+  },
+  {
+    "id": "32.08.26.2001",
+    "name": "Citapen",
+    "district_id": "32.08.26"
+  },
+  {
+    "id": "32.08.26.2002",
+    "name": "Pasiragung",
+    "district_id": "32.08.26"
+  },
+  {
+    "id": "32.08.26.2003",
+    "name": "Tundagan",
+    "district_id": "32.08.26"
+  },
+  {
+    "id": "32.08.26.2004",
+    "name": "Bunigeulis",
+    "district_id": "32.08.26"
+  },
+  {
+    "id": "32.08.26.2005",
+    "name": "Hantara",
+    "district_id": "32.08.26"
+  },
+  {
+    "id": "32.08.26.2006",
+    "name": "Pakapasangirang",
+    "district_id": "32.08.26"
+  },
+  {
+    "id": "32.08.26.2007",
+    "name": "Cikondang",
+    "district_id": "32.08.26"
+  },
+  {
+    "id": "32.08.26.2008",
+    "name": "Pakapasanhilir",
+    "district_id": "32.08.26"
+  },
+  {
+    "id": "32.08.27.2001",
+    "name": "Kalimanggiskulon",
+    "district_id": "32.08.27"
+  },
+  {
+    "id": "32.08.27.2002",
+    "name": "Partawangunan",
+    "district_id": "32.08.27"
+  },
+  {
+    "id": "32.08.27.2003",
+    "name": "Cipancur",
+    "district_id": "32.08.27"
+  },
+  {
+    "id": "32.08.27.2004",
+    "name": "Kertawana",
+    "district_id": "32.08.27"
+  },
+  {
+    "id": "32.08.27.2005",
+    "name": "Wanasaraya",
+    "district_id": "32.08.27"
+  },
+  {
+    "id": "32.08.27.2006",
+    "name": "Kalimanggiswetan",
+    "district_id": "32.08.27"
+  },
+  {
+    "id": "32.08.28.2001",
+    "name": "Cimara",
+    "district_id": "32.08.28"
+  },
+  {
+    "id": "32.08.28.2002",
+    "name": "Sumurwiru",
+    "district_id": "32.08.28"
+  },
+  {
+    "id": "32.08.28.2003",
+    "name": "Cibeureum",
+    "district_id": "32.08.28"
+  },
+  {
+    "id": "32.08.28.2004",
+    "name": "Tarikolot",
+    "district_id": "32.08.28"
+  },
+  {
+    "id": "32.08.28.2005",
+    "name": "Randusari",
+    "district_id": "32.08.28"
+  },
+  {
+    "id": "32.08.28.2006",
+    "name": "Sukadana",
+    "district_id": "32.08.28"
+  },
+  {
+    "id": "32.08.28.2007",
+    "name": "Kawungsari",
+    "district_id": "32.08.28"
+  },
+  {
+    "id": "32.08.28.2008",
+    "name": "Sukarapih",
+    "district_id": "32.08.28"
+  },
+  {
+    "id": "32.08.29.2001",
+    "name": "Karangkancana",
+    "district_id": "32.08.29"
+  },
+  {
+    "id": "32.08.29.2002",
+    "name": "Kaduagung",
+    "district_id": "32.08.29"
+  },
+  {
+    "id": "32.08.29.2003",
+    "name": "Segong",
+    "district_id": "32.08.29"
+  },
+  {
+    "id": "32.08.29.2004",
+    "name": "Tanjungkerta",
+    "district_id": "32.08.29"
+  },
+  {
+    "id": "32.08.29.2005",
+    "name": "Sukasari",
+    "district_id": "32.08.29"
+  },
+  {
+    "id": "32.08.29.2006",
+    "name": "Margacina",
+    "district_id": "32.08.29"
+  },
+  {
+    "id": "32.08.29.2007",
+    "name": "Jabranti",
+    "district_id": "32.08.29"
+  },
+  {
+    "id": "32.08.29.2008",
+    "name": "Simpayjaya",
+    "district_id": "32.08.29"
+  },
+  {
+    "id": "32.08.29.2009",
+    "name": "Cihanjaro",
+    "district_id": "32.08.29"
+  },
+  {
+    "id": "32.08.30.2001",
+    "name": "Garahaji",
+    "district_id": "32.08.30"
+  },
+  {
+    "id": "32.08.30.2002",
+    "name": "Galaherang",
+    "district_id": "32.08.30"
+  },
+  {
+    "id": "32.08.30.2003",
+    "name": "Cipakem",
+    "district_id": "32.08.30"
+  },
+  {
+    "id": "32.08.30.2004",
+    "name": "Maleber",
+    "district_id": "32.08.30"
+  },
+  {
+    "id": "32.08.30.2005",
+    "name": "Parakan",
+    "district_id": "32.08.30"
+  },
+  {
+    "id": "32.08.30.2006",
+    "name": "Kutaraja",
+    "district_id": "32.08.30"
+  },
+  {
+    "id": "32.08.30.2007",
+    "name": "Ciporang",
+    "district_id": "32.08.30"
+  },
+  {
+    "id": "32.08.30.2008",
+    "name": "Dukuhtengah",
+    "district_id": "32.08.30"
+  },
+  {
+    "id": "32.08.30.2009",
+    "name": "Karangtengah",
+    "district_id": "32.08.30"
+  },
+  {
+    "id": "32.08.30.2010",
+    "name": "Mekarsari",
+    "district_id": "32.08.30"
+  },
+  {
+    "id": "32.08.30.2011",
+    "name": "Padamulya",
+    "district_id": "32.08.30"
+  },
+  {
+    "id": "32.08.30.2012",
+    "name": "Cikahuripan",
+    "district_id": "32.08.30"
+  },
+  {
+    "id": "32.08.30.2013",
+    "name": "Kutamandarakan",
+    "district_id": "32.08.30"
+  },
+  {
+    "id": "32.08.30.2014",
+    "name": "Mandalajaya",
+    "district_id": "32.08.30"
+  },
+  {
+    "id": "32.08.30.2015",
+    "name": "Giriwaringin",
+    "district_id": "32.08.30"
+  },
+  {
+    "id": "32.08.30.2016",
+    "name": "Buniasih",
+    "district_id": "32.08.30"
+  },
+  {
+    "id": "32.08.31.2001",
+    "name": "Sindangsari",
+    "district_id": "32.08.31"
+  },
+  {
+    "id": "32.08.31.2002",
+    "name": "Kaduagung",
+    "district_id": "32.08.31"
+  },
+  {
+    "id": "32.08.31.2003",
+    "name": "Kertaungaran",
+    "district_id": "32.08.31"
+  },
+  {
+    "id": "32.08.31.2004",
+    "name": "Sindangagung",
+    "district_id": "32.08.31"
+  },
+  {
+    "id": "32.08.31.2005",
+    "name": "Balong",
+    "district_id": "32.08.31"
+  },
+  {
+    "id": "32.08.31.2006",
+    "name": "Kertayasa",
+    "district_id": "32.08.31"
+  },
+  {
+    "id": "32.08.31.2007",
+    "name": "Kertawangunan",
+    "district_id": "32.08.31"
+  },
+  {
+    "id": "32.08.31.2008",
+    "name": "Babakanreuma",
+    "district_id": "32.08.31"
+  },
+  {
+    "id": "32.08.31.2009",
+    "name": "Tirtawangunan",
+    "district_id": "32.08.31"
+  },
+  {
+    "id": "32.08.31.2010",
+    "name": "Dukuhlor",
+    "district_id": "32.08.31"
+  },
+  {
+    "id": "32.08.31.2011",
+    "name": "Taraju",
+    "district_id": "32.08.31"
+  },
+  {
+    "id": "32.08.31.2012",
+    "name": "Mekarmukti",
+    "district_id": "32.08.31"
+  },
+  {
+    "id": "32.08.32.2001",
+    "name": "Bunigeulis",
+    "district_id": "32.08.32"
+  },
+  {
+    "id": "32.08.32.2002",
+    "name": "Jambugeulis",
+    "district_id": "32.08.32"
+  },
+  {
+    "id": "32.08.32.2003",
+    "name": "Koreak",
+    "district_id": "32.08.32"
+  },
+  {
+    "id": "32.08.32.2004",
+    "name": "Karangmuncang",
+    "district_id": "32.08.32"
+  },
+  {
+    "id": "32.08.32.2005",
+    "name": "Sangkanurip",
+    "district_id": "32.08.32"
+  },
+  {
+    "id": "32.08.32.2006",
+    "name": "Panawuan",
+    "district_id": "32.08.32"
+  },
+  {
+    "id": "32.08.32.2007",
+    "name": "Timbang",
+    "district_id": "32.08.32"
+  },
+  {
+    "id": "32.08.32.2008",
+    "name": "Babakanjati",
+    "district_id": "32.08.32"
+  },
+  {
+    "id": "32.08.32.2009",
+    "name": "Indapatra",
+    "district_id": "32.08.32"
+  },
+  {
+    "id": "32.08.32.2010",
+    "name": "Cibuntu",
+    "district_id": "32.08.32"
+  },
+  {
+    "id": "32.08.32.2011",
+    "name": "Sangkanmulya",
+    "district_id": "32.08.32"
+  },
+  {
+    "id": "32.09.01.2008",
+    "name": "Waled Desa",
+    "district_id": "32.09.01"
+  },
+  {
+    "id": "32.09.01.2009",
+    "name": "Waled Kota",
+    "district_id": "32.09.01"
+  },
+  {
+    "id": "32.09.01.2010",
+    "name": "Mekarsari",
+    "district_id": "32.09.01"
+  },
+  {
+    "id": "32.09.01.2011",
+    "name": "Waled Asem",
+    "district_id": "32.09.01"
+  },
+  {
+    "id": "32.09.01.2012",
+    "name": "Ambit",
+    "district_id": "32.09.01"
+  },
+  {
+    "id": "32.09.01.2013",
+    "name": "Ciuyah",
+    "district_id": "32.09.01"
+  },
+  {
+    "id": "32.09.01.2014",
+    "name": "Gunungsari",
+    "district_id": "32.09.01"
+  },
+  {
+    "id": "32.09.01.2015",
+    "name": "Karangsari",
+    "district_id": "32.09.01"
+  },
+  {
+    "id": "32.09.01.2016",
+    "name": "Cikulak Kidul",
+    "district_id": "32.09.01"
+  },
+  {
+    "id": "32.09.01.2017",
+    "name": "Cikulak",
+    "district_id": "32.09.01"
+  },
+  {
+    "id": "32.09.01.2018",
+    "name": "Cibogo",
+    "district_id": "32.09.01"
+  },
+  {
+    "id": "32.09.01.2019",
+    "name": "Cisaat",
+    "district_id": "32.09.01"
+  },
+  {
+    "id": "32.09.02.2008",
+    "name": "Leuweunggajah",
+    "district_id": "32.09.02"
+  },
+  {
+    "id": "32.09.02.2009",
+    "name": "Tenjomaya",
+    "district_id": "32.09.02"
+  },
+  {
+    "id": "32.09.02.2010",
+    "name": "Damarguna",
+    "district_id": "32.09.02"
+  },
+  {
+    "id": "32.09.02.2011",
+    "name": "Jatiseeng",
+    "district_id": "32.09.02"
+  },
+  {
+    "id": "32.09.02.2012",
+    "name": "Jatiseeng Kidul",
+    "district_id": "32.09.02"
+  },
+  {
+    "id": "32.09.02.2013",
+    "name": "Ciledug Kulon",
+    "district_id": "32.09.02"
+  },
+  {
+    "id": "32.09.02.2014",
+    "name": "Ciledug Wetan",
+    "district_id": "32.09.02"
+  },
+  {
+    "id": "32.09.02.2015",
+    "name": "Ciledug Lor",
+    "district_id": "32.09.02"
+  },
+  {
+    "id": "32.09.02.2016",
+    "name": "Ciledug Tengah",
+    "district_id": "32.09.02"
+  },
+  {
+    "id": "32.09.02.2017",
+    "name": "Bojongnegara",
+    "district_id": "32.09.02"
+  },
+  {
+    "id": "32.09.03.2001",
+    "name": "Astanalanggar",
+    "district_id": "32.09.03"
+  },
+  {
+    "id": "32.09.03.2002",
+    "name": "Barisan",
+    "district_id": "32.09.03"
+  },
+  {
+    "id": "32.09.03.2003",
+    "name": "Losari Kidul",
+    "district_id": "32.09.03"
+  },
+  {
+    "id": "32.09.03.2004",
+    "name": "Panggangsari",
+    "district_id": "32.09.03"
+  },
+  {
+    "id": "32.09.03.2005",
+    "name": "Losari Lor",
+    "district_id": "32.09.03"
+  },
+  {
+    "id": "32.09.03.2006",
+    "name": "Mulyasari",
+    "district_id": "32.09.03"
+  },
+  {
+    "id": "32.09.03.2007",
+    "name": "Kalirahayu",
+    "district_id": "32.09.03"
+  },
+  {
+    "id": "32.09.03.2008",
+    "name": "Kalisari",
+    "district_id": "32.09.03"
+  },
+  {
+    "id": "32.09.03.2009",
+    "name": "Ambulu",
+    "district_id": "32.09.03"
+  },
+  {
+    "id": "32.09.03.2010",
+    "name": "Tawangsari",
+    "district_id": "32.09.03"
+  },
+  {
+    "id": "32.09.04.2001",
+    "name": "Pabedilan Kidul",
+    "district_id": "32.09.04"
+  },
+  {
+    "id": "32.09.04.2002",
+    "name": "Pabedilan Wetan",
+    "district_id": "32.09.04"
+  },
+  {
+    "id": "32.09.04.2003",
+    "name": "Pabedilan Kulon",
+    "district_id": "32.09.04"
+  },
+  {
+    "id": "32.09.04.2004",
+    "name": "Pabedilan Kaler",
+    "district_id": "32.09.04"
+  },
+  {
+    "id": "32.09.04.2005",
+    "name": "Silihasih",
+    "district_id": "32.09.04"
+  },
+  {
+    "id": "32.09.04.2006",
+    "name": "Tersana",
+    "district_id": "32.09.04"
+  },
+  {
+    "id": "32.09.04.2007",
+    "name": "Pasuruan",
+    "district_id": "32.09.04"
+  },
+  {
+    "id": "32.09.04.2008",
+    "name": "Dukuhwidara",
+    "district_id": "32.09.04"
+  },
+  {
+    "id": "32.09.04.2009",
+    "name": "Kalibuntu",
+    "district_id": "32.09.04"
+  },
+  {
+    "id": "32.09.04.2010",
+    "name": "Kalimukti",
+    "district_id": "32.09.04"
+  },
+  {
+    "id": "32.09.04.2011",
+    "name": "Sidaresmi",
+    "district_id": "32.09.04"
+  },
+  {
+    "id": "32.09.04.2012",
+    "name": "Babakan Losari",
+    "district_id": "32.09.04"
+  },
+  {
+    "id": "32.09.04.2013",
+    "name": "Babakan Losari Lor",
+    "district_id": "32.09.04"
+  },
+  {
+    "id": "32.09.05.2001",
+    "name": "Cangkuang",
+    "district_id": "32.09.05"
+  },
+  {
+    "id": "32.09.05.2002",
+    "name": "Serang Wetan",
+    "district_id": "32.09.05"
+  },
+  {
+    "id": "32.09.05.2003",
+    "name": "Serang Kulon",
+    "district_id": "32.09.05"
+  },
+  {
+    "id": "32.09.05.2004",
+    "name": "Gembongan Mekar",
+    "district_id": "32.09.05"
+  },
+  {
+    "id": "32.09.05.2005",
+    "name": "Gembongan",
+    "district_id": "32.09.05"
+  },
+  {
+    "id": "32.09.05.2006",
+    "name": "Babakan Gebang",
+    "district_id": "32.09.05"
+  },
+  {
+    "id": "32.09.05.2007",
+    "name": "Babakan",
+    "district_id": "32.09.05"
+  },
+  {
+    "id": "32.09.05.2008",
+    "name": "Bojonggebang",
+    "district_id": "32.09.05"
+  },
+  {
+    "id": "32.09.05.2009",
+    "name": "Sumber Kidul",
+    "district_id": "32.09.05"
+  },
+  {
+    "id": "32.09.05.2010",
+    "name": "Sumber Lor",
+    "district_id": "32.09.05"
+  },
+  {
+    "id": "32.09.05.2011",
+    "name": "Kudumulya",
+    "district_id": "32.09.05"
+  },
+  {
+    "id": "32.09.05.2012",
+    "name": "Kudukeras",
+    "district_id": "32.09.05"
+  },
+  {
+    "id": "32.09.05.2013",
+    "name": "Pakusamben",
+    "district_id": "32.09.05"
+  },
+  {
+    "id": "32.09.05.2014",
+    "name": "Karangwangun",
+    "district_id": "32.09.05"
+  },
+  {
+    "id": "32.09.06.2006",
+    "name": "Tambelang",
+    "district_id": "32.09.06"
+  },
+  {
+    "id": "32.09.06.2011",
+    "name": "Karangsuwung",
+    "district_id": "32.09.06"
+  },
+  {
+    "id": "32.09.06.2012",
+    "name": "Karangtengah",
+    "district_id": "32.09.06"
+  },
+  {
+    "id": "32.09.06.2013",
+    "name": "Kalimeang",
+    "district_id": "32.09.06"
+  },
+  {
+    "id": "32.09.06.2014",
+    "name": "Karangmalang",
+    "district_id": "32.09.06"
+  },
+  {
+    "id": "32.09.06.2015",
+    "name": "Karangmekar",
+    "district_id": "32.09.06"
+  },
+  {
+    "id": "32.09.06.2016",
+    "name": "Kubangkarang",
+    "district_id": "32.09.06"
+  },
+  {
+    "id": "32.09.06.2017",
+    "name": "Karangsembung",
+    "district_id": "32.09.06"
+  },
+  {
+    "id": "32.09.07.2001",
+    "name": "Leuwidingding",
+    "district_id": "32.09.07"
+  },
+  {
+    "id": "32.09.07.2002",
+    "name": "Asem",
+    "district_id": "32.09.07"
+  },
+  {
+    "id": "32.09.07.2003",
+    "name": "Cipeujeuh Kulon",
+    "district_id": "32.09.07"
+  },
+  {
+    "id": "32.09.07.2004",
+    "name": "Cipeujeuh Wetan",
+    "district_id": "32.09.07"
+  },
+  {
+    "id": "32.09.07.2005",
+    "name": "Sindanglaut",
+    "district_id": "32.09.07"
+  },
+  {
+    "id": "32.09.07.2006",
+    "name": "Lemahabang Kulon",
+    "district_id": "32.09.07"
+  },
+  {
+    "id": "32.09.07.2007",
+    "name": "Lemahabang",
+    "district_id": "32.09.07"
+  },
+  {
+    "id": "32.09.07.2008",
+    "name": "Sigong",
+    "district_id": "32.09.07"
+  },
+  {
+    "id": "32.09.07.2009",
+    "name": "Sarajaya",
+    "district_id": "32.09.07"
+  },
+  {
+    "id": "32.09.07.2010",
+    "name": "Picungpugur",
+    "district_id": "32.09.07"
+  },
+  {
+    "id": "32.09.07.2011",
+    "name": "Tuk Karangsuwung",
+    "district_id": "32.09.07"
+  },
+  {
+    "id": "32.09.07.2012",
+    "name": "Belawa",
+    "district_id": "32.09.07"
+  },
+  {
+    "id": "32.09.07.2013",
+    "name": "Wangkelang",
+    "district_id": "32.09.07"
+  },
+  {
+    "id": "32.09.08.2001",
+    "name": "Karangamangu",
+    "district_id": "32.09.08"
+  },
+  {
+    "id": "32.09.08.2002",
+    "name": "Susukan Lebak",
+    "district_id": "32.09.08"
+  },
+  {
+    "id": "32.09.08.2003",
+    "name": "Susukan Agung",
+    "district_id": "32.09.08"
+  },
+  {
+    "id": "32.09.08.2004",
+    "name": "Susukan Tonggoh",
+    "district_id": "32.09.08"
+  },
+  {
+    "id": "32.09.08.2005",
+    "name": "Wilulang",
+    "district_id": "32.09.08"
+  },
+  {
+    "id": "32.09.08.2006",
+    "name": "Sampih",
+    "district_id": "32.09.08"
+  },
+  {
+    "id": "32.09.08.2007",
+    "name": "Pasawahan",
+    "district_id": "32.09.08"
+  },
+  {
+    "id": "32.09.08.2008",
+    "name": "Ciawiasih",
+    "district_id": "32.09.08"
+  },
+  {
+    "id": "32.09.08.2009",
+    "name": "Ciawijapura",
+    "district_id": "32.09.08"
+  },
+  {
+    "id": "32.09.08.2010",
+    "name": "Curug",
+    "district_id": "32.09.08"
+  },
+  {
+    "id": "32.09.08.2011",
+    "name": "Curug Wetan",
+    "district_id": "32.09.08"
+  },
+  {
+    "id": "32.09.08.2012",
+    "name": "Kaligawe Wetan",
+    "district_id": "32.09.08"
+  },
+  {
+    "id": "32.09.08.2013",
+    "name": "Kaligawe",
+    "district_id": "32.09.08"
+  },
+  {
+    "id": "32.09.09.2001",
+    "name": "Karangwuni",
+    "district_id": "32.09.09"
+  },
+  {
+    "id": "32.09.09.2002",
+    "name": "Sedong Kidul",
+    "district_id": "32.09.09"
+  },
+  {
+    "id": "32.09.09.2003",
+    "name": "Sedong Lor",
+    "district_id": "32.09.09"
+  },
+  {
+    "id": "32.09.09.2004",
+    "name": "Windujaya",
+    "district_id": "32.09.09"
+  },
+  {
+    "id": "32.09.09.2005",
+    "name": "Winduhaji",
+    "district_id": "32.09.09"
+  },
+  {
+    "id": "32.09.09.2006",
+    "name": "Kertawangun",
+    "district_id": "32.09.09"
+  },
+  {
+    "id": "32.09.09.2007",
+    "name": "Panambangan",
+    "district_id": "32.09.09"
+  },
+  {
+    "id": "32.09.09.2008",
+    "name": "Putat",
+    "district_id": "32.09.09"
+  },
+  {
+    "id": "32.09.09.2009",
+    "name": "Panongan",
+    "district_id": "32.09.09"
+  },
+  {
+    "id": "32.09.09.2010",
+    "name": "Panongan Lor",
+    "district_id": "32.09.09"
+  },
+  {
+    "id": "32.09.10.2004",
+    "name": "Munjul",
+    "district_id": "32.09.10"
+  },
+  {
+    "id": "32.09.10.2005",
+    "name": "Sidamulya",
+    "district_id": "32.09.10"
+  },
+  {
+    "id": "32.09.10.2006",
+    "name": "Mertapada Kulon",
+    "district_id": "32.09.10"
+  },
+  {
+    "id": "32.09.10.2007",
+    "name": "Mertapada Wetan",
+    "district_id": "32.09.10"
+  },
+  {
+    "id": "32.09.10.2008",
+    "name": "Buntet",
+    "district_id": "32.09.10"
+  },
+  {
+    "id": "32.09.10.2009",
+    "name": "Kanci Kulon",
+    "district_id": "32.09.10"
+  },
+  {
+    "id": "32.09.10.2010",
+    "name": "Kanci",
+    "district_id": "32.09.10"
+  },
+  {
+    "id": "32.09.10.2011",
+    "name": "Astanajapura",
+    "district_id": "32.09.10"
+  },
+  {
+    "id": "32.09.10.2012",
+    "name": "Kendal",
+    "district_id": "32.09.10"
+  },
+  {
+    "id": "32.09.10.2013",
+    "name": "Japura Kidul",
+    "district_id": "32.09.10"
+  },
+  {
+    "id": "32.09.10.2014",
+    "name": "Japurabakti",
+    "district_id": "32.09.10"
+  },
+  {
+    "id": "32.09.11.2001",
+    "name": "Getrakmoyan",
+    "district_id": "32.09.11"
+  },
+  {
+    "id": "32.09.11.2002",
+    "name": "Ender",
+    "district_id": "32.09.11"
+  },
+  {
+    "id": "32.09.11.2003",
+    "name": "Pangenan",
+    "district_id": "32.09.11"
+  },
+  {
+    "id": "32.09.11.2004",
+    "name": "Bendungan",
+    "district_id": "32.09.11"
+  },
+  {
+    "id": "32.09.11.2005",
+    "name": "Rawaurip",
+    "district_id": "32.09.11"
+  },
+  {
+    "id": "32.09.11.2006",
+    "name": "Beringin",
+    "district_id": "32.09.11"
+  },
+  {
+    "id": "32.09.11.2007",
+    "name": "Japura Lor",
+    "district_id": "32.09.11"
+  },
+  {
+    "id": "32.09.11.2008",
+    "name": "Pengarengan",
+    "district_id": "32.09.11"
+  },
+  {
+    "id": "32.09.11.2009",
+    "name": "Astanamukti",
+    "district_id": "32.09.11"
+  },
+  {
+    "id": "32.09.12.2001",
+    "name": "Setupatok",
+    "district_id": "32.09.12"
+  },
+  {
+    "id": "32.09.12.2002",
+    "name": "Penpen",
+    "district_id": "32.09.12"
+  },
+  {
+    "id": "32.09.12.2003",
+    "name": "Mundu Mesigit",
+    "district_id": "32.09.12"
+  },
+  {
+    "id": "32.09.12.2004",
+    "name": "Luwung",
+    "district_id": "32.09.12"
+  },
+  {
+    "id": "32.09.12.2005",
+    "name": "Waruduwur",
+    "district_id": "32.09.12"
+  },
+  {
+    "id": "32.09.12.2006",
+    "name": "Citemu",
+    "district_id": "32.09.12"
+  },
+  {
+    "id": "32.09.12.2007",
+    "name": "Bandengan",
+    "district_id": "32.09.12"
+  },
+  {
+    "id": "32.09.12.2008",
+    "name": "Mundu Pesisir",
+    "district_id": "32.09.12"
+  },
+  {
+    "id": "32.09.12.2009",
+    "name": "Suci",
+    "district_id": "32.09.12"
+  },
+  {
+    "id": "32.09.12.2010",
+    "name": "Banjarwangunan",
+    "district_id": "32.09.12"
+  },
+  {
+    "id": "32.09.12.2011",
+    "name": "Pamengkang",
+    "district_id": "32.09.12"
+  },
+  {
+    "id": "32.09.12.2012",
+    "name": "Sinarancang",
+    "district_id": "32.09.12"
+  },
+  {
+    "id": "32.09.13.2001",
+    "name": "Wanayasa",
+    "district_id": "32.09.13"
+  },
+  {
+    "id": "32.09.13.2002",
+    "name": "Sindangkasih",
+    "district_id": "32.09.13"
+  },
+  {
+    "id": "32.09.13.2003",
+    "name": "Sindanghayu",
+    "district_id": "32.09.13"
+  },
+  {
+    "id": "32.09.13.2004",
+    "name": "Ciawigajah",
+    "district_id": "32.09.13"
+  },
+  {
+    "id": "32.09.13.2008",
+    "name": "Cikancas",
+    "district_id": "32.09.13"
+  },
+  {
+    "id": "32.09.13.2009",
+    "name": "Halimpu",
+    "district_id": "32.09.13"
+  },
+  {
+    "id": "32.09.13.2010",
+    "name": "Cipinang",
+    "district_id": "32.09.13"
+  },
+  {
+    "id": "32.09.13.2011",
+    "name": "Beber",
+    "district_id": "32.09.13"
+  },
+  {
+    "id": "32.09.13.2012",
+    "name": "Patapan",
+    "district_id": "32.09.13"
+  },
+  {
+    "id": "32.09.13.2013",
+    "name": "Kondangsari",
+    "district_id": "32.09.13"
+  },
+  {
+    "id": "32.09.14.2001",
+    "name": "Sampiran",
+    "district_id": "32.09.14"
+  },
+  {
+    "id": "32.09.14.2002",
+    "name": "Ciperna",
+    "district_id": "32.09.14"
+  },
+  {
+    "id": "32.09.14.2003",
+    "name": "Kecomberan",
+    "district_id": "32.09.14"
+  },
+  {
+    "id": "32.09.14.2004",
+    "name": "Cirebon Girang",
+    "district_id": "32.09.14"
+  },
+  {
+    "id": "32.09.14.2005",
+    "name": "Kerandon",
+    "district_id": "32.09.14"
+  },
+  {
+    "id": "32.09.14.2006",
+    "name": "Wanasaba Kidul",
+    "district_id": "32.09.14"
+  },
+  {
+    "id": "32.09.14.2007",
+    "name": "Wanasaba Lor",
+    "district_id": "32.09.14"
+  },
+  {
+    "id": "32.09.14.2008",
+    "name": "Cempaka",
+    "district_id": "32.09.14"
+  },
+  {
+    "id": "32.09.14.2009",
+    "name": "Kepongpongan",
+    "district_id": "32.09.14"
+  },
+  {
+    "id": "32.09.14.2010",
+    "name": "Sarwadadi",
+    "district_id": "32.09.14"
+  },
+  {
+    "id": "32.09.14.2011",
+    "name": "Kubang",
+    "district_id": "32.09.14"
+  },
+  {
+    "id": "32.09.15.1003",
+    "name": "Babakan",
+    "district_id": "32.09.15"
+  },
+  {
+    "id": "32.09.15.1004",
+    "name": "Sumber",
+    "district_id": "32.09.15"
+  },
+  {
+    "id": "32.09.15.1005",
+    "name": "Perbutulan",
+    "district_id": "32.09.15"
+  },
+  {
+    "id": "32.09.15.1006",
+    "name": "Kaliwadas",
+    "district_id": "32.09.15"
+  },
+  {
+    "id": "32.09.15.1007",
+    "name": "Pasalakan",
+    "district_id": "32.09.15"
+  },
+  {
+    "id": "32.09.15.1008",
+    "name": "Watubelah",
+    "district_id": "32.09.15"
+  },
+  {
+    "id": "32.09.15.1009",
+    "name": "Pejambon",
+    "district_id": "32.09.15"
+  },
+  {
+    "id": "32.09.15.1010",
+    "name": "Gegunung",
+    "district_id": "32.09.15"
+  },
+  {
+    "id": "32.09.15.1011",
+    "name": "Kemantren",
+    "district_id": "32.09.15"
+  },
+  {
+    "id": "32.09.15.1012",
+    "name": "Sendang",
+    "district_id": "32.09.15"
+  },
+  {
+    "id": "32.09.15.1013",
+    "name": "Tukmudal",
+    "district_id": "32.09.15"
+  },
+  {
+    "id": "32.09.15.1014",
+    "name": "Kenanga",
+    "district_id": "32.09.15"
+  },
+  {
+    "id": "32.09.15.2001",
+    "name": "Matangaji",
+    "district_id": "32.09.15"
+  },
+  {
+    "id": "32.09.15.2002",
+    "name": "Sidawangi",
+    "district_id": "32.09.15"
+  },
+  {
+    "id": "32.09.16.2001",
+    "name": "Bobos",
+    "district_id": "32.09.16"
+  },
+  {
+    "id": "32.09.16.2002",
+    "name": "Cikalahang",
+    "district_id": "32.09.16"
+  },
+  {
+    "id": "32.09.16.2003",
+    "name": "Mandala",
+    "district_id": "32.09.16"
+  },
+  {
+    "id": "32.09.16.2004",
+    "name": "Dukupuntang",
+    "district_id": "32.09.16"
+  },
+  {
+    "id": "32.09.16.2005",
+    "name": "Balad",
+    "district_id": "32.09.16"
+  },
+  {
+    "id": "32.09.16.2006",
+    "name": "Cangkoak",
+    "district_id": "32.09.16"
+  },
+  {
+    "id": "32.09.16.2007",
+    "name": "Cisaat",
+    "district_id": "32.09.16"
+  },
+  {
+    "id": "32.09.16.2008",
+    "name": "Sindangmekar",
+    "district_id": "32.09.16"
+  },
+  {
+    "id": "32.09.16.2009",
+    "name": "Sindangjawa",
+    "district_id": "32.09.16"
+  },
+  {
+    "id": "32.09.16.2010",
+    "name": "Kepunduan",
+    "district_id": "32.09.16"
+  },
+  {
+    "id": "32.09.16.2011",
+    "name": "Girinata",
+    "district_id": "32.09.16"
+  },
+  {
+    "id": "32.09.16.2012",
+    "name": "Cipanas",
+    "district_id": "32.09.16"
+  },
+  {
+    "id": "32.09.16.2013",
+    "name": "Kedongdong Kidul",
+    "district_id": "32.09.16"
+  },
+  {
+    "id": "32.09.17.2002",
+    "name": "Cilukrak",
+    "district_id": "32.09.17"
+  },
+  {
+    "id": "32.09.17.2003",
+    "name": "Kepuh",
+    "district_id": "32.09.17"
+  },
+  {
+    "id": "32.09.17.2004",
+    "name": "Balerante",
+    "district_id": "32.09.17"
+  },
+  {
+    "id": "32.09.17.2005",
+    "name": "Panongan",
+    "district_id": "32.09.17"
+  },
+  {
+    "id": "32.09.17.2006",
+    "name": "Beberan",
+    "district_id": "32.09.17"
+  },
+  {
+    "id": "32.09.17.2007",
+    "name": "Semplo",
+    "district_id": "32.09.17"
+  },
+  {
+    "id": "32.09.17.2008",
+    "name": "Palimanan Timur",
+    "district_id": "32.09.17"
+  },
+  {
+    "id": "32.09.17.2011",
+    "name": "Pegagan",
+    "district_id": "32.09.17"
+  },
+  {
+    "id": "32.09.17.2012",
+    "name": "Lungbenda",
+    "district_id": "32.09.17"
+  },
+  {
+    "id": "32.09.17.2013",
+    "name": "Ciawi",
+    "district_id": "32.09.17"
+  },
+  {
+    "id": "32.09.17.2014",
+    "name": "Tegalkarang",
+    "district_id": "32.09.17"
+  },
+  {
+    "id": "32.09.17.2015",
+    "name": "Cengkuang",
+    "district_id": "32.09.17"
+  },
+  {
+    "id": "32.09.18.2001",
+    "name": "Cempaka",
+    "district_id": "32.09.18"
+  },
+  {
+    "id": "32.09.18.2002",
+    "name": "Pamijahan",
+    "district_id": "32.09.18"
+  },
+  {
+    "id": "32.09.18.2003",
+    "name": "Lurah",
+    "district_id": "32.09.18"
+  },
+  {
+    "id": "32.09.18.2004",
+    "name": "Marikangen",
+    "district_id": "32.09.18"
+  },
+  {
+    "id": "32.09.18.2005",
+    "name": "Bode Lor",
+    "district_id": "32.09.18"
+  },
+  {
+    "id": "32.09.18.2006",
+    "name": "Bodesari",
+    "district_id": "32.09.18"
+  },
+  {
+    "id": "32.09.18.2007",
+    "name": "Gombang",
+    "district_id": "32.09.18"
+  },
+  {
+    "id": "32.09.18.2008",
+    "name": "Karangmulya",
+    "district_id": "32.09.18"
+  },
+  {
+    "id": "32.09.18.2009",
+    "name": "Karangasem",
+    "district_id": "32.09.18"
+  },
+  {
+    "id": "32.09.18.2010",
+    "name": "Plumbon",
+    "district_id": "32.09.18"
+  },
+  {
+    "id": "32.09.18.2011",
+    "name": "Purbawinangun",
+    "district_id": "32.09.18"
+  },
+  {
+    "id": "32.09.18.2012",
+    "name": "Kebarepan",
+    "district_id": "32.09.18"
+  },
+  {
+    "id": "32.09.18.2013",
+    "name": "Pasanggrahan",
+    "district_id": "32.09.18"
+  },
+  {
+    "id": "32.09.18.2014",
+    "name": "Kedungsana",
+    "district_id": "32.09.18"
+  },
+  {
+    "id": "32.09.18.2015",
+    "name": "Danamulya",
+    "district_id": "32.09.18"
+  },
+  {
+    "id": "32.09.19.2001",
+    "name": "Karangsari",
+    "district_id": "32.09.19"
+  },
+  {
+    "id": "32.09.19.2002",
+    "name": "Kertasari",
+    "district_id": "32.09.19"
+  },
+  {
+    "id": "32.09.19.2003",
+    "name": "Megu Gede",
+    "district_id": "32.09.19"
+  },
+  {
+    "id": "32.09.19.2004",
+    "name": "Megu Cilik",
+    "district_id": "32.09.19"
+  },
+  {
+    "id": "32.09.19.2005",
+    "name": "Setu Wetan",
+    "district_id": "32.09.19"
+  },
+  {
+    "id": "32.09.19.2006",
+    "name": "Setu Kulon",
+    "district_id": "32.09.19"
+  },
+  {
+    "id": "32.09.19.2007",
+    "name": "Weru Kidul",
+    "district_id": "32.09.19"
+  },
+  {
+    "id": "32.09.19.2008",
+    "name": "Weru Lor",
+    "district_id": "32.09.19"
+  },
+  {
+    "id": "32.09.19.2009",
+    "name": "Tegalwangi",
+    "district_id": "32.09.19"
+  },
+  {
+    "id": "32.09.20.2004",
+    "name": "Kedungdawa",
+    "district_id": "32.09.20"
+  },
+  {
+    "id": "32.09.20.2005",
+    "name": "Kalikoa",
+    "district_id": "32.09.20"
+  },
+  {
+    "id": "32.09.20.2006",
+    "name": "Tuk",
+    "district_id": "32.09.20"
+  },
+  {
+    "id": "32.09.20.2007",
+    "name": "Kedungjaya",
+    "district_id": "32.09.20"
+  },
+  {
+    "id": "32.09.20.2008",
+    "name": "Kedawung",
+    "district_id": "32.09.20"
+  },
+  {
+    "id": "32.09.20.2009",
+    "name": "Kertawinangun",
+    "district_id": "32.09.20"
+  },
+  {
+    "id": "32.09.20.2010",
+    "name": "Sutawinangun",
+    "district_id": "32.09.20"
+  },
+  {
+    "id": "32.09.20.2011",
+    "name": "Pilangsari",
+    "district_id": "32.09.20"
+  },
+  {
+    "id": "32.09.21.2001",
+    "name": "Adidharma",
+    "district_id": "32.09.21"
+  },
+  {
+    "id": "32.09.21.2002",
+    "name": "Pasindangan",
+    "district_id": "32.09.21"
+  },
+  {
+    "id": "32.09.21.2003",
+    "name": "Jadimulya",
+    "district_id": "32.09.21"
+  },
+  {
+    "id": "32.09.21.2004",
+    "name": "Klayan",
+    "district_id": "32.09.21"
+  },
+  {
+    "id": "32.09.21.2005",
+    "name": "Jatimerta",
+    "district_id": "32.09.21"
+  },
+  {
+    "id": "32.09.21.2006",
+    "name": "Astana",
+    "district_id": "32.09.21"
+  },
+  {
+    "id": "32.09.21.2007",
+    "name": "Kalisapu",
+    "district_id": "32.09.21"
+  },
+  {
+    "id": "32.09.21.2008",
+    "name": "Wanakaya",
+    "district_id": "32.09.21"
+  },
+  {
+    "id": "32.09.21.2009",
+    "name": "Grogol",
+    "district_id": "32.09.21"
+  },
+  {
+    "id": "32.09.21.2010",
+    "name": "Babadan",
+    "district_id": "32.09.21"
+  },
+  {
+    "id": "32.09.21.2011",
+    "name": "Buyut",
+    "district_id": "32.09.21"
+  },
+  {
+    "id": "32.09.21.2012",
+    "name": "Mayung",
+    "district_id": "32.09.21"
+  },
+  {
+    "id": "32.09.21.2015",
+    "name": "Mertasinga",
+    "district_id": "32.09.21"
+  },
+  {
+    "id": "32.09.21.2016",
+    "name": "Sambeng",
+    "district_id": "32.09.21"
+  },
+  {
+    "id": "32.09.21.2017",
+    "name": "Sirnabaya",
+    "district_id": "32.09.21"
+  },
+  {
+    "id": "32.09.22.2010",
+    "name": "Kertasura",
+    "district_id": "32.09.22"
+  },
+  {
+    "id": "32.09.22.2011",
+    "name": "Pegagan Kidul",
+    "district_id": "32.09.22"
+  },
+  {
+    "id": "32.09.22.2012",
+    "name": "Pegagan Lor",
+    "district_id": "32.09.22"
+  },
+  {
+    "id": "32.09.22.2013",
+    "name": "Dukuh",
+    "district_id": "32.09.22"
+  },
+  {
+    "id": "32.09.22.2014",
+    "name": "Karangkendal",
+    "district_id": "32.09.22"
+  },
+  {
+    "id": "32.09.22.2015",
+    "name": "Grogol",
+    "district_id": "32.09.22"
+  },
+  {
+    "id": "32.09.22.2016",
+    "name": "Kapetakan",
+    "district_id": "32.09.22"
+  },
+  {
+    "id": "32.09.22.2017",
+    "name": "Bungko",
+    "district_id": "32.09.22"
+  },
+  {
+    "id": "32.09.22.2018",
+    "name": "Bungko Lor",
+    "district_id": "32.09.22"
+  },
+  {
+    "id": "32.09.23.2001",
+    "name": "Serang",
+    "district_id": "32.09.23"
+  },
+  {
+    "id": "32.09.23.2002",
+    "name": "Klangenan",
+    "district_id": "32.09.23"
+  },
+  {
+    "id": "32.09.23.2003",
+    "name": "Danawinangun",
+    "district_id": "32.09.23"
+  },
+  {
+    "id": "32.09.23.2007",
+    "name": "Pekantingan",
+    "district_id": "32.09.23"
+  },
+  {
+    "id": "32.09.23.2008",
+    "name": "Jemaras Kidul",
+    "district_id": "32.09.23"
+  },
+  {
+    "id": "32.09.23.2009",
+    "name": "Jemaras Lor",
+    "district_id": "32.09.23"
+  },
+  {
+    "id": "32.09.23.2010",
+    "name": "Slangit",
+    "district_id": "32.09.23"
+  },
+  {
+    "id": "32.09.23.2011",
+    "name": "Kreyo",
+    "district_id": "32.09.23"
+  },
+  {
+    "id": "32.09.23.2012",
+    "name": "Bangodua",
+    "district_id": "32.09.23"
+  },
+  {
+    "id": "32.09.24.2001",
+    "name": "Sende",
+    "district_id": "32.09.24"
+  },
+  {
+    "id": "32.09.24.2002",
+    "name": "Jungjang Wetan",
+    "district_id": "32.09.24"
+  },
+  {
+    "id": "32.09.24.2003",
+    "name": "Jungjang",
+    "district_id": "32.09.24"
+  },
+  {
+    "id": "32.09.24.2004",
+    "name": "Arjawinangun",
+    "district_id": "32.09.24"
+  },
+  {
+    "id": "32.09.24.2005",
+    "name": "Tegalgubug",
+    "district_id": "32.09.24"
+  },
+  {
+    "id": "32.09.24.2006",
+    "name": "Tegalgubug Lor",
+    "district_id": "32.09.24"
+  },
+  {
+    "id": "32.09.24.2007",
+    "name": "Rawagatel",
+    "district_id": "32.09.24"
+  },
+  {
+    "id": "32.09.24.2008",
+    "name": "Karangsambung",
+    "district_id": "32.09.24"
+  },
+  {
+    "id": "32.09.24.2009",
+    "name": "Bulak",
+    "district_id": "32.09.24"
+  },
+  {
+    "id": "32.09.24.2010",
+    "name": "Geyongan",
+    "district_id": "32.09.24"
+  },
+  {
+    "id": "32.09.24.2011",
+    "name": "Kebonturi",
+    "district_id": "32.09.24"
+  },
+  {
+    "id": "32.09.25.2001",
+    "name": "Kalianyar",
+    "district_id": "32.09.25"
+  },
+  {
+    "id": "32.09.25.2002",
+    "name": "Pangurangan Kulon",
+    "district_id": "32.09.25"
+  },
+  {
+    "id": "32.09.25.2003",
+    "name": "Pangurangan Wetan",
+    "district_id": "32.09.25"
+  },
+  {
+    "id": "32.09.25.2004",
+    "name": "Pangurangan Lor",
+    "district_id": "32.09.25"
+  },
+  {
+    "id": "32.09.25.2005",
+    "name": "Pangurangan",
+    "district_id": "32.09.25"
+  },
+  {
+    "id": "32.09.25.2006",
+    "name": "Gujeg",
+    "district_id": "32.09.25"
+  },
+  {
+    "id": "32.09.25.2007",
+    "name": "Lemahtamba",
+    "district_id": "32.09.25"
+  },
+  {
+    "id": "32.09.25.2008",
+    "name": "Karanganyar",
+    "district_id": "32.09.25"
+  },
+  {
+    "id": "32.09.25.2009",
+    "name": "Kroya",
+    "district_id": "32.09.25"
+  },
+  {
+    "id": "32.09.26.2004",
+    "name": "Budur",
+    "district_id": "32.09.26"
+  },
+  {
+    "id": "32.09.26.2005",
+    "name": "Babakan",
+    "district_id": "32.09.26"
+  },
+  {
+    "id": "32.09.26.2006",
+    "name": "Ciwaringin",
+    "district_id": "32.09.26"
+  },
+  {
+    "id": "32.09.26.2007",
+    "name": "Gintungranjeng",
+    "district_id": "32.09.26"
+  },
+  {
+    "id": "32.09.26.2008",
+    "name": "Gintung Kidul",
+    "district_id": "32.09.26"
+  },
+  {
+    "id": "32.09.26.2009",
+    "name": "Gintung Tengah",
+    "district_id": "32.09.26"
+  },
+  {
+    "id": "32.09.26.2010",
+    "name": "Bringin",
+    "district_id": "32.09.26"
+  },
+  {
+    "id": "32.09.26.2011",
+    "name": "Galagamba",
+    "district_id": "32.09.26"
+  },
+  {
+    "id": "32.09.27.2001",
+    "name": "Tangkil",
+    "district_id": "32.09.27"
+  },
+  {
+    "id": "32.09.27.2002",
+    "name": "Wiyong",
+    "district_id": "32.09.27"
+  },
+  {
+    "id": "32.09.27.2003",
+    "name": "Kedongdong",
+    "district_id": "32.09.27"
+  },
+  {
+    "id": "32.09.27.2004",
+    "name": "Gintung Lor",
+    "district_id": "32.09.27"
+  },
+  {
+    "id": "32.09.27.2005",
+    "name": "Bojong Kulon",
+    "district_id": "32.09.27"
+  },
+  {
+    "id": "32.09.27.2006",
+    "name": "Kejiwan",
+    "district_id": "32.09.27"
+  },
+  {
+    "id": "32.09.27.2007",
+    "name": "Susukan",
+    "district_id": "32.09.27"
+  },
+  {
+    "id": "32.09.27.2008",
+    "name": "Luwung Kencana",
+    "district_id": "32.09.27"
+  },
+  {
+    "id": "32.09.27.2009",
+    "name": "Bunder",
+    "district_id": "32.09.27"
+  },
+  {
+    "id": "32.09.27.2010",
+    "name": "Jatipura",
+    "district_id": "32.09.27"
+  },
+  {
+    "id": "32.09.27.2011",
+    "name": "Ujunggebang",
+    "district_id": "32.09.27"
+  },
+  {
+    "id": "32.09.27.2012",
+    "name": "Jatianom",
+    "district_id": "32.09.27"
+  },
+  {
+    "id": "32.09.28.2001",
+    "name": "Kedungdalem",
+    "district_id": "32.09.28"
+  },
+  {
+    "id": "32.09.28.2002",
+    "name": "Panunggul",
+    "district_id": "32.09.28"
+  },
+  {
+    "id": "32.09.28.2003",
+    "name": "Gegesik Wetan",
+    "district_id": "32.09.28"
+  },
+  {
+    "id": "32.09.28.2004",
+    "name": "Gegesik Kidul",
+    "district_id": "32.09.28"
+  },
+  {
+    "id": "32.09.28.2005",
+    "name": "Gegesik Lor",
+    "district_id": "32.09.28"
+  },
+  {
+    "id": "32.09.28.2006",
+    "name": "Gegesik Kulon",
+    "district_id": "32.09.28"
+  },
+  {
+    "id": "32.09.28.2007",
+    "name": "Slendra",
+    "district_id": "32.09.28"
+  },
+  {
+    "id": "32.09.28.2008",
+    "name": "Jagapura Kidul",
+    "district_id": "32.09.28"
+  },
+  {
+    "id": "32.09.28.2009",
+    "name": "Jagapura Wetan",
+    "district_id": "32.09.28"
+  },
+  {
+    "id": "32.09.28.2010",
+    "name": "Jagapura Kulon",
+    "district_id": "32.09.28"
+  },
+  {
+    "id": "32.09.28.2011",
+    "name": "Jagapura Lor",
+    "district_id": "32.09.28"
+  },
+  {
+    "id": "32.09.28.2012",
+    "name": "Sibubut",
+    "district_id": "32.09.28"
+  },
+  {
+    "id": "32.09.28.2013",
+    "name": "Bayalangu Lor",
+    "district_id": "32.09.28"
+  },
+  {
+    "id": "32.09.28.2014",
+    "name": "Bayalangu Kidul",
+    "district_id": "32.09.28"
+  },
+  {
+    "id": "32.09.29.2001",
+    "name": "Kalideres",
+    "district_id": "32.09.29"
+  },
+  {
+    "id": "32.09.29.2002",
+    "name": "Prajawinangun Kulon",
+    "district_id": "32.09.29"
+  },
+  {
+    "id": "32.09.29.2003",
+    "name": "Prajawinangun Wetan",
+    "district_id": "32.09.29"
+  },
+  {
+    "id": "32.09.29.2004",
+    "name": "Ujungsemi",
+    "district_id": "32.09.29"
+  },
+  {
+    "id": "32.09.29.2005",
+    "name": "Wargabinangun",
+    "district_id": "32.09.29"
+  },
+  {
+    "id": "32.09.29.2006",
+    "name": "Kaliwedi Lor",
+    "district_id": "32.09.29"
+  },
+  {
+    "id": "32.09.29.2007",
+    "name": "Kaliwedi Kidul",
+    "district_id": "32.09.29"
+  },
+  {
+    "id": "32.09.29.2008",
+    "name": "Guwa Kidul",
+    "district_id": "32.09.29"
+  },
+  {
+    "id": "32.09.29.2009",
+    "name": "Guwa Lor",
+    "district_id": "32.09.29"
+  },
+  {
+    "id": "32.09.30.2001",
+    "name": "Dompyong Kulon",
+    "district_id": "32.09.30"
+  },
+  {
+    "id": "32.09.30.2002",
+    "name": "Dompyong Wetan",
+    "district_id": "32.09.30"
+  },
+  {
+    "id": "32.09.30.2003",
+    "name": "Kalimekar",
+    "district_id": "32.09.30"
+  },
+  {
+    "id": "32.09.30.2004",
+    "name": "Kalimaro",
+    "district_id": "32.09.30"
+  },
+  {
+    "id": "32.09.30.2005",
+    "name": "Gagasari",
+    "district_id": "32.09.30"
+  },
+  {
+    "id": "32.09.30.2006",
+    "name": "Kalipasung",
+    "district_id": "32.09.30"
+  },
+  {
+    "id": "32.09.30.2007",
+    "name": "Gebang Kulon",
+    "district_id": "32.09.30"
+  },
+  {
+    "id": "32.09.30.2008",
+    "name": "Gebang",
+    "district_id": "32.09.30"
+  },
+  {
+    "id": "32.09.30.2009",
+    "name": "Gebang Ilir",
+    "district_id": "32.09.30"
+  },
+  {
+    "id": "32.09.30.2010",
+    "name": "Gebang Udik",
+    "district_id": "32.09.30"
+  },
+  {
+    "id": "32.09.30.2011",
+    "name": "Gebang Mekar",
+    "district_id": "32.09.30"
+  },
+  {
+    "id": "32.09.30.2012",
+    "name": "Playangan",
+    "district_id": "32.09.30"
+  },
+  {
+    "id": "32.09.30.2013",
+    "name": "Melakasari",
+    "district_id": "32.09.30"
+  },
+  {
+    "id": "32.09.31.2001",
+    "name": "Cikeduk",
+    "district_id": "32.09.31"
+  },
+  {
+    "id": "32.09.31.2002",
+    "name": "Warujaya",
+    "district_id": "32.09.31"
+  },
+  {
+    "id": "32.09.31.2003",
+    "name": "Warukawung",
+    "district_id": "32.09.31"
+  },
+  {
+    "id": "32.09.31.2004",
+    "name": "Warugede",
+    "district_id": "32.09.31"
+  },
+  {
+    "id": "32.09.31.2005",
+    "name": "Waruroyom",
+    "district_id": "32.09.31"
+  },
+  {
+    "id": "32.09.31.2006",
+    "name": "Depok",
+    "district_id": "32.09.31"
+  },
+  {
+    "id": "32.09.31.2007",
+    "name": "Kasugengan Kidul",
+    "district_id": "32.09.31"
+  },
+  {
+    "id": "32.09.31.2008",
+    "name": "Kasugengan Lor",
+    "district_id": "32.09.31"
+  },
+  {
+    "id": "32.09.31.2009",
+    "name": "Keduanan",
+    "district_id": "32.09.31"
+  },
+  {
+    "id": "32.09.31.2010",
+    "name": "Kejuden",
+    "district_id": "32.09.31"
+  },
+  {
+    "id": "32.09.31.2011",
+    "name": "Getasan",
+    "district_id": "32.09.31"
+  },
+  {
+    "id": "32.09.31.2012",
+    "name": "Karangwangi",
+    "district_id": "32.09.31"
+  },
+  {
+    "id": "32.09.32.2001",
+    "name": "Tonjong",
+    "district_id": "32.09.32"
+  },
+  {
+    "id": "32.09.32.2002",
+    "name": "Tanjunganom",
+    "district_id": "32.09.32"
+  },
+  {
+    "id": "32.09.32.2003",
+    "name": "Cilengkrang Girang",
+    "district_id": "32.09.32"
+  },
+  {
+    "id": "32.09.32.2004",
+    "name": "Cilengkrang",
+    "district_id": "32.09.32"
+  },
+  {
+    "id": "32.09.32.2005",
+    "name": "Pasaleman",
+    "district_id": "32.09.32"
+  },
+  {
+    "id": "32.09.32.2006",
+    "name": "Cigobangwangi",
+    "district_id": "32.09.32"
+  },
+  {
+    "id": "32.09.32.2007",
+    "name": "Cigobang",
+    "district_id": "32.09.32"
+  },
+  {
+    "id": "32.09.33.2001",
+    "name": "Sukadana",
+    "district_id": "32.09.33"
+  },
+  {
+    "id": "32.09.33.2002",
+    "name": "Pabuaran Kidul",
+    "district_id": "32.09.33"
+  },
+  {
+    "id": "32.09.33.2003",
+    "name": "Pabuaran Wetan",
+    "district_id": "32.09.33"
+  },
+  {
+    "id": "32.09.33.2004",
+    "name": "Pabuaran Lor",
+    "district_id": "32.09.33"
+  },
+  {
+    "id": "32.09.33.2005",
+    "name": "Jatirenggang",
+    "district_id": "32.09.33"
+  },
+  {
+    "id": "32.09.33.2006",
+    "name": "Hulubanteng",
+    "district_id": "32.09.33"
+  },
+  {
+    "id": "32.09.33.2007",
+    "name": "Hulubanteng Lor",
+    "district_id": "32.09.33"
+  },
+  {
+    "id": "32.09.34.2001",
+    "name": "Seuseupan",
+    "district_id": "32.09.34"
+  },
+  {
+    "id": "32.09.34.2002",
+    "name": "Blender",
+    "district_id": "32.09.34"
+  },
+  {
+    "id": "32.09.34.2003",
+    "name": "Sumurkondang",
+    "district_id": "32.09.34"
+  },
+  {
+    "id": "32.09.34.2004",
+    "name": "Kubangdeleg",
+    "district_id": "32.09.34"
+  },
+  {
+    "id": "32.09.34.2005",
+    "name": "Jatipiring",
+    "district_id": "32.09.34"
+  },
+  {
+    "id": "32.09.34.2006",
+    "name": "Karanganyar",
+    "district_id": "32.09.34"
+  },
+  {
+    "id": "32.09.34.2007",
+    "name": "Karangwangi",
+    "district_id": "32.09.34"
+  },
+  {
+    "id": "32.09.34.2008",
+    "name": "Karangwareng",
+    "district_id": "32.09.34"
+  },
+  {
+    "id": "32.09.34.2009",
+    "name": "Karangasem",
+    "district_id": "32.09.34"
+  },
+  {
+    "id": "32.09.35.2001",
+    "name": "Palir",
+    "district_id": "32.09.35"
+  },
+  {
+    "id": "32.09.35.2002",
+    "name": "Astapada",
+    "district_id": "32.09.35"
+  },
+  {
+    "id": "32.09.35.2003",
+    "name": "Gesik",
+    "district_id": "32.09.35"
+  },
+  {
+    "id": "32.09.35.2004",
+    "name": "Kemlakagede",
+    "district_id": "32.09.35"
+  },
+  {
+    "id": "32.09.35.2005",
+    "name": "Dawuan",
+    "district_id": "32.09.35"
+  },
+  {
+    "id": "32.09.35.2006",
+    "name": "Battembat",
+    "district_id": "32.09.35"
+  },
+  {
+    "id": "32.09.35.2007",
+    "name": "Kalibaru",
+    "district_id": "32.09.35"
+  },
+  {
+    "id": "32.09.35.2008",
+    "name": "Kalitengah",
+    "district_id": "32.09.35"
+  },
+  {
+    "id": "32.09.36.2001",
+    "name": "Tegalsari",
+    "district_id": "32.09.36"
+  },
+  {
+    "id": "32.09.36.2002",
+    "name": "Kaliwulu",
+    "district_id": "32.09.36"
+  },
+  {
+    "id": "32.09.36.2003",
+    "name": "Panembahan",
+    "district_id": "32.09.36"
+  },
+  {
+    "id": "32.09.36.2004",
+    "name": "Trusmi Wetan",
+    "district_id": "32.09.36"
+  },
+  {
+    "id": "32.09.36.2005",
+    "name": "Trusmi Kulon",
+    "district_id": "32.09.36"
+  },
+  {
+    "id": "32.09.36.2006",
+    "name": "Wotgali",
+    "district_id": "32.09.36"
+  },
+  {
+    "id": "32.09.36.2007",
+    "name": "Gamel",
+    "district_id": "32.09.36"
+  },
+  {
+    "id": "32.09.36.2008",
+    "name": "Sarabau",
+    "district_id": "32.09.36"
+  },
+  {
+    "id": "32.09.36.2009",
+    "name": "Cangkring",
+    "district_id": "32.09.36"
+  },
+  {
+    "id": "32.09.36.2010",
+    "name": "Pangkalan",
+    "district_id": "32.09.36"
+  },
+  {
+    "id": "32.09.37.2001",
+    "name": "Cikeusal",
+    "district_id": "32.09.37"
+  },
+  {
+    "id": "32.09.37.2002",
+    "name": "Palimanan Barat",
+    "district_id": "32.09.37"
+  },
+  {
+    "id": "32.09.37.2003",
+    "name": "Kedungbunder",
+    "district_id": "32.09.37"
+  },
+  {
+    "id": "32.09.37.2004",
+    "name": "Cupang",
+    "district_id": "32.09.37"
+  },
+  {
+    "id": "32.09.37.2005",
+    "name": "Gempol",
+    "district_id": "32.09.37"
+  },
+  {
+    "id": "32.09.37.2006",
+    "name": "Walahar",
+    "district_id": "32.09.37"
+  },
+  {
+    "id": "32.09.37.2007",
+    "name": "Kempek",
+    "district_id": "32.09.37"
+  },
+  {
+    "id": "32.09.37.2008",
+    "name": "Winong",
+    "district_id": "32.09.37"
+  },
+  {
+    "id": "32.09.38.2001",
+    "name": "Gumulung Lebak",
+    "district_id": "32.09.38"
+  },
+  {
+    "id": "32.09.38.2002",
+    "name": "Lebak Mekar",
+    "district_id": "32.09.38"
+  },
+  {
+    "id": "32.09.38.2003",
+    "name": "Gumulung Tonggoh",
+    "district_id": "32.09.38"
+  },
+  {
+    "id": "32.09.38.2004",
+    "name": "Kamarang",
+    "district_id": "32.09.38"
+  },
+  {
+    "id": "32.09.38.2005",
+    "name": "Greged",
+    "district_id": "32.09.38"
+  },
+  {
+    "id": "32.09.38.2006",
+    "name": "Kamarang Lebak",
+    "district_id": "32.09.38"
+  },
+  {
+    "id": "32.09.38.2007",
+    "name": "Durajaya",
+    "district_id": "32.09.38"
+  },
+  {
+    "id": "32.09.38.2008",
+    "name": "Jatipancur",
+    "district_id": "32.09.38"
+  },
+  {
+    "id": "32.09.38.2009",
+    "name": "Sindang Kempeng",
+    "district_id": "32.09.38"
+  },
+  {
+    "id": "32.09.38.2010",
+    "name": "Nanggela",
+    "district_id": "32.09.38"
+  }
+]

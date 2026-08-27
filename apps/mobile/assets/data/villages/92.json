@@ -1,0 +1,4122 @@
+[
+  {
+    "id": "9211012007",
+    "name": "Abreso",
+    "districtId": "921101"
+  },
+  {
+    "id": "9202152014",
+    "name": "Acemo",
+    "districtId": "920215"
+  },
+  {
+    "id": "9208022007",
+    "name": "Adi Jaya",
+    "districtId": "920802"
+  },
+  {
+    "id": "9203092011",
+    "name": "Adora",
+    "districtId": "920309"
+  },
+  {
+    "id": "9212092009",
+    "name": "Aduer",
+    "districtId": "921209"
+  },
+  {
+    "id": "9208032019",
+    "name": "Afu Afu",
+    "districtId": "920803"
+  },
+  {
+    "id": "9212072005",
+    "name": "Aiga",
+    "districtId": "921207"
+  },
+  {
+    "id": "9202312008",
+    "name": "Aimasi",
+    "districtId": "920231"
+  },
+  {
+    "id": "9202132006",
+    "name": "Aipiri",
+    "districtId": "920213"
+  },
+  {
+    "id": "9203052007",
+    "name": "Air Besar",
+    "districtId": "920305"
+  },
+  {
+    "id": "9207032001",
+    "name": "Aisandami",
+    "districtId": "920703"
+  },
+  {
+    "id": "9202322012",
+    "name": "Aiwow",
+    "districtId": "920232"
+  },
+  {
+    "id": "9211022013",
+    "name": "Akeju",
+    "districtId": "921102"
+  },
+  {
+    "id": "9202121004",
+    "name": "Amban",
+    "districtId": "920212"
+  },
+  {
+    "id": "9202322007",
+    "name": "Amber",
+    "districtId": "920232"
+  },
+  {
+    "id": "9207052002",
+    "name": "Ambuar",
+    "districtId": "920705"
+  },
+  {
+    "id": "9207092001",
+    "name": "Ambumi",
+    "districtId": "920709"
+  },
+  {
+    "id": "9206032021",
+    "name": "Amutu",
+    "districtId": "920603"
+  },
+  {
+    "id": "9206022008",
+    "name": "Anajero",
+    "districtId": "920602"
+  },
+  {
+    "id": "9203132001",
+    "name": "Andamata",
+    "districtId": "920313"
+  },
+  {
+    "id": "9212092036",
+    "name": "Andang",
+    "districtId": "921209"
+  },
+  {
+    "id": "9202151002",
+    "name": "Anday",
+    "districtId": "920215"
+  },
+  {
+    "id": "9212092020",
+    "name": "Anggra",
+    "districtId": "921209"
+  },
+  {
+    "id": "9202152011",
+    "name": "Anggresi",
+    "districtId": "920215"
+  },
+  {
+    "id": "9212062002",
+    "name": "Ansum",
+    "districtId": "921206"
+  },
+  {
+    "id": "9203062004",
+    "name": "Antalisa",
+    "districtId": "920306"
+  },
+  {
+    "id": "9212042011",
+    "name": "Anuk",
+    "districtId": "921204"
+  },
+  {
+    "id": "9212092024",
+    "name": "Apul",
+    "districtId": "921209"
+  },
+  {
+    "id": "9206092003",
+    "name": "Araisum",
+    "districtId": "920609"
+  },
+  {
+    "id": "9206042001",
+    "name": "Aranday",
+    "districtId": "920604"
+  },
+  {
+    "id": "9206012005",
+    "name": "Argosigemerai",
+    "districtId": "920601"
+  },
+  {
+    "id": "9203132003",
+    "name": "Arguni",
+    "districtId": "920313"
+  },
+  {
+    "id": "9206162001",
+    "name": "Aroba",
+    "districtId": "920616"
+  },
+  {
+    "id": "9202132005",
+    "name": "Arowi",
+    "districtId": "920213"
+  },
+  {
+    "id": "9211032006",
+    "name": "Aryawenmoho",
+    "districtId": "921103"
+  },
+  {
+    "id": "9212102013",
+    "name": "Aryon",
+    "districtId": "921210"
+  },
+  {
+    "id": "9202142011",
+    "name": "Asai",
+    "districtId": "920214"
+  },
+  {
+    "id": "9212082015",
+    "name": "Asai Dua",
+    "districtId": "921208"
+  },
+  {
+    "id": "9202322008",
+    "name": "Asarbey",
+    "districtId": "920232"
+  },
+  {
+    "id": "9202332010",
+    "name": "Aska",
+    "districtId": "920233"
+  },
+  {
+    "id": "9206112004",
+    "name": "Atibo Manimeri",
+    "districtId": "920611"
+  },
+  {
+    "id": "9202342009",
+    "name": "Aurmios",
+    "districtId": "920234"
+  },
+  {
+    "id": "9212092003",
+    "name": "Awaibehel",
+    "districtId": "921209"
+  },
+  {
+    "id": "9212062009",
+    "name": "Awigau",
+    "districtId": "921206"
+  },
+  {
+    "id": "9202132003",
+    "name": "Ayambori",
+    "districtId": "920213"
+  },
+  {
+    "id": "9212092035",
+    "name": "Ayau",
+    "districtId": "921209"
+  },
+  {
+    "id": "9212012008",
+    "name": "Ayaubey",
+    "districtId": "921201"
+  },
+  {
+    "id": "9202172002",
+    "name": "Ayawi",
+    "districtId": "920217"
+  },
+  {
+    "id": "9202322010",
+    "name": "Bahamyenti",
+    "districtId": "920232"
+  },
+  {
+    "id": "9203082012",
+    "name": "Bahbadan",
+    "districtId": "920308"
+  },
+  {
+    "id": "9208052004",
+    "name": "Bahumia",
+    "districtId": "920805"
+  },
+  {
+    "id": "9202132004",
+    "name": "Bakaro",
+    "districtId": "920213"
+  },
+  {
+    "id": "9211012006",
+    "name": "Bamaha",
+    "districtId": "921101"
+  },
+  {
+    "id": "9208042004",
+    "name": "Bamana",
+    "districtId": "920804"
+  },
+  {
+    "id": "9206092004",
+    "name": "Bangun Mulya",
+    "districtId": "920609"
+  },
+  {
+    "id": "9206112002",
+    "name": "Banjar Ausoy",
+    "districtId": "920611"
+  },
+  {
+    "id": "9206232002",
+    "name": "Barma",
+    "districtId": "920623"
+  },
+  {
+    "id": "9206052006",
+    "name": "Barma Barat",
+    "districtId": "920605"
+  },
+  {
+    "id": "9206232003",
+    "name": "Barma Baru",
+    "districtId": "920623"
+  },
+  {
+    "id": "9203042013",
+    "name": "Batufiafas",
+    "districtId": "920304"
+  },
+  {
+    "id": "9208032020",
+    "name": "Bayeda",
+    "districtId": "920803"
+  },
+  {
+    "id": "9202312010",
+    "name": "Bedip Matoa",
+    "districtId": "920231"
+  },
+  {
+    "id": "9206012009",
+    "name": "Beimes",
+    "districtId": "920601"
+  },
+  {
+    "id": "9211032005",
+    "name": "Benyas",
+    "districtId": "921103"
+  },
+  {
+    "id": "9206202004",
+    "name": "Bibiram",
+    "districtId": "920620"
+  },
+  {
+    "id": "9212072002",
+    "name": "Bigwaimud",
+    "districtId": "921207"
+  },
+  {
+    "id": "9212072014",
+    "name": "Binggrayud",
+    "districtId": "921207"
+  },
+  {
+    "id": "9212092034",
+    "name": "Bingwoyut",
+    "districtId": "921209"
+  },
+  {
+    "id": "9206011002",
+    "name": "Bintuni Barat",
+    "districtId": "920601"
+  },
+  {
+    "id": "9206011001",
+    "name": "Bintuni Timur",
+    "districtId": "920601"
+  },
+  {
+    "id": "9203092022",
+    "name": "Bisa",
+    "districtId": "920309"
+  },
+  {
+    "id": "9208032012",
+    "name": "Bofuwer",
+    "districtId": "920803"
+  },
+  {
+    "id": "9202312007",
+    "name": "Bogor",
+    "districtId": "920231"
+  },
+  {
+    "id": "9208042002",
+    "name": "Boiya",
+    "districtId": "920804"
+  },
+  {
+    "id": "9208032018",
+    "name": "Borogerba",
+    "districtId": "920803"
+  },
+  {
+    "id": "9202052009",
+    "name": "Bowi Subur",
+    "districtId": "920205"
+  },
+  {
+    "id": "9202142007",
+    "name": "Bremi",
+    "districtId": "920214"
+  },
+  {
+    "id": "9203052006",
+    "name": "Brongkendik",
+    "districtId": "920305"
+  },
+  {
+    "id": "9203072010",
+    "name": "Bumi Moroh Indah",
+    "districtId": "920307"
+  },
+  {
+    "id": "9206112001",
+    "name": "Bumi Saniari",
+    "districtId": "920611"
+  },
+  {
+    "id": "9202142020",
+    "name": "Cabang Dua",
+    "districtId": "920214"
+  },
+  {
+    "id": "9212102006",
+    "name": "Cangoisi",
+    "districtId": "921210"
+  },
+  {
+    "id": "9212072001",
+    "name": "Catubouw",
+    "districtId": "921207"
+  },
+  {
+    "id": "9212052009",
+    "name": "Cigera",
+    "districtId": "921205"
+  },
+  {
+    "id": "9212052002",
+    "name": "Cirnohu",
+    "districtId": "921205"
+  },
+  {
+    "id": "9208012013",
+    "name": "Coa",
+    "districtId": "920801"
+  },
+  {
+    "id": "9212072021",
+    "name": "Coijut",
+    "districtId": "921207"
+  },
+  {
+    "id": "9212092005",
+    "name": "Coisi",
+    "districtId": "921209"
+  },
+  {
+    "id": "9206132002",
+    "name": "Cumnaji",
+    "districtId": "920613"
+  },
+  {
+    "id": "9202172012",
+    "name": "Cuyehep",
+    "districtId": "920217"
+  },
+  {
+    "id": "9203051001",
+    "name": "Danaweria",
+    "districtId": "920305"
+  },
+  {
+    "id": "9212052004",
+    "name": "Danmou",
+    "districtId": "921205"
+  },
+  {
+    "id": "9203142001",
+    "name": "Darembang",
+    "districtId": "920314"
+  },
+  {
+    "id": "9203092002",
+    "name": "Degen",
+    "districtId": "920309"
+  },
+  {
+    "id": "9212092002",
+    "name": "Demaisi",
+    "districtId": "921209"
+  },
+  {
+    "id": "9211052001",
+    "name": "Dembek",
+    "districtId": "921105"
+  },
+  {
+    "id": "9212052012",
+    "name": "Demdamei",
+    "districtId": "921205"
+  },
+  {
+    "id": "9211052006",
+    "name": "Demini",
+    "districtId": "921105"
+  },
+  {
+    "id": "9212102009",
+    "name": "Demunti",
+    "districtId": "921210"
+  },
+  {
+    "id": "9212082004",
+    "name": "Demuora",
+    "districtId": "921208"
+  },
+  {
+    "id": "9202042003",
+    "name": "Desay",
+    "districtId": "920204"
+  },
+  {
+    "id": "9211042009",
+    "name": "Desra",
+    "districtId": "921104"
+  },
+  {
+    "id": "9212062003",
+    "name": "Deurohu",
+    "districtId": "921206"
+  },
+  {
+    "id": "9211042012",
+    "name": "Dibera",
+    "districtId": "921104"
+  },
+  {
+    "id": "9212052003",
+    "name": "Dibetik",
+    "districtId": "921205"
+  },
+  {
+    "id": "9202152006",
+    "name": "Dihara",
+    "districtId": "920215"
+  },
+  {
+    "id": "9211042007",
+    "name": "Dihisu",
+    "districtId": "921104"
+  },
+  {
+    "id": "9202032001",
+    "name": "Dindey",
+    "districtId": "920203"
+  },
+  {
+    "id": "9211032002",
+    "name": "Disi",
+    "districtId": "921103"
+  },
+  {
+    "id": "9212052014",
+    "name": "Disra",
+    "districtId": "921205"
+  },
+  {
+    "id": "9212062008",
+    "name": "Disura",
+    "districtId": "921206"
+  },
+  {
+    "id": "9202152016",
+    "name": "Dobut",
+    "districtId": "920215"
+  },
+  {
+    "id": "9207012003",
+    "name": "Dotir",
+    "districtId": "920701"
+  },
+  {
+    "id": "9212092015",
+    "name": "Driye",
+    "districtId": "921209"
+  },
+  {
+    "id": "9212042008",
+    "name": "Dugahani",
+    "districtId": "921204"
+  },
+  {
+    "id": "9212052013",
+    "name": "Dugrimog",
+    "districtId": "921205"
+  },
+  {
+    "id": "9211042002",
+    "name": "Duhugesa",
+    "districtId": "921104"
+  },
+  {
+    "id": "9203101003",
+    "name": "Dulanpokpok",
+    "districtId": "920310"
+  },
+  {
+    "id": "9212082013",
+    "name": "Dumbrey",
+    "districtId": "921208"
+  },
+  {
+    "id": "9207092003",
+    "name": "Dusner",
+    "districtId": "920709"
+  },
+  {
+    "id": "9202322001",
+    "name": "Duweibey",
+    "districtId": "920232"
+  },
+  {
+    "id": "9202032015",
+    "name": "Duwin",
+    "districtId": "920203"
+  },
+  {
+    "id": "9208022003",
+    "name": "Edor",
+    "districtId": "920802"
+  },
+  {
+    "id": "9208062004",
+    "name": "Egerwara",
+    "districtId": "920806"
+  },
+  {
+    "id": "9206192004",
+    "name": "Ekam",
+    "districtId": "920619"
+  },
+  {
+    "id": "9206182006",
+    "name": "Eniba",
+    "districtId": "920618"
+  },
+  {
+    "id": "9208032027",
+    "name": "Erigara",
+    "districtId": "920803"
+  },
+  {
+    "id": "9208022009",
+    "name": "Esania",
+    "districtId": "920802"
+  },
+  {
+    "id": "9203011001",
+    "name": "Fak Fak Selatan",
+    "districtId": "920301"
+  },
+  {
+    "id": "9203011002",
+    "name": "Fak Fak Utara",
+    "districtId": "920301"
+  },
+  {
+    "id": "9203062002",
+    "name": "Faur",
+    "districtId": "920306"
+  },
+  {
+    "id": "9208032002",
+    "name": "Feternu",
+    "districtId": "920803"
+  },
+  {
+    "id": "9202322003",
+    "name": "Figoud",
+    "districtId": "920232"
+  },
+  {
+    "id": "9203132004",
+    "name": "Fior",
+    "districtId": "920313"
+  },
+  {
+    "id": "9206142004",
+    "name": "Forada",
+    "districtId": "920614"
+  },
+  {
+    "id": "9208012008",
+    "name": "Foroma Jaya",
+    "districtId": "920801"
+  },
+  {
+    "id": "9206082001",
+    "name": "Fruata/Irowutu II",
+    "districtId": "920608"
+  },
+  {
+    "id": "9208032016",
+    "name": "Fudima",
+    "districtId": "920803"
+  },
+  {
+    "id": "9203132005",
+    "name": "Furir",
+    "districtId": "920313"
+  },
+  {
+    "id": "9208032001",
+    "name": "Furnusu",
+    "districtId": "920803"
+  },
+  {
+    "id": "9208022005",
+    "name": "Gaka",
+    "districtId": "920802"
+  },
+  {
+    "id": "9203162003",
+    "name": "Gar",
+    "districtId": "920316"
+  },
+  {
+    "id": "9211052004",
+    "name": "Gaya Baru",
+    "districtId": "921105"
+  },
+  {
+    "id": "9212052011",
+    "name": "Gedeira",
+    "districtId": "921205"
+  },
+  {
+    "id": "9212062001",
+    "name": "Genyu",
+    "districtId": "921206"
+  },
+  {
+    "id": "9203082016",
+    "name": "Gewab",
+    "districtId": "920308"
+  },
+  {
+    "id": "9203012007",
+    "name": "Gewerpe",
+    "districtId": "920301"
+  },
+  {
+    "id": "9203142002",
+    "name": "Goras",
+    "districtId": "920314"
+  },
+  {
+    "id": "9203142007",
+    "name": "Goras Selatan",
+    "districtId": "920314"
+  },
+  {
+    "id": "9212102010",
+    "name": "Gueipimbai",
+    "districtId": "921210"
+  },
+  {
+    "id": "9202032012",
+    "name": "Guentuy",
+    "districtId": "920203"
+  },
+  {
+    "id": "9208022006",
+    "name": "Guriasa",
+    "districtId": "920802"
+  },
+  {
+    "id": "9208032031",
+    "name": "Gusi",
+    "districtId": "920803"
+  },
+  {
+    "id": "9212102026",
+    "name": "Guwei Uti",
+    "districtId": "921210"
+  },
+  {
+    "id": "9208072005",
+    "name": "Hairapara",
+    "districtId": "920807"
+  },
+  {
+    "id": "9212102016",
+    "name": "Haktiebou",
+    "districtId": "921210"
+  },
+  {
+    "id": "9211012008",
+    "name": "Hamawi",
+    "districtId": "921101"
+  },
+  {
+    "id": "9203052013",
+    "name": "Hambrangkendik",
+    "districtId": "920305"
+  },
+  {
+    "id": "9211012011",
+    "name": "Hamor",
+    "districtId": "921101"
+  },
+  {
+    "id": "9212092018",
+    "name": "Handuk",
+    "districtId": "921209"
+  },
+  {
+    "id": "9202172013",
+    "name": "Hanghouw",
+    "districtId": "920217"
+  },
+  {
+    "id": "9208022010",
+    "name": "Hia",
+    "districtId": "920802"
+  },
+  {
+    "id": "9202032003",
+    "name": "Hingk",
+    "districtId": "920203"
+  },
+  {
+    "id": "9211032003",
+    "name": "Hiyou",
+    "districtId": "921103"
+  },
+  {
+    "id": "9203152004",
+    "name": "Homorkokma",
+    "districtId": "920315"
+  },
+  {
+    "id": "9212062004",
+    "name": "Horeta",
+    "districtId": "921206"
+  },
+  {
+    "id": "9206132001",
+    "name": "Horna",
+    "districtId": "920613"
+  },
+  {
+    "id": "9211042006",
+    "name": "Hugomot",
+    "districtId": "921104"
+  },
+  {
+    "id": "9212102015",
+    "name": "Humeisi",
+    "districtId": "921210"
+  },
+  {
+    "id": "9212012012",
+    "name": "Hungku",
+    "districtId": "921201"
+  },
+  {
+    "id": "9206132005",
+    "name": "Huss",
+    "districtId": "920613"
+  },
+  {
+    "id": "9212082008",
+    "name": "Iba",
+    "districtId": "921208"
+  },
+  {
+    "id": "9202032017",
+    "name": "Iboisrati",
+    "districtId": "920203"
+  },
+  {
+    "id": "9206182002",
+    "name": "Ibori",
+    "districtId": "920618"
+  },
+  {
+    "id": "9202032016",
+    "name": "Ibuwau",
+    "districtId": "920203"
+  },
+  {
+    "id": "9212072019",
+    "name": "Idemai",
+    "districtId": "921207"
+  },
+  {
+    "id": "9212012002",
+    "name": "Igembai",
+    "districtId": "921201"
+  },
+  {
+    "id": "9206242001",
+    "name": "Igomu",
+    "districtId": "920624"
+  },
+  {
+    "id": "9202052016",
+    "name": "Igor",
+    "districtId": "920205"
+  },
+  {
+    "id": "9206012010",
+    "name": "Iguriji",
+    "districtId": "920601"
+  },
+  {
+    "id": "9212072011",
+    "name": "Ijigreg",
+    "districtId": "921207"
+  },
+  {
+    "id": "9212102002",
+    "name": "Ikimabou",
+    "districtId": "921210"
+  },
+  {
+    "id": "9212072006",
+    "name": "Imandrigo",
+    "districtId": "921207"
+  },
+  {
+    "id": "9212012003",
+    "name": "Imbai",
+    "districtId": "921201"
+  },
+  {
+    "id": "9212032002",
+    "name": "Imbeisba",
+    "districtId": "921203"
+  },
+  {
+    "id": "9202172007",
+    "name": "Imbeisika I",
+    "districtId": "920217"
+  },
+  {
+    "id": "9202172008",
+    "name": "Imbeisika II",
+    "districtId": "920217"
+  },
+  {
+    "id": "9212092006",
+    "name": "Imbenti",
+    "districtId": "921209"
+  },
+  {
+    "id": "9202172016",
+    "name": "Imboiti",
+    "districtId": "920217"
+  },
+  {
+    "id": "9212092008",
+    "name": "Imbonggun",
+    "districtId": "921209"
+  },
+  {
+    "id": "9212092027",
+    "name": "Imbrekti",
+    "districtId": "921209"
+  },
+  {
+    "id": "9202172011",
+    "name": "Imhasuma",
+    "districtId": "920217"
+  },
+  {
+    "id": "9208062013",
+    "name": "Inari",
+    "districtId": "920806"
+  },
+  {
+    "id": "9212092004",
+    "name": "Indabri",
+    "districtId": "921209"
+  },
+  {
+    "id": "9207102005",
+    "name": "Inday",
+    "districtId": "920710"
+  },
+  {
+    "id": "9202172018",
+    "name": "Indibo",
+    "districtId": "920217"
+  },
+  {
+    "id": "9202032002",
+    "name": "Indisey",
+    "districtId": "920203"
+  },
+  {
+    "id": "9202032023",
+    "name": "Indonbey",
+    "districtId": "920203"
+  },
+  {
+    "id": "9202142022",
+    "name": "Indou Oufa",
+    "districtId": "920214"
+  },
+  {
+    "id": "9206052011",
+    "name": "Inggof",
+    "districtId": "920605"
+  },
+  {
+    "id": "9212092021",
+    "name": "Inggramhim",
+    "districtId": "921209"
+  },
+  {
+    "id": "9202042008",
+    "name": "Ingkwoisi",
+    "districtId": "920204"
+  },
+  {
+    "id": "9202122008",
+    "name": "Ingramui",
+    "districtId": "920212"
+  },
+  {
+    "id": "9212092023",
+    "name": "Injuar",
+    "districtId": "921209"
+  },
+  {
+    "id": "9202142017",
+    "name": "Inoduas",
+    "districtId": "920214"
+  },
+  {
+    "id": "9206062005",
+    "name": "Inofina",
+    "districtId": "920606"
+  },
+  {
+    "id": "9202352006",
+    "name": "Inya",
+    "districtId": "920235"
+  },
+  {
+    "id": "9212042004",
+    "name": "Inyaub",
+    "districtId": "921204"
+  },
+  {
+    "id": "9212032001",
+    "name": "Inyebuow",
+    "districtId": "921203"
+  },
+  {
+    "id": "9202352010",
+    "name": "Inyei",
+    "districtId": "920235"
+  },
+  {
+    "id": "9207072005",
+    "name": "Inyora",
+    "districtId": "920707"
+  },
+  {
+    "id": "9211042008",
+    "name": "Inyuara",
+    "districtId": "921104"
+  },
+  {
+    "id": "9212092028",
+    "name": "Ipingosi",
+    "districtId": "921209"
+  },
+  {
+    "id": "9212012001",
+    "name": "Iraiweri",
+    "districtId": "921201"
+  },
+  {
+    "id": "9212052001",
+    "name": "Iranmeba",
+    "districtId": "921205"
+  },
+  {
+    "id": "9206032020",
+    "name": "Irarutu III",
+    "districtId": "920603"
+  },
+  {
+    "id": "9212062011",
+    "name": "Irbos",
+    "districtId": "921206"
+  },
+  {
+    "id": "9207012011",
+    "name": "Iriati",
+    "districtId": "920701"
+  },
+  {
+    "id": "9207062002",
+    "name": "Isenebuay",
+    "districtId": "920706"
+  },
+  {
+    "id": "9207062005",
+    "name": "Iseren",
+    "districtId": "920706"
+  },
+  {
+    "id": "9207082003",
+    "name": "Isey",
+    "districtId": "920708"
+  },
+  {
+    "id": "9211042001",
+    "name": "Isim",
+    "districtId": "921104"
+  },
+  {
+    "id": "9207042010",
+    "name": "Issui",
+    "districtId": "920704"
+  },
+  {
+    "id": "9206222003",
+    "name": "Istiwkem",
+    "districtId": "920622"
+  },
+  {
+    "id": "9212022008",
+    "name": "Itkau",
+    "districtId": "921202"
+  },
+  {
+    "id": "9206052001",
+    "name": "Jagiro",
+    "districtId": "920605"
+  },
+  {
+    "id": "9206182001",
+    "name": "Jahabra",
+    "districtId": "920618"
+  },
+  {
+    "id": "9208012016",
+    "name": "Jarati",
+    "districtId": "920801"
+  },
+  {
+    "id": "9208062001",
+    "name": "Jawera",
+    "districtId": "920806"
+  },
+  {
+    "id": "9212082005",
+    "name": "Jigja",
+    "districtId": "921208"
+  },
+  {
+    "id": "9212072012",
+    "name": "Jim",
+    "districtId": "921207"
+  },
+  {
+    "id": "9202052038",
+    "name": "Jowen",
+    "districtId": "920205"
+  },
+  {
+    "id": "9207042009",
+    "name": "Kabouw",
+    "districtId": "920704"
+  },
+  {
+    "id": "9203152001",
+    "name": "Kaburbur",
+    "districtId": "920315"
+  },
+  {
+    "id": "9207042015",
+    "name": "Kaibi",
+    "districtId": "920704"
+  },
+  {
+    "id": "9208011001",
+    "name": "Kaimana Kota",
+    "districtId": "920801"
+  },
+  {
+    "id": "9202212001",
+    "name": "Kaironi",
+    "districtId": "920221"
+  },
+  {
+    "id": "9203122005",
+    "name": "Kalamanuk",
+    "districtId": "920312"
+  },
+  {
+    "id": "9202312006",
+    "name": "Kali Amin",
+    "districtId": "920231"
+  },
+  {
+    "id": "9202332002",
+    "name": "Kali Merah",
+    "districtId": "920233"
+  },
+  {
+    "id": "9206172003",
+    "name": "Kalibiru",
+    "districtId": "920617"
+  },
+  {
+    "id": "9206202001",
+    "name": "Kalitami I",
+    "districtId": "920620"
+  },
+  {
+    "id": "9206202002",
+    "name": "Kalitami II",
+    "districtId": "920620"
+  },
+  {
+    "id": "9208012012",
+    "name": "Kamaka",
+    "districtId": "920801"
+  },
+  {
+    "id": "9203112006",
+    "name": "Kamandur Tetar",
+    "districtId": "920311"
+  },
+  {
+    "id": "9208022001",
+    "name": "Kambala",
+    "districtId": "920802"
+  },
+  {
+    "id": "9203042011",
+    "name": "Kampung Baru",
+    "districtId": "920304"
+  },
+  {
+    "id": "9206042007",
+    "name": "Kampung Baru",
+    "districtId": "920604"
+  },
+  {
+    "id": "9203052009",
+    "name": "Kanantare",
+    "districtId": "920305"
+  },
+  {
+    "id": "9203102005",
+    "name": "Kapaurtutin",
+    "districtId": "920310"
+  },
+  {
+    "id": "9207132001",
+    "name": "Kaprus",
+    "districtId": "920713"
+  },
+  {
+    "id": "9211062003",
+    "name": "Kaprus",
+    "districtId": "921106"
+  },
+  {
+    "id": "9207052003",
+    "name": "Karuan",
+    "districtId": "920705"
+  },
+  {
+    "id": "9206032023",
+    "name": "Kasira",
+    "districtId": "920603"
+  },
+  {
+    "id": "9202212004",
+    "name": "Kassi",
+    "districtId": "920221"
+  },
+  {
+    "id": "9202152003",
+    "name": "Katebu",
+    "districtId": "920215"
+  },
+  {
+    "id": "9203052003",
+    "name": "Katemba",
+    "districtId": "920305"
+  },
+  {
+    "id": "9212072004",
+    "name": "Kaungwam",
+    "districtId": "921207"
+  },
+  {
+    "id": "9203052002",
+    "name": "Kayu Merah",
+    "districtId": "920305"
+  },
+  {
+    "id": "9203152006",
+    "name": "Kayuni",
+    "districtId": "920315"
+  },
+  {
+    "id": "9206042008",
+    "name": "Kecap",
+    "districtId": "920604"
+  },
+  {
+    "id": "9206202003",
+    "name": "Kenara",
+    "districtId": "920620"
+  },
+  {
+    "id": "9208032025",
+    "name": "Kensi",
+    "districtId": "920803"
+  },
+  {
+    "id": "9202312001",
+    "name": "Kerenu",
+    "districtId": "920231"
+  },
+  {
+    "id": "9203062003",
+    "name": "Kiaba",
+    "districtId": "920306"
+  },
+  {
+    "id": "9203022002",
+    "name": "Kiat",
+    "districtId": "920302"
+  },
+  {
+    "id": "9203042031",
+    "name": "Kimina Kra",
+    "districtId": "920304"
+  },
+  {
+    "id": "9203042014",
+    "name": "Kinam",
+    "districtId": "920304"
+  },
+  {
+    "id": "9202322011",
+    "name": "Kipuwau",
+    "districtId": "920232"
+  },
+  {
+    "id": "9203032012",
+    "name": "Kiria Bisa",
+    "districtId": "920303"
+  },
+  {
+    "id": "9212102004",
+    "name": "Kisap",
+    "districtId": "921210"
+  },
+  {
+    "id": "9212042006",
+    "name": "Kobrey",
+    "districtId": "921204"
+  },
+  {
+    "id": "9211012009",
+    "name": "Kobrey",
+    "districtId": "921101"
+  },
+  {
+    "id": "9203041001",
+    "name": "Kokas Kota",
+    "districtId": "920304"
+  },
+  {
+    "id": "9208032022",
+    "name": "Kokoroba",
+    "districtId": "920803"
+  },
+  {
+    "id": "9212032005",
+    "name": "Koney",
+    "districtId": "921203"
+  },
+  {
+    "id": "9208052007",
+    "name": "Kooy",
+    "districtId": "920805"
+  },
+  {
+    "id": "9212042007",
+    "name": "Kopo",
+    "districtId": "921204"
+  },
+  {
+    "id": "9206112006",
+    "name": "Korano Jaya",
+    "districtId": "920611"
+  },
+  {
+    "id": "9212042010",
+    "name": "Kostera",
+    "districtId": "921204"
+  },
+  {
+    "id": "9203122003",
+    "name": "Kotam",
+    "districtId": "920312"
+  },
+  {
+    "id": "9202052034",
+    "name": "Koyani",
+    "districtId": "920205"
+  },
+  {
+    "id": "9203122009",
+    "name": "Krabelang",
+    "districtId": "920312"
+  },
+  {
+    "id": "9203082001",
+    "name": "Kramongmongga",
+    "districtId": "920308"
+  },
+  {
+    "id": "9203042024",
+    "name": "Kriawaswas",
+    "districtId": "920304"
+  },
+  {
+    "id": "9212022002",
+    "name": "Krobut",
+    "districtId": "921202"
+  },
+  {
+    "id": "9208011014",
+    "name": "Krooy",
+    "districtId": "920801"
+  },
+  {
+    "id": "9203152007",
+    "name": "Kuagas",
+    "districtId": "920315"
+  },
+  {
+    "id": "9206122003",
+    "name": "Kucir",
+    "districtId": "920612"
+  },
+  {
+    "id": "9208062005",
+    "name": "Kufuriyai",
+    "districtId": "920806"
+  },
+  {
+    "id": "9207122004",
+    "name": "Kurei",
+    "districtId": "920712"
+  },
+  {
+    "id": "9212052008",
+    "name": "Kusmenau",
+    "districtId": "921205"
+  },
+  {
+    "id": "9212102019",
+    "name": "Kwaiyehep",
+    "districtId": "921210"
+  },
+  {
+    "id": "9203122004",
+    "name": "Kwama",
+    "districtId": "920312"
+  },
+  {
+    "id": "9203082011",
+    "name": "Kwamkwamur",
+    "districtId": "920308"
+  },
+  {
+    "id": "9202322004",
+    "name": "Kwau",
+    "districtId": "920232"
+  },
+  {
+    "id": "9212102018",
+    "name": "Kwok Dua",
+    "districtId": "921210"
+  },
+  {
+    "id": "9212102017",
+    "name": "Kwok Satu",
+    "districtId": "921210"
+  },
+  {
+    "id": "9203022010",
+    "name": "Kwuhkendak",
+    "districtId": "920302"
+  },
+  {
+    "id": "9206182005",
+    "name": "Laudoho",
+    "districtId": "920618"
+  },
+  {
+    "id": "9202142018",
+    "name": "Lebau",
+    "districtId": "920214"
+  },
+  {
+    "id": "9212102022",
+    "name": "Liehak",
+    "districtId": "921210"
+  },
+  {
+    "id": "9202312009",
+    "name": "Lismaungu",
+    "districtId": "920231"
+  },
+  {
+    "id": "9208012004",
+    "name": "Lobo",
+    "districtId": "920801"
+  },
+  {
+    "id": "9208012011",
+    "name": "Lumira",
+    "districtId": "920801"
+  },
+  {
+    "id": "9203012011",
+    "name": "Lusi Peri",
+    "districtId": "920301"
+  },
+  {
+    "id": "9206222002",
+    "name": "Macok",
+    "districtId": "920622"
+  },
+  {
+    "id": "9202332004",
+    "name": "Macuan",
+    "districtId": "920233"
+  },
+  {
+    "id": "9202032010",
+    "name": "Madrat",
+    "districtId": "920203"
+  },
+  {
+    "id": "9208012010",
+    "name": "Mai Mai",
+    "districtId": "920801"
+  },
+  {
+    "id": "9207012006",
+    "name": "Maimari",
+    "districtId": "920701"
+  },
+  {
+    "id": "9212092026",
+    "name": "Mainda",
+    "districtId": "921209"
+  },
+  {
+    "id": "9206222004",
+    "name": "Majnic",
+    "districtId": "920622"
+  },
+  {
+    "id": "9202332007",
+    "name": "Makwan",
+    "districtId": "920233"
+  },
+  {
+    "id": "9203062001",
+    "name": "Malakuli",
+    "districtId": "920306"
+  },
+  {
+    "id": "9211012013",
+    "name": "Mambrema",
+    "districtId": "921101"
+  },
+  {
+    "id": "9203042021",
+    "name": "Mambunibuni",
+    "districtId": "920304"
+  },
+  {
+    "id": "9207122002",
+    "name": "Mamisi",
+    "districtId": "920712"
+  },
+  {
+    "id": "9203082008",
+    "name": "Mamur",
+    "districtId": "920308"
+  },
+  {
+    "id": "9206072004",
+    "name": "Mamuranu",
+    "districtId": "920607"
+  },
+  {
+    "id": "9203152009",
+    "name": "Mananmur",
+    "districtId": "920315"
+  },
+  {
+    "id": "9203042003",
+    "name": "Mandoni",
+    "districtId": "920304"
+  },
+  {
+    "id": "9202352002",
+    "name": "Mandopi",
+    "districtId": "920235"
+  },
+  {
+    "id": "9203052008",
+    "name": "Mandopma",
+    "districtId": "920305"
+  },
+  {
+    "id": "9208062006",
+    "name": "Manggera",
+    "districtId": "920806"
+  },
+  {
+    "id": "9212072010",
+    "name": "Manggesuk",
+    "districtId": "921207"
+  },
+  {
+    "id": "9212102003",
+    "name": "Manggot",
+    "districtId": "921210"
+  },
+  {
+    "id": "9202212011",
+    "name": "Manggupi",
+    "districtId": "920221"
+  },
+  {
+    "id": "9207012004",
+    "name": "Maniwak",
+    "districtId": "920701"
+  },
+  {
+    "id": "9202121001",
+    "name": "Manokwari Barat",
+    "districtId": "920212"
+  },
+  {
+    "id": "9202121006",
+    "name": "Manokwari Timur",
+    "districtId": "920212"
+  },
+  {
+    "id": "9207012009",
+    "name": "Manopi",
+    "districtId": "920701"
+  },
+  {
+    "id": "9202052015",
+    "name": "Mansaburi",
+    "districtId": "920205"
+  },
+  {
+    "id": "9202132002",
+    "name": "Mansinam",
+    "districtId": "920213"
+  },
+  {
+    "id": "9202332009",
+    "name": "Mantedi",
+    "districtId": "920233"
+  },
+  {
+    "id": "9206042009",
+    "name": "Manunggal Karya",
+    "districtId": "920604"
+  },
+  {
+    "id": "9211022004",
+    "name": "Margo Rukun",
+    "districtId": "921102"
+  },
+  {
+    "id": "9211022009",
+    "name": "Margomulyo",
+    "districtId": "921102"
+  },
+  {
+    "id": "9208012002",
+    "name": "Marsi",
+    "districtId": "920801"
+  },
+  {
+    "id": "9202152008",
+    "name": "Maruni",
+    "districtId": "920215"
+  },
+  {
+    "id": "9203062007",
+    "name": "Mas",
+    "districtId": "920306"
+  },
+  {
+    "id": "9211022007",
+    "name": "Masabui",
+    "districtId": "921102"
+  },
+  {
+    "id": "9211022014",
+    "name": "Masabui II",
+    "districtId": "921102"
+  },
+  {
+    "id": "9203042030",
+    "name": "Masina",
+    "districtId": "920304"
+  },
+  {
+    "id": "9206012022",
+    "name": "Masina",
+    "districtId": "920601"
+  },
+  {
+    "id": "9208032024",
+    "name": "Maskur",
+    "districtId": "920803"
+  },
+  {
+    "id": "9202052001",
+    "name": "Masni",
+    "districtId": "920205"
+  },
+  {
+    "id": "9202152004",
+    "name": "Masyepi",
+    "districtId": "920215"
+  },
+  {
+    "id": "9206172001",
+    "name": "Masyeta",
+    "districtId": "920617"
+  },
+  {
+    "id": "9206142005",
+    "name": "Materabu Jaya",
+    "districtId": "920614"
+  },
+  {
+    "id": "9203092017",
+    "name": "Mawar",
+    "districtId": "920309"
+  },
+  {
+    "id": "9203082018",
+    "name": "Mbaham Ma Youn",
+    "districtId": "920308"
+  },
+  {
+    "id": "9203142006",
+    "name": "Mbahamdandra",
+    "districtId": "920314"
+  },
+  {
+    "id": "9202172005",
+    "name": "Mbatma",
+    "districtId": "920217"
+  },
+  {
+    "id": "9212102020",
+    "name": "Mbegau",
+    "districtId": "921210"
+  },
+  {
+    "id": "9203172001",
+    "name": "Mbima Jaya",
+    "districtId": "920317"
+  },
+  {
+    "id": "9212092022",
+    "name": "Mbingma",
+    "districtId": "921209"
+  },
+  {
+    "id": "9212102029",
+    "name": "Mbrande",
+    "districtId": "921210"
+  },
+  {
+    "id": "9202042016",
+    "name": "Mebji",
+    "districtId": "920204"
+  },
+  {
+    "id": "9212082002",
+    "name": "Meidogda",
+    "districtId": "921208"
+  },
+  {
+    "id": "9212082003",
+    "name": "Meifekeni",
+    "districtId": "921208"
+  },
+  {
+    "id": "9212082012",
+    "name": "Meifokeda",
+    "districtId": "921208"
+  },
+  {
+    "id": "9202332005",
+    "name": "Meiforga",
+    "districtId": "920233"
+  },
+  {
+    "id": "9212082010",
+    "name": "Meifowoska",
+    "districtId": "921208"
+  },
+  {
+    "id": "9212082006",
+    "name": "Meigehenawu",
+    "districtId": "921208"
+  },
+  {
+    "id": "9212082011",
+    "name": "Meijugjijigja",
+    "districtId": "921208"
+  },
+  {
+    "id": "9212082009",
+    "name": "Meimersa",
+    "districtId": "921208"
+  },
+  {
+    "id": "9203072008",
+    "name": "Mekarsari",
+    "districtId": "920307"
+  },
+  {
+    "id": "9206022014",
+    "name": "Mekiesefeb",
+    "districtId": "920602"
+  },
+  {
+    "id": "9212082014",
+    "name": "Meksi",
+    "districtId": "921208"
+  },
+  {
+    "id": "9212092025",
+    "name": "Memangker",
+    "districtId": "921209"
+  },
+  {
+    "id": "9212032006",
+    "name": "Membey",
+    "districtId": "921203"
+  },
+  {
+    "id": "9202342003",
+    "name": "Membowi",
+    "districtId": "920234"
+  },
+  {
+    "id": "9212032004",
+    "name": "Memti",
+    "districtId": "921203"
+  },
+  {
+    "id": "9207102007",
+    "name": "Mena",
+    "districtId": "920710"
+  },
+  {
+    "id": "9207102003",
+    "name": "Menarbu",
+    "districtId": "920710"
+  },
+  {
+    "id": "9206132003",
+    "name": "Menci",
+    "districtId": "920613"
+  },
+  {
+    "id": "9212042012",
+    "name": "Menesrij",
+    "districtId": "921204"
+  },
+  {
+    "id": "9206022007",
+    "name": "Menggerba",
+    "districtId": "920602"
+  },
+  {
+    "id": "9212012007",
+    "name": "Mentubey",
+    "districtId": "921201"
+  },
+  {
+    "id": "9202032006",
+    "name": "Meny",
+    "districtId": "920203"
+  },
+  {
+    "id": "9206182003",
+    "name": "Menyembru",
+    "districtId": "920618"
+  },
+  {
+    "id": "9202172021",
+    "name": "Menyumfoku",
+    "districtId": "920217"
+  },
+  {
+    "id": "9206022001",
+    "name": "Merdey",
+    "districtId": "920602"
+  },
+  {
+    "id": "9202342006",
+    "name": "Merejemeg",
+    "districtId": "920234"
+  },
+  {
+    "id": "9206062004",
+    "name": "Merestim",
+    "districtId": "920606"
+  },
+  {
+    "id": "9206022002",
+    "name": "Meryeb",
+    "districtId": "920602"
+  },
+  {
+    "id": "9206082002",
+    "name": "Meryedi",
+    "districtId": "920608"
+  },
+  {
+    "id": "9206242002",
+    "name": "Mesna",
+    "districtId": "920624"
+  },
+  {
+    "id": "9206172004",
+    "name": "Mesomda",
+    "districtId": "920617"
+  },
+  {
+    "id": "9206172002",
+    "name": "Mestofu",
+    "districtId": "920617"
+  },
+  {
+    "id": "9206232001",
+    "name": "Meyado",
+    "districtId": "920623"
+  },
+  {
+    "id": "9206052004",
+    "name": "Meyenda",
+    "districtId": "920605"
+  },
+  {
+    "id": "9206222001",
+    "name": "Meyerga",
+    "districtId": "920622"
+  },
+  {
+    "id": "9202342008",
+    "name": "Meyeruk",
+    "districtId": "920234"
+  },
+  {
+    "id": "9202352005",
+    "name": "Meyes",
+    "districtId": "920235"
+  },
+  {
+    "id": "9206022020",
+    "name": "Meyetga",
+    "districtId": "920602"
+  },
+  {
+    "id": "9202212008",
+    "name": "Meyof I",
+    "districtId": "920221"
+  },
+  {
+    "id": "9202342002",
+    "name": "Meyof II",
+    "districtId": "920234"
+  },
+  {
+    "id": "9206022004",
+    "name": "Meyom",
+    "districtId": "920602"
+  },
+  {
+    "id": "9206182004",
+    "name": "Meyorga",
+    "districtId": "920618"
+  },
+  {
+    "id": "9202142013",
+    "name": "Meyunfoka",
+    "districtId": "920214"
+  },
+  {
+    "id": "9212092011",
+    "name": "Micadiwor",
+    "districtId": "921209"
+  },
+  {
+    "id": "9212092039",
+    "name": "Miconti",
+    "districtId": "921209"
+  },
+  {
+    "id": "9212072020",
+    "name": "Mieycomti",
+    "districtId": "921207"
+  },
+  {
+    "id": "9212072016",
+    "name": "Mihij",
+    "districtId": "921207"
+  },
+  {
+    "id": "9212072003",
+    "name": "Mihou",
+    "districtId": "921207"
+  },
+  {
+    "id": "9211042010",
+    "name": "Mindermes",
+    "districtId": "921104"
+  },
+  {
+    "id": "9202322002",
+    "name": "Mingre",
+    "districtId": "920232"
+  },
+  {
+    "id": "9212072015",
+    "name": "Minmo",
+    "districtId": "921207"
+  },
+  {
+    "id": "9202322009",
+    "name": "Minoqbei",
+    "districtId": "920232"
+  },
+  {
+    "id": "9212092001",
+    "name": "Minyambouw",
+    "districtId": "921209"
+  },
+  {
+    "id": "9212102007",
+    "name": "Minyeimemud",
+    "districtId": "921210"
+  },
+  {
+    "id": "9202172023",
+    "name": "Mirowi",
+    "districtId": "920217"
+  },
+  {
+    "id": "9202172004",
+    "name": "Misabugoid",
+    "districtId": "920217"
+  },
+  {
+    "id": "9212092031",
+    "name": "Misangoisi",
+    "districtId": "921209"
+  },
+  {
+    "id": "9202152009",
+    "name": "Misapmeysi",
+    "districtId": "920215"
+  },
+  {
+    "id": "9212052005",
+    "name": "Miseda",
+    "districtId": "921205"
+  },
+  {
+    "id": "9212092013",
+    "name": "Mitiede",
+    "districtId": "921209"
+  },
+  {
+    "id": "9203142003",
+    "name": "Mitimber",
+    "districtId": "920314"
+  },
+  {
+    "id": "9206092002",
+    "name": "Mogoi Baru",
+    "districtId": "920609"
+  },
+  {
+    "id": "9206212002",
+    "name": "Mogotira",
+    "districtId": "920621"
+  },
+  {
+    "id": "9206022010",
+    "name": "Mogromus",
+    "districtId": "920602"
+  },
+  {
+    "id": "9202322005",
+    "name": "Mokwam",
+    "districtId": "920232"
+  },
+  {
+    "id": "9212102028",
+    "name": "Monut",
+    "districtId": "921210"
+  },
+  {
+    "id": "9206022011",
+    "name": "Morombuy",
+    "districtId": "920602"
+  },
+  {
+    "id": "9207012007",
+    "name": "Moru",
+    "districtId": "920701"
+  },
+  {
+    "id": "9212082007",
+    "name": "Morumfeyi",
+    "districtId": "921208"
+  },
+  {
+    "id": "9206062006",
+    "name": "Mosum",
+    "districtId": "920606"
+  },
+  {
+    "id": "9202342001",
+    "name": "Moubja",
+    "districtId": "920234"
+  },
+  {
+    "id": "9206182007",
+    "name": "Mowitka",
+    "districtId": "920618"
+  },
+  {
+    "id": "9208032021",
+    "name": "Moyana",
+    "districtId": "920803"
+  },
+  {
+    "id": "9206062001",
+    "name": "Moyeba",
+    "districtId": "920606"
+  },
+  {
+    "id": "9202332006",
+    "name": "Muara Prafi",
+    "districtId": "920233"
+  },
+  {
+    "id": "9202342010",
+    "name": "Muara Wariori",
+    "districtId": "920234"
+  },
+  {
+    "id": "9211022005",
+    "name": "Muari",
+    "districtId": "921102"
+  },
+  {
+    "id": "9202352001",
+    "name": "Mubraidiba",
+    "districtId": "920235"
+  },
+  {
+    "id": "9202352003",
+    "name": "Mubri",
+    "districtId": "920235"
+  },
+  {
+    "id": "9203092021",
+    "name": "Muhri",
+    "districtId": "920309"
+  },
+  {
+    "id": "9202152012",
+    "name": "Mupi",
+    "districtId": "920215"
+  },
+  {
+    "id": "9208012009",
+    "name": "Murano",
+    "districtId": "920801"
+  },
+  {
+    "id": "9208062012",
+    "name": "Nagura",
+    "districtId": "920806"
+  },
+  {
+    "id": "9208012003",
+    "name": "Namatota",
+    "districtId": "920801"
+  },
+  {
+    "id": "9207092002",
+    "name": "Nanimori",
+    "districtId": "920709"
+  },
+  {
+    "id": "9206102004",
+    "name": "Naramasa",
+    "districtId": "920610"
+  },
+  {
+    "id": "9208042003",
+    "name": "Nariki",
+    "districtId": "920804"
+  },
+  {
+    "id": "9212072008",
+    "name": "Ndabouw",
+    "districtId": "921207"
+  },
+  {
+    "id": "9203082009",
+    "name": "Nembukteb",
+    "districtId": "920308"
+  },
+  {
+    "id": "9203052004",
+    "name": "Nemewikarya",
+    "districtId": "920305"
+  },
+  {
+    "id": "9211032007",
+    "name": "Neney",
+    "districtId": "921103"
+  },
+  {
+    "id": "9207082008",
+    "name": "Nggatum",
+    "districtId": "920708"
+  },
+  {
+    "id": "9212102021",
+    "name": "Ngimoubri",
+    "districtId": "921210"
+  },
+  {
+    "id": "9212022007",
+    "name": "Ngisrow",
+    "districtId": "921202"
+  },
+  {
+    "id": "9202032013",
+    "name": "Ngungguen",
+    "districtId": "920203"
+  },
+  {
+    "id": "9202152018",
+    "name": "Ngunimbouw",
+    "districtId": "920215"
+  },
+  {
+    "id": "9207102004",
+    "name": "Niab",
+    "districtId": "920710"
+  },
+  {
+    "id": "9211052002",
+    "name": "Nij",
+    "districtId": "921105"
+  },
+  {
+    "id": "9202032005",
+    "name": "Nimbay",
+    "districtId": "920203"
+  },
+  {
+    "id": "9212092033",
+    "name": "Nimbiau",
+    "districtId": "921209"
+  },
+  {
+    "id": "9202172014",
+    "name": "Ningdip",
+    "districtId": "920217"
+  },
+  {
+    "id": "9212092019",
+    "name": "Ninsimoi",
+    "districtId": "921209"
+  },
+  {
+    "id": "9207052009",
+    "name": "Nordiwar",
+    "districtId": "920705"
+  },
+  {
+    "id": "9212102027",
+    "name": "Ntap",
+    "districtId": "921210"
+  },
+  {
+    "id": "9211012002",
+    "name": "Nuhuwei",
+    "districtId": "921101"
+  },
+  {
+    "id": "9212102005",
+    "name": "Nungkimor",
+    "districtId": "921210"
+  },
+  {
+    "id": "9208022008",
+    "name": "Nusaulan",
+    "districtId": "920802"
+  },
+  {
+    "id": "9206032022",
+    "name": "Nusei",
+    "districtId": "920603"
+  },
+  {
+    "id": "9207132005",
+    "name": "Nuspairo",
+    "districtId": "920713"
+  },
+  {
+    "id": "9206102005",
+    "name": "Obo",
+    "districtId": "920610"
+  },
+  {
+    "id": "9203092020",
+    "name": "Offie",
+    "districtId": "920309"
+  },
+  {
+    "id": "9208072006",
+    "name": "Omba Pamuku",
+    "districtId": "920807"
+  },
+  {
+    "id": "9203072014",
+    "name": "Onim Jaya",
+    "districtId": "920307"
+  },
+  {
+    "id": "9203072007",
+    "name": "Onimsari",
+    "districtId": "920307"
+  },
+  {
+    "id": "9211022001",
+    "name": "Oransbari",
+    "districtId": "921102"
+  },
+  {
+    "id": "9208012019",
+    "name": "Oray",
+    "districtId": "920801"
+  },
+  {
+    "id": "9203172005",
+    "name": "Otoweri",
+    "districtId": "920317"
+  },
+  {
+    "id": "9207072004",
+    "name": "Oyaa",
+    "districtId": "920707"
+  },
+  {
+    "id": "9202121005",
+    "name": "Padarni",
+    "districtId": "920212"
+  },
+  {
+    "id": "9203022012",
+    "name": "Pahger Nkindik",
+    "districtId": "920302"
+  },
+  {
+    "id": "9212012010",
+    "name": "Pamaha",
+    "districtId": "921201"
+  },
+  {
+    "id": "9202142009",
+    "name": "Pami",
+    "districtId": "920214"
+  },
+  {
+    "id": "9203042029",
+    "name": "Pang Wadar",
+    "districtId": "920304"
+  },
+  {
+    "id": "9206112005",
+    "name": "Pasamai",
+    "districtId": "920611"
+  },
+  {
+    "id": "9202131001",
+    "name": "Pasir Putih",
+    "districtId": "920213"
+  },
+  {
+    "id": "9203052010",
+    "name": "Pasir Putih",
+    "districtId": "920305"
+  },
+  {
+    "id": "9203042012",
+    "name": "Patimburak",
+    "districtId": "920304"
+  },
+  {
+    "id": "9203092014",
+    "name": "Patipi Pasir",
+    "districtId": "920309"
+  },
+  {
+    "id": "9203092015",
+    "name": "Patipi Pulau",
+    "districtId": "920309"
+  },
+  {
+    "id": "9203152005",
+    "name": "Pattukar",
+    "districtId": "920315"
+  },
+  {
+    "id": "9212102008",
+    "name": "Penibut",
+    "districtId": "921210"
+  },
+  {
+    "id": "9208032028",
+    "name": "Pigo",
+    "districtId": "920803"
+  },
+  {
+    "id": "9203082010",
+    "name": "Pikpik",
+    "districtId": "920308"
+  },
+  {
+    "id": "9203072009",
+    "name": "Pinang Agung",
+    "districtId": "920307"
+  },
+  {
+    "id": "9212092029",
+    "name": "Pinyausi",
+    "districtId": "921209"
+  },
+  {
+    "id": "9203052011",
+    "name": "Pirma",
+    "districtId": "920305"
+  },
+  {
+    "id": "9203022014",
+    "name": "Porum",
+    "districtId": "920302"
+  },
+  {
+    "id": "9202332003",
+    "name": "Prafi Barat",
+    "districtId": "920233"
+  },
+  {
+    "id": "9202042001",
+    "name": "Prafi Mulya",
+    "districtId": "920204"
+  },
+  {
+    "id": "9203092001",
+    "name": "Puar",
+    "districtId": "920309"
+  },
+  {
+    "id": "9212102014",
+    "name": "Punggung",
+    "districtId": "921210"
+  },
+  {
+    "id": "9203022011",
+    "name": "Purwahab Tonggo",
+    "districtId": "920302"
+  },
+  {
+    "id": "9203022003",
+    "name": "Purwasak",
+    "districtId": "920302"
+  },
+  {
+    "id": "9207012002",
+    "name": "Rado",
+    "districtId": "920701"
+  },
+  {
+    "id": "9203052005",
+    "name": "Raduria",
+    "districtId": "920305"
+  },
+  {
+    "id": "9207012010",
+    "name": "Ramiki",
+    "districtId": "920701"
+  },
+  {
+    "id": "9203152008",
+    "name": "Rangkendak",
+    "districtId": "920315"
+  },
+  {
+    "id": "9211012001",
+    "name": "Ransiki",
+    "districtId": "921101"
+  },
+  {
+    "id": "9207082001",
+    "name": "Rasiei",
+    "districtId": "920708"
+  },
+  {
+    "id": "9208052001",
+    "name": "Rauna",
+    "districtId": "920805"
+  },
+  {
+    "id": "9206052005",
+    "name": "Rawara",
+    "districtId": "920605"
+  },
+  {
+    "id": "9206102003",
+    "name": "Refideso",
+    "districtId": "920610"
+  },
+  {
+    "id": "9202172010",
+    "name": "Rembuy",
+    "districtId": "920217"
+  },
+  {
+    "id": "9207132003",
+    "name": "Reyob",
+    "districtId": "920713"
+  },
+  {
+    "id": "9211062002",
+    "name": "Reyob",
+    "districtId": "921106"
+  },
+  {
+    "id": "9206082003",
+    "name": "Riendo",
+    "districtId": "920608"
+  },
+  {
+    "id": "9202342004",
+    "name": "Ririnfos",
+    "districtId": "920234"
+  },
+  {
+    "id": "9208062002",
+    "name": "Ruara",
+    "districtId": "920806"
+  },
+  {
+    "id": "9203162004",
+    "name": "Rumbati",
+    "districtId": "920316"
+  },
+  {
+    "id": "9208042001",
+    "name": "Rurumo",
+    "districtId": "920804"
+  },
+  {
+    "id": "9211012005",
+    "name": "Sabri",
+    "districtId": "921101"
+  },
+  {
+    "id": "9207052001",
+    "name": "Sabubar",
+    "districtId": "920705"
+  },
+  {
+    "id": "9206142003",
+    "name": "Saengga",
+    "districtId": "920614"
+  },
+  {
+    "id": "9203032013",
+    "name": "Saharei",
+    "districtId": "920303"
+  },
+  {
+    "id": "9202142015",
+    "name": "Sairo",
+    "districtId": "920214"
+  },
+  {
+    "id": "9203052012",
+    "name": "Sakartemin",
+    "districtId": "920305"
+  },
+  {
+    "id": "9212022004",
+    "name": "Sakumi",
+    "districtId": "921202"
+  },
+  {
+    "id": "9203162001",
+    "name": "Salakiti",
+    "districtId": "920316"
+  },
+  {
+    "id": "9203172007",
+    "name": "Salawier",
+    "districtId": "920317"
+  },
+  {
+    "id": "9207022010",
+    "name": "Sandey",
+    "districtId": "920702"
+  },
+  {
+    "id": "9202121002",
+    "name": "Sanggeng",
+    "districtId": "920212"
+  },
+  {
+    "id": "9203032004",
+    "name": "Sanggram",
+    "districtId": "920303"
+  },
+  {
+    "id": "9206162005",
+    "name": "Sangguar",
+    "districtId": "920616"
+  },
+  {
+    "id": "9208012017",
+    "name": "Sara",
+    "districtId": "920801"
+  },
+  {
+    "id": "9206152001",
+    "name": "Sara",
+    "districtId": "920615"
+  },
+  {
+    "id": "9207072002",
+    "name": "Sararti",
+    "districtId": "920707"
+  },
+  {
+    "id": "9202212005",
+    "name": "Saray",
+    "districtId": "920221"
+  },
+  {
+    "id": "9206102001",
+    "name": "Sarbe",
+    "districtId": "920610"
+  },
+  {
+    "id": "9208012015",
+    "name": "Saria",
+    "districtId": "920801"
+  },
+  {
+    "id": "9207102006",
+    "name": "Sariay",
+    "districtId": "920710"
+  },
+  {
+    "id": "9207082005",
+    "name": "Sasirei",
+    "districtId": "920708"
+  },
+  {
+    "id": "9202142008",
+    "name": "Saubeba",
+    "districtId": "920214"
+  },
+  {
+    "id": "9212042005",
+    "name": "Saugemeba",
+    "districtId": "921204"
+  },
+  {
+    "id": "9208032010",
+    "name": "Sawatawera",
+    "districtId": "920803"
+  },
+  {
+    "id": "9208032003",
+    "name": "Sawi",
+    "districtId": "920803"
+  },
+  {
+    "id": "9206192001",
+    "name": "Sebyar Rejosasi",
+    "districtId": "920619"
+  },
+  {
+    "id": "9211062004",
+    "name": "Seimeba",
+    "districtId": "921106"
+  },
+  {
+    "id": "9203042008",
+    "name": "Sekar",
+    "districtId": "920304"
+  },
+  {
+    "id": "9203102006",
+    "name": "Sekban",
+    "districtId": "920310"
+  },
+  {
+    "id": "9203102008",
+    "name": "Sekru",
+    "districtId": "920310"
+  },
+  {
+    "id": "9202052020",
+    "name": "Sembab",
+    "districtId": "920205"
+  },
+  {
+    "id": "9207082009",
+    "name": "Senderawoy",
+    "districtId": "920708"
+  },
+  {
+    "id": "9203162007",
+    "name": "Sengkiti",
+    "districtId": "920316"
+  },
+  {
+    "id": "9208062016",
+    "name": "Seraran",
+    "districtId": "920806"
+  },
+  {
+    "id": "9211032004",
+    "name": "Sesum",
+    "districtId": "921103"
+  },
+  {
+    "id": "9208042005",
+    "name": "Siawatan",
+    "districtId": "920804"
+  },
+  {
+    "id": "9206122005",
+    "name": "Sibena Permai",
+    "districtId": "920612"
+  },
+  {
+    "id": "9206122004",
+    "name": "Sibena Raya",
+    "districtId": "920612"
+  },
+  {
+    "id": "9212022001",
+    "name": "Sibiogud",
+    "districtId": "921202"
+  },
+  {
+    "id": "9211042011",
+    "name": "Sibjo",
+    "districtId": "921104"
+  },
+  {
+    "id": "9203112004",
+    "name": "Siboru",
+    "districtId": "920311"
+  },
+  {
+    "id": "9202332001",
+    "name": "Sibuni",
+    "districtId": "920233"
+  },
+  {
+    "id": "9202212002",
+    "name": "Sidey",
+    "districtId": "920221"
+  },
+  {
+    "id": "9202212006",
+    "name": "Sidey Baru",
+    "districtId": "920221"
+  },
+  {
+    "id": "9202212012",
+    "name": "Sidey Jaya",
+    "districtId": "920221"
+  },
+  {
+    "id": "9202212007",
+    "name": "Sidey Makmur",
+    "districtId": "920221"
+  },
+  {
+    "id": "9206162003",
+    "name": "Sido Makmur",
+    "districtId": "920616"
+  },
+  {
+    "id": "9211022002",
+    "name": "Sidomulyo",
+    "districtId": "921102"
+  },
+  {
+    "id": "9212092007",
+    "name": "Sigim",
+    "districtId": "921209"
+  },
+  {
+    "id": "9207092006",
+    "name": "Simei",
+    "districtId": "920709"
+  },
+  {
+    "id": "9212092014",
+    "name": "Simerbei",
+    "districtId": "921209"
+  },
+  {
+    "id": "9212092030",
+    "name": "Sinaltousi",
+    "districtId": "921209"
+  },
+  {
+    "id": "9211022011",
+    "name": "Sindang Jaya",
+    "districtId": "921102"
+  },
+  {
+    "id": "9202352009",
+    "name": "Singgimeba",
+    "districtId": "920235"
+  },
+  {
+    "id": "9203112005",
+    "name": "Sipatnanam",
+    "districtId": "920311"
+  },
+  {
+    "id": "9206132004",
+    "name": "Sir",
+    "districtId": "920613"
+  },
+  {
+    "id": "9207132004",
+    "name": "Siresi",
+    "districtId": "920713"
+  },
+  {
+    "id": "9212052006",
+    "name": "Sirgemeh",
+    "districtId": "921205"
+  },
+  {
+    "id": "9208012007",
+    "name": "Sisir",
+    "districtId": "920801"
+  },
+  {
+    "id": "9203042010",
+    "name": "Sisir",
+    "districtId": "920304"
+  },
+  {
+    "id": "9212062010",
+    "name": "Siskedowo",
+    "districtId": "921206"
+  },
+  {
+    "id": "9212022006",
+    "name": "Sisrang",
+    "districtId": "921202"
+  },
+  {
+    "id": "9211052003",
+    "name": "Siwi",
+    "districtId": "921105"
+  },
+  {
+    "id": "9212072013",
+    "name": "Slomiou",
+    "districtId": "921207"
+  },
+  {
+    "id": "9212092032",
+    "name": "Smanggei",
+    "districtId": "921209"
+  },
+  {
+    "id": "9202032011",
+    "name": "Snaimboy",
+    "districtId": "920203"
+  },
+  {
+    "id": "9212052007",
+    "name": "Sneremer",
+    "districtId": "921205"
+  },
+  {
+    "id": "9207032002",
+    "name": "Sobey",
+    "districtId": "920703"
+  },
+  {
+    "id": "9207032011",
+    "name": "Sobey Indah",
+    "districtId": "920703"
+  },
+  {
+    "id": "9207092005",
+    "name": "Sobiar",
+    "districtId": "920709"
+  },
+  {
+    "id": "9207022004",
+    "name": "Sombokoro",
+    "districtId": "920702"
+  },
+  {
+    "id": "9202042010",
+    "name": "Somi",
+    "districtId": "920204"
+  },
+  {
+    "id": "9212102001",
+    "name": "Sopnyai",
+    "districtId": "921210"
+  },
+  {
+    "id": "9202122009",
+    "name": "Soribo",
+    "districtId": "920212"
+  },
+  {
+    "id": "9203042028",
+    "name": "Sosar",
+    "districtId": "920304"
+  },
+  {
+    "id": "9202032014",
+    "name": "Sotea",
+    "districtId": "920203"
+  },
+  {
+    "id": "9212072017",
+    "name": "Soudin",
+    "districtId": "921207"
+  },
+  {
+    "id": "9202151001",
+    "name": "Sowi",
+    "districtId": "920215"
+  },
+  {
+    "id": "9202032018",
+    "name": "Sraindabey",
+    "districtId": "920203"
+  },
+  {
+    "id": "9212012013",
+    "name": "Srubey",
+    "districtId": "921201"
+  },
+  {
+    "id": "9202032009",
+    "name": "Subsay",
+    "districtId": "920203"
+  },
+  {
+    "id": "9206152005",
+    "name": "Suga",
+    "districtId": "920615"
+  },
+  {
+    "id": "9212072009",
+    "name": "Sugemeh",
+    "districtId": "921207"
+  },
+  {
+    "id": "9203102009",
+    "name": "Sukuru Tuare",
+    "districtId": "920310"
+  },
+  {
+    "id": "9203092005",
+    "name": "Sum",
+    "districtId": "920309"
+  },
+  {
+    "id": "9202052002",
+    "name": "Sumber Boga",
+    "districtId": "920205"
+  },
+  {
+    "id": "9208062015",
+    "name": "Sumun",
+    "districtId": "920806"
+  },
+  {
+    "id": "9206242003",
+    "name": "Sumuy",
+    "districtId": "920624"
+  },
+  {
+    "id": "9212042003",
+    "name": "Sungedes",
+    "districtId": "921204"
+  },
+  {
+    "id": "9212042001",
+    "name": "Sururey",
+    "districtId": "921204"
+  },
+  {
+    "id": "9212012005",
+    "name": "Susi",
+    "districtId": "921201"
+  },
+  {
+    "id": "9211012012",
+    "name": "Susmorof",
+    "districtId": "921101"
+  },
+  {
+    "id": "9202132007",
+    "name": "Susweni",
+    "districtId": "920213"
+  },
+  {
+    "id": "9212012004",
+    "name": "Suteibey",
+    "districtId": "921201"
+  },
+  {
+    "id": "9207102002",
+    "name": "Syabes",
+    "districtId": "920710"
+  },
+  {
+    "id": "9207112003",
+    "name": "Syeiwar",
+    "districtId": "920711"
+  },
+  {
+    "id": "9202322006",
+    "name": "Syou",
+    "districtId": "920232"
+  },
+  {
+    "id": "9212062006",
+    "name": "Taige",
+    "districtId": "921206"
+  },
+  {
+    "id": "9208022004",
+    "name": "Tairi",
+    "districtId": "920802"
+  },
+  {
+    "id": "9207122005",
+    "name": "Tamoge",
+    "districtId": "920712"
+  },
+  {
+    "id": "9206142002",
+    "name": "Tanah Merah",
+    "districtId": "920614"
+  },
+  {
+    "id": "9202032007",
+    "name": "Tanah Merah",
+    "districtId": "920203"
+  },
+  {
+    "id": "9202122010",
+    "name": "Tanah Merah Indah",
+    "districtId": "920212"
+  },
+  {
+    "id": "9202142014",
+    "name": "Tanah Rubuh",
+    "districtId": "920214"
+  },
+  {
+    "id": "9203102004",
+    "name": "Tanama",
+    "districtId": "920310"
+  },
+  {
+    "id": "9207082006",
+    "name": "Tandia",
+    "districtId": "920708"
+  },
+  {
+    "id": "9203162006",
+    "name": "Tanehamur",
+    "districtId": "920316"
+  },
+  {
+    "id": "9208012006",
+    "name": "Tanggaromi",
+    "districtId": "920801"
+  },
+  {
+    "id": "9208062007",
+    "name": "Tanusan",
+    "districtId": "920806"
+  },
+  {
+    "id": "9203062005",
+    "name": "Tarak",
+    "districtId": "920306"
+  },
+  {
+    "id": "9206192003",
+    "name": "Taroy",
+    "districtId": "920619"
+  },
+  {
+    "id": "9203132002",
+    "name": "Taver",
+    "districtId": "920313"
+  },
+  {
+    "id": "9203162002",
+    "name": "Tawar",
+    "districtId": "920316"
+  },
+  {
+    "id": "9202352004",
+    "name": "Teluk Mubri",
+    "districtId": "920235"
+  },
+  {
+    "id": "9206092001",
+    "name": "Tembuni",
+    "districtId": "920609"
+  },
+  {
+    "id": "9203082017",
+    "name": "Tentreda",
+    "districtId": "920308"
+  },
+  {
+    "id": "9203072012",
+    "name": "Tesha",
+    "districtId": "920307"
+  },
+  {
+    "id": "9212082001",
+    "name": "Testega",
+    "districtId": "921208"
+  },
+  {
+    "id": "9212012009",
+    "name": "Testega Pamaha",
+    "districtId": "921201"
+  },
+  {
+    "id": "9203092003",
+    "name": "Tetar",
+    "districtId": "920309"
+  },
+  {
+    "id": "9203092018",
+    "name": "Tibatibananam",
+    "districtId": "920309"
+  },
+  {
+    "id": "9212102011",
+    "name": "Tigaucomti",
+    "districtId": "921210"
+  },
+  {
+    "id": "9212072018",
+    "name": "Timtouw",
+    "districtId": "921207"
+  },
+  {
+    "id": "9212102025",
+    "name": "Tingwoikiou",
+    "districtId": "921210"
+  },
+  {
+    "id": "9206122002",
+    "name": "Tisaida",
+    "districtId": "920612"
+  },
+  {
+    "id": "9208032030",
+    "name": "Tiwara",
+    "districtId": "920803"
+  },
+  {
+    "id": "9211012004",
+    "name": "Tobou",
+    "districtId": "921101"
+  },
+  {
+    "id": "9206142001",
+    "name": "Tofoi",
+    "districtId": "920614"
+  },
+  {
+    "id": "9211042005",
+    "name": "Tohosta",
+    "districtId": "921104"
+  },
+  {
+    "id": "9203172004",
+    "name": "Tomage",
+    "districtId": "920317"
+  },
+  {
+    "id": "9212022005",
+    "name": "Tombrok",
+    "districtId": "921202"
+  },
+  {
+    "id": "9212042009",
+    "name": "Tomstera",
+    "districtId": "921204"
+  },
+  {
+    "id": "9212052010",
+    "name": "Tomstir",
+    "districtId": "921205"
+  },
+  {
+    "id": "9206192002",
+    "name": "Tomu",
+    "districtId": "920619"
+  },
+  {
+    "id": "9203102007",
+    "name": "Torea",
+    "districtId": "920310"
+  },
+  {
+    "id": "9207082002",
+    "name": "Torey",
+    "districtId": "920708"
+  },
+  {
+    "id": "9212062007",
+    "name": "Tridaga",
+    "districtId": "921206"
+  },
+  {
+    "id": "9208012005",
+    "name": "Trikora",
+    "districtId": "920801"
+  },
+  {
+    "id": "9206212005",
+    "name": "Tuanaikin",
+    "districtId": "920621"
+  },
+  {
+    "id": "9206012004",
+    "name": "Tuasai",
+    "districtId": "920601"
+  },
+  {
+    "id": "9203062006",
+    "name": "Tuberwasak",
+    "districtId": "920306"
+  },
+  {
+    "id": "9211042003",
+    "name": "Tubes",
+    "districtId": "921104"
+  },
+  {
+    "id": "9212022003",
+    "name": "Tubyam",
+    "districtId": "921202"
+  },
+  {
+    "id": "9206152004",
+    "name": "Tugarama",
+    "districtId": "920615"
+  },
+  {
+    "id": "9208032004",
+    "name": "Tugarni",
+    "districtId": "920803"
+  },
+  {
+    "id": "9208032029",
+    "name": "Tugumawa",
+    "districtId": "920803"
+  },
+  {
+    "id": "9206122001",
+    "name": "Tuhiba",
+    "districtId": "920612"
+  },
+  {
+    "id": "9212042002",
+    "name": "Tuhubea",
+    "districtId": "921204"
+  },
+  {
+    "id": "9212102024",
+    "name": "Tumbeibehei",
+    "districtId": "921210"
+  },
+  {
+    "id": "9203032001",
+    "name": "Tunas Gain",
+    "districtId": "920303"
+  },
+  {
+    "id": "9203162008",
+    "name": "Twootkindik",
+    "districtId": "920316"
+  },
+  {
+    "id": "9203152002",
+    "name": "Ubadari",
+    "districtId": "920315"
+  },
+  {
+    "id": "9212062005",
+    "name": "Ubeisa",
+    "districtId": "921206"
+  },
+  {
+    "id": "9208052003",
+    "name": "Ubia Sermuku",
+    "districtId": "920805"
+  },
+  {
+    "id": "9202312003",
+    "name": "Udapi Hilir",
+    "districtId": "920231"
+  },
+  {
+    "id": "9202122007",
+    "name": "Udopi",
+    "districtId": "920212"
+  },
+  {
+    "id": "9203042009",
+    "name": "Ugar",
+    "districtId": "920304"
+  },
+  {
+    "id": "9206132006",
+    "name": "Ugdohop",
+    "districtId": "920613"
+  },
+  {
+    "id": "9212092010",
+    "name": "Ugjeheg",
+    "districtId": "921209"
+  },
+  {
+    "id": "9202312005",
+    "name": "Uhyehebrig",
+    "districtId": "920231"
+  },
+  {
+    "id": "9202172020",
+    "name": "Ukemboisi",
+    "districtId": "920217"
+  },
+  {
+    "id": "9208062010",
+    "name": "Ukiara",
+    "districtId": "920806"
+  },
+  {
+    "id": "9202172003",
+    "name": "Ukopti",
+    "districtId": "920217"
+  },
+  {
+    "id": "9212012006",
+    "name": "Ullong",
+    "districtId": "921201"
+  },
+  {
+    "id": "9202042002",
+    "name": "Umbuy",
+    "districtId": "920204"
+  },
+  {
+    "id": "9202032008",
+    "name": "Umcen",
+    "districtId": "920203"
+  },
+  {
+    "id": "9212102023",
+    "name": "Umcep",
+    "districtId": "921210"
+  },
+  {
+    "id": "9202172019",
+    "name": "Umnum",
+    "districtId": "920217"
+  },
+  {
+    "id": "9211042004",
+    "name": "Umohousi",
+    "districtId": "921104"
+  },
+  {
+    "id": "9212092017",
+    "name": "Umpug",
+    "districtId": "921209"
+  },
+  {
+    "id": "9202052037",
+    "name": "Undi",
+    "districtId": "920205"
+  },
+  {
+    "id": "9207072006",
+    "name": "Undurara",
+    "districtId": "920707"
+  },
+  {
+    "id": "9212092012",
+    "name": "Ungga",
+    "districtId": "921209"
+  },
+  {
+    "id": "9203052014",
+    "name": "Unipokpok",
+    "districtId": "920305"
+  },
+  {
+    "id": "9212072007",
+    "name": "Unti",
+    "districtId": "921207"
+  },
+  {
+    "id": "9212012011",
+    "name": "Uper",
+    "districtId": "921201"
+  },
+  {
+    "id": "9203032003",
+    "name": "Urat",
+    "districtId": "920303"
+  },
+  {
+    "id": "9208072001",
+    "name": "Ure",
+    "districtId": "920807"
+  },
+  {
+    "id": "9202332008",
+    "name": "Urey",
+    "districtId": "920233"
+  },
+  {
+    "id": "9207082004",
+    "name": "Uriemi",
+    "districtId": "920708"
+  },
+  {
+    "id": "9208062008",
+    "name": "Urisa",
+    "districtId": "920806"
+  },
+  {
+    "id": "9208072003",
+    "name": "Urubika",
+    "districtId": "920807"
+  },
+  {
+    "id": "9202172006",
+    "name": "Urwambei",
+    "districtId": "920217"
+  },
+  {
+    "id": "9212102012",
+    "name": "Urwong",
+    "districtId": "921210"
+  },
+  {
+    "id": "9203092012",
+    "name": "Us",
+    "districtId": "920309"
+  },
+  {
+    "id": "9212032003",
+    "name": "Usti",
+    "districtId": "921203"
+  },
+  {
+    "id": "9206232004",
+    "name": "Vasco Damneen",
+    "districtId": "920623"
+  },
+  {
+    "id": "9208072004",
+    "name": "Wagoha",
+    "districtId": "920807"
+  },
+  {
+    "id": "9203101001",
+    "name": "Wagom",
+    "districtId": "920310"
+  },
+  {
+    "id": "9203101002",
+    "name": "Wagom Utara",
+    "districtId": "920310"
+  },
+  {
+    "id": "9206102002",
+    "name": "Wagura",
+    "districtId": "920610"
+  },
+  {
+    "id": "9208052005",
+    "name": "Waho",
+    "districtId": "920805"
+  },
+  {
+    "id": "9208032023",
+    "name": "Wainaga",
+    "districtId": "920803"
+  },
+  {
+    "id": "9202152007",
+    "name": "Waluri",
+    "districtId": "920215"
+  },
+  {
+    "id": "9211032001",
+    "name": "Wama",
+    "districtId": "921103"
+  },
+  {
+    "id": "9203122002",
+    "name": "Wambar",
+    "districtId": "920312"
+  },
+  {
+    "id": "9203122010",
+    "name": "Wambar Timur",
+    "districtId": "920312"
+  },
+  {
+    "id": "9211012010",
+    "name": "Wamcei",
+    "districtId": "921101"
+  },
+  {
+    "id": "9208052006",
+    "name": "Wamesa",
+    "districtId": "920805"
+  },
+  {
+    "id": "9202152015",
+    "name": "Wamesa",
+    "districtId": "920215"
+  },
+  {
+    "id": "9206072001",
+    "name": "Wamesa I/Idoor",
+    "districtId": "920607"
+  },
+  {
+    "id": "9206072002",
+    "name": "Wamesa II/Yakati",
+    "districtId": "920607"
+  },
+  {
+    "id": "9207022001",
+    "name": "Wamesa Tengah",
+    "districtId": "920702"
+  },
+  {
+    "id": "9202342007",
+    "name": "Wamfoura",
+    "districtId": "920234"
+  },
+  {
+    "id": "9203172009",
+    "name": "Wammar",
+    "districtId": "920317"
+  },
+  {
+    "id": "9212092016",
+    "name": "Wamminda",
+    "districtId": "921209"
+  },
+  {
+    "id": "9203172006",
+    "name": "Wamosan",
+    "districtId": "920317"
+  },
+  {
+    "id": "9211022012",
+    "name": "Wandoki",
+    "districtId": "921102"
+  },
+  {
+    "id": "9208032014",
+    "name": "Wanggita",
+    "districtId": "920803"
+  },
+  {
+    "id": "9208062014",
+    "name": "Wanoma",
+    "districtId": "920806"
+  },
+  {
+    "id": "9207112001",
+    "name": "Waprak",
+    "districtId": "920711"
+  },
+  {
+    "id": "9206112003",
+    "name": "Waraitama",
+    "districtId": "920611"
+  },
+  {
+    "id": "9202172015",
+    "name": "Warami",
+    "districtId": "920217"
+  },
+  {
+    "id": "9202212003",
+    "name": "Waramui",
+    "districtId": "920221"
+  },
+  {
+    "id": "9202352007",
+    "name": "Warbefor",
+    "districtId": "920235"
+  },
+  {
+    "id": "9211022008",
+    "name": "Warbiadi",
+    "districtId": "921102"
+  },
+  {
+    "id": "9203142004",
+    "name": "Waremu",
+    "districtId": "920314"
+  },
+  {
+    "id": "9211052005",
+    "name": "Waren",
+    "districtId": "921105"
+  },
+  {
+    "id": "9206152002",
+    "name": "Warga Nusa I",
+    "districtId": "920615"
+  },
+  {
+    "id": "9206152003",
+    "name": "Warga Nusa II",
+    "districtId": "920615"
+  },
+  {
+    "id": "9203082007",
+    "name": "Wargep",
+    "districtId": "920308"
+  },
+  {
+    "id": "9202172017",
+    "name": "Wariari",
+    "districtId": "920217"
+  },
+  {
+    "id": "9202212009",
+    "name": "Wariki",
+    "districtId": "920221"
+  },
+  {
+    "id": "9202052008",
+    "name": "Wariori",
+    "districtId": "920205"
+  },
+  {
+    "id": "9202342005",
+    "name": "Wariori Indah",
+    "districtId": "920234"
+  },
+  {
+    "id": "9203172002",
+    "name": "Warisa Mulya",
+    "districtId": "920317"
+  },
+  {
+    "id": "9202172001",
+    "name": "Warkapi",
+    "districtId": "920217"
+  },
+  {
+    "id": "9202152017",
+    "name": "Warkomi",
+    "districtId": "920215"
+  },
+  {
+    "id": "9211022010",
+    "name": "Warkwandi",
+    "districtId": "921102"
+  },
+  {
+    "id": "9202032004",
+    "name": "Warmare",
+    "districtId": "920203"
+  },
+  {
+    "id": "9202172009",
+    "name": "Warmawai",
+    "districtId": "920217"
+  },
+  {
+    "id": "9202152005",
+    "name": "Warmomi",
+    "districtId": "920215"
+  },
+  {
+    "id": "9202172024",
+    "name": "Warnyeti",
+    "districtId": "920217"
+  },
+  {
+    "id": "9208062009",
+    "name": "Waromi",
+    "districtId": "920806"
+  },
+  {
+    "id": "9211022003",
+    "name": "Waroser",
+    "districtId": "921102"
+  },
+  {
+    "id": "9203152010",
+    "name": "Warpa",
+    "districtId": "920315"
+  },
+  {
+    "id": "9202152013",
+    "name": "Warswami",
+    "districtId": "920215"
+  },
+  {
+    "id": "9203112003",
+    "name": "Wartutin",
+    "districtId": "920311"
+  },
+  {
+    "id": "9208032032",
+    "name": "Warua",
+    "districtId": "920803"
+  },
+  {
+    "id": "9208032013",
+    "name": "Warwarsi",
+    "districtId": "920803"
+  },
+  {
+    "id": "9203172008",
+    "name": "Wasa Mulya",
+    "districtId": "920317"
+  },
+  {
+    "id": "9202152010",
+    "name": "Wasai",
+    "districtId": "920215"
+  },
+  {
+    "id": "9202312002",
+    "name": "Wasegi Indah",
+    "districtId": "920231"
+  },
+  {
+    "id": "9202312004",
+    "name": "Waseki Pop",
+    "districtId": "920231"
+  },
+  {
+    "id": "9203122001",
+    "name": "Waserat",
+    "districtId": "920312"
+  },
+  {
+    "id": "9207011001",
+    "name": "Wasior I",
+    "districtId": "920701"
+  },
+  {
+    "id": "9207012005",
+    "name": "Wasior II",
+    "districtId": "920701"
+  },
+  {
+    "id": "9211022006",
+    "name": "Watariri",
+    "districtId": "921102"
+  },
+  {
+    "id": "9203122007",
+    "name": "Wayati",
+    "districtId": "920312"
+  },
+  {
+    "id": "9203122008",
+    "name": "Wayati Barat",
+    "districtId": "920312"
+  },
+  {
+    "id": "9203122006",
+    "name": "Wayati Timur",
+    "districtId": "920312"
+  },
+  {
+    "id": "9207082007",
+    "name": "Webi",
+    "districtId": "920708"
+  },
+  {
+    "id": "9202172022",
+    "name": "Wedoni",
+    "districtId": "920217"
+  },
+  {
+    "id": "9203112002",
+    "name": "Werabuan",
+    "districtId": "920311"
+  },
+  {
+    "id": "9207122001",
+    "name": "Werabur",
+    "districtId": "920712"
+  },
+  {
+    "id": "9208052002",
+    "name": "Werafuta",
+    "districtId": "920805"
+  },
+  {
+    "id": "9203022001",
+    "name": "Werba",
+    "districtId": "920302"
+  },
+  {
+    "id": "9203022013",
+    "name": "Werba Utara",
+    "districtId": "920302"
+  },
+  {
+    "id": "9203162005",
+    "name": "Werfra",
+    "districtId": "920316"
+  },
+  {
+    "id": "9203032010",
+    "name": "Weri",
+    "districtId": "920303"
+  },
+  {
+    "id": "9206212001",
+    "name": "Weriagar",
+    "districtId": "920621"
+  },
+  {
+    "id": "9206212003",
+    "name": "Weriagar Baru",
+    "districtId": "920621"
+  },
+  {
+    "id": "9206212004",
+    "name": "Weriagar Utara",
+    "districtId": "920621"
+  },
+  {
+    "id": "9207122003",
+    "name": "Werianggi",
+    "districtId": "920712"
+  },
+  {
+    "id": "9208062003",
+    "name": "Wermenu",
+    "districtId": "920806"
+  },
+  {
+    "id": "9203112001",
+    "name": "Werpigan",
+    "districtId": "920311"
+  },
+  {
+    "id": "9208012018",
+    "name": "Werua",
+    "districtId": "920801"
+  },
+  {
+    "id": "9206012026",
+    "name": "Wesiri",
+    "districtId": "920601"
+  },
+  {
+    "id": "9208032017",
+    "name": "Weswasa",
+    "districtId": "920803"
+  },
+  {
+    "id": "9207062011",
+    "name": "Wetitindau",
+    "districtId": "920706"
+  },
+  {
+    "id": "9206162004",
+    "name": "Wimbro",
+    "districtId": "920616"
+  },
+  {
+    "id": "9207022007",
+    "name": "Windesi",
+    "districtId": "920702"
+  },
+  {
+    "id": "9202212010",
+    "name": "Womnowi",
+    "districtId": "920221"
+  },
+  {
+    "id": "9207042002",
+    "name": "Wondiboy",
+    "districtId": "920704"
+  },
+  {
+    "id": "9203072015",
+    "name": "Wono Rejo",
+    "districtId": "920307"
+  },
+  {
+    "id": "9203172003",
+    "name": "Wonodadi Mulya",
+    "districtId": "920317"
+  },
+  {
+    "id": "9203142005",
+    "name": "Wos",
+    "districtId": "920314"
+  },
+  {
+    "id": "9202121003",
+    "name": "Wosi",
+    "districtId": "920212"
+  },
+  {
+    "id": "9207072001",
+    "name": "Wosimi",
+    "districtId": "920707"
+  },
+  {
+    "id": "9208072002",
+    "name": "Wosokuno",
+    "districtId": "920807"
+  },
+  {
+    "id": "9203012012",
+    "name": "Wrikapal",
+    "districtId": "920301"
+  },
+  {
+    "id": "9203022008",
+    "name": "Wurkendik",
+    "districtId": "920302"
+  },
+  {
+    "id": "9207072003",
+    "name": "Yabore",
+    "districtId": "920707"
+  },
+  {
+    "id": "9211012003",
+    "name": "Yamboi",
+    "districtId": "921101"
+  },
+  {
+    "id": "9206072003",
+    "name": "Yansei",
+    "districtId": "920607"
+  },
+  {
+    "id": "9207062009",
+    "name": "Yariari",
+    "districtId": "920706"
+  },
+  {
+    "id": "9211062001",
+    "name": "Yarmatum",
+    "districtId": "921106"
+  },
+  {
+    "id": "9207132002",
+    "name": "Yarmatum",
+    "districtId": "920713"
+  },
+  {
+    "id": "9208022002",
+    "name": "Yarona",
+    "districtId": "920802"
+  },
+  {
+    "id": "9207052007",
+    "name": "Yarpate",
+    "districtId": "920705"
+  },
+  {
+    "id": "9206162002",
+    "name": "Yaru",
+    "districtId": "920616"
+  },
+  {
+    "id": "9211052007",
+    "name": "Yekwandi",
+    "districtId": "921105"
+  },
+  {
+    "id": "9207062008",
+    "name": "Yembekiri II",
+    "districtId": "920706"
+  },
+  {
+    "id": "9207102001",
+    "name": "Yende",
+    "districtId": "920710"
+  },
+  {
+    "id": "9202052014",
+    "name": "Yensum",
+    "districtId": "920205"
+  },
+  {
+    "id": "9207092004",
+    "name": "Yerenusi",
+    "districtId": "920709"
+  },
+  {
+    "id": "9207062003",
+    "name": "Yomakan",
+    "districtId": "920706"
+  },
+  {
+    "id": "9207062001",
+    "name": "Yombekiri I",
+    "districtId": "920706"
+  },
+  {
+    "id": "9207112002",
+    "name": "Yomber",
+    "districtId": "920711"
+  },
+  {
+    "id": "9202352008",
+    "name": "Yonggam",
+    "districtId": "920235"
+  },
+  {
+    "id": "9202052027",
+    "name": "Yonsoribo",
+    "districtId": "920205"
+  },
+  {
+    "id": "9202142001",
+    "name": "Yoom I",
+    "districtId": "920214"
+  },
+  {
+    "id": "9202142004",
+    "name": "Yoom II",
+    "districtId": "920214"
+  },
+  {
+    "id": "9207032006",
+    "name": "Yopanggar",
+    "districtId": "920703"
+  },
+  {
+    "id": "9207022002",
+    "name": "Yopmeos",
+    "districtId": "920702"
+  }
+]

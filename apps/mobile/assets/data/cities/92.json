@@ -1,0 +1,44 @@
+[
+  {
+    "id": "9203",
+    "name": "Kabupaten Fak Fak",
+    "provinceId": "92",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9208",
+    "name": "Kabupaten Kaimana",
+    "provinceId": "92",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9202",
+    "name": "Kabupaten Manokwari",
+    "provinceId": "92",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9211",
+    "name": "Kabupaten Manokwari Selatan",
+    "provinceId": "92",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9212",
+    "name": "Kabupaten Pegunungan Arfak",
+    "provinceId": "92",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9206",
+    "name": "Kabupaten Teluk Bintuni",
+    "provinceId": "92",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9207",
+    "name": "Kabupaten Teluk Wondama",
+    "provinceId": "92",
+    "type": "kabupaten"
+  }
+]

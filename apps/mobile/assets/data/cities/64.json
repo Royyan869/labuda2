@@ -1,0 +1,62 @@
+[
+  {
+    "id": "6403",
+    "name": "Kabupaten Berau",
+    "provinceId": "64",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6407",
+    "name": "Kabupaten Kutai Barat",
+    "provinceId": "64",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6402",
+    "name": "Kabupaten Kutai Kartanegara",
+    "provinceId": "64",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6408",
+    "name": "Kabupaten Kutai Timur",
+    "provinceId": "64",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6411",
+    "name": "Kabupaten Mahakam Ulu",
+    "provinceId": "64",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6401",
+    "name": "Kabupaten Paser",
+    "provinceId": "64",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6409",
+    "name": "Kabupaten Penajam Paser Utara",
+    "provinceId": "64",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6471",
+    "name": "Kota Balikpapan",
+    "provinceId": "64",
+    "type": "kota"
+  },
+  {
+    "id": "6474",
+    "name": "Kota Bontang",
+    "provinceId": "64",
+    "type": "kota"
+  },
+  {
+    "id": "6472",
+    "name": "Kota Samarinda",
+    "provinceId": "64",
+    "type": "kota"
+  }
+]

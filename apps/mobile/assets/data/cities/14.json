@@ -1,0 +1,74 @@
+[
+  {
+    "id": "1403",
+    "name": "Kabupaten Bengkalis",
+    "provinceId": "14",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1404",
+    "name": "Kabupaten Indragiri Hilir",
+    "provinceId": "14",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1402",
+    "name": "Kabupaten Indragiri Hulu",
+    "provinceId": "14",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1401",
+    "name": "Kabupaten Kampar",
+    "provinceId": "14",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1410",
+    "name": "Kabupaten Kepulauan Meranti",
+    "provinceId": "14",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1409",
+    "name": "Kabupaten Kuantan Singingi",
+    "provinceId": "14",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1405",
+    "name": "Kabupaten Pelalawan",
+    "provinceId": "14",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1407",
+    "name": "Kabupaten Rokan Hilir",
+    "provinceId": "14",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1406",
+    "name": "Kabupaten Rokan Hulu",
+    "provinceId": "14",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1408",
+    "name": "Kabupaten Siak",
+    "provinceId": "14",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1472",
+    "name": "Kota Dumai",
+    "provinceId": "14",
+    "type": "kota"
+  },
+  {
+    "id": "1471",
+    "name": "Kota Pekanbaru",
+    "provinceId": "14",
+    "type": "kota"
+  }
+]

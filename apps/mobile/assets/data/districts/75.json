@@ -1,0 +1,387 @@
+[
+  {
+    "id": "750503",
+    "name": "Anggrek",
+    "cityId": "7505"
+  },
+  {
+    "id": "750121",
+    "name": "Asparaga",
+    "cityId": "7501"
+  },
+  {
+    "id": "750501",
+    "name": "Atinggola",
+    "cityId": "7505"
+  },
+  {
+    "id": "750103",
+    "name": "Batudaa",
+    "cityId": "7501"
+  },
+  {
+    "id": "750105",
+    "name": "Batudaa Pantai",
+    "cityId": "7501"
+  },
+  {
+    "id": "750510",
+    "name": "Biau",
+    "cityId": "7505"
+  },
+  {
+    "id": "750123",
+    "name": "Bilato",
+    "cityId": "7501"
+  },
+  {
+    "id": "750120",
+    "name": "Biluhu",
+    "cityId": "7501"
+  },
+  {
+    "id": "750109",
+    "name": "Boliyohuto",
+    "cityId": "7501"
+  },
+  {
+    "id": "750309",
+    "name": "Bone",
+    "cityId": "7503"
+  },
+  {
+    "id": "750310",
+    "name": "Bone Raya",
+    "cityId": "7503"
+  },
+  {
+    "id": "750304",
+    "name": "Bonepantai",
+    "cityId": "7503"
+  },
+  {
+    "id": "750111",
+    "name": "Bongomeme",
+    "cityId": "7501"
+  },
+  {
+    "id": "750206",
+    "name": "Botumoito",
+    "cityId": "7502"
+  },
+  {
+    "id": "750307",
+    "name": "Botupingge",
+    "cityId": "7503"
+  },
+  {
+    "id": "750315",
+    "name": "Bulango Selatan",
+    "cityId": "7503"
+  },
+  {
+    "id": "750316",
+    "name": "Bulango Timur",
+    "cityId": "7503"
+  },
+  {
+    "id": "750314",
+    "name": "Bulango Ulu",
+    "cityId": "7503"
+  },
+  {
+    "id": "750305",
+    "name": "Bulango Utara",
+    "cityId": "7503"
+  },
+  {
+    "id": "750317",
+    "name": "Bulawa",
+    "cityId": "7503"
+  },
+  {
+    "id": "750409",
+    "name": "Buntulia",
+    "cityId": "7504"
+  },
+  {
+    "id": "750408",
+    "name": "Dengilo",
+    "cityId": "7504"
+  },
+  {
+    "id": "750410",
+    "name": "Duhiadaa",
+    "cityId": "7504"
+  },
+  {
+    "id": "750203",
+    "name": "Dulupi",
+    "cityId": "7502"
+  },
+  {
+    "id": "757108",
+    "name": "Dumbo Raya",
+    "cityId": "7571"
+  },
+  {
+    "id": "750124",
+    "name": "Dungaliyo",
+    "cityId": "7501"
+  },
+  {
+    "id": "757104",
+    "name": "Dungingi",
+    "cityId": "7571"
+  },
+  {
+    "id": "750506",
+    "name": "Gentuma Raya",
+    "cityId": "7505"
+  },
+  {
+    "id": "757109",
+    "name": "Hulonthalangi",
+    "cityId": "7571"
+  },
+  {
+    "id": "750302",
+    "name": "Kabila",
+    "cityId": "7503"
+  },
+  {
+    "id": "750308",
+    "name": "Kabila Bone",
+    "cityId": "7503"
+  },
+  {
+    "id": "757101",
+    "name": "Kota Barat",
+    "cityId": "7571"
+  },
+  {
+    "id": "757102",
+    "name": "Kota Selatan",
+    "cityId": "7571"
+  },
+  {
+    "id": "757106",
+    "name": "Kota Tengah",
+    "cityId": "7571"
+  },
+  {
+    "id": "757105",
+    "name": "Kota Timur",
+    "cityId": "7571"
+  },
+  {
+    "id": "757103",
+    "name": "Kota Utara",
+    "cityId": "7571"
+  },
+  {
+    "id": "750502",
+    "name": "Kwandang",
+    "cityId": "7505"
+  },
+  {
+    "id": "750402",
+    "name": "Lemito",
+    "cityId": "7504"
+  },
+  {
+    "id": "750101",
+    "name": "Limboto",
+    "cityId": "7501"
+  },
+  {
+    "id": "750117",
+    "name": "Limboto Barat",
+    "cityId": "7501"
+  },
+  {
+    "id": "750205",
+    "name": "Mananggu",
+    "cityId": "7502"
+  },
+  {
+    "id": "750404",
+    "name": "Marisa",
+    "cityId": "7504"
+  },
+  {
+    "id": "750509",
+    "name": "Monano",
+    "cityId": "7505"
+  },
+  {
+    "id": "750114",
+    "name": "Mootilango",
+    "cityId": "7501"
+  },
+  {
+    "id": "750405",
+    "name": "Paguat",
+    "cityId": "7504"
+  },
+  {
+    "id": "750201",
+    "name": "Paguyaman",
+    "cityId": "7502"
+  },
+  {
+    "id": "750207",
+    "name": "Paguyaman Pantai",
+    "cityId": "7502"
+  },
+  {
+    "id": "750406",
+    "name": "Patilanggio",
+    "cityId": "7504"
+  },
+  {
+    "id": "750318",
+    "name": "Pinogu",
+    "cityId": "7503"
+  },
+  {
+    "id": "750508",
+    "name": "Ponelo Kepulauan",
+    "cityId": "7505"
+  },
+  {
+    "id": "750401",
+    "name": "Popayato",
+    "cityId": "7504"
+  },
+  {
+    "id": "750413",
+    "name": "Popayato Barat",
+    "cityId": "7504"
+  },
+  {
+    "id": "750412",
+    "name": "Popayato Timur",
+    "cityId": "7504"
+  },
+  {
+    "id": "750116",
+    "name": "Pulubala",
+    "cityId": "7501"
+  },
+  {
+    "id": "750403",
+    "name": "Randangan",
+    "cityId": "7504"
+  },
+  {
+    "id": "757107",
+    "name": "Sipatana",
+    "cityId": "7571"
+  },
+  {
+    "id": "750504",
+    "name": "Sumalata",
+    "cityId": "7505"
+  },
+  {
+    "id": "750511",
+    "name": "Sumalata Timur",
+    "cityId": "7505"
+  },
+  {
+    "id": "750303",
+    "name": "Suwawa",
+    "cityId": "7503"
+  },
+  {
+    "id": "750312",
+    "name": "Suwawa Selatan",
+    "cityId": "7503"
+  },
+  {
+    "id": "750313",
+    "name": "Suwawa Tengah",
+    "cityId": "7503"
+  },
+  {
+    "id": "750311",
+    "name": "Suwawa Timur",
+    "cityId": "7503"
+  },
+  {
+    "id": "750119",
+    "name": "Tabongo",
+    "cityId": "7501"
+  },
+  {
+    "id": "750122",
+    "name": "Talaga Jaya",
+    "cityId": "7501"
+  },
+  {
+    "id": "750407",
+    "name": "Taluditi",
+    "cityId": "7504"
+  },
+  {
+    "id": "750301",
+    "name": "Tapa",
+    "cityId": "7503"
+  },
+  {
+    "id": "750102",
+    "name": "Telaga",
+    "cityId": "7501"
+  },
+  {
+    "id": "750110",
+    "name": "Telaga Biru",
+    "cityId": "7501"
+  },
+  {
+    "id": "750104",
+    "name": "Tibawa",
+    "cityId": "7501"
+  },
+  {
+    "id": "750204",
+    "name": "Tilamuta",
+    "cityId": "7502"
+  },
+  {
+    "id": "750118",
+    "name": "Tilango",
+    "cityId": "7501"
+  },
+  {
+    "id": "750306",
+    "name": "Tilongkabila",
+    "cityId": "7503"
+  },
+  {
+    "id": "750113",
+    "name": "Tolangohula",
+    "cityId": "7501"
+  },
+  {
+    "id": "750505",
+    "name": "Tolinggula",
+    "cityId": "7505"
+  },
+  {
+    "id": "750507",
+    "name": "Tomilito",
+    "cityId": "7505"
+  },
+  {
+    "id": "750411",
+    "name": "Wanggarasi",
+    "cityId": "7504"
+  },
+  {
+    "id": "750202",
+    "name": "Wonosari",
+    "cityId": "7502"
+  }
+]

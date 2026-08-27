@@ -1,0 +1,50 @@
+[
+  {
+    "id": "9502",
+    "name": "Kab Pegunungan Bintang",
+    "provinceId": "95",
+    "type": "kota"
+  },
+  {
+    "id": "9501",
+    "name": "Kabupaten Jayawijaya",
+    "provinceId": "95",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9507",
+    "name": "Kabupaten Lanny Jaya",
+    "provinceId": "95",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9505",
+    "name": "Kabupaten Mamberamo Tengah",
+    "provinceId": "95",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9508",
+    "name": "Kabupaten Nduga",
+    "provinceId": "95",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9504",
+    "name": "Kabupaten Tolikara",
+    "provinceId": "95",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9503",
+    "name": "Kabupaten Yahukimo",
+    "provinceId": "95",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9506",
+    "name": "Kabupaten Yalimo",
+    "provinceId": "95",
+    "type": "kabupaten"
+  }
+]

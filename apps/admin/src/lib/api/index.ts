@@ -1,0 +1,17 @@
+// Domain module barrel for admin API functions and types.
+// Import from '@/lib/api' to reach any of these; src/lib/api.ts forwards here.
+export * from './client'
+export * from './orders'
+export * from './disputes'
+export * from './finance'
+export * from './users'
+export * from './moderation'
+export * from './alerts'
+export * from './sellers'
+export * from './support'
+export * from './platform'
+export * from './externalProducts'
+export * from './auctions'
+export * from './reconciliation'
+export * from './paymentMethods'
+export * from './financeSummary'

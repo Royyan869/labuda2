@@ -1,0 +1,38 @@
+[
+  {
+    "id": "9605",
+    "name": "Kabupaten Maybrat",
+    "provinceId": "96",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9603",
+    "name": "Kabupaten Raja Ampat",
+    "provinceId": "96",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9601",
+    "name": "Kabupaten Sorong",
+    "provinceId": "96",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9602",
+    "name": "Kabupaten Sorong Selatan",
+    "provinceId": "96",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9604",
+    "name": "Kabupaten Tambrauw",
+    "provinceId": "96",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9671",
+    "name": "Kota Sorong",
+    "provinceId": "96",
+    "type": "kota"
+  }
+]

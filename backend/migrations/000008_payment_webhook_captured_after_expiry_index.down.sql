@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS idx_payment_webhook_events_captured_after_expiry;

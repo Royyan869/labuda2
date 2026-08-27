@@ -1,0 +1,2 @@
+-- Irreversible normalization: seller is not restored as a valid users.role value.
+-- Intentionally no-op on rollback.

@@ -1,0 +1,1572 @@
+[
+  {
+    "id": "530518",
+    "name": "Abad Selatan",
+    "cityId": "5305"
+  },
+  {
+    "id": "530617",
+    "name": "Adonara",
+    "cityId": "5306"
+  },
+  {
+    "id": "530608",
+    "name": "Adonara Barat",
+    "cityId": "5306"
+  },
+  {
+    "id": "530618",
+    "name": "Adonara Tengah",
+    "cityId": "5306"
+  },
+  {
+    "id": "530610",
+    "name": "Adonara Timur",
+    "cityId": "5306"
+  },
+  {
+    "id": "531601",
+    "name": "Aesesa",
+    "cityId": "5316"
+  },
+  {
+    "id": "531607",
+    "name": "Aesesa Selatan",
+    "cityId": "5316"
+  },
+  {
+    "id": "530901",
+    "name": "Aimere",
+    "cityId": "5309"
+  },
+  {
+    "id": "537101",
+    "name": "Alak",
+    "cityId": "5371"
+  },
+  {
+    "id": "530705",
+    "name": "Alok",
+    "cityId": "5307"
+  },
+  {
+    "id": "530714",
+    "name": "Alok Barat",
+    "cityId": "5307"
+  },
+  {
+    "id": "530715",
+    "name": "Alok Timur",
+    "cityId": "5307"
+  },
+  {
+    "id": "530503",
+    "name": "Alor Barat Daya",
+    "cityId": "5305"
+  },
+  {
+    "id": "530502",
+    "name": "Alor Barat Laut",
+    "cityId": "5305"
+  },
+  {
+    "id": "530504",
+    "name": "Alor Selatan",
+    "cityId": "5305"
+  },
+  {
+    "id": "530507",
+    "name": "Alor Tengah Utara",
+    "cityId": "5305"
+  },
+  {
+    "id": "530505",
+    "name": "Alor Timur",
+    "cityId": "5305"
+  },
+  {
+    "id": "530508",
+    "name": "Alor Timur Laut",
+    "cityId": "5305"
+  },
+  {
+    "id": "530125",
+    "name": "Amabi Oefeto",
+    "cityId": "5301"
+  },
+  {
+    "id": "530120",
+    "name": "Amabi Oefeto Timur",
+    "cityId": "5301"
+  },
+  {
+    "id": "530208",
+    "name": "Amanatun Selatan",
+    "cityId": "5302"
+  },
+  {
+    "id": "530209",
+    "name": "Amanatun Utara",
+    "cityId": "5302"
+  },
+  {
+    "id": "530207",
+    "name": "Amanuban Barat",
+    "cityId": "5302"
+  },
+  {
+    "id": "530206",
+    "name": "Amanuban Selatan",
+    "cityId": "5302"
+  },
+  {
+    "id": "530205",
+    "name": "Amanuban Tengah",
+    "cityId": "5302"
+  },
+  {
+    "id": "530204",
+    "name": "Amanuban Timur",
+    "cityId": "5302"
+  },
+  {
+    "id": "530109",
+    "name": "Amarasi",
+    "cityId": "5301"
+  },
+  {
+    "id": "530117",
+    "name": "Amarasi Barat",
+    "cityId": "5301"
+  },
+  {
+    "id": "530118",
+    "name": "Amarasi Selatan",
+    "cityId": "5301"
+  },
+  {
+    "id": "530119",
+    "name": "Amarasi Timur",
+    "cityId": "5301"
+  },
+  {
+    "id": "530121",
+    "name": "Amfoang Barat Daya",
+    "cityId": "5301"
+  },
+  {
+    "id": "530122",
+    "name": "Amfoang Barat Laut",
+    "cityId": "5301"
+  },
+  {
+    "id": "530112",
+    "name": "Amfoang Selatan",
+    "cityId": "5301"
+  },
+  {
+    "id": "530130",
+    "name": "Amfoang Tengah",
+    "cityId": "5301"
+  },
+  {
+    "id": "530126",
+    "name": "Amfoang Timur",
+    "cityId": "5301"
+  },
+  {
+    "id": "530113",
+    "name": "Amfoang Utara",
+    "cityId": "5301"
+  },
+  {
+    "id": "531302",
+    "name": "Atadei",
+    "cityId": "5313"
+  },
+  {
+    "id": "530421",
+    "name": "Atambua Barat",
+    "cityId": "5304"
+  },
+  {
+    "id": "530422",
+    "name": "Atambua Selatan",
+    "cityId": "5304"
+  },
+  {
+    "id": "530906",
+    "name": "Bajawa",
+    "cityId": "5309"
+  },
+  {
+    "id": "530915",
+    "name": "Bajawa Utara",
+    "cityId": "5309"
+  },
+  {
+    "id": "530214",
+    "name": "Batu Putih",
+    "cityId": "5302"
+  },
+  {
+    "id": "530307",
+    "name": "Biboki Anleu",
+    "cityId": "5303"
+  },
+  {
+    "id": "530324",
+    "name": "Biboki Feotleu",
+    "cityId": "5303"
+  },
+  {
+    "id": "530323",
+    "name": "Biboki Moenleu",
+    "cityId": "5303"
+  },
+  {
+    "id": "530303",
+    "name": "Biboki Selatan",
+    "cityId": "5303"
+  },
+  {
+    "id": "530322",
+    "name": "Biboki Tan Pah",
+    "cityId": "5303"
+  },
+  {
+    "id": "530306",
+    "name": "Biboki Utara",
+    "cityId": "5303"
+  },
+  {
+    "id": "530316",
+    "name": "Bikomi Nilulat",
+    "cityId": "5303"
+  },
+  {
+    "id": "530314",
+    "name": "Bikomi Selatan",
+    "cityId": "5303"
+  },
+  {
+    "id": "530315",
+    "name": "Bikomi Tengah",
+    "cityId": "5303"
+  },
+  {
+    "id": "530317",
+    "name": "Bikomi Utara",
+    "cityId": "5303"
+  },
+  {
+    "id": "531603",
+    "name": "Boawae",
+    "cityId": "5316"
+  },
+  {
+    "id": "530215",
+    "name": "Boking",
+    "cityId": "5302"
+  },
+  {
+    "id": "530711",
+    "name": "Bola",
+    "cityId": "5307"
+  },
+  {
+    "id": "531506",
+    "name": "Boleng",
+    "cityId": "5315"
+  },
+  {
+    "id": "531901",
+    "name": "Borong",
+    "cityId": "5319"
+  },
+  {
+    "id": "532112",
+    "name": "Botin Leobele",
+    "cityId": "5321"
+  },
+  {
+    "id": "531307",
+    "name": "Buyasuri",
+    "cityId": "5313"
+  },
+  {
+    "id": "531006",
+    "name": "Cibal",
+    "cityId": "5310"
+  },
+  {
+    "id": "531017",
+    "name": "Cibal barat",
+    "cityId": "5310"
+  },
+  {
+    "id": "531912",
+    "name": "Congkar",
+    "cityId": "5319"
+  },
+  {
+    "id": "530614",
+    "name": "Demon Pagong",
+    "cityId": "5306"
+  },
+  {
+    "id": "530815",
+    "name": "Detukeli",
+    "cityId": "5308"
+  },
+  {
+    "id": "530806",
+    "name": "Detusoko",
+    "cityId": "5308"
+  },
+  {
+    "id": "530720",
+    "name": "Doreng",
+    "cityId": "5307"
+  },
+  {
+    "id": "531905",
+    "name": "Elar",
+    "cityId": "5319"
+  },
+  {
+    "id": "531909",
+    "name": "Elar Selatan",
+    "cityId": "5319"
+  },
+  {
+    "id": "530803",
+    "name": "Ende",
+    "cityId": "5308"
+  },
+  {
+    "id": "530804",
+    "name": "Ende Selatan",
+    "cityId": "5308"
+  },
+  {
+    "id": "530819",
+    "name": "Ende Tengah",
+    "cityId": "5308"
+  },
+  {
+    "id": "530820",
+    "name": "Ende Timur",
+    "cityId": "5308"
+  },
+  {
+    "id": "530818",
+    "name": "Ende Utara",
+    "cityId": "5308"
+  },
+  {
+    "id": "530229",
+    "name": "Fatukopa",
+    "cityId": "5302"
+  },
+  {
+    "id": "530110",
+    "name": "Fatuleu",
+    "cityId": "5301"
+  },
+  {
+    "id": "530127",
+    "name": "Fatuleu Barat",
+    "cityId": "5301"
+  },
+  {
+    "id": "530128",
+    "name": "Fatuleu Tengah",
+    "cityId": "5301"
+  },
+  {
+    "id": "530212",
+    "name": "Fatumnasi",
+    "cityId": "5302"
+  },
+  {
+    "id": "530228",
+    "name": "Fautmolo",
+    "cityId": "5302"
+  },
+  {
+    "id": "530902",
+    "name": "Golewa",
+    "cityId": "5309"
+  },
+  {
+    "id": "530919",
+    "name": "Golewa Barat",
+    "cityId": "5309"
+  },
+  {
+    "id": "530918",
+    "name": "Golewa Selatan",
+    "cityId": "5309"
+  },
+  {
+    "id": "531102",
+    "name": "Haharu",
+    "cityId": "5311"
+  },
+  {
+    "id": "532005",
+    "name": "Hawu Mehara",
+    "cityId": "5320"
+  },
+  {
+    "id": "530718",
+    "name": "Hewokloang",
+    "cityId": "5307"
+  },
+  {
+    "id": "531303",
+    "name": "Ile Ape",
+    "cityId": "5313"
+  },
+  {
+    "id": "531309",
+    "name": "Ile Ape Timur",
+    "cityId": "5313"
+  },
+  {
+    "id": "530613",
+    "name": "Ile Boleng",
+    "cityId": "5306"
+  },
+  {
+    "id": "530616",
+    "name": "Ile Bura",
+    "cityId": "5306"
+  },
+  {
+    "id": "530604",
+    "name": "Ile Mandiri",
+    "cityId": "5306"
+  },
+  {
+    "id": "530920",
+    "name": "Inerie",
+    "cityId": "5309"
+  },
+  {
+    "id": "530308",
+    "name": "Insana",
+    "cityId": "5303"
+  },
+  {
+    "id": "530320",
+    "name": "Insana Barat",
+    "cityId": "5303"
+  },
+  {
+    "id": "530319",
+    "name": "Insana Fafinesu",
+    "cityId": "5303"
+  },
+  {
+    "id": "530321",
+    "name": "Insana Tengah",
+    "cityId": "5303"
+  },
+  {
+    "id": "530309",
+    "name": "Insana Utara",
+    "cityId": "5303"
+  },
+  {
+    "id": "532106",
+    "name": "Io Kufeu",
+    "cityId": "5321"
+  },
+  {
+    "id": "530912",
+    "name": "Jerebuu",
+    "cityId": "5309"
+  },
+  {
+    "id": "530510",
+    "name": "Kabola",
+    "cityId": "5305"
+  },
+  {
+    "id": "531114",
+    "name": "Kahaungu Eti",
+    "cityId": "5311"
+  },
+  {
+    "id": "530405",
+    "name": "Kakuluk Mesak",
+    "cityId": "5304"
+  },
+  {
+    "id": "531117",
+    "name": "Kambata Mapambuhang",
+    "cityId": "5311"
+  },
+  {
+    "id": "531116",
+    "name": "Kambera",
+    "cityId": "5311"
+  },
+  {
+    "id": "531120",
+    "name": "Kanatang",
+    "cityId": "5311"
+  },
+  {
+    "id": "530719",
+    "name": "Kangae",
+    "cityId": "5307"
+  },
+  {
+    "id": "531113",
+    "name": "Karera",
+    "cityId": "5311"
+  },
+  {
+    "id": "531119",
+    "name": "Katala Hamu Lingu",
+    "cityId": "5311"
+  },
+  {
+    "id": "531701",
+    "name": "Katiku Tana",
+    "cityId": "5317"
+  },
+  {
+    "id": "531705",
+    "name": "Katiku Tana Selatan",
+    "cityId": "5317"
+  },
+  {
+    "id": "537103",
+    "name": "Kelapa Lima",
+    "cityId": "5371"
+  },
+  {
+    "id": "530814",
+    "name": "Kelimutu",
+    "cityId": "5308"
+  },
+  {
+    "id": "530611",
+    "name": "Kelubagolit",
+    "cityId": "5306"
+  },
+  {
+    "id": "531606",
+    "name": "Keo Tengah",
+    "cityId": "5316"
+  },
+  {
+    "id": "530710",
+    "name": "Kewapante",
+    "cityId": "5307"
+  },
+  {
+    "id": "532111",
+    "name": "Kobalima",
+    "cityId": "5321"
+  },
+  {
+    "id": "532110",
+    "name": "Kobalima Timur",
+    "cityId": "5321"
+  },
+  {
+    "id": "531807",
+    "name": "Kodi",
+    "cityId": "5318"
+  },
+  {
+    "id": "531811",
+    "name": "Kodi Balaghar",
+    "cityId": "5318"
+  },
+  {
+    "id": "531806",
+    "name": "Kodi Bangedo",
+    "cityId": "5318"
+  },
+  {
+    "id": "531808",
+    "name": "Kodi Utara",
+    "cityId": "5318"
+  },
+  {
+    "id": "530223",
+    "name": "Kok Baun",
+    "cityId": "5302"
+  },
+  {
+    "id": "530219",
+    "name": "Kolbano",
+    "cityId": "5302"
+  },
+  {
+    "id": "531505",
+    "name": "Komodo",
+    "cityId": "5315"
+  },
+  {
+    "id": "530220",
+    "name": "Kot olin",
+    "cityId": "5302"
+  },
+  {
+    "id": "530412",
+    "name": "Kota Atambua",
+    "cityId": "5304"
+  },
+  {
+    "id": "530813",
+    "name": "Kota Baru",
+    "cityId": "5308"
+  },
+  {
+    "id": "530305",
+    "name": "Kota Kefamenanu",
+    "cityId": "5303"
+  },
+  {
+    "id": "531906",
+    "name": "Kota Komba",
+    "cityId": "5319"
+  },
+  {
+    "id": "531910",
+    "name": "Kota Komba Utara",
+    "cityId": "5319"
+  },
+  {
+    "id": "537106",
+    "name": "Kota Lama",
+    "cityId": "5371"
+  },
+  {
+    "id": "537105",
+    "name": "Kota Raja",
+    "cityId": "5371"
+  },
+  {
+    "id": "530201",
+    "name": "Kota Soe",
+    "cityId": "5302"
+  },
+  {
+    "id": "531809",
+    "name": "Kota Tambolaka",
+    "cityId": "5318"
+  },
+  {
+    "id": "531215",
+    "name": "Kota Waikabubak",
+    "cityId": "5312"
+  },
+  {
+    "id": "531101",
+    "name": "Kota Waingapu",
+    "cityId": "5311"
+  },
+  {
+    "id": "530716",
+    "name": "Koting",
+    "cityId": "5307"
+  },
+  {
+    "id": "530221",
+    "name": "Kualin",
+    "cityId": "5302"
+  },
+  {
+    "id": "530211",
+    "name": "Kuanfatu",
+    "cityId": "5302"
+  },
+  {
+    "id": "530227",
+    "name": "Kuatnana",
+    "cityId": "5302"
+  },
+  {
+    "id": "530105",
+    "name": "Kupang Barat",
+    "cityId": "5301"
+  },
+  {
+    "id": "530108",
+    "name": "Kupang Tengah",
+    "cityId": "5301"
+  },
+  {
+    "id": "530106",
+    "name": "Kupang Timur",
+    "cityId": "5301"
+  },
+  {
+    "id": "531502",
+    "name": "Kuwus",
+    "cityId": "5315"
+  },
+  {
+    "id": "531512",
+    "name": "Kuwus Barat",
+    "cityId": "5315"
+  },
+  {
+    "id": "531218",
+    "name": "Laboya Barat",
+    "cityId": "5312"
+  },
+  {
+    "id": "532108",
+    "name": "Laenmanen",
+    "cityId": "5321"
+  },
+  {
+    "id": "530401",
+    "name": "Lamaknen",
+    "cityId": "5304"
+  },
+  {
+    "id": "530418",
+    "name": "Lamaknen Selatan",
+    "cityId": "5304"
+  },
+  {
+    "id": "531903",
+    "name": "Lamba Leda",
+    "cityId": "5319"
+  },
+  {
+    "id": "531902",
+    "name": "Lamba Leda Selatan",
+    "cityId": "5319"
+  },
+  {
+    "id": "531908",
+    "name": "Lamba Leda Timur",
+    "cityId": "5319"
+  },
+  {
+    "id": "531911",
+    "name": "Lamba Leda Utara",
+    "cityId": "5319"
+  },
+  {
+    "id": "531212",
+    "name": "Lamboya",
+    "cityId": "5312"
+  },
+  {
+    "id": "531410",
+    "name": "Landu Leko",
+    "cityId": "5314"
+  },
+  {
+    "id": "531012",
+    "name": "Langke Rembong",
+    "cityId": "5310"
+  },
+  {
+    "id": "530603",
+    "name": "Larantuka",
+    "cityId": "5306"
+  },
+  {
+    "id": "530417",
+    "name": "Lasiolat",
+    "cityId": "5304"
+  },
+  {
+    "id": "531304",
+    "name": "Lebatukan",
+    "cityId": "5313"
+  },
+  {
+    "id": "530703",
+    "name": "Lela",
+    "cityId": "5307"
+  },
+  {
+    "id": "531015",
+    "name": "Lelak",
+    "cityId": "5310"
+  },
+  {
+    "id": "531503",
+    "name": "Lembor",
+    "cityId": "5315"
+  },
+  {
+    "id": "531509",
+    "name": "Lembor Selatan",
+    "cityId": "5315"
+  },
+  {
+    "id": "530515",
+    "name": "Lembur",
+    "cityId": "5305"
+  },
+  {
+    "id": "530821",
+    "name": "Lepembusu Kelisoke",
+    "cityId": "5308"
+  },
+  {
+    "id": "531103",
+    "name": "Lewa",
+    "cityId": "5311"
+  },
+  {
+    "id": "531118",
+    "name": "Lewa Tidahu",
+    "cityId": "5311"
+  },
+  {
+    "id": "530615",
+    "name": "Lewolema",
+    "cityId": "5306"
+  },
+  {
+    "id": "530812",
+    "name": "Lio Timur",
+    "cityId": "5308"
+  },
+  {
+    "id": "531411",
+    "name": "Loaholu",
+    "cityId": "5314"
+  },
+  {
+    "id": "531403",
+    "name": "Lobalain",
+    "cityId": "5314"
+  },
+  {
+    "id": "531210",
+    "name": "Loli",
+    "cityId": "5312"
+  },
+  {
+    "id": "531801",
+    "name": "Loura",
+    "cityId": "5318"
+  },
+  {
+    "id": "531501",
+    "name": "Macang Pacar",
+    "cityId": "5315"
+  },
+  {
+    "id": "530712",
+    "name": "Magepanda",
+    "cityId": "5307"
+  },
+  {
+    "id": "531122",
+    "name": "Mahu",
+    "cityId": "5311"
+  },
+  {
+    "id": "532102",
+    "name": "Malaka Barat",
+    "cityId": "5321"
+  },
+  {
+    "id": "532101",
+    "name": "Malaka Tengah",
+    "cityId": "5321"
+  },
+  {
+    "id": "532109",
+    "name": "Malaka Timur",
+    "cityId": "5321"
+  },
+  {
+    "id": "531703",
+    "name": "Mamboro",
+    "cityId": "5317"
+  },
+  {
+    "id": "530721",
+    "name": "Mapitara",
+    "cityId": "5307"
+  },
+  {
+    "id": "530512",
+    "name": "Mataru",
+    "cityId": "5305"
+  },
+  {
+    "id": "531115",
+    "name": "Matawai La Pawu",
+    "cityId": "5311"
+  },
+  {
+    "id": "530811",
+    "name": "Maukaro",
+    "cityId": "5308"
+  },
+  {
+    "id": "537102",
+    "name": "Maulafa",
+    "cityId": "5371"
+  },
+  {
+    "id": "531604",
+    "name": "Mauponggo",
+    "cityId": "5316"
+  },
+  {
+    "id": "530810",
+    "name": "Maurole",
+    "cityId": "5308"
+  },
+  {
+    "id": "531510",
+    "name": "Mbeliling",
+    "cityId": "5315"
+  },
+  {
+    "id": "530702",
+    "name": "Mego",
+    "cityId": "5307"
+  },
+  {
+    "id": "530302",
+    "name": "Miomaffo Barat",
+    "cityId": "5303"
+  },
+  {
+    "id": "530311",
+    "name": "Miomaffo Tengah",
+    "cityId": "5303"
+  },
+  {
+    "id": "530301",
+    "name": "Miomaffo Timur",
+    "cityId": "5303"
+  },
+  {
+    "id": "530222",
+    "name": "Mollo Barat",
+    "cityId": "5302"
+  },
+  {
+    "id": "530202",
+    "name": "Mollo Selatan",
+    "cityId": "5302"
+  },
+  {
+    "id": "530230",
+    "name": "Mollo Tengah",
+    "cityId": "5302"
+  },
+  {
+    "id": "530203",
+    "name": "Mollo Utara",
+    "cityId": "5302"
+  },
+  {
+    "id": "530312",
+    "name": "Musi",
+    "cityId": "5303"
+  },
+  {
+    "id": "530313",
+    "name": "Mutis",
+    "cityId": "5303"
+  },
+  {
+    "id": "531301",
+    "name": "Naga Wutung",
+    "cityId": "5313"
+  },
+  {
+    "id": "530318",
+    "name": "Naibenu",
+    "cityId": "5303"
+  },
+  {
+    "id": "530423",
+    "name": "Nanaet Duabesi",
+    "cityId": "5304"
+  },
+  {
+    "id": "530801",
+    "name": "Nangapanda",
+    "cityId": "5308"
+  },
+  {
+    "id": "531602",
+    "name": "Nangaroro",
+    "cityId": "5316"
+  },
+  {
+    "id": "531409",
+    "name": "Ndao Nuse",
+    "cityId": "5314"
+  },
+  {
+    "id": "530805",
+    "name": "Ndona",
+    "cityId": "5308"
+  },
+  {
+    "id": "530816",
+    "name": "Ndona Timur",
+    "cityId": "5308"
+  },
+  {
+    "id": "530817",
+    "name": "Ndori",
+    "cityId": "5308"
+  },
+  {
+    "id": "531508",
+    "name": "Ndoso",
+    "cityId": "5315"
+  },
+  {
+    "id": "530116",
+    "name": "Nekamese",
+    "cityId": "5301"
+  },
+  {
+    "id": "530707",
+    "name": "Nelle",
+    "cityId": "5307"
+  },
+  {
+    "id": "531121",
+    "name": "Ngadu Ngala",
+    "cityId": "5311"
+  },
+  {
+    "id": "531104",
+    "name": "Nggaha Ori Angu",
+    "cityId": "5311"
+  },
+  {
+    "id": "530704",
+    "name": "Nita",
+    "cityId": "5307"
+  },
+  {
+    "id": "530224",
+    "name": "Noebana",
+    "cityId": "5302"
+  },
+  {
+    "id": "530226",
+    "name": "Noebeba",
+    "cityId": "5302"
+  },
+  {
+    "id": "530304",
+    "name": "Noemuti",
+    "cityId": "5303"
+  },
+  {
+    "id": "530310",
+    "name": "Noemuti Timur",
+    "cityId": "5303"
+  },
+  {
+    "id": "531305",
+    "name": "Nubatukan",
+    "cityId": "5313"
+  },
+  {
+    "id": "530232",
+    "name": "Nunbena",
+    "cityId": "5302"
+  },
+  {
+    "id": "530217",
+    "name": "Nunkolo",
+    "cityId": "5302"
+  },
+  {
+    "id": "537104",
+    "name": "Oebobo",
+    "cityId": "5371"
+  },
+  {
+    "id": "530218",
+    "name": "Oenino",
+    "cityId": "5302"
+  },
+  {
+    "id": "531306",
+    "name": "Omesuri",
+    "cityId": "5313"
+  },
+  {
+    "id": "531112",
+    "name": "Paberiwai",
+    "cityId": "5311"
+  },
+  {
+    "id": "531511",
+    "name": "Pacar",
+    "cityId": "5315"
+  },
+  {
+    "id": "530701",
+    "name": "Paga",
+    "cityId": "5307"
+  },
+  {
+    "id": "531110",
+    "name": "Pahunga Lodu",
+    "cityId": "5311"
+  },
+  {
+    "id": "530706",
+    "name": "Palue",
+    "cityId": "5307"
+  },
+  {
+    "id": "531107",
+    "name": "Pandawai",
+    "cityId": "5311"
+  },
+  {
+    "id": "531405",
+    "name": "Pantai Baru",
+    "cityId": "5314"
+  },
+  {
+    "id": "530506",
+    "name": "Pantar",
+    "cityId": "5305"
+  },
+  {
+    "id": "530509",
+    "name": "Pantar Barat",
+    "cityId": "5305"
+  },
+  {
+    "id": "530517",
+    "name": "Pantar Barat Laut",
+    "cityId": "5305"
+  },
+  {
+    "id": "530516",
+    "name": "Pantar Tengah",
+    "cityId": "5305"
+  },
+  {
+    "id": "530514",
+    "name": "Pantar Timur",
+    "cityId": "5305"
+  },
+  {
+    "id": "531106",
+    "name": "Pinu Pahar",
+    "cityId": "5311"
+  },
+  {
+    "id": "530213",
+    "name": "Polen",
+    "cityId": "5302"
+  },
+  {
+    "id": "530802",
+    "name": "Pulau Ende",
+    "cityId": "5308"
+  },
+  {
+    "id": "530511",
+    "name": "Pulau Pura",
+    "cityId": "5305"
+  },
+  {
+    "id": "530513",
+    "name": "Pureman",
+    "cityId": "5305"
+  },
+  {
+    "id": "531014",
+    "name": "Rahong Utara",
+    "cityId": "5310"
+  },
+  {
+    "id": "530403",
+    "name": "Raihat",
+    "cityId": "5304"
+  },
+  {
+    "id": "532006",
+    "name": "Raijua",
+    "cityId": "5320"
+  },
+  {
+    "id": "530413",
+    "name": "Raimanuk",
+    "cityId": "5304"
+  },
+  {
+    "id": "531907",
+    "name": "Rana Mese",
+    "cityId": "5319"
+  },
+  {
+    "id": "531011",
+    "name": "Reok",
+    "cityId": "5310"
+  },
+  {
+    "id": "531016",
+    "name": "Reok Barat",
+    "cityId": "5310"
+  },
+  {
+    "id": "531109",
+    "name": "Rindi",
+    "cityId": "5311"
+  },
+  {
+    "id": "532105",
+    "name": "Rinhat",
+    "cityId": "5321"
+  },
+  {
+    "id": "530909",
+    "name": "Riung",
+    "cityId": "5309"
+  },
+  {
+    "id": "530914",
+    "name": "Riung Barat",
+    "cityId": "5309"
+  },
+  {
+    "id": "531407",
+    "name": "Rote Barat",
+    "cityId": "5314"
+  },
+  {
+    "id": "531401",
+    "name": "Rote Barat Daya",
+    "cityId": "5314"
+  },
+  {
+    "id": "531402",
+    "name": "Rote Barat Laut",
+    "cityId": "5314"
+  },
+  {
+    "id": "531408",
+    "name": "Rote Selatan",
+    "cityId": "5314"
+  },
+  {
+    "id": "531404",
+    "name": "Rote Tengah",
+    "cityId": "5314"
+  },
+  {
+    "id": "531406",
+    "name": "Rote Timur",
+    "cityId": "5314"
+  },
+  {
+    "id": "531003",
+    "name": "Ruteng",
+    "cityId": "5310"
+  },
+  {
+    "id": "532001",
+    "name": "Sabu Barat",
+    "cityId": "5320"
+  },
+  {
+    "id": "532004",
+    "name": "Sabu Liae",
+    "cityId": "5320"
+  },
+  {
+    "id": "532002",
+    "name": "Sabu Tengah",
+    "cityId": "5320"
+  },
+  {
+    "id": "532003",
+    "name": "Sabu Timur",
+    "cityId": "5320"
+  },
+  {
+    "id": "531904",
+    "name": "Sambi Rampas",
+    "cityId": "5319"
+  },
+  {
+    "id": "531504",
+    "name": "Sano Nggoang",
+    "cityId": "5315"
+  },
+  {
+    "id": "530225",
+    "name": "Santian",
+    "cityId": "5302"
+  },
+  {
+    "id": "532107",
+    "name": "Sasitamean",
+    "cityId": "5321"
+  },
+  {
+    "id": "531005",
+    "name": "Satar Mese",
+    "cityId": "5310"
+  },
+  {
+    "id": "531013",
+    "name": "Satar Mese Barat",
+    "cityId": "5310"
+  },
+  {
+    "id": "531018",
+    "name": "Satar Mese Utara",
+    "cityId": "5310"
+  },
+  {
+    "id": "530104",
+    "name": "Semau",
+    "cityId": "5301"
+  },
+  {
+    "id": "530123",
+    "name": "Semau Selatan",
+    "cityId": "5301"
+  },
+  {
+    "id": "530907",
+    "name": "Soa",
+    "cityId": "5309"
+  },
+  {
+    "id": "530606",
+    "name": "Solor Barat",
+    "cityId": "5306"
+  },
+  {
+    "id": "530619",
+    "name": "Solor Selatan",
+    "cityId": "5306"
+  },
+  {
+    "id": "530607",
+    "name": "Solor Timur",
+    "cityId": "5306"
+  },
+  {
+    "id": "530107",
+    "name": "Sulamu",
+    "cityId": "5301"
+  },
+  {
+    "id": "531105",
+    "name": "Tabundung",
+    "cityId": "5311"
+  },
+  {
+    "id": "530124",
+    "name": "Taebenu",
+    "cityId": "5301"
+  },
+  {
+    "id": "530111",
+    "name": "Takari",
+    "cityId": "5301"
+  },
+  {
+    "id": "530708",
+    "name": "Talibura",
+    "cityId": "5307"
+  },
+  {
+    "id": "531204",
+    "name": "Tana Righu",
+    "cityId": "5312"
+  },
+  {
+    "id": "530717",
+    "name": "Tana Wawo",
+    "cityId": "5307"
+  },
+  {
+    "id": "530605",
+    "name": "Tanjung Bunga",
+    "cityId": "5306"
+  },
+  {
+    "id": "530404",
+    "name": "Tasifeto Barat",
+    "cityId": "5304"
+  },
+  {
+    "id": "530402",
+    "name": "Tasifeto Timur",
+    "cityId": "5304"
+  },
+  {
+    "id": "530501",
+    "name": "Teluk Mutiara",
+    "cityId": "5305"
+  },
+  {
+    "id": "530602",
+    "name": "Titehena",
+    "cityId": "5306"
+  },
+  {
+    "id": "530231",
+    "name": "Tobu",
+    "cityId": "5302"
+  },
+  {
+    "id": "530216",
+    "name": "Toianas",
+    "cityId": "5302"
+  },
+  {
+    "id": "531108",
+    "name": "Umalulu",
+    "cityId": "5311"
+  },
+  {
+    "id": "531704",
+    "name": "Umbu Ratu Nggay",
+    "cityId": "5317"
+  },
+  {
+    "id": "531702",
+    "name": "Umbu Ratu Nggay Barat",
+    "cityId": "5317"
+  },
+  {
+    "id": "531706",
+    "name": "Umbu Ratu Nggay Tengah",
+    "cityId": "5317"
+  },
+  {
+    "id": "531001",
+    "name": "Wae Rii",
+    "cityId": "5310"
+  },
+  {
+    "id": "530713",
+    "name": "Waiblama",
+    "cityId": "5307"
+  },
+  {
+    "id": "530709",
+    "name": "Waigete",
+    "cityId": "5307"
+  },
+  {
+    "id": "531211",
+    "name": "Wanokaka",
+    "cityId": "5312"
+  },
+  {
+    "id": "531507",
+    "name": "Welak",
+    "cityId": "5315"
+  },
+  {
+    "id": "532104",
+    "name": "Weliman",
+    "cityId": "5321"
+  },
+  {
+    "id": "530807",
+    "name": "Wewaria",
+    "cityId": "5308"
+  },
+  {
+    "id": "531804",
+    "name": "Wewewa Barat",
+    "cityId": "5318"
+  },
+  {
+    "id": "531805",
+    "name": "Wewewa Selatan",
+    "cityId": "5318"
+  },
+  {
+    "id": "531810",
+    "name": "Wewewa Tengah",
+    "cityId": "5318"
+  },
+  {
+    "id": "531803",
+    "name": "Wewewa Timur",
+    "cityId": "5318"
+  },
+  {
+    "id": "531802",
+    "name": "Wewewa Utara",
+    "cityId": "5318"
+  },
+  {
+    "id": "532103",
+    "name": "Wewiku",
+    "cityId": "5321"
+  },
+  {
+    "id": "530612",
+    "name": "Witihama",
+    "cityId": "5306"
+  },
+  {
+    "id": "530809",
+    "name": "Wolojita",
+    "cityId": "5308"
+  },
+  {
+    "id": "530916",
+    "name": "Wolomeze",
+    "cityId": "5309"
+  },
+  {
+    "id": "531605",
+    "name": "Wolowae",
+    "cityId": "5316"
+  },
+  {
+    "id": "530808",
+    "name": "Wolowaru",
+    "cityId": "5308"
+  },
+  {
+    "id": "530609",
+    "name": "Wotan Ulumando",
+    "cityId": "5306"
+  },
+  {
+    "id": "531308",
+    "name": "Wulandoni",
+    "cityId": "5313"
+  },
+  {
+    "id": "530601",
+    "name": "Wulanggitang",
+    "cityId": "5306"
+  },
+  {
+    "id": "531111",
+    "name": "Wulla Waijelu",
+    "cityId": "5311"
+  }
+]

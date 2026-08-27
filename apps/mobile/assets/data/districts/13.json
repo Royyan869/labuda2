@@ -1,0 +1,897 @@
+[
+  {
+    "id": "130504",
+    "name": "2 x 11 Anam Lingkuang",
+    "cityId": "1305"
+  },
+  {
+    "id": "130515",
+    "name": "2 x 11 Kayu Tanam",
+    "cityId": "1305"
+  },
+  {
+    "id": "130113",
+    "name": "Airpura",
+    "cityId": "1301"
+  },
+  {
+    "id": "130713",
+    "name": "Akabiluru",
+    "cityId": "1307"
+  },
+  {
+    "id": "130607",
+    "name": "Ampek Angkek",
+    "cityId": "1306"
+  },
+  {
+    "id": "130613",
+    "name": "Ampek Nagari",
+    "cityId": "1306"
+  },
+  {
+    "id": "130517",
+    "name": "Anam Lingkuang",
+    "cityId": "1305"
+  },
+  {
+    "id": "131010",
+    "name": "Asam Jujuhan",
+    "cityId": "1310"
+  },
+  {
+    "id": "137503",
+    "name": "Aur Birugo Tigo Baleh",
+    "cityId": "1375"
+  },
+  {
+    "id": "130606",
+    "name": "Banuhampu",
+    "cityId": "1306"
+  },
+  {
+    "id": "137302",
+    "name": "Barangin",
+    "cityId": "1373"
+  },
+  {
+    "id": "130111",
+    "name": "Basa Ampek Balai Tapan",
+    "cityId": "1301"
+  },
+  {
+    "id": "130608",
+    "name": "Baso",
+    "cityId": "1306"
+  },
+  {
+    "id": "130502",
+    "name": "Batang Anai",
+    "cityId": "1305"
+  },
+  {
+    "id": "130513",
+    "name": "Batang Gasan",
+    "cityId": "1305"
+  },
+  {
+    "id": "130104",
+    "name": "Batang Kapas",
+    "cityId": "1301"
+  },
+  {
+    "id": "130414",
+    "name": "Batipuah Selatan",
+    "cityId": "1304"
+  },
+  {
+    "id": "130402",
+    "name": "Batipuh",
+    "cityId": "1304"
+  },
+  {
+    "id": "130106",
+    "name": "Bayang",
+    "cityId": "1301"
+  },
+  {
+    "id": "130804",
+    "name": "Bonjol",
+    "cityId": "1308"
+  },
+  {
+    "id": "130712",
+    "name": "Bukik Barisan",
+    "cityId": "1307"
+  },
+  {
+    "id": "130208",
+    "name": "Bukit Sundi",
+    "cityId": "1302"
+  },
+  {
+    "id": "137105",
+    "name": "Bungus Teluk Kabung",
+    "cityId": "1371"
+  },
+  {
+    "id": "130614",
+    "name": "Candung",
+    "cityId": "1306"
+  },
+  {
+    "id": "130219",
+    "name": "Danau Kembar",
+    "cityId": "1302"
+  },
+  {
+    "id": "130812",
+    "name": "Duo Koto",
+    "cityId": "1308"
+  },
+  {
+    "id": "130702",
+    "name": "Guguak",
+    "cityId": "1307"
+  },
+  {
+    "id": "137501",
+    "name": "Guguak Panjang",
+    "cityId": "1375"
+  },
+  {
+    "id": "130708",
+    "name": "Gunuang Omeh",
+    "cityId": "1307"
+  },
+  {
+    "id": "130207",
+    "name": "Gunung Talang",
+    "cityId": "1302"
+  },
+  {
+    "id": "131206",
+    "name": "Gunung Tuleh",
+    "cityId": "1312"
+  },
+  {
+    "id": "130705",
+    "name": "Harau",
+    "cityId": "1307"
+  },
+  {
+    "id": "130217",
+    "name": "Hiliran Gumanti",
+    "cityId": "1302"
+  },
+  {
+    "id": "130105",
+    "name": "IV Jurai",
+    "cityId": "1301"
+  },
+  {
+    "id": "130605",
+    "name": "IV Koto",
+    "cityId": "1306"
+  },
+  {
+    "id": "130509",
+    "name": "IV Koto Aua Malintang",
+    "cityId": "1305"
+  },
+  {
+    "id": "130305",
+    "name": "IV Nagari",
+    "cityId": "1303"
+  },
+  {
+    "id": "130112",
+    "name": "IV Nagari Bayang Utara",
+    "cityId": "1301"
+  },
+  {
+    "id": "130209",
+    "name": "IX Koto Sungai Lasi",
+    "cityId": "1302"
+  },
+  {
+    "id": "130213",
+    "name": "Junjung Sirih",
+    "cityId": "1302"
+  },
+  {
+    "id": "130306",
+    "name": "Kamang Baru",
+    "cityId": "1303"
+  },
+  {
+    "id": "130615",
+    "name": "Kamang Magek",
+    "cityId": "1306"
+  },
+  {
+    "id": "130707",
+    "name": "Kapur IX",
+    "cityId": "1307"
+  },
+  {
+    "id": "131205",
+    "name": "Kinali",
+    "cityId": "1312"
+  },
+  {
+    "id": "131208",
+    "name": "Koto Balingka",
+    "cityId": "1312"
+  },
+  {
+    "id": "131001",
+    "name": "Koto Baru",
+    "cityId": "1310"
+  },
+  {
+    "id": "131011",
+    "name": "Koto Besar",
+    "cityId": "1310"
+  },
+  {
+    "id": "131103",
+    "name": "Koto Parik Gadang Diateh",
+    "cityId": "1311"
+  },
+  {
+    "id": "130516",
+    "name": "Koto Patamuan",
+    "cityId": "1305"
+  },
+  {
+    "id": "131007",
+    "name": "Koto Salak",
+    "cityId": "1310"
+  },
+  {
+    "id": "137111",
+    "name": "Koto Tangah",
+    "cityId": "1371"
+  },
+  {
+    "id": "130308",
+    "name": "Koto VII",
+    "cityId": "1303"
+  },
+  {
+    "id": "130107",
+    "name": "Koto XI Tarusan",
+    "cityId": "1301"
+  },
+  {
+    "id": "130210",
+    "name": "Kubung",
+    "cityId": "1302"
+  },
+  {
+    "id": "130310",
+    "name": "Kupitan",
+    "cityId": "1303"
+  },
+  {
+    "id": "137109",
+    "name": "Kuranji",
+    "cityId": "1371"
+  },
+  {
+    "id": "137604",
+    "name": "Lamposi Tigo Nagori",
+    "cityId": "1376"
+  },
+  {
+    "id": "130709",
+    "name": "Lareh Sago Halaban",
+    "cityId": "1307"
+  },
+  {
+    "id": "130204",
+    "name": "Lembah Gumanti",
+    "cityId": "1302"
+  },
+  {
+    "id": "131202",
+    "name": "Lembah Melintang",
+    "cityId": "1312"
+  },
+  {
+    "id": "137301",
+    "name": "Lembah Segar",
+    "cityId": "1373"
+  },
+  {
+    "id": "130206",
+    "name": "Lembang Jaya",
+    "cityId": "1302"
+  },
+  {
+    "id": "130103",
+    "name": "Lengayang",
+    "cityId": "1301"
+  },
+  {
+    "id": "130404",
+    "name": "Lima Kaum",
+    "cityId": "1304"
+  },
+  {
+    "id": "130109",
+    "name": "Linggo Sari Baganti",
+    "cityId": "1301"
+  },
+  {
+    "id": "130406",
+    "name": "Lintau Buo",
+    "cityId": "1304"
+  },
+  {
+    "id": "130413",
+    "name": "Lintau Buo Utara",
+    "cityId": "1304"
+  },
+  {
+    "id": "130704",
+    "name": "Luak",
+    "cityId": "1307"
+  },
+  {
+    "id": "130501",
+    "name": "Lubuak Aluang",
+    "cityId": "1305"
+  },
+  {
+    "id": "130602",
+    "name": "Lubuk Basung",
+    "cityId": "1306"
+  },
+  {
+    "id": "137106",
+    "name": "Lubuk Begalung",
+    "cityId": "1371"
+  },
+  {
+    "id": "137107",
+    "name": "Lubuk Kilangan",
+    "cityId": "1371"
+  },
+  {
+    "id": "130805",
+    "name": "Lubuk Sikaping",
+    "cityId": "1308"
+  },
+  {
+    "id": "137201",
+    "name": "Lubuk Sikarah",
+    "cityId": "1372"
+  },
+  {
+    "id": "130307",
+    "name": "Lubuk Tarok",
+    "cityId": "1303"
+  },
+  {
+    "id": "131210",
+    "name": "Luhak Nan Duo",
+    "cityId": "1312"
+  },
+  {
+    "id": "130110",
+    "name": "Lunang",
+    "cityId": "1301"
+  },
+  {
+    "id": "130616",
+    "name": "Malalak",
+    "cityId": "1306"
+  },
+  {
+    "id": "137502",
+    "name": "Mandiangin Koto Selayan",
+    "cityId": "1375"
+  },
+  {
+    "id": "130808",
+    "name": "Mapat Tunggul",
+    "cityId": "1308"
+  },
+  {
+    "id": "130815",
+    "name": "Mapat Tunggul Selatan",
+    "cityId": "1308"
+  },
+  {
+    "id": "130604",
+    "name": "Matur",
+    "cityId": "1306"
+  },
+  {
+    "id": "130711",
+    "name": "Mungka",
+    "cityId": "1307"
+  },
+  {
+    "id": "130503",
+    "name": "Nan Sabaris",
+    "cityId": "1305"
+  },
+  {
+    "id": "137110",
+    "name": "Nanggalo",
+    "cityId": "1371"
+  },
+  {
+    "id": "137103",
+    "name": "Padang Barat",
+    "cityId": "1371"
+  },
+  {
+    "id": "130411",
+    "name": "Padang Ganting",
+    "cityId": "1304"
+  },
+  {
+    "id": "130817",
+    "name": "Padang Gelugur",
+    "cityId": "1308"
+  },
+  {
+    "id": "131009",
+    "name": "Padang Laweh",
+    "cityId": "1310"
+  },
+  {
+    "id": "137402",
+    "name": "Padang Panjang Barat",
+    "cityId": "1374"
+  },
+  {
+    "id": "137401",
+    "name": "Padang Panjang Timur",
+    "cityId": "1374"
+  },
+  {
+    "id": "137101",
+    "name": "Padang Selatan",
+    "cityId": "1371"
+  },
+  {
+    "id": "137102",
+    "name": "Padang Timur",
+    "cityId": "1371"
+  },
+  {
+    "id": "137104",
+    "name": "Padang Utara",
+    "cityId": "1371"
+  },
+  {
+    "id": "130910",
+    "name": "Pagai Selatan",
+    "cityId": "1309"
+  },
+  {
+    "id": "130901",
+    "name": "Pagai Utara",
+    "cityId": "1309"
+  },
+  {
+    "id": "130611",
+    "name": "Palembayan",
+    "cityId": "1306"
+  },
+  {
+    "id": "130610",
+    "name": "Palupuh",
+    "cityId": "1306"
+  },
+  {
+    "id": "130101",
+    "name": "Pancung Soal",
+    "cityId": "1301"
+  },
+  {
+    "id": "130706",
+    "name": "Pangkalan Koto Baru",
+    "cityId": "1307"
+  },
+  {
+    "id": "130203",
+    "name": "Pantai Cermin",
+    "cityId": "1302"
+  },
+  {
+    "id": "130807",
+    "name": "Panti",
+    "cityId": "1308"
+  },
+  {
+    "id": "137703",
+    "name": "Pariaman Selatan",
+    "cityId": "1377"
+  },
+  {
+    "id": "137701",
+    "name": "Pariaman Tengah",
+    "cityId": "1377"
+  },
+  {
+    "id": "137704",
+    "name": "Pariaman Timur",
+    "cityId": "1377"
+  },
+  {
+    "id": "137702",
+    "name": "Pariaman Utara",
+    "cityId": "1377"
+  },
+  {
+    "id": "130409",
+    "name": "Pariangan",
+    "cityId": "1304"
+  },
+  {
+    "id": "131203",
+    "name": "Pasaman",
+    "cityId": "1312"
+  },
+  {
+    "id": "137108",
+    "name": "Pauh",
+    "cityId": "1371"
+  },
+  {
+    "id": "131106",
+    "name": "Pauh Duo",
+    "cityId": "1311"
+  },
+  {
+    "id": "130703",
+    "name": "Payakumbuh",
+    "cityId": "1307"
+  },
+  {
+    "id": "137601",
+    "name": "Payakumbuh Barat",
+    "cityId": "1376"
+  },
+  {
+    "id": "137605",
+    "name": "Payakumbuh Selatan",
+    "cityId": "1376"
+  },
+  {
+    "id": "137603",
+    "name": "Payakumbuh Timur",
+    "cityId": "1376"
+  },
+  {
+    "id": "137602",
+    "name": "Payakumbuh Utara",
+    "cityId": "1376"
+  },
+  {
+    "id": "130205",
+    "name": "Payung Sekaki",
+    "cityId": "1302"
+  },
+  {
+    "id": "131002",
+    "name": "Pulau Punjung",
+    "cityId": "1310"
+  },
+  {
+    "id": "130403",
+    "name": "Rambatan",
+    "cityId": "1304"
+  },
+  {
+    "id": "130114",
+    "name": "Ranah Ampek Hulu Tapan",
+    "cityId": "1301"
+  },
+  {
+    "id": "131207",
+    "name": "Ranah Batahan",
+    "cityId": "1312"
+  },
+  {
+    "id": "130102",
+    "name": "Ranah Pesisir",
+    "cityId": "1301"
+  },
+  {
+    "id": "130814",
+    "name": "Rao",
+    "cityId": "1308"
+  },
+  {
+    "id": "130819",
+    "name": "Rao Selatan",
+    "cityId": "1308"
+  },
+  {
+    "id": "130818",
+    "name": "Rao Utara",
+    "cityId": "1308"
+  },
+  {
+    "id": "130410",
+    "name": "Salimpaung",
+    "cityId": "1304"
+  },
+  {
+    "id": "131101",
+    "name": "Sangir",
+    "cityId": "1311"
+  },
+  {
+    "id": "131107",
+    "name": "Sangir Balai Janggo",
+    "cityId": "1311"
+  },
+  {
+    "id": "131105",
+    "name": "Sangir Batang Hari",
+    "cityId": "1311"
+  },
+  {
+    "id": "131104",
+    "name": "Sangir Jujuan",
+    "cityId": "1311"
+  },
+  {
+    "id": "131211",
+    "name": "Sasak Ranah Pasisie",
+    "cityId": "1312"
+  },
+  {
+    "id": "131005",
+    "name": "Sembilan Koto",
+    "cityId": "1310"
+  },
+  {
+    "id": "130905",
+    "name": "Siberut Barat",
+    "cityId": "1309"
+  },
+  {
+    "id": "130906",
+    "name": "Siberut Barat Daya",
+    "cityId": "1309"
+  },
+  {
+    "id": "130903",
+    "name": "Siberut Selatan",
+    "cityId": "1309"
+  },
+  {
+    "id": "130907",
+    "name": "Siberut Tengah",
+    "cityId": "1309"
+  },
+  {
+    "id": "130904",
+    "name": "Siberut Utara",
+    "cityId": "1309"
+  },
+  {
+    "id": "130304",
+    "name": "Sijunjung",
+    "cityId": "1303"
+  },
+  {
+    "id": "130909",
+    "name": "Sikakap",
+    "cityId": "1309"
+  },
+  {
+    "id": "130115",
+    "name": "Silaut",
+    "cityId": "1301"
+  },
+  {
+    "id": "137303",
+    "name": "Silungkang",
+    "cityId": "1373"
+  },
+  {
+    "id": "130816",
+    "name": "Simpang Alahan Mati",
+    "cityId": "1308"
+  },
+  {
+    "id": "130511",
+    "name": "Sintuak Toboh Gadang",
+    "cityId": "1305"
+  },
+  {
+    "id": "130902",
+    "name": "Sipora Selatan",
+    "cityId": "1309"
+  },
+  {
+    "id": "130908",
+    "name": "Sipora Utara",
+    "cityId": "1309"
+  },
+  {
+    "id": "131004",
+    "name": "Sitiung",
+    "cityId": "1310"
+  },
+  {
+    "id": "130710",
+    "name": "Situjuah Limo Nagari",
+    "cityId": "1307"
+  },
+  {
+    "id": "130701",
+    "name": "Suliki",
+    "cityId": "1307"
+  },
+  {
+    "id": "130309",
+    "name": "Sumpur Kudus",
+    "cityId": "1303"
+  },
+  {
+    "id": "131209",
+    "name": "Sungai Aur",
+    "cityId": "1312"
+  },
+  {
+    "id": "131201",
+    "name": "Sungai Beremas",
+    "cityId": "1312"
+  },
+  {
+    "id": "130507",
+    "name": "Sungai Garinggiang",
+    "cityId": "1305"
+  },
+  {
+    "id": "130508",
+    "name": "Sungai Limau",
+    "cityId": "1305"
+  },
+  {
+    "id": "131102",
+    "name": "Sungai Pagu",
+    "cityId": "1311"
+  },
+  {
+    "id": "130612",
+    "name": "Sungai Pua",
+    "cityId": "1306"
+  },
+  {
+    "id": "131003",
+    "name": "Sungai Rumbai",
+    "cityId": "1310"
+  },
+  {
+    "id": "130408",
+    "name": "Sungai Tarab",
+    "cityId": "1304"
+  },
+  {
+    "id": "130407",
+    "name": "Sungayang",
+    "cityId": "1304"
+  },
+  {
+    "id": "130108",
+    "name": "Sutera",
+    "cityId": "1301"
+  },
+  {
+    "id": "131204",
+    "name": "Talamau",
+    "cityId": "1312"
+  },
+  {
+    "id": "137304",
+    "name": "Talawi",
+    "cityId": "1373"
+  },
+  {
+    "id": "130412",
+    "name": "Tanjuang Baru",
+    "cityId": "1304"
+  },
+  {
+    "id": "130405",
+    "name": "Tanjung Emas",
+    "cityId": "1304"
+  },
+  {
+    "id": "130303",
+    "name": "Tanjung Gadang",
+    "cityId": "1303"
+  },
+  {
+    "id": "137202",
+    "name": "Tanjung Harapan",
+    "cityId": "1372"
+  },
+  {
+    "id": "130601",
+    "name": "Tanjung Mutiara",
+    "cityId": "1306"
+  },
+  {
+    "id": "130603",
+    "name": "Tanjung Raya",
+    "cityId": "1306"
+  },
+  {
+    "id": "130218",
+    "name": "Tigo Lurah",
+    "cityId": "1302"
+  },
+  {
+    "id": "130813",
+    "name": "Tigo Nagari",
+    "cityId": "1308"
+  },
+  {
+    "id": "130609",
+    "name": "Tilatang Kamang",
+    "cityId": "1306"
+  },
+  {
+    "id": "131006",
+    "name": "Timpeh",
+    "cityId": "1310"
+  },
+  {
+    "id": "131008",
+    "name": "Tiumang",
+    "cityId": "1310"
+  },
+  {
+    "id": "130510",
+    "name": "Ulakan Tapakih",
+    "cityId": "1305"
+  },
+  {
+    "id": "130506",
+    "name": "V Koto",
+    "cityId": "1305"
+  },
+  {
+    "id": "130514",
+    "name": "V Koto Timur",
+    "cityId": "1305"
+  },
+  {
+    "id": "130505",
+    "name": "VII Koto",
+    "cityId": "1305"
+  },
+  {
+    "id": "130512",
+    "name": "VII Koto Padang Sago",
+    "cityId": "1305"
+  },
+  {
+    "id": "130401",
+    "name": "X Koto",
+    "cityId": "1304"
+  },
+  {
+    "id": "130212",
+    "name": "X Koto Diatas",
+    "cityId": "1302"
+  },
+  {
+    "id": "130211",
+    "name": "X Koto Singkarak",
+    "cityId": "1302"
+  }
+]

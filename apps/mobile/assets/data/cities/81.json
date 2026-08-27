@@ -1,0 +1,68 @@
+[
+  {
+    "id": "8104",
+    "name": "Kabupaten Buru",
+    "provinceId": "81",
+    "type": "kabupaten"
+  },
+  {
+    "id": "8109",
+    "name": "Kabupaten Buru Selatan",
+    "provinceId": "81",
+    "type": "kabupaten"
+  },
+  {
+    "id": "8107",
+    "name": "Kabupaten Kepulauan Aru",
+    "provinceId": "81",
+    "type": "kabupaten"
+  },
+  {
+    "id": "8103",
+    "name": "Kabupaten Kepulauan Tanimbar",
+    "provinceId": "81",
+    "type": "kabupaten"
+  },
+  {
+    "id": "8108",
+    "name": "Kabupaten Maluku Barat Daya",
+    "provinceId": "81",
+    "type": "kabupaten"
+  },
+  {
+    "id": "8101",
+    "name": "Kabupaten Maluku Tengah",
+    "provinceId": "81",
+    "type": "kabupaten"
+  },
+  {
+    "id": "8102",
+    "name": "Kabupaten Maluku Tenggara",
+    "provinceId": "81",
+    "type": "kabupaten"
+  },
+  {
+    "id": "8106",
+    "name": "Kabupaten Seram Bagian Barat",
+    "provinceId": "81",
+    "type": "kabupaten"
+  },
+  {
+    "id": "8105",
+    "name": "Kabupaten Seram Bagian Timur",
+    "provinceId": "81",
+    "type": "kabupaten"
+  },
+  {
+    "id": "8171",
+    "name": "Kota Ambon",
+    "provinceId": "81",
+    "type": "kota"
+  },
+  {
+    "id": "8172",
+    "name": "Kota Tual",
+    "provinceId": "81",
+    "type": "kota"
+  }
+]

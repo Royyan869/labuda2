@@ -1,0 +1,86 @@
+[
+  {
+    "id": "6107",
+    "name": "Kabupaten Bengkayang",
+    "provinceId": "61",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6106",
+    "name": "Kabupaten Kapuas Hulu",
+    "provinceId": "61",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6111",
+    "name": "Kabupaten Kayong Utara",
+    "provinceId": "61",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6104",
+    "name": "Kabupaten Ketapang",
+    "provinceId": "61",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6112",
+    "name": "Kabupaten Kubu Raya",
+    "provinceId": "61",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6108",
+    "name": "Kabupaten Landak",
+    "provinceId": "61",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6110",
+    "name": "Kabupaten Melawi",
+    "provinceId": "61",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6102",
+    "name": "Kabupaten Mempawah",
+    "provinceId": "61",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6101",
+    "name": "Kabupaten Sambas",
+    "provinceId": "61",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6103",
+    "name": "Kabupaten Sanggau",
+    "provinceId": "61",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6109",
+    "name": "Kabupaten Sekadau",
+    "provinceId": "61",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6105",
+    "name": "Kabupaten Sintang",
+    "provinceId": "61",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6171",
+    "name": "Kota Pontianak",
+    "provinceId": "61",
+    "type": "kota"
+  },
+  {
+    "id": "6172",
+    "name": "Kota Singkawang",
+    "provinceId": "61",
+    "type": "kota"
+  }
+]

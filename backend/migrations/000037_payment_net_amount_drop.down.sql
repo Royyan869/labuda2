@@ -1,0 +1,1 @@
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS net_amount bigint NOT NULL DEFAULT 0;

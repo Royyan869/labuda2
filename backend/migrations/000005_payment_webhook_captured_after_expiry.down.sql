@@ -1,0 +1,10 @@
+-- Rollback of 000005_payment_webhook_captured_after_expiry (local rollback only).
+--
+-- NOTE: 'captured_after_expiry' added to payment_webhook_status_enum is NOT
+-- removed here. PostgreSQL does not support dropping a single enum value
+-- without recreating the type; leaving the label behind is harmless (unused
+-- values are not enforced) and matches this being a local-only rollback path.
+--
+-- PASS_19B: the index that used to be created by this migration now lives in
+-- 000008_payment_webhook_captured_after_expiry_index; its down migration
+-- drops that index. This file has nothing left to roll back.

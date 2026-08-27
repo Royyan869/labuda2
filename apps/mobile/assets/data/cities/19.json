@@ -1,0 +1,44 @@
+[
+  {
+    "id": "1901",
+    "name": "Kabupaten Bangka",
+    "provinceId": "19",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1905",
+    "name": "Kabupaten Bangka Barat",
+    "provinceId": "19",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1903",
+    "name": "Kabupaten Bangka Selatan",
+    "provinceId": "19",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1904",
+    "name": "Kabupaten Bangka Tengah",
+    "provinceId": "19",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1902",
+    "name": "Kabupaten Belitung",
+    "provinceId": "19",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1906",
+    "name": "Kabupaten Belitung Timur",
+    "provinceId": "19",
+    "type": "kabupaten"
+  },
+  {
+    "id": "1971",
+    "name": "Kota Pangkal Pinang",
+    "provinceId": "19",
+    "type": "kota"
+  }
+]

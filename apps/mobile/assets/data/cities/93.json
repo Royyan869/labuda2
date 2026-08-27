@@ -1,0 +1,26 @@
+[
+  {
+    "id": "9304",
+    "name": "Kabupaten Asmat",
+    "provinceId": "93",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9302",
+    "name": "Kabupaten Boven Digoel",
+    "provinceId": "93",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9303",
+    "name": "Kabupaten Mappi",
+    "provinceId": "93",
+    "type": "kabupaten"
+  },
+  {
+    "id": "9301",
+    "name": "Kabupaten Merauke",
+    "provinceId": "93",
+    "type": "kabupaten"
+  }
+]

@@ -1,0 +1,142 @@
+# =============================================================================
+# Labuda backend — Render Blueprint (staging/demo, FREE tier)
+#
+# Render is a development/staging/demo runtime ONLY. It is NOT production.
+# No production credentials, payment keys, or secrets are stored in this file.
+# Secrets are prompted for at Blueprint creation (`sync: false`) and held in
+# Render's encrypted secret store.
+#
+# Architecture (minimum for the first staging boot):
+#   1. Web Service  -> backend (Docker image built from backend/Dockerfile)
+#   2. Postgres     -> Render-managed free database (private network only)
+#   3. Key Value    -> Render-managed Redis-compatible store (private network only)
+#
+# Migrations run inside the container entrypoint before the server starts,
+# because Render's pre-deploy command is only available on paid plans.
+# See backend/docker-entrypoint.sh.
+# =============================================================================
+version: "1"
+
+services:
+  # ---------------------------------------------------------------------------
+  # Backend HTTP service
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: labuda-backend
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: oregon
+    branch: main
+    autoDeployTrigger: commit
+    healthCheckPath: /health
+    envVars:
+      # Runtime mode. Staging guards are active (see ValidateStagingActivation).
+      - key: ENV
+        value: staging
+
+      # ---- Database (Render Postgres) ----
+      # Individual fields wired via Render's fromDatabase references.
+      - key: DB_USER
+        fromDatabase:
+          name: labuda-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: labuda-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: labuda-db
+          property: database
+      - key: DB_SSLMODE
+        value: require
+      # Full connection-string fallback used by docker-entrypoint.sh if any
+      # individual property reference above does not resolve.
+      - key: RENDER_DATABASE_URL
+        fromDatabase:
+          name: labuda-db
+          property: connectionString
+
+      # ---- Redis (Render Key Value) ----
+      - key: REDIS_HOST
+        fromService:
+          name: labuda-redis
+          type: keyvalue
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          name: labuda-redis
+          type: keyvalue
+          property: port
+      # Internal Key Value connections are unauthenticated by default.
+      - key: REDIS_PASSWORD
+        value: ""
+      # Fallback used by docker-entrypoint.sh if host/port references fail.
+      - key: RENDER_REDIS_URL
+        fromService:
+          name: labuda-redis
+          type: keyvalue
+          property: connectionString
+
+      # ---- Firebase (staging project; values provided at creation) ----
+      # Project ID of the dedicated development/staging Firebase project.
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      # Secret JSON service-account credentials. Materialized to a temp file
+      # by docker-entrypoint.sh; never baked into the image.
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
+
+      # ---- Midtrans (SANDBOX ONLY — production keys are out of scope) ----
+      - key: MIDTRANS_ENVIRONMENT
+        value: sandbox
+      - key: MIDTRANS_SERVER_KEY
+        sync: false
+      - key: MIDTRANS_CLIENT_KEY
+        sync: false
+
+      # ---- Payouts (sandbox only; worker stays disabled) ----
+      - key: PAYOUT_GATEWAY_PROVIDER
+        value: sandbox
+      - key: PAYOUT_ENVIRONMENT
+        value: sandbox
+      - key: PAYOUT_ENABLE_PRODUCTION
+        value: "false"
+
+      # ---- Staging safety ----
+      - key: USE_UNIFIED_WITHDRAWAL
+        value: "true"
+
+      # ---- Auth token signing (random value generated at creation) ----
+      - key: JWT_SECRET
+        generateValue: true
+
+  # ---------------------------------------------------------------------------
+  # Render Key Value (Redis-compatible, Valkey 8) — free tier
+  # ---------------------------------------------------------------------------
+  - type: keyvalue
+    name: labuda-redis
+    plan: free
+    region: oregon
+    # Private-network only: no external access. The backend connects over the
+    # internal URL (same workspace and region).
+    ipAllowList: []
+    # Free Key Value instances do not support persistence; data is ephemeral.
+    persistenceMode: "off"
+
+databases:
+  # ---------------------------------------------------------------------------
+  # Render Postgres — free tier (expires ~30 days after creation; acceptable
+  # for a demo environment; no production data is stored here).
+  # ---------------------------------------------------------------------------
+  - name: labuda-db
+    plan: free
+    region: oregon
+    databaseName: labuda
+    user: labuda
+    # Private-network only: no external access. The backend connects over the
+    # internal connection string (same workspace and region).
+    ipAllowList: []

@@ -1,0 +1,134 @@
+[
+  {
+    "id": "5302",
+    "name": "Kab Timor Tengah Selatan",
+    "provinceId": "53",
+    "type": "kota"
+  },
+  {
+    "id": "5305",
+    "name": "Kabupaten Alor",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5304",
+    "name": "Kabupaten Belu",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5308",
+    "name": "Kabupaten Ende",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5306",
+    "name": "Kabupaten Flores Timur",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5301",
+    "name": "Kabupaten Kupang",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5313",
+    "name": "Kabupaten Lembata",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5321",
+    "name": "Kabupaten Malaka",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5310",
+    "name": "Kabupaten Manggarai",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5315",
+    "name": "Kabupaten Manggarai Barat",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5319",
+    "name": "Kabupaten Manggarai Timur",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5316",
+    "name": "Kabupaten Nagekeo",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5309",
+    "name": "Kabupaten Ngada",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5314",
+    "name": "Kabupaten Rote Ndao",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5320",
+    "name": "Kabupaten Sabu Raijua",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5307",
+    "name": "Kabupaten Sikka",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5312",
+    "name": "Kabupaten Sumba Barat",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5318",
+    "name": "Kabupaten Sumba Barat Daya",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5317",
+    "name": "Kabupaten Sumba Tengah",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5311",
+    "name": "Kabupaten Sumba Timur",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5303",
+    "name": "Kabupaten Timor Tengah Utara",
+    "provinceId": "53",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5371",
+    "name": "Kota Kupang",
+    "provinceId": "53",
+    "type": "kota"
+  }
+]

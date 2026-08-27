@@ -1,0 +1,32 @@
+[
+  {
+    "id": "3402",
+    "name": "Kabupaten Bantul",
+    "provinceId": "34",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3403",
+    "name": "Kabupaten Gunungkidul",
+    "provinceId": "34",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3401",
+    "name": "Kabupaten Kulon Progo",
+    "provinceId": "34",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3404",
+    "name": "Kabupaten Sleman",
+    "provinceId": "34",
+    "type": "kabupaten"
+  },
+  {
+    "id": "3471",
+    "name": "Kota Yogyakarta",
+    "provinceId": "34",
+    "type": "kota"
+  }
+]

@@ -1,0 +1,347 @@
+[
+  {
+    "id": "760415",
+    "name": "Allu",
+    "cityId": "7604"
+  },
+  {
+    "id": "760413",
+    "name": "Anreapi",
+    "cityId": "7604"
+  },
+  {
+    "id": "760302",
+    "name": "Aralle",
+    "cityId": "7603"
+  },
+  {
+    "id": "760412",
+    "name": "Balanipa",
+    "cityId": "7604"
+  },
+  {
+    "id": "760312",
+    "name": "Balla",
+    "cityId": "7603"
+  },
+  {
+    "id": "760110",
+    "name": "Bambaira",
+    "cityId": "7601"
+  },
+  {
+    "id": "760101",
+    "name": "Bambalamotu",
+    "cityId": "7601"
+  },
+  {
+    "id": "760311",
+    "name": "Bambang",
+    "cityId": "7603"
+  },
+  {
+    "id": "760501",
+    "name": "Banggae",
+    "cityId": "7605"
+  },
+  {
+    "id": "760508",
+    "name": "Banggae Timur",
+    "cityId": "7605"
+  },
+  {
+    "id": "760103",
+    "name": "Baras",
+    "cityId": "7601"
+  },
+  {
+    "id": "760406",
+    "name": "Binuang",
+    "cityId": "7604"
+  },
+  {
+    "id": "760215",
+    "name": "Bonehau",
+    "cityId": "7602"
+  },
+  {
+    "id": "760603",
+    "name": "Budong-Budong",
+    "cityId": "7606"
+  },
+  {
+    "id": "760416",
+    "name": "Bulo",
+    "cityId": "7604"
+  },
+  {
+    "id": "760107",
+    "name": "Bulu Taba",
+    "cityId": "7601"
+  },
+  {
+    "id": "760316",
+    "name": "Buntumalangka",
+    "cityId": "7603"
+  },
+  {
+    "id": "760402",
+    "name": "Campalagian",
+    "cityId": "7604"
+  },
+  {
+    "id": "760105",
+    "name": "Dapurang",
+    "cityId": "7601"
+  },
+  {
+    "id": "760106",
+    "name": "Duripoku",
+    "cityId": "7601"
+  },
+  {
+    "id": "760203",
+    "name": "Kalukku",
+    "cityId": "7602"
+  },
+  {
+    "id": "760204",
+    "name": "Kalumpang",
+    "cityId": "7602"
+  },
+  {
+    "id": "760605",
+    "name": "Karossa",
+    "cityId": "7606"
+  },
+  {
+    "id": "760216",
+    "name": "Kepulauan Bala Balakang",
+    "cityId": "7602"
+  },
+  {
+    "id": "760112",
+    "name": "Lariang",
+    "cityId": "7601"
+  },
+  {
+    "id": "760411",
+    "name": "Limboro",
+    "cityId": "7604"
+  },
+  {
+    "id": "760410",
+    "name": "Luyo",
+    "cityId": "7604"
+  },
+  {
+    "id": "760504",
+    "name": "Malunda",
+    "cityId": "7605"
+  },
+  {
+    "id": "760303",
+    "name": "Mamasa",
+    "cityId": "7603"
+  },
+  {
+    "id": "760301",
+    "name": "Mambi",
+    "cityId": "7603"
+  },
+  {
+    "id": "760201",
+    "name": "Mamuju",
+    "cityId": "7602"
+  },
+  {
+    "id": "760408",
+    "name": "Mapilli",
+    "cityId": "7604"
+  },
+  {
+    "id": "760414",
+    "name": "Matakali",
+    "cityId": "7604"
+  },
+  {
+    "id": "760409",
+    "name": "Matangnga",
+    "cityId": "7604"
+  },
+  {
+    "id": "760317",
+    "name": "Mehalaan",
+    "cityId": "7603"
+  },
+  {
+    "id": "760307",
+    "name": "Messawa",
+    "cityId": "7603"
+  },
+  {
+    "id": "760313",
+    "name": "Nosu",
+    "cityId": "7603"
+  },
+  {
+    "id": "760502",
+    "name": "Pamboang",
+    "cityId": "7605"
+  },
+  {
+    "id": "760304",
+    "name": "Pana",
+    "cityId": "7603"
+  },
+  {
+    "id": "760602",
+    "name": "Pangale",
+    "cityId": "7606"
+  },
+  {
+    "id": "760207",
+    "name": "Papalang",
+    "cityId": "7602"
+  },
+  {
+    "id": "760102",
+    "name": "Pasangkayu",
+    "cityId": "7601"
+  },
+  {
+    "id": "760109",
+    "name": "Pedongga",
+    "cityId": "7601"
+  },
+  {
+    "id": "760404",
+    "name": "Polewali",
+    "cityId": "7604"
+  },
+  {
+    "id": "760315",
+    "name": "Rantebulahan Timur",
+    "cityId": "7603"
+  },
+  {
+    "id": "760208",
+    "name": "Sampaga",
+    "cityId": "7602"
+  },
+  {
+    "id": "760111",
+    "name": "Sarjo",
+    "cityId": "7601"
+  },
+  {
+    "id": "760104",
+    "name": "Sarudu",
+    "cityId": "7601"
+  },
+  {
+    "id": "760503",
+    "name": "Sendana",
+    "cityId": "7605"
+  },
+  {
+    "id": "760308",
+    "name": "Sesenapadang",
+    "cityId": "7603"
+  },
+  {
+    "id": "760212",
+    "name": "Simboro",
+    "cityId": "7602"
+  },
+  {
+    "id": "760306",
+    "name": "Sumarorong",
+    "cityId": "7603"
+  },
+  {
+    "id": "760310",
+    "name": "Tabang",
+    "cityId": "7603"
+  },
+  {
+    "id": "760305",
+    "name": "Tabulahan",
+    "cityId": "7603"
+  },
+  {
+    "id": "760506",
+    "name": "Tammerodo Sendana",
+    "cityId": "7605"
+  },
+  {
+    "id": "760309",
+    "name": "Tanduk Kalua",
+    "cityId": "7603"
+  },
+  {
+    "id": "760202",
+    "name": "Tapalang",
+    "cityId": "7602"
+  },
+  {
+    "id": "760213",
+    "name": "Tapalang Barat",
+    "cityId": "7602"
+  },
+  {
+    "id": "760407",
+    "name": "Tapango",
+    "cityId": "7604"
+  },
+  {
+    "id": "760314",
+    "name": "Tawalian",
+    "cityId": "7603"
+  },
+  {
+    "id": "760108",
+    "name": "Tikke Raya",
+    "cityId": "7601"
+  },
+  {
+    "id": "760401",
+    "name": "Tinambung",
+    "cityId": "7604"
+  },
+  {
+    "id": "760601",
+    "name": "Tobadak",
+    "cityId": "7606"
+  },
+  {
+    "id": "760211",
+    "name": "Tommo",
+    "cityId": "7602"
+  },
+  {
+    "id": "760604",
+    "name": "Topoyo",
+    "cityId": "7606"
+  },
+  {
+    "id": "760507",
+    "name": "Tubo Sendana",
+    "cityId": "7605"
+  },
+  {
+    "id": "760405",
+    "name": "Tutar",
+    "cityId": "7604"
+  },
+  {
+    "id": "760505",
+    "name": "Ulumanda",
+    "cityId": "7605"
+  },
+  {
+    "id": "760403",
+    "name": "Wonomulyo",
+    "cityId": "7604"
+  }
+]

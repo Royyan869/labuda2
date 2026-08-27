@@ -1,0 +1,392 @@
+[
+  {
+    "id": "340205",
+    "name": "Bambanglipuro",
+    "cityId": "3402"
+  },
+  {
+    "id": "340212",
+    "name": "Banguntapan",
+    "cityId": "3402"
+  },
+  {
+    "id": "340208",
+    "name": "Bantul",
+    "cityId": "3402"
+  },
+  {
+    "id": "340408",
+    "name": "Berbah",
+    "cityId": "3404"
+  },
+  {
+    "id": "340417",
+    "name": "Cangkringan",
+    "cityId": "3404"
+  },
+  {
+    "id": "347104",
+    "name": "Danurejan",
+    "cityId": "3471"
+  },
+  {
+    "id": "340407",
+    "name": "Depok",
+    "cityId": "3404"
+  },
+  {
+    "id": "340211",
+    "name": "Dlingo",
+    "cityId": "3402"
+  },
+  {
+    "id": "340104",
+    "name": "Galur",
+    "cityId": "3401"
+  },
+  {
+    "id": "340401",
+    "name": "Gamping",
+    "cityId": "3404"
+  },
+  {
+    "id": "340314",
+    "name": "Gedangsari",
+    "cityId": "3403"
+  },
+  {
+    "id": "347105",
+    "name": "Gedongtengen",
+    "cityId": "3471"
+  },
+  {
+    "id": "340109",
+    "name": "Girimulyo",
+    "cityId": "3401"
+  },
+  {
+    "id": "340316",
+    "name": "Girisubo",
+    "cityId": "3403"
+  },
+  {
+    "id": "340402",
+    "name": "Godean",
+    "cityId": "3404"
+  },
+  {
+    "id": "347103",
+    "name": "Gondokusuman",
+    "cityId": "3471"
+  },
+  {
+    "id": "347110",
+    "name": "Gondomanan",
+    "cityId": "3471"
+  },
+  {
+    "id": "340210",
+    "name": "Imogiri",
+    "cityId": "3402"
+  },
+  {
+    "id": "347102",
+    "name": "Jetis",
+    "cityId": "3471"
+  },
+  {
+    "id": "340209",
+    "name": "Jetis",
+    "cityId": "3402"
+  },
+  {
+    "id": "340410",
+    "name": "Kalasan",
+    "cityId": "3404"
+  },
+  {
+    "id": "340112",
+    "name": "Kalibawang",
+    "cityId": "3401"
+  },
+  {
+    "id": "340309",
+    "name": "Karangmojo",
+    "cityId": "3403"
+  },
+  {
+    "id": "340216",
+    "name": "Kasihan",
+    "cityId": "3402"
+  },
+  {
+    "id": "340108",
+    "name": "Kokap",
+    "cityId": "3401"
+  },
+  {
+    "id": "347114",
+    "name": "Kotagede",
+    "cityId": "3471"
+  },
+  {
+    "id": "347109",
+    "name": "Kraton",
+    "cityId": "3471"
+  },
+  {
+    "id": "340203",
+    "name": "Kretek",
+    "cityId": "3402"
+  },
+  {
+    "id": "340105",
+    "name": "Lendah",
+    "cityId": "3401"
+  },
+  {
+    "id": "347108",
+    "name": "Mantrijeron",
+    "cityId": "3471"
+  },
+  {
+    "id": "347112",
+    "name": "Mergangsan",
+    "cityId": "3471"
+  },
+  {
+    "id": "340404",
+    "name": "Minggir",
+    "cityId": "3404"
+  },
+  {
+    "id": "340406",
+    "name": "Mlati",
+    "cityId": "3404"
+  },
+  {
+    "id": "340403",
+    "name": "Moyudan",
+    "cityId": "3404"
+  },
+  {
+    "id": "340110",
+    "name": "Nanggulan",
+    "cityId": "3401"
+  },
+  {
+    "id": "340412",
+    "name": "Ngaglik",
+    "cityId": "3404"
+  },
+  {
+    "id": "347106",
+    "name": "Ngampilan",
+    "cityId": "3471"
+  },
+  {
+    "id": "340313",
+    "name": "Ngawen",
+    "cityId": "3403"
+  },
+  {
+    "id": "340411",
+    "name": "Ngemplak",
+    "cityId": "3404"
+  },
+  {
+    "id": "340302",
+    "name": "Nglipar",
+    "cityId": "3403"
+  },
+  {
+    "id": "340207",
+    "name": "Pajangan",
+    "cityId": "3402"
+  },
+  {
+    "id": "340416",
+    "name": "Pakem",
+    "cityId": "3404"
+  },
+  {
+    "id": "347111",
+    "name": "Pakualaman",
+    "cityId": "3471"
+  },
+  {
+    "id": "340305",
+    "name": "Paliyan",
+    "cityId": "3403"
+  },
+  {
+    "id": "340206",
+    "name": "Pandak",
+    "cityId": "3402"
+  },
+  {
+    "id": "340306",
+    "name": "Panggang",
+    "cityId": "3403"
+  },
+  {
+    "id": "340103",
+    "name": "Panjatan",
+    "cityId": "3401"
+  },
+  {
+    "id": "340304",
+    "name": "Patuk",
+    "cityId": "3403"
+  },
+  {
+    "id": "340107",
+    "name": "Pengasih",
+    "cityId": "3401"
+  },
+  {
+    "id": "340214",
+    "name": "Piyungan",
+    "cityId": "3402"
+  },
+  {
+    "id": "340303",
+    "name": "Playen",
+    "cityId": "3403"
+  },
+  {
+    "id": "340213",
+    "name": "Pleret",
+    "cityId": "3402"
+  },
+  {
+    "id": "340310",
+    "name": "Ponjong",
+    "cityId": "3403"
+  },
+  {
+    "id": "340409",
+    "name": "Prambanan",
+    "cityId": "3404"
+  },
+  {
+    "id": "340204",
+    "name": "Pundong",
+    "cityId": "3402"
+  },
+  {
+    "id": "340318",
+    "name": "Purwosari",
+    "cityId": "3403"
+  },
+  {
+    "id": "340311",
+    "name": "Rongkop",
+    "cityId": "3403"
+  },
+  {
+    "id": "340111",
+    "name": "Samigaluh",
+    "cityId": "3401"
+  },
+  {
+    "id": "340202",
+    "name": "Sanden",
+    "cityId": "3402"
+  },
+  {
+    "id": "340315",
+    "name": "Saptosari",
+    "cityId": "3403"
+  },
+  {
+    "id": "340217",
+    "name": "Sedayu",
+    "cityId": "3402"
+  },
+  {
+    "id": "340308",
+    "name": "Semanu",
+    "cityId": "3403"
+  },
+  {
+    "id": "340312",
+    "name": "Semin",
+    "cityId": "3403"
+  },
+  {
+    "id": "340106",
+    "name": "Sentolo",
+    "cityId": "3401"
+  },
+  {
+    "id": "340215",
+    "name": "Sewon",
+    "cityId": "3402"
+  },
+  {
+    "id": "340405",
+    "name": "Seyegan",
+    "cityId": "3404"
+  },
+  {
+    "id": "340413",
+    "name": "Sleman",
+    "cityId": "3404"
+  },
+  {
+    "id": "340201",
+    "name": "Srandakan",
+    "cityId": "3402"
+  },
+  {
+    "id": "340317",
+    "name": "Tanjungsari",
+    "cityId": "3403"
+  },
+  {
+    "id": "347101",
+    "name": "Tegalrejo",
+    "cityId": "3471"
+  },
+  {
+    "id": "340101",
+    "name": "Temon",
+    "cityId": "3401"
+  },
+  {
+    "id": "340414",
+    "name": "Tempel",
+    "cityId": "3404"
+  },
+  {
+    "id": "340307",
+    "name": "Tepus",
+    "cityId": "3403"
+  },
+  {
+    "id": "340415",
+    "name": "Turi",
+    "cityId": "3404"
+  },
+  {
+    "id": "347113",
+    "name": "Umbulharjo",
+    "cityId": "3471"
+  },
+  {
+    "id": "340102",
+    "name": "Wates",
+    "cityId": "3401"
+  },
+  {
+    "id": "347107",
+    "name": "Wirobrajan",
+    "cityId": "3471"
+  },
+  {
+    "id": "340301",
+    "name": "Wonosari",
+    "cityId": "3403"
+  }
+]

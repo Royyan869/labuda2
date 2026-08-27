@@ -1,0 +1,237 @@
+[
+  {
+    "id": "190303",
+    "name": "Airgegas",
+    "cityId": "1903"
+  },
+  {
+    "id": "190205",
+    "name": "Badau",
+    "cityId": "1902"
+  },
+  {
+    "id": "190106",
+    "name": "Bakam",
+    "cityId": "1901"
+  },
+  {
+    "id": "190102",
+    "name": "Belinyu",
+    "cityId": "1901"
+  },
+  {
+    "id": "197101",
+    "name": "Bukit Intan",
+    "cityId": "1971"
+  },
+  {
+    "id": "190605",
+    "name": "Damar",
+    "cityId": "1906"
+  },
+  {
+    "id": "190603",
+    "name": "Dendang",
+    "cityId": "1906"
+  },
+  {
+    "id": "197106",
+    "name": "Gabek",
+    "cityId": "1971"
+  },
+  {
+    "id": "190602",
+    "name": "Gantung",
+    "cityId": "1906"
+  },
+  {
+    "id": "197105",
+    "name": "Gerunggang",
+    "cityId": "1971"
+  },
+  {
+    "id": "197107",
+    "name": "Girimaya",
+    "cityId": "1971"
+  },
+  {
+    "id": "190503",
+    "name": "Jebus",
+    "cityId": "1905"
+  },
+  {
+    "id": "190504",
+    "name": "Kelapa",
+    "cityId": "1905"
+  },
+  {
+    "id": "190604",
+    "name": "Kelapa Kampit",
+    "cityId": "1906"
+  },
+  {
+    "id": "190308",
+    "name": "Kepulauan Pongok",
+    "cityId": "1903"
+  },
+  {
+    "id": "190401",
+    "name": "Koba",
+    "cityId": "1904"
+  },
+  {
+    "id": "190302",
+    "name": "Lepar",
+    "cityId": "1903"
+  },
+  {
+    "id": "190406",
+    "name": "Lubuk Besar",
+    "cityId": "1904"
+  },
+  {
+    "id": "190601",
+    "name": "Manggar",
+    "cityId": "1906"
+  },
+  {
+    "id": "190202",
+    "name": "Membalong",
+    "cityId": "1902"
+  },
+  {
+    "id": "190104",
+    "name": "Mendo Barat",
+    "cityId": "1901"
+  },
+  {
+    "id": "190501",
+    "name": "Mentok",
+    "cityId": "1905"
+  },
+  {
+    "id": "190103",
+    "name": "Merawang",
+    "cityId": "1901"
+  },
+  {
+    "id": "190405",
+    "name": "Namang",
+    "cityId": "1904"
+  },
+  {
+    "id": "197103",
+    "name": "Pangkal Balam",
+    "cityId": "1971"
+  },
+  {
+    "id": "190402",
+    "name": "Pangkalan Baru",
+    "cityId": "1904"
+  },
+  {
+    "id": "190506",
+    "name": "Parittiga",
+    "cityId": "1905"
+  },
+  {
+    "id": "190305",
+    "name": "Payung",
+    "cityId": "1903"
+  },
+  {
+    "id": "190105",
+    "name": "Pemali",
+    "cityId": "1901"
+  },
+  {
+    "id": "190108",
+    "name": "Puding Besar",
+    "cityId": "1901"
+  },
+  {
+    "id": "190307",
+    "name": "Pulau Besar",
+    "cityId": "1903"
+  },
+  {
+    "id": "197104",
+    "name": "Rangkui",
+    "cityId": "1971"
+  },
+  {
+    "id": "190107",
+    "name": "Riau Silip",
+    "cityId": "1901"
+  },
+  {
+    "id": "190203",
+    "name": "Selat Nasik",
+    "cityId": "1902"
+  },
+  {
+    "id": "190204",
+    "name": "Sijuk",
+    "cityId": "1902"
+  },
+  {
+    "id": "190404",
+    "name": "Simpang Katis",
+    "cityId": "1904"
+  },
+  {
+    "id": "190607",
+    "name": "Simpang Pesak",
+    "cityId": "1906"
+  },
+  {
+    "id": "190606",
+    "name": "Simpang Renggiang",
+    "cityId": "1906"
+  },
+  {
+    "id": "190304",
+    "name": "Simpang Rimba",
+    "cityId": "1903"
+  },
+  {
+    "id": "190502",
+    "name": "Simpang Teritip",
+    "cityId": "1905"
+  },
+  {
+    "id": "190403",
+    "name": "Sungai Selan",
+    "cityId": "1904"
+  },
+  {
+    "id": "190101",
+    "name": "Sungailiat",
+    "cityId": "1901"
+  },
+  {
+    "id": "197102",
+    "name": "Taman Sari",
+    "cityId": "1971"
+  },
+  {
+    "id": "190201",
+    "name": "Tanjungpandan",
+    "cityId": "1902"
+  },
+  {
+    "id": "190505",
+    "name": "Tempilang",
+    "cityId": "1905"
+  },
+  {
+    "id": "190301",
+    "name": "Toboali",
+    "cityId": "1903"
+  },
+  {
+    "id": "190306",
+    "name": "Tukak Sadai",
+    "cityId": "1903"
+  }
+]

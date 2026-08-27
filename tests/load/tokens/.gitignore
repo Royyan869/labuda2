@@ -1,0 +1,4 @@
+# Token files (never commit these)
+*.txt
+!README.md
+!token_loader.js

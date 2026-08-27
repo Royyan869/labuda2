@@ -1,0 +1,80 @@
+[
+  {
+    "id": "7201",
+    "name": "Kabupaten Banggai",
+    "provinceId": "72",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7207",
+    "name": "Kabupaten Banggai Kepulauan",
+    "provinceId": "72",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7211",
+    "name": "Kabupaten Banggai Laut",
+    "provinceId": "72",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7205",
+    "name": "Kabupaten Buol",
+    "provinceId": "72",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7203",
+    "name": "Kabupaten Donggala",
+    "provinceId": "72",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7206",
+    "name": "Kabupaten Morowali",
+    "provinceId": "72",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7212",
+    "name": "Kabupaten Morowali Utara",
+    "provinceId": "72",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7208",
+    "name": "Kabupaten Parigi Moutong",
+    "provinceId": "72",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7202",
+    "name": "Kabupaten Poso",
+    "provinceId": "72",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7210",
+    "name": "Kabupaten Sigi",
+    "provinceId": "72",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7209",
+    "name": "Kabupaten Tojo Una Una",
+    "provinceId": "72",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7204",
+    "name": "Kabupaten Toli-Toli",
+    "provinceId": "72",
+    "type": "kabupaten"
+  },
+  {
+    "id": "7271",
+    "name": "Kota Palu",
+    "provinceId": "72",
+    "type": "kota"
+  }
+]

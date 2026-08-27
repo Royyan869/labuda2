@@ -1,0 +1,1958 @@
+{
+  "@@locale": "en",
+
+  "appName": "LABUDA",
+  "@appName": {
+    "description": "The application name"
+  },
+
+  "appDescription": "Indonesian Koi Community",
+  "@appDescription": {
+    "description": "The application description"
+  },
+
+  "login": "Login",
+  "@login": {
+    "description": "Login button text"
+  },
+
+  "register": "Register",
+  "@register": {
+    "description": "Register button text"
+  },
+
+  "logout": "Logout",
+  "@logout": {
+    "description": "Logout button text"
+  },
+
+  "logoutSuccess": "You have been logged out",
+  "@logoutSuccess": {
+    "description": "Logout success message"
+  },
+
+  "loginSuccess": "Successfully logged in as",
+  "@loginSuccess": {
+    "description": "Login success message"
+  },
+
+  "registerComingSoon": "Registration page coming soon",
+  "@registerComingSoon": {
+    "description": "Registration coming soon message"
+  },
+
+  "languageChanged": "Language changed successfully",
+  "@languageChanged": {
+    "description": "Language change success message"
+  },
+
+  "language": "Language",
+  "@language": {
+    "description": "Language setting label"
+  },
+
+  "indonesian": "Bahasa Indonesia",
+  "@indonesian": {
+    "description": "Indonesian language name"
+  },
+
+  "english": "English",
+  "@english": {
+    "description": "English language name"
+  },
+
+  "koiCommunity": "Indonesian Koi Community",
+  "@koiCommunity": {
+    "description": "Koi community title"
+  },
+
+  "home": "Home",
+  "@home": {
+    "description": "Home tab label"
+  },
+
+  "products": "Collections",
+  "@products": {
+    "description": "Collections tab label"
+  },
+
+  "articles": "Articles",
+  "@articles": {
+    "description": "Articles tab label"
+  },
+
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings tab label"
+  },
+
+  "helpSupport": "Help & Support",
+  "@helpSupport": {
+    "description": "Help and support menu item"
+  },
+
+  "aboutShona": "About LABUDA",
+  "@aboutShona": {
+    "description": "About LABUDA menu item"
+  },
+
+  "comingSoon": "coming soon",
+  "@comingSoon": {
+    "description": "Coming soon text"
+  },
+
+  "theme": "Theme",
+  "@theme": {
+    "description": "Theme setting label"
+  },
+
+  "lightTheme": "Light",
+  "@lightTheme": {
+    "description": "Light theme option"
+  },
+
+  "darkTheme": "Dark",
+  "@darkTheme": {
+    "description": "Dark theme option"
+  },
+
+  "profile": "Profile",
+  "@profile": {
+    "description": "Profile label"
+  },
+
+  "editProfile": "Edit Profile",
+  "@editProfile": {
+    "description": "Edit profile button"
+  },
+
+  "share": "Share",
+  "@share": {
+    "description": "Share button"
+  },
+
+  "follow": "Follow",
+  "@follow": {
+    "description": "Follow button"
+  },
+
+  "chat": "Chat",
+  "@chat": {
+    "description": "Chat button"
+  },
+
+  "save": "Save",
+  "@save": {
+    "description": "Save button"
+  },
+
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button"
+  },
+
+  "upgradeToSeller": "Upgrade to Seller",
+  "@upgradeToSeller": {
+    "description": "Upgrade to seller title"
+  },
+
+  "startSellingToday": "Start selling your koi today!",
+  "@startSellingToday": {
+    "description": "Upgrade seller subtitle"
+  },
+
+  "auction": "Auction",
+  "@auction": {
+    "description": "Auction tab label"
+  },
+
+  "market": "Collections",
+  "@market": {
+    "description": "Collections tab label"
+  },
+
+  "messages": "Messages",
+  "@messages": {
+    "description": "Messages label"
+  },
+
+  "notifications": "Notifications",
+  "@notifications": {
+    "description": "Notifications label"
+  },
+
+  "accountSettings": "Account Settings",
+  "@accountSettings": {
+    "description": "Account settings section"
+  },
+
+  "appPreferences": "App Preferences",
+  "@appPreferences": {
+    "description": "App preferences section"
+  },
+
+  "updateProfileInfo": "Update your profile information",
+  "@updateProfileInfo": {
+    "description": "Edit profile subtitle"
+  },
+
+  "addressPayment": "Address & Payment",
+  "@addressPayment": {
+    "description": "Address and payment menu"
+  },
+
+  "manageAddressPayment": "Manage shipping address and payment methods",
+  "@manageAddressPayment": {
+    "description": "Address and payment subtitle"
+  },
+
+  "security": "Security",
+  "@security": {
+    "description": "Security menu"
+  },
+
+  "manageSecurity": "Manage password, 2FA, and login sessions",
+  "@manageSecurity": {
+    "description": "Security subtitle"
+  },
+
+  "notificationSettings": "Notification Settings",
+  "@notificationSettings": {
+    "description": "Notification settings menu"
+  },
+
+  "manageNotifications": "Manage email and push notifications",
+  "@manageNotifications": {
+    "description": "Notification settings subtitle"
+  },
+
+  "privacy": "Privacy",
+  "@privacy": {
+    "description": "Privacy menu"
+  },
+
+  "managePrivacy": "Manage profile visibility and data sharing",
+  "@managePrivacy": {
+    "description": "Privacy subtitle"
+  },
+
+  "getHelp": "Get help and contact support",
+  "@getHelp": {
+    "description": "Help and support subtitle"
+  },
+
+  "legalInfo": "Legal Information",
+  "@legalInfo": {
+    "description": "Legal information menu"
+  },
+
+  "termsPrivacyPolicy": "Terms of Service and Privacy Policy",
+  "@termsPrivacyPolicy": {
+    "description": "Legal information subtitle"
+  },
+
+  "notifications": "Notifications",
+  "@notifications": {
+    "description": "Notifications title"
+  },
+
+  "configureNotificationPreferences": "Configure notification preferences",
+  "@configureNotificationPreferences": {
+    "description": "Notification preferences subtitle"
+  },
+
+  "privacySecurity": "Privacy & Security",
+  "@privacySecurity": {
+    "description": "Privacy and security section"
+  },
+
+  "publicProfile": "Public Profile",
+  "@publicProfile": {
+    "description": "Public profile setting"
+  },
+
+  "makeProfileVisible": "Make your profile visible to all users",
+  "@makeProfileVisible": {
+    "description": "Public profile description"
+  },
+
+  "showOnlineStatus": "Show Online Status",
+  "@showOnlineStatus": {
+    "description": "Online status setting"
+  },
+
+  "letOthersSeeOnline": "Let others see when you're online",
+  "@letOthersSeeOnline": {
+    "description": "Online status description"
+  },
+
+  "allowMessages": "Allow Messages",
+  "@allowMessages": {
+    "description": "Messages setting"
+  },
+
+  "receiveMessagesFromOthers": "Receive messages from other users",
+  "@receiveMessagesFromOthers": {
+    "description": "Messages description"
+  },
+
+  "blockedUsers": "Blocked Users",
+  "@blockedUsers": {
+    "description": "Blocked users setting"
+  },
+
+  "manageBlockedAccounts": "Manage blocked accounts",
+  "@manageBlockedAccounts": {
+    "description": "Blocked users description"
+  },
+
+  "businessSettings": "Business Settings",
+  "@businessSettings": {
+    "description": "Business settings section"
+  },
+
+  "businessProfile": "Business Profile",
+  "@businessProfile": {
+    "description": "Business profile setting"
+  },
+
+  "manageBusinessInformation": "Manage your business information",
+  "@manageBusinessInformation": {
+    "description": "Business profile description"
+  },
+
+  "analytics": "Analytics",
+  "@analytics": {
+    "description": "Analytics setting"
+  },
+
+  "viewBusinessAnalytics": "View your business analytics",
+  "@viewBusinessAnalytics": {
+    "description": "Analytics description"
+  },
+
+  "paymentSettings": "Payment Settings",
+  "@paymentSettings": {
+    "description": "Payment settings"
+  },
+
+  "managePaymentMethods": "Manage payment methods and withdrawals",
+  "@managePaymentMethods": {
+    "description": "Payment settings description"
+  },
+
+  "supportLegal": "Support & Legal",
+  "@supportLegal": {
+    "description": "Support and legal section"
+  },
+
+  "helpSupportTitle": "Help & Support",
+  "@helpSupportTitle": {
+    "description": "Help and support title"
+  },
+
+  "getHelpContactSupport": "Get help and contact support",
+  "@getHelpContactSupport": {
+    "description": "Help support description"
+  },
+
+  "termsOfService": "Terms of Service",
+  "@termsOfService": {
+    "description": "Terms of service"
+  },
+
+  "readTermsConditions": "Read our terms and conditions",
+  "@readTermsConditions": {
+    "description": "Terms description"
+  },
+
+  "privacyPolicy": "Privacy Policy",
+  "@privacyPolicy": {
+    "description": "Privacy policy"
+  },
+
+  "learnDataProtection": "Learn how we protect your data",
+  "@learnDataProtection": {
+    "description": "Privacy policy description"
+  },
+
+  "aboutLABUDA": "About LABUDA",
+  "@aboutLABUDA": {
+    "description": "About LABUDA"
+  },
+
+  "appVersionInformation": "App version and information",
+  "@appVersionInformation": {
+    "description": "About app description"
+  },
+
+  "accountManagement": "Account Management",
+  "@accountManagement": {
+    "description": "Account management section"
+  },
+
+  "signOut": "Sign Out",
+  "@signOut": {
+    "description": "Sign out"
+  },
+
+  "signOutAccount": "Sign out of your account",
+  "@signOutAccount": {
+    "description": "Sign out description"
+  },
+
+  "deactivateAccount": "Deactivate Account",
+  "@deactivateAccount": {
+    "description": "Deactivate account"
+  },
+
+  "temporarilyDeactivate": "Temporarily deactivate your account",
+  "@temporarilyDeactivate": {
+    "description": "Deactivate description"
+  },
+
+  "guest": "Guest",
+  "@guest": {
+    "description": "Guest role"
+  },
+
+  "user": "User",
+  "@user": {
+    "description": "User role"
+  },
+
+  "basicSellerBadge": "Basic Seller",
+  "@basicSellerBadge": {
+    "description": "Basic seller achievement badge (0-99 sales)"
+  },
+
+  "proSeller": "Pro Seller",
+  "@proSeller": {
+    "description": "Pro seller tier label"
+  },
+
+  "eliteSeller": "Elite Seller",
+  "@eliteSeller": {
+    "description": "Elite seller reputation tier badge"
+  },
+
+  "admin": "Admin",
+  "@admin": {
+    "description": "Admin role"
+  },
+
+  "moderator": "Moderator",
+  "@moderator": {
+    "description": "Moderator role"
+  },
+
+  "hiddenMessageByModerator": "Message hidden by moderator",
+  "@hiddenMessageByModerator": {
+    "description": "Tombstone shown when a chat message is hidden by moderation"
+  },
+
+  "buyer": "Buyer",
+  "@buyer": {
+    "description": "Buyer role"
+  },
+
+  "currentUserType": "Buyer",
+  "@currentUserType": {
+    "description": "Current user type"
+  },
+
+  "notificationSettingsTitle": "Notification Settings",
+  "@notificationSettingsTitle": {
+    "description": "Notification settings title"
+  },
+
+  "pushNotifications": "Push Notifications",
+  "@pushNotifications": {
+    "description": "Push notifications"
+  },
+
+  "receiveNotificationsDevice": "Receive notifications on your device",
+  "@receiveNotificationsDevice": {
+    "description": "Push notifications description"
+  },
+
+  "emailNotifications": "Email Notifications",
+  "@emailNotifications": {
+    "description": "Email notifications"
+  },
+
+  "receiveNotificationsEmail": "Receive notifications via email",
+  "@receiveNotificationsEmail": {
+    "description": "Email notifications description"
+  },
+
+  "marketingEmails": "Marketing Emails",
+  "@marketingEmails": {
+    "description": "Marketing emails"
+  },
+
+  "receivePromotionalEmails": "Receive promotional and marketing emails",
+  "@receivePromotionalEmails": {
+    "description": "Marketing emails description"
+  },
+
+  "saveSettings": "Save Settings",
+  "@saveSettings": {
+    "description": "Save settings button"
+  },
+
+  "notificationSettingsSaved": "Notification settings saved",
+  "@notificationSettingsSaved": {
+    "description": "Settings saved message"
+  },
+
+  "koiSocialCommercePlatform": "LABUDA - Koi Social Commerce Platform",
+  "@koiSocialCommercePlatform": {
+    "description": "App description in about"
+  },
+
+  "version": "Version 1.0.0",
+  "@version": {
+    "description": "App version"
+  },
+
+  "copyrightLabudaTeam": "© {year} LABUDA Team",
+  "@copyrightLabudaTeam": {
+    "description": "Copyright text",
+    "placeholders": {
+      "year": {
+        "type": "Object"
+      }
+    }
+  },
+
+  "labudaDescription": "LABUDA is the first social commerce platform designed specifically for the Indonesian koi community.",
+  "@labudaDescription": {
+    "description": "LABUDA description"
+  },
+
+  "close": "Close",
+  "@close": {
+    "description": "Close button"
+  },
+
+  "signOutConfirm": "Are you sure you want to sign out of your account?",
+  "@signOutConfirm": {
+    "description": "Sign out confirmation"
+  },
+
+  "signedOutSuccessfully": "Signed out successfully",
+  "@signedOutSuccessfully": {
+    "description": "Sign out success message"
+  },
+
+  "deactivateAccountTitle": "Deactivate Account",
+  "@deactivateAccountTitle": {
+    "description": "Deactivate account dialog title"
+  },
+
+  "deactivateAccountDescription": "Your account will be temporarily deactivated. You can reactivate it anytime by logging in again.",
+  "@deactivateAccountDescription": {
+    "description": "Deactivate account description"
+  },
+
+  "reasonForDeactivation": "Reason for deactivation:",
+  "@reasonForDeactivation": {
+    "description": "Deactivation reason label"
+  },
+
+  "selectReason": "Select a reason",
+  "@selectReason": {
+    "description": "Select reason placeholder"
+  },
+
+  "privacyConcerns": "Privacy concerns",
+  "@privacyConcerns": {
+    "description": "Privacy concerns reason"
+  },
+
+  "notUsingApp": "Not using the app",
+  "@notUsingApp": {
+    "description": "Not using app reason"
+  },
+
+  "technicalIssues": "Technical issues",
+  "@technicalIssues": {
+    "description": "Technical issues reason"
+  },
+
+  "securityConcerns": "Security concerns",
+  "@securityConcerns": {
+    "description": "Security concerns reason"
+  },
+
+  "takingBreak": "Taking a break",
+  "@takingBreak": {
+    "description": "Taking break reason"
+  },
+
+  "other": "Other",
+  "@other": {
+    "description": "Other reason"
+  },
+
+  "additionalNotesOptional": "Additional notes (optional)",
+  "@additionalNotesOptional": {
+    "description": "Additional notes label"
+  },
+
+  "pleaseTellUsMore": "Please tell us more...",
+  "@pleaseTellUsMore": {
+    "description": "Additional notes placeholder"
+  },
+
+  "deactivate": "Deactivate",
+  "@deactivate": {
+    "description": "Deactivate button"
+  },
+
+  "userNotAuthenticated": "User not authenticated",
+  "@userNotAuthenticated": {
+    "description": "User not authenticated error"
+  },
+
+  "accountDeactivatedSuccessfully": "Account deactivated successfully",
+  "@accountDeactivatedSuccessfully": {
+    "description": "Account deactivated success"
+  },
+
+  "failedToDeactivateAccount": "Failed to deactivate account",
+  "@failedToDeactivateAccount": {
+    "description": "Failed to deactivate account error"
+  },
+
+  "securityTitle": "Security",
+  "@securityTitle": {
+    "description": "Security screen title"
+  },
+
+  "pleaseLoginToManage": "Please login to manage your account",
+  "@pleaseLoginToManage": {
+    "description": "Login required message"
+  },
+
+  "currentAccount": "Current Account",
+  "@currentAccount": {
+    "description": "Current account section"
+  },
+
+  "emailAddress": "Email Address",
+  "@emailAddress": {
+    "description": "Email address label"
+  },
+
+  "verified": "Verified",
+  "@verified": {
+    "description": "Verified status"
+  },
+
+  "unverified": "Unverified",
+  "@unverified": {
+    "description": "Unverified status"
+  },
+
+  "resendVerificationEmail": "Resend Verification Email",
+  "@resendVerificationEmail": {
+    "description": "Resend verification button"
+  },
+
+  "emailManagement": "Email Management",
+  "@emailManagement": {
+    "description": "Email management section"
+  },
+
+  "changeEmailAddress": "Change Email Address",
+  "@changeEmailAddress": {
+    "description": "Change email title"
+  },
+
+  "newEmailAddress": "New Email Address",
+  "@newEmailAddress": {
+    "description": "New email field"
+  },
+
+  "enterNewEmailAddress": "Enter your new email address",
+  "@enterNewEmailAddress": {
+    "description": "New email placeholder"
+  },
+
+  "currentPassword": "Current Password",
+  "@currentPassword": {
+    "description": "Current password field"
+  },
+
+  "enterCurrentPasswordToConfirm": "Enter your current password to confirm",
+  "@enterCurrentPasswordToConfirm": {
+    "description": "Current password placeholder"
+  },
+
+  "updateEmail": "Update Email",
+  "@updateEmail": {
+    "description": "Update email button"
+  },
+
+  "verifyNewEmailMessage": "You will need to verify your new email address before you can use it.",
+  "@verifyNewEmailMessage": {
+    "description": "Email verification message"
+  },
+
+  "passwordManagement": "Password Management",
+  "@passwordManagement": {
+    "description": "Password management section"
+  },
+
+  "changePassword": "Change Password",
+  "@changePassword": {
+    "description": "Change password title"
+  },
+
+  "enterCurrentPassword": "Enter your current password",
+  "@enterCurrentPassword": {
+    "description": "Current password placeholder"
+  },
+
+  "newPassword": "New Password",
+  "@newPassword": {
+    "description": "New password field"
+  },
+
+  "enterNewPassword": "Enter your new password",
+  "@enterNewPassword": {
+    "description": "New password placeholder"
+  },
+
+  "confirmNewPassword": "Confirm New Password",
+  "@confirmNewPassword": {
+    "description": "Confirm password field"
+  },
+
+  "confirmNewPasswordPlaceholder": "Confirm your new password",
+  "@confirmNewPasswordPlaceholder": {
+    "description": "Confirm password placeholder"
+  },
+
+  "updatePassword": "Update Password",
+  "@updatePassword": {
+    "description": "Update password button"
+  },
+
+  "strongPasswordMessage": "Choose a strong password with at least 8 characters, including uppercase, lowercase, and numbers.",
+  "@strongPasswordMessage": {
+    "description": "Strong password message"
+  },
+
+  "advancedSecurity": "Advanced Security",
+  "@advancedSecurity": {
+    "description": "Advanced security section"
+  },
+
+  "biometricLogin": "Biometric Login",
+  "@biometricLogin": {
+    "description": "Biometric login setting"
+  },
+
+  "useFingerprintFaceId": "Use fingerprint or face ID to login",
+  "@useFingerprintFaceId": {
+    "description": "Biometric login description"
+  },
+
+  "addExtraSecurityAccount": "Add extra security to your account",
+  "@addExtraSecurityAccount": {
+    "description": "2FA description"
+  },
+
+  "loginSessions": "Login Sessions",
+  "@loginSessions": {
+    "description": "Login sessions setting"
+  },
+  "noActiveSessions": "No active sessions found",
+  "unknownDevice": "Unknown device",
+  "revokeSession": "Revoke",
+  "revokeSessionTitle": "Revoke Session?",
+  "revokeSessionMessage": "This device will be signed out. You'll need to sign in again on that device.",
+  "signOutAllDevices": "Sign out all devices",
+  "signOutAllDevicesTitle": "Sign out all devices?",
+  "signOutAllDevicesMessage": "All active sessions will be terminated. You'll need to sign in again on all devices.",
+  "sessionRevokedSuccess": "Session revoked successfully",
+  "allSessionsRevokedSuccess": "Signed out from all devices",
+  "failedToLoadSessions": "Failed to load sessions. Please try again.",
+  "lastActive": "Last active",
+
+  "manageActiveSessions": "Manage your active sessions",
+  "@manageActiveSessions": {
+    "description": "Login sessions description"
+  },
+
+  "enableAdditionalSecurityMessage": "Enable additional security features to protect your account from unauthorized access.",
+  "@enableAdditionalSecurityMessage": {
+    "description": "Security features message"
+  },
+
+  "dangerZone": "Danger Zone",
+  "@dangerZone": {
+    "description": "Danger zone section"
+  },
+
+  "deleteAccount": "Delete Account",
+  "@deleteAccount": {
+    "description": "Delete account setting"
+  },
+
+  "permanentlyDeleteAccount": "Permanently delete your account",
+  "@permanentlyDeleteAccount": {
+    "description": "Delete account description"
+  },
+
+  "permanentActionsWarning": "These actions are permanent and cannot be undone. Please proceed with caution.",
+  "@permanentActionsWarning": {
+    "description": "Permanent actions warning"
+  },
+
+  "deleteAccountConfirm": "Are you sure you want to permanently delete your account? This action cannot be undone.",
+  "@deleteAccountConfirm": {
+    "description": "Delete account confirmation"
+  },
+
+  "delete": "Delete",
+  "@delete": {
+    "description": "Delete button"
+  },
+
+  "accountDeletionComingSoon": "Account deletion coming soon",
+  "@accountDeletionComingSoon": {
+    "description": "Account deletion coming soon message"
+  },
+
+  "pleaseFillAllFields": "Please fill all fields",
+  "@pleaseFillAllFields": {
+    "description": "Fill all fields error"
+  },
+
+  "emailChangeRequestSent": "Email change request sent! Check your new email for verification.",
+  "@emailChangeRequestSent": {
+    "description": "Email change success message"
+  },
+
+  "failedToChangeEmail": "Failed to change email. Please try again.",
+  "@failedToChangeEmail": {
+    "description": "Failed to change email error"
+  },
+
+  "anErrorOccurred": "An error occurred. Please try again.",
+  "@anErrorOccurred": {
+    "description": "Generic error message"
+  },
+
+  "newPasswordsDoNotMatch": "New passwords do not match",
+  "@newPasswordsDoNotMatch": {
+    "description": "Password mismatch error"
+  },
+
+  "currentPasswordRequired": "Current password is required",
+  "@currentPasswordRequired": {
+    "description": "Current password required error"
+  },
+
+  "newPasswordRequired": "New password is required",
+  "@newPasswordRequired": {
+    "description": "New password required error"
+  },
+
+  "confirmPasswordRequired": "Please confirm your new password",
+  "@confirmPasswordRequired": {
+    "description": "Confirm password required error"
+  },
+
+  "passwordUpdatedSuccessfully": "Password updated successfully!",
+  "@passwordUpdatedSuccessfully": {
+    "description": "Password update success"
+  },
+
+  "failedToChangePassword": "Failed to change password. Please try again.",
+  "@failedToChangePassword": {
+    "description": "Failed to change password error"
+  },
+
+  "verificationEmailSent": "Verification email sent! Check your inbox.",
+  "@verificationEmailSent": {
+    "description": "Verification email sent message"
+  },
+
+  "failedToSendVerificationEmail": "Failed to send verification email. Please try again.",
+  "@failedToSendVerificationEmail": {
+    "description": "Failed to send verification email error"
+  },
+
+  "addressPaymentTitle": "Address & Payment",
+  "@addressPaymentTitle": {
+    "description": "Address and payment screen title"
+  },
+
+  "shippingAddress": "Shipping Address",
+  "@shippingAddress": {
+    "description": "Shipping address section"
+  },
+
+  "personalInformation": "Personal Information",
+  "@personalInformation": {
+    "description": "Personal information section"
+  },
+
+  "paymentMethods": "Payment Methods",
+  "@paymentMethods": {
+    "description": "Payment methods section"
+  },
+
+  "bankAccountInformation": "Bank Account Information",
+  "@bankAccountInformation": {
+    "description": "Bank account section"
+  },
+
+  "primaryShippingAddress": "Primary Shipping Address",
+  "@primaryShippingAddress": {
+    "description": "Primary shipping address title"
+  },
+
+  "streetAddress": "Street Address",
+  "@streetAddress": {
+    "description": "Street address field"
+  },
+
+  "enterStreetAddress": "Enter your street address",
+  "@enterStreetAddress": {
+    "description": "Street address placeholder"
+  },
+
+  "streetAddressRequired": "Street address is required",
+  "@streetAddressRequired": {
+    "description": "Street address required error"
+  },
+
+  "city": "City",
+  "@city": {
+    "description": "City field"
+  },
+
+  "enterCity": "Enter city",
+  "@enterCity": {
+    "description": "City placeholder"
+  },
+
+  "cityRequired": "City is required",
+  "@cityRequired": {
+    "description": "City required error"
+  },
+
+  "province": "Province",
+  "@province": {
+    "description": "Province field"
+  },
+
+  "enterProvince": "Enter province",
+  "@enterProvince": {
+    "description": "Province placeholder"
+  },
+
+  "provinceRequired": "Province is required",
+  "@provinceRequired": {
+    "description": "Province required error"
+  },
+
+  "postalCode": "Postal Code",
+  "@postalCode": {
+    "description": "Postal code field"
+  },
+
+  "enterPostalCode": "Enter postal code",
+  "@enterPostalCode": {
+    "description": "Postal code placeholder"
+  },
+
+  "postalCodeRequired": "Postal code is required",
+  "@postalCodeRequired": {
+    "description": "Postal code required error"
+  },
+
+  "invalidPostalCodeFormat": "Invalid postal code format",
+  "@invalidPostalCodeFormat": {
+    "description": "Invalid postal code error"
+  },
+
+  "country": "Country",
+  "@country": {
+    "description": "Country field"
+  },
+
+  "enterCountry": "Enter country",
+  "@enterCountry": {
+    "description": "Country placeholder"
+  },
+
+  "indonesia": "Indonesia",
+  "@indonesia": {
+    "description": "Indonesia country"
+  },
+
+  "useAsBillingAddress": "Use as billing address",
+  "@useAsBillingAddress": {
+    "description": "Use as billing address checkbox"
+  },
+
+  "savedPaymentMethods": "Saved Payment Methods",
+  "@savedPaymentMethods": {
+    "description": "Saved payment methods title"
+  },
+
+  "gopay": "GoPay",
+  "@gopay": {
+    "description": "GoPay payment method"
+  },
+
+  "primaryPaymentMethodReady": "Primary payment method • Ready for integration",
+  "@primaryPaymentMethodReady": {
+    "description": "GoPay payment description"
+  },
+
+  "otherEWallets": "Other E-Wallets",
+  "@otherEWallets": {
+    "description": "Other e-wallets title"
+  },
+
+  "ovoDataShopeePay": "OVO, DANA, ShopeePay",
+  "@ovoDataShopeePay": {
+    "description": "Other e-wallets description"
+  },
+
+  "bankTransfer": "Bank Transfer",
+  "@bankTransfer": {
+    "description": "Bank transfer title"
+  },
+
+  "bcaMandiriBniBri": "BCA, Mandiri, BNI, BRI",
+  "@bcaMandiriBniBri": {
+    "description": "Bank transfer description"
+  },
+
+  "creditDebitCards": "Credit/Debit Cards",
+  "@creditDebitCards": {
+    "description": "Credit/debit cards title"
+  },
+
+  "visaMastercardJcb": "Visa, Mastercard, JCB",
+  "@visaMastercardJcb": {
+    "description": "Credit cards description"
+  },
+
+  "securePaymentsMessage": "Secure payments powered by GoPay. All transactions are encrypted and protected.",
+  "@securePaymentsMessage": {
+    "description": "Secure payments message"
+  },
+
+  "contactIdentityInformation": "Contact & Identity Information",
+  "@contactIdentityInformation": {
+    "description": "Contact and identity title"
+  },
+
+  "phoneNumber": "Phone Number",
+  "@phoneNumber": {
+    "description": "Phone number field"
+  },
+
+  "enterPhoneNumber": "Enter your phone number",
+  "@enterPhoneNumber": {
+    "description": "Phone number placeholder"
+  },
+
+  "invalidPhoneNumberFormat": "Invalid phone number format",
+  "@invalidPhoneNumberFormat": {
+    "description": "Invalid phone number error"
+  },
+
+  "identityVerificationRequired": "Identity Verification (Required)",
+  "@identityVerificationRequired": {
+    "description": "Identity verification title"
+  },
+
+  "ktpNumber": "KTP Number",
+  "@ktpNumber": {
+    "description": "KTP number field"
+  },
+
+  "enterKtpNumber": "Enter your KTP number (16 digits)",
+  "@enterKtpNumber": {
+    "description": "KTP number placeholder"
+  },
+
+  "ktpNumberRequired": "KTP number is required",
+  "@ktpNumberRequired": {
+    "description": "KTP number required error"
+  },
+
+  "ktpNumberMust16Digits": "KTP number must be exactly 16 digits",
+  "@ktpNumberMust16Digits": {
+    "description": "KTP number format error"
+  },
+
+  "fullNameAsPerKtp": "Full Name (as per KTP)",
+  "@fullNameAsPerKtp": {
+    "description": "Full name field"
+  },
+
+  "enterFullNameKtp": "Enter your full name as shown on KTP",
+  "@enterFullNameKtp": {
+    "description": "Full name placeholder"
+  },
+
+  "fullNameRequired": "Full name is required",
+  "@fullNameRequired": {
+    "description": "Full name required error"
+  },
+
+  "nameTooShort": "Name too short",
+  "@nameTooShort": {
+    "description": "Name too short error"
+  },
+
+  "nameTooLong": "Name too long",
+  "@nameTooLong": {
+    "description": "Name too long error"
+  },
+
+  "invalidCharactersInName": "Invalid characters in name",
+  "@invalidCharactersInName": {
+    "description": "Invalid name characters error"
+  },
+
+  "ktpPhoto": "KTP Photo",
+  "@ktpPhoto": {
+    "description": "KTP photo title"
+  },
+
+  "uploadKtpPhoto": "Upload KTP Photo",
+  "@uploadKtpPhoto": {
+    "description": "Upload KTP photo button"
+  },
+
+  "tapToSelectImage": "Tap to select image",
+  "@tapToSelectImage": {
+    "description": "Tap to select image text"
+  },
+
+  "ktpVerificationMessage": "KTP verification is required for account security and compliance. Upload a clear photo of your KTP. Your data is encrypted and secure.",
+  "@ktpVerificationMessage": {
+    "description": "KTP verification message"
+  },
+
+  "bankAccountForWithdrawals": "Bank Account for Withdrawals",
+  "@bankAccountForWithdrawals": {
+    "description": "Bank account title"
+  },
+
+  "manage": "Manage",
+  "@manage": {
+    "description": "Manage button"
+  },
+
+  "manageBankAccountsDescription": "Manage your bank accounts for receiving payments from sales. You can add multiple accounts and set one as primary.",
+  "@manageBankAccountsDescription": {
+    "description": "Bank accounts description"
+  },
+
+  "accountNumber": "Account Number",
+  "@accountNumber": {
+    "description": "Account number field"
+  },
+
+  "enterBankAccountNumber": "Enter your bank account number",
+  "@enterBankAccountNumber": {
+    "description": "Account number placeholder"
+  },
+
+  "accountNumberRequired": "Account number is required",
+  "@accountNumberRequired": {
+    "description": "Account number required error"
+  },
+
+  "invalidAccountNumberFormat": "Invalid account number format",
+  "@invalidAccountNumberFormat": {
+    "description": "Invalid account number error"
+  },
+
+  "accountHolderName": "Account Holder Name",
+  "@accountHolderName": {
+    "description": "Account holder name field"
+  },
+
+  "enterAccountHolderName": "Enter account holder name (as per bank records)",
+  "@enterAccountHolderName": {
+    "description": "Account holder name placeholder"
+  },
+
+  "accountHolderNameRequired": "Account holder name is required",
+  "@accountHolderNameRequired": {
+    "description": "Account holder name required error"
+  },
+
+  "branchNameOptional": "Branch Name (Optional)",
+  "@branchNameOptional": {
+    "description": "Branch name field"
+  },
+
+  "enterBankBranchName": "Enter bank branch name",
+  "@enterBankBranchName": {
+    "description": "Branch name placeholder"
+  },
+
+  "bankAccountWithdrawalMessage": "This bank account will be used for receiving withdrawals from sales. Make sure the account holder name matches your legal name.",
+  "@bankAccountWithdrawalMessage": {
+    "description": "Bank account withdrawal message"
+  },
+
+  "addressPaymentSavedSuccessfully": "Address and payment information saved successfully!",
+  "@addressPaymentSavedSuccessfully": {
+    "description": "Address payment saved success"
+  },
+
+  "failedToSaveInformation": "Failed to save information. Please try again.",
+  "@failedToSaveInformation": {
+    "description": "Failed to save information error"
+  },
+
+  "gopayIntegration": "GoPay Integration",
+  "@gopayIntegration": {
+    "description": "GoPay integration title"
+  },
+
+  "readyForSeamlessPayments": "Ready for seamless payments",
+  "@readyForSeamlessPayments": {
+    "description": "GoPay integration subtitle"
+  },
+
+  "benefitsOfGopayIntegration": "Benefits of GoPay Integration:",
+  "@benefitsOfGopayIntegration": {
+    "description": "GoPay benefits title"
+  },
+
+  "instantPayments": "Instant Payments",
+  "@instantPayments": {
+    "description": "Instant payments feature"
+  },
+
+  "quickSecureTransactions": "Quick and secure transactions",
+  "@quickSecureTransactions": {
+    "description": "Instant payments description"
+  },
+
+  "bankLevelSecurity": "Bank-Level Security",
+  "@bankLevelSecurity": {
+    "description": "Bank level security feature"
+  },
+
+  "protectedByGopaySystem": "Protected by GoPay's security system",
+  "@protectedByGopaySystem": {
+    "description": "Bank level security description"
+  },
+
+  "mobileFirst": "Mobile First",
+  "@mobileFirst": {
+    "description": "Mobile first feature"
+  },
+
+  "optimizedForMobileCommerce": "Optimized for mobile commerce",
+  "@optimizedForMobileCommerce": {
+    "description": "Mobile first description"
+  },
+
+  "autoReceipts": "Auto Receipts",
+  "@autoReceipts": {
+    "description": "Auto receipts feature"
+  },
+
+  "digitalReceiptsAllTransactions": "Digital receipts for all transactions",
+  "@digitalReceiptsAllTransactions": {
+    "description": "Auto receipts description"
+  },
+
+  "learnMore": "Learn More",
+  "@learnMore": {
+    "description": "Learn more button"
+  },
+
+  "setupGopay": "Setup GoPay",
+  "@setupGopay": {
+    "description": "Setup GoPay button"
+  },
+
+  "gopayDocumentationComingSoon": "GoPay documentation coming soon",
+  "@gopayDocumentationComingSoon": {
+    "description": "GoPay documentation coming soon"
+  },
+
+  "gopayIntegrationAvailableSoon": "GoPay integration will be available soon",
+  "@gopayIntegrationAvailableSoon": {
+    "description": "GoPay integration coming soon"
+  },
+
+  "ktpImageUploadComingSoon": "KTP image upload feature coming soon",
+  "@ktpImageUploadComingSoon": {
+    "description": "KTP upload coming soon"
+  },
+
+  "featureComingSoon": "feature coming soon",
+  "@featureComingSoon": {
+    "description": "Feature coming soon generic"
+  },
+
+  "bankAccountManagementInProgress": "Bank Account Management - Implementation in progress",
+  "@bankAccountManagementInProgress": {
+    "description": "Bank account management in progress"
+  },
+
+  "upgradeToSellerTitle": "Upgrade to Seller",
+  "@upgradeToSellerTitle": {
+    "description": "Upgrade to seller screen title"
+  },
+
+  "chooseYourPlan": "Choose Your Plan",
+  "@chooseYourPlan": {
+    "description": "Choose plan step title"
+  },
+
+  "businessInformation": "Business Information",
+  "@businessInformation": {
+    "description": "Business information step title"
+  },
+
+  "reviewPayment": "Review & Payment",
+  "@reviewPayment": {
+    "description": "Review payment step title"
+  },
+
+  "stepOf": "Step {current} of {total}",
+  "@stepOf": {
+    "description": "Step counter",
+    "placeholders": {
+      "current": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+
+  "choosePlanThatFits": "Choose the plan that fits your business",
+  "@choosePlanThatFits": {
+    "description": "Choose plan description"
+  },
+
+  "basicSellerPlan": "Basic Seller",
+  "@basicSellerPlan": {
+    "description": "Basic seller plan title"
+  },
+
+  "basicSellerPrice": "Rp 99K",
+  "@basicSellerPrice": {
+    "description": "Basic seller price"
+  },
+
+  "perMonth": "/month",
+  "@perMonth": {
+    "description": "Per month text"
+  },
+
+  "listUp50Products": "List up to 50 collections",
+  "@listUp50Products": {
+    "description": "Basic seller feature 1"
+  },
+
+  "basicAnalyticsDashboard": "Basic analytics dashboard",
+  "@basicAnalyticsDashboard": {
+    "description": "Basic seller feature 2"
+  },
+
+  "standardCustomerSupport": "Standard customer support",
+  "@standardCustomerSupport": {
+    "description": "Basic seller feature 3"
+  },
+
+  "basicStoreCustomization": "Basic store customization",
+  "@basicStoreCustomization": {
+    "description": "Basic seller feature 5"
+  },
+
+  "proSellerPlan": "Pro Seller",
+  "@proSellerPlan": {
+    "description": "Pro seller plan title"
+  },
+
+  "proSellerPrice": "Rp 199K",
+  "@proSellerPrice": {
+    "description": "Pro seller price"
+  },
+
+  "unlimitedProductListings": "Unlimited collection listings",
+  "@unlimitedProductListings": {
+    "description": "Pro seller feature 1"
+  },
+
+  "advancedAnalyticsInsights": "Advanced analytics & insights",
+  "@advancedAnalyticsInsights": {
+    "description": "Pro seller feature 2"
+  },
+
+  "priorityCustomerSupport": "Priority customer support",
+  "@priorityCustomerSupport": {
+    "description": "Pro seller feature 3"
+  },
+
+  "fullStoreCustomization": "Full store customization",
+  "@fullStoreCustomization": {
+    "description": "Pro seller feature 5"
+  },
+
+  "featuredListings": "Featured listings",
+  "@featuredListings": {
+    "description": "Pro seller feature 6"
+  },
+
+  "bulkUploadTools": "Bulk upload tools",
+  "@bulkUploadTools": {
+    "description": "Pro seller feature 7"
+  },
+
+  "marketingToolsPromotions": "Marketing tools & promotions",
+  "@marketingToolsPromotions": {
+    "description": "Pro seller feature 8"
+  },
+
+  "popular": "POPULAR",
+  "@popular": {
+    "description": "Popular badge"
+  },
+
+  "whyBecomeShonaSeeller": "Why become a LABUDA Seller?",
+  "@whyBecomeShonaSeeller": {
+    "description": "Why become seller title"
+  },
+
+  "reach10kActiveKoiEnthusiasts": "Reach 10,000+ active koi enthusiasts",
+  "@reach10kActiveKoiEnthusiasts": {
+    "description": "Seller benefit 1"
+  },
+
+  "averageSellerEarns5M": "Average seller earns Rp 5M+ per month",
+  "@averageSellerEarns5M": {
+    "description": "Seller benefit 2"
+  },
+
+  "easyMobileSellingTools": "Easy-to-use mobile selling tools",
+  "@easyMobileSellingTools": {
+    "description": "Seller benefit 3"
+  },
+
+  "getFeaturedHomepage": "Get featured on our homepage",
+  "@getFeaturedHomepage": {
+    "description": "Seller benefit 4"
+  },
+
+  "joinProfessionalSellerCommunity": "Join our professional seller community",
+  "@joinProfessionalSellerCommunity": {
+    "description": "Seller benefit 5"
+  },
+
+  "tellUsAboutBusiness": "Tell us about your business",
+  "@tellUsAboutBusiness": {
+    "description": "Business info description"
+  },
+
+  "businessNameRequired": "Business Name *",
+  "@businessNameRequired": {
+    "description": "Business name field"
+  },
+
+  "businessNamePlaceholder": "e.g., Koi Farm Bandung",
+  "@businessNamePlaceholder": {
+    "description": "Business name placeholder"
+  },
+
+  "businessAddressRequired": "Business Address *",
+  "@businessAddressRequired": {
+    "description": "Business address field"
+  },
+
+  "businessAddressPlaceholder": "Your business address",
+  "@businessAddressPlaceholder": {
+    "description": "Business address placeholder"
+  },
+
+  "businessPhoneRequired": "Business Phone *",
+  "@businessPhoneRequired": {
+    "description": "Business phone field"
+  },
+
+  "businessPhonePlaceholder": "+62",
+  "@businessPhonePlaceholder": {
+    "description": "Business phone placeholder"
+  },
+
+  "businessEmailRequired": "Business Email *",
+  "@businessEmailRequired": {
+    "description": "Business email field"
+  },
+
+  "businessEmailPlaceholder": "business@example.com",
+  "@businessEmailPlaceholder": {
+    "description": "Business email placeholder"
+  },
+
+  "businessDescription": "Business Description",
+  "@businessDescription": {
+    "description": "Business description field"
+  },
+
+  "businessDescriptionPlaceholder": "Tell customers about your business...",
+  "@businessDescriptionPlaceholder": {
+    "description": "Business description placeholder"
+  },
+
+  "reviewYourInformation": "Review your information",
+  "@reviewYourInformation": {
+    "description": "Review information description"
+  },
+
+  "selectedPlan": "Selected Plan",
+  "@selectedPlan": {
+    "description": "Selected plan title"
+  },
+
+  "planBasicSeller": "Plan: Basic Seller",
+  "@planBasicSeller": {
+    "description": "Plan basic seller text"
+  },
+
+  "planProSeller": "Plan: Pro Seller",
+  "@planProSeller": {
+    "description": "Plan pro seller text"
+  },
+
+  "priceRp99K": "Price: Rp 99K/month",
+  "@priceRp99K": {
+    "description": "Basic price text"
+  },
+
+  "priceRp199K": "Price: Rp 199K/month",
+  "@priceRp199K": {
+    "description": "Pro price text"
+  },
+
+  "businessInformationSummary": "Business Information",
+  "@businessInformationSummary": {
+    "description": "Business information summary title"
+  },
+
+  "nameNotProvided": "Name: Not provided",
+  "@nameNotProvided": {
+    "description": "Name not provided text"
+  },
+
+  "phoneNotProvided": "Phone: Not provided",
+  "@phoneNotProvided": {
+    "description": "Phone not provided text"
+  },
+
+  "emailNotProvided": "Email: Not provided",
+  "@emailNotProvided": {
+    "description": "Email not provided text"
+  },
+
+  "termsAgreements": "Terms & Agreements",
+  "@termsAgreements": {
+    "description": "Terms and agreements title"
+  },
+
+  "agreeToTermsOfService": "I agree to the Terms of Service",
+  "@agreeToTermsOfService": {
+    "description": "Terms of service agreement"
+  },
+
+  "agreeToDataProcessingPolicy": "I agree to the Data Processing Policy",
+  "@agreeToDataProcessingPolicy": {
+    "description": "Data processing agreement"
+  },
+
+  "paymentMethod": "Payment Method",
+  "@paymentMethod": {
+    "description": "Payment method title"
+  },
+
+  "paymentIntegrationFutureUpdates": "Payment integration will be implemented in future updates. For now, proceed to complete your seller registration.",
+  "@paymentIntegrationFutureUpdates": {
+    "description": "Payment integration future updates message"
+  },
+
+  "back": "Back",
+  "@back": {
+    "description": "Back button"
+  },
+
+  "continueButton": "Continue",
+  "@continueButton": {
+    "description": "Continue button"
+  },
+
+  "completeUpgrade": "Complete Upgrade",
+  "@completeUpgrade": {
+    "description": "Complete upgrade button"
+  },
+
+  "congratulationsBasicSeller": "Congratulations! You are now a Basic Seller!",
+  "@congratulationsBasicSeller": {
+    "description": "Basic seller upgrade success"
+  },
+
+  "congratulationsProSeller": "Congratulations! You are now a Pro Seller!",
+  "@congratulationsProSeller": {
+    "description": "Pro seller upgrade success"
+  },
+
+  "upgradeFailed": "Upgrade failed",
+  "@upgradeFailed": {
+    "description": "Upgrade failed error"
+  },
+
+  "upgradeFailedUnknownError": "Upgrade failed: Unknown error",
+  "@upgradeFailedUnknownError": {
+    "description": "Upgrade failed unknown error"
+  },
+
+  "comingSoonFeature": "{feature} coming soon",
+  "@comingSoonFeature": {
+    "description": "Coming soon feature message",
+    "placeholders": {
+      "feature": {
+        "type": "Object"
+      }
+    }
+  },
+
+  "quickHelp": "Quick Help",
+  "@quickHelp": {
+    "description": "Quick help section title"
+  },
+
+  "browseByCategory": "Browse by Category",
+  "@browseByCategory": {
+    "description": "Browse by category section title"
+  },
+
+  "popularArticles": "Popular Articles",
+  "@popularArticles": {
+    "description": "Popular articles section title"
+  },
+
+  "howCanWeHelp": "How can we help you today?",
+  "@howCanWeHelp": {
+    "description": "Help center header title"
+  },
+
+  "helpCenterDescription": "Find answers quickly or get in touch with our support team.",
+  "@helpCenterDescription": {
+    "description": "Help center header description"
+  },
+
+  "searchHelpArticles": "Search help articles...",
+  "@searchHelpArticles": {
+    "description": "Search help articles placeholder"
+  },
+
+  "orders": "Orders",
+  "@orders": {
+    "description": "Orders category"
+  },
+
+  "payments": "Payments",
+  "@payments": {
+    "description": "Payments category"
+  },
+
+  "selling": "Selling",
+  "@selling": {
+    "description": "Selling category"
+  },
+
+  "account": "Account",
+  "@account": {
+    "description": "Account category"
+  },
+
+  "verification": "Verification",
+  "@verification": {
+    "description": "Verification category"
+  },
+
+  "technical": "Technical",
+  "@technical": {
+    "description": "Technical category"
+  },
+
+  "orderHelpSubtitle": "Track, cancel, or refund orders",
+  "@orderHelpSubtitle": {
+    "description": "Order help subtitle"
+  },
+
+  "paymentHelpSubtitle": "Payment methods and failed transactions",
+  "@paymentHelpSubtitle": {
+    "description": "Payment help subtitle"
+  },
+
+  "sellingHelpSubtitle": "Become a seller and manage your store",
+  "@sellingHelpSubtitle": {
+    "description": "Selling help subtitle"
+  },
+
+  "accountHelpSubtitle": "Profile, password, and settings",
+  "@accountHelpSubtitle": {
+    "description": "Account help subtitle"
+  },
+
+  "verificationHelpSubtitle": "Seller verification and KTP",
+  "@verificationHelpSubtitle": {
+    "description": "Verification help subtitle"
+  },
+
+  "technicalHelpSubtitle": "App issues and troubleshooting",
+  "@technicalHelpSubtitle": {
+    "description": "Technical help subtitle"
+  },
+
+  "stillNeedHelp": "Still need help?",
+  "@stillNeedHelp": {
+    "description": "Still need help section title"
+  },
+
+  "contactSupportDescription": "Our support team is here to help you with any questions or issues.",
+  "@contactSupportDescription": {
+    "description": "Contact support description"
+  },
+
+  "contactSupport": "Contact Support",
+  "@contactSupport": {
+    "description": "Contact support button"
+  },
+
+  "helpArticle": "Help Article",
+  "@helpArticle": {
+    "description": "Help article screen title"
+  },
+
+  "wasThisHelpful": "Was this helpful?",
+  "@wasThisHelpful": {
+    "description": "Was this helpful feedback question"
+  },
+
+  "yes": "Yes",
+  "@yes": {
+    "description": "Yes button"
+  },
+
+  "no": "No",
+  "@no": {
+    "description": "No button"
+  },
+
+  "feedbackThanks": "Thank you for your feedback!",
+  "@feedbackThanks": {
+    "description": "Feedback thanks message"
+  },
+
+  "articleHowToPay": "How to pay for my order?",
+  "@articleHowToPay": {
+    "description": "Article: How to pay"
+  },
+
+  "articleHowToPayContent": "To pay for your order:\n\n1. Go to your order from the Orders screen\n2. Tap the 'Pay Now' button\n3. Select your payment method (GoPay, Bank Transfer, etc.)\n4. Follow the instructions to complete payment\n5. Your payment will be confirmed within 24 hours\n\nIf payment fails, you can retry from the order screen.",
+  "@articleHowToPayContent": {
+    "description": "Article: How to pay content"
+  },
+
+  "articleTrackOrder": "How to track my order?",
+  "@articleTrackOrder": {
+    "description": "Article: Track order"
+  },
+
+  "articleTrackOrderContent": "To track your order:\n\n1. Go to 'My Orders' from the profile menu\n2. Tap on the order you want to track\n3. You'll see the current status and tracking information\n\nOrder statuses:\n- Pending: Waiting for payment\n- Processing: Seller is preparing your order\n- Shipped: Order is on the way\n- Delivered: Order has arrived\n- Completed: Order is finished",
+  "@articleTrackOrderContent": {
+    "description": "Article: Track order content"
+  },
+
+  "articleRequestRefund": "How to request a refund?",
+  "@articleRequestRefund": {
+    "description": "Article: Request refund"
+  },
+
+  "articleRequestRefundContent": "To request a refund:\n\n1. Open the order details\n2. Tap 'Request Refund'\n3. Select a reason and describe the issue\n4. Upload unboxing video as proof (required)\n5. Submit your request\n\nThe seller will review your request. If rejected, you can escalate to admin for final decision.",
+  "@articleRequestRefundContent": {
+    "description": "Article: Request refund content"
+  },
+
+  "articleBecomeSeller": "How to become a seller?",
+  "@articleBecomeSeller": {
+    "description": "Article: Become seller"
+  },
+
+  "articleBecomeSellerContent": "To become a seller on LABUDA:\n\n1. Go to Settings → Upgrade to Seller\n2. Choose your plan (Basic or Pro)\n3. Fill in your business information\n4. Complete payment for the subscription\n5. Wait for verification approval\n\nOnce approved, you can start listing your koi for sale!",
+  "@articleBecomeSellerContent": {
+    "description": "Article: Become seller content"
+  },
+
+  "articleCancelOrder": "How to cancel an order?",
+  "@articleCancelOrder": {
+    "description": "Article: Cancel order"
+  },
+
+  "articleCancelOrderContent": "Order cancellation depends on the status:\n\n- Pending payment: Auto-cancelled if not paid within 24 hours\n- Processing: Contact seller to cancel\n- Shipped: Cannot cancel, use refund process instead\n\nTo request cancellation, tap the order and select 'Contact Seller' to discuss.",
+  "@articleCancelOrderContent": {
+    "description": "Article: Cancel order content"
+  },
+
+  "articleConfirmDelivery": "How to complete an order?",
+  "@articleConfirmDelivery": {
+    "description": "Article: Complete order"
+  },
+
+  "articleConfirmDeliveryContent": "To complete your order after receiving items:\n\n1. Open the order details\n2. Tap 'Terima Barang' button\n3. Confirm that items match your order\n\nIf you don't confirm within 5 days of shipment, the order will auto-complete.",
+  "@articleConfirmDeliveryContent": {
+    "description": "Article: Complete order content"
+  },
+
+  "articlePaymentFailed": "Payment failed, what to do?",
+  "@articlePaymentFailed": {
+    "description": "Article: Payment failed"
+  },
+
+  "articlePaymentFailedContent": "If your payment fails:\n\n1. Check your payment method balance\n2. Try a different payment method\n3. Ensure you have stable internet connection\n4. Retry payment from the order screen\n\nIf the issue persists, contact support with your order number.",
+  "@articlePaymentFailedContent": {
+    "description": "Article: Payment failed content"
+  },
+
+  "articleRefundTime": "How long does refund take?",
+  "@articleRefundTime": {
+    "description": "Article: Refund time"
+  },
+
+  "articleRefundTimeContent": "Refund processing time:\n\n1. Seller review: 1-3 days\n2. If approved: 3-7 business days for funds to return\n\nThe exact time depends on your payment method. GoPay refunds are usually faster than bank transfers.",
+  "@articleRefundTimeContent": {
+    "description": "Article: Refund time content"
+  },
+
+  "articleCreateListing": "How to create a listing?",
+  "@articleCreateListing": {
+    "description": "Article: Create listing"
+  },
+
+  "articleCreateListingContent": "To create a new listing:\n\n1. Tap the + button on the home screen\n2. Select 'Listing'\n3. Add photos of your koi (multiple angles recommended)\n4. Fill in details (variety, size, price, location)\n5. Write a description\n6. Publish your listing\n\nYour listing will be visible to buyers immediately!",
+  "@articleCreateListingContent": {
+    "description": "Article: Create listing content"
+  },
+
+  "articleShippingSetup": "How to set up shipping?",
+  "@articleShippingSetup": {
+    "description": "Article: Shipping setup"
+  },
+
+  "articleShippingSetupContent": "To set up shipping:\n\n1. Go to Seller Dashboard\n2. Select a shipping partner (available options)\n3. Set your shipping zones and rates\n4. Add packaging instructions\n\nAlways use proper packaging with oxygen for live koi shipping!",
+  "@articleShippingSetupContent": {
+    "description": "Article: Shipping setup content"
+  },
+
+  "articleEditProfile": "How to edit my profile?",
+  "@articleEditProfile": {
+    "description": "Article: Edit profile"
+  },
+
+  "articleEditProfileContent": "To edit your profile:\n\n1. Go to your profile screen\n2. Tap the edit icon\n3. Update your information:\n   - Profile photo\n   - Display name\n   - Bio\n   - Location\n4. Tap 'Save' to apply changes",
+  "@articleEditProfileContent": {
+    "description": "Article: Edit profile content"
+  },
+
+  "articleChangePassword": "How to change my password?",
+  "@articleChangePassword": {
+    "description": "Article: Change password"
+  },
+
+  "articleChangePasswordContent": "To change your password:\n\n1. Go to Settings → Security\n2. Tap 'Change Password'\n3. Enter your current password\n4. Enter your new password (min 8 characters)\n5. Confirm the new password\n6. Tap 'Update Password'\n\nYou'll be logged out from other devices after changing password.",
+  "@articleChangePasswordContent": {
+    "description": "Article: Change password content"
+  },
+
+  "articleSellerVerification": "Seller verification requirements",
+  "@articleSellerVerification": {
+    "description": "Article: Seller verification"
+  },
+
+  "articleSellerVerificationContent": "Seller verification requires:\n\n1. Valid KTP (Indonesian ID card)\n2. Clear photo of KTP\n3. KTP number (16 digits)\n4. Name matching KTP\n5. Business address\n6. Active phone number\n\nVerification usually takes 1-3 business days.",
+  "@articleSellerVerificationContent": {
+    "description": "Article: Seller verification content"
+  },
+
+  "articleAppNotWorking": "App not working properly?",
+  "@articleAppNotWorking": {
+    "description": "Article: App not working"
+  },
+
+  "articleAppNotWorkingContent": "If the app is not working:\n\n1. Check your internet connection\n2. Close and reopen the app\n3. Clear app cache (Settings → Clear Cache)\n4. Update to the latest app version\n5. Restart your phone\n\nIf issues persist, contact support with details of what's not working.",
+  "@articleAppNotWorkingContent": {
+    "description": "Article: App not working content"
+  },
+
+  "articleClearCache": "How to clear app cache?",
+  "@articleClearCache": {
+    "description": "Article: Clear cache"
+  },
+
+  "articleClearCacheContent": "To clear app cache:\n\n1. Go to Settings\n2. Scroll to 'App Preferences'\n3. Tap 'Clear Cache'\n4. Confirm when prompted\n\nThis will free up storage but won't delete your data. You'll need to log in again.",
+  "@articleClearCacheContent": {
+    "description": "Article: Clear cache content"
+  },
+
+  "sellerTierPro": "Pro Seller",
+  "@sellerTierPro": {
+    "description": "Label for Pro tier seller badge"
+  },
+
+  "sellerTierElite": "Elite Seller",
+  "@sellerTierElite": {
+    "description": "Label for Elite tier seller badge"
+  },
+
+  "accountSuspendedTitle": "Account Suspended",
+  "@accountSuspendedTitle": {
+    "description": "Title for suspended account screen"
+  },
+
+  "accountBannedTitle": "Account Banned",
+  "@accountBannedTitle": {
+    "description": "Title for banned account screen"
+  },
+
+  "accountSuspendedMessage": "Your account has been temporarily suspended. During the suspension period, you cannot access app features.",
+  "@accountSuspendedMessage": {
+    "description": "Message for suspended account"
+  },
+
+  "accountBannedMessage": "Your account has been permanently banned for violating our terms of service. You cannot access app features.",
+  "@accountBannedMessage": {
+    "description": "Message for banned account"
+  },
+
+  "accountRestrictedSupport": "If you believe this is a mistake, please contact our support team via email.",
+  "@accountRestrictedSupport": {
+    "description": "Support message for restricted accounts"
+  }
+}

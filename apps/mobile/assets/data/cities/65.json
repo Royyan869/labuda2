@@ -1,0 +1,32 @@
+[
+  {
+    "id": "6501",
+    "name": "Kabupaten Bulungan",
+    "provinceId": "65",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6502",
+    "name": "Kabupaten Malinau",
+    "provinceId": "65",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6503",
+    "name": "Kabupaten Nunukan",
+    "provinceId": "65",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6504",
+    "name": "Kabupaten Tana Tidung",
+    "provinceId": "65",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6571",
+    "name": "Kota Tarakan",
+    "provinceId": "65",
+    "type": "kota"
+  }
+]

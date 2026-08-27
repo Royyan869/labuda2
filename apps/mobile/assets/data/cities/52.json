@@ -1,0 +1,62 @@
+[
+  {
+    "id": "5206",
+    "name": "Kabupaten Bima",
+    "provinceId": "52",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5205",
+    "name": "Kabupaten Dompu",
+    "provinceId": "52",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5201",
+    "name": "Kabupaten Lombok Barat",
+    "provinceId": "52",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5202",
+    "name": "Kabupaten Lombok Tengah",
+    "provinceId": "52",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5203",
+    "name": "Kabupaten Lombok Timur",
+    "provinceId": "52",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5208",
+    "name": "Kabupaten Lombok Utara",
+    "provinceId": "52",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5204",
+    "name": "Kabupaten Sumbawa",
+    "provinceId": "52",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5207",
+    "name": "Kabupaten Sumbawa Barat",
+    "provinceId": "52",
+    "type": "kabupaten"
+  },
+  {
+    "id": "5272",
+    "name": "Kota Bima",
+    "provinceId": "52",
+    "type": "kota"
+  },
+  {
+    "id": "5271",
+    "name": "Kota Mataram",
+    "provinceId": "52",
+    "type": "kota"
+  }
+]

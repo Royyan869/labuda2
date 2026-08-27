@@ -1,0 +1,80 @@
+[
+  {
+    "id": "6311",
+    "name": "Kabupaten Balangan",
+    "provinceId": "63",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6303",
+    "name": "Kabupaten Banjar",
+    "provinceId": "63",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6304",
+    "name": "Kabupaten Barito Kuala",
+    "provinceId": "63",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6306",
+    "name": "Kabupaten Hulu Sungai Selatan",
+    "provinceId": "63",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6307",
+    "name": "Kabupaten Hulu Sungai Tengah",
+    "provinceId": "63",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6308",
+    "name": "Kabupaten Hulu Sungai Utara",
+    "provinceId": "63",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6302",
+    "name": "Kabupaten Kotabaru",
+    "provinceId": "63",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6309",
+    "name": "Kabupaten Tabalong",
+    "provinceId": "63",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6310",
+    "name": "Kabupaten Tanah Bumbu",
+    "provinceId": "63",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6301",
+    "name": "Kabupaten Tanah Laut",
+    "provinceId": "63",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6305",
+    "name": "Kabupaten Tapin",
+    "provinceId": "63",
+    "type": "kabupaten"
+  },
+  {
+    "id": "6372",
+    "name": "Kota Banjarbaru",
+    "provinceId": "63",
+    "type": "kota"
+  },
+  {
+    "id": "6371",
+    "name": "Kota Banjarmasin",
+    "provinceId": "63",
+    "type": "kota"
+  }
+]

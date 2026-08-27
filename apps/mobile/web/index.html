@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="A new Flutter project.">
+
+  <!-- Fix for Google Sign-In COOP policy -->
+  <meta http-equiv="Cross-Origin-Opener-Policy" content="unsafe-none">
+  <meta http-equiv="Cross-Origin-Embedder-Policy" content="unsafe-none">
+
+  <!-- CORS policy for Firebase Storage - Temporarily disabled for blob URL testing -->
+  <!-- <meta http-equiv="Content-Security-Policy" content="img-src 'self' data: blob: https://firebasestorage.googleapis.com https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"> -->
+  <meta name="referrer" content="no-referrer">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="labuda">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <!-- Google Sign-In Web Client ID - Update this from Firebase Console -->
+  <meta name="google-signin-client_id" content="883544146901-ao5sfhi182gadokiondg97p2fk86i767.apps.googleusercontent.com">
+
+  <!-- reCAPTCHA v3 for Firebase Phone Auth -->
+  <script src="https://www.google.com/recaptcha/api.js?render=explicit"></script>
+
+  <!-- Console suppression - Complete override -->
+  <script>
+    // Nuclear approach: Override console globally
+    if (window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1')) {
+      const originalLog = console.log;
+      const originalWarn = console.warn;
+      const originalError = console.error;
+      const originalInfo = console.info;
+
+      // Override all console methods
+      ['log', 'warn', 'error', 'info'].forEach(method => {
+        const original = console[method];
+        console[method] = function() {
+          const msg = arguments[0];
+
+          // Check if message should be suppressed
+          if (msg && typeof msg === 'string') {
+            const suppressPatterns = [
+              'GSI_LOGGER',
+              'TOKEN_CLIENT',
+              'CODE_CLIENT',
+              'OAUTH2_CLIENT',
+              'Instantiated',
+              '[GSI_LOGGER-TOKEN_CLIENT]',
+              '[GSI_LOGGER-CODE_CLIENT]'
+            ];
+
+            for (const pattern of suppressPatterns) {
+              if (msg.includes(pattern)) {
+                return; // Suppress
+              }
+            }
+          }
+
+          // Allow other logs
+          original.apply(console, arguments);
+        };
+      });
+    }
+  </script>
+
+  <!-- Firebase Web SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+  <!-- Image Cropper for Web - Updated to latest version -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+
+  <!-- Croppie CSS and JS for better web support -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.js"></script>
+
+  <title>labuda</title>
+  <link rel="manifest" href="manifest.json">
+
+  <script>
+    // Clean console output in development - Execute immediately
+    (function() {
+      if (window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1')) {
+
+        // Store original console methods
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+        const originalInfo = console.info;
+
+      // Comprehensive log suppression
+      console.log = function() {
+        const msg = arguments[0];
+
+        // Suppress all GSI and Google OAuth related logs
+        if (msg && typeof msg === 'string') {
+          const suppressPatterns = [
+            'GSI_LOGGER',
+            'TOKEN_CLIENT',
+            'CODE_CLIENT',
+            'OAUTH2_CLIENT',
+            'Instantiated',
+            'Cross-Origin-Opener-Policy',
+            'Message ignored. Different origin',
+            'Starting popup',
+            'popup timer',
+            'gapi.client',
+            'Handling response',
+            'Trying to set',
+            'OAuth token was not passed'
+          ];
+
+          if (suppressPatterns.some(pattern => msg.includes(pattern))) {
+            return;
+          }
+        }
+
+        // Suppress JSON token objects for security
+        if (typeof msg === 'object' && msg && (msg.access_token || msg.token_type)) {
+          return;
+        }
+
+        // Allow other logs through
+        originalLog.apply(console, arguments);
+      };
+
+      // Suppress warnings
+      console.warn = function() {
+        const msg = arguments[0];
+        if (msg && typeof msg === 'string') {
+          const suppressPatterns = [
+            'deprecated',
+            'renderButton',
+            'idToken',
+            'signIn method is discouraged',
+            'signInSilently'
+          ];
+
+          if (suppressPatterns.some(pattern => msg.includes(pattern))) {
+            return;
+          }
+        }
+        originalWarn.apply(console, arguments);
+      };
+
+      // Suppress errors (CORS related)
+      console.error = function() {
+        const msg = arguments[0];
+        if (msg && typeof msg === 'string') {
+          const suppressPatterns = [
+            'Cross-Origin-Opener-Policy',
+            'window.closed',
+            'popup was blocked',
+            'Failed to fetch',
+            'CORS policy'
+          ];
+
+          if (suppressPatterns.some(pattern => msg.includes(pattern))) {
+            return;
+          }
+        }
+        originalError.apply(console, arguments);
+      };
+
+      // Suppress info messages
+      console.info = function() {
+        const msg = arguments[0];
+        if (msg && typeof msg === 'string') {
+          const suppressPatterns = [
+            'Google OAuth',
+            'OAuth 2.0',
+            'Authorization',
+            'client credentials'
+          ];
+
+          if (suppressPatterns.some(pattern => msg.includes(pattern))) {
+            return;
+          }
+        }
+        originalInfo.apply(console, arguments);
+      };
+
+      // Handle popup blocked scenarios
+      window.addEventListener('message', function(event) {
+        if (event.origin === 'https://accounts.google.com') {
+          // Allow Google OAuth messages
+          console.debug('Google OAuth message received');
+        }
+      });
+      }
+    })(); // Execute immediately
+
+    // Google Sign-In web configuration
+    window.googleSignInConfig = {
+      popup_blocked_callback: function() {
+        console.warn('Google Sign-In popup was blocked. Trying fallback...');
+        // You can implement fallback here if needed
+      }
+    };
+  </script>
+</head>
+<body>
+  <!-- Invisible reCAPTCHA container for Firebase Phone Auth -->
+  <div id="recaptcha-container"></div>
+
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
