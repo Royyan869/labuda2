@@ -41,7 +41,7 @@ void main() {
       expect(ApiConfig.baseUrl, equals('https://api.labuda.com/api/v1'));
 
       ApiConfig.setEnvironment(ApiEnvironment.staging);
-      expect(ApiConfig.baseUrl, equals('http://localhost:8081/api/v1'));
+      expect(ApiConfig.baseUrl, equals('https://staging-api.labuda.com/api/v1'));
     });
   });
 }

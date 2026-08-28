@@ -127,17 +127,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // STAGE 3B: a backend-unavailable failure is only rendered as the
-    // terminal "Server Tidak Bisa Dijangkau" screen once the automatic
-    // retry budget is exhausted. While a retry is still pending the app
-    // is inside its canonical recovery cycle, so the startup keeps the
-    // ordinary pending/loading presentation instead of flashing a
-    // terminal-looking error.
-    //
-    // AuthStateBackendFailure (a 4xx business rejection) is NOT transient
-    // and is not part of the retry budget — it renders immediately as
-    // before.
-    if (authState is AuthStateBackendUnavailable && !isRetryPending) {
+    // Canonical UX: BackendUnavailable while retry budget remains shows
+    // an explicit "retrying" state (not generic "Memuat aplikasi..."),
+    // so the user understands the app is actively reconnecting.
+    // Terminal degraded is only shown once retry budget is exhausted.
+    // BackendFailure (4xx) is immediate degraded (no retry).
+    if (authState is AuthStateBackendUnavailable) {
+      if (isRetryPending) {
+        return _buildRetryingScaffold(context, isDark);
+      }
       return _buildDegradedScaffold(
         context,
         isDark,
@@ -331,6 +329,102 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Retrying state: backend unreachable but automatic retry is in flight.
+  /// Shows explicit "Menghubungkan..." instead of generic loading.
+  Widget _buildRetryingScaffold(BuildContext context, bool isDark) {
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: isDark
+              ? const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.darkGray900,
+                    AppColors.darkGray800,
+                    AppColors.darkGray900,
+                  ],
+                  stops: [0.0, 0.5, 1.0],
+                )
+              : const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.neutralWhite,
+                    AppColors.neutralGray50,
+                    AppColors.neutralWhite,
+                  ],
+                  stops: [0.0, 0.5, 1.0],
+                ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedBuilder(
+                animation: _logoController,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: _logoScaleAnimation.value,
+                    child: Opacity(
+                      opacity: _logoFadeAnimation.value,
+                      child: _buildLogo(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 32),
+              FadeTransition(
+                opacity: _textFadeAnimation,
+                child: _buildBrandText(),
+              ),
+              const SizedBox(height: 48),
+              FadeTransition(
+                opacity: _buttonFadeAnimation,
+                child: Column(
+                  children: [
+                    SizedBox(
+                      width: 32,
+                      height: 32,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.primaryRed,
+                        ),
+                        backgroundColor: isDark
+                            ? AppColors.darkGray600
+                            : AppColors.neutralGray200,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Menghubungkan ke server...',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: isDark
+                                ? AppColors.neutralGray300
+                                : AppColors.neutralGray600,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Mencoba lagi secara otomatis',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: isDark
+                                ? AppColors.neutralGray500
+                                : AppColors.neutralGray500,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),

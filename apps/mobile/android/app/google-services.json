@@ -7,7 +7,7 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:883544146901:android:c59cbbfae1c15ff8faf35c",
+        "mobilesdk_app_id": "1:883544146901:android:9d14717d7f9e5a5cfaf35c",
         "android_client_info": {
           "package_name": "com.labuda.app.labuda"
         }
@@ -36,7 +36,7 @@
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyDS_cixVmoeQhBa7a4euvYV2gd-LVQ6E2U"
+          "current_key": "AIzaSyADSSTsciRZw7DvCR_2QUoz3FB82GnCKeA"
         }
       ],
       "services": {

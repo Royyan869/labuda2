@@ -23,8 +23,8 @@ Step-by-step instructions for creating seed data in a local or staging environme
 | Migrations applied | `cd backend && go run ./cmd/migrate` — applies canonical baseline (`000001_canonical_schema`) |
 | Backend server running | `cd backend && go run ./cmd/core_server` (works on Windows and everywhere else). If you prefer Make on Linux/Mac, `cd backend && make run` is also available. Run migrations first. |
 | Admin panel running | `cd apps/admin && npm run dev` (port 5173) |
-| Mobile app (real Android device) | Flutter debug build: edit `apps/mobile/lib/core/api/config/api_config.dart` dev URLs to your LAN IP (see current value in `owner-test-runtime.md`, e.g. `http://192.168.1.7:8080` — re-check with `ipconfig` if it has changed), then `flutter run -d <device-id>`. Do NOT use `localhost` or `10.0.2.2` for real devices — those only work on emulators. |
-| Mobile app (Android emulator) | Replace LAN IP with `10.0.2.2` in api_config.dart dev URLs, then `flutter run`. |
+| Mobile app (real Android device) | `flutter run -d <device-id> --dart-define=API_BASE_URL=http://<LAN-IP>:8080/api/v1 --dart-define=API_WS_URL=ws://<LAN-IP>:8080/api/v1/ws` where `<LAN-IP>` is host LAN IP from `ipconfig` (same Wi-Fi as device). Backend must be `0.0.0.0:8080` and firewall allow TCP 8080. No `localhost`/`10.0.2.2` for real devices. |
+| Mobile app (Android emulator) | `flutter run -d <emulator-id>` (no flag) — dev default `10.0.2.2` is correct for emulator. |
 | Windows Firewall (real device) | Run in **Administrator** PowerShell: `netsh advfirewall firewall add rule name="Labuda Backend Port 8080" dir=in action=allow protocol=TCP localport=8080 profile=any`. Required if Wi-Fi profile is Public. |
 | Firebase project | Real Firebase credentials for auth — `DEV_MOCK_FIREBASE_AUTH=true` bypasses token validation for local only |
 | Midtrans sandbox | Set `MIDTRANS_SERVER_KEY` and `MIDTRANS_CLIENT_KEY` to sandbox values in backend-only env files; mobile docs/env must use client-safe values only. Webhook delivery needs a public URL or the dev hot-arm/manual path. |

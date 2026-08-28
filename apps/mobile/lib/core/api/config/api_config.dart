@@ -79,7 +79,7 @@ class ApiConfig {
         // hard-coded LAN IP is the authority anymore.
         return 'http://${_isAndroid ? '10.0.2.2' : 'localhost'}:8080/api/v1';
       case ApiEnvironment.staging:
-        return 'http://localhost:8081/api/v1';
+        return 'https://staging-api.labuda.com/api/v1';
       case ApiEnvironment.prod:
         return 'https://api.labuda.com/api/v1';
     }
@@ -92,7 +92,7 @@ class ApiConfig {
       case ApiEnvironment.dev:
         return 'http://localhost:8080/api/v1';
       case ApiEnvironment.staging:
-        return 'http://localhost:8081/api/v1';
+        return 'https://staging-api.labuda.com/api/v1';
       case ApiEnvironment.prod:
         return 'https://api.labuda.com/api/v1';
     }
