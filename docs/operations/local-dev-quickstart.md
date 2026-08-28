@@ -218,43 +218,38 @@ flutter devices
 
 ### Android Emulator
 
-The emulator uses `10.0.2.2` to reach the host machine. Edit [api_config.dart](../../apps/mobile/lib/core/api/config/api_config.dart):
-
-```dart
-case ApiEnvironment.dev:
-  return 'http://10.0.2.2:8080/api/v1';
-```
-
-Also update `wsUrl` to `ws://10.0.2.2:8080/api/v1/ws`.
+Emulator uses the platform-aware dev default `10.0.2.2` (no flag needed). The same default comes from [api_config.dart](../../apps/mobile/lib/core/api/config/api_config.dart) `ApiConfig.baseUrl`/`wsUrl` when no `--dart-define` is provided.
 
 Run:
 
 ```bash
 cd apps/mobile
-flutter run
+flutter run -d <emulator-id>
+# e.g. flutter run -d emulator-5554
 # Flutter selects the emulator automatically if only one device is connected
 ```
 
 ### Real Android Device
 
-Edit [api_config.dart](../../apps/mobile/lib/core/api/config/api_config.dart) with your laptop's LAN IP (found in Step 6 above):
+Physical devices **must** use explicit `--dart-define` overrides — do not edit source. `<LAN-IP>` is your laptop's LAN IP from Step 6 (same Wi-Fi as the phone).
 
-```dart
-case ApiEnvironment.dev:
-  return 'http://192.168.1.42:8080/api/v1';  // ← your actual LAN IP
-```
-
-Also update `wsUrl` to `ws://192.168.1.42:8080/api/v1/ws`.
-
-> **Do not use `localhost` or `10.0.2.2` for a real device.** These only work on emulators/simulators.
-
-Run:
+Canonical command:
 
 ```bash
 cd apps/mobile
-flutter run -d <device-id>
-# device-id from flutter devices output above
+flutter run -d <device-id> \
+  --dart-define=API_BASE_URL=http://<LAN-IP>:8080/api/v1 \
+  --dart-define=API_WS_URL=ws://<LAN-IP>:8080/api/v1/ws
+# Example: --dart-define=API_BASE_URL=http://192.168.1.42:8080/api/v1
 ```
+
+Prerequisites (same as Steps 6-7):
+
+* Backend must be listening on `0.0.0.0:8080` (`go run ./cmd/core_server` does this by default — `:8080`).
+* Windows firewall must allow inbound TCP 8080 (Step 7).
+* Phone browser must open `http://<LAN-IP>:8080/health` **before** running Flutter (proves LAN path).
+
+> Do not use `localhost` or `10.0.2.2` for a real device. Those only work on emulators/simulators. Do not hardcode a LAN IP in `api_config.dart`; the explicit `--dart-define` is the runtime authority.
 
 ### Google Maps / Places Client Config
 
@@ -305,7 +300,7 @@ Run through this list before starting an owner test session:
 - [ ] Backend started — `go run ./cmd/core_server` running
 - [ ] Laptop health check — `http://localhost:8080/health` returns `{"status":"healthy",...}`
 - [ ] Phone health check — `http://<LAN-IP>:8080/health` returns healthy (real device only)
-- [ ] Mobile `api_config.dart` — `baseUrl` and `wsUrl` point to LAN IP (real device) or `10.0.2.2` (emulator)
+- [ ] Mobile `ApiConfig` — emulator: default `10.0.2.2` (no flag); real device: explicit `--dart-define=API_BASE_URL=http://<LAN-IP>:8080/api/v1 --dart-define=API_WS_URL=ws://<LAN-IP>:8080/api/v1/ws`
 - [ ] Windows firewall rule added for port 8080 (real device only, if on Public network)
 - [ ] Mobile app cold-started after backend restart — stale connections cleared
 - [ ] Admin panel running — `http://localhost:5173` loads login page
@@ -326,9 +321,9 @@ Run through this list before starting an owner test session:
 | `Firebase: could not fetch token` | Check `FIREBASE_SERVICE_ACCOUNT_KEY_PATH` in `.env` and that the JSON file exists. Or set `DEV_MOCK_FIREBASE_AUTH=true` to bypass Firebase for local dev. |
 | Port 8080 in use | Change `PORT=` in `backend/.env` and update `api_config.dart` to match. |
 | Phone cannot open `/health` | (1) Check both laptop and phone are on the same Wi-Fi network. (2) Add Windows firewall rule (Step 7). (3) Confirm laptop LAN IP is correct (`ipconfig`). |
-| Login spins forever on mobile | Backend is unreachable. Verify phone can open `/health` in browser. Check `api_config.dart` IP. |
+| Login spins forever on mobile | Backend is unreachable. Verify phone can open `/health` in browser. Check `--dart-define=API_BASE_URL` value. |
 | Feed returns 500 | Migrations not fully applied. Run `go run ./cmd/migrate` and restart backend. |
-| WebSocket fails / notifications not received | WS URL in `api_config.dart` uses `ws://` (not `wss://`) for local dev. Must match the same IP as `baseUrl`. |
+| WebSocket fails / notifications not received | WS URL must use `ws://` (not `wss://`) for local dev and must match the same IP as `API_BASE_URL`'s host (`--dart-define=API_WS_URL=ws://<LAN-IP>:8080/api/v1/ws`). |
 | `npm run dev` fails (admin) | Run `npm install` first. Check Node.js ≥ 20: `node --version`. |
 | Firebase warning noise in Flutter logs | `[firebase_core]` or `[FirebaseCore]` warnings about `GoogleService-Info.plist` or `google-services.json` are expected in debug mode. They are not errors unless login itself fails. |
 | Seed duplicates content | Expected — content/comments use random IDs on each seed run. Users are upserted (no duplicates). Running seed twice gives 50 content items, which is fine for testing. |

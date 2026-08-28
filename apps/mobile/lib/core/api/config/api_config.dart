@@ -55,6 +55,11 @@ class ApiConfig {
     defaultValue: '',
   );
 
+  /// Whether an explicit `--dart-define` override was provided.
+  /// Used for fail-fast diagnostics on physical devices (no LAN IP fallback).
+  static bool get hasOverrideBaseUrl => _overrideBaseUrl.isNotEmpty;
+  static bool get hasOverrideWsUrl => _overrideWsUrl.isNotEmpty;
+
   /// Android emulators reach the host machine via 10.0.2.2; every other
   /// platform (iOS simulator, desktop, web) uses localhost.
   static bool get _isAndroid {

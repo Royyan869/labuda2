@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -130,6 +131,28 @@ Future<_AppBootstrap> _initServices() async {
 
   final logger = LoggerService.instance;
   logger.info('[BOOTSTRAP] _initServices() start');
+  // REAL DEVICE DEV CONNECTIVITY (PASS 1 — minimal fail-fast):
+  // Explicit --dart-define is the canonical authority for LAN. No .env fallback,
+  // no chained fallback, no auto-detect of LAN IP. Log the effective authority
+  // so a physical device without override is immediately obvious (10.0.2.2).
+  if (kDebugMode) {
+    final baseUrl = ApiConfig.baseUrl;
+    final wsUrl = ApiConfig.wsUrl;
+    if (ApiConfig.hasOverrideBaseUrl) {
+      logger.info('[CONFIG] API override active: $baseUrl');
+    } else {
+      logger.warning(
+        '[CONFIG] No --dart-define=API_BASE_URL — using dev default $baseUrl '
+        '(emulator 10.0.2.2; physical device requires '
+        '--dart-define=API_BASE_URL=http://<LAN-IP>:8080/api/v1)',
+      );
+    }
+    if (ApiConfig.hasOverrideWsUrl) {
+      logger.info('[CONFIG] WS override active: $wsUrl');
+    } else {
+      logger.info('[CONFIG] WS dev default: $wsUrl');
+    }
+  }
 
   try {
     logger.info('[BOOTSTRAP] Firebase.initializeApp() start');
