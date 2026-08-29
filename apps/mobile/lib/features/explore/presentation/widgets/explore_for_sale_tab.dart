@@ -25,7 +25,7 @@ class ExploreForSaleTab extends ConsumerWidget {
       ),
     );
     final promotedIdsAsync = ref.watch(
-      explorePromotedFixedPriceSaleIdsProvider,
+      explorePromotedForSaleIdsProvider,
     );
 
     return listingsAsync.when(
@@ -49,7 +49,7 @@ class ExploreForSaleTab extends ConsumerWidget {
                   const ForSalesParams(status: ForSaleStatus.active, limit: 50),
                 ).future,
               ),
-              ref.read(explorePromotedFixedPriceSaleIdsProvider.future),
+              ref.read(explorePromotedForSaleIdsProvider.future),
             ]);
           },
           child: CustomScrollView(

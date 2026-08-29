@@ -5,7 +5,7 @@
 /// - Fixed-price sale reference is seller response only, NOT a binding offer
 /// - Uses canonical Comment entity from comment domain
 /// - INTEGRATION PASS V1: Author username is tappable to navigate to profile
-/// - SELLER RESPONSE V1: Listing reference comments get "Respons Penjual" badge
+/// - Seller response: commerce reference comments get "Respons Penjual" badge
 /// - LIKE SYSTEM V1: Uses canonical Like system for comment likes
 /// - REPLY SYSTEM V1: Reply max depth = 1 (only top-level comments can be replied)
 library;

@@ -47,7 +47,7 @@ Map<String, dynamic> _feedContentItem({
   String createdAt = '2026-08-05T10:00:00Z',
 }) {
   return <String, dynamic>{
-    'feed_item_kind': 'content',
+    'type': 'post',
     'id': id,
     'status': 'active',
     'body': body,

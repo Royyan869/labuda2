@@ -1,6 +1,10 @@
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 
 /// Model untuk Discount (Data Transfer Object)
+///
+/// CANONICAL MODEL (DISCOUNT-003):
+/// - Discount applicability is by SELLING SURFACE ONLY (for_sale / auction / both)
+/// - No specific item/surface targeting
 class DiscountModel extends Discount {
   const DiscountModel({
     required super.id,
@@ -8,16 +12,10 @@ class DiscountModel extends Discount {
     required super.description,
     required super.type,
     required super.value,
-    super.minPurchase,
-    super.maxDiscount,
-    super.maxUsagePerUser,
+    super.minPurchase = 0.0,
     super.totalUsageLimit,
     required super.appliesTo,
-    required super.targetMode,
     super.sellerId,
-    super.applicableListingIds,
-    super.applicableAuctionIds,
-    required super.validFrom,
     required super.validUntil,
     required super.isActive,
     super.currentUsageCount = 0,
@@ -39,34 +37,13 @@ class DiscountModel extends Discount {
       description: (map['description'] as String?) ?? map['code'] as String,
       type: _parseDiscountType(map['type'] as String),
       value: (map['value'] as num).toDouble(),
-      minPurchase: map['minPurchase'] != null
-          ? (map['minPurchase'] as num).toDouble()
-          : map['min_purchase'] != null
-          ? (map['min_purchase'] as num).toDouble()
-          : null,
-      maxDiscount: map['maxDiscount'] != null
-          ? (map['maxDiscount'] as num).toDouble()
-          : map['max_discount'] != null
-          ? (map['max_discount'] as num).toDouble()
-          : null,
-      maxUsagePerUser:
-          map['maxUsagePerUser'] as int? ?? map['max_usage_per_user'] as int?,
+      minPurchase: (map['min_purchase'] as num?)?.toDouble() ?? 0.0,
       totalUsageLimit:
           map['totalUsageLimit'] as int? ?? map['total_usage_limit'] as int?,
       appliesTo: _parseDiscountAppliesTo(
-        map['applies_to'] as String? ?? map['scope'] as String? ?? 'both',
-      ),
-      targetMode: _parseDiscountTargetMode(
-        map['target_mode'] as String? ?? 'seller_wide',
+        map['applies_to'] as String? ?? 'both',
       ),
       sellerId: map['sellerId'] as String? ?? map['seller_id'] as String?,
-      applicableListingIds: _parseStringList(
-        map['applicableListingIds'] ?? map['applicable_listing_ids'],
-      ),
-      applicableAuctionIds: _parseStringList(
-        map['applicableAuctionIds'] ?? map['applicable_auction_ids'],
-      ),
-      validFrom: parseTimestamp(map['validFrom'] ?? map['valid_from']),
       validUntil: parseTimestamp(map['validUntil'] ?? map['valid_until']),
       isActive: map['isActive'] as bool? ?? map['is_active'] as bool? ?? true,
       currentUsageCount:
@@ -86,15 +63,9 @@ class DiscountModel extends Discount {
       'type': _discountTypeToString(type),
       'value': value,
       'min_purchase': minPurchase,
-      'max_discount': maxDiscount,
-      'max_usage_per_user': maxUsagePerUser,
       'total_usage_limit': totalUsageLimit,
       'applies_to': _discountAppliesToToString(appliesTo),
-      'target_mode': _discountTargetModeToString(targetMode),
       'seller_id': sellerId,
-      'applicable_listing_ids': applicableListingIds,
-      'applicable_auction_ids': applicableAuctionIds,
-      'valid_from': validFrom.toIso8601String(),
       'valid_until': validUntil.toIso8601String(),
       'is_active': isActive,
       'current_usage_count': currentUsageCount,
@@ -111,15 +82,9 @@ class DiscountModel extends Discount {
       type: entity.type,
       value: entity.value,
       minPurchase: entity.minPurchase,
-      maxDiscount: entity.maxDiscount,
-      maxUsagePerUser: entity.maxUsagePerUser,
       totalUsageLimit: entity.totalUsageLimit,
       appliesTo: entity.appliesTo,
-      targetMode: entity.targetMode,
       sellerId: entity.sellerId,
-      applicableListingIds: entity.applicableListingIds,
-      applicableAuctionIds: entity.applicableAuctionIds,
-      validFrom: entity.validFrom,
       validUntil: entity.validUntil,
       isActive: entity.isActive,
       currentUsageCount: entity.currentUsageCount,
@@ -133,11 +98,7 @@ class DiscountModel extends Discount {
       case 'percentage':
         return DiscountType.percentage;
       case 'flat_amount':
-      case 'flatAmount':
         return DiscountType.flatAmount;
-      case 'free_shipping':
-      case 'freeShipping':
-        return DiscountType.freeShipping;
       default:
         return DiscountType.percentage;
     }
@@ -145,8 +106,8 @@ class DiscountModel extends Discount {
 
   static DiscountAppliesTo _parseDiscountAppliesTo(String value) {
     switch (value) {
-      case 'listing':
-        return DiscountAppliesTo.listing;
+      case 'for_sale':
+        return DiscountAppliesTo.forSale;
       case 'auction':
         return DiscountAppliesTo.auction;
       case 'both':
@@ -155,52 +116,23 @@ class DiscountModel extends Discount {
     }
   }
 
-  static DiscountTargetMode _parseDiscountTargetMode(String value) {
-    switch (value) {
-      case 'selected_items':
-        return DiscountTargetMode.selectedItems;
-      case 'seller_wide':
-      default:
-        return DiscountTargetMode.sellerWide;
-    }
-  }
-
-  static List<String>? _parseStringList(dynamic value) {
-    if (value == null) return null;
-    if (value is List) {
-      return value.map((e) => e.toString()).toList();
-    }
-    return null;
-  }
-
   static String _discountTypeToString(DiscountType type) {
     switch (type) {
       case DiscountType.percentage:
         return 'percentage';
       case DiscountType.flatAmount:
         return 'flat_amount';
-      case DiscountType.freeShipping:
-        return 'free_shipping';
     }
   }
 
   static String _discountAppliesToToString(DiscountAppliesTo value) {
     switch (value) {
-      case DiscountAppliesTo.listing:
-        return 'listing';
+      case DiscountAppliesTo.forSale:
+        return 'for_sale';
       case DiscountAppliesTo.auction:
         return 'auction';
       case DiscountAppliesTo.both:
         return 'both';
-    }
-  }
-
-  static String _discountTargetModeToString(DiscountTargetMode value) {
-    switch (value) {
-      case DiscountTargetMode.sellerWide:
-        return 'seller_wide';
-      case DiscountTargetMode.selectedItems:
-        return 'selected_items';
     }
   }
 }

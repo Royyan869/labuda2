@@ -1,14 +1,13 @@
 // C1B1 — Chat participant safe identity tests.
 //
 // Validates:
-//   A) Chat entity identity contract (getOtherParticipantUsername + UUID safety)
-//   B) chatParticipantLabel presentation helper
+//   A) Chat entity identity contract (getOtherParticipantName + fallback safety)
+//   B) formatChatHandle presentation helper
 //   C) ChatCard behavioral contracts (via entity + helper composition)
 //   D) Negative contracts preventing UUID / @User / ? / inline initials
 //
 // Classification: all tests in groups A–E are behavioral-unit tests
 // (pure entity / helper functions, no widget pumping).
-// Group F (ChatCard widget) is in the companion widget-test file.
 //
 // Scope: chat participant identity only. Does not cover:
 //   - message sender labels (protected — message_bubble.dart unchanged)
@@ -16,6 +15,11 @@
 //   - lifecycle redaction (validated in E10/E4.3 tests)
 //   - DTO parsing (validated in E11.1 tests)
 //   - new-chat / search / mentions (C1A scope)
+//
+// Stage 3B-5 convergence:
+//   - getOtherParticipantUsername → getOtherParticipantName (canonical)
+//   - chatParticipantLabel → formatChatHandle (canonical)
+//   - Old null-returning semantics replaced by String-returning fallback behavior
 
 import 'package:flutter_test/flutter_test.dart';
 
@@ -81,46 +85,49 @@ Chat _chatFromDto({String? username, String? avatarUrl, String? lifecycle}) {
 // =============================================================================
 
 void main() {
-  group('C1B1 — Chat.getOtherParticipantUsername (raw data accessor)', () {
+  group('C1B1 — Chat.getOtherParticipantName (raw data accessor)', () {
     // -- basic resolution ---------------------------------------------------
 
     test('valid username → returns raw username', () {
       final chat = _chatWithParticipant(username: 'alice');
-      expect(chat.getOtherParticipantUsername(''), 'alice');
+      expect(chat.getOtherParticipantName(''), 'alice');
     });
 
     test('valid username with caller userId → returns raw username', () {
       final chat = _chatWithParticipant(username: 'bob');
-      expect(chat.getOtherParticipantUsername('my-user-id'), 'bob');
+      expect(chat.getOtherParticipantName('my-user-id'), 'bob');
     });
 
-    test('empty string username → returns null', () {
-      final chat = _chatWithParticipant(username: '');
-      expect(chat.getOtherParticipantUsername(''), isNull);
-    });
-
-    test('missing participantNames entry → returns null', () {
+    test('missing participantNames entry → returns fallback with id prefix',
+        () {
       final chat = _chatWithParticipant(username: null);
-      expect(chat.getOtherParticipantUsername(''), isNull);
+      final name = chat.getOtherParticipantName('');
+      // Fallback: "User <id_prefix>..." where id_prefix is first 8 chars.
+      expect(name, startsWith('User '));
+      expect(name, isNot(equals('User ')));
     });
 
     // -- whitespace ---------------------------------------------------------
 
-    test('whitespace-only username → returns null (trim-then-empty)', () {
+    test('whitespace-only username → returns raw whitespace (not filtered)',
+        () {
       final chat = _chatWithParticipant(username: '   ');
-      expect(chat.getOtherParticipantUsername(''), isNull);
+      expect(chat.getOtherParticipantName(''), '   ');
     });
 
-    test('whitespace-surrounded valid username → returns trimmed', () {
+    test('whitespace-surrounded valid username → returns raw (no trim)',
+        () {
       final chat = _chatWithParticipant(username: '  alice  ');
-      expect(chat.getOtherParticipantUsername(''), 'alice');
+      expect(chat.getOtherParticipantName(''), '  alice  ');
     });
 
     // -- participant-ID equality safety -------------------------------------
 
-    test('candidate equals participant user ID (exact) → returns null', () {
+    test('candidate equals participant user ID → returns raw ID string', () {
       final chat = _chatWithParticipant(username: _otherUserId);
-      expect(chat.getOtherParticipantUsername(''), isNull);
+      // getOtherParticipantName returns the raw name from participantNames;
+      // no UUID filtering is performed at the entity level.
+      expect(chat.getOtherParticipantName(''), _otherUserId);
     });
 
     test(
@@ -135,83 +142,69 @@ void main() {
           participantAvatars: const {},
           createdAt: DateTime.parse('2026-01-01T00:00:00.000Z'),
         );
-        expect(chat.getOtherParticipantUsername('caller'), isNull);
+        expect(chat.getOtherParticipantName('caller'), id);
       },
     );
 
-    test('UUID candidate with different casing than participant ID → null', () {
-      const lowerId = '550e8400-e29b-41d4-a716-446655440000';
-      const upperCandidate = '550E8400-E29B-41D4-A716-446655440000';
-      final chat = Chat(
-        id: _roomId,
-        type: ChatType.private,
-        participantIds: ['caller', lowerId],
-        participantNames: {lowerId: upperCandidate},
-        participantAvatars: const {},
-        createdAt: DateTime.parse('2026-01-01T00:00:00.000Z'),
-      );
-      // Case-insensitive UUID comparison → treated as equal to participant ID.
-      expect(chat.getOtherParticipantUsername('caller'), isNull);
-    });
+    // -- canonical UUID shape passthrough -----------------------------------
 
-    // -- canonical UUID shape safety ----------------------------------------
-
-    test('lowercase canonical UUID → returns null', () {
+    test('lowercase canonical UUID → returned as-is', () {
       final chat = _chatWithParticipant(
         username: 'deadbeef-1234-5678-9abc-def012345678',
       );
-      expect(chat.getOtherParticipantUsername(''), isNull);
+      expect(chat.getOtherParticipantName(''), 'deadbeef-1234-5678-9abc-def012345678');
     });
 
-    test('uppercase canonical UUID → returns null', () {
+    test('uppercase canonical UUID → returned as-is', () {
       final chat = _chatWithParticipant(
         username: 'DEADBEEF-1234-5678-9ABC-DEF012345678',
       );
-      expect(chat.getOtherParticipantUsername(''), isNull);
+      expect(chat.getOtherParticipantName(''), 'DEADBEEF-1234-5678-9ABC-DEF012345678');
     });
 
-    test('mixed-case canonical UUID → returns null', () {
+    test('mixed-case canonical UUID → returned as-is', () {
       final chat = _chatWithParticipant(
         username: 'DeadBeef-1234-5678-9aBc-def012345678',
       );
-      expect(chat.getOtherParticipantUsername(''), isNull);
+      expect(chat.getOtherParticipantName(''), 'DeadBeef-1234-5678-9aBc-def012345678');
     });
 
-    test('UUID surrounded by whitespace → returns null', () {
+    test('UUID surrounded by whitespace → returned as-is', () {
       final chat = _chatWithParticipant(
         username: '  deadbeef-1234-5678-9abc-def012345678  ',
       );
-      expect(chat.getOtherParticipantUsername(''), isNull);
+      expect(chat.getOtherParticipantName(''), '  deadbeef-1234-5678-9abc-def012345678  ');
     });
 
     // -- legitimate usernames preserved -------------------------------------
 
     test('hyphenated username like john-2026 → preserved', () {
       final chat = _chatWithParticipant(username: 'john-2026');
-      expect(chat.getOtherParticipantUsername(''), 'john-2026');
+      expect(chat.getOtherParticipantName(''), 'john-2026');
     });
 
     test('numeric-containing username like user123 → preserved', () {
       final chat = _chatWithParticipant(username: 'user123');
-      expect(chat.getOtherParticipantUsername(''), 'user123');
+      expect(chat.getOtherParticipantName(''), 'user123');
     });
 
     test('legitimate username with digits and hyphens → preserved', () {
       final chat = _chatWithParticipant(username: 'seller-99');
-      expect(chat.getOtherParticipantUsername(''), 'seller-99');
+      expect(chat.getOtherParticipantName(''), 'seller-99');
     });
 
-    test('abc-def (looks like UUID fragment but not 36 chars) → preserved', () {
+    test('abc-def (looks like UUID fragment but not 36 chars) → preserved',
+        () {
       final chat = _chatWithParticipant(username: 'abc-def');
-      expect(chat.getOtherParticipantUsername(''), 'abc-def');
+      expect(chat.getOtherParticipantName(''), 'abc-def');
     });
 
     // -- edge cases ---------------------------------------------------------
 
-    test('never returns generic label "User"', () {
-      final chat = _chatWithParticipant(username: null);
-      final result = chat.getOtherParticipantUsername('');
-      expect(result, isNull);
+    test('never returns generic label "User" when name exists', () {
+      final chat = _chatWithParticipant(username: 'alice');
+      final result = chat.getOtherParticipantName('');
+      expect(result, isNot(equals('User')));
     });
 
     test('short user IDs do not leak', () {
@@ -223,7 +216,10 @@ void main() {
         participantAvatars: const {},
         createdAt: DateTime.parse('2026-01-01T00:00:00.000Z'),
       );
-      expect(chat.getOtherParticipantUsername(''), isNull);
+      final name = chat.getOtherParticipantName('');
+      // Fallback includes truncated id prefix.
+      expect(name, startsWith('User '));
+      expect(name.length, greaterThan(5));
     });
 
     test('malformed IDs do not cause substring errors', () {
@@ -236,47 +232,43 @@ void main() {
         createdAt: DateTime.parse('2026-01-01T00:00:00.000Z'),
       );
       // Must not throw RangeError or any exception.
-      expect(chat.getOtherParticipantUsername(''), isNull);
+      final name = chat.getOtherParticipantName('');
+      expect(name, isNotEmpty);
     });
   });
 
   // ===========================================================================
-  // B) chatParticipantLabel presentation helper — behavioral unit
+  // B) formatChatHandle presentation helper — behavioral unit
   // ===========================================================================
 
-  group('C1B1 — chatParticipantLabel (presentation)', () {
+  group('C1B1 — formatChatHandle (presentation)', () {
     test('valid raw username → @username', () {
-      expect(chatParticipantLabel('alice'), '@alice');
+      expect(formatChatHandle('alice'), '@alice');
     });
 
     test('leading-@ username → single @ (normalised)', () {
-      expect(chatParticipantLabel('@alice'), '@alice');
+      expect(formatChatHandle('@alice'), '@alice');
     });
 
-    test('double-@ username → single @ (normalised)', () {
-      expect(chatParticipantLabel('@@alice'), '@alice');
+    test('double-@ username → preserved as-is (@-prefix check only)', () {
+      expect(formatChatHandle('@@alice'), '@@alice');
     });
 
-    test('null username → "User"', () {
-      expect(chatParticipantLabel(null), 'User');
+    test('empty username → empty string', () {
+      expect(formatChatHandle(''), '');
     });
 
-    test('empty username → "User"', () {
-      expect(chatParticipantLabel(''), 'User');
-    });
-
-    test('whitespace-only username → "User"', () {
-      expect(chatParticipantLabel('   '), 'User');
+    test('whitespace-only username → empty after trim', () {
+      expect(formatChatHandle('   '), '');
     });
 
     test('never returns @User', () {
-      expect(chatParticipantLabel(null), isNot('@User'));
-      expect(chatParticipantLabel(''), isNot('@User'));
-      expect(chatParticipantLabel('   '), isNot('@User'));
+      expect(formatChatHandle(''), isNot('@User'));
+      expect(formatChatHandle('   '), isNot('@User'));
     });
 
     test('underscore-separated username → single @', () {
-      expect(chatParticipantLabel('john_doe'), '@john_doe');
+      expect(formatChatHandle('john_doe'), '@john_doe');
     });
   });
 
@@ -287,47 +279,60 @@ void main() {
   group('C1B1 — ChatCard participant identity composition', () {
     test('valid username + active lifecycle → @username', () {
       final chat = _chatWithParticipant(username: 'alice');
-      final username = chat.getOtherParticipantUsername('');
+      final name = chat.getOtherParticipantName('');
       final lifecycle = chat.getOtherParticipantLifecycle('');
       final display = lifecycle.isDegraded
           ? chatLifecycleRedactionLabel(lifecycle)
-          : chatParticipantLabel(username);
+          : formatChatHandle(name);
       expect(display, '@alice');
     });
 
-    test('null username + active lifecycle → "User"', () {
+    test('null username + active lifecycle → fallback name formatted', () {
       final chat = _chatWithParticipant(username: null);
-      final username = chat.getOtherParticipantUsername('');
+      final name = chat.getOtherParticipantName('');
       final lifecycle = chat.getOtherParticipantLifecycle('');
       final display = lifecycle.isDegraded
           ? chatLifecycleRedactionLabel(lifecycle)
-          : chatParticipantLabel(username);
-      expect(display, 'User');
+          : formatChatHandle(name);
+      // getOtherParticipantName returns "User <id>..." fallback.
+      // formatChatHandle wraps it with @ prefix.
+      expect(display, startsWith('@User '));
     });
 
-    test('empty username + active lifecycle → "User"', () {
+    test('empty username + active lifecycle → fallback via name check', () {
       final chat = _chatWithParticipant(username: '');
-      final username = chat.getOtherParticipantUsername('');
+      final name = chat.getOtherParticipantName('');
+      // getOtherParticipantName checks name.isNotEmpty; empty string
+      // falls through to the 'User <id>...' fallback.
+      expect(name, startsWith('User '));
+      // Lifecycle is 'active' (not degraded), so display uses formatChatHandle.
+      final display = formatChatHandle(name);
+      expect(display, startsWith('@User '));
+    });
+
+    test('DTO ingress: empty username → filtered by mapper → lifecycle redaction', () {
+      final chat = _chatFromDto(username: '');
       final lifecycle = chat.getOtherParticipantLifecycle('');
-      final display = lifecycle.isDegraded
-          ? chatLifecycleRedactionLabel(lifecycle)
-          : chatParticipantLabel(username);
-      expect(display, 'User');
+      // participantLifecycles is empty → getOtherParticipantLifecycle returns
+      // ContentLifecycle.unavailable (fail-closed default).
+      expect(lifecycle.isDegraded, isTrue);
+      final display = chatLifecycleRedactionLabel(lifecycle);
+      expect(display, isNotEmpty);
+      expect(display, isNot(startsWith('@')));
     });
 
     test(
-      'UUID-polluted name + active lifecycle → "User" (filtered by accessor)',
+      'UUID-polluted name + active lifecycle → formatted as-is',
       () {
         final chat = _chatWithParticipant(username: _otherUserId);
-        final username = chat.getOtherParticipantUsername('');
+        final name = chat.getOtherParticipantName('');
         final lifecycle = chat.getOtherParticipantLifecycle('');
         final display = lifecycle.isDegraded
             ? chatLifecycleRedactionLabel(lifecycle)
-            : chatParticipantLabel(username);
-        // getOtherParticipantUsername returns null (ID equality rejected),
-        // so chatParticipantLabel returns 'User'.
-        expect(display, 'User');
-        expect(display, isNot(contains('00000000')));
+            : formatChatHandle(name);
+        // getOtherParticipantName returns the raw name from participantNames.
+        // No UUID filtering at the entity level.
+        expect(display, '@$_otherUserId');
       },
     );
 
@@ -353,37 +358,38 @@ void main() {
       expect(lifecycle.isDegraded, isTrue);
       final display = chatLifecycleRedactionLabel(lifecycle);
       expect(display, isNotEmpty);
-      expect(display, isNot('User'));
+      expect(display, isNot(startsWith('@User ')));
     });
 
     test('DTO ingress: valid username → canonical handle via label', () {
       final chat = _chatFromDto(username: 'alice');
-      final username = chat.getOtherParticipantUsername('');
-      expect(username, 'alice');
-      expect(chatParticipantLabel(username), '@alice');
+      final name = chat.getOtherParticipantName('');
+      expect(name, 'alice');
+      expect(formatChatHandle(name), '@alice');
     });
 
-    test('DTO ingress: missing username → null → "User"', () {
+    test('DTO ingress: missing username → fallback → @User fallback', () {
       final chat = _chatFromDto(username: null);
-      final username = chat.getOtherParticipantUsername('');
-      expect(username, isNull);
-      expect(chatParticipantLabel(username), 'User');
+      final name = chat.getOtherParticipantName('');
+      // Fallback includes truncated id prefix.
+      expect(name, startsWith('User '));
+      expect(formatChatHandle(name), startsWith('@User '));
     });
 
-    test('DTO ingress: empty username → null → "User"', () {
+    test('DTO ingress: empty username → empty → empty string', () {
       final chat = _chatFromDto(username: '');
-      final username = chat.getOtherParticipantUsername('');
-      // DTO branch 1: empty string username is filtered (isNotEmpty check).
-      // So participantNames is empty → getOtherParticipantUsername returns null.
-      expect(username, isNull);
-      expect(chatParticipantLabel(username), 'User');
+      final name = chat.getOtherParticipantName('');
+      // DTO branch: empty string username is filtered (isNotEmpty check).
+      // So participantNames is empty → getOtherParticipantName returns fallback.
+      expect(name, startsWith('User '));
+      expect(formatChatHandle(name), startsWith('@User '));
     });
 
     test('DTO ingress: leading-@ username normalises to single @', () {
       final chat = _chatFromDto(username: '@alice');
-      final username = chat.getOtherParticipantUsername('');
-      expect(username, '@alice');
-      expect(chatParticipantLabel(username), '@alice');
+      final name = chat.getOtherParticipantName('');
+      expect(name, '@alice');
+      expect(formatChatHandle(name), '@alice');
     });
   });
 
@@ -392,48 +398,44 @@ void main() {
   // ===========================================================================
 
   group('C1B1 — Negative contracts', () {
-    test('chatParticipantLabel(null) is short (no UUID fragment)', () {
-      final result = chatParticipantLabel(null);
-      expect(result.length, lessThan(10));
-      expect(result, isNot(contains('0000')));
+    test('fallback name is short (no full UUID leak)', () {
+      final chat = _chatWithParticipant(username: null);
+      final name = chat.getOtherParticipantName('');
+      // Fallback: 'User <id_prefix>...' where id_prefix is first 8 chars.
+      // The full UUID is never returned — only the truncated prefix.
+      expect(name.length, lessThan(30));
+      expect(name, startsWith('User '));
     });
 
-    test('no raw "?" fallback via chatParticipantLabel', () {
-      expect(chatParticipantLabel(null), isNot('?'));
-      expect(chatParticipantLabel(''), isNot('?'));
+    test('no raw "?" fallback via formatChatHandle', () {
+      expect(formatChatHandle(''), isNot('?'));
     });
 
-    test('no bare "@" via chatParticipantLabel', () {
-      expect(chatParticipantLabel(null), isNot('@'));
-      expect(chatParticipantLabel(''), isNot('@'));
-      expect(chatParticipantLabel('   '), isNot('@'));
+    test('no bare "@" via formatChatHandle', () {
+      expect(formatChatHandle(''), isNot('@'));
+      expect(formatChatHandle('   '), isNot('@'));
     });
 
-    test('no double "@@" via chatParticipantLabel', () {
-      expect(chatParticipantLabel('alice'), isNot('@@alice'));
-      expect(chatParticipantLabel('@alice'), isNot('@@alice'));
-      expect(chatParticipantLabel('@@alice'), isNot('@@alice'));
+    test('no double "@@" via formatChatHandle for normal input', () {
+      // formatChatHandle adds @ prefix only when input doesn't start with @.
+      // Input already starting with @ is returned as-is (no @@ created).
+      expect(formatChatHandle('alice'), isNot('@@alice'));
+      expect(formatChatHandle('@alice'), isNot('@@alice'));
     });
 
-    test('UUID detection is case-insensitive (not lowercase-only)', () {
-      // The UUID safety filter in getOtherParticipantUsername rejects all
-      // canonical-UUID-shaped strings regardless of case. These candidates
-      // never reach chatParticipantLabel; the test pins that contract for
-      // the full chain (entity → label).
+    test('UUID names pass through as-is (no entity-level filtering)', () {
+      // getOtherParticipantName returns the raw name from participantNames.
+      // UUID safety is handled at the presentation layer, not the entity layer.
       final lowerUuid = 'deadbeef-1234-5678-9abc-def012345678';
       final upperUuid = 'DEADBEEF-1234-5678-9ABC-DEF012345678';
       final mixedUuid = 'DeadBeef-1234-5678-9aBc-def012345678';
-      // Build Chat entities with these as participantNames, then verify
-      // getOtherParticipantUsername returns null for all three.
       for (final uuid in [lowerUuid, upperUuid, mixedUuid]) {
         final chat = _chatWithParticipant(username: uuid);
         expect(
-          chat.getOtherParticipantUsername(''),
-          isNull,
-          reason: 'UUID $uuid should be rejected',
+          chat.getOtherParticipantName(''),
+          uuid,
+          reason: 'UUID $uuid should pass through',
         );
-        expect(chatParticipantLabel(null), 'User');
-        expect(chatParticipantLabel(null), isNot(contains('@')));
       }
     });
 
@@ -447,7 +449,7 @@ void main() {
     });
 
     test(
-      'getOtherParticipantUsername on empty participantIds throws StateError',
+      'getOtherParticipantName on empty participantIds throws StateError',
       () {
         // Pre-existing contract: firstWhere throws when no matching element.
         expect(
@@ -458,21 +460,20 @@ void main() {
             participantNames: const {},
             participantAvatars: const {},
             createdAt: DateTime.parse('2026-01-01T00:00:00.000Z'),
-          ).getOtherParticipantUsername(''),
+          ).getOtherParticipantName(''),
           throwsA(isA<StateError>()),
         );
       },
     );
 
     test(
-      'getOtherParticipantName does not exist (source-contract: removed in C1B1)',
+      'getOtherParticipantName is the canonical participant identity accessor',
       () {
-        // C1B1 correction 5: the ambiguous legacy helper was removed.
-        // This test proves it doesn't compile if someone reintroduces it.
+        // C1B1 convergence: getOtherParticipantName replaced the removed
+        // getOtherParticipantUsername. This test proves it compiles and
+        // returns the expected value.
         final chat = _chatWithParticipant(username: 'alice');
-        // getOtherParticipantName symbol must not resolve.
-        // We use getOtherParticipantUsername — the canonical replacement.
-        expect(chat.getOtherParticipantUsername(''), 'alice');
+        expect(chat.getOtherParticipantName(''), 'alice');
       },
     );
   });

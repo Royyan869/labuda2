@@ -24,7 +24,7 @@ class NegotiationRepositoryImpl implements NegotiationRepository {
   }) async {
     try {
       final request = CreateNegotiationDto(
-        fixedPriceSaleId: fixedPriceSaleId,
+        forSaleId: fixedPriceSaleId,
         price: price,
         note: note,
       );

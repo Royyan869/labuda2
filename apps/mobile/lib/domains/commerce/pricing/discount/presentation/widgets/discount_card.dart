@@ -71,9 +71,9 @@ class DiscountCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
 
-              // Valid period
+              // Expiry
               Text(
-                'Valid: ${_formatDate(discount.validFrom)} - ${_formatDate(discount.validUntil)}',
+                'Expires: ${_formatDate(discount.validUntil)}',
                 style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
 
@@ -131,8 +131,6 @@ class DiscountCard extends StatelessWidget {
         return '${discount.value.toInt()}% OFF';
       case DiscountType.flatAmount:
         return 'Rp ${NumberFormat('#,###', 'id_ID').format(discount.value)} OFF';
-      case DiscountType.freeShipping:
-        return 'FREE SHIPPING';
     }
   }
 

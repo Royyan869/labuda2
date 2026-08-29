@@ -274,13 +274,13 @@ GoRouter _router() {
         ),
       ),
       GoRoute(
-        path: RoutePaths.sellerListings,
+        path: RoutePaths.sellerForSales,
         builder: (context, state) => Scaffold(
           body: Center(child: Text(state.uri.toString())),
         ),
       ),
       GoRoute(
-        path: RoutePaths.sellerAuctions,
+        path: RoutePaths.sellerForSales,
         builder: (context, state) => Scaffold(
           body: Center(child: Text(state.uri.toString())),
         ),
@@ -557,7 +557,7 @@ void main() {
       );
     });
 
-    testWidgets('routes Listing Saya and Lelang Saya to canonical seller inventory pages', (
+    testWidgets('routes ForSale Saya and Lelang Saya to canonical seller inventory pages', (
       tester,
     ) async {
       final overrides = _dashboardOverrides(
@@ -579,15 +579,15 @@ void main() {
       await _tapDashboardQuickActionAndExpectRoute(
         tester,
         overrides: overrides,
-        target: find.text('Listing Saya'),
-        expectedLocation: '/seller/listings',
+        target: find.text('ForSale Saya'),
+        expectedLocation: '/seller/for-sale',
       );
 
       await _tapDashboardQuickActionAndExpectRoute(
         tester,
         overrides: overrides,
         target: find.byKey(const Key('seller-quick-action-auctions')),
-        expectedLocation: '/seller/auctions',
+        expectedLocation: '/seller/for-sale',
       );
     });
 

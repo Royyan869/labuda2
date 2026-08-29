@@ -15,7 +15,7 @@ import 'package:labuda/shared/shared.dart';
 /// Profile QR Code Screen
 ///
 /// Generates a QR code linking to user's profile page.
-/// Visitors can see all info, collections, and content from the profile.
+/// Visitors can see all info and content from the profile.
 class ProfileQrScreen extends ConsumerStatefulWidget {
   const ProfileQrScreen({super.key});
 

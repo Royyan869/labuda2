@@ -2,7 +2,7 @@
 // PROMOTED FEED CARD RENDERING AUTHORITY
 //
 // Canonical HomeScreen-level proof that all three promoted kinds
-// (promoted_fixed_price_sale, promoted_auction, promoted_external)
+// (promoted_for_sale, promoted_auction, promoted_external)
 // pass through the FULL production mobile pipeline and build the
 // correct actual promoted card widgets.
 //
@@ -76,7 +76,7 @@ Map<String, dynamic> _feedContentItem({
   String createdAt = '2026-08-05T10:00:00Z',
 }) {
   return <String, dynamic>{
-    'feed_item_kind': 'content',
+    'type': 'post',
     'id': id,
     'status': 'active',
     'body': body,
@@ -97,20 +97,20 @@ Map<String, dynamic> _promotedListingItem({
   required String instanceId,
   required String title,
   int pricePerUnit = 5000000,
-  String fixedPriceSaleId = 'listing-1',
+  String forSaleId = 'listing-1',
   String imageUrl = 'https://example.com/koi.jpg',
   String sellerUsername = 'seller1',
   String sellerFarmName = 'Farm One',
 }) {
   return <String, dynamic>{
-    'feed_item_kind': 'promoted_fixed_price_sale',
+    'type': 'promoted_for_sale',
     'promotion_instance_id': instanceId,
-    'target_type': 'listing',
+    'target_type': 'for_sale',
     'title': title,
     'image_url': imageUrl,
     'seller_username': sellerUsername,
     'seller_farm_name': sellerFarmName,
-    'fixed_price_sale_id': fixedPriceSaleId,
+    'for_sale_id': forSaleId,
     'price_per_unit': pricePerUnit,
   };
 }
@@ -128,7 +128,7 @@ Map<String, dynamic> _promotedAuctionItem({
   String sellerUsername = 'seller2',
 }) {
   return <String, dynamic>{
-    'feed_item_kind': 'promoted_auction',
+    'type': 'promoted_auction',
     'promotion_instance_id': instanceId,
     'target_type': 'auction',
     'title': title,
@@ -150,7 +150,7 @@ Map<String, dynamic> _promotedExternalItem({
   String externalMediaUrl = 'https://example.com/external.jpg',
 }) {
   return <String, dynamic>{
-    'feed_item_kind': 'promoted_external',
+    'type': 'promoted_external',
     'promotion_instance_id': instanceId,
     'target_type': 'external_product',
     'title': title,
@@ -440,7 +440,7 @@ void main() {
                 instanceId: 'pi-listing-1',
                 title: 'Koi Kohaku Grade A',
                 pricePerUnit: 7500000,
-                fixedPriceSaleId: 'listing-abc',
+                forSaleId: 'listing-abc',
                 imageUrl: 'https://example.com/koi-kohaku.jpg',
                 sellerUsername: 'breeder_one',
                 sellerFarmName: 'Sakura Koi Farm',
@@ -463,7 +463,7 @@ void main() {
       expect(state.items[0].id, 'pi-listing-1');
       expect(state.items[0].additionalData['isPromoted'], true);
       expect(state.items[0].additionalData['title'], 'Koi Kohaku Grade A');
-      expect(state.items[0].additionalData['fixedPriceSaleId'], 'listing-abc');
+      expect(state.items[0].additionalData['forSaleId'], 'listing-abc');
       expect(state.items[0].additionalData['pricePerUnit'], 7500000);
 
       // ---- Actual card widget proof ----
@@ -564,7 +564,7 @@ void main() {
               _promotedListingItem(
                 instanceId: 'pi-ref-test',
                 title: 'Reference Test',
-                fixedPriceSaleId: 'fps-custom-999',
+                forSaleId: 'fps-custom-999',
               ),
             ],
             hasMore: false,
@@ -578,7 +578,7 @@ void main() {
       await _pump(tester);
 
       final state = _container(tester).read(feedProvider);
-      expect(state.items[0].additionalData['fixedPriceSaleId'], 'fps-custom-999');
+      expect(state.items[0].additionalData['forSaleId'], 'fps-custom-999');
     });
   });
 
@@ -634,9 +634,9 @@ void main() {
       // PromotedAuctionCard must exist in the widget tree.
       expect(find.byType(PromotedAuctionCard), findsOneWidget);
 
-      // Key must contain promo-auction- prefix.
+      // Key must contain promo_imp_ prefix (canonical impression key).
       expect(
-        find.byKey(const ValueKey('promo-auction-pi-auction-1')),
+        find.byKey(const Key('promo_imp_pi-auction-1_feed_auction')),
         findsOneWidget,
       );
 
@@ -1092,7 +1092,7 @@ void main() {
             body: _feedEnvelope(
               items: [
                 {
-                  'feed_item_kind': 'promoted_external',
+                  'type': 'promoted_external',
                   'promotion_instance_id': 'pi-no-media',
                   'target_type': 'external_product',
                   'title': 'No Media External',

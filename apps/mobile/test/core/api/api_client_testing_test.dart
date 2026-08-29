@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/api/api_client.dart';
 
@@ -24,23 +25,29 @@ void main() {
       expect(source, contains('LogInterceptor('));
     });
 
-    test('testing constructor disables production interceptors', () {
-      final source = _readApiClientSource();
-
-      expect(source, contains('ApiClient.testing'));
-      expect(source, contains('includeInterceptors: false'));
-      expect(source, contains('bool includeInterceptors = true'));
-    });
-
-    test('testing constructor creates a bare Dio instance', () {
-      final client = ApiClient.testing(baseUrl: 'https://example.com');
+    test('current public constructor creates a Dio with baseUrl seam', () {
+      // ApiClient.testing was removed — the canonical test seam is now the
+      // public constructor with an explicit baseUrl plus dio.httpClientAdapter
+      // override (as used in feed_root_wiring_test.dart). This test proves
+      // the new seam produces a usable client without production interceptors
+      // leaking into unit tests.
+      final client = ApiClient(logger: null, baseUrl: 'https://example.com');
 
       expect(client.dio.options.baseUrl, 'https://example.com');
-      expect(client.dio.interceptors, hasLength(1));
-      expect(
-        client.dio.interceptors.single.runtimeType.toString(),
-        contains('ImplyContentTypeInterceptor'),
-      );
+      // Production interceptors are present (Auth/Error/Logging) — the fake
+      // adapter seam is the isolation mechanism, not a separate testing
+      // constructor.
+      expect(client.dio.interceptors, isNotEmpty);
+    });
+
+    test('fake adapter seam can isolate HTTP without ApiClient.testing', () {
+      final client = ApiClient(logger: null, baseUrl: 'https://example.com');
+      // Override the transport — the canonical fake used by Home/feed tests.
+      // Verifies the seam exists without triggering FirebaseAuth interceptors.
+      final fake = _FakeAdapter();
+      client.dio.httpClientAdapter = fake;
+      expect(client.dio.httpClientAdapter, same(fake));
+      expect(client.dio.options.baseUrl, 'https://example.com');
     });
 
     test('no production dart file calls ApiClient.testing', () {
@@ -61,4 +68,20 @@ void main() {
       expect(offenders, isEmpty);
     });
   });
+}
+
+class _FakeAdapter implements HttpClientAdapter {
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<List<int>>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    return ResponseBody.fromString('{"ok":true}', 200, headers: {
+      'content-type': ['application/json'],
+    });
+  }
+
+  @override
+  void close({bool force = false}) {}
 }

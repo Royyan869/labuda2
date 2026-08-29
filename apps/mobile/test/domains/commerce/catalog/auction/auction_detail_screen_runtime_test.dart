@@ -68,11 +68,11 @@ class _FakeSavedItemRepository extends SavedItemRepository {
     return SavedItemModel(
       id: 'saved-$targetType-$targetId',
       userId: 'user-1',
-      targetType: targetType == 'listing'
-          ? TargetType.listing
+      targetType: targetType == 'for_sale'
+          ? TargetType.forSale
           : TargetType.auction,
       targetId: targetId,
-      intentType: targetType == 'listing'
+      intentType: targetType == 'for_sale'
           ? IntentType.bookmark
           : IntentType.watch,
       createdAt: DateTime.utc(2026, 1, 1),

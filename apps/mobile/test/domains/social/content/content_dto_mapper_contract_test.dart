@@ -13,7 +13,6 @@ Map<String, dynamic> _contentJson() {
     'status': 'active',
     'lifecycle': 'active',
     'visibility': 'public',
-    'allow_comments': true,
     'media': <Map<String, dynamic>>[
       <String, dynamic>{
         'url': 'https://cdn.example.com/content/image-a.jpg',

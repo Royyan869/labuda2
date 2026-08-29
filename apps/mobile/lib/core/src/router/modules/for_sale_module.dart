@@ -9,7 +9,7 @@
 //
 // Routes:
 // - `/for-sale` - For Sale catalog
-// - `/for-sale/:fixedPriceSaleId` - For Sale detail page
+// - `/for-sale/:forSaleId` - For Sale detail page
 // - `/create/for-sale` - Create new For Sale
 //
 // ## Architecture:
@@ -56,8 +56,8 @@ class ForSaleModule extends BaseModule {
       path: RoutePaths.forSaleDetail,
       name: RouteNames.forSaleDetail,
       builder: (context, state) {
-        final fixedPriceSaleId = state.pathParameters['fixedPriceSaleId']!;
-        return ForSaleDetailScreen(forSaleId: fixedPriceSaleId);
+        final forSaleId = state.pathParameters['forSaleId']!;
+        return ForSaleDetailScreen(forSaleId: forSaleId);
       },
     ),
 
@@ -78,8 +78,8 @@ class ForSaleModule extends BaseModule {
       path: RoutePaths.editForSale,
       name: RouteNames.editForSale,
       builder: (context, state) {
-        final fixedPriceSaleId = state.pathParameters['fixedPriceSaleId']!;
-        return EditForSaleScreen(forSaleId: fixedPriceSaleId);
+        final forSaleId = state.pathParameters['forSaleId']!;
+        return EditForSaleScreen(forSaleId: forSaleId);
       },
     ),
 

@@ -35,9 +35,6 @@ type DiscountRepository interface {
 	// This should be called within the same transaction as order creation.
 	RecordUsage(ctx context.Context, tx db.Tx, usage *entity.DiscountUsage) error
 
-	// CountUsageByUser counts how many times a user has used a specific discount.
-	CountUsageByUser(ctx context.Context, tx db.Tx, discountID, userID uuid.UUID) (int, error)
-
 	// IncrementUsageCount increments the current_usage_count for a discount.
 	IncrementUsageCount(ctx context.Context, tx db.Tx, discountID uuid.UUID) error
 
@@ -45,12 +42,4 @@ type DiscountRepository interface {
 	// Useful for idempotency checks.
 	GetUsageByUserAndOrder(ctx context.Context, tx db.Tx, userID, orderID uuid.UUID) (*entity.DiscountUsage, error)
 }
-
-// DiscountQueryRepository defines read-only query operations for discounts.
-type DiscountQueryRepository interface {
-	// ValidateForCheckout validates if a discount can be used at checkout.
-	// Returns the discount if valid, or an error if validation fails.
-	ValidateForCheckout(ctx context.Context, tx db.Tx, code string, userID uuid.UUID, subtotal int64) (*entity.Discount, error)
-}
-
 

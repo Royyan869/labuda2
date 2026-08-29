@@ -24,8 +24,6 @@ class ValidateDiscountUseCase {
         params.subtotal.round(),
         contextType: params.contextType,
         sellerId: params.sellerId,
-        listingId: params.listingId,
-        auctionId: params.auctionId,
       );
 
       return result.fold(
@@ -48,15 +46,11 @@ class ValidateDiscountParams {
   final double subtotal;
   final String contextType;
   final String sellerId;
-  final String? listingId;
-  final String? auctionId;
 
   const ValidateDiscountParams({
     required this.code,
     required this.subtotal,
     required this.contextType,
     required this.sellerId,
-    this.listingId,
-    this.auctionId,
   });
 }

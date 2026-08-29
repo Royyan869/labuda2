@@ -146,7 +146,7 @@ class CommercePreviewSection extends ConsumerWidget {
       case _CommercePreviewType.listing:
         context.push(
           RoutePaths.forSaleDetail.replaceFirst(
-            ':fixedPriceSaleId',
+            ':forSaleId',
             item.listing!.forSaleId,
           ),
         );

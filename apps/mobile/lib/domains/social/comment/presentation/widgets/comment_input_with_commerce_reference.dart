@@ -1,9 +1,6 @@
 /// Comment Input with Commerce Reference capability.
 ///
-/// CANONICAL COMMERCE V2:
-/// - Supports FixedPriceSale and Auction commerce references.
-/// - CommerceResourcePicker replaces old ListingPickerBottomSheet.
-/// - Create Listing uses GoRouter `/create/listing`.
+/// Supports For Sale and Auction commerce references.
 library;
 
 import 'package:flutter/material.dart';
@@ -11,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
-import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/commerce_resource_picker.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/resource_identity.dart';
 export 'resource_identity.dart';
@@ -19,7 +15,7 @@ export 'resource_identity.dart';
 /// Canonical comment input with commerce reference capability.
 ///
 /// onSubmit callback receives [ResourceIdentity] for commerce references
-/// (FPS or Auction). Uses GoRouter for Create Listing navigation.
+/// (For Sale or Auction). Uses GoRouter for Create navigation.
 class CommentInputWithCommerceReference extends ConsumerStatefulWidget {
   final Future<bool> Function(String body, ResourceIdentity? resource) onSubmit;
   final ResourceIdentity? initialResource;
@@ -209,7 +205,7 @@ class _CommentInputWithCommerceReferenceState
         final result = await context.pushNamed(RoutePaths.createForSale);
         if (!mounted) return;
         if (result is ForSale) {
-          // Create Listing route returned a Listing — set as selected resource
+          // Create For Sale route returned a ForSale — set as selected resource
           setState(() {
             _selectedResource = ResourceIdentity(
               resourceType: ResourceType.forSale,

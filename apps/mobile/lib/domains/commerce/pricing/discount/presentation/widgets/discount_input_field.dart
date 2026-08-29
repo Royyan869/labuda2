@@ -10,8 +10,6 @@ class DiscountInputField extends ConsumerStatefulWidget {
   final double subtotal;
   final String contextType;
   final String sellerId;
-  final String? listingId;
-  final String? auctionId;
   final Function(Discount? discount, double discountAmount)? onDiscountApplied;
 
   const DiscountInputField({
@@ -19,8 +17,6 @@ class DiscountInputField extends ConsumerStatefulWidget {
     required this.subtotal,
     required this.contextType,
     required this.sellerId,
-    this.listingId,
-    this.auctionId,
     this.onDiscountApplied,
   });
 
@@ -61,8 +57,6 @@ class _DiscountInputFieldState extends ConsumerState<DiscountInputField> {
         subtotal: widget.subtotal,
         contextType: widget.contextType,
         sellerId: widget.sellerId,
-        listingId: widget.listingId,
-        auctionId: widget.auctionId,
       );
 
       final result = await useCase(params);

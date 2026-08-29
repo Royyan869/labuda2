@@ -157,7 +157,6 @@ void main() {
         hashtags: const [],
         taggedPeople: const [],
         postVisibility: 'Public',
-        allowComments: true,
         selectedLocation: null,
         container: container,
       );

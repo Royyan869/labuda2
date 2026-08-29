@@ -38,18 +38,15 @@ class EngagementAction {
     activeColor: AppColors.primaryRed,
   );
 
-  /// Factory for Comment action
+  /// Factory for Comment action — comments are always supported.
   factory EngagementAction.comment({
     required int count,
-    bool allowComments = true,
     VoidCallback? onTap,
   }) => EngagementAction(
-    icon: allowComments
-        ? Icons.comment_outlined
-        : Icons.comments_disabled_outlined,
+    icon: Icons.comment_outlined,
     label: 'Comment',
     count: count,
-    isEnabled: allowComments,
+    isEnabled: true,
     onTap: onTap,
   );
 

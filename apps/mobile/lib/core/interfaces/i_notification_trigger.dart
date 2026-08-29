@@ -149,11 +149,11 @@ enum NotificationType {
   // =============================================================================
   moderationContentRemoved('moderation.content.removed'),
   moderationCommentRemoved('moderation.comment.removed'),
-  moderationListingRemoved('moderation.listing.removed'),
+  moderationForSaleRemoved('moderation.for_sale.removed'),
   moderationAuctionRemoved('moderation.auction.removed'),
   moderationContentRestored('moderation.content.restored'),
   moderationCommentRestored('moderation.comment.restored'),
-  moderationListingRestored('moderation.listing.restored'),
+  moderationForSaleRestored('moderation.for_sale.restored'),
   moderationAuctionRestored('moderation.auction.restored'),
   moderationUserSuspended('moderation.user.suspended'),
   moderationUserRestored('moderation.user.restored'),

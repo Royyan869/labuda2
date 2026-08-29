@@ -42,7 +42,6 @@ import (
 	platformconfigApp "github.com/labuda/backend/internal/platform/config/application"
 	"github.com/labuda/backend/internal/platform/events"
 	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	discountApp "github.com/labuda/backend/internal/pricing/discount/application"
 	contentRepoImpl "github.com/labuda/backend/internal/social/content/infrastructure/repository"
 	contentrepo "github.com/labuda/backend/internal/social/content/repository"
 	"github.com/labuda/backend/pkg/db"
@@ -117,7 +116,6 @@ type OrderCreationService struct {
 	shippingService      *shippingApp.ShippingService
 	addressService       CheckoutAddressResolver       // See CheckoutAddressResolver doc for why this is an interface
 	addressRepo          addressRepo.AddressRepository // For fetching farm address (shipping origin)
-	discountService      *discountApp.DiscountService
 	ownership            *auth.OwnershipValidator
 	accountStatusChecker auth.AccountStatusChecker
 	roleChecker          auth.RoleChecker
@@ -153,7 +151,6 @@ func NewOrderCreationService(
 		shippingService:      shippingService,
 		addressService:       addressApp.NewAddressService(),
 		addressRepo:          addressRepoImpl.NewAddressRepository(), // For fetching farm address
-		discountService:      discountApp.NewDiscountService(),
 		ownership:            auth.NewOwnershipValidator(),
 		accountStatusChecker: accountStatusChecker,
 		roleChecker:          roleChecker,
@@ -268,8 +265,8 @@ func (s *OrderCreationService) emitChatLinkRequestedEvent(
 // ValidateSaleSurfaceForCheckoutInput contains parameters for validating a sale surface for checkout.
 type ValidateSaleSurfaceForCheckoutInput struct {
 	SaleSurface *entity.ForSale // Pre-loaded sale surface (must be locked with FOR UPDATE)
-	BuyerID     uuid.UUID              // Buyer user ID
-	Quantity    int                    // Requested quantity
+	BuyerID     uuid.UUID       // Buyer user ID
+	Quantity    int             // Requested quantity
 }
 
 // validateSaleSurfaceForCheckout performs unified validation for all checkout entry paths.
@@ -310,7 +307,7 @@ func (s *OrderCreationService) validateSaleSurfaceForCheckout(
 	if l.Visibility != entity.ForSaleVisibilityPublic {
 		return &entity.ForSaleNotAvailableError{
 			ForSaleID: l.ID,
-			Reason:           fmt.Sprintf("sale surface not public: visibility=%s", l.Visibility),
+			Reason:    fmt.Sprintf("sale surface not public: visibility=%s", l.Visibility),
 		}
 	}
 
@@ -1667,7 +1664,7 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 	orderItem := orderentity.NewOrderItem(
 		order.ID,
 		forSale.ProductID,
-		forSale.PricePerUnit,
+		unitPrice,
 		input.Quantity,
 		forSale.Title,
 	)

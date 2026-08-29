@@ -6,7 +6,6 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/social/content/data/content_providers.dart';
 import 'package:labuda/domains/social/content/data/content_repository_impl.dart';
 import 'package:labuda/domains/social/content/data/dto/content_dto.dart';
-import 'package:labuda/domains/social/content/data/dto/content_request_models.dart';
 import 'package:labuda/domains/social/content/data/mappers/content_mapper.dart';
 import 'package:labuda/domains/social/content/data/remote/content_api_datasource.dart';
 import 'package:labuda/domains/social/content/domain/entities/content_resource_projection.dart';
@@ -50,7 +49,6 @@ Map<String, dynamic> _contentJson({
     'author_username': 'author',
     'author_city': null,
     'author_province': null,
-    'type': 'post',
     'status': 'active',
     'lifecycle': 'active',
     'visibility': 'public',

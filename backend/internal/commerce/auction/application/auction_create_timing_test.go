@@ -32,6 +32,10 @@ func (fakeProductCreator) Create(_ context.Context, _ db.Tx, product *productEnt
 	return nil
 }
 
+func (fakeProductCreator) ClaimSellingSurface(_ context.Context, _ db.Tx, _ uuid.UUID, _ productEntity.SellingSurface) error {
+	return nil
+}
+
 // newAuctionServiceForCreateTiming builds a fully-wired AuctionService whose
 // dependencies are either real (repos operating against fakeTx, which no-ops
 // successfully) or minimal stubs, so CreateDraft can run end-to-end including

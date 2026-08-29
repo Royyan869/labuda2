@@ -41,16 +41,12 @@ class DiscountApiRepositoryImpl implements IDiscountRepository {
     int subtotalCents, {
     required String contextType,
     required String sellerId,
-    String? listingId,
-    String? auctionId,
   }) async {
     final result = await _datasource.validateDiscountCode(
       code: code,
       subtotalCents: subtotalCents,
       contextType: contextType,
       sellerId: sellerId,
-      listingId: listingId,
-      auctionId: auctionId,
     );
     return result.fold(
       (error) => Result.error(error),

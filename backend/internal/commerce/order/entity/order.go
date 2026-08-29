@@ -34,7 +34,7 @@ type Order struct {
 
 	// Auction settlement metadata (only populated when SourceType == auction)
 	// AuctionSettlementType indicates how the auction was settled (buy_now vs bid_win)
-	// This is critical for pricing rules: buy_now allows discounts/coins, bid_win does not
+	// This is critical for pricing rules: both buy_now and bid_win allow discounts/coins (owner canonical 2026-06-16)
 	AuctionSettlementType *AuctionSettlementType `json:"auction_settlement_type,omitempty"`
 
 	// ============================================================================

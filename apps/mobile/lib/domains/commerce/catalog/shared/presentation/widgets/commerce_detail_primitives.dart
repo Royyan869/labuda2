@@ -963,8 +963,6 @@ class CommerceDetailMediaGallery extends StatelessWidget {
   final Widget fallback;
   final BorderRadius? borderRadius;
   final Color? fallbackColor;
-  final MediaViewerVideoEngineBuilder? videoEngineBuilder;
-  final RouteObserver<PageRoute<dynamic>>? routeObserver;
 
   const CommerceDetailMediaGallery({
     super.key,
@@ -977,8 +975,6 @@ class CommerceDetailMediaGallery extends StatelessWidget {
     this.fallback = const Center(child: Icon(Icons.image_not_supported)),
     this.borderRadius,
     this.fallbackColor,
-    this.videoEngineBuilder,
-    this.routeObserver,
   });
 
   @override
@@ -1000,13 +996,6 @@ class CommerceDetailMediaGallery extends StatelessWidget {
                   'commerce-detail-media:$cacheKey:$logicalCacheFingerprint',
                 ),
                 media: media,
-                embedded: true,
-                showImageBackdrop: false,
-                imageFit: fit,
-                imageAlignment: alignment,
-                fallbackBuilder: (_) => fallback,
-                videoEngineBuilder: videoEngineBuilder,
-                routeObserver: routeObserver,
               ),
             ),
           )

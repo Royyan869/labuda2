@@ -399,11 +399,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               // - Hidden for seller quote / negotiation only
               if (_supportsDiscounts())
                 _DiscountSection(
-                  fixedPriceSaleId: widget.fixedPriceSaleId,
                   sellerId: _previewResult?.sellerId ?? '',
                   subtotal: _previewResult?.subtotal ?? 0,
-                  contextType: widget.auctionId == null ? 'listing' : 'auction',
-                  auctionId: widget.auctionId,
+                  contextType: widget.auctionId == null ? 'for_sale' : 'auction',
                   onDiscountApplied: _handleDiscountApplied,
                   appliedDiscount: _appliedDiscount,
                   appliedDiscountAmount: _appliedDiscountAmount,

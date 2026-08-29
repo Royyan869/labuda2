@@ -154,24 +154,6 @@ class UnreadCountResponse {
   }
 }
 
-/// Legacy stats response model kept for source compatibility.
-@JsonSerializable()
-class NotificationStatsResponse {
-  final int totalCount;
-  final int unreadCount;
-  final Map<String, int> unreadByCategory;
-
-  const NotificationStatsResponse({
-    required this.totalCount,
-    required this.unreadCount,
-    required this.unreadByCategory,
-  });
-
-  factory NotificationStatsResponse.fromJson(Map<String, dynamic> json) =>
-      _$NotificationStatsResponseFromJson(json);
-  Map<String, dynamic> toJson() => _$NotificationStatsResponseToJson(this);
-}
-
 // ============================================================================
 // FCM Token DTOs
 // ============================================================================

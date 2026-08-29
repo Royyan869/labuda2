@@ -1,5 +1,17 @@
 // DOMAIN: PRICING
 // NOTE: Seller-owned promo code system for checkout discounts
+//
+// CANONICAL MODEL (DISCOUNT-003):
+// - Discount is seller-funded and seller-created
+// - Discount applicability is by SELLING SURFACE ONLY (for_sale / auction / both)
+// - No specific item/surface targeting — discount applies to ALL surfaces of the seller's chosen type
+// - Discount types: percentage, flat_amount
+// - Validity: expiry-only (valid_until). Discount becomes active on creation.
+// - Usage: optional total_usage_limit (0 = unlimited). No per-user limit.
+// - Minimum purchase: optional min_purchase against the final transaction price P
+// - Anyone who knows the code may attempt to use it
+// - PricingToken is the sole transaction-pricing authority
+// - Discount applies to the FINAL TRANSACTION PRICE (P), not starting/reference price
 
 package entity
 
@@ -15,9 +27,8 @@ import (
 type DiscountType string
 
 const (
-	DiscountTypePercentage   DiscountType = "percentage"
-	DiscountTypeFlatAmount   DiscountType = "flat_amount"
-	DiscountTypeFreeShipping DiscountType = "free_shipping"
+	DiscountTypePercentage DiscountType = "percentage"
+	DiscountTypeFlatAmount DiscountType = "flat_amount"
 )
 
 // ============================================================================
@@ -36,7 +47,7 @@ func (dt DiscountType) String() string {
 // IsValid checks if the DiscountType is valid.
 func (dt DiscountType) IsValid() bool {
 	switch dt {
-	case DiscountTypePercentage, DiscountTypeFlatAmount, DiscountTypeFreeShipping:
+	case DiscountTypePercentage, DiscountTypeFlatAmount:
 		return true
 	default:
 		return false
@@ -81,29 +92,6 @@ func (da DiscountAppliesTo) AllowsContext(ctx DiscountContextType) bool {
 	}
 }
 
-// DiscountTargetMode represents whether a discount applies seller-wide or to selected items.
-type DiscountTargetMode string
-
-const (
-	DiscountTargetModeSellerWide    DiscountTargetMode = "seller_wide"
-	DiscountTargetModeSelectedItems DiscountTargetMode = "selected_items"
-)
-
-// String returns the string representation of DiscountTargetMode.
-func (dm DiscountTargetMode) String() string {
-	return string(dm)
-}
-
-// IsValid checks if the DiscountTargetMode is valid.
-func (dm DiscountTargetMode) IsValid() bool {
-	switch dm {
-	case DiscountTargetModeSellerWide, DiscountTargetModeSelectedItems:
-		return true
-	default:
-		return false
-	}
-}
-
 // DiscountContextType represents the checkout context used to validate a code.
 type DiscountContextType string
 
@@ -130,36 +118,30 @@ func (ct DiscountContextType) IsValid() bool {
 // Discount represents a seller-owned promo code that can be applied at checkout.
 //
 // DOMAIN BOUNDARY:
-// - Discount does NOT modify forSale.price
-// - Discount is ONLY calculated at checkout time
+// - Discount does NOT modify forSale.price or auction price
+// - Discount is ONLY calculated at checkout time, server-side
 // - Discount does NOT touch ledger directly
 // - OrderService remains the only creator of orders
 //
-// MODEL BEHAVIOR:
-// - applies_to: forSale, auction, or both
-// - target_mode: seller_wide or selected_items
+// CANONICAL MODEL:
+// - applies_to: for_sale, auction, or both (surface-level, NOT item-level)
 // - seller_id must always be set (seller-owned discounts only)
-// - selected items are stored as specific forSale and/or auction IDs
+// - valid_until is the only time boundary; discount is active from creation
+// - min_purchase is evaluated against the final transaction price P
 type Discount struct {
-	ID                uuid.UUID          `json:"id"`
-	Code              string             `json:"code"`
-	Type              DiscountType       `json:"type"`
-	Value             decimal.Decimal    `json:"value"`
-	MinPurchase       decimal.Decimal    `json:"min_purchase"`
-	MaxDiscount       *decimal.Decimal   `json:"max_discount,omitempty"`
-	AppliesTo         DiscountAppliesTo  `json:"applies_to"`
-	TargetMode        DiscountTargetMode `json:"target_mode"`
-	SellerID          *uuid.UUID         `json:"seller_id,omitempty"`
-	ForSaleIDs        []uuid.UUID        `json:"applicable_for_sale_ids,omitempty"`
-	AuctionIDs        []uuid.UUID        `json:"applicable_auction_ids,omitempty"`
-	ValidFrom         time.Time          `json:"valid_from"`
-	ValidUntil        time.Time          `json:"valid_until"`
-	MaxUsagePerUser   int                `json:"max_usage_per_user"`
-	TotalUsageLimit   int                `json:"total_usage_limit"`
-	CurrentUsageCount int                `json:"current_usage_count"`
-	IsActive          bool               `json:"is_active"`
-	CreatedAt         time.Time          `json:"created_at"`
-	UpdatedAt         time.Time          `json:"updated_at"`
+	ID                uuid.UUID         `json:"id"`
+	Code              string            `json:"code"`
+	Type              DiscountType      `json:"type"`
+	Value             decimal.Decimal   `json:"value"`
+	MinPurchase       decimal.Decimal   `json:"min_purchase"`
+	AppliesTo         DiscountAppliesTo `json:"applies_to"`
+	SellerID          *uuid.UUID        `json:"seller_id,omitempty"`
+	ValidUntil        time.Time         `json:"valid_until"`
+	TotalUsageLimit   int               `json:"total_usage_limit"`
+	CurrentUsageCount int               `json:"current_usage_count"`
+	IsActive          bool              `json:"is_active"`
+	CreatedAt         time.Time         `json:"created_at"`
+	UpdatedAt         time.Time         `json:"updated_at"`
 }
 
 // DiscountValidationError is returned when discount validation fails.
@@ -193,19 +175,12 @@ func (e *DiscountNotActiveError) Error() string {
 
 // DiscountUsageLimitExceededError is returned when usage limits are exceeded.
 type DiscountUsageLimitExceededError struct {
-	Code            string
-	CurrentUsage    int
-	UsageLimit      int
-	UserUsageCount  int
-	MaxUsagePerUser int
-	IsUserLimit     bool
+	Code         string
+	CurrentUsage int
+	UsageLimit   int
 }
 
 func (e *DiscountUsageLimitExceededError) Error() string {
-	if e.IsUserLimit {
-		return fmt.Sprintf("discount '%s': user usage limit exceeded (used: %d, limit: %d)",
-			e.Code, e.UserUsageCount, e.MaxUsagePerUser)
-	}
 	return fmt.Sprintf("discount '%s': total usage limit exceeded (used: %d, limit: %d)",
 		e.Code, e.CurrentUsage, e.UsageLimit)
 }
@@ -223,28 +198,24 @@ func (e *MinPurchaseNotMetError) Error() string {
 }
 
 // NewDiscount creates a new discount with validation.
+//
+// CANONICAL CONSTRUCTOR: code, type, value, minPurchase, appliesTo,
+// sellerID, validUntil, totalUsageLimit.
 func NewDiscount(
 	code string,
 	discountType DiscountType,
 	value decimal.Decimal,
 	minPurchase decimal.Decimal,
-	maxDiscount *decimal.Decimal,
 	appliesTo DiscountAppliesTo,
-	targetMode DiscountTargetMode,
 	sellerID *uuid.UUID,
-	forSaleIDs []uuid.UUID,
-	auctionIDs []uuid.UUID,
-	validFrom, validUntil time.Time,
-	maxUsagePerUser, totalUsageLimit int,
+	validUntil time.Time,
+	totalUsageLimit int,
 ) (*Discount, error) {
 	if !discountType.IsValid() {
 		return nil, fmt.Errorf("invalid discount type: %s", discountType)
 	}
 	if !appliesTo.IsValid() {
 		return nil, fmt.Errorf("invalid discount applies_to: %s", appliesTo)
-	}
-	if !targetMode.IsValid() {
-		return nil, fmt.Errorf("invalid discount target_mode: %s", targetMode)
 	}
 	if sellerID == nil {
 		return nil, fmt.Errorf("seller_id is required for seller-owned discounts")
@@ -256,39 +227,16 @@ func NewDiscount(
 	if discountType == DiscountTypePercentage && value.GreaterThan(decimal.NewFromInt(100)) {
 		return nil, fmt.Errorf("percentage discount cannot exceed 100%%: got %s", value.String())
 	}
+
 	if minPurchase.LessThan(decimal.Zero) {
-		return nil, fmt.Errorf("min purchase cannot be negative: got %s", minPurchase.String())
+		return nil, fmt.Errorf("min_purchase cannot be negative: got %s", minPurchase.String())
 	}
-	if maxDiscount != nil && maxDiscount.LessThan(decimal.Zero) {
-		return nil, fmt.Errorf("max discount cannot be negative: got %s", maxDiscount.String())
-	}
-	if validUntil.Before(validFrom) {
-		return nil, fmt.Errorf("valid_until cannot be before valid_from")
-	}
-	if maxUsagePerUser < 0 {
-		return nil, fmt.Errorf("max_usage_per_user cannot be negative: got %d", maxUsagePerUser)
+
+	if validUntil.Before(time.Now()) {
+		return nil, fmt.Errorf("valid_until cannot be in the past")
 	}
 	if totalUsageLimit < 0 {
 		return nil, fmt.Errorf("total_usage_limit cannot be negative: got %d", totalUsageLimit)
-	}
-
-	if targetMode == DiscountTargetModeSellerWide {
-		if len(forSaleIDs) > 0 || len(auctionIDs) > 0 {
-			return nil, fmt.Errorf("for_sale_ids and auction_ids should not be set for seller_wide discounts")
-		}
-	}
-
-	if targetMode == DiscountTargetModeSelectedItems {
-		if len(forSaleIDs) == 0 && len(auctionIDs) == 0 {
-			return nil, fmt.Errorf("for_sale_ids or auction_ids are required for selected_items discounts")
-		}
-	}
-
-	if appliesTo == DiscountAppliesToForSale && len(auctionIDs) > 0 {
-		return nil, fmt.Errorf("auction_ids should not be set for forSale-only discounts")
-	}
-	if appliesTo == DiscountAppliesToAuction && len(forSaleIDs) > 0 {
-		return nil, fmt.Errorf("for_sale_ids should not be set for auction-only discounts")
 	}
 
 	now := time.Now()
@@ -298,15 +246,9 @@ func NewDiscount(
 		Type:              discountType,
 		Value:             value,
 		MinPurchase:       minPurchase,
-		MaxDiscount:       maxDiscount,
 		AppliesTo:         appliesTo,
-		TargetMode:        targetMode,
 		SellerID:          sellerID,
-		ForSaleIDs:        forSaleIDs,
-		AuctionIDs:        auctionIDs,
-		ValidFrom:         validFrom,
 		ValidUntil:        validUntil,
-		MaxUsagePerUser:   maxUsagePerUser,
 		TotalUsageLimit:   totalUsageLimit,
 		CurrentUsageCount: 0,
 		IsActive:          true,
@@ -317,30 +259,24 @@ func NewDiscount(
 
 // IsActiveNow checks if the discount is currently active based on:
 // - IsActive flag
-// - Current time is within ValidFrom and ValidUntil
+// - Current time is before ValidUntil
 func (d *Discount) IsActiveNow() bool {
 	if !d.IsActive {
 		return false
 	}
-
-	now := time.Now()
-	if now.Before(d.ValidFrom) || now.After(d.ValidUntil) {
+	if time.Now().After(d.ValidUntil) {
 		return false
 	}
-
 	return true
 }
 
-// CanBeUsedBy checks if a user can use this discount based on active state and usage limits.
-func (d *Discount) CanBeUsedBy(userUsageCount int) error {
+// CanBeUsedBy checks if the discount can be used based on active state and usage limits.
+func (d *Discount) CanBeUsedBy() error {
 	if !d.IsActive {
 		return &DiscountNotActiveError{Code: d.Code}
 	}
 
 	now := time.Now()
-	if now.Before(d.ValidFrom) {
-		return &DiscountValidationError{Code: d.Code, Reason: "discount not yet valid"}
-	}
 	if now.After(d.ValidUntil) {
 		return &DiscountExpiredError{Code: d.Code, ValidUntil: d.ValidUntil}
 	}
@@ -350,16 +286,6 @@ func (d *Discount) CanBeUsedBy(userUsageCount int) error {
 			Code:         d.Code,
 			UsageLimit:   d.TotalUsageLimit,
 			CurrentUsage: d.CurrentUsageCount,
-			IsUserLimit:  false,
-		}
-	}
-
-	if d.MaxUsagePerUser > 0 && userUsageCount >= d.MaxUsagePerUser {
-		return &DiscountUsageLimitExceededError{
-			Code:            d.Code,
-			MaxUsagePerUser: d.MaxUsagePerUser,
-			UserUsageCount:  userUsageCount,
-			IsUserLimit:     true,
 		}
 	}
 
@@ -367,8 +293,9 @@ func (d *Discount) CanBeUsedBy(userUsageCount int) error {
 }
 
 // MeetsMinPurchase checks if the subtotal meets the minimum purchase requirement.
+// MinPurchase is evaluated against the final transaction product price P.
 func (d *Discount) MeetsMinPurchase(subtotal decimal.Decimal) error {
-	if subtotal.LessThan(d.MinPurchase) {
+	if d.MinPurchase.GreaterThan(decimal.Zero) && subtotal.LessThan(d.MinPurchase) {
 		return &MinPurchaseNotMetError{
 			Code:        d.Code,
 			MinPurchase: d.MinPurchase,
@@ -378,11 +305,8 @@ func (d *Discount) MeetsMinPurchase(subtotal decimal.Decimal) error {
 	return nil
 }
 
-// ============================================================================
-// ECONOMIC SAFETY VALIDATION (P0)
-// ============================================================================
-
 // ValidateEconomicSafety checks if the discount meets economic safety requirements.
+// Enforces the 50% maximum percentage discount cap.
 func (d *Discount) ValidateEconomicSafety() error {
 	if d.Type != DiscountTypePercentage {
 		return nil
@@ -390,7 +314,7 @@ func (d *Discount) ValidateEconomicSafety() error {
 
 	if d.Value.GreaterThan(decimal.NewFromInt(MaxDiscountPercentage)) {
 		return &DiscountValidationError{
-			Code: d.Code,
+			Code:   d.Code,
 			Reason: fmt.Sprintf("discount percentage %.2f%% exceeds maximum allowed %d%% - economic safety violation",
 				d.Value.InexactFloat64(), MaxDiscountPercentage),
 		}
@@ -399,7 +323,12 @@ func (d *Discount) ValidateEconomicSafety() error {
 	return nil
 }
 
-// CalculateDiscountAmount calculates the discount amount for a given subtotal.
+// CalculateDiscountAmount calculates the discount amount for a given subtotal (P).
+//
+// Percentage: D = P × percentage / 100
+// Flat: D = min(flat_amount, P)
+//
+// Caller is responsible for checking MeetsMinPurchase before calling this.
 func (d *Discount) CalculateDiscountAmount(subtotal decimal.Decimal) decimal.Decimal {
 	var discountAmount decimal.Decimal
 
@@ -408,16 +337,11 @@ func (d *Discount) CalculateDiscountAmount(subtotal decimal.Decimal) decimal.Dec
 		discountAmount = subtotal.Mul(d.Value).Div(decimal.NewFromInt(100))
 	case DiscountTypeFlatAmount:
 		discountAmount = d.Value
-	case DiscountTypeFreeShipping:
-		return decimal.Zero
 	default:
 		return decimal.Zero
 	}
 
-	if d.MaxDiscount != nil && discountAmount.GreaterThan(*d.MaxDiscount) {
-		discountAmount = *d.MaxDiscount
-	}
-
+	// Discount cannot exceed subtotal
 	if discountAmount.GreaterThan(subtotal) {
 		discountAmount = subtotal
 	}
@@ -464,11 +388,9 @@ type DiscountApplicationResult struct {
 	Type            DiscountType
 	Value           decimal.Decimal
 	AppliesTo       DiscountAppliesTo
-	TargetMode      DiscountTargetMode
 	DiscountAmount  decimal.Decimal
 	Subtotal        decimal.Decimal
 	DiscountedTotal decimal.Decimal
-	IsFreeShipping  bool
 }
 
 // NewDiscountApplicationResult creates a new discount application result.
@@ -482,62 +404,8 @@ func NewDiscountApplicationResult(
 		Type:            discount.Type,
 		Value:           discount.Value,
 		AppliesTo:       discount.AppliesTo,
-		TargetMode:      discount.TargetMode,
 		DiscountAmount:  discountAmount,
 		Subtotal:        subtotal,
 		DiscountedTotal: subtotal.Sub(discountAmount),
-		IsFreeShipping:  discount.Type == DiscountTypeFreeShipping,
 	}
 }
-
-// MatchPriority returns a deterministic priority for "best discount" selection.
-// Higher number = higher priority.
-//
-// Priority order:
-// - selected_items exact context
-// - seller_wide exact context
-// - selected_items both-context
-// - seller_wide both-context
-func (d *Discount) MatchPriority(ctx DiscountContextType) int {
-	if !d.AppliesTo.AllowsContext(ctx) {
-		return 0
-	}
-
-	switch d.TargetMode {
-	case DiscountTargetModeSelectedItems:
-		if d.AppliesTo == DiscountAppliesToBoth {
-			return 2
-		}
-		return 4
-	case DiscountTargetModeSellerWide:
-		if d.AppliesTo == DiscountAppliesToBoth {
-			return 1
-		}
-		return 3
-	default:
-		return 0
-	}
-}
-
-// IsBetterThan returns true if this discount is "better" than another discount.
-func (d *Discount) IsBetterThan(other *Discount, subtotal decimal.Decimal, ctx DiscountContextType) bool {
-	thisPriority := d.MatchPriority(ctx)
-	otherPriority := other.MatchPriority(ctx)
-	if thisPriority != otherPriority {
-		return thisPriority > otherPriority
-	}
-
-	thisAmount := d.CalculateDiscountAmount(subtotal)
-	otherAmount := other.CalculateDiscountAmount(subtotal)
-	if !thisAmount.Equal(otherAmount) {
-		return thisAmount.GreaterThan(otherAmount)
-	}
-
-	if d.Type == DiscountTypePercentage && other.Type != DiscountTypePercentage {
-		return true
-	}
-
-	return false
-}
-
-

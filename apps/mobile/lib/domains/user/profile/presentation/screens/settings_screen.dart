@@ -55,7 +55,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             if (isSeller) _buildSellerDashboardCard(context),
 
             // Phase 1: Seller shipping setup — global option catalog.
-            // Listing publish requires at least one linked shipping option.
+            // For Sale publish requires at least one linked shipping option.
             if (isSeller) _buildSellerShippingTile(context),
 
             // Upgrade Seller Card (only for non-sellers)
@@ -394,7 +394,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Atur opsi & tarif pengiriman untuk listing Anda',
+                        'Atur opsi & tarif pengiriman untuk produk Anda',
                         style: TextStyle(
                           fontSize: 12,
                           color: AppColors.neutralGray600,

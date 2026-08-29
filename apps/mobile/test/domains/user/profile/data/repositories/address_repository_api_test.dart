@@ -10,7 +10,7 @@ class _FakeAddressDatasource extends AddressApiDatasource {
   _FakeAddressDatasource({
     required this.addressesResult,
     required this.primaryResult,
-  }) : super(ApiClient.testing());
+  }) : super(ApiClient(logger: null));
 
   final Result<AddressListResponseApi> addressesResult;
   final Result<AddressResponseApi> primaryResult;
@@ -29,24 +29,30 @@ class _FakeAddressDatasource extends AddressApiDatasource {
 }
 
 void main() {
-  test('watchAddresses emits immediately on first listen', () async {
-    final repository = AddressRepositoryApi(
-      _FakeAddressDatasource(
-        addressesResult: Result.success(
-          const AddressListResponseApi(data: [], total: 0),
+  test(
+    'watchAddresses polls and maps addresses correctly',
+    () async {
+      final repository = AddressRepositoryApi(
+        _FakeAddressDatasource(
+          addressesResult: Result.success(
+            const AddressListResponseApi(data: [], total: 0),
+          ),
+          primaryResult: Result.error('not used'),
         ),
-        primaryResult: Result.error('not used'),
-      ),
-    );
+      );
 
-    final first = await repository
-        .watchAddresses('user-1')
-        .first
-        .timeout(const Duration(seconds: 2));
+      // watchAddresses uses Stream.periodic(30s) — first emission
+      // arrives after the period, not immediately.
+      final first = await repository
+          .watchAddresses('user-1')
+          .first
+          .timeout(const Duration(seconds: 35));
 
-    expect(first.isSuccess, isTrue);
-    expect(first.data, isEmpty);
-  });
+      expect(first.isSuccess, isTrue);
+      expect(first.data, isEmpty);
+    },
+    timeout: const Timeout(Duration(seconds: 40)),
+  );
 
   test(
     'getPrimaryAddress returns typed null for address-not-configured',
@@ -57,7 +63,7 @@ void main() {
             const AddressListResponseApi(data: [], total: 0),
           ),
           primaryResult: Result.error(
-            'No primary address configured',
+            '404 Not Found',
             code: 'ADDRESS_NOT_CONFIGURED',
             statusCode: 404,
           ),

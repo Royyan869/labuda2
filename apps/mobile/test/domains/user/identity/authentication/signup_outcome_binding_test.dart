@@ -10,6 +10,7 @@ library;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:labuda/domains/user/identity/authentication/domain/entities/sync_outcome.dart';
 
 void main() {
   group('SyncRequiresEmailVerification — binding contract', () {
@@ -90,8 +91,8 @@ void main() {
     });
   });
 
-  group('BackendSyncOutcome — variant coverage', () {
-    test('SyncAuthenticated is a BackendSyncOutcome', () {
+  group('SyncOutcome — variant coverage', () {
+    test('SyncAuthenticated is a SyncOutcome', () {
       final user = AuthUser(
         id: 'u1',
         createdAt: DateTime(2025),
@@ -106,32 +107,32 @@ void main() {
         roles: const [UserRole.user],
         provider: ShonaAuthProvider.email,
       );
-      final outcome = SyncAuthenticated(user: user, emailVerified: true);
-      expect(outcome, isA<BackendSyncOutcome>());
+      final outcome = SyncAuthenticated(userId: user.id, email: user.email, emailVerified: true);
+      expect(outcome, isA<SyncOutcome>());
       expect(outcome, isA<SyncAuthenticated>());
     });
 
-    test('SyncRequiresEmailVerification is a BackendSyncOutcome', () {
+    test('SyncRequiresEmailVerification is a SyncOutcome', () {
       const outcome = SyncRequiresEmailVerification(
         firebaseUid: 'fb-1',
         principalEpoch: 1,
         backendUserId: 'b-1',
         email: 'e@e.com',
       );
-      expect(outcome, isA<BackendSyncOutcome>());
+      expect(outcome, isA<SyncOutcome>());
     });
 
-    test('SyncRequiresProfileCompletion is a BackendSyncOutcome', () {
+    test('SyncRequiresProfileCompletion is a SyncOutcome', () {
       const outcome = SyncRequiresProfileCompletion(
         userId: 'u1',
         email: 'e@e.com',
       );
-      expect(outcome, isA<BackendSyncOutcome>());
+      expect(outcome, isA<SyncOutcome>());
     });
 
-    test('SyncFailed is a BackendSyncOutcome', () {
+    test('SyncFailed is a SyncOutcome', () {
       const outcome = SyncFailed(error: 'test error');
-      expect(outcome, isA<BackendSyncOutcome>());
+      expect(outcome, isA<SyncOutcome>());
     });
 
     test('SyncRequiresEmailVerification != SyncRequiresProfileCompletion', () {

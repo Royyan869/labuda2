@@ -74,7 +74,7 @@ class NotificationEntity {
     // Moderation notifications that need attention
     if ((type == NotificationType.moderationContentRemoved ||
             type == NotificationType.moderationCommentRemoved ||
-            type == NotificationType.moderationListingRemoved ||
+            type == NotificationType.moderationForSaleRemoved ||
             type == NotificationType.moderationAuctionRemoved ||
             type == NotificationType.moderationUserSuspended ||
             type == NotificationType.moderationWarningIssued) &&

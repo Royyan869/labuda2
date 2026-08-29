@@ -31,7 +31,7 @@ abstract class NavigationHandler {
     String contentId,
   ); // Works for both post & request types
   void navigateToForSaleDetail(
-    String fixedPriceSaleId,
+    String forSaleId,
   ); // PUBLIC: Use this for product detail pages
 
   // Creation Navigation - removed hub/form, using dedicated screens only

@@ -34,20 +34,20 @@ AuthUser _authUser({required String id}) {
   );
 }
 
-SavedItemModel _listingItem({
+SavedItemModel _forSaleItem({
   required String id,
   String title = 'Saved Listing',
 }) {
   return SavedItemModel(
     id: '$id-saved',
     userId: 'buyer-1',
-    targetType: TargetType.listing,
+    targetType: TargetType.forSale,
     targetId: id,
     intentType: IntentType.bookmark,
     sellerId: 'seller-1',
     createdAt: DateTime.utc(2026, 8, 2),
-    listingTitle: title,
-    listingPrice: 1250000,
+    forSaleTitle: title,
+    forSalePrice: 1250000,
   );
 }
 
@@ -69,6 +69,9 @@ SavedItemModel _auctionItem({
   );
 }
 
+/// Canonical wire value for a TargetType (matches backend contract).
+String _wireValue(TargetType t) => t == TargetType.forSale ? 'for_sale' : 'auction';
+
 class _MemorySavedItemRepository extends SavedItemRepository {
   _MemorySavedItemRepository({
     List<SavedItemModel>? initialItems,
@@ -78,13 +81,14 @@ class _MemorySavedItemRepository extends SavedItemRepository {
   }
 
   final bool failOnAdd;
+
   final List<SavedItemModel> _items = <SavedItemModel>[];
 
   @override
   Future<List<SavedItemModel>> getSavedItems({String? type}) async {
     final items = type == null
         ? _items
-        : _items.where((item) => item.targetType.name == type).toList();
+        : _items.where((item) => _wireValue(item.targetType) == type).toList();
     return List<SavedItemModel>.unmodifiable(items);
   }
 
@@ -98,14 +102,14 @@ class _MemorySavedItemRepository extends SavedItemRepository {
     }
 
     final existingIndex = _items.indexWhere(
-      (item) => item.targetType.name == targetType && item.targetId == targetId,
+      (item) => _wireValue(item.targetType) == targetType && item.targetId == targetId,
     );
     if (existingIndex != -1) {
       return _items[existingIndex];
     }
 
-    final item = targetType == 'listing'
-        ? _listingItem(id: targetId)
+    final item = targetType == 'for_sale'
+        ? _forSaleItem(id: targetId)
         : _auctionItem(id: targetId);
     _items.add(item);
     return item;
@@ -117,7 +121,7 @@ class _MemorySavedItemRepository extends SavedItemRepository {
     required String targetId,
   }) async {
     _items.removeWhere(
-      (item) => item.targetType.name == targetType && item.targetId == targetId,
+      (item) => _wireValue(item.targetType) == targetType && item.targetId == targetId,
     );
   }
 
@@ -127,68 +131,87 @@ class _MemorySavedItemRepository extends SavedItemRepository {
     required String targetId,
   }) async {
     return _items.any(
-      (item) => item.targetType.name == targetType && item.targetId == targetId,
+      (item) => _wireValue(item.targetType) == targetType && item.targetId == targetId,
     );
   }
 
   @override
   Future<int> getSavedItemsCount({String? type}) async {
-    return (await getSavedItems(type: type)).length;
+    final items = await getSavedItems(type: type);
+    return items.length;
+  }
+
+  @override
+  Future<void> clearSavedItems({String? type}) async {
+    if (type == null) {
+      _items.clear();
+    } else {
+      _items.removeWhere((item) => _wireValue(item.targetType) == type);
+    }
   }
 }
 
 Widget _wrap({
-  required SavedItemRepository repository,
-  required AuthState authState,
   required Widget child,
+  AuthState? authState,
+  SavedItemRepository? repository,
 }) {
   return ProviderScope(
     overrides: [
-      authControllerProvider.overrideWith(() => _FakeAuthController(authState)),
-      savedItemRepositoryProvider.overrideWithValue(repository),
+      if (authState != null)
+        authControllerProvider.overrideWith(() => _FakeAuthController(authState)),
+      if (repository != null)
+        savedItemRepositoryProvider.overrideWithValue(repository),
     ],
-    child: MaterialApp(
-      home: Scaffold(body: SafeArea(child: child)),
-    ),
+    child: MaterialApp(home: Scaffold(body: child)),
   );
 }
 
 void main() {
-  group('Saved items runtime authority and icon presentation', () {
-    testWidgets('icon-only saved action keeps tooltip and semantics labels', (
-      tester,
-    ) async {
+  group('SavedItemScreen', () {
+    testWidgets('empty state shows placeholder', (tester) async {
       final repository = _MemorySavedItemRepository();
 
       await tester.pumpWidget(
         _wrap(
           repository: repository,
           authState: AuthState.authenticated(
-            _authUser(id: 'buyer-icon'),
+            _authUser(id: 'buyer-empty'),
             emailVerified: true,
           ),
-          child: const Center(
-            child: CommerceSavedItemActionButton(
-              targetType: 'listing',
-              targetId: 'listing-icon',
-              label: 'Simpan',
-              activeLabel: 'Tersimpan',
-              icon: Icons.bookmark_border_outlined,
-              activeIcon: Icons.bookmark,
-            ),
-          ),
+          child: const SavedItemScreen(),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(tester.getSize(find.byTooltip('Simpan')), const Size(48, 48));
-      expect(find.text('Simpan'), findsNothing);
-      expect(find.text('Tersimpan'), findsNothing);
-      expect(find.byTooltip('Simpan'), findsOneWidget);
-      expect(find.bySemanticsLabel('Simpan'), findsOneWidget);
+      expect(find.text('Belum ada item yang disimpan'), findsOneWidget);
     });
 
-    testWidgets('listing save refreshes the saved page after success', (
+    testWidgets('shows saved items', (tester) async {
+      final repository = _MemorySavedItemRepository(
+        initialItems: [
+          _forSaleItem(id: 'for-sale-1', title: 'For Sale Item'),
+          _auctionItem(id: 'auction-1', title: 'Auction Item'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _wrap(
+          repository: repository,
+          authState: AuthState.authenticated(
+            _authUser(id: 'buyer-show'),
+            emailVerified: true,
+          ),
+          child: const SavedItemScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('For Sale Item'), findsOneWidget);
+      expect(find.text('Auction Item'), findsOneWidget);
+    });
+
+    testWidgets('for-sale save icon toggles and refreshes saved page', (
       tester,
     ) async {
       final repository = _MemorySavedItemRepository();
@@ -207,8 +230,8 @@ void main() {
               ),
               const SizedBox(height: 12),
               const CommerceSavedItemActionButton(
-                targetType: 'listing',
-                targetId: 'listing-1',
+                targetType: 'for_sale',
+                targetId: 'for-sale-1',
                 label: 'Simpan',
                 activeLabel: 'Tersimpan',
                 icon: Icons.bookmark_border_outlined,
@@ -307,8 +330,8 @@ void main() {
                 ),
                 const SizedBox(height: 12),
                 const CommerceSavedItemActionButton(
-                  targetType: 'listing',
-                  targetId: 'listing-fail',
+                  targetType: 'for_sale',
+                  targetId: 'for-sale-fail',
                   label: 'Simpan',
                   activeLabel: 'Tersimpan',
                   icon: Icons.bookmark_border_outlined,
@@ -334,12 +357,12 @@ void main() {
       },
     );
 
-    testWidgets('saved page keeps listing and auction records distinct', (
+    testWidgets('saved page keeps for-sale and auction records distinct', (
       tester,
     ) async {
       final repository = _MemorySavedItemRepository(
         initialItems: [
-          _listingItem(id: 'listing-mapped', title: 'Listing Mapped'),
+          _forSaleItem(id: 'for-sale-mapped', title: 'For Sale Mapped'),
           _auctionItem(id: 'auction-mapped', title: 'Auction Mapped'),
         ],
       );
@@ -356,21 +379,21 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Listing Mapped'), findsOneWidget);
+      expect(find.text('For Sale Mapped'), findsOneWidget);
       expect(find.text('Auction Mapped'), findsOneWidget);
 
       await tester.tap(find.byType(PopupMenuButton<String?>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Listing').last);
       await tester.pumpAndSettle();
-      expect(find.text('Listing Mapped'), findsOneWidget);
+      expect(find.text('For Sale Mapped'), findsOneWidget);
       expect(find.text('Auction Mapped'), findsNothing);
 
       await tester.tap(find.byType(PopupMenuButton<String?>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Auction').last);
       await tester.pumpAndSettle();
-      expect(find.text('Listing Mapped'), findsNothing);
+      expect(find.text('For Sale Mapped'), findsNothing);
       expect(find.text('Auction Mapped'), findsOneWidget);
     });
   });

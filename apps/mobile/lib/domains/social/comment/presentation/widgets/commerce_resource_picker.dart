@@ -1,6 +1,6 @@
 /// Canonical Commerce Resource Picker for Comment flow.
 ///
-/// Two tabs: FixedPriceSale (paginated + owned + active) and
+/// Two tabs: For Sale (paginated + owned + active) and
 /// Auction (paginated + promotable lifecycle).
 /// Returns [CommerceResourceSelection] with typed [ResourceIdentity].
 library;
@@ -14,7 +14,6 @@ import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/seller_auctions_pager.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/seller_fps_pager.dart';
-import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/resource_identity.dart';
 import 'package:labuda/shared/utils/media_extensions.dart';
 
@@ -179,8 +178,8 @@ class _FPSTab extends ConsumerWidget {
     }
     if (active.isEmpty && !pagerState.hasMore) {
       return _EmptyTab(
-        message: 'Belum ada Fixed Price Sale aktif',
-        actionLabel: createNewListing != null ? 'Buat Listing Baru' : null,
+        message: 'Belum ada For Sale aktif',
+        actionLabel: createNewListing != null ? 'Buat Produk Baru' : null,
         onAction: createNewListing == null
             ? null
             : () {
@@ -202,7 +201,7 @@ class _FPSTab extends ConsumerWidget {
               color: AppColors.primaryRed,
             ),
             title: const Text(
-              'Buat Listing Baru',
+              'Buat Produk Baru',
               style: TextStyle(color: AppColors.primaryRed),
             ),
             onTap: () {

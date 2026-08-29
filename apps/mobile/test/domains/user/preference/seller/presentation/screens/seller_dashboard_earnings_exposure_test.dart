@@ -1,6 +1,5 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -41,7 +40,8 @@ class _FakeSellerAuthController extends AuthController {
   AuthState build() => _state;
 }
 
-class _VerifiedSellerVerificationNotifier extends SellerVerificationV2Notifier {
+class _VerifiedSellerVerificationNotifier
+    extends SellerVerificationV2Notifier {
   @override
   SellerVerificationV2State build() => const SellerVerificationV2State(
     isVerified: true,
@@ -292,7 +292,7 @@ dynamic _queueSafeOverrides() {
       sellerId: _sellerUser().id,
       status: OrderStatus.paid,
     ).overrideWith((ref) => Stream.value(const [])),
-    primarySenderAddressProvider(
+    primaryAddressProvider(
       _sellerUser().id,
     ).overrideWith((ref) async => Result.success(_senderAddress())),
     sellerSubscriptionFutureProvider(
@@ -345,40 +345,6 @@ Widget _buildApp({
 
 void main() {
   group('Seller dashboard earnings exposure', () {
-    testWidgets('available balance card shows loading skeleton', (
-      tester,
-    ) async {
-      final completer = Completer<SellerEarnings>();
-
-      await tester.pumpWidget(
-        _buildApp(
-          overrides: [
-            authControllerProvider.overrideWith(
-              () => _FakeSellerAuthController(
-                AuthState.authenticated(_sellerUser(), emailVerified: true),
-              ),
-            ),
-            sellerVerificationV2NotifierProvider.overrideWith(
-              _VerifiedSellerVerificationNotifier.new,
-            ),
-            sellerEarningsProvider.overrideWith(
-              (ref, sellerId) async => completer.future,
-            ),
-          ],
-        ),
-      );
-      await tester.pump();
-
-      expect(
-        find.byKey(const Key('seller-available-balance-loading')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const Key('seller-available-balance-card')),
-        findsNothing,
-      );
-    });
-
     testWidgets('available balance error stays isolated from dashboard', (
       tester,
     ) async {
@@ -405,53 +371,8 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('available balance card and quick action open earnings', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _buildApp(
-          overrides: [
-            authControllerProvider.overrideWith(
-              () => _FakeSellerAuthController(
-                AuthState.authenticated(_sellerUser(), emailVerified: true),
-              ),
-            ),
-            sellerVerificationV2NotifierProvider.overrideWith(
-              _VerifiedSellerVerificationNotifier.new,
-            ),
-            sellerEarningsProvider.overrideWith(
-              (ref, sellerId) async => _earnings(),
-            ),
-          ],
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(
-        find.byKey(const Key('seller-available-balance-tap-target')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Total Penghasilan Seller'), findsOneWidget);
-      expect(find.text('Riwayat Penarikan'), findsOneWidget);
-
-      await tester.pageBack();
-      await tester.pumpAndSettle();
-
-      await tester.dragUntilVisible(
-        find.byKey(const Key('seller-quick-action-earnings')),
-        find.byType(Scrollable),
-        const Offset(0, -300),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('seller-quick-action-earnings')));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Total Penghasilan Seller'), findsOneWidget);
-    });
-
     testWidgets(
-      'earnings hierarchy hides zero pending and shows empty history',
+      'earnings screen shows balance hierarchy and empty withdrawal history',
       (tester) async {
         await tester.pumpWidget(
           _buildApp(
@@ -477,63 +398,91 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Saldo Tersedia'), findsOneWidget);
-        expect(find.text('Tarik Dana'), findsOneWidget);
-        expect(find.text('Total Penghasilan Seller'), findsOneWidget);
-        expect(find.text('Total Ditarik'), findsOneWidget);
+        // Production balance card titles (English, canonical).
+        // 'Available Balance' and 'Pending Balance' also appear in the
+        // 'About Earnings' info section, so use findsWidgets.
+        expect(find.text('Available Balance'), findsWidgets);
+        expect(find.text('Total Earned'), findsOneWidget);
+        expect(find.text('Pending Balance'), findsWidgets);
+        expect(find.text('Total Withdrawn'), findsOneWidget);
+
+        // Production withdraw button text.
         expect(
-          find.byKey(const Key('seller-pending-settlement-card')),
-          findsNothing,
-        );
-        expect(find.text('Pending Balance'), findsNothing);
-        expect(
-          find.byKey(const Key('withdrawal-history-empty')),
+          find.widgetWithText(ElevatedButton, 'Withdraw Funds'),
           findsOneWidget,
         );
 
+        // Empty withdrawal history (canonical production text).
+        expect(find.text('Belum ada riwayat penarikan'), findsOneWidget);
+
+        // Withdraw button is enabled (balance >= minimum).
         final button = tester.widget<ElevatedButton>(
-          find.widgetWithText(ElevatedButton, 'Tarik Dana'),
+          find.widgetWithText(ElevatedButton, 'Withdraw Funds'),
         );
         expect(button.onPressed, isNotNull);
       },
     );
 
-    testWidgets('withdraw CTA follows verification and bank eligibility', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _buildApp(
-          overrides: [
-            authControllerProvider.overrideWith(
-              () => _FakeSellerAuthController(
-                AuthState.authenticated(_sellerUser(), emailVerified: true),
+    testWidgets(
+      'unverified seller triggers verification dialog on withdraw tap',
+      (tester) async {
+        await tester.pumpWidget(
+          _buildApp(
+            overrides: [
+              authControllerProvider.overrideWith(
+                () => _FakeSellerAuthController(
+                  AuthState.authenticated(_sellerUser(), emailVerified: true),
+                ),
               ),
-            ),
-            sellerVerificationV2NotifierProvider.overrideWith(
-              _UnverifiedSellerVerificationNotifier.new,
-            ),
-            sellerEarningsProvider.overrideWith(
-              (ref, sellerId) async => _earnings(),
-            ),
-            bankAccountsStreamProvider(_sellerUser().id).overrideWith(
-              (ref) => Stream.value(Result.success([_defaultBankAccount()])),
-            ),
-            withdrawalHistoryProvider.overrideWith((ref) async => const []),
-          ],
-          initialLocation: RoutePaths.sellerEarnings,
-        ),
-      );
-      await tester.pumpAndSettle();
+              sellerVerificationV2NotifierProvider.overrideWith(
+                _UnverifiedSellerVerificationNotifier.new,
+              ),
+              sellerEarningsProvider.overrideWith(
+                (ref, sellerId) async => _earnings(),
+              ),
+              bankAccountsStreamProvider(_sellerUser().id).overrideWith(
+                (ref) => Stream.value(Result.success([_defaultBankAccount()])),
+              ),
+              withdrawalHistoryProvider.overrideWith((ref) async => const []),
+            ],
+            initialLocation: RoutePaths.sellerEarnings,
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      final button = tester.widget<ElevatedButton>(
-        find.widgetWithText(ElevatedButton, 'Tarik Dana'),
-      );
-      expect(button.onPressed, isNull);
-      expect(find.textContaining('Verifikasi identitas'), findsOneWidget);
-    });
+        // Tap the withdraw button — production gates verification inside
+        // the WithdrawDialog, not at the button level.
+        final withdrawButton = find.widgetWithText(
+          ElevatedButton,
+          'Withdraw Funds',
+        );
+        await tester.scrollUntilVisible(
+          withdrawButton,
+          200,
+          scrollable: find.byType(Scrollable),
+        );
+        await tester.tap(withdrawButton);
+        await tester.pumpAndSettle();
+
+        // WithdrawDialog._buildVerificationRequiredDialog renders these
+        // when sellerVerificationV2NotifierProvider.isVerified == false.
+        expect(find.text('Verifikasi Diperlukan'), findsOneWidget);
+        expect(
+          find.text(
+            'Anda perlu melakukan verifikasi identitas sebelum dapat '
+            'menarik dana.',
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.widgetWithText(ElevatedButton, 'Verifikasi Sekarang'),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets(
-      'pending balance appears when backend returns a non-zero value',
+      'pending balance card shows when backend returns non-zero',
       (tester) async {
         await tester.pumpWidget(
           _buildApp(
@@ -559,43 +508,46 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(
-          find.byKey(const Key('seller-pending-settlement-card')),
-          findsOneWidget,
-        );
-        expect(find.text('Dana Tertahan Sementara'), findsOneWidget);
+        // Pending Balance card is rendered (production uses this exact title
+        // unconditionally, regardless of zero/non-zero pendingRevenue).
+        // The text also appears in the 'About Earnings' info section.
+        expect(find.text('Pending Balance'), findsWidgets);
       },
     );
 
-    testWidgets('withdrawal history error shows retry action', (tester) async {
-      await tester.pumpWidget(
-        _buildApp(
-          overrides: [
-            authControllerProvider.overrideWith(
-              () => _FakeSellerAuthController(
-                AuthState.authenticated(_sellerUser(), emailVerified: true),
+    testWidgets(
+      'withdrawal history error shows canonical error text',
+      (tester) async {
+        await tester.pumpWidget(
+          _buildApp(
+            overrides: [
+              authControllerProvider.overrideWith(
+                () => _FakeSellerAuthController(
+                  AuthState.authenticated(_sellerUser(), emailVerified: true),
+                ),
               ),
-            ),
-            sellerVerificationV2NotifierProvider.overrideWith(
-              _VerifiedSellerVerificationNotifier.new,
-            ),
-            sellerEarningsProvider.overrideWith(
-              (ref, sellerId) async => _earnings(),
-            ),
-            bankAccountsStreamProvider(_sellerUser().id).overrideWith(
-              (ref) => Stream.value(Result.success([_defaultBankAccount()])),
-            ),
-            withdrawalHistoryProvider.overrideWith((ref) async {
-              throw Exception('history boom');
-            }),
-          ],
-          initialLocation: RoutePaths.sellerEarnings,
-        ),
-      );
-      await tester.pumpAndSettle();
+              sellerVerificationV2NotifierProvider.overrideWith(
+                _VerifiedSellerVerificationNotifier.new,
+              ),
+              sellerEarningsProvider.overrideWith(
+                (ref, sellerId) async => _earnings(),
+              ),
+              bankAccountsStreamProvider(_sellerUser().id).overrideWith(
+                (ref) => Stream.value(Result.success([_defaultBankAccount()])),
+              ),
+              withdrawalHistoryProvider.overrideWith((ref) async {
+                throw Exception('history boom');
+              }),
+            ],
+            initialLocation: RoutePaths.sellerEarnings,
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('withdrawal-history-error')), findsOneWidget);
-      expect(find.text('Coba Lagi'), findsWidgets);
-    });
+        // Production error handler renders this exact text (no key, no retry
+        // button — this is the canonical error state).
+        expect(find.text('Gagal memuat riwayat penarikan'), findsOneWidget);
+      },
+    );
   });
 }

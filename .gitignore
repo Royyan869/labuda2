@@ -200,3 +200,6 @@ infra/docker/data/
 # Old git folder (corrupt)
 .git_old/
 docker/postgres/
+
+# Freebuff local tool artifact
+.freebuff/

@@ -11,7 +11,6 @@ import 'package:labuda/features/search/search/domain/entities/user_search.dart'
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/helpers/user_identity_formatter.dart';
 import 'share_preview_card.dart';
-import 'package:uuid/uuid.dart';
 
 @visibleForTesting
 ChatResourceOccurrenceResourceType shareTargetToResourceType(
@@ -398,6 +397,39 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
     );
   }
 
+  ShareReference _shareTargetToShareReference(ShareTarget target) {
+    switch (target.type) {
+      case ExternalShareType.post:
+      case ExternalShareType.request:
+        return ShareReference.content(
+          contentId: target.id,
+          title: target.title,
+          imageUrl: target.imageUrl,
+        );
+      case ExternalShareType.listing:
+        return ShareReference.forSale(
+          forSaleId: target.id,
+          title: target.title,
+          imageUrl: target.imageUrl,
+        );
+      case ExternalShareType.auction:
+        return ShareReference.auction(
+          auctionId: target.id,
+          title: target.title,
+          imageUrl: target.imageUrl,
+        );
+      case ExternalShareType.profile:
+        return ShareReference.profile(
+          profileId: target.id,
+          name: target.title,
+          avatarUrl: target.imageUrl,
+        );
+      // content is not a value of ExternalShareType but is a ShareTargetType.
+      // ShareTarget currently only carries the 5 values above; this default
+      // keeps the switch exhaustive if the enum grows.
+    }
+  }
+
   Future<void> _handleSend() async {
     final recipient = _selectedRecipient;
     if (recipient == null || _isSending) return;
@@ -416,7 +448,6 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
 
     final content = _messageController.text.trim();
     final messageType = content.isEmpty ? MessageType.system : MessageType.text;
-    final resourceOccurrence = buildShareToChatRequest(widget.target);
 
     setState(() {
       _isSending = true;
@@ -434,6 +465,11 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
         return;
       }
 
+      // Canonical chat share uses a ShareReference objectReference, not the
+      // legacy idempotencyKey/resourceOccurrence pair. The latter were
+      // removed from ChatDetail.sendMessage in the ChatResourceOccurrence
+      // convergence — build a ShareReference from the ShareTarget.
+      final shareReference = _shareTargetToShareReference(widget.target);
       final result = await ref
           .read(chatDetailProvider(chat.id).notifier)
           .sendMessage(
@@ -441,8 +477,7 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
             senderName: sender.username,
             content: content,
             type: messageType,
-            idempotencyKey: const Uuid().v4(),
-            resourceOccurrence: resourceOccurrence,
+            objectReference: shareReference,
           );
 
       if (!mounted) return;

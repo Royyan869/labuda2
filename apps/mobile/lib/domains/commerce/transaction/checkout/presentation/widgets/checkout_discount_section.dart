@@ -5,7 +5,7 @@ part of '../screens/checkout_screen_impl.dart';
 /// This section provides honest discount code input during checkout.
 ///
 /// HONESTY PRINCIPLES:
-/// - Shows for listing and auction checkout, not negotiation
+/// - Shows for For Sale, negotiation, and auction checkout
 /// - DiscountInputField validates codes via backend
 /// - Shows success/error state from backend validation
 /// - Displays applied discount honestly with description only
@@ -17,20 +17,16 @@ part of '../screens/checkout_screen_impl.dart';
 /// 3. If valid: store state, trigger preview refresh
 /// 4. Backend preview returns final pricing with discount applied
 class _DiscountSection extends ConsumerWidget {
-  final String fixedPriceSaleId;
   final String? sellerId;
   final String contextType;
-  final String? auctionId;
   final double subtotal;
   final void Function(Discount? discount, double amount) onDiscountApplied;
   final Discount? appliedDiscount;
   final double appliedDiscountAmount;
 
   const _DiscountSection({
-    required this.fixedPriceSaleId,
     required this.sellerId,
     required this.contextType,
-    this.auctionId,
     required this.subtotal,
     required this.onDiscountApplied,
     required this.appliedDiscount,
@@ -59,8 +55,6 @@ class _DiscountSection extends ConsumerWidget {
           subtotal: subtotal,
           contextType: contextType,
           sellerId: sellerId ?? '',
-          listingId: contextType == 'listing' ? fixedPriceSaleId : null,
-          auctionId: contextType == 'auction' ? auctionId : null,
           onDiscountApplied: onDiscountApplied,
         ),
 
@@ -119,26 +113,17 @@ class _DiscountSection extends ConsumerWidget {
     );
   }
 
-  /// HONESTY: Get discount description based on backend-validated discount type
+  /// Get discount description based on backend-validated discount type
   ///
-  /// Returns a clear, non-misleading description of the discount:
+  /// Returns a clear description of the discount:
   /// - percentage: "Diskon 10%" (from backend value)
   /// - flat amount: "Diskon nominal" (backend value)
-  /// - free shipping: "Gratis ongkir" (backend flag)
   String _getDiscountDescription(Discount discount) {
     switch (discount.type) {
       case DiscountType.percentage:
-        final percentage = discount.value;
-        final maxDiscount = discount.maxDiscount;
-        if (maxDiscount != null && maxDiscount > 0) {
-          // Percentage with cap - show both
-          return 'Diskon $percentage% (maks. Rp${maxDiscount.toInt()})';
-        }
-        return 'Diskon $percentage%';
+        return 'Diskon ${discount.value.toInt()}%';
       case DiscountType.flatAmount:
         return 'Diskon nominal';
-      case DiscountType.freeShipping:
-        return 'Gratis ongkir';
     }
   }
 }

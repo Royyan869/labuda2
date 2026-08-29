@@ -297,13 +297,37 @@ func (s *ForSaleService) GetForUpdate(
 
 // Update updates an existing for_sale.
 //
-// HARD RULE VALIDATION: Rejects active + private combination.
-// Active for_sales MUST be public (enforced invariant).
+// AUTHORITY ENFORCEMENT: Independently validates any status transition
+// before persisting. This prevents the service boundary from being
+// bypassed by a caller that supplies an invalid status.
+//
+// Special governed transitions (sold→active via stock restore,
+// withdrawn→active via moderation) MUST NOT flow through Update().
+// They have dedicated service methods with their own authority checks.
 func (s *ForSaleService) Update(
 	ctx context.Context,
 	tx db.Tx,
 	for_sale *entity.ForSale,
 ) error {
+	// Load the current state to validate any status transition.
+	original, err := s.repo.GetByID(ctx, tx, for_sale.ID)
+	if err != nil {
+		return fmt.Errorf("cannot validate update: %w", err)
+	}
+
+	// Validate status transition if status is changing.
+	if original.Status != for_sale.Status {
+		// Special governed transitions must not flow through Update().
+		if for_sale.Status == entity.ForSaleStatusActive &&
+			(original.Status == entity.ForSaleStatusSold || original.Status == entity.ForSaleStatusWithdrawn) {
+			return fmt.Errorf("status transition %s → %s is not permitted through Update; use dedicated governed path", original.Status, for_sale.Status)
+		}
+		// Ordinary transition must be in the canonical transition graph.
+		if !entity.CanTransition(original.Status, for_sale.Status) {
+			return fmt.Errorf("invalid status transition: %s → %s", original.Status, for_sale.Status)
+		}
+	}
+
 	// HARD RULE: Active for_sales cannot be private
 	if for_sale.Status == entity.ForSaleStatusActive && for_sale.Visibility == entity.ForSaleVisibilityPrivate {
 		return fmt.Errorf("invalid for_sale: active status requires public visibility")

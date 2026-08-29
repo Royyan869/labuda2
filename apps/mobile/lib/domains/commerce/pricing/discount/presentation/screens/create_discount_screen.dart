@@ -3,18 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart' as core;
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/shared/widgets/app_button.dart';
-// TODO: import 'package:labuda/shared/providers/authenticated_account_provider.dart';
 import 'package:labuda/shared/shared.dart' show authenticatedUserProvider;
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 import 'package:labuda/domains/commerce/pricing/discount/domain/use_cases/create_discount_use_case.dart';
 import 'package:labuda/domains/commerce/pricing/discount/presentation/providers/discount_provider.dart';
 import 'package:labuda/domains/commerce/pricing/discount/presentation/widgets/create_discount_form/basic_info_section.dart';
 import 'package:labuda/domains/commerce/pricing/discount/presentation/widgets/create_discount_form/discount_type_section.dart';
-import 'package:labuda/domains/commerce/pricing/discount/presentation/widgets/create_discount_form/scope_section.dart';
+import 'package:labuda/domains/commerce/pricing/discount/presentation/widgets/create_discount_form/applies_to_section.dart';
 import 'package:labuda/domains/commerce/pricing/discount/presentation/widgets/create_discount_form/validity_section.dart';
 import 'package:labuda/domains/commerce/pricing/discount/presentation/widgets/create_discount_form/limits_section.dart';
 
-/// Screen untuk membuat atau edit discount
+/// Screen untuk membuat discount
+///
+/// CANONICAL MODEL (DISCOUNT-003): code, description, type, value,
+/// minPurchase, applies_to (for_sale/auction/both), validUntil, totalUsageLimit.
+/// No specific-item targeting.
 class CreateDiscountScreen extends ConsumerStatefulWidget {
   final Discount? discountToEdit;
 
@@ -35,21 +38,17 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
   // Type & value
   DiscountType _type = DiscountType.percentage;
   double _value = 0;
-  double? _maxDiscount;
 
-  // Applicability
-  DiscountAppliesTo _appliesTo = DiscountAppliesTo.listing;
-  DiscountTargetMode _targetMode = DiscountTargetMode.sellerWide;
-  List<String> _applicableListingIds = [];
-  List<String> _applicableAuctionIds = [];
+  // Applicability (surface type only)
+  DiscountAppliesTo _appliesTo = DiscountAppliesTo.forSale;
 
-  // Validity
-  DateTime _validFrom = DateTime.now();
+  // Minimum purchase
+  double _minPurchase = 0.0;
+
+  // Validity (expiry-only)
   DateTime _validUntil = DateTime.now().add(const Duration(days: 30));
 
   // Limits
-  double? _minPurchase;
-  int? _maxUsagePerUser;
   int? _totalUsageLimit;
 
   // Status
@@ -75,15 +74,9 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
     _description = discount.description;
     _type = discount.type;
     _value = discount.value;
-    _maxDiscount = discount.maxDiscount;
-    _appliesTo = discount.appliesTo;
-    _targetMode = discount.targetMode;
-    _applicableListingIds = List.from(discount.applicableListingIds ?? []);
-    _applicableAuctionIds = List.from(discount.applicableAuctionIds ?? []);
-    _validFrom = discount.validFrom;
-    _validUntil = discount.validUntil;
     _minPurchase = discount.minPurchase;
-    _maxUsagePerUser = discount.maxUsagePerUser;
+    _appliesTo = discount.appliesTo;
+    _validUntil = discount.validUntil;
     _totalUsageLimit = discount.totalUsageLimit;
     _isActive = discount.isActive;
   }
@@ -99,13 +92,11 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
       return false;
     }
 
-    // Validate code
     if (_code.trim().length < 3) {
       AppSnackBar.showWarning(context, 'Discount code minimum 3 characters');
       return false;
     }
 
-    // Validate value
     if (_value <= 0) {
       AppSnackBar.showWarning(context, 'Discount value must be greater than 0');
       return false;
@@ -116,41 +107,9 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
       return false;
     }
 
-    // Validate dates
-    if (_validUntil.isBefore(_validFrom)) {
-      AppSnackBar.showWarning(context, 'End date must be after start date');
+    if (_validUntil.isBefore(DateTime.now())) {
+      AppSnackBar.showWarning(context, 'Expiry date must be in the future');
       return false;
-    }
-
-    // Validate target-specific fields
-    if (_targetMode == DiscountTargetMode.selectedItems) {
-      final listingAllowed = _appliesTo != DiscountAppliesTo.auction;
-      final auctionAllowed = _appliesTo != DiscountAppliesTo.listing;
-      final hasListingTargets = _applicableListingIds.isNotEmpty;
-      final hasAuctionTargets = _applicableAuctionIds.isNotEmpty;
-
-      if ((listingAllowed && !hasListingTargets) &&
-          (auctionAllowed && !hasAuctionTargets)) {
-        AppSnackBar.showWarning(
-          context,
-          'Select at least one listing or auction target',
-        );
-        return false;
-      }
-
-      if (listingAllowed &&
-          !hasListingTargets &&
-          _appliesTo == DiscountAppliesTo.listing) {
-        AppSnackBar.showWarning(context, 'Select at least 1 listing target');
-        return false;
-      }
-
-      if (auctionAllowed &&
-          !hasAuctionTargets &&
-          _appliesTo == DiscountAppliesTo.auction) {
-        AppSnackBar.showWarning(context, 'Select at least 1 auction target');
-        return false;
-      }
     }
 
     return true;
@@ -176,19 +135,9 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
         type: _type,
         value: _value,
         minPurchase: _minPurchase,
-        maxDiscount: _maxDiscount,
-        maxUsagePerUser: _maxUsagePerUser,
         totalUsageLimit: _totalUsageLimit,
         appliesTo: _appliesTo,
-        targetMode: _targetMode,
         sellerId: currentUser.id,
-        applicableListingIds: _appliesTo != DiscountAppliesTo.auction
-            ? _applicableListingIds
-            : null,
-        applicableAuctionIds: _appliesTo != DiscountAppliesTo.listing
-            ? _applicableAuctionIds
-            : null,
-        validFrom: _validFrom,
         validUntil: _validUntil,
         isActive: _isActive,
         createdBy: currentUser.id,
@@ -203,7 +152,6 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
           AppSnackBar.showError(context, error);
         },
         (discount) {
-          // Invalidate provider untuk auto-refresh list
           ref.invalidate(sellerDiscountsProvider(currentUser.id));
 
           AppSnackBar.showSuccess(
@@ -212,7 +160,7 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
                 ? 'Discount updated successfully!'
                 : 'Discount created successfully!',
           );
-          Navigator.of(context).pop(true); // Return true to indicate success
+          Navigator.of(context).pop(true);
         },
       );
     } catch (e) {
@@ -317,14 +265,9 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
                 DiscountTypeSection(
                   type: _type,
                   value: _value,
-                  maxDiscount: _maxDiscount,
                   onTypeChanged: (value) {
                     setState(() {
                       _type = value;
-                      // Reset max discount if not percentage
-                      if (_type != DiscountType.percentage) {
-                        _maxDiscount = null;
-                      }
                       _markChanged();
                     });
                   },
@@ -334,60 +277,24 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
                       _markChanged();
                     });
                   },
-                  onMaxDiscountChanged: (value) {
-                    setState(() {
-                      _maxDiscount = value;
-                      _markChanged();
-                    });
-                  },
                 ),
                 const SizedBox(height: 12),
 
-                // Scope Section
-                ScopeSection(
+                // Scope Section (dropdown only — no UUID inputs)
+                AppliesToSection(
                   appliesTo: _appliesTo,
-                  targetMode: _targetMode,
-                  applicableListingIds: _applicableListingIds,
-                  applicableAuctionIds: _applicableAuctionIds,
                   onAppliesToChanged: (value) {
                     setState(() {
                       _appliesTo = value;
-                      _applicableListingIds = [];
-                      _applicableAuctionIds = [];
-                      _markChanged();
-                    });
-                  },
-                  onTargetModeChanged: (value) {
-                    setState(() {
-                      _targetMode = value;
-                      _markChanged();
-                    });
-                  },
-                  onListingIdsChanged: (value) {
-                    setState(() {
-                      _applicableListingIds = value;
-                      _markChanged();
-                    });
-                  },
-                  onAuctionIdsChanged: (value) {
-                    setState(() {
-                      _applicableAuctionIds = value;
                       _markChanged();
                     });
                   },
                 ),
                 const SizedBox(height: 12),
 
-                // Validity Period Section
+                // Validity Period Section (expiry-only)
                 ValiditySection(
-                  validFrom: _validFrom,
                   validUntil: _validUntil,
-                  onValidFromChanged: (value) {
-                    setState(() {
-                      _validFrom = value;
-                      _markChanged();
-                    });
-                  },
                   onValidUntilChanged: (value) {
                     setState(() {
                       _validUntil = value;
@@ -397,27 +304,20 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Limits Section
+                // Limits Section (minPurchase + totalUsageLimit + active status)
                 LimitsSection(
-                  minPurchase: _minPurchase,
-                  maxUsagePerUser: _maxUsagePerUser,
                   totalUsageLimit: _totalUsageLimit,
+                  minPurchase: _minPurchase,
                   isActive: _isActive,
-                  onMinPurchaseChanged: (value) {
-                    setState(() {
-                      _minPurchase = value;
-                      _markChanged();
-                    });
-                  },
-                  onMaxUsagePerUserChanged: (value) {
-                    setState(() {
-                      _maxUsagePerUser = value;
-                      _markChanged();
-                    });
-                  },
                   onTotalUsageLimitChanged: (value) {
                     setState(() {
                       _totalUsageLimit = value;
+                      _markChanged();
+                    });
+                  },
+                  onMinPurchaseChanged: (value) {
+                    setState(() {
+                      _minPurchase = value;
                       _markChanged();
                     });
                   },

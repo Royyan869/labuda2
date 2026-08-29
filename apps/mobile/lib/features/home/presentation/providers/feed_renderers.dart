@@ -620,7 +620,7 @@ class PromotedListingCard extends ConsumerWidget {
     final sellerUsername = data['sellerUsername'] as String?;
     final sellerFarmName = data['sellerFarmName'] as String?;
     final sellerLabel = _formatSellerLabel(sellerUsername, sellerFarmName);
-    final fixedPriceSaleId = data['fixedPriceSaleId'] as String?;
+    final forSaleId = data['forSaleId'] as String?;
     final promotionInstanceId = data['promotionInstanceId'] as String? ?? '';
 
     return VisibilityDetector(
@@ -641,13 +641,13 @@ class PromotedListingCard extends ConsumerWidget {
           ),
         ),
         child: InkWell(
-          onTap: fixedPriceSaleId != null
+          onTap: forSaleId != null
               ? () {
                   _recordPromotionClick(ref, promotionInstanceId, 'feed');
                   context.push(
                     RoutePaths.forSaleDetail.replaceFirst(
-                      ':fixedPriceSaleId',
-                      fixedPriceSaleId,
+                      ':forSaleId',
+                      forSaleId,
                     ),
                   );
                 }

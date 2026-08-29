@@ -233,7 +233,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
   void _viewForSaleDetail(BuildContext context, String forSaleId) {
     context.push(
       RoutePaths.forSaleDetail.replaceFirst(
-        ':fixedPriceSaleId',
+        ':forSaleId',
         forSaleId,
       ),
     );
@@ -242,7 +242,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
   void _editForSale(BuildContext context, ForSale listing) {
     context.push(
       RoutePaths.editForSale.replaceFirst(
-        ':fixedPriceSaleId',
+        ':forSaleId',
         listing.forSaleId,
       ),
     );

@@ -77,7 +77,7 @@ export 'presentation/presentation.dart';
 // MIGRATION: Bootstrap pattern removed - now using data layer providers directly
 export 'presentation/providers/profile_about_provider.dart';
 export 'presentation/providers/profile_core_provider.dart'
-    hide profileProvider, currentUserProfileProvider, ProfileActions;
+    hide profileProvider, ProfileActions;
 export 'presentation/providers/profile_search_provider.dart';
 export 'presentation/providers/profile_stream_provider.dart';
 export 'presentation/providers/phone_verification_provider.dart';

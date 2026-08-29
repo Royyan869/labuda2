@@ -11,7 +11,7 @@ import 'package:labuda/shared/services/logger_service.dart';
 
 class _CountingUserApiDatasource extends UserApiDatasource {
   _CountingUserApiDatasource(this._response)
-    : super(ApiClient.testing(logger: LoggerService.instance));
+    : super(ApiClient(logger: LoggerService.instance));
 
   final Map<String, dynamic> _response;
   int getUserByIdCalls = 0;

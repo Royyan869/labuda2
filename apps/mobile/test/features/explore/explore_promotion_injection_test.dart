@@ -13,11 +13,11 @@ import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_
 import 'package:labuda/domains/commerce/catalog/auction/domain/repositories/auction_repository.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/auction_card.dart';
-import 'package:labuda/domains/commerce/catalog/listing/domain/entities/listing.dart';
-import 'package:labuda/domains/commerce/catalog/listing/domain/repositories/listing_repository.dart';
-import 'package:labuda/domains/commerce/catalog/listing/presentation/providers/listing_providers.dart'
-    show listingRepositoryProvider;
-import 'package:labuda/domains/commerce/catalog/listing/presentation/widgets/listing_card.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/domain/repositories/for_sale_repository.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart'
+    show forSaleRepositoryProvider;
+import 'package:labuda/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_card.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/data/dto/promotion_dto.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/data/promotion_discovery_service.dart';
 import 'package:labuda/features/explore/explore.dart';
@@ -25,44 +25,44 @@ import 'package:labuda/features/home/presentation/providers/feed_renderers.dart'
     show PromotedExternalCard;
 import 'package:labuda/shared/services/logger_service.dart';
 
-class _FakeListingRepository implements ListingRepository {
-  final List<Listing> listings;
+class _FakeForSaleRepository implements ForSaleRepository {
+  final List<ForSale> listings;
 
-  _FakeListingRepository(this.listings);
+  _FakeForSaleRepository(this.listings);
 
   @override
-  Future<Result<List<Listing>>> getListings(GetListingsParams params) async {
+  Future<Result<List<ForSale>>> getForSales(GetForSalesParams params) async {
     return Result.success(listings);
   }
 
   @override
-  Future<Result<Listing?>> getFixedPriceSaleById(
-    String fixedPriceSaleId,
+  Future<Result<ForSale?>> getForSaleById(
+    String forSaleId,
   ) async {
     final listing =
         listings
-            .where((item) => item.fixedPriceSaleId == fixedPriceSaleId)
+            .where((item) => item.forSaleId == forSaleId)
             .isEmpty
         ? null
         : listings.firstWhere(
-            (item) => item.fixedPriceSaleId == fixedPriceSaleId,
+            (item) => item.forSaleId == forSaleId,
           );
     return Result.success(listing);
   }
 
   @override
-  Future<Result<List<Listing>>> getListingsByIds(
-    List<String> listingIds,
+  Future<Result<List<ForSale>>> getForSalesByIds(
+    List<String> forSaleIds,
   ) async {
     return Result.success(
       listings
-          .where((listing) => listingIds.contains(listing.fixedPriceSaleId))
+          .where((listing) => forSaleIds.contains(listing.forSaleId))
           .toList(),
     );
   }
 
   @override
-  Future<Result<List<Listing>>> getSellerListings(
+  Future<Result<List<ForSale>>> getSellerForSales(
     String sellerId, {
     int page = 1,
     int pageSize = 20,
@@ -71,27 +71,27 @@ class _FakeListingRepository implements ListingRepository {
   }
 
   @override
-  Future<Result<Listing>> createListing(CreateListingRequest request) async {
+  Future<Result<ForSale>> createForSale(CreateForSaleRequest request) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<Result<Listing>> updateFixedPriceSale(
-    String fixedPriceSaleId,
-    UpdateListingRequest request,
+  Future<Result<ForSale>> updateForSale(
+    String forSaleId,
+    UpdateForSaleRequest request,
   ) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<Result<void>> deleteFixedPriceSale(String fixedPriceSaleId) async {
+  Future<Result<void>> deleteForSale(String forSaleId) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<Result<Listing>> updateFixedPriceSaleStatus(
+  Future<Result<ForSale>> updateForSaleStatus(
     String fixedPriceSaleId,
-    ListingStatus status,
+    ForSaleStatus status,
   ) async {
     throw UnimplementedError();
   }
@@ -262,7 +262,7 @@ class _FakePromotionDiscoveryService extends PromotionDiscoveryService {
   }) : super(const _StubApiClient());
 
   @override
-  Future<PromotedItemsResponse> getPromotedFixedPriceSales({
+  Future<PromotedItemsResponse> getPromotedForSales({
     int limit = 10,
   }) async {
     return PromotedItemsResponse(
@@ -271,7 +271,7 @@ class _FakePromotionDiscoveryService extends PromotionDiscoveryService {
           .map(
             (id) => PromotedItemDto(
               instanceId: 'promo-$id',
-              targetType: 'fixed_price_sale',
+              targetType: 'for_sale',
               targetId: id,
             ),
           )
@@ -330,10 +330,10 @@ class _ThrowingApiClient implements ApiClient {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-Listing _listing({required String id, required String title}) {
+ForSale _forSale({required String id, required String title}) {
   final now = DateTime.utc(2026, 6, 9);
-  return Listing(
-    fixedPriceSaleId: id,
+  return ForSale(
+    forSaleId: id,
     title: title,
     description: '$title description',
     price: 150000,
@@ -341,7 +341,7 @@ Listing _listing({required String id, required String title}) {
     sellerId: 'seller-1',
     sellerUsername: 'seller_user',
     sellerFarmName: 'Farm Name',
-    status: ListingStatus.active,
+    status: ForSaleStatus.active,
     createdAt: now,
     updatedAt: now,
   );
@@ -375,7 +375,7 @@ Auction _auction({required String id, required String title}) {
 
 Widget _wrapExplore({
   required Widget child,
-  required List<Listing> listings,
+  required List<ForSale> listings,
   required List<Auction> auctions,
   required List<String> promotedFixedPriceSaleIds,
   required List<String> promotedAuctionIds,
@@ -387,10 +387,10 @@ Widget _wrapExplore({
         builder: (context, state) => Scaffold(body: child),
       ),
       GoRoute(
-        path: '/listing/:fixedPriceSaleId',
+        path: '/for-sale/:forSaleId',
         builder: (context, state) => Scaffold(
           body: Text(
-            'listing detail ${state.pathParameters['fixedPriceSaleId']}',
+            'for-sale detail ${state.pathParameters['forSaleId']}',
           ),
         ),
       ),
@@ -407,8 +407,8 @@ Widget _wrapExplore({
   return ProviderScope(
     overrides: [
       loggerServiceProvider.overrideWithValue(LoggerService.instance),
-      listingRepositoryProvider.overrideWithValue(
-        _FakeListingRepository(listings),
+      forSaleRepositoryProvider.overrideWithValue(
+        _FakeForSaleRepository(listings),
       ),
       auctionRepositoryProvider.overrideWithValue(
         _FakeAuctionRepository(auctions),
@@ -435,24 +435,24 @@ void main() {
         _wrapExplore(
           child: const ExploreScreen(initialTab: 0),
           listings: [
-            _listing(id: 'listing-1', title: 'Promo Listing'),
-            _listing(id: 'listing-2', title: 'Organic Listing'),
+            _forSale(id: 'for-sale-1', title: 'Promo ForSale'),
+            _forSale(id: 'for-sale-2', title: 'Organic ForSale'),
           ],
           auctions: const [],
-          promotedFixedPriceSaleIds: const ['listing-1'],
+          promotedFixedPriceSaleIds: const ['for-sale-1'],
           promotedAuctionIds: const [],
         ),
       );
       await tester.pumpAndSettle();
 
       expect(find.text('Listing Dipromosikan'), findsOneWidget);
-      expect(find.text('Promo Listing'), findsOneWidget);
-      expect(find.text('Organic Listing'), findsOneWidget);
+      expect(find.text('Promo ForSale'), findsOneWidget);
+      expect(find.text('Organic ForSale'), findsOneWidget);
       expect(find.byType(PromotedExternalCard), findsNothing);
     },
   );
 
-  testWidgets('listing tab promoted card navigates to listing detail', (
+  testWidgets('listing tab promoted card navigates to for-sale detail', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(1080, 2400));
@@ -461,18 +461,18 @@ void main() {
     await tester.pumpWidget(
       _wrapExplore(
         child: const ExploreScreen(initialTab: 0),
-        listings: [_listing(id: 'listing-1', title: 'Promo Listing')],
+        listings: [_forSale(id: 'for-sale-1', title: 'Promo ForSale')],
         auctions: const [],
-        promotedFixedPriceSaleIds: const ['listing-1'],
+        promotedFixedPriceSaleIds: const ['for-sale-1'],
         promotedAuctionIds: const [],
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(ListingCard).first);
+    await tester.tap(find.byType(ForSaleCard).first);
     await tester.pumpAndSettle();
 
-    expect(find.text('listing detail listing-1'), findsOneWidget);
+    expect(find.text('for-sale detail for-sale-1'), findsOneWidget);
   });
 
   testWidgets(
@@ -532,7 +532,7 @@ void main() {
     await tester.pumpWidget(
       _wrapExplore(
         child: const ExploreScreen(initialTab: 0),
-        listings: [_listing(id: 'listing-1', title: 'Organic Listing')],
+        listings: [_forSale(id: 'for-sale-1', title: 'Organic ForSale')],
         auctions: const [],
         promotedFixedPriceSaleIds: const [],
         promotedAuctionIds: const [],
@@ -541,13 +541,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Listing Dipromosikan'), findsNothing);
-    expect(find.text('Organic Listing'), findsOneWidget);
+      expect(find.text('Organic ForSale'), findsOneWidget);
   });
 
   test('promotion discovery service fails open on transport errors', () async {
     final service = PromotionDiscoveryService(_ThrowingApiClient());
 
-    final listings = await service.getPromotedFixedPriceSales(limit: 2);
+    final listings = await service.getPromotedForSales(limit: 2);
     final auctions = await service.getPromotedAuctions(limit: 2);
 
     expect(listings, PromotedItemsResponse.empty);

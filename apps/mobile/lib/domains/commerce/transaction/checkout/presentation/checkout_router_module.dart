@@ -23,7 +23,7 @@ class CheckoutModule extends BaseModule {
       path: RoutePaths.checkout,
       name: RouteNames.checkout,
       builder: (context, state) {
-        final fixedPriceSaleId = state.pathParameters['fixedPriceSaleId']!;
+        final forSaleId = state.pathParameters['forSaleId']!;
         final productId = state.uri.queryParameters['product_id'];
 
         // Chat commerce context - optional query parameters
@@ -40,7 +40,7 @@ class CheckoutModule extends BaseModule {
 
         return CheckoutScreen(
           productId: productId,
-          fixedPriceSaleId: fixedPriceSaleId,
+          fixedPriceSaleId: forSaleId,
           negotiationId: negotiationId,
           auctionId: auctionId,
           shippingQuoteId: shippingQuoteId,

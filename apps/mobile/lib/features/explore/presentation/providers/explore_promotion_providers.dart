@@ -18,13 +18,13 @@ final explorePromotionDiscoveryServiceProvider =
 /// Promoted fixed-price-sale IDs for Explore.
 ///
 /// Returns only fixed-price-sale promotion target IDs; fetched from the discovery service.
-final explorePromotedFixedPriceSaleIdsProvider =
+final explorePromotedForSaleIdsProvider =
     FutureProvider.autoDispose<List<String>>((ref) async {
       final service = ref.watch(explorePromotionDiscoveryServiceProvider);
-      final response = await service.getPromotedFixedPriceSales(limit: 2);
+      final response = await service.getPromotedForSales(limit: 2);
 
       return response.promotedItems
-          .where((item) => item.isFixedPriceSale && item.targetId != null)
+          .where((item) => item.isForSale && item.targetId != null)
           .map((item) => item.targetId!)
           .toList();
     });

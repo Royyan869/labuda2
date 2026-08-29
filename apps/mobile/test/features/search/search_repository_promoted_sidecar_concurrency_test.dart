@@ -67,13 +67,13 @@ class _OverlappingPromotedSearchApiService implements SearchApiService {
       offset: offset,
       promotedItems: [
         PromotedSearchItemDto(
-          type: 'promoted_fixed_price_sale',
+          type: 'promoted_for_sale',
           promotionInstanceId: promotedId,
-          targetType: 'fixed_price_sale',
+          targetType: 'for_sale',
           injectAt: 0,
-          title: 'Promoted fixed-price-sale $query',
-          imageUrl: 'https://example.com/$query-fixed-price-sale.jpg',
-          fixedPriceSaleId: 'fixed-price-sale-$query',
+          title: 'Promoted for-sale $query',
+          imageUrl: 'https://example.com/$query-for-sale.jpg',
+          forSaleId: 'for-sale-$query',
           pricePerUnit: 150000,
         ),
       ],

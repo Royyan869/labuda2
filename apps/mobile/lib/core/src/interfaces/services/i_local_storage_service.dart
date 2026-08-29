@@ -64,4 +64,6 @@ class StorageKeys {
   static const String lastSyncTime = 'last_sync_time';
   static const String deviceId = 'device_id';
   static const String pushToken = 'push_token';
+  static const String lastVerificationEmailSentAt =
+      'last_verification_email_sent_at';
 }

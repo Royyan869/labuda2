@@ -600,7 +600,7 @@ class SearchRepositoryImpl implements SearchRepository {
     switch (dto.targetType) {
       case 'for_sale':
         type = SearchResultType.listing;
-        id = dto.fixedPriceSaleId ?? dto.promotionInstanceId;
+        id = dto.forSaleId ?? dto.promotionInstanceId;
       case 'auction':
         type = SearchResultType.auction;
         id = dto.auctionId ?? dto.promotionInstanceId;

@@ -174,26 +174,4 @@ class _MediaViewerWidgetState extends State<MediaViewerWidget> {
       );
     }
   }
-
-  // /// Static method untuk show media viewer
-  // /// Unused - use MediaViewerUtils.showMediaViewer directly
-  // static void show(
-  //   BuildContext context, {
-  //   required List<String> mediaUrls,
-  //   int initialIndex = 0,
-  //   String? title,
-  // }) {
-  //   MediaViewerUtils.showMediaViewer(
-  //     context,
-  //     mediaUrls: mediaUrls,
-  //     initialIndex: initialIndex,
-  //     title: title,
-  //     mediaViewerBuilder: ({required mediaUrls, initialIndex = 0, title}) =>
-  //         MediaViewerWidget(
-  //           mediaUrls: mediaUrls,
-  //           initialIndex: initialIndex,
-  //           title: title,
-  //         ),
-  //   );
-  // }
 }

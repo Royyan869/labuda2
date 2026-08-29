@@ -2,24 +2,18 @@ import 'package:equatable/equatable.dart';
 import 'package:labuda/shared/attachment/entities/share_reference.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 
-/// Comment Entity - canonical domain entity for comments system
+/// Comment Entity - canonical domain entity for comments system.
 ///
-/// CONTRACT ALIGNMENT V1:
-/// - Comment is a social interaction object, NOT a commerce object
-/// - reference represents seller response/recommendation ONLY
-/// - Does NOT represent binding offers, negotiations, or transactions
-/// - Buyers must go through normal listing purchase flow
-/// - Reply max depth = 1 (top-level comments can be replied, replies cannot be replied)
+/// Comment is a social interaction object, NOT a commerce object.
+/// reference represents seller response/recommendation ONLY.
+/// Does NOT represent binding offers, negotiations, or transactions.
+/// Reply max depth = 1 (top-level comments can be replied, replies cannot).
 ///
-/// **SOCIAL FIX 1 - SINGLE REFERENCE MODEL:**
+/// SINGLE REFERENCE MODEL:
 /// - reference uses ShareReference (canonical cross-domain reference)
-/// - targetType = "listing" for seller responses on requests
-/// - targetType = "auction" for auction recommendations (future)
-/// - targetType = "content" for post references (future)
+/// - targetType = "for_sale" / "auction" / "content"
 ///
 /// Pure domain entity - no Flutter/Firebase dependencies.
-/// Aligned with backend Comment entity at:
-/// backend/internal/social/content/entity/comment.go
 class Comment extends Equatable {
   final String id;
   final String authorId;
@@ -155,7 +149,7 @@ enum CommentType {
   /// Normal text comment
   normal('normal'),
 
-  /// Commerce reference comment (seller response on request)
+  /// Commerce reference comment (seller response with resource attachment)
   commerceReference('commerce_reference');
 
   const CommentType(this.value);
@@ -169,18 +163,11 @@ enum CommentType {
   }
 }
 
-/// Comment target type enum matching backend CommentTargetType
+/// Comment target type enum matching backend CommentTargetType.
 ///
-/// CANONICAL BUSINESS TRUTH V1:
-/// - Only 'content' target is canonical for V1 (posts and requests)
-///
-/// COMMENT SYSTEM RULES:
-/// - Post comments: text, media, mention only - NO commerce objects
-/// - Request comments: text, media, mention + Listing attachment (seller response)
-///
-/// Aligned with backend/internal/domain/content/entity/comment.go
+/// Only 'content' target is canonical for V1.
 enum CommentTargetType {
-  /// Content post (including requests) - ONLY canonical target for V1
+  /// Content — the only canonical target for V1.
   content('content');
 
   const CommentTargetType(this.value);

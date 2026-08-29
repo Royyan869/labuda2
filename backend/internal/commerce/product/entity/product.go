@@ -6,8 +6,18 @@ import (
 	"github.com/google/uuid"
 )
 
+// SellingSurface represents the exclusive selling surface attached to a Product.
+// A Product may belong to exactly one surface: for_sale OR auction, never both.
+type SellingSurface string
+
+const (
+	SellingSurfaceNone    SellingSurface = ""      // Unattached: Product has no selling surface
+	SellingSurfaceForSale SellingSurface = "for_sale" // Attached to a ForSale
+	SellingSurfaceAuction SellingSurface = "auction"  // Attached to an Auction
+)
+
 // Product is the internal physical item authority.
-// It is intentionally sale-surface agnostic.
+// selling_surface tracks exclusive surface ownership (for_sale | auction | null).
 type Product struct {
 	ID              uuid.UUID
 	SellerID        uuid.UUID
@@ -24,6 +34,7 @@ type Product struct {
 	FarmAddressID   *uuid.UUID
 	PreparationTime string
 	PreparationNote *string
+	SellingSurface  SellingSurface // Exclusive surface ownership: NULL | 'for_sale' | 'auction'
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }

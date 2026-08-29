@@ -41,8 +41,8 @@ class _SavedItemScreenState extends State<SavedItemScreen> {
   Future<void> _removeItem(SavedItemModel item) async {
     try {
       await _savedItemService.removeSavedItem(
-        targetType: item.targetType == TargetType.listing
-            ? 'listing'
+        targetType: item.targetType == TargetType.forSale
+            ? 'for_sale'
             : 'auction',
         targetId: item.targetId,
       );
@@ -66,7 +66,7 @@ class _SavedItemScreenState extends State<SavedItemScreen> {
             },
             itemBuilder: (context) => [
               const PopupMenuItem(value: null, child: Text('Semua')),
-              const PopupMenuItem(value: 'listing', child: Text('Listing')),
+              const PopupMenuItem(value: 'for_sale', child: Text('Listing')),
               const PopupMenuItem(value: 'auction', child: Text('Auction')),
             ],
           ),
@@ -91,17 +91,17 @@ class _SavedItemScreenState extends State<SavedItemScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ListTile(
         leading: Icon(
-          item.isListing ? Icons.list_alt : Icons.gavel,
+          item.isForSale ? Icons.list_alt : Icons.gavel,
           color: Theme.of(context).primaryColor,
         ),
         title: Text(
-          item.isListing
-              ? item.listingTitle ?? 'Untitled'
+          item.isForSale
+              ? item.forSaleTitle ?? 'Untitled'
               : item.auctionTitle ?? 'Untitled',
         ),
         subtitle: Text(
-          item.isListing
-              ? 'Rp ${item.listingPrice ?? 0}'
+          item.isForSale
+              ? 'Rp ${item.forSalePrice ?? 0}'
               : 'Rp ${item.currentBid ?? item.startPrice ?? 0}',
         ),
         trailing: IconButton(

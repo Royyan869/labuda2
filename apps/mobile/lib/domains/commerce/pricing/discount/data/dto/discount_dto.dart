@@ -5,8 +5,7 @@ import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discoun
 
 enum DiscountTypeDto {
   percentage,
-  flatAmount,
-  freeShipping;
+  flatAmount;
 
   String toJson() {
     switch (this) {
@@ -14,8 +13,6 @@ enum DiscountTypeDto {
         return 'percentage';
       case DiscountTypeDto.flatAmount:
         return 'flat_amount';
-      case DiscountTypeDto.freeShipping:
-        return 'free_shipping';
     }
   }
 
@@ -25,8 +22,6 @@ enum DiscountTypeDto {
         return DiscountTypeDto.percentage;
       case 'flat_amount':
         return DiscountTypeDto.flatAmount;
-      case 'free_shipping':
-        return DiscountTypeDto.freeShipping;
       default:
         return DiscountTypeDto.percentage;
     }
@@ -38,8 +33,6 @@ enum DiscountTypeDto {
         return DiscountType.percentage;
       case DiscountTypeDto.flatAmount:
         return DiscountType.flatAmount;
-      case DiscountTypeDto.freeShipping:
-        return DiscountType.freeShipping;
     }
   }
 
@@ -49,21 +42,19 @@ enum DiscountTypeDto {
         return DiscountTypeDto.percentage;
       case DiscountType.flatAmount:
         return DiscountTypeDto.flatAmount;
-      case DiscountType.freeShipping:
-        return DiscountTypeDto.freeShipping;
     }
   }
 }
 
 enum DiscountAppliesToDto {
-  listing,
+  forSale,
   auction,
   both;
 
   String toJson() {
     switch (this) {
-      case DiscountAppliesToDto.listing:
-        return 'listing';
+      case DiscountAppliesToDto.forSale:
+        return 'for_sale';
       case DiscountAppliesToDto.auction:
         return 'auction';
       case DiscountAppliesToDto.both:
@@ -73,8 +64,8 @@ enum DiscountAppliesToDto {
 
   static DiscountAppliesToDto fromJson(String value) {
     switch (value) {
-      case 'listing':
-        return DiscountAppliesToDto.listing;
+      case 'for_sale':
+        return DiscountAppliesToDto.forSale;
       case 'auction':
         return DiscountAppliesToDto.auction;
       case 'both':
@@ -86,8 +77,8 @@ enum DiscountAppliesToDto {
 
   DiscountAppliesTo toEntity() {
     switch (this) {
-      case DiscountAppliesToDto.listing:
-        return DiscountAppliesTo.listing;
+      case DiscountAppliesToDto.forSale:
+        return DiscountAppliesTo.forSale;
       case DiscountAppliesToDto.auction:
         return DiscountAppliesTo.auction;
       case DiscountAppliesToDto.both:
@@ -97,55 +88,12 @@ enum DiscountAppliesToDto {
 
   static DiscountAppliesToDto fromEntity(DiscountAppliesTo value) {
     switch (value) {
-      case DiscountAppliesTo.listing:
-        return DiscountAppliesToDto.listing;
+      case DiscountAppliesTo.forSale:
+        return DiscountAppliesToDto.forSale;
       case DiscountAppliesTo.auction:
         return DiscountAppliesToDto.auction;
       case DiscountAppliesTo.both:
         return DiscountAppliesToDto.both;
-    }
-  }
-}
-
-enum DiscountTargetModeDto {
-  sellerWide,
-  selectedItems;
-
-  String toJson() {
-    switch (this) {
-      case DiscountTargetModeDto.sellerWide:
-        return 'seller_wide';
-      case DiscountTargetModeDto.selectedItems:
-        return 'selected_items';
-    }
-  }
-
-  static DiscountTargetModeDto fromJson(String value) {
-    switch (value) {
-      case 'seller_wide':
-        return DiscountTargetModeDto.sellerWide;
-      case 'selected_items':
-        return DiscountTargetModeDto.selectedItems;
-      default:
-        return DiscountTargetModeDto.sellerWide;
-    }
-  }
-
-  DiscountTargetMode toEntity() {
-    switch (this) {
-      case DiscountTargetModeDto.sellerWide:
-        return DiscountTargetMode.sellerWide;
-      case DiscountTargetModeDto.selectedItems:
-        return DiscountTargetMode.selectedItems;
-    }
-  }
-
-  static DiscountTargetModeDto fromEntity(DiscountTargetMode value) {
-    switch (value) {
-      case DiscountTargetMode.sellerWide:
-        return DiscountTargetModeDto.sellerWide;
-      case DiscountTargetMode.selectedItems:
-        return DiscountTargetModeDto.selectedItems;
     }
   }
 }
@@ -156,16 +104,10 @@ class DiscountResponseDto {
   final String description;
   final DiscountTypeDto type;
   final double value;
-  final double? minPurchase;
-  final double? maxDiscount;
-  final int? maxUsagePerUser;
+  final double minPurchase;
   final int? totalUsageLimit;
   final DiscountAppliesToDto appliesTo;
-  final DiscountTargetModeDto targetMode;
   final String? sellerId;
-  final List<String>? applicableListingIds;
-  final List<String>? applicableAuctionIds;
-  final DateTime validFrom;
   final DateTime validUntil;
   final bool isActive;
   final int currentUsageCount;
@@ -178,16 +120,10 @@ class DiscountResponseDto {
     required this.description,
     required this.type,
     required this.value,
-    this.minPurchase,
-    this.maxDiscount,
-    this.maxUsagePerUser,
+    this.minPurchase = 0.0,
     this.totalUsageLimit,
     required this.appliesTo,
-    required this.targetMode,
     this.sellerId,
-    this.applicableListingIds,
-    this.applicableAuctionIds,
-    required this.validFrom,
     required this.validUntil,
     required this.isActive,
     required this.currentUsageCount,
@@ -202,28 +138,12 @@ class DiscountResponseDto {
       description: (json['description'] as String?) ?? json['code'] as String,
       type: DiscountTypeDto.fromJson(json['type'] as String),
       value: (json['value'] as num).toDouble(),
-      minPurchase: json['min_purchase'] != null
-          ? (json['min_purchase'] as num).toDouble()
-          : null,
-      maxDiscount: json['max_discount'] != null
-          ? (json['max_discount'] as num).toDouble()
-          : null,
-      maxUsagePerUser: json['max_usage_per_user'] as int?,
+      minPurchase: (json['min_purchase'] as num?)?.toDouble() ?? 0.0,
       totalUsageLimit: json['total_usage_limit'] as int?,
       appliesTo: DiscountAppliesToDto.fromJson(
-        json['applies_to'] as String? ?? json['scope'] as String? ?? 'both',
-      ),
-      targetMode: DiscountTargetModeDto.fromJson(
-        json['target_mode'] as String? ?? 'seller_wide',
+        json['applies_to'] as String? ?? 'both',
       ),
       sellerId: json['seller_id'] as String?,
-      applicableListingIds: json['applicable_listing_ids'] != null
-          ? List<String>.from(json['applicable_listing_ids'] as List)
-          : null,
-      applicableAuctionIds: json['applicable_auction_ids'] != null
-          ? List<String>.from(json['applicable_auction_ids'] as List)
-          : null,
-      validFrom: DateTime.parse(json['valid_from'] as String),
       validUntil: DateTime.parse(json['valid_until'] as String),
       isActive: json['is_active'] as bool,
       currentUsageCount: json['current_usage_count'] as int? ?? 0,
@@ -240,15 +160,9 @@ class DiscountResponseDto {
       'type': type.toJson(),
       'value': value,
       'min_purchase': minPurchase,
-      'max_discount': maxDiscount,
-      'max_usage_per_user': maxUsagePerUser,
       'total_usage_limit': totalUsageLimit,
       'applies_to': appliesTo.toJson(),
-      'target_mode': targetMode.toJson(),
       'seller_id': sellerId,
-      'applicable_listing_ids': applicableListingIds,
-      'applicable_auction_ids': applicableAuctionIds,
-      'valid_from': validFrom.toIso8601String(),
       'valid_until': validUntil.toIso8601String(),
       'is_active': isActive,
       'current_usage_count': currentUsageCount,
@@ -265,15 +179,9 @@ class DiscountResponseDto {
       type: type.toEntity(),
       value: value,
       minPurchase: minPurchase,
-      maxDiscount: maxDiscount,
-      maxUsagePerUser: maxUsagePerUser,
       totalUsageLimit: totalUsageLimit,
       appliesTo: appliesTo.toEntity(),
-      targetMode: targetMode.toEntity(),
       sellerId: sellerId,
-      applicableListingIds: applicableListingIds,
-      applicableAuctionIds: applicableAuctionIds,
-      validFrom: validFrom,
       validUntil: validUntil,
       isActive: isActive,
       currentUsageCount: currentUsageCount,
@@ -307,16 +215,10 @@ class CreateDiscountRequestDto {
   final String description;
   final DiscountTypeDto type;
   final double value;
-  final double? minPurchase;
-  final double? maxDiscount;
-  final int? maxUsagePerUser;
+  final double minPurchase;
   final int? totalUsageLimit;
   final DiscountAppliesToDto appliesTo;
-  final DiscountTargetModeDto targetMode;
   final String? sellerId;
-  final List<String>? applicableListingIds;
-  final List<String>? applicableAuctionIds;
-  final DateTime validFrom;
   final DateTime validUntil;
 
   const CreateDiscountRequestDto({
@@ -324,16 +226,10 @@ class CreateDiscountRequestDto {
     required this.description,
     required this.type,
     required this.value,
-    this.minPurchase,
-    this.maxDiscount,
-    this.maxUsagePerUser,
+    this.minPurchase = 0.0,
     this.totalUsageLimit,
     required this.appliesTo,
-    required this.targetMode,
     this.sellerId,
-    this.applicableListingIds,
-    this.applicableAuctionIds,
-    required this.validFrom,
     required this.validUntil,
   });
 
@@ -344,15 +240,9 @@ class CreateDiscountRequestDto {
       type: DiscountTypeDto.fromEntity(entity.type),
       value: entity.value,
       minPurchase: entity.minPurchase,
-      maxDiscount: entity.maxDiscount,
-      maxUsagePerUser: entity.maxUsagePerUser,
       totalUsageLimit: entity.totalUsageLimit,
       appliesTo: DiscountAppliesToDto.fromEntity(entity.appliesTo),
-      targetMode: DiscountTargetModeDto.fromEntity(entity.targetMode),
       sellerId: entity.sellerId,
-      applicableListingIds: entity.applicableListingIds,
-      applicableAuctionIds: entity.applicableAuctionIds,
-      validFrom: entity.validFrom,
       validUntil: entity.validUntil,
     );
   }
@@ -364,15 +254,9 @@ class CreateDiscountRequestDto {
       'type': type.toJson(),
       'value': value,
       'min_purchase': minPurchase,
-      'max_discount': maxDiscount,
-      'max_usage_per_user': maxUsagePerUser,
       'total_usage_limit': totalUsageLimit,
       'applies_to': appliesTo.toJson(),
-      'target_mode': targetMode.toJson(),
       'seller_id': sellerId,
-      'applicable_listing_ids': applicableListingIds,
-      'applicable_auction_ids': applicableAuctionIds,
-      'valid_from': validFrom.toIso8601String(),
       'valid_until': validUntil.toIso8601String(),
     };
   }
@@ -383,15 +267,9 @@ class UpdateDiscountRequestDto {
   final DiscountTypeDto? type;
   final double? value;
   final double? minPurchase;
-  final double? maxDiscount;
-  final int? maxUsagePerUser;
   final int? totalUsageLimit;
   final DiscountAppliesToDto? appliesTo;
-  final DiscountTargetModeDto? targetMode;
   final String? sellerId;
-  final List<String>? applicableListingIds;
-  final List<String>? applicableAuctionIds;
-  final DateTime? validFrom;
   final DateTime? validUntil;
   final bool? isActive;
 
@@ -400,15 +278,9 @@ class UpdateDiscountRequestDto {
     this.type,
     this.value,
     this.minPurchase,
-    this.maxDiscount,
-    this.maxUsagePerUser,
     this.totalUsageLimit,
     this.appliesTo,
-    this.targetMode,
     this.sellerId,
-    this.applicableListingIds,
-    this.applicableAuctionIds,
-    this.validFrom,
     this.validUntil,
     this.isActive,
   });
@@ -419,17 +291,10 @@ class UpdateDiscountRequestDto {
       type: DiscountTypeDto.fromEntity(entity.type),
       value: entity.value,
       minPurchase: entity.minPurchase,
-      maxDiscount: entity.maxDiscount,
-      maxUsagePerUser: entity.maxUsagePerUser,
       totalUsageLimit: entity.totalUsageLimit,
       appliesTo: DiscountAppliesToDto.fromEntity(entity.appliesTo),
-      targetMode: DiscountTargetModeDto.fromEntity(entity.targetMode),
       sellerId: entity.sellerId,
-      applicableListingIds: entity.applicableListingIds,
-      applicableAuctionIds: entity.applicableAuctionIds,
-      validFrom: entity.validFrom,
       validUntil: entity.validUntil,
-      isActive: entity.isActive,
     );
   }
 
@@ -440,19 +305,9 @@ class UpdateDiscountRequestDto {
     if (type != null) json['type'] = type!.toJson();
     if (value != null) json['value'] = value;
     if (minPurchase != null) json['min_purchase'] = minPurchase;
-    if (maxDiscount != null) json['max_discount'] = maxDiscount;
-    if (maxUsagePerUser != null) json['max_usage_per_user'] = maxUsagePerUser;
     if (totalUsageLimit != null) json['total_usage_limit'] = totalUsageLimit;
     if (appliesTo != null) json['applies_to'] = appliesTo!.toJson();
-    if (targetMode != null) json['target_mode'] = targetMode!.toJson();
     if (sellerId != null) json['seller_id'] = sellerId;
-    if (applicableListingIds != null) {
-      json['applicable_listing_ids'] = applicableListingIds;
-    }
-    if (applicableAuctionIds != null) {
-      json['applicable_auction_ids'] = applicableAuctionIds;
-    }
-    if (validFrom != null) json['valid_from'] = validFrom!.toIso8601String();
     if (validUntil != null) json['valid_until'] = validUntil!.toIso8601String();
     if (isActive != null) json['is_active'] = isActive;
 

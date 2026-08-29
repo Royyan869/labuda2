@@ -77,7 +77,7 @@ class ShareMapper {
   static String generateDefaultCaption(ShareTarget target) {
     switch (target.type) {
       case ExternalShareType.listing:
-        return 'Lihat listing koi bagus ini!';
+        return 'Lihat produk koi bagus ini!';
       case ExternalShareType.request:
         return 'Ada yang bisa bantu request ini?';
       case ExternalShareType.auction:

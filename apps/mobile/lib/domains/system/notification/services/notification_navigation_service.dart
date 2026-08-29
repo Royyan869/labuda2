@@ -166,8 +166,8 @@ class NotificationNavigationService {
       case NotificationType.moderationCommentRestored:
         _navigateToModerationTarget(context, notification);
         break;
-      case NotificationType.moderationListingRemoved:
-      case NotificationType.moderationListingRestored:
+      case NotificationType.moderationForSaleRemoved:
+      case NotificationType.moderationForSaleRestored:
       case NotificationType.moderationAuctionRemoved:
       case NotificationType.moderationAuctionRestored:
       case NotificationType.moderationUserSuspended:

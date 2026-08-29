@@ -7,10 +7,10 @@ import 'package:labuda/domains/social/content/content.dart';
 import 'package:labuda/features/home/domain/domain.dart'; // R3.1: Import FeedItem from home domain
 import 'package:labuda/features/home/presentation/providers/feed_renderers.dart';
 
-/// Feed Tab untuk User Profile dengan real content, reposts, dan collections
+/// Feed Tab untuk User Profile dengan real content dan reposts
 ///
 /// CONTRACT ALIGNMENT V1:
-/// - Display user's content, reposts, and collections
+/// - Display user's content and reposts
 /// - Repost attribution shown for reposted content
 /// - Real data dari database
 /// - Loading states dan empty states

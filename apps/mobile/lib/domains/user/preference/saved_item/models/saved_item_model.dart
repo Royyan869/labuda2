@@ -1,4 +1,4 @@
-enum TargetType { listing, auction }
+enum TargetType { forSale, auction }
 
 enum IntentType { bookmark, watch }
 
@@ -11,14 +11,13 @@ class SavedItemModel {
   final String? sellerId;
   final DateTime createdAt;
 
-  // For listings
-  final String? listingTitle;
-  final int? listingPrice;
-  final String? listingType;
+  // For for-sale items
+  final String? forSaleTitle;
+  final int? forSalePrice;
   final int? quantityAvailable;
-  final String? listingStatus;
-  final String? listingVisibility;
-  final List<String>? listingMediaUrls;
+  final String? forSaleStatus;
+  final String? forSaleVisibility;
+  final List<String>? forSaleMediaUrls;
 
   // For auctions
   final String? auctionTitle;
@@ -35,13 +34,12 @@ class SavedItemModel {
     required this.intentType,
     this.sellerId,
     required this.createdAt,
-    this.listingTitle,
-    this.listingPrice,
-    this.listingType,
+    this.forSaleTitle,
+    this.forSalePrice,
     this.quantityAvailable,
-    this.listingStatus,
-    this.listingVisibility,
-    this.listingMediaUrls,
+    this.forSaleStatus,
+    this.forSaleVisibility,
+    this.forSaleMediaUrls,
     this.auctionTitle,
     this.auctionStatus,
     this.startPrice,
@@ -55,8 +53,8 @@ class SavedItemModel {
     return SavedItemModel(
       id: json['id'] as String,
       userId: json['user_id'] as String,
-      targetType: targetTypeStr == 'listing'
-          ? TargetType.listing
+      targetType: targetTypeStr == 'for_sale'
+          ? TargetType.forSale
           : TargetType.auction,
       targetId: json['target_id'] as String,
       intentType: intentTypeStr == 'bookmark'
@@ -64,13 +62,12 @@ class SavedItemModel {
           : IntentType.watch,
       sellerId: json['seller_id'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
-      listingTitle: json['listing_title'] as String?,
-      listingPrice: json['listing_price'] as int?,
-      listingType: json['listing_type'] as String?,
+      forSaleTitle: json['listing_title'] as String?,
+      forSalePrice: json['listing_price'] as int?,
       quantityAvailable: json['quantity_available'] as int?,
-      listingStatus: json['listing_status'] as String?,
-      listingVisibility: json['listing_visibility'] as String?,
-      listingMediaUrls: json['listing_media_urls'] != null
+      forSaleStatus: json['listing_status'] as String?,
+      forSaleVisibility: json['listing_visibility'] as String?,
+      forSaleMediaUrls: json['listing_media_urls'] != null
           ? List<String>.from(json['listing_media_urls'] as List)
           : null,
       auctionTitle: json['auction_title'] as String?,
@@ -87,18 +84,17 @@ class SavedItemModel {
     return {
       'id': id,
       'user_id': userId,
-      'target_type': targetType == TargetType.listing ? 'listing' : 'auction',
+      'target_type': targetType == TargetType.forSale ? 'for_sale' : 'auction',
       'target_id': targetId,
       'intent_type': intentType == IntentType.bookmark ? 'bookmark' : 'watch',
       'seller_id': sellerId,
       'created_at': createdAt.toIso8601String(),
-      if (listingTitle != null) 'listing_title': listingTitle,
-      if (listingPrice != null) 'listing_price': listingPrice,
-      if (listingType != null) 'listing_type': listingType,
+      if (forSaleTitle != null) 'listing_title': forSaleTitle,
+      if (forSalePrice != null) 'listing_price': forSalePrice,
       if (quantityAvailable != null) 'quantity_available': quantityAvailable,
-      if (listingStatus != null) 'listing_status': listingStatus,
-      if (listingVisibility != null) 'listing_visibility': listingVisibility,
-      if (listingMediaUrls != null) 'listing_media_urls': listingMediaUrls,
+      if (forSaleStatus != null) 'listing_status': forSaleStatus,
+      if (forSaleVisibility != null) 'listing_visibility': forSaleVisibility,
+      if (forSaleMediaUrls != null) 'listing_media_urls': forSaleMediaUrls,
       if (auctionTitle != null) 'auction_title': auctionTitle,
       if (auctionStatus != null) 'auction_status': auctionStatus,
       if (startPrice != null) 'start_price': startPrice,
@@ -107,7 +103,7 @@ class SavedItemModel {
     };
   }
 
-  bool get isListing => targetType == TargetType.listing;
+  bool get isForSale => targetType == TargetType.forSale;
   bool get isAuction => targetType == TargetType.auction;
   bool get isBookmark => intentType == IntentType.bookmark;
   bool get isWatch => intentType == IntentType.watch;

@@ -30,7 +30,7 @@ class NegotiationMapper {
     return Negotiation(
       id: dto.id,
       chatId: chatRoomId.isNotEmpty ? chatRoomId : (dto.chatRoomId ?? ''),
-      fixedPriceSaleId: dto.fixedPriceSaleId ?? dto.resourceId,
+      fixedPriceSaleId: dto.forSaleId ?? dto.resourceId,
       listingName: '', // POPULATED SEPARATELY from UI context
       originalPrice: dto.currentPrice?.toDouble() ?? 0,
       buyerId: dto.buyerId,

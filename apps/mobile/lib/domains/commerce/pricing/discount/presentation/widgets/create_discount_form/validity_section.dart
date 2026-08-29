@@ -3,17 +3,16 @@ import 'package:intl/intl.dart';
 import 'package:labuda/core/core.dart' as core;
 
 /// Section untuk validity period discount
+///
+/// CANONICAL MODEL: Only validUntil (expiry-only).
+/// Discount becomes active on creation and expires at validUntil.
 class ValiditySection extends StatelessWidget {
-  final DateTime validFrom;
   final DateTime validUntil;
-  final ValueChanged<DateTime> onValidFromChanged;
   final ValueChanged<DateTime> onValidUntilChanged;
 
   const ValiditySection({
     super.key,
-    required this.validFrom,
     required this.validUntil,
-    required this.onValidFromChanged,
     required this.onValidUntilChanged,
   });
 
@@ -25,14 +24,12 @@ class ValiditySection extends StatelessWidget {
     BuildContext context,
     DateTime initialDate,
     ValueChanged<DateTime> onChanged,
-    DateTime? firstDate,
-    DateTime? lastDate,
   ) async {
     final picked = await showDatePicker(
       context: context,
       initialDate: initialDate,
-      firstDate: firstDate ?? DateTime.now(),
-      lastDate: lastDate ?? DateTime.now().add(const Duration(days: 365)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -69,7 +66,7 @@ class ValiditySection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Validity Period',
+            'Expiry Date',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -80,45 +77,78 @@ class ValiditySection extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Valid From
-          _buildDateField(
-            context,
-            isDark,
-            label: 'Valid From *',
-            date: validFrom,
-            icon: Icons.calendar_today,
-            onTap: () {
-              _selectDate(
-                context,
-                validFrom,
-                onValidFromChanged,
-                DateTime.now(),
-                validUntil,
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-
           // Valid Until
-          _buildDateField(
-            context,
-            isDark,
-            label: 'Valid Until *',
-            date: validUntil,
-            icon: Icons.event,
-            onTap: () {
-              _selectDate(
-                context,
-                validUntil,
-                onValidUntilChanged,
-                validFrom,
-                DateTime.now().add(const Duration(days: 365)),
-              );
-            },
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Expires On *',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: isDark
+                      ? core.AppColors.neutralGray300
+                      : core.AppColors.neutralGray700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () {
+                  _selectDate(context, validUntil, onValidUntilChanged);
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? core.AppColors.darkGray700
+                        : core.AppColors.neutralGray50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark
+                          ? core.AppColors.neutralGray700
+                          : core.AppColors.neutralGray200,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.event,
+                        size: 20,
+                        color: isDark
+                            ? core.AppColors.neutralGray400
+                            : core.AppColors.neutralGray600,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _formatDate(validUntil),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark
+                                ? core.AppColors.neutralWhite
+                                : core.AppColors.neutralGray900,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        Icons.arrow_drop_down,
+                        color: isDark
+                            ? core.AppColors.neutralGray400
+                            : core.AppColors.neutralGray600,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
 
-          // Duration info
+          // Info
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
@@ -135,7 +165,7 @@ class ValiditySection extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Duration: ${validUntil.difference(validFrom).inDays} days',
+                    'Discount is active immediately and expires on the selected date.',
                     style: TextStyle(
                       fontSize: 12,
                       color: isDark
@@ -149,79 +179,6 @@ class ValiditySection extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildDateField(
-    BuildContext context,
-    bool isDark, {
-    required String label,
-    required DateTime date,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: isDark
-                ? core.AppColors.neutralGray300
-                : core.AppColors.neutralGray700,
-          ),
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? core.AppColors.darkGray700
-                  : core.AppColors.neutralGray50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isDark
-                    ? core.AppColors.neutralGray700
-                    : core.AppColors.neutralGray200,
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  icon,
-                  size: 20,
-                  color: isDark
-                      ? core.AppColors.neutralGray400
-                      : core.AppColors.neutralGray600,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _formatDate(date),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDark
-                          ? core.AppColors.neutralWhite
-                          : core.AppColors.neutralGray900,
-                    ),
-                  ),
-                ),
-                Icon(
-                  Icons.arrow_drop_down,
-                  color: isDark
-                      ? core.AppColors.neutralGray400
-                      : core.AppColors.neutralGray600,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

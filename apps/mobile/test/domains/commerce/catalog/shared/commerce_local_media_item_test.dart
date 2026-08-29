@@ -2,32 +2,39 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/catalog/shared/shared.dart';
+import 'package:labuda/core/common/result.dart';
+import 'package:labuda/core/services/s3_service.dart';
+import 'package:labuda/domains/commerce/catalog/shared/data/models/commerce_local_media_item.dart';
+import 'package:labuda/domains/commerce/catalog/shared/data/services/commerce_media_upload_coordinator.dart';
 
 class _ScriptedS3Service extends S3Service {
   _ScriptedS3Service(this._uploads, {this.failDeleteFor = const {}})
-    : uploadCalls = [],
-      deletedKeys = [],
-      failedDeleteKeys = [];
+      : uploadCalls = [],
+        deletedKeys = [],
+        failedDeleteKeys = [];
 
-  final List<Future<Result<CommerceMediaUploadResult>> Function(File)> _uploads;
+  final List<Future<Result<S3UploadResult>> Function(File)> _uploads;
   final Set<String> failDeleteFor;
   final List<File> uploadCalls;
   final List<String> deletedKeys;
   final List<String> failedDeleteKeys;
 
   @override
-  Future<Result<CommerceMediaUploadResult>> uploadCommerceMedia(
-    File file, {
-    int maxVideoDurationMs = AppConstants.maxCommerceVideoDurationMs,
-    String domainLabel = 'Commerce',
-  }) {
-    uploadCalls.add(file);
+  Future<Result<S3UploadResult>> uploadImageWithMeta(File imageFile) async {
+    uploadCalls.add(imageFile);
     if (_uploads.isEmpty) {
       return Future.value(Result.error('unexpected upload'));
     }
-    return _uploads.removeAt(0)(file);
+    return _uploads.removeAt(0)(imageFile);
+  }
+
+  @override
+  Future<Result<S3UploadResult>> uploadVideoWithMeta(File videoFile) async {
+    uploadCalls.add(videoFile);
+    if (_uploads.isEmpty) {
+      return Future.value(Result.error('unexpected upload'));
+    }
+    return _uploads.removeAt(0)(videoFile);
   }
 
   @override
@@ -50,32 +57,18 @@ File _tempFile(String name, List<int> bytes) {
   return file;
 }
 
-Result<CommerceMediaUploadResult> _imageUpload({
+Result<S3UploadResult> _imageUpload({
   required String key,
   required String url,
 }) {
-  return Result.success(
-    CommerceMediaUploadResult(key: key, url: url, type: 'image'),
-  );
+  return Result.success(S3UploadResult(key: key, url: url));
 }
 
-Result<CommerceMediaUploadResult> _videoUpload({
+Result<S3UploadResult> _videoUpload({
   required String key,
   required String url,
-  String? thumbnailUrl,
-  String? thumbnailStorageKey,
-  String? localPosterPath,
 }) {
-  return Result.success(
-    CommerceMediaUploadResult(
-      key: key,
-      url: url,
-      type: 'video',
-      thumbnailUrl: thumbnailUrl,
-      thumbnailStorageKey: thumbnailStorageKey,
-      localPosterPath: localPosterPath,
-    ),
-  );
+  return Result.success(S3UploadResult(key: key, url: url));
 }
 
 void main() {
@@ -205,13 +198,7 @@ void main() {
     'video-only success preserves poster metadata without cleanup',
     () async {
       final service = _ScriptedS3Service([
-        (_) async => _videoUpload(
-          key: 'videos/1_user.mp4',
-          url: 'https://cdn.example.com/videos/1_user.mp4',
-          thumbnailUrl: 'https://cdn.example.com/videos/1_user.mp4_poster.jpg',
-          thumbnailStorageKey: 'videos/1_user.mp4_poster.jpg',
-          localPosterPath: r'C:\tmp\videos_1_user.mp4_poster.jpg',
-        ),
+        (_) async => _videoUpload(key: 'videos/1_user.mp4', url: 'https://cdn.example.com/videos/1_user.mp4'),
       ]);
       final coordinator = CommerceMediaUploadCoordinator(s3Service: service);
 
@@ -225,7 +212,7 @@ void main() {
       expect(result.isSuccess, isTrue);
       expect(result.data?.media, hasLength(1));
       expect(result.data?.media.single.type, 'video');
-      expect(result.data?.media.single.thumbnailUrl, isNotNull);
+      // thumbnailUrl not part of S3UploadResult in current S3Service
       expect(service.deletedKeys, isEmpty);
     },
   );
@@ -236,13 +223,7 @@ void main() {
         key: 'images/1_user.jpg',
         url: 'https://cdn.example.com/images/1_user.jpg',
       ),
-      (_) async => _videoUpload(
-        key: 'videos/2_user.mp4',
-        url: 'https://cdn.example.com/videos/2_user.mp4',
-        thumbnailUrl: 'https://cdn.example.com/videos/2_user.mp4_poster.jpg',
-        thumbnailStorageKey: 'videos/2_user.mp4_poster.jpg',
-        localPosterPath: r'C:\tmp\videos_2_user.mp4_poster.jpg',
-      ),
+      (_) async => _videoUpload(key: 'videos/2_user.mp4', url: 'https://cdn.example.com/videos/2_user.mp4'),
     ]);
     final coordinator = CommerceMediaUploadCoordinator(s3Service: service);
 
@@ -319,14 +300,7 @@ void main() {
     'poster upload failure after video success cleans video and poster-ledger objects',
     () async {
       final service = _ScriptedS3Service([
-        (_) async => _videoUpload(
-          key: 'videos/ledger-user.mp4',
-          url: 'https://cdn.example.com/videos/ledger-user.mp4',
-          thumbnailUrl:
-              'https://cdn.example.com/videos/ledger-user.mp4_poster.jpg',
-          thumbnailStorageKey: 'videos/ledger-user.mp4_poster.jpg',
-          localPosterPath: r'C:\tmp\videos_ledger-user.mp4_poster.jpg',
-        ),
+        (_) async => _videoUpload(key: 'videos/ledger-user.mp4', url: 'https://cdn.example.com/videos/ledger-user.mp4'),
         (_) async => Result.error('poster upload failed'),
       ]);
       final coordinator = CommerceMediaUploadCoordinator(s3Service: service);
@@ -343,13 +317,7 @@ void main() {
       ]);
 
       expect(result.isSuccess, isFalse);
-      expect(
-        service.deletedKeys,
-        containsAll([
-          'videos/ledger-user.mp4',
-          'videos/ledger-user.mp4_poster.jpg',
-        ]),
-      );
+      expect(service.deletedKeys, contains('videos/ledger-user.mp4'));
     },
   );
 
@@ -394,14 +362,7 @@ void main() {
             key: 'images/cleanup-a.jpg',
             url: 'https://cdn.example.com/images/cleanup-a.jpg',
           ),
-          (_) async => _videoUpload(
-            key: 'videos/cleanup-b.mp4',
-            url: 'https://cdn.example.com/videos/cleanup-b.mp4',
-            thumbnailUrl:
-                'https://cdn.example.com/videos/cleanup-b.mp4_poster.jpg',
-            thumbnailStorageKey: 'videos/cleanup-b.mp4_poster.jpg',
-            localPosterPath: r'C:\tmp\videos_cleanup-b.mp4_poster.jpg',
-          ),
+          (_) async => _videoUpload(key: 'videos/cleanup-b.mp4', url: 'https://cdn.example.com/videos/cleanup-b.mp4'),
           (_) async => _imageUpload(
             key: 'images/cleanup-c.jpg',
             url: 'https://cdn.example.com/images/cleanup-c.jpg',
@@ -434,12 +395,11 @@ void main() {
       expect(result.isSuccess, isFalse);
       expect(result.error, 'fourth upload failed');
       expect(service.failedDeleteKeys, ['images/cleanup-c.jpg']);
-      expect(service.deletedKeys, [
+      expect(service.deletedKeys, containsAll([
         'images/cleanup-c.jpg',
-        'videos/cleanup-b.mp4_poster.jpg',
         'videos/cleanup-b.mp4',
         'images/cleanup-a.jpg',
-      ]);
+      ]));
     },
   );
 
@@ -451,13 +411,7 @@ void main() {
           key: 'images/final-a.jpg',
           url: 'https://cdn.example.com/images/final-a.jpg',
         ),
-        (_) async => _videoUpload(
-          key: 'videos/final-b.mp4',
-          url: 'https://cdn.example.com/videos/final-b.mp4',
-          thumbnailUrl: 'https://cdn.example.com/videos/final-b.mp4_poster.jpg',
-          thumbnailStorageKey: 'videos/final-b.mp4_poster.jpg',
-          localPosterPath: r'C:\tmp\videos_final-b.mp4_poster.jpg',
-        ),
+        (_) async => _videoUpload(key: 'videos/final-b.mp4', url: 'https://cdn.example.com/videos/final-b.mp4'),
       ]);
       final coordinator = CommerceMediaUploadCoordinator(s3Service: service);
 
@@ -514,7 +468,7 @@ void main() {
   test(
     'stale completion after attempt cancellation is inert and cleans owner uploads',
     () async {
-      final secondUpload = Completer<Result<CommerceMediaUploadResult>>();
+      final secondUpload = Completer<Result<S3UploadResult>>();
       final service = _ScriptedS3Service([
         (_) async => _imageUpload(
           key: 'images/stale-owner.jpg',
@@ -555,7 +509,7 @@ void main() {
   test(
     'dispose invalidates the active attempt and cleans uploaded objects',
     () async {
-      final secondUpload = Completer<Result<CommerceMediaUploadResult>>();
+      final secondUpload = Completer<Result<S3UploadResult>>();
       final service = _ScriptedS3Service([
         (_) async => _imageUpload(
           key: 'images/dispose-owner.jpg',

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/seller_auctions_pager.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
+import 'package:labuda/core/src/router/route_paths.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/seller_fps_pager.dart';
 import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/comment_input_with_commerce_reference.dart';
@@ -42,11 +43,11 @@ class FakeSellerAuctionsPagerController extends SellerAuctionsPagerController {
       );
 }
 
-// ── Test Listing factory ─────────────────────────────────────────────────
+// ── Test ForSale factory ─────────────────────────────────────────────────
 
-ForSale _testListing(String id) => ForSale(
+ForSale _testForSale(String id) => ForSale(
       forSaleId: id,
-      title: 'Test Listing $id',
+      title: 'Test ForSale $id',
       description: 'A test listing',
       price: 50000,
       stock: 1,
@@ -58,19 +59,19 @@ ForSale _testListing(String id) => ForSale(
 
 // ── GoRouter factory ─────────────────────────────────────────────────────
 // mode: 'cancel' → route pops without result
-//        'success' → route pops with a Listing
+//        'success' → route pops with a ForSale
 
 GoRouter _testRouter({required String mode}) {
   return GoRouter(
     initialLocation: '/',
     routes: [
       GoRoute(
-        path: '/create/listing',
-        name: '/create/listing', // Match RoutePaths.createListing used in pushNamed
+        path: RoutePaths.createForSale,
+        name: RoutePaths.createForSale, // Match RoutePaths.createForSale used in pushNamed
         pageBuilder: (context, state) => MaterialPage(
           key: state.pageKey,
           child: Scaffold(
-            appBar: AppBar(title: const Text('Create Listing')),
+            appBar: AppBar(title: const Text('Create ForSale')),
             body: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -83,7 +84,7 @@ GoRouter _testRouter({required String mode}) {
                   ElevatedButton(
                     key: const ValueKey('success-create-listing'),
                     onPressed: () =>
-                        GoRouter.of(context).pop(_testListing('new-fps-id')),
+                        GoRouter.of(context).pop(_testForSale('new-fps-id')),
                     child: const Text('Create'),
                   ),
                 ],
@@ -169,7 +170,7 @@ Widget _wrapTest({
 // ── Tests ────────────────────────────────────────────────────────────────
 
 void main() {
-  group('Create Listing GoRouter navigation', () {
+  group('Create ForSale GoRouter navigation', () {
     // ── CANCEL ──────────────────────────────────────────────────────────
 
     testWidgets(
@@ -203,13 +204,13 @@ void main() {
         // Picker should be visible with "Pilih Produk" title
         expect(find.text('Pilih Produk'), findsOneWidget);
 
-        // Tap "Buat Listing Baru" in the FPS tab
-        await tester.tap(find.text('Buat Listing Baru'));
+        // Tap "Buat Produk Baru" in the FPS tab
+        await tester.tap(find.text('Buat Produk Baru'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
 
-        // Create Listing route should be visible
-        expect(find.text('Create Listing'), findsOneWidget);
+        // Create ForSale route should be visible
+        expect(find.text('Create ForSale'), findsOneWidget);
 
         // Tap Cancel → pop without result
         await tester.tap(find.byKey(const ValueKey('cancel-create-listing')));
@@ -256,15 +257,15 @@ void main() {
         // Picker should be visible
         expect(find.text('Pilih Produk'), findsOneWidget);
 
-        // Tap "Buat Listing Baru" — this closes the picker and pushes the Create
-        // Listing route. Pump multiple frames to let the picker's modal barrier
+        // Tap "Buat Produk Baru" — this closes the picker and pushes the Create
+        // ForSale route. Pump multiple frames to let the picker's modal barrier
         // animation fully complete.
-        await tester.tap(find.text('Buat Listing Baru'));
+        await tester.tap(find.text('Buat Produk Baru'));
         await tester.pump();
         await tester.pump(const Duration(seconds: 2));
 
-        // Create Listing route should be visible
-        expect(find.text('Create Listing'), findsOneWidget);
+        // Create ForSale route should be visible
+        expect(find.text('Create ForSale'), findsOneWidget);
 
         // Tap Create → pop with Listing
         await tester.tap(find.byKey(const ValueKey('success-create-listing')));
@@ -276,7 +277,7 @@ void main() {
 
         // The selected resource preview should be visible — this proves the
         // Listing result was captured by the production code (no automatic send).
-        expect(find.text('Test Listing new-fps-id'), findsOneWidget,
+        expect(find.text('Test ForSale new-fps-id'), findsOneWidget,
             reason: 'Listing result must be captured as selected resource');
 
         // Tap Send

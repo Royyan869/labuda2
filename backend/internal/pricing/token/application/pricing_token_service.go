@@ -357,8 +357,6 @@ func (s *PricingTokenService) GenerateForForSale(
 			subtotal.Int64(),
 			discountentity.DiscountContextForSale,
 			&forSale.SellerID,
-			&req.ProductID,
-			nil,
 		)
 		if err != nil {
 			// Return validation error to user - honest failure instead of silent ignore
@@ -375,55 +373,14 @@ func (s *PricingTokenService) GenerateForForSale(
 		discountAmount = money.New(result.DiscountAmount.IntPart())
 	}
 
-	// Get commission rate
+	// ============================================================================
+	// CANONICAL POST-DISCOUNT MONEY FLOW
+	// ============================================================================
 	commissionPercent := s.configService.GetForSaleCommission(ctx, tx)
-
-	// Calculate commission on net subtotal (subtotal - discount)
-	// BUSINESS RULE: Commission is calculated from the discounted amount, not full subtotal
-	netSubtotal := subtotal.Sub(discountAmount)
-	commissionAmount := calculateCommission(netSubtotal, commissionPercent)
-	discountedProduct := subtotal.Int64() - discountAmount.Int64()
-
-	// ============================================================================
-	// COMMISSION SAFETY CHECK (P0)
-	// ============================================================================
-	// CRITICAL: Ensure final_order_value >= commission_amount
-	// This prevents margin leakage from high discount percentages
-	//
-	// Formula:
-	// order_value = discounted_product + shipping
-	// IF order_value < commission_amount: REJECT discount
-	//
-	// This ensures discounts cannot reduce order value below safe commission threshold
-	finalOrderValue := discountedProduct + shippingTotal.Int64()
-	if finalOrderValue < commissionAmount.Int64() {
-		return nil, fmt.Errorf("discount rejected: final_order_value (%d) < commission_amount (%d): discount cannot reduce order value below safe commission threshold",
-			finalOrderValue, commissionAmount.Int64())
+	postDiscount, err := calculatePostDiscountMoneyFlow(subtotal, discountAmount, shippingTotal, commissionPercent)
+	if err != nil {
+		return nil, err
 	}
-
-	// CANONICAL ESCROW AMOUNT: EscrowAmount = PD + S = (P - D) + S.
-	// The buyer-funded escrow is the discounted product value plus shipping.
-	// Commission C is a seller/platform-side allocation and is NOT added to
-	// buyer-funded cash — the rejected P+S+C / P+S+C-D models must not appear
-	// in the escrow or total_payable snapshot.
-	escrowAmount := money.New(discountedProduct).Add(shippingTotal)
-	// Buyer payment fee is unknown at preview/token time: the buyer has not
-	// yet selected a payment method (PASS_18V). The canonical fee is
-	// calculated by CorePaymentHandler.CreatePayment from the payment_methods
-	// table once a method is chosen, and persisted onto the order at that
-	// point — see order/infrastructure/repository.UpdatePaymentSelectionTx.
-	serviceFeeAmount := money.Zero()
-	totalPayableAmount := escrowAmount.Add(serviceFeeAmount)
-
-	// ============================================================================
-	// CALCULATE COINS SNAPSHOT VALUES (for token storage)
-	// ============================================================================
-	// MaxCoinsAllowed: maximum coins that can be applied based on:
-	// - 20% of discounted product value (PD)
-	// CoinsUsed: initially 0 (set at order confirmation time)
-	// OrderValueForCoins: canonical discounted product value (PD = subtotal - discount)
-	orderValueForCoins := discountedProduct
-	maxCoinsAllowed := coinsapp.MaxCoinsAllowedForDiscountedProduct(orderValueForCoins)
 	coinsUsed := int64(0) // Initially 0, set when user confirms order
 
 	// Fetch address snapshot
@@ -442,9 +399,9 @@ func (s *PricingTokenService) GenerateForForSale(
 		unitPrice,
 		shippingTotal,
 		commissionPercent.IntPart(),
-		commissionAmount,
-		escrowAmount,
-		serviceFeeAmount,
+		postDiscount.CommissionAmount,
+		postDiscount.EscrowAmount,
+		money.Zero(),
 		shippingOptionID,
 		shippingOptionName,
 		shippingTransportType,
@@ -459,8 +416,8 @@ func (s *PricingTokenService) GenerateForForSale(
 		discountAmount,
 		req.ShippingQuoteID, // Optional: Pass shipping quote ID
 		coinsUsed,           // Coins applied (0 for new tokens)
-		maxCoinsAllowed,     // Max coins allowed based on canonical 20% of PD
-		orderValueForCoins,  // Pre-calculated for coins service: discounted product value (PD)
+		postDiscount.MaxCoinsAllowed,     // Max coins allowed based on canonical 20% of PD
+		postDiscount.OrderValueForCoins,  // Pre-calculated for coins service: discounted product value (PD)
 	)
 
 	// Store token
@@ -476,13 +433,10 @@ func (s *PricingTokenService) GenerateForForSale(
 	}
 
 	// Calculate coins preview (non-binding, for UI display only)
-	// Reuse the same values calculated above for the token
-	maxApplicableCoins := maxCoinsAllowed
-
 	var coinsPreview *CoinsPreview
-	if maxApplicableCoins > 0 {
+	if postDiscount.MaxCoinsAllowed > 0 {
 		coinsPreview = &CoinsPreview{
-			MaxApplicable: maxApplicableCoins,
+			MaxApplicable: postDiscount.MaxCoinsAllowed,
 		}
 	}
 
@@ -502,14 +456,14 @@ func (s *PricingTokenService) GenerateForForSale(
 			Subtotal:           subtotal,
 			ShippingTotal:      shippingTotal,
 			CommissionPercent:  commissionPercent.IntPart(),
-			CommissionAmount:   commissionAmount,
+			CommissionAmount:   postDiscount.CommissionAmount,
 			DiscountAmount:     discountAmount,
-			ServiceFeeAmount:   serviceFeeAmount,
-			TotalPayableAmount: totalPayableAmount,
+			ServiceFeeAmount:   money.Zero(),
+			TotalPayableAmount: postDiscount.TotalPayableAmount,
 			DiscountCode:       discountCode,
 			DiscountType:       discountTypeStr,
 			DiscountValue:      discountValue,
-			EscrowAmount:       escrowAmount,
+			EscrowAmount:       postDiscount.EscrowAmount,
 			ShippingMode:       shippingMode,
 			CoinsPreview:       coinsPreview,
 		},
@@ -683,6 +637,80 @@ func calculateCommission(subtotal money.Money, percent decimal.Decimal) money.Mo
 	return money.New(commission)
 }
 
+// ============================================================================
+// CANONICAL POST-DISCOUNT MONEY FLOW
+// ============================================================================
+//
+// Every pricing model (For Sale, Negotiation, Auction) converges into this
+// single canonical money-flow calculation after discount is applied.
+//
+// Input:
+//   P    = final product transaction price (subtotal before discount)
+//   D    = discount amount (from DiscountService)
+//   S    = shipping cost
+//   C%   = commission percent (rate varies by selling surface)
+//
+// Output:
+//   PD             = P - D (discounted product value)
+//   Commission     = f(PD, C%)
+//   CommissionSafe = PD + S >= Commission (rejection if false)
+//   Escrow         = PD + S
+//   CoinCap        = 20% × PD
+//   OrderValueForCoins = PD
+//
+// This function is the SINGLE authority for post-discount money calculations.
+// No path-specific money logic may exist outside this function.
+type PostDiscountMoneyFlow struct {
+	DiscountedProduct int64
+	CommissionAmount  money.Money
+	EscrowAmount      money.Money
+	TotalPayableAmount money.Money
+	MaxCoinsAllowed   int64
+	OrderValueForCoins int64
+}
+
+func calculatePostDiscountMoneyFlow(
+	subtotal money.Money,
+	discountAmount money.Money,
+	shippingTotal money.Money,
+	commissionPercent decimal.Decimal,
+) (*PostDiscountMoneyFlow, error) {
+	// PD = P - D
+	netSubtotal := subtotal.Sub(discountAmount)
+	PD := subtotal.Int64() - discountAmount.Int64()
+
+	// Commission = f(PD, C%)
+	commissionAmount := calculateCommission(netSubtotal, commissionPercent)
+
+	// Commission safety: PD + S >= Commission
+	finalOrderValue := PD + shippingTotal.Int64()
+	if finalOrderValue < commissionAmount.Int64() {
+		return nil, fmt.Errorf(
+			"discount rejected: final_order_value (%d) < commission_amount (%d): discount cannot reduce order value below safe commission threshold",
+			finalOrderValue, commissionAmount.Int64())
+	}
+
+	// Escrow = PD + S
+	escrowAmount := money.New(PD).Add(shippingTotal)
+
+	// Total payable = Escrow + ServiceFee (fee unknown at preview time)
+	serviceFeeAmount := money.Zero()
+	totalPayableAmount := escrowAmount.Add(serviceFeeAmount)
+
+	// Coins = 20% × PD
+	orderValueForCoins := PD
+	maxCoinsAllowed := coinsapp.MaxCoinsAllowedForDiscountedProduct(orderValueForCoins)
+
+	return &PostDiscountMoneyFlow{
+		DiscountedProduct:  PD,
+		CommissionAmount:   commissionAmount,
+		EscrowAmount:       escrowAmount,
+		TotalPayableAmount: totalPayableAmount,
+		MaxCoinsAllowed:    maxCoinsAllowed,
+		OrderValueForCoins: orderValueForCoins,
+	}, nil
+}
+
 // getAddressSnapshot retrieves an address as a JSON snapshot.
 func (s *PricingTokenService) getAddressSnapshot(
 	ctx context.Context,
@@ -841,19 +869,18 @@ type GenerateForNegotiationResponse struct {
 // - Token is linked to negotiation_id for validation
 // - Token consumption creates order with negotiated price
 //
-// DISCOUNT GUARD: Negotiation does NOT support promo discounts.
-// - The negotiated price is already a private agreement between buyer and seller.
-// - req.DiscountCode is ignored (forced to nil).
+// DISCOUNT: Negotiation supports promo discounts.
+// - Discount is calculated against the final negotiated price (P).
+// - The negotiated price is the final transaction price, not the forSale price.
 func (s *PricingTokenService) GenerateForNegotiation(
 	ctx context.Context,
 	tx db.Tx,
 	req *GenerateForNegotiationRequest,
 ) (*GenerateForNegotiationResponse, error) {
 	// ============================================================
-	// DISCOUNT GUARD: Ignore discount code for negotiation
-	// ============================================================
-	// Negotiations are private agreements - promo discounts don't apply
-	req.DiscountCode = nil
+	// DISCOUNT: Negotiation discounts use the final negotiated price (P).
+	// The negotiated price is the final transaction price, not the forSale price.
+	// Discount is applied during the subsequent checkout/pricing-token flow.
 	// ============================================================
 	// STEP 1: VALIDATE NEGOTIATION
 	// ============================================================
@@ -947,7 +974,6 @@ func (s *PricingTokenService) GenerateForNegotiation(
 
 	// Get commission rate
 	commissionPercent := s.configService.GetForSaleCommission(ctx, tx)
-	commissionAmount := calculateCommission(subtotal, commissionPercent)
 
 	// Initialize discount values
 	var discountCode *string
@@ -955,29 +981,38 @@ func (s *PricingTokenService) GenerateForNegotiation(
 	var discountValue *decimal.Decimal
 	var discountAmount money.Money = money.Zero()
 
-	// DISCOUNT GUARD: Negotiation does not support promo discounts.
-	// The request code is cleared at function entry so private agreements
-	// never route through the discount service.
-
-	// CANONICAL ESCROW AMOUNT: EscrowAmount = PD + S = (P - 0) + S for
-	// negotiation (no discount). Commission C is a seller/platform-side
-	// allocation and is NOT added to buyer-funded cash.
-	escrowAmount := money.New(subtotal.Int64()).Add(shippingTotal)
-	// Buyer payment fee is unknown at preview/token time: the buyer has not
-	// yet selected a payment method (PASS_18V). The canonical fee is
-	// calculated by CorePaymentHandler.CreatePayment from the payment_methods
-	// table once a method is chosen, and persisted onto the order at that
-	// point — see order/infrastructure/repository.UpdatePaymentSelectionTx.
-	serviceFeeAmount := money.Zero()
-	totalPayableAmount := escrowAmount.Add(serviceFeeAmount)
+	// Apply discount if provided and valid for the for_sale context.
+	// DISCOUNT TRUTH: Negotiation uses the final negotiated price as P.
+	// Discount is calculated from the negotiated price, not the original forSale price.
+	var discountID *uuid.UUID
+	if req.DiscountCode != nil && *req.DiscountCode != "" {
+		result, err := s.discountService.ApplyDiscountAtCheckout(
+			ctx,
+			tx,
+			req.UserID,
+			*req.DiscountCode,
+			subtotal.Int64(),
+			discountentity.DiscountContextForSale,
+			&forSale.SellerID,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("discount validation failed: %w", err)
+		}
+		discountID = &result.DiscountID
+		discountCode = &result.Code
+		dt := result.Type
+		discountType = &dt
+		discountValue = &result.Value
+		discountAmount = money.New(result.DiscountAmount.IntPart())
+	}
 
 	// ============================================================================
-	// CALCULATE COINS SNAPSHOT VALUES (for token storage)
+	// CANONICAL POST-DISCOUNT MONEY FLOW
 	// ============================================================================
-	// OrderValueForCoins: canonical discounted product value (PD = subtotal - discount)
-	discountedProduct := subtotal.Int64() - discountAmount.Int64()
-	orderValueForCoins := discountedProduct
-	maxCoinsAllowed := coinsapp.MaxCoinsAllowedForDiscountedProduct(orderValueForCoins)
+	postDiscount, err := calculatePostDiscountMoneyFlow(subtotal, discountAmount, shippingTotal, commissionPercent)
+	if err != nil {
+		return nil, err
+	}
 	coinsUsed := int64(0) // Initially 0, set when user confirms order
 
 	// Fetch address snapshot
@@ -989,8 +1024,6 @@ func (s *PricingTokenService) GenerateForNegotiation(
 	// ============================================================
 	// STEP 5: CREATE PRICING TOKEN WITH NEGOTIATION CONTEXT
 	// ============================================================
-	// Negotiations do not support promo discounts
-	var discountID *uuid.UUID = nil
 	token := pricingtokenentity.NewPricingTokenFromNegotiation(
 		req.UserID,
 		forSale.ProductID,
@@ -999,9 +1032,9 @@ func (s *PricingTokenService) GenerateForNegotiation(
 		unitPrice, // Negotiated price, NOT forSale price
 		shippingTotal,
 		commissionPercent.IntPart(),
-		commissionAmount,
-		escrowAmount,
-		serviceFeeAmount,
+		postDiscount.CommissionAmount,
+		postDiscount.EscrowAmount,
+		money.Zero(),
 		req.ShippingOptionID,
 		shippingOption.Name,
 		string(shippingOption.TransportType),
@@ -1009,14 +1042,14 @@ func (s *PricingTokenService) GenerateForNegotiation(
 		estimatedDays,
 		req.AddressID,
 		addressSnapshot,
-		discountID, // Negotiations don't support discounts
+		discountID, // Discount may be applied for negotiation checkout
 		discountCode,
 		discountType,
 		discountValue,
 		discountAmount,
 		coinsUsed,          // Coins applied (0 for new tokens)
-		maxCoinsAllowed,    // Max coins allowed
-		orderValueForCoins, // Pre-calculated for coins service: discounted product value (PD)
+		postDiscount.MaxCoinsAllowed,    // Max coins allowed
+		postDiscount.OrderValueForCoins, // Pre-calculated for coins service: discounted product value (PD)
 	)
 
 	if err := s.tokenRepo.CreateTx(ctx, tx, token); err != nil {
@@ -1031,13 +1064,10 @@ func (s *PricingTokenService) GenerateForNegotiation(
 	}
 
 	// Calculate coins preview (non-binding, for UI display only)
-	// Reuse the same values calculated above for the token
-	maxApplicableCoins := maxCoinsAllowed
-
 	var coinsPreview *CoinsPreview
-	if maxApplicableCoins > 0 {
+	if postDiscount.MaxCoinsAllowed > 0 {
 		coinsPreview = &CoinsPreview{
-			MaxApplicable: maxApplicableCoins,
+			MaxApplicable: postDiscount.MaxCoinsAllowed,
 		}
 	}
 
@@ -1050,14 +1080,14 @@ func (s *PricingTokenService) GenerateForNegotiation(
 			Subtotal:           subtotal,
 			ShippingTotal:      shippingTotal,
 			CommissionPercent:  commissionPercent.IntPart(),
-			CommissionAmount:   commissionAmount,
+			CommissionAmount:   postDiscount.CommissionAmount,
 			DiscountAmount:     discountAmount,
-			ServiceFeeAmount:   serviceFeeAmount,
-			TotalPayableAmount: totalPayableAmount,
+			ServiceFeeAmount:   money.Zero(),
+			TotalPayableAmount: postDiscount.TotalPayableAmount,
 			DiscountCode:       discountCode,
 			DiscountType:       discountTypeStr,
 			DiscountValue:      discountValue,
-			EscrowAmount:       escrowAmount,
+			EscrowAmount:       postDiscount.EscrowAmount,
 			ShippingMode:       "standard", // Negotiations use standard shipping options
 			CoinsPreview:       coinsPreview,
 		},
@@ -1221,8 +1251,6 @@ func (s *PricingTokenService) GenerateForAuction(
 			subtotal.Int64(),
 			discountentity.DiscountContextAuction,
 			&auction.SellerID,
-			nil,
-			&auction.ID,
 		)
 		if err != nil {
 			// Return validation error to user - honest failure instead of silent ignore
@@ -1239,53 +1267,14 @@ func (s *PricingTokenService) GenerateForAuction(
 		discountAmount = money.New(result.DiscountAmount.IntPart())
 	}
 
-	// Get commission rate (use auction commission rate)
+	// ============================================================================
+	// CANONICAL POST-DISCOUNT MONEY FLOW
+	// ============================================================================
 	commissionPercent := s.configService.GetAuctionCommission(ctx, tx)
-
-	// Calculate commission on net subtotal (subtotal - discount)
-	// BUSINESS RULE: Commission is calculated from the discounted amount, not full subtotal
-	netSubtotal := subtotal.Sub(discountAmount)
-	commissionAmount := calculateCommission(netSubtotal, commissionPercent)
-
-	// ============================================================================
-	// COMMISSION SAFETY CHECK (P0)
-	// ============================================================================
-	// CRITICAL: Ensure final_order_value >= commission_amount
-	// This prevents margin leakage from high discount percentages
-	//
-	// Formula:
-	// order_value = discounted_product + shipping
-	// IF order_value < commission_amount: REJECT discount
-	//
-	// This ensures discounts cannot reduce order value below safe commission threshold
-	discountedProduct := subtotal.Int64() - discountAmount.Int64()
-	finalOrderValue := discountedProduct + shippingTotal.Int64()
-	if finalOrderValue < commissionAmount.Int64() {
-		return nil, fmt.Errorf("discount rejected: final_order_value (%d) < commission_amount (%d): discount cannot reduce order value below safe commission threshold",
-			finalOrderValue, commissionAmount.Int64())
+	postDiscount, err := calculatePostDiscountMoneyFlow(subtotal, discountAmount, shippingTotal, commissionPercent)
+	if err != nil {
+		return nil, err
 	}
-
-	// CANONICAL ESCROW AMOUNT: EscrowAmount = PD + S = (P - D) + S.
-	// The buyer-funded escrow is the discounted product value plus shipping.
-	// Commission C is a seller/platform-side allocation and is NOT added to
-	// buyer-funded cash — the rejected P+S+C / P+S+C-D models must not appear
-	// in the escrow or total_payable snapshot.
-	escrowAmount := money.New(discountedProduct).Add(shippingTotal)
-	// Buyer payment fee is unknown at preview/token time: the buyer has not
-	// yet selected a payment method (PASS_18V). The canonical fee is
-	// calculated by CorePaymentHandler.CreatePayment from the payment_methods
-	// table once a method is chosen, and persisted onto the order at that
-	// point — see order/infrastructure/repository.UpdatePaymentSelectionTx.
-	serviceFeeAmount := money.Zero()
-	totalPayableAmount := escrowAmount.Add(serviceFeeAmount)
-
-	// ============================================================================
-	// CALCULATE COINS SNAPSHOT VALUES (for token storage)
-	// ============================================================================
-	// OrderValueForCoins: canonical discounted product value (PD = subtotal - discount)
-	// Both buy-now and bid-win allow coins (owner canonical 2026-06-16).
-	orderValueForCoins := discountedProduct
-	maxCoinsAllowed := coinsapp.MaxCoinsAllowedForDiscountedProduct(orderValueForCoins)
 	coinsUsed := int64(0) // Initially 0, set when user confirms order
 
 	// Fetch address snapshot
@@ -1305,9 +1294,9 @@ func (s *PricingTokenService) GenerateForAuction(
 		money.New(unitPrice), // Auction price (buy-now or winning bid)
 		shippingTotal,
 		commissionPercent.IntPart(),
-		commissionAmount,
-		escrowAmount,
-		serviceFeeAmount,
+		postDiscount.CommissionAmount,
+		postDiscount.EscrowAmount,
+		money.Zero(),
 		req.ShippingOptionID,
 		shippingOption.Name,
 		string(shippingOption.TransportType),
@@ -1321,8 +1310,8 @@ func (s *PricingTokenService) GenerateForAuction(
 		discountValue,
 		discountAmount,
 		coinsUsed,          // Coins applied (0 for new tokens)
-		maxCoinsAllowed,    // Max coins allowed (0 for bid-win, canonical PD-based helper for buy-now)
-		orderValueForCoins, // Pre-calculated for coins service: discounted product value (PD)
+		postDiscount.MaxCoinsAllowed,    // Max coins allowed based on canonical 20% of PD
+		postDiscount.OrderValueForCoins, // Pre-calculated for coins service: discounted product value (PD)
 	)
 
 	if err := s.tokenRepo.CreateTx(ctx, tx, token); err != nil {
@@ -1348,9 +1337,9 @@ func (s *PricingTokenService) GenerateForAuction(
 	// Calculate coins preview (non-binding, for UI display only)
 	// Both buy-now and bid-win emit coins preview (owner canonical 2026-06-16).
 	var coinsPreview *CoinsPreview
-	if maxCoinsAllowed > 0 {
+	if postDiscount.MaxCoinsAllowed > 0 {
 		coinsPreview = &CoinsPreview{
-			MaxApplicable: maxCoinsAllowed,
+			MaxApplicable: postDiscount.MaxCoinsAllowed,
 		}
 	}
 
@@ -1363,14 +1352,14 @@ func (s *PricingTokenService) GenerateForAuction(
 			Subtotal:           subtotal,
 			ShippingTotal:      shippingTotal,
 			CommissionPercent:  commissionPercent.IntPart(),
-			CommissionAmount:   commissionAmount,
+			CommissionAmount:   postDiscount.CommissionAmount,
 			DiscountAmount:     discountAmount,
-			ServiceFeeAmount:   serviceFeeAmount,
-			TotalPayableAmount: totalPayableAmount,
+			ServiceFeeAmount:   money.Zero(),
+			TotalPayableAmount: postDiscount.TotalPayableAmount,
 			DiscountCode:       discountCode,
 			DiscountType:       discountTypeStr,
 			DiscountValue:      discountValue,
-			EscrowAmount:       escrowAmount,
+			EscrowAmount:       postDiscount.EscrowAmount,
 			ShippingMode:       "standard", // Auctions use standard shipping options
 			CoinsPreview:       coinsPreview,
 		},

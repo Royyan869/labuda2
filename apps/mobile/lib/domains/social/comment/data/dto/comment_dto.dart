@@ -6,14 +6,13 @@ import 'package:labuda/shared/attachment/entities/share_reference.dart';
 /// CONTRACT ALIGNMENT V1:
 /// - Aligned with backend CommentResponse at:
 ///   backend/internal/social/content/delivery/http/comment_response.go
-/// - offerId field removed (legacy offer system)
 /// - reference is seller response only, NOT a binding offer
 /// - Author info embedded in response for proper UI rendering
 /// - Reply max depth = 1 (parent_id for replies)
 ///
-/// **SOCIAL FIX 1 - SINGLE REFERENCE MODEL:**
+/// SINGLE REFERENCE MODEL:
 /// - reference uses ShareReference format (canonical cross-domain reference)
-/// - targetType = "fixed_price_sale" for seller responses on requests
+/// - targetType = "for_sale" for seller responses
 class CommentDto extends Equatable {
   final String id;
   final String contentId;
@@ -100,24 +99,16 @@ class CommentDto extends Equatable {
   List<Object?> get props => [id, contentId, createdAt];
 }
 
-/// E3.1 — Extract the embedded comment-author lifecycle string from the
-/// comments wire envelope.
+/// Extract the comment-author lifecycle from the wire envelope.
 ///
-/// Preference order (mirrors the E2.1 feed pattern):
-///   1. `author.lifecycle`           — populated by future backend slice via
-///                                      publiccard.NewWithLifecycle on the
-///                                      comment-author card. Returns nil today
-///                                      (publiccard.New is still in use at
-///                                      comment_response.go).
-///   2. `card.author.lifecycle`      — fallback for envelope shapes that may
-///                                      wrap a ContentCard-style author block.
-///                                      Not currently emitted by the
-///                                      comments endpoint; included for
-///                                      forward-compat parity with feed.
+/// Preference order:
+///   1. `author.lifecycle`      — populated by publiccard.NewWithLifecycle
+///                               on the comment-author card.
+///   2. `card.author.lifecycle` — fallback for envelope shapes that may
+///                               wrap a ContentCard-style author block.
 ///
-/// Returns null when both paths are absent / empty / non-string. The mapper
-/// layer converts null into `ContentLifecycle.active` via the canonical
-/// `ContentLifecycleParse.fromWire` helper. Never throws.
+/// Returns null when both paths are absent. The mapper converts null
+/// into `ContentLifecycle.active` via ContentLifecycleParse.fromWire.
 String? _readAuthorLifecycle(Map<String, dynamic> json) {
   final author = json['author'];
   if (author is Map<String, dynamic>) {
@@ -174,19 +165,13 @@ class CreateCommerceReferenceCommentDto {
 ///
 /// CANONICAL COMMENT CAPABILITIES V1:
 /// - text: YES (body field)
-/// - media attachment: NOT supported in V1
 /// - mention user: supported via mentionedUserIds
-/// - commerce attachment: NOT supported (use specialized endpoints)
-///
-/// NOTE: mediaUrls and attachment fields exist for backend compatibility only.
-/// They are NOT supported by the Content module API V1.
+/// - commerce reference: use specialized CreateCommerceReferenceCommentDto
 class CreateCommentDto {
   final String targetId;
   final String targetType;
   final String content;
   final String? parentId;
-  final List<String>? mediaUrls;
-  final CommentAttachmentDto? attachment;
   final List<String>? mentionedUserIds;
 
   const CreateCommentDto({
@@ -194,8 +179,6 @@ class CreateCommentDto {
     required this.targetType,
     required this.content,
     this.parentId,
-    this.mediaUrls,
-    this.attachment,
     this.mentionedUserIds,
   });
 
@@ -204,66 +187,8 @@ class CreateCommentDto {
     'target_type': targetType,
     'body': content,
     if (parentId != null) 'parent_id': parentId,
-    if (mediaUrls != null) 'media_urls': mediaUrls,
-    if (attachment != null) 'attachment': attachment!.toJson(),
     if (mentionedUserIds != null) 'mentioned_user_ids': mentionedUserIds,
   };
-}
-
-/// API DTO for comment attachment (generic attachment system)
-///
-/// @Deprecated - DO NOT USE for new development.
-///
-/// CANONICAL ATTACHMENT PATH V1:
-/// - All other attachment types are NOT supported:
-///   - NO Auction bids
-///   - NO Contest entries
-///   - NO collection links
-///   - NO generic commerce objects
-///
-/// This class exists only for backend compatibility. DO NOT extend.
-@Deprecated(
-  'Use CreateCommerceReferenceCommentDto for commerce references',
-)
-class CommentAttachmentDto extends Equatable {
-  final String type;
-  final String? id;
-  final String? name;
-  final String? image;
-  final double? price;
-  final Map<String, dynamic>? extraData;
-
-  const CommentAttachmentDto({
-    required this.type,
-    this.id,
-    this.name,
-    this.image,
-    this.price,
-    this.extraData,
-  });
-
-  factory CommentAttachmentDto.fromJson(Map<String, dynamic> json) {
-    return CommentAttachmentDto(
-      type: json['type'] as String,
-      id: json['id'] as String?,
-      name: json['name'] as String?,
-      image: json['image'] as String?,
-      price: (json['price'] as num?)?.toDouble(),
-      extraData: json['extra_data'] as Map<String, dynamic>?,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-    'type': type,
-    if (id != null) 'id': id,
-    if (name != null) 'name': name,
-    if (image != null) 'image': image,
-    if (price != null) 'price': price,
-    if (extraData != null) 'extra_data': extraData,
-  };
-
-  @override
-  List<Object?> get props => [type, id, name];
 }
 
 /// Response DTO for paginated comments list
@@ -291,10 +216,7 @@ class ListCommentsDto {
   }
 }
 
-/// Response DTO for toggle like action (Social module only)
-///
-/// NOTE: Likes are NOT supported in the Content module comment API.
-/// This DTO exists for Social module compatibility only.
+/// Response DTO for toggle like action.
 class ToggleLikeDto {
   final bool liked;
 

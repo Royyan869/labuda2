@@ -123,7 +123,7 @@ func TestMigration000047_ForSaleVocabulary_UpDownReplay(t *testing.T) {
 	require.True(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_indexes WHERE indexname='uniq_active_for_sale_per_product')`), "canonical partial index must exist")
 	require.False(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='order_source_enum' AND enumlabel='listing')`), "'listing' must be gone from order_source_enum")
 	require.True(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='order_source_enum' AND enumlabel='for_sale')`), "'for_sale' must be in order_source_enum")
-	require.True(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_trigger WHERE tgname='trg_for_sales_single_active_channel')`), "canonical trigger must exist")
+	require.True(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_trigger WHERE tgname='trg_for_sales_permanent_exclusivity')`), "canonical trigger must exist")
 	require.False(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_trigger WHERE tgname='trg_fixed_price_sales_single_active_channel')`), "old trigger must be gone")
 
 	// Down: old vocabulary restored.

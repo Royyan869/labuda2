@@ -20,41 +20,22 @@ void main() {
         File('lib/shared/widgets/seller_dual_avatar.dart').existsSync(),
         isTrue,
       );
-      expect(
-        File('lib/shared/widgets/seller_identity_view.dart').existsSync(),
-        isTrue,
-      );
     });
 
-    test('profile feature exports shared seller identity view', () {
-      final contents = File(
-        'lib/domains/user/profile/profile_feature.dart',
-      ).readAsStringSync();
-
-      expect(
-        contents.contains(
-          "export 'package:labuda/shared/widgets/seller_identity_view.dart';",
-        ),
-        isTrue,
-      );
-      expect(contents.contains('dual_profile_avatar.dart'), isFalse);
-    });
-
-    test('profile screen uses shared seller identity view', () {
+    test('profile screen uses SellerIdentityStatus for seller checks', () {
       final contents = File(
         'lib/domains/user/profile/presentation/screens/profile_screen.dart',
       ).readAsStringSync();
 
-      expect(contents.contains('SellerIdentityView('), isTrue);
+      expect(contents.contains('SellerIdentityStatus.seller'), isTrue);
       expect(contents.contains('DualProfileAvatar('), isFalse);
     });
 
-    test('drawer header uses shared seller identity view', () {
+    test('drawer header does not use old DualProfileAvatar', () {
       final contents = File(
         'lib/features/home/presentation/widgets/main_drawer/drawer_header.dart',
       ).readAsStringSync();
 
-      expect(contents.contains('SellerIdentityView('), isTrue);
       expect(contents.contains('DualProfileAvatar('), isFalse);
     });
   });

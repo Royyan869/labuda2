@@ -1,7 +1,7 @@
 /// Target types that can be liked
 ///
 /// BACKEND ALIGNMENT V1:
-/// - content: All content items (posts and requests)
+/// - content: All content items
 /// - comment: Comments on content
 ///
 /// Aligned with backend: backend/internal/social/like/entity/like.go

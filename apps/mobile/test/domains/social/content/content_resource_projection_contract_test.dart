@@ -127,7 +127,7 @@ void main() {
     })>[
       (json: _profileProjection(), type: ContentResourceProjectionType.profile, path: '/user/profile-1', title: '@alice'),
       (json: _contentProjection(), type: ContentResourceProjectionType.content, path: '/content/content-1', title: 'Hello content'),
-      (json: _fixedPriceSaleProjection(), type: ContentResourceProjectionType.fixedPriceSale, path: '/listing/sale-1', title: 'Produk Dijual'),
+      (json: _fixedPriceSaleProjection(), type: ContentResourceProjectionType.fixedPriceSale, path: '/for-sale/sale-1', title: 'Produk Dijual'),
       (json: _auctionProjection(), type: ContentResourceProjectionType.auction, path: '/auction/auction-1', title: 'Lelang Koi'),
     ];
 
@@ -149,7 +149,7 @@ void main() {
     })>[
       (json: _profileProjection(state: 'TOMBSTONE'), type: ContentResourceProjectionType.profile, path: '/user/profile-1'),
       (json: _contentProjection(state: 'TOMBSTONE'), type: ContentResourceProjectionType.content, path: '/content/content-1'),
-      (json: _fixedPriceSaleProjection(state: 'TOMBSTONE'), type: ContentResourceProjectionType.fixedPriceSale, path: '/listing/sale-1'),
+      (json: _fixedPriceSaleProjection(state: 'TOMBSTONE'), type: ContentResourceProjectionType.fixedPriceSale, path: '/for-sale/sale-1'),
       (json: _auctionProjection(state: 'TOMBSTONE'), type: ContentResourceProjectionType.auction, path: '/auction/auction-1'),
     ];
 

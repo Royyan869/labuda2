@@ -238,6 +238,18 @@ func storagePID(t *testing.T, ctx context.Context, tdb *testdb.TestDB, orderID u
 	return pid
 }
 
+func storedPrices(t *testing.T, ctx context.Context, tdb *testdb.TestDB, orderID uuid.UUID) (int64, int64) {
+	t.Helper()
+	var orderPrice, itemPrice int64
+	require.NoError(t, tdb.Pool().QueryRow(ctx, `
+		SELECT o.unit_price, oi.unit_price_snapshot
+		FROM orders o
+		JOIN order_items oi ON oi.order_id = o.id
+		WHERE o.id = $1
+	`, orderID).Scan(&orderPrice, &itemPrice))
+	return orderPrice, itemPrice
+}
+
 // ---------------------------------------------------------------------------
 // THE RUNTIME PROOF
 // ---------------------------------------------------------------------------
@@ -310,6 +322,10 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 		PricingSnapshot:  stage5Snapshot(uuid.New(), 100_000),
 	}
 	stage5PricingToken(t, ctx, tdb, orderInput1.PricingSnapshot, buyerID, buyerAddressID, option1)
+	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
+		_, err := tx.Exec(ctx, `UPDATE for_sales SET price_per_unit = $2 WHERE id = $1`, fps1ID, int64(200_000))
+		return err
+	}))
 	var fps1OrderID uuid.UUID
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
 		order, err := svc.CreateFromSaleSurface(ctx, tx, orderInput1)
@@ -322,6 +338,14 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 	require.Equal(t, product1, storagePID(t, ctx, tdb, fps1OrderID),
 		"FPS order item product_id must be products.id (not for_sales.id)")
 	assertStoredPIDMatchesSurface(t, ctx, tdb, fps1OrderID, "for_sales")
+	orderPrice, itemPrice := storedPrices(t, ctx, tdb, fps1OrderID)
+	require.Equal(t, int64(100_000), orderPrice)
+	require.Equal(t, int64(100_000), itemPrice)
+	require.NotEqual(t, int64(200_000), orderPrice)
+	currentPrice := int64(0)
+	require.NoError(t, tdb.Pool().QueryRow(ctx, `SELECT price_per_unit FROM for_sales WHERE id = $1`, fps1ID).Scan(&currentPrice))
+	require.Equal(t, int64(200_000), currentPrice)
+	require.NotEqual(t, currentPrice, orderPrice)
 
 	// --- 5/6. product-keyed counts see the FPS order ---
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
@@ -334,34 +358,20 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 		return nil
 	}))
 
-	// --- 1b/4. relist the SAME product as a new FPS after the first sold ---
+	// --- 1b. a sold Product cannot receive a second ForSale ---
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
 		_, err := tx.Exec(ctx, `UPDATE for_sales SET status = 'sold', sold_at = NOW(), quantity_available = 0 WHERE id = $1`, fps1ID)
 		return err
 	}))
-	fps2ID := createActiveFPS(product1, 3)
-	orderInput2 := orderApp.CreateFromSaleSurfaceInput{
-		ProductID:        product1,
-		SourceType:       orderentity.OrderSourceForSale,
-		SourceID:         fps2ID,
-		BuyerID:          buyerID,
-		Quantity:         1,
-		AddressID:        buyerAddressID,
-		ShippingOptionID: option1,
-		PricingSnapshot:  stage5Snapshot(uuid.New(), 100_000),
-	}
-	stage5PricingToken(t, ctx, tdb, orderInput2.PricingSnapshot, buyerID, buyerAddressID, option1)
-	var fps2OrderID uuid.UUID
-	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		order, err := svc.CreateFromSaleSurface(ctx, tx, orderInput2)
-		if err != nil {
-			return err
-		}
-		fps2OrderID = order.ID
-		return nil
+	fps2 := createActiveFPS(product1, 3)
+	require.Error(t, tdb.WithTx(ctx, func(tx db.Tx) error {
+		_, err := svc.CreateFromSaleSurface(ctx, tx, orderApp.CreateFromSaleSurfaceInput{
+			ProductID: product1, SourceType: orderentity.OrderSourceForSale, SourceID: fps2,
+			BuyerID: buyerID, Quantity: 1, AddressID: buyerAddressID, ShippingOptionID: option1,
+			PricingSnapshot: stage5Snapshot(uuid.New(), 100_000),
+		})
+		return err
 	}))
-	require.Equal(t, product1, storagePID(t, ctx, tdb, fps2OrderID),
-		"relisted FPS order item product_id must be the SAME products.id")
 
 	// --- 2. negotiation order (fresh product) ---
 	product2 := createProduct("P2")
@@ -395,6 +405,10 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 	require.Equal(t, product2, storagePID(t, ctx, tdb, negotiationOrderID),
 		"negotiation order item product_id must be products.id")
 	assertStoredPIDMatchesSurface(t, ctx, tdb, negotiationOrderID, "for_sales")
+	orderPrice, itemPrice = storedPrices(t, ctx, tdb, negotiationOrderID)
+	require.Equal(t, int64(90_000), orderPrice)
+	require.Equal(t, int64(90_000), itemPrice)
+	require.NotEqual(t, int64(100_000), orderPrice)
 	var sourceType, sourceIDStr, negotiationID string
 	require.NoError(t, tdb.Pool().QueryRow(ctx,
 		`SELECT source_type, source_id::text, COALESCE(negotiation_id::text, '') FROM orders WHERE id = $1`, negotiationOrderID).
@@ -434,24 +448,22 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 	require.Equal(t, 1, auctionOrderQuantity(t, ctx, tdb, auctionOrderID),
 		"auction order quantity must remain 1 (unique item)")
 
-	// --- 4. auction REUSE of product1 (product already sold via two FPS) ---
-	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		_, err := tx.Exec(ctx, `UPDATE for_sales SET status = 'sold', sold_at = NOW(), quantity_available = 0 WHERE id = $1`, fps2ID)
-		return err
-	}))
-	reuseAuctionID := stage5Auction(t, ctx, tdb, product1, sellerID)
+	// --- 4. auction on a fresh product ---
+	product4 := createProduct("P4")
+	option4 := stage5Shipping(t, ctx, tdb, sellerID, product4)
+	reuseAuctionID := stage5Auction(t, ctx, tdb, product4, sellerID)
 	reuseSnapshot := stage5Snapshot(uuid.New(), 400_000)
-	stage5PricingToken(t, ctx, tdb, reuseSnapshot, buyerID, buyerAddressID, option1)
+	stage5PricingToken(t, ctx, tdb, reuseSnapshot, buyerID, buyerAddressID, option4)
 	var reuseAuctionOrderID uuid.UUID
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
 		order, err := svc.CreateFromAuction(ctx, tx, orderApp.CreateFromAuctionInput{
 			AuctionID:             reuseAuctionID,
 			AuctionSellerID:       sellerID,
-			ProductID:             product1,
+			ProductID:             product4,
 			BuyerID:               buyerID,
 			WinningBid:            400_000,
 			AddressID:             buyerAddressID,
-			ShippingOptionID:      option1,
+			ShippingOptionID:      option4,
 			AuctionSettlementType: orderentity.AuctionSettlementBidWin,
 			PricingSnapshot:       reuseSnapshot,
 		})
@@ -461,18 +473,17 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 		reuseAuctionOrderID = order.ID
 		return nil
 	}))
-	require.Equal(t, product1, storagePID(t, ctx, tdb, reuseAuctionOrderID),
-		"auction-reuse order item product_id must be the SAME products.id")
+	require.Equal(t, product4, storagePID(t, ctx, tdb, reuseAuctionOrderID),
+		"auction order item product_id must be the auction product id")
 
-	// --- final: product-keyed counts span FPS + auction orders on product1 ---
+	// --- final: product-keyed counts see the fresh auction order ---
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		anyCount, err := orderRepo.CountAnyOrdersByProduct(ctx, tx, product1)
+		anyCount, err := orderRepo.CountAnyOrdersByProduct(ctx, tx, product4)
 		require.NoError(t, err)
-		// fps1 order + fps2 order + auction reuse order.
-		require.Equal(t, int64(3), anyCount, "CountAnyOrdersByProduct(product1) must span FPS + auction orders")
-		active, err := orderRepo.CountActiveOrdersByProduct(ctx, tx, product1)
+		require.Equal(t, int64(1), anyCount)
+		active, err := orderRepo.CountActiveOrdersByProduct(ctx, tx, product4)
 		require.NoError(t, err)
-		require.Equal(t, int64(3), active)
+		require.Equal(t, int64(1), active)
 		return nil
 	}))
 }

@@ -392,6 +392,7 @@ func TestCreateFromSaleSurface_HappyPath(t *testing.T) {
 	require.Equal(t, 1, orderRepo.createOrderItemCalls, "CreateOrderItemTx must run exactly once")
 	require.Equal(t, order.ID, orderRepo.lastOrder.ID)
 	require.NotNil(t, orderRepo.lastOrderItem)
+	require.Equal(t, order.UnitPrice, orderRepo.lastOrderItem.UnitPriceSnapshot)
 
 	// --- No legacy coin mutation happened during order creation ---
 	require.Equal(t, 0, coinsRepo.deductCalls, "AtomicDeductBalance must not run during order creation")

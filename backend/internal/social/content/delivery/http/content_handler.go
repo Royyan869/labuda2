@@ -205,7 +205,6 @@ func NewContentHandler(
 type CreateContentRequest struct {
 	Caption            string                         `json:"caption" binding:"required,min=1,max=5000"`
 	Visibility         string                         `json:"visibility"` // Optional: public, followers_only, private
-	AllowComments      bool                           `json:"allow_comments"`
 	Media              []MediaInput                   `json:"media"`
 	Tags               []string                       `json:"tags"`
 	MentionedUserIDs   []string                       `json:"mentioned_user_ids"`

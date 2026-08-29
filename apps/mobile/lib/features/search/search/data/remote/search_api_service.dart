@@ -129,7 +129,7 @@ class SearchApiService {
     };
 
     final response = await _apiClient.get(
-      '/search/listings',
+      '/search/for-sale',
       queryParameters: queryParams,
     );
 

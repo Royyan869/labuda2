@@ -164,7 +164,7 @@ class NotificationDisplayService {
       // Moderation
       case NotificationType.moderationContentRemoved:
       case NotificationType.moderationCommentRemoved:
-      case NotificationType.moderationListingRemoved:
+      case NotificationType.moderationForSaleRemoved:
       case NotificationType.moderationAuctionRemoved:
         return NotificationDisplayIcon.delete;
       case NotificationType.moderationUserSuspended:
@@ -172,7 +172,7 @@ class NotificationDisplayService {
         return NotificationDisplayIcon.warning;
       case NotificationType.moderationContentRestored:
       case NotificationType.moderationCommentRestored:
-      case NotificationType.moderationListingRestored:
+      case NotificationType.moderationForSaleRestored:
       case NotificationType.moderationAuctionRestored:
       case NotificationType.moderationUserRestored:
         return NotificationDisplayIcon.checkCircle;
@@ -316,14 +316,14 @@ class NotificationDisplayService {
       // Moderation
       case NotificationType.moderationContentRemoved:
       case NotificationType.moderationCommentRemoved:
-      case NotificationType.moderationListingRemoved:
+      case NotificationType.moderationForSaleRemoved:
       case NotificationType.moderationAuctionRemoved:
       case NotificationType.moderationUserSuspended:
       case NotificationType.moderationWarningIssued:
         return NotificationDisplayColor.red;
       case NotificationType.moderationContentRestored:
       case NotificationType.moderationCommentRestored:
-      case NotificationType.moderationListingRestored:
+      case NotificationType.moderationForSaleRestored:
       case NotificationType.moderationAuctionRestored:
       case NotificationType.moderationUserRestored:
         return NotificationDisplayColor.green;

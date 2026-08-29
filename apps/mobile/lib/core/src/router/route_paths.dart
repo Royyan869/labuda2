@@ -23,9 +23,9 @@ class RoutePaths {
   // PUBLIC COMMERCE ROUTES - Use these for product browsing
   // ============================================================================
   static const String forSales = '/for-sale';
-  static const String forSaleDetail = '/for-sale/:fixedPriceSaleId';
+  static const String forSaleDetail = '/for-sale/:forSaleId';
   static const String createForSale = '/create/for-sale';
-  static const String editForSale = '/for-sale/:fixedPriceSaleId/edit';
+  static const String editForSale = '/for-sale/:forSaleId/edit';
 
   // Content creation routes
   static const String createContent = '/create/content';
@@ -33,7 +33,7 @@ class RoutePaths {
   // ============================================================================
   // INTERNAL ONLY - Seller Management Routes (DO NOT USE IN PUBLIC UI)
   // For public product browsing, use `/for-sale`
-  // and `/for-sale/:fixedPriceSaleId` above
+  // and `/for-sale/:forSaleId` above
   // ============================================================================
   static const String auctionDetails = '/auction/:auctionId';
   static String auctionDetail(String auctionId) => '/auction/$auctionId';
@@ -97,7 +97,7 @@ class RoutePaths {
       '/seller/promotions/external-products/:productId';
 
   // Checkout routes
-  static const String checkout = '/checkout/:fixedPriceSaleId';
+  static const String checkout = '/checkout/:forSaleId';
   static const String paymentResult = '/payment-result/:orderId';
 }
 

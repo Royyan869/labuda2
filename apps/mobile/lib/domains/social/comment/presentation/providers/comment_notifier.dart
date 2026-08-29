@@ -12,7 +12,7 @@ part 'comment_notifier.g.dart';
 /// CONTRACT ALIGNMENT V1:
 /// - Application layer - orchestrates comment operations
 /// - Comment is social interaction, NOT commerce
-/// - Listing reference is seller response only, NOT a binding offer
+/// - Commerce reference is seller response only, NOT a binding offer
 /// - Uses canonical Comment entity from comment domain
 @riverpod
 class CommentNotifier extends _$CommentNotifier {
@@ -35,9 +35,9 @@ class CommentNotifier extends _$CommentNotifier {
 
   CommentRepository get _repository => ref.read(commentRepositoryProvider);
 
-  /// Load comments for a specific target
+  /// Load comments for a specific target.
   ///
-  /// V1 canonical target: CommentTargetType.content (posts and requests)
+  /// Canonical target: CommentTargetType.content
   ///
   /// C-CURSOR / C-ORDER PAGINATION CONTRACT:
   ///   - Consumes the canonical cursor endpoint GET /contents/:id/comments,
@@ -165,8 +165,6 @@ class CommentNotifier extends _$CommentNotifier {
     required String targetId,
     required CommentTargetType targetType,
     required String content,
-    List<String> mediaUrls = const [],
-    Object? attachment,
     String? parentId,
     List<String> mentionedUserIds = const [],
     String? targetOwnerId,
@@ -179,7 +177,6 @@ class CommentNotifier extends _$CommentNotifier {
     );
     final validationResult = await validateCommentContent(
       content: content,
-      mediaUrls: mediaUrls,
     );
 
     if (validationResult.isError) {
@@ -190,8 +187,6 @@ class CommentNotifier extends _$CommentNotifier {
       targetId: targetId,
       targetType: targetType,
       content: content,
-      mediaUrls: mediaUrls,
-      attachment: attachment,
       parentId: parentId,
       mentionedUserIds: mentionedUserIds,
     );
@@ -268,6 +263,3 @@ class CommentNotifier extends _$CommentNotifier {
   }
 }
 
-/// Type alias for legacy CommentAttachment
-///
-/// DEPRECATED: NOT used in canonical V1 comment flow.

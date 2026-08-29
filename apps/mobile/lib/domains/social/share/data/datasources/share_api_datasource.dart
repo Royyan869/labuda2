@@ -71,7 +71,6 @@ class ShareApiDatasource {
       'caption': content,
       'type': 'post',
       'visibility': 'public',
-      'allow_comments': true,
       'share_reference': _buildShareReferencePayload(target),
       if (mediaUrls.isNotEmpty) 'media': mediaUrls,
     };

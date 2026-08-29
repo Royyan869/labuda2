@@ -878,18 +878,15 @@ void main() {
             'data': {
               'data': [
                 {
-                  'feed_item_kind': 'content',
                   'id': 'feed-item-1',
+                  'type': 'content',
+                  'author_id': 'author-alice',
+                  'author_username': 'alice',
+                  'author_avatar': 'https://example.com/alice.jpg',
                   'status': 'active',
                   'body': 'Root-wired feed content!',
                   'created_at': '2026-08-05T10:00:00Z',
                   'updated_at': '2026-08-05T10:00:00Z',
-                  'author': {
-                    'id': 'author-alice',
-                    'username': 'alice',
-                    'avatar_url': 'https://example.com/alice.jpg',
-                    'lifecycle': 'active',
-                  },
                   'media': [],
                 },
               ],
@@ -947,18 +944,15 @@ void main() {
             'data': {
               'data': [
                 {
-                  'feed_item_kind': 'content',
                   'id': 'feed-once',
+                  'type': 'content',
+                  'author_id': 'author-1',
+                  'author_username': 'alice',
+                  'author_avatar': 'https://example.com/alice.jpg',
                   'status': 'active',
                   'body': 'One request only',
                   'created_at': '2026-08-05T10:00:00Z',
                   'updated_at': '2026-08-05T10:00:00Z',
-                  'author': {
-                    'id': 'author-1',
-                    'username': 'alice',
-                    'avatar_url': 'https://example.com/alice.jpg',
-                    'lifecycle': 'active',
-                  },
                   'media': [],
                 },
               ],
@@ -1012,18 +1006,15 @@ void main() {
             'data': {
               'data': [
                 {
-                  'feed_item_kind': 'content',
                   'id': 'feed-tab-switch',
+                  'type': 'content',
+                  'author_id': 'author-1',
+                  'author_username': 'alice',
+                  'author_avatar': 'https://example.com/alice.jpg',
                   'status': 'active',
                   'body': 'Persists across tab switch',
                   'created_at': '2026-08-05T10:00:00Z',
                   'updated_at': '2026-08-05T10:00:00Z',
-                  'author': {
-                    'id': 'author-1',
-                    'username': 'alice',
-                    'avatar_url': 'https://example.com/alice.jpg',
-                    'lifecycle': 'active',
-                  },
                   'media': [],
                 },
               ],
@@ -1090,18 +1081,15 @@ void main() {
             'data': {
               'data': [
                 {
-                  'feed_item_kind': 'content',
                   'id': 'feed-before-refresh',
+                  'type': 'content',
+                  'author_id': 'author-1',
+                  'author_username': 'alice',
+                  'author_avatar': 'https://example.com/alice.jpg',
                   'status': 'active',
                   'body': 'Before refresh',
                   'created_at': '2026-08-05T10:00:00Z',
                   'updated_at': '2026-08-05T10:00:00Z',
-                  'author': {
-                    'id': 'author-1',
-                    'username': 'alice',
-                    'avatar_url': 'https://example.com/alice.jpg',
-                    'lifecycle': 'active',
-                  },
                   'media': [],
                 },
               ],
@@ -1117,18 +1105,15 @@ void main() {
             'data': {
               'data': [
                 {
-                  'feed_item_kind': 'content',
                   'id': 'feed-after-refresh',
+                  'type': 'content',
+                  'author_id': 'author-2',
+                  'author_username': 'bob',
+                  'author_avatar': 'https://example.com/bob.jpg',
                   'status': 'active',
                   'body': 'After refresh',
                   'created_at': '2026-08-05T10:01:00Z',
                   'updated_at': '2026-08-05T10:01:00Z',
-                  'author': {
-                    'id': 'author-2',
-                    'username': 'bob',
-                    'avatar_url': 'https://example.com/bob.jpg',
-                    'lifecycle': 'active',
-                  },
                   'media': [],
                 },
               ],
@@ -1197,18 +1182,15 @@ void main() {
             'data': {
               'data': [
                 {
-                  'feed_item_kind': 'content',
                   'id': 'feed-dispose',
+                  'type': 'content',
+                  'author_id': 'author-1',
+                  'author_username': 'alice',
+                  'author_avatar': 'https://example.com/alice.jpg',
                   'status': 'active',
                   'body': 'Will be disposed',
                   'created_at': '2026-08-05T10:00:00Z',
                   'updated_at': '2026-08-05T10:00:00Z',
-                  'author': {
-                    'id': 'author-1',
-                    'username': 'alice',
-                    'avatar_url': 'https://example.com/alice.jpg',
-                    'lifecycle': 'active',
-                  },
                   'media': [],
                 },
               ],

@@ -38,7 +38,7 @@ Widget _routerApp() {
         GoRoute(
           path: '/listing/:fixedPriceSaleId',
           builder: (context, state) {
-            final fixedPriceSaleId = state.pathParameters['fixedPriceSaleId']!;
+            final fixedPriceSaleId = state.pathParameters['forSaleId']!;
             return Scaffold(body: Text('listing:$fixedPriceSaleId'));
           },
         ),

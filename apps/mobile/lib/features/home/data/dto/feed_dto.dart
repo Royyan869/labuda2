@@ -45,7 +45,7 @@ class FeedResponseDto {
   });
 
   /// Hand-written factory that parses the heterogeneous data array.
-  /// Organic items (type: post/request) → FeedItemDto.
+  /// Organic items (type: post/repost) → FeedItemDto.
   /// Promoted items (type: promoted_*) → PromotedFeedItemDto with slot index.
   factory FeedResponseDto.fromJson(Map<String, dynamic> json) {
     final rawData = json['data'] as List<dynamic>? ?? [];
@@ -311,8 +311,8 @@ class PromotedFeedItemDto {
   final String? sellerFarmName;
   final String? sellerLifecycle;
 
-  // Listing-specific
-  final String? fixedPriceSaleId;
+  // Listing-specific (canonical: for_sale_id from backend)
+  final String? forSaleId;
   final int? pricePerUnit;
 
   // Auction-specific
@@ -337,7 +337,7 @@ class PromotedFeedItemDto {
     this.sellerUsername,
     this.sellerFarmName,
     this.sellerLifecycle,
-    this.fixedPriceSaleId,
+    this.forSaleId,
     this.pricePerUnit,
     this.auctionId,
     this.startPrice,
@@ -360,7 +360,7 @@ class PromotedFeedItemDto {
       sellerUsername: json['seller_username'] as String?,
       sellerFarmName: json['seller_farm_name'] as String?,
       sellerLifecycle: json['seller_lifecycle'] as String?,
-      fixedPriceSaleId: json['fixed_price_sale_id'] as String?,
+      forSaleId: json['for_sale_id'] as String?,
       pricePerUnit: json['price_per_unit'] as int?,
       auctionId: json['auction_id'] as String?,
       startPrice: json['start_price'] as int?,

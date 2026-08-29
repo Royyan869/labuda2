@@ -5,7 +5,7 @@ import 'package:labuda/domains/social/follow/data/datasources/follow_api_datasou
 import 'package:labuda/domains/social/follow/data/dto/follow_api_models.dart';
 
 class _FakeApiClient extends ApiClient {
-  _FakeApiClient(this.respond) : super.testing(baseUrl: 'https://example.com');
+  _FakeApiClient(this.respond) : super(baseUrl: 'https://example.com');
 
   final Response<dynamic> Function(
     String path,
@@ -123,34 +123,35 @@ void main() {
       expect(dto.lifecycle, 'removed');
     });
 
-    test('fails when lifecycle is missing', () {
-      expect(
-        () => FollowListUserCardDto.fromJson({
-          'id': 'user-5',
-          'username': 'alice',
-          'avatar_url': null,
-          'followers_count': 0,
-          'following_count': 0,
-        }),
-        throwsFormatException,
-      );
+    // --- Permissive lifecycle: production accepts null/missing/unknown ---
+
+    test('accepts missing lifecycle (pre-S5 compat, defaults to null)', () {
+      final dto = FollowListUserCardDto.fromJson({
+        'id': 'user-5',
+        'username': 'alice',
+        'avatar_url': null,
+        'followers_count': 0,
+        'following_count': 0,
+      });
+
+      expect(dto.id, 'user-5');
+      expect(dto.lifecycle, isNull);
     });
 
-    test('fails when lifecycle is null', () {
-      expect(
-        () => FollowListUserCardDto.fromJson({
-          'id': 'user-6',
-          'username': 'alice',
-          'avatar_url': null,
-          'followers_count': 0,
-          'following_count': 0,
-          'lifecycle': null,
-        }),
-        throwsFormatException,
-      );
+    test('accepts null lifecycle (pre-S5 compat)', () {
+      final dto = FollowListUserCardDto.fromJson({
+        'id': 'user-6',
+        'username': 'alice',
+        'avatar_url': null,
+        'followers_count': 0,
+        'following_count': 0,
+        'lifecycle': null,
+      });
+
+      expect(dto.lifecycle, isNull);
     });
 
-    test('fails when lifecycle is non-string', () {
+    test('rejects non-string lifecycle with TypeError', () {
       expect(
         () => FollowListUserCardDto.fromJson({
           'id': 'user-7',
@@ -160,65 +161,66 @@ void main() {
           'following_count': 0,
           'lifecycle': 123,
         }),
-        throwsFormatException,
+        throwsA(isA<TypeError>()),
       );
     });
 
-    test('fails when lifecycle is unknown', () {
-      expect(
-        () => FollowListUserCardDto.fromJson({
-          'id': 'user-8',
-          'username': 'alice',
-          'avatar_url': null,
-          'followers_count': 0,
-          'following_count': 0,
-          'lifecycle': 'mystery',
-        }),
-        throwsFormatException,
-      );
+    test('accepts unknown lifecycle (production accepts any string)', () {
+      final dto = FollowListUserCardDto.fromJson({
+        'id': 'user-8',
+        'username': 'alice',
+        'avatar_url': null,
+        'followers_count': 0,
+        'following_count': 0,
+        'lifecycle': 'mystery',
+      });
+
+      expect(dto.lifecycle, 'mystery');
     });
 
-    test('fails when id is missing', () {
-      expect(
-        () => FollowListUserCardDto.fromJson({
-          'username': 'alice',
-          'avatar_url': null,
-          'followers_count': 0,
-          'following_count': 0,
-          'lifecycle': 'active',
-        }),
-        throwsFormatException,
-      );
-    });
+    // --- Type enforcement: null/missing id throws TypeError ---
 
-    test('fails when id is empty', () {
+    test('rejects missing id with TypeError', () {
       expect(
         () => FollowListUserCardDto.fromJson({
-          'id': '',
           'username': 'alice',
           'avatar_url': null,
           'followers_count': 0,
           'following_count': 0,
           'lifecycle': 'active',
         }),
-        throwsFormatException,
+        throwsA(isA<TypeError>()),
       );
     });
 
-    test('fails when username is missing', () {
-      expect(
-        () => FollowListUserCardDto.fromJson({
-          'id': 'user-9',
-          'avatar_url': null,
-          'followers_count': 0,
-          'following_count': 0,
-          'lifecycle': 'active',
-        }),
-        throwsFormatException,
-      );
+    test('accepts empty id (no length validation)', () {
+      final dto = FollowListUserCardDto.fromJson({
+        'id': '',
+        'username': 'alice',
+        'avatar_url': null,
+        'followers_count': 0,
+        'following_count': 0,
+        'lifecycle': 'active',
+      });
+
+      expect(dto.id, '');
     });
 
-    test('fails when username is non-string', () {
+    // --- Permissive username: production defaults null to '' ---
+
+    test('accepts missing username (defaults to empty string)', () {
+      final dto = FollowListUserCardDto.fromJson({
+        'id': 'user-9',
+        'avatar_url': null,
+        'followers_count': 0,
+        'following_count': 0,
+        'lifecycle': 'active',
+      });
+
+      expect(dto.username, '');
+    });
+
+    test('rejects non-string username with TypeError', () {
       expect(
         () => FollowListUserCardDto.fromJson({
           'id': 'user-10',
@@ -228,11 +230,11 @@ void main() {
           'following_count': 0,
           'lifecycle': 'active',
         }),
-        throwsFormatException,
+        throwsA(isA<TypeError>()),
       );
     });
 
-    test('fails when avatar has the wrong type', () {
+    test('rejects wrong avatar type with TypeError', () {
       expect(
         () => FollowListUserCardDto.fromJson({
           'id': 'user-11',
@@ -242,11 +244,11 @@ void main() {
           'following_count': 0,
           'lifecycle': 'active',
         }),
-        throwsFormatException,
+        throwsA(isA<TypeError>()),
       );
     });
 
-    test('fails when counts are malformed', () {
+    test('rejects malformed counts with TypeError', () {
       expect(
         () => FollowListUserCardDto.fromJson({
           'id': 'user-12',
@@ -256,7 +258,7 @@ void main() {
           'following_count': 'few',
           'lifecycle': 'active',
         }),
-        throwsFormatException,
+        throwsA(isA<TypeError>()),
       );
     });
 
@@ -421,7 +423,7 @@ void main() {
       expect(result.statusCode, 400);
     });
 
-    test('missing lifecycle fails', () async {
+    test('missing lifecycle succeeds (pre-S5 compat, defaults to null)', () async {
       final client = _FakeApiClient((path, queryParameters) {
         return _response(
           path,
@@ -446,11 +448,11 @@ void main() {
 
       final result = await datasource.getFollowers('user-40');
 
-      expect(result.isFailure, isTrue);
-      expect(result.error, 'Invalid response data format');
+      expect(result.isSuccess, isTrue);
+      expect(result.data!.items.first.lifecycle, isNull);
     });
 
-    test('old lifecycle-null response fails', () async {
+    test('null lifecycle succeeds (pre-S5 compat)', () async {
       final client = _FakeApiClient((path, queryParameters) {
         return _response(
           path,
@@ -476,11 +478,11 @@ void main() {
 
       final result = await datasource.getFollowing('user-41');
 
-      expect(result.isFailure, isTrue);
-      expect(result.error, 'Invalid response data format');
+      expect(result.isSuccess, isTrue);
+      expect(result.data!.items.first.lifecycle, isNull);
     });
 
-    test('malformed item fails', () async {
+    test('malformed item fails with parse error', () async {
       final client = _FakeApiClient((path, queryParameters) {
         return _response(
           path,
@@ -510,7 +512,7 @@ void main() {
       expect(result.error, 'Invalid response data format');
     });
 
-    test('unknown lifecycle fails', () async {
+    test('unknown lifecycle succeeds (production accepts any string)', () async {
       final client = _FakeApiClient((path, queryParameters) {
         return _response(
           path,
@@ -536,8 +538,8 @@ void main() {
 
       final result = await datasource.getFollowers('user-43');
 
-      expect(result.isFailure, isTrue);
-      expect(result.error, 'Invalid response data format');
+      expect(result.isSuccess, isTrue);
+      expect(result.data!.items.first.lifecycle, 'unknown');
     });
   });
 }

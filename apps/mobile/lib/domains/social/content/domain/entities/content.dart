@@ -6,8 +6,7 @@
 // ============================================================================
 //
 // CONTENT = SOCIAL PUBLISHING OBJECT, NOT COMMERCE OBJECT
-// - Posts: social content sharing (stories, showcase, tips)
-// - Requests: buyer looking for koi (seller responds with listing offers)
+// - Social content sharing (stories, showcase, tips)
 // - Content does NOT authorize order/payment/finance/commerce operations
 //
 // RESOURCE PROJECTION TRUTH:
@@ -169,25 +168,24 @@ class ContentEngagement extends Equatable {
 }
 
 /// Value object untuk settings content
+///
+/// Comments are always supported by Content — there is no allowComments
+/// business switch.
 class ContentSettings extends Equatable {
   final ContentVisibility visibility;
-  final bool allowComments;
 
   const ContentSettings({
     this.visibility = ContentVisibility.public,
-    this.allowComments = true,
   });
 
   @override
-  List<Object> get props => [visibility, allowComments];
+  List<Object> get props => [visibility];
 
   ContentSettings copyWith({
     ContentVisibility? visibility,
-    bool? allowComments,
   }) {
     return ContentSettings(
       visibility: visibility ?? this.visibility,
-      allowComments: allowComments ?? this.allowComments,
     );
   }
 }
@@ -430,7 +428,7 @@ class MediaDimensions extends Equatable {
 /// Entitas content untuk feed dalam platform koi.
 ///
 /// Content adalah konten individual yang dapat berupa cerita,
-/// sharing informasi, showcase koleksi, atau request mencari ikan.
+/// sharing informasi, showcase koleksi.
 /// Unified content system.
 ///
 /// CONTRACT: Content adalah social publishing object, BUKAN commerce object.
@@ -563,10 +561,8 @@ class Content extends Equatable {
       moderationInfo.violationCount == 0 &&
       engagement.reportCount < 3;
 
-  /// Business logic: Check if content is active.
-  bool get isRequestActive => status.isActive;
-
-  /// Business logic: Check if seller can respond with listing.
+  /// Business logic: Check if content is active and can receive
+  /// commerce resource attachments in comments.
   bool get canReceiveListingResponses => status.isActive;
 
   // ============================================================================

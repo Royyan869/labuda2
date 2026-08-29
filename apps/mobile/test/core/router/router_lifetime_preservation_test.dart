@@ -9,10 +9,10 @@ import 'package:labuda/app.dart';
 import 'package:labuda/core/core.dart' hide NotificationEntity;
 import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/domains/commerce/catalog/auction/auction.dart';
-import 'package:labuda/domains/commerce/catalog/listing/domain/domain.dart';
-import 'package:labuda/domains/commerce/catalog/listing/presentation/providers/listing_providers.dart';
-import 'package:labuda/domains/commerce/catalog/listing/presentation/screens/create_listing_screen.dart';
-import 'package:labuda/domains/commerce/catalog/listing/presentation/screens/listing_detail_screen.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/presentation/screens/create_for_sale_screen.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/presentation/screens/for_sale_detail_screen.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/promotion.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/promotion_providers.dart';
 import 'package:labuda/domains/social/content/content.dart';
@@ -43,13 +43,11 @@ import 'package:labuda/domains/system/notification/services/fcm_service.dart';
 import 'package:labuda/domains/system/notification/services/local_notification_service.dart';
 import 'package:labuda/features/explore/explore.dart';
 import 'package:labuda/features/home/home.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/models/seller_identity_data.dart';
 
 const _profileUserId = '00000000-0000-0000-0000-00000000a001';
 const _sellerUserId = '00000000-0000-0000-0000-00000000a002';
-const _listingId = 'listing-001';
+const _forSaleId = 'for-sale-001';
 
 AuthUser _buildUser({
   required String id,
@@ -89,7 +87,6 @@ ProfileEntity _buildProfileEntity(String userId) {
     userId: userId,
     location: 'Jakarta, Indonesia',
     joinedAt: now,
-    updatedAt: now,
     stats: const ProfileStats(followersCount: 0, followingCount: 0),
     verification: const UserVerificationInfo(
       isPhoneVerified: false,
@@ -101,10 +98,10 @@ ProfileEntity _buildProfileEntity(String userId) {
   );
 }
 
-Listing _buildListing() {
+ForSale _buildForSale() {
   final now = DateTime.utc(2026, 7, 31, 6);
-  return Listing(
-    fixedPriceSaleId: _listingId,
+  return ForSale(
+    forSaleId: _forSaleId,
     productId: 'product-001',
     title: 'Showa Koi 30cm',
     description: 'Premium showa for lifecycle preservation proof.',
@@ -113,19 +110,11 @@ Listing _buildListing() {
     sellerId: _sellerUserId,
     sellerUsername: 'seller_user',
     sellerFarmName: 'Acme Farm',
-    sellerAvatar: null,
-    sellerIdentity: const SellerIdentityData(
-      userId: _sellerUserId,
-      username: 'seller_user',
-      storeName: 'Acme Farm',
-      avatarUrl: null,
-      isSeller: true,
-    ),
-    sellerUserLifecycle: ContentLifecycle.active,
+    sellerAvatar: null,    sellerUserLifecycle: ContentLifecycle.active,
     sellerTrustLifecycle: ContentLifecycle.active,
     sellerTier: null,
-    status: ListingStatus.active,
-    visibility: ListingVisibility.public,
+    status: ForSaleStatus.active,
+    visibility: ForSaleVisibility.public,
     isNegotiable: true,
     location: null,
     viewCount: 0,
@@ -148,15 +137,7 @@ Auction _buildAuction() {
     sellerId: _sellerUserId,
     sellerUsername: 'seller_user',
     sellerFarmName: 'Acme Farm',
-    sellerAvatar: null,
-    sellerIdentity: const SellerIdentityData(
-      userId: _sellerUserId,
-      username: 'seller_user',
-      storeName: 'Acme Farm',
-      avatarUrl: null,
-      isSeller: true,
-    ),
-    sellerUserLifecycle: ContentLifecycle.active,
+    sellerAvatar: null,    sellerUserLifecycle: ContentLifecycle.active,
     sellerTrustLifecycle: ContentLifecycle.active,
     title: 'Auction Showa 28cm',
     description: 'Auction preview item.',
@@ -358,6 +339,15 @@ class _NoopAnalyticsRepository implements IAnalyticsRepository {
     Map<String, dynamic> properties,
   ) async => _ok();
 
+  @override
+  Future<Result<void>> trackEngagement({
+    required String userId,
+    required String contentId,
+    required String contentType,
+    required String engagementType,
+    int? duration,
+  }) async => _ok();
+
 }
 
 class _FakeAuthRepository extends Fake implements IAuthRepository {}
@@ -398,8 +388,8 @@ class _HarnessUserSyncService extends UserSyncService {
   }) : _syncUser = syncUser,
        super(
          firebaseAuth: firebaseAuth,
-         userDatasource: UserApiDatasource(
-           ApiClient.testing(),
+         datasource: UserApiDatasource(
+           ApiClient(logger: const _NoopLoggerService()),
            logger: const _NoopLoggerService(),
          ),
          logger: const _NoopLoggerService(),
@@ -409,14 +399,7 @@ class _HarnessUserSyncService extends UserSyncService {
   final AuthUser _syncUser;
 
   @override
-  Future<Result<AuthUser>> getCurrentUser({
-    required String expectedUid,
-    required int expectedEpoch,
-    required PrincipalOperationCheck isCurrentPrincipalOperation,
-  }) async {
-    if (!isCurrentPrincipalOperation(expectedUid, expectedEpoch)) {
-      return Result.error('stale principal');
-    }
+  Future<Result<AuthUser>> getCurrentUser() async {
     return Result.success(_syncUser);
   }
 }
@@ -469,7 +452,6 @@ class _FakeContentRepository implements ContentRepository {
     String? authorUsername,
     String? authorAvatarUrl,
     required String content,
-    ContentType type = ContentType.post,
     List<MediaEntity> media = const [],
     List<String> tags = const [],
     List<String> taggedUsers = const [],
@@ -490,7 +472,6 @@ class _FakeContentRepository implements ContentRepository {
   Future<ContentRepositoryResult<List<Content>>> getContents({
     int? limit,
     int? offset,
-    ContentType? type,
     String? location,
     ContentStatus? status,
   }) async => ContentRepositoryResult.success(const <Content>[]);
@@ -531,7 +512,6 @@ class _FakeContentRepository implements ContentRepository {
     required String query,
     int? limit,
     int? offset,
-    ContentType? type,
     String? location,
   }) async => ContentRepositoryResult.error('not used');
 
@@ -741,7 +721,7 @@ class _FakeRatingRepository implements IRatingRepository {
 Future<ProviderContainer> _buildContainer({
   required AuthStateAuthenticated authState,
   required AuthUser syncUser,
-  required Listing listing,
+  required ForSale forSale,
   required Auction auction,
 }) async {
   final fakeFirebaseUser = _FakeFirebaseUser(syncUser.id);
@@ -773,7 +753,9 @@ Future<ProviderContainer> _buildContainer({
     localNotificationServiceProvider.overrideWithValue(
       _FakeLocalNotificationService(),
     ),
-    apiClientProvider.overrideWithValue(ApiClient.testing()),
+    apiClientProvider.overrideWithValue(
+      ApiClient(logger: const _NoopLoggerService()),
+    ),
     navigationRegistryProvider.overrideWithValue(registry),
     homeRepositoryProvider.overrideWithValue(_FakeHomeRepository()),
     contentRepositoryProvider.overrideWithValue(_FakeContentRepository()),
@@ -795,15 +777,15 @@ Future<ProviderContainer> _buildContainer({
             );
       return ProfileViewData(user: user, profile: _buildProfileEntity(userId));
     }),
-    listingsProvider.overrideWith((ref, params) async {
-      return [listing];
+    forSalesProvider.overrideWith((ref, params) async {
+      return [forSale];
     }),
     exploreAuctionsStreamProvider.overrideWith((ref) {
       return Stream.value([auction]);
     }),
-    fixedPriceSaleDetailProvider.overrideWith((ref, fixedPriceSaleId) async {
-      if (fixedPriceSaleId == listing.fixedPriceSaleId) {
-        return listing;
+    forSaleDetailProvider.overrideWith((ref, forSaleId) async {
+      if (forSaleId == forSale.forSaleId) {
+        return forSale;
       }
       return null;
     }),
@@ -881,13 +863,11 @@ void main() {
         hasSellerProfile: false,
         hasMarketAuthority: false,
       );
-      final refreshedUser = user.copyWith(
-        updatedAt: user.updatedAt.add(const Duration(minutes: 1)),
-      );
+      final refreshedUser = user;
       final container = await _buildContainer(
         authState: _buildAuthenticatedState(user),
         syncUser: refreshedUser,
-        listing: _buildListing(),
+        forSale: _buildForSale(),
         auction: _buildAuction(),
       );
       addTearDown(container.dispose);
@@ -916,13 +896,11 @@ void main() {
         hasSellerProfile: false,
         hasMarketAuthority: false,
       );
-      final refreshedUser = user.copyWith(
-        updatedAt: user.updatedAt.add(const Duration(minutes: 1)),
-      );
+      final refreshedUser = user;
       final container = await _buildContainer(
         authState: _buildAuthenticatedState(user),
         syncUser: refreshedUser,
-        listing: _buildListing(),
+        forSale: _buildForSale(),
         auction: _buildAuction(),
       );
       addTearDown(container.dispose);
@@ -933,26 +911,34 @@ void main() {
 
       expect(find.byType(SettingsScreen), findsOneWidget);
       final settingsState = tester.state(find.byType(SettingsScreen));
-      final allowMessages = find.widgetWithText(
+      final onlineStatusTile = find.widgetWithText(
         SwitchListTile,
-        'Allow Messages',
+        'Show Online Status',
       );
 
-      await tester.tap(allowMessages);
+      expect(onlineStatusTile, findsOneWidget);
+      final valueBeforeTap =
+          tester.widget<SwitchListTile>(onlineStatusTile).value;
+      await tester.tap(onlineStatusTile);
       await tester.pump();
 
-      expect(tester.widget<SwitchListTile>(allowMessages).value, isFalse);
+      final valueAfterTap =
+          tester.widget<SwitchListTile>(onlineStatusTile).value;
+      expect(valueAfterTap, isNot(valueBeforeTap));
       final routerBefore = container.read(goRouterProvider);
 
       await _refreshSamePrincipal(tester, container);
 
       expect(container.read(goRouterProvider), same(routerBefore));
       expect(tester.state(find.byType(SettingsScreen)), same(settingsState));
-      expect(tester.widget<SwitchListTile>(allowMessages).value, isFalse);
+      expect(
+        tester.widget<SwitchListTile>(onlineStatusTile).value,
+        valueAfterTap,
+      );
     },
   );
 
-  testWidgets('listing detail stays mounted and router identity stays stable', (
+  testWidgets('for-sale detail stays mounted and router identity stays stable', (
     tester,
   ) async {
     final user = _buildUser(
@@ -960,30 +946,28 @@ void main() {
       hasSellerProfile: false,
       hasMarketAuthority: false,
     );
-    final refreshedUser = user.copyWith(
-      updatedAt: user.updatedAt.add(const Duration(minutes: 1)),
-    );
-    final listing = _buildListing();
+    final refreshedUser = user;
+    final forSale = _buildForSale();
     final container = await _buildContainer(
       authState: _buildAuthenticatedState(user),
       syncUser: refreshedUser,
-      listing: listing,
+      forSale: forSale,
       auction: _buildAuction(),
     );
     addTearDown(container.dispose);
 
     await _pumpHarness(tester, container);
-    container.read(goRouterProvider).go('/listing/${listing.fixedPriceSaleId}');
+    container.read(goRouterProvider).go('/for-sale/${forSale.forSaleId}');
     await tester.pumpAndSettle();
 
-    expect(find.byType(ListingDetailScreen), findsOneWidget);
-    final detailState = tester.state(find.byType(ListingDetailScreen));
+    expect(find.byType(ForSaleDetailScreen), findsOneWidget);
+    final detailState = tester.state(find.byType(ForSaleDetailScreen));
     final routerBefore = container.read(goRouterProvider);
 
     await _refreshSamePrincipal(tester, container);
 
     expect(container.read(goRouterProvider), same(routerBefore));
-    expect(tester.state(find.byType(ListingDetailScreen)), same(detailState));
+    expect(tester.state(find.byType(ForSaleDetailScreen)), same(detailState));
   });
 
   testWidgets(
@@ -994,36 +978,34 @@ void main() {
         hasSellerProfile: true,
         hasMarketAuthority: true,
       );
-      final refreshedSeller = sellerUser.copyWith(
-        updatedAt: sellerUser.updatedAt.add(const Duration(minutes: 1)),
-      );
+      final refreshedSeller = sellerUser;
       final container = await _buildContainer(
         authState: _buildAuthenticatedState(sellerUser),
         syncUser: refreshedSeller,
-        listing: _buildListing(),
+        forSale: _buildForSale(),
         auction: _buildAuction(),
       );
       addTearDown(container.dispose);
 
       await _pumpHarness(tester, container);
-      container.read(goRouterProvider).go(RoutePaths.createListing);
+      container.read(goRouterProvider).go(RoutePaths.createForSale);
       await tester.pumpAndSettle();
 
-      expect(find.byType(CreateListingScreen), findsOneWidget);
-      final createState = tester.state(find.byType(CreateListingScreen));
+      expect(find.byType(CreateForSaleScreen), findsOneWidget);
+      final createState = tester.state(find.byType(CreateForSaleScreen));
       final titleField = find.byType(TextFormField).first;
 
-      await tester.enterText(titleField, 'Lifecycle Proof Listing');
+      await tester.enterText(titleField, 'Lifecycle Proof ForSale');
       await tester.pump();
 
-      expect(find.text('Lifecycle Proof Listing'), findsWidgets);
+      expect(find.text('Lifecycle Proof ForSale'), findsWidgets);
       final routerBefore = container.read(goRouterProvider);
 
       await _refreshSamePrincipal(tester, container);
 
       expect(container.read(goRouterProvider), same(routerBefore));
-      expect(tester.state(find.byType(CreateListingScreen)), same(createState));
-      expect(find.text('Lifecycle Proof Listing'), findsWidgets);
+      expect(tester.state(find.byType(CreateForSaleScreen)), same(createState));
+      expect(find.text('Lifecycle Proof ForSale'), findsWidgets);
     },
   );
 
@@ -1035,13 +1017,11 @@ void main() {
         hasSellerProfile: false,
         hasMarketAuthority: false,
       );
-      final refreshedUser = user.copyWith(
-        updatedAt: user.updatedAt.add(const Duration(minutes: 1)),
-      );
+      final refreshedUser = user;
       final container = await _buildContainer(
         authState: _buildAuthenticatedState(user),
         syncUser: refreshedUser,
-        listing: _buildListing(),
+        forSale: _buildForSale(),
         auction: _buildAuction(),
       );
       addTearDown(container.dispose);

@@ -21,7 +21,6 @@
 // ========================================
 // PRESENTATION PROVIDERS
 // ========================================
-export 'providers/profile_providers.dart';
 export 'providers/address_providers.dart';
 
 // ========================================

@@ -13,8 +13,6 @@ abstract class IDiscountRepository {
     int subtotalCents, {
     required String contextType,
     required String sellerId,
-    String? listingId,
-    String? auctionId,
   });
 
   Future<Result<Discount>> createDiscount(Discount discount);

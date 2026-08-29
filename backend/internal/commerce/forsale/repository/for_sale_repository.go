@@ -50,9 +50,6 @@ type ForSaleRepository interface {
 	// UpdateStatus updates only the status field within a transaction.
 	UpdateStatus(ctx context.Context, tx db.Tx, for_sale *entity.ForSale) error
 
-	// Delete soft-deletes a for_sale (marks as withdrawn) within a transaction.
-	Delete(ctx context.Context, tx db.Tx, id uuid.UUID) error
-
 	// GetBySellerID retrieves a seller's full history (draft/active/sold;
 	// withdrawn optional) — OWNER-ONLY inventory authority. Never expose this
 	// through a public/anon path; public seller pages must use

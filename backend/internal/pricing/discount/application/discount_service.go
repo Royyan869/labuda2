@@ -2,19 +2,26 @@
 // DISCOUNT SERVICE - DISCOUNT VALIDATION SOURCE OF TRUTH
 // ============================================================================
 //
-// SOURCE OF TRUTH: All discount validation must go through this service.
-//
-// DOMAIN RULE: This service is the SINGLE SOURCE OF TRUTH for discount operations.
-// - Discount does NOT modify forSale.price
-// - Discount is ONLY calculated at checkout time
-// - Discount does NOT touch ledger directly
-// - OrderService remains the only creator of orders
+// CANONICAL MODEL (DISCOUNT-003):
+// - Discount is seller-funded and seller-created
+// - Discount applicability is by SELLING SURFACE ONLY (for_sale / auction / both)
+// - No specific item/surface targeting
+// - Discount types: percentage, flat_amount
+// - Validity: expiry-only (valid_until)
+// - Usage: optional total_usage_limit (0 = unlimited)
+// - Minimum purchase: optional min_purchase against final transaction price P
+// - Anyone who knows the code may attempt to use it
+// - PricingToken is the sole transaction-pricing authority
+// - Discount does NOT modify forSale.price or auction price
+// - Discount is ONLY calculated at checkout time, server-side
+// - Discount applies to the FINAL TRANSACTION PRICE, not starting/reference price
 //
 // BUSINESS RULES:
-// - ECONOMIC SAFETY: Discount capped at 50% (MaxDiscountPercentage)
-// - COMMISSION SAFETY: final_order_value >= commission_amount
+// - ECONOMIC SAFETY: Discount percentage capped at 50% (MaxDiscountPercentage)
+// - COMMISSION SAFETY: final_order_value >= commission_amount (enforced at PricingToken layer)
 // - DUPLICATE PREVENTION: One discount per order (database constraint)
-// - USAGE LIMITS: Per-user and total usage limits enforced
+// - USAGE LIMITS: Total usage limit enforced
+// - MIN PURCHASE: Evaluated against P (final product transaction price)
 //
 // NO DISCOUNT LOGIC SHALL EXIST OUTSIDE THIS SERVICE.
 // ============================================================================
@@ -38,7 +45,7 @@ type DiscountService struct {
 	repo discountRepo.DiscountRepository
 }
 
-// NewDiscountService creates a new DiscountService.
+// NewDiscountService creates a NewDiscountService.
 func NewDiscountService() *DiscountService {
 	return &DiscountService{
 		repo: repositoryImpl.NewDiscountRepository(),
@@ -55,15 +62,9 @@ type CreateDiscountInput struct {
 	Type            entity.DiscountType
 	Value           decimal.Decimal
 	MinPurchase     decimal.Decimal
-	MaxDiscount     *decimal.Decimal
 	AppliesTo       entity.DiscountAppliesTo
-	TargetMode      entity.DiscountTargetMode
 	SellerID        *uuid.UUID
-	ForSaleIDs      []uuid.UUID
-	AuctionIDs      []uuid.UUID
-	ValidFrom       time.Time
 	ValidUntil      time.Time
-	MaxUsagePerUser int
 	TotalUsageLimit int
 }
 
@@ -74,15 +75,9 @@ func (s *DiscountService) CreateDiscount(ctx context.Context, tx db.Tx, input Cr
 		input.Type,
 		input.Value,
 		input.MinPurchase,
-		input.MaxDiscount,
 		input.AppliesTo,
-		input.TargetMode,
 		input.SellerID,
-		input.ForSaleIDs,
-		input.AuctionIDs,
-		input.ValidFrom,
 		input.ValidUntil,
-		input.MaxUsagePerUser,
 		input.TotalUsageLimit,
 	)
 	if err != nil {
@@ -107,15 +102,9 @@ type UpdateDiscountInput struct {
 	Type            entity.DiscountType
 	Value           decimal.Decimal
 	MinPurchase     decimal.Decimal
-	MaxDiscount     *decimal.Decimal
 	AppliesTo       entity.DiscountAppliesTo
-	TargetMode      entity.DiscountTargetMode
 	SellerID        *uuid.UUID
-	ForSaleIDs      []uuid.UUID
-	AuctionIDs      []uuid.UUID
-	ValidFrom       time.Time
 	ValidUntil      time.Time
-	MaxUsagePerUser int
 	TotalUsageLimit int
 	IsActive        bool
 }
@@ -135,15 +124,9 @@ func (s *DiscountService) UpdateDiscount(ctx context.Context, tx db.Tx, input Up
 		input.Type,
 		input.Value,
 		input.MinPurchase,
-		input.MaxDiscount,
 		input.AppliesTo,
-		input.TargetMode,
 		input.SellerID,
-		input.ForSaleIDs,
-		input.AuctionIDs,
-		input.ValidFrom,
 		input.ValidUntil,
-		input.MaxUsagePerUser,
 		input.TotalUsageLimit,
 	)
 	if err != nil {
@@ -231,19 +214,25 @@ type ValidateDiscountInput struct {
 	Subtotal    int64
 	ContextType entity.DiscountContextType
 	SellerID    *uuid.UUID
-	ForSaleID   *uuid.UUID
-	AuctionID   *uuid.UUID
 }
 
 // ValidateDiscountResult contains the result of discount validation.
 type ValidateDiscountResult struct {
 	Valid           bool
 	Discount        *entity.Discount
-	UserUsageCount  int
 	ValidationError error
 }
 
 // ValidateDiscount validates if a discount can be used by a user.
+//
+// Validation order:
+// 1. Code exists
+// 2. Active + not expired
+// 3. Economic safety (50% cap)
+// 4. Seller ownership
+// 5. Surface applicability (for_sale/auction/both)
+// 6. Min purchase met (against P)
+// 7. Usage limits
 func (s *DiscountService) ValidateDiscount(ctx context.Context, tx db.Tx, input ValidateDiscountInput) (*ValidateDiscountResult, error) {
 	if !input.ContextType.IsValid() {
 		return nil, fmt.Errorf("invalid discount context type: %s", input.ContextType)
@@ -264,15 +253,14 @@ func (s *DiscountService) ValidateDiscount(ctx context.Context, tx db.Tx, input 
 		}, nil
 	}
 
+	// Active + expiry check
 	if !discount.IsActiveNow() {
 		var validationError error
 		if !discount.IsActive {
 			validationError = &entity.DiscountNotActiveError{Code: discount.Code}
 		} else {
 			now := time.Now()
-			if now.Before(discount.ValidFrom) {
-				validationError = &entity.DiscountValidationError{Code: discount.Code, Reason: "discount not yet valid"}
-			} else if now.After(discount.ValidUntil) {
+			if now.After(discount.ValidUntil) {
 				validationError = &entity.DiscountExpiredError{Code: discount.Code, ValidUntil: discount.ValidUntil}
 			}
 		}
@@ -283,6 +271,7 @@ func (s *DiscountService) ValidateDiscount(ctx context.Context, tx db.Tx, input 
 		}, nil
 	}
 
+	// Economic safety
 	if err := discount.ValidateEconomicSafety(); err != nil {
 		return &ValidateDiscountResult{
 			Valid:           false,
@@ -291,6 +280,7 @@ func (s *DiscountService) ValidateDiscount(ctx context.Context, tx db.Tx, input 
 		}, nil
 	}
 
+	// Seller ownership
 	if discount.SellerID == nil {
 		return &ValidateDiscountResult{
 			Valid:           false,
@@ -306,6 +296,7 @@ func (s *DiscountService) ValidateDiscount(ctx context.Context, tx db.Tx, input 
 		}, nil
 	}
 
+	// Surface applicability
 	if !discount.AppliesTo.AllowsContext(input.ContextType) {
 		return &ValidateDiscountResult{
 			Valid:    false,
@@ -317,85 +308,28 @@ func (s *DiscountService) ValidateDiscount(ctx context.Context, tx db.Tx, input 
 		}, nil
 	}
 
-	switch input.ContextType {
-	case entity.DiscountContextForSale:
-		if input.ForSaleID == nil {
-			return &ValidateDiscountResult{
-				Valid:           false,
-				Discount:        discount,
-				ValidationError: &entity.DiscountValidationError{Code: discount.Code, Reason: "forSale checkout requires forSale id"},
-			}, nil
-		}
-		if discount.TargetMode == entity.DiscountTargetModeSelectedItems {
-			if len(discount.ForSaleIDs) == 0 {
-				return &ValidateDiscountResult{
-					Valid:           false,
-					Discount:        discount,
-					ValidationError: &entity.DiscountValidationError{Code: discount.Code, Reason: "forSale discount has no forSale targets configured"},
-				}, nil
-			}
-			if !uuidSliceContains(discount.ForSaleIDs, *input.ForSaleID) {
-				return &ValidateDiscountResult{
-					Valid:           false,
-					Discount:        discount,
-					ValidationError: &entity.DiscountValidationError{Code: discount.Code, Reason: "discount is not applicable to this forSale"},
-				}, nil
-			}
-		}
-	case entity.DiscountContextAuction:
-		if input.AuctionID == nil {
-			return &ValidateDiscountResult{
-				Valid:           false,
-				Discount:        discount,
-				ValidationError: &entity.DiscountValidationError{Code: discount.Code, Reason: "auction checkout requires auction id"},
-			}, nil
-		}
-		if discount.TargetMode == entity.DiscountTargetModeSelectedItems {
-			if len(discount.AuctionIDs) == 0 {
-				return &ValidateDiscountResult{
-					Valid:           false,
-					Discount:        discount,
-					ValidationError: &entity.DiscountValidationError{Code: discount.Code, Reason: "auction discount has no auction targets configured"},
-				}, nil
-			}
-			if !uuidSliceContains(discount.AuctionIDs, *input.AuctionID) {
-				return &ValidateDiscountResult{
-					Valid:           false,
-					Discount:        discount,
-					ValidationError: &entity.DiscountValidationError{Code: discount.Code, Reason: "discount is not applicable to this auction"},
-				}, nil
-			}
-		}
-	}
-
-	userUsageCount, err := s.repo.CountUsageByUser(ctx, tx, discount.ID, input.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user usage count: %w", err)
-	}
-
-	if err := discount.CanBeUsedBy(userUsageCount); err != nil {
-		return &ValidateDiscountResult{
-			Valid:           false,
-			Discount:        discount,
-			UserUsageCount:  userUsageCount,
-			ValidationError: err,
-		}, nil
-	}
-
+	// Min purchase check against P (final transaction product price)
 	subtotalDec := decimal.NewFromInt(input.Subtotal)
 	if err := discount.MeetsMinPurchase(subtotalDec); err != nil {
 		return &ValidateDiscountResult{
 			Valid:           false,
 			Discount:        discount,
-			UserUsageCount:  userUsageCount,
+			ValidationError: err,
+		}, nil
+	}
+
+	// Usage limits
+	if err := discount.CanBeUsedBy(); err != nil {
+		return &ValidateDiscountResult{
+			Valid:           false,
+			Discount:        discount,
 			ValidationError: err,
 		}, nil
 	}
 
 	return &ValidateDiscountResult{
-		Valid:          true,
-		Discount:       discount,
-		UserUsageCount: userUsageCount,
+		Valid:    true,
+		Discount: discount,
 	}, nil
 }
 
@@ -403,7 +337,7 @@ func (s *DiscountService) ValidateDiscount(ctx context.Context, tx db.Tx, input 
 // CALCULATION
 // ============================================================================
 
-// CalculateDiscount calculates the discount amount for a given discount and subtotal.
+// CalculateDiscount calculates the discount amount for a given discount and subtotal (P).
 func (s *DiscountService) CalculateDiscount(discount *entity.Discount, subtotal int64) (*entity.DiscountApplicationResult, error) {
 	subtotalDec := decimal.NewFromInt(subtotal)
 	discountAmount := discount.CalculateDiscountAmount(subtotalDec)
@@ -441,68 +375,6 @@ func (s *DiscountService) RecordUsage(ctx context.Context, tx db.Tx, discountID,
 // CHECKOUT INTEGRATION
 // ============================================================================
 
-// ApplicableDiscount represents a discount that can be applied with its validation result.
-type ApplicableDiscount struct {
-	Discount         *entity.Discount
-	ValidationResult *ValidateDiscountResult
-	DiscountAmount   decimal.Decimal
-}
-
-// FindBestApplicableDiscount finds the best applicable discount for an order.
-func (s *DiscountService) FindBestApplicableDiscount(
-	ctx context.Context,
-	tx db.Tx,
-	userID uuid.UUID,
-	subtotal int64,
-	contextType entity.DiscountContextType,
-	sellerID *uuid.UUID,
-	forSaleID *uuid.UUID,
-	auctionID *uuid.UUID,
-) (*ApplicableDiscount, error) {
-	allDiscounts, err := s.repo.ListActive(ctx, tx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list active discounts: %w", err)
-	}
-
-	subtotalDec := decimal.NewFromInt(subtotal)
-	var applicable []*ApplicableDiscount
-
-	for _, discount := range allDiscounts {
-		validation, err := s.ValidateDiscount(ctx, tx, ValidateDiscountInput{
-			UserID:      userID,
-			Code:        discount.Code,
-			Subtotal:    subtotal,
-			ContextType: contextType,
-			SellerID:    sellerID,
-			ForSaleID:   forSaleID,
-			AuctionID:   auctionID,
-		})
-		if err != nil || !validation.Valid {
-			continue
-		}
-
-		discountAmount := validation.Discount.CalculateDiscountAmount(subtotalDec)
-		applicable = append(applicable, &ApplicableDiscount{
-			Discount:         validation.Discount,
-			ValidationResult: validation,
-			DiscountAmount:   discountAmount,
-		})
-	}
-
-	if len(applicable) == 0 {
-		return nil, nil
-	}
-
-	best := applicable[0]
-	for i := 1; i < len(applicable); i++ {
-		if applicable[i].Discount.IsBetterThan(best.Discount, subtotalDec, contextType) {
-			best = applicable[i]
-		}
-	}
-
-	return best, nil
-}
-
 // ApplyDiscountAtCheckout applies a discount at checkout time.
 func (s *DiscountService) ApplyDiscountAtCheckout(
 	ctx context.Context,
@@ -512,8 +384,6 @@ func (s *DiscountService) ApplyDiscountAtCheckout(
 	subtotal int64,
 	contextType entity.DiscountContextType,
 	sellerID *uuid.UUID,
-	forSaleID *uuid.UUID,
-	auctionID *uuid.UUID,
 ) (*entity.DiscountApplicationResult, error) {
 	validation, err := s.ValidateDiscount(ctx, tx, ValidateDiscountInput{
 		UserID:      userID,
@@ -521,8 +391,6 @@ func (s *DiscountService) ApplyDiscountAtCheckout(
 		Subtotal:    subtotal,
 		ContextType: contextType,
 		SellerID:    sellerID,
-		ForSaleID:   forSaleID,
-		AuctionID:   auctionID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to validate discount: %w", err)
@@ -539,14 +407,3 @@ func (s *DiscountService) ApplyDiscountAtCheckout(
 
 	return result, nil
 }
-
-func uuidSliceContains(values []uuid.UUID, target uuid.UUID) bool {
-	for _, value := range values {
-		if value == target {
-			return true
-		}
-	}
-	return false
-}
-
-

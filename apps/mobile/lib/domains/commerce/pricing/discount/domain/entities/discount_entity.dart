@@ -1,33 +1,33 @@
 import 'package:equatable/equatable.dart';
 
-/// Enum for discount type
-enum DiscountType { percentage, flatAmount, freeShipping }
+/// Enum for discount type — canonical model: percentage, flat_amount only.
+enum DiscountType { percentage, flatAmount }
 
 /// Checkout contexts supported by discounts.
-enum DiscountAppliesTo { listing, auction, both }
-
-/// Target mode for a discount.
-enum DiscountTargetMode { sellerWide, selectedItems }
+enum DiscountAppliesTo { forSale, auction, both }
 
 /// Entity for Discount
 ///
 /// Represents a seller-owned discount/voucher code that can be applied to orders.
+///
+/// CANONICAL MODEL (DISCOUNT-003):
+/// - Discount applicability is by SELLING SURFACE ONLY (for_sale / auction / both)
+/// - No specific item/surface targeting — discount applies to ALL surfaces of the seller's chosen type
+/// - Discount types: percentage, flat_amount only
+/// - Validity: expiry-only (validUntil). Discount is active from creation.
+/// - Usage: optional totalUsageLimit (0 = unlimited). No per-user limit.
+/// - Minimum purchase: optional minPurchase against the final transaction price P
+/// - Anyone who knows the code may attempt to use it
 class Discount extends Equatable {
   final String id;
   final String code;
   final String description;
   final DiscountType type;
   final double value;
-  final double? minPurchase;
-  final double? maxDiscount;
-  final int? maxUsagePerUser;
+  final double minPurchase;
   final int? totalUsageLimit;
   final DiscountAppliesTo appliesTo;
-  final DiscountTargetMode targetMode;
   final String? sellerId;
-  final List<String>? applicableListingIds;
-  final List<String>? applicableAuctionIds;
-  final DateTime validFrom;
   final DateTime validUntil;
   final bool isActive;
   final int currentUsageCount;
@@ -40,16 +40,10 @@ class Discount extends Equatable {
     required this.description,
     required this.type,
     required this.value,
-    this.minPurchase,
-    this.maxDiscount,
-    this.maxUsagePerUser,
+    this.minPurchase = 0.0,
     this.totalUsageLimit,
     required this.appliesTo,
-    required this.targetMode,
     this.sellerId,
-    this.applicableListingIds,
-    this.applicableAuctionIds,
-    required this.validFrom,
     required this.validUntil,
     required this.isActive,
     this.currentUsageCount = 0,
@@ -59,9 +53,7 @@ class Discount extends Equatable {
 
   bool get isExpired => DateTime.now().isAfter(validUntil);
 
-  bool get isNotYetValid => DateTime.now().isBefore(validFrom);
-
-  bool get isUsable => isActive && !isExpired && !isNotYetValid;
+  bool get isUsable => isActive && !isExpired;
 
   bool get hasReachedTotalLimit {
     if (totalUsageLimit == null) return false;
@@ -76,15 +68,9 @@ class Discount extends Equatable {
     type,
     value,
     minPurchase,
-    maxDiscount,
-    maxUsagePerUser,
     totalUsageLimit,
     appliesTo,
-    targetMode,
     sellerId,
-    applicableListingIds,
-    applicableAuctionIds,
-    validFrom,
     validUntil,
     isActive,
     currentUsageCount,

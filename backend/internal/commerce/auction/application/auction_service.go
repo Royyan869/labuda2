@@ -31,6 +31,7 @@ import (
 // dependencies.go wires the concrete productRepoImpl.ProductRepositoryImpl.
 type ProductCreator interface {
 	Create(ctx context.Context, tx db.Tx, product *productEntity.Product) error
+	ClaimSellingSurface(ctx context.Context, tx db.Tx, productID uuid.UUID, surface productEntity.SellingSurface) error
 }
 
 // productReusableGetter resolves an existing Product for reuse. The concrete
@@ -279,6 +280,12 @@ func (s *AuctionService) CreateDraft(
 		if existing.SellerID != input.SellerID {
 			return nil, fmt.Errorf("cannot create auction on product owned by another seller")
 		}
+		// INVARIANT: Product must not already belong to any selling surface.
+		// ClaimSellingSurface uses SELECT ... FOR UPDATE to prevent concurrent
+		// attachment to both ForSale and Auction.
+		if err := s.productRepo.ClaimSellingSurface(ctx, tx, existing.ID, productEntity.SellingSurfaceAuction); err != nil {
+			return nil, fmt.Errorf("cannot attach auction to product: %w", err)
+		}
 		productID = existing.ID
 	} else {
 		product := &productEntity.Product{
@@ -296,6 +303,7 @@ func (s *AuctionService) CreateDraft(
 			FarmAddressID:   input.FarmAddressID,
 			PreparationTime: string(input.PreparationTime),
 			PreparationNote: input.PreparationNote,
+			SellingSurface:  productEntity.SellingSurfaceAuction,
 		}
 		if err := s.productRepo.Create(ctx, tx, product); err != nil {
 			return nil, fmt.Errorf("failed to create product: %w", err)

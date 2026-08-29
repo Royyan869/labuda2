@@ -5,7 +5,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/profile_cover.dart';
 import 'package:labuda/shared/models/seller_identity_data.dart';
 import 'package:labuda/shared/widgets/profile_avatar.dart';
 import 'package:labuda/shared/widgets/seller_dual_avatar.dart';
@@ -310,84 +309,6 @@ void main() {
 
       expect(find.byType(Image), findsOneWidget);
       expect(responders[imageUrl]!.isEmpty, isTrue);
-    }, createHttpClient: (_) => _QueuedImageHttpClient(responders));
-  });
-
-  testWidgets('ProfileCover reloadToken keeps previous frame during replace', (
-    tester,
-  ) async {
-    const imageUrl = 'https://cdn.example.com/profile-cover.jpg';
-    final first = _QueuedResponse.pending();
-    final second = _QueuedResponse.pending();
-    final responders = <String, Queue<_QueuedResponse>>{
-      imageUrl: Queue<_QueuedResponse>.of([first, second]),
-    };
-
-    var reloadToken = 'profile-cover-v1';
-
-    await HttpOverrides.runZoned(() async {
-      await tester.pumpWidget(
-        _wrap(
-          StatefulBuilder(
-            builder: (context, setState) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 180,
-                    height: 120,
-                    child: ProfileCover(
-                      coverPhotoUrl: imageUrl,
-                      reloadToken: reloadToken,
-                      height: 120,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => setState(() {
-                      reloadToken = 'profile-cover-v2';
-                    }),
-                    child: const Text('Refresh cover'),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      );
-
-      first.complete(_onePxPngBytes);
-      await tester.pumpAndSettle();
-
-      expect(
-        find.descendant(
-          of: find.byType(ProfileCover),
-          matching: find.byType(Image),
-        ),
-        findsOneWidget,
-      );
-
-      PaintingBinding.instance.imageCache.evict(NetworkImage(imageUrl));
-      await tester.tap(find.text('Refresh cover'));
-      await tester.pump();
-
-      expect(
-        find.descendant(
-          of: find.byType(ProfileCover),
-          matching: find.byType(Image),
-        ),
-        findsNWidgets(2),
-      );
-
-      second.complete(_onePxPngBytes);
-      await tester.pumpAndSettle();
-
-      expect(
-        find.descendant(
-          of: find.byType(ProfileCover),
-          matching: find.byType(Image),
-        ),
-        findsOneWidget,
-      );
     }, createHttpClient: (_) => _QueuedImageHttpClient(responders));
   });
 

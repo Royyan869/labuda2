@@ -3,17 +3,15 @@
 /// CONTRACT ALIGNMENT V1:
 /// - Full screen discussion surface (NOT bottom sheet, NOT inline expansion)
 /// - Reply max depth = 1 (top-level comments can be replied, replies cannot be replied)
-/// - Works for both posts and requests
 /// - Seller responses get special visual treatment
-/// - Comment remains active even after request is fulfilled
 ///
 /// DISCUSSION SURFACE V1:
 /// - User can view all comments for a content
 /// - User can create new comments
 /// - User can reply to top-level comments only
-/// - Sellers can attach a commerce resource to their comments (for requests)
+/// - Sellers can attach a commerce resource to their comments
 /// - Tap author navigates to profile
-/// - Tap listing navigates to listing detail
+/// - Tap commerce reference navigates to For Sale/Auction detail
 library;
 
 import 'package:flutter/material.dart';
@@ -430,7 +428,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           isSeller:
               isSeller &&
               !isReplying &&
-              _canAttachCommerceResource, // Disable seller features for fulfilled requests
+              _canAttachCommerceResource, // Disable seller features when content is not active
           onSubmit: (body, resource) async {
             if (body.trim().isEmpty && resource == null) return false;
 
@@ -521,7 +519,7 @@ class _CommentItem {
 /// Batch Comments Widget
 ///
 /// Resolves all comment attachments in one batch call instead of N individual calls.
-/// Reduces API calls from N to 2-3 (listings + auctions).
+/// Reduces API calls from N to 2-3 (For Sale + Auction).
 class _CommentsBatchWidget extends ConsumerWidget {
   final List<_CommentItem> flatList;
   final ScrollController scrollController;

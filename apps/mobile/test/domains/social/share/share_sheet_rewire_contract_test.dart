@@ -162,7 +162,7 @@ void main() {
           expect(body['caption'], 'Shared caption');
           expect(body['type'], 'post');
           expect(body['visibility'], 'public');
-          expect(body['allow_comments'], isTrue);
+          expect(body.containsKey('allow_comments'), isFalse);
 
           final shareReference =
               body['share_reference'] as Map<String, dynamic>;

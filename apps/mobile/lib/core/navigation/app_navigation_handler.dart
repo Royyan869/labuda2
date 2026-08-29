@@ -76,8 +76,8 @@ class AppNavigationHandler implements NavigationHandler {
       _appRouter.navigateToContentDetail(contentId);
 
   @override
-  void navigateToForSaleDetail(String fixedPriceSaleId) =>
-      _appRouter.navigateToForSaleDetail(fixedPriceSaleId);
+  void navigateToForSaleDetail(String forSaleId) =>
+      _appRouter.navigateToForSaleDetail(forSaleId);
 
   // Creation Navigation - removed hub/form, using dedicated screens only
 

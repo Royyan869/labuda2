@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/domains/social/like/domain/entities/like.dart';
 import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
 import 'package:labuda/domains/social/content/presentation/utils/content_like_handlers.dart';
+import 'package:labuda/shared/governance/content_lifecycle.dart';
 
 /// Canonical Content like control shared across feed and detail surfaces.
 class ContentLikeAction extends ConsumerStatefulWidget {
@@ -67,11 +69,27 @@ class _ContentLikeActionState extends ConsumerState<ContentLikeAction> {
               if (_isMutating) return;
               setState(() => _isMutating = true);
               try {
+                // ContentLikeHandlers requires a full Content entity. The
+                // widget is given only the lightweight feed identifiers
+                // (contentId + ownerId), so we synthesize a minimal Content
+                // that satisfies the handler's contract (id + authorId) with
+                // safe defaults for the remaining fields.
+                final syntheticContent = Content(
+                  id: widget.contentId,
+                  content: '',
+                  authorId: widget.contentOwnerId,
+                  status: ContentStatus.active,
+                  lifecycle: ContentLifecycle.active,
+                  authorLifecycle: ContentLifecycle.active,
+                  engagement: const ContentEngagement(),
+                  moderationInfo: const ContentModerationInfo(),
+                  createdAt: DateTime.fromMillisecondsSinceEpoch(0),
+                  updatedAt: DateTime.fromMillisecondsSinceEpoch(0),
+                );
                 final handlers = ContentLikeHandlers(
                   ref: ref,
                   context: context,
-                  contentId: widget.contentId,
-                  contentOwnerId: widget.contentOwnerId,
+                  content: syntheticContent,
                 );
                 await handlers.handleLike(currentUserId, currentUserName ?? '');
               } finally {

@@ -30,6 +30,8 @@ class ContentDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
+  int _currentMediaIndex = 0;
+
   @override
   void initState() {
     super.initState();
@@ -224,33 +226,38 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           child: PageView.builder(
             itemCount: content.media.length,
             onPageChanged: (index) {
-              // Update page indicator if needed
+              setState(() {
+                _currentMediaIndex = index;
+              });
             },
             itemBuilder: (context, index) {
-              return Image.network(
-                content.media[index].originalUrl,
-                width: double.infinity,
-                height: 300,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
+              return GestureDetector(
+                onTap: () => _openMediaViewer(context, content, index),
+                child: Image.network(
+                  content.media[index].originalUrl,
                   width: double.infinity,
                   height: 300,
-                  color: AppColors.neutralGray200,
-                  child: const Icon(
-                    Icons.image_not_supported,
-                    size: 64,
-                    color: AppColors.neutralGray400,
-                  ),
-                ),
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Container(
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
                     width: double.infinity,
                     height: 300,
-                    color: AppColors.neutralGray100,
-                    child: const Center(child: CircularProgressIndicator()),
-                  );
-                },
+                    color: AppColors.neutralGray200,
+                    child: const Icon(
+                      Icons.image_not_supported,
+                      size: 64,
+                      color: AppColors.neutralGray400,
+                    ),
+                  ),
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      width: double.infinity,
+                      height: 300,
+                      color: AppColors.neutralGray100,
+                      child: const Center(child: CircularProgressIndicator()),
+                    );
+                  },
+                ),
               );
             },
           ),
@@ -268,7 +275,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
-                '1 / ${content.media.length}',
+                '${_currentMediaIndex + 1} / ${content.media.length}',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
@@ -693,6 +700,28 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           Icon(Icons.chevron_right, size: 14, color: AppColors.primaryRed),
         ],
       ],
+    );
+  }
+
+  /// Open canonical MediaViewerWidget fullscreen for the tapped media item.
+  /// Uses the shared MediaViewerWidget (same as Feed and Commerce Detail).
+  void _openMediaViewer(
+    BuildContext context,
+    Content content,
+    int initialIndex,
+  ) {
+    final mediaUrls = content.media.map((m) => m.originalUrl).toList();
+    if (mediaUrls.isEmpty) return;
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (_) => MediaViewerWidget(
+        mediaUrls: mediaUrls,
+        initialIndex: initialIndex,
+        title: content.authorUsername != null
+            ? '@${content.authorUsername}'
+            : null,
+      ),
     );
   }
 

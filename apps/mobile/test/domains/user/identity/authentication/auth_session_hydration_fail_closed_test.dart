@@ -54,7 +54,6 @@ class _MockApiClient implements ApiClient {
   @override
   bool isUnauthorized(DioException e) => false;
 
-  @override
   bool isValidationError(DioException e) => false;
 
   @override
@@ -506,6 +505,7 @@ class _MockUserApiDatasource extends UserApiDatasource {
   @override
   Future<Result<FirebaseExchangeResponse>> exchangeFirebaseSession({
     required String firebaseIdToken,
+    String? username,
   }) async {
     return exchangeResult;
   }

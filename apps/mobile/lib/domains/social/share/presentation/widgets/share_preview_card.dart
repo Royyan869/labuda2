@@ -109,19 +109,19 @@ class SharePreviewCard extends StatelessWidget {
   Widget _buildMetadataSection(Color textColor, Color secondaryTextColor) {
     switch (target.type) {
       case ExternalShareType.listing:
-        return _buildListingMetadata(textColor, secondaryTextColor);
+        return _buildForSaleMetadata(textColor, secondaryTextColor);
       case ExternalShareType.auction:
         return _buildAuctionMetadata(textColor, secondaryTextColor);
       case ExternalShareType.request:
-        return _buildRequestMetadata(textColor, secondaryTextColor);
+        return _buildContentMetadata(textColor, secondaryTextColor);
       case ExternalShareType.post:
       case ExternalShareType.profile:
         return _buildDefaultMetadata(secondaryTextColor);
     }
   }
 
-  /// Listing metadata - compact dengan info variety & size
-  Widget _buildListingMetadata(Color textColor, Color secondaryTextColor) {
+  /// For Sale metadata - compact dengan info variety & size
+  Widget _buildForSaleMetadata(Color textColor, Color secondaryTextColor) {
     final variety = target.metadata['variety'] as String?;
     final size = target.metadata['size'] as num?;
     final location = target.metadata['location'] as String?;
@@ -286,8 +286,8 @@ class SharePreviewCard extends StatelessWidget {
     );
   }
 
-  /// Request metadata - show budget
-  Widget _buildRequestMetadata(Color textColor, Color secondaryTextColor) {
+  /// Content metadata - show budget/variety when available
+  Widget _buildContentMetadata(Color textColor, Color secondaryTextColor) {
     final budget = target.metadata['budget'] as num?;
     final maxBudget = target.metadata['maxBudget'] as num?;
     final location = target.metadata['location'] as String?;

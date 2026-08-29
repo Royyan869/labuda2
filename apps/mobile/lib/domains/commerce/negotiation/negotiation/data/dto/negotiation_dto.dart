@@ -14,21 +14,21 @@
 library;
 
 /// Create Negotiation Request
-/// Backend expects: { fixed_price_sale_id, price, note? }
+/// Backend expects: { for_sale_id, price, note? }
 class CreateNegotiationDto {
-  final String fixedPriceSaleId;
+  final String forSaleId;
   final int price;
   final String? note;
 
   CreateNegotiationDto({
-    required this.fixedPriceSaleId,
+    required this.forSaleId,
     required this.price,
     this.note,
   });
 
   Map<String, dynamic> toJson() {
     return {
-      'fixed_price_sale_id': fixedPriceSaleId,
+      'for_sale_id': forSaleId,
       'price': price,
       if (note != null) 'note': note,
     };
@@ -81,7 +81,7 @@ class NegotiationResponseDto {
   final DateTime createdAt;
   final DateTime updatedAt;
   // Nullable fields
-  final String? fixedPriceSaleId;
+  final String? forSaleId;
   final String? chatRoomId;
   final int? currentPrice;
   final int? acceptedPrice;
@@ -100,7 +100,7 @@ class NegotiationResponseDto {
     required this.proposalSequence,
     required this.createdAt,
     required this.updatedAt,
-    this.fixedPriceSaleId,
+    this.forSaleId,
     this.chatRoomId,
     this.currentPrice,
     this.acceptedPrice,
@@ -111,17 +111,22 @@ class NegotiationResponseDto {
   });
 
   factory NegotiationResponseDto.fromJson(Map<String, dynamic> json) {
+    // Backend sends for_sale_id (not resource_id) for for_sale resources.
+    // resource_id is not present in the session response.
+    final forSaleId = json['for_sale_id'] as String?;
     return NegotiationResponseDto(
       id: json['id'] as String,
       resourceType: json['resource_type'] as String,
-      resourceId: json['resource_id'] as String,
+      // For for_sale resources, resourceId is the for_sale_id.
+      // Backend does not emit a separate resource_id field.
+      resourceId: forSaleId ?? json['resource_id'] as String? ?? '',
       buyerId: json['buyer_id'] as String,
       sellerId: json['seller_id'] as String,
       status: json['status'] as String,
       proposalSequence: json['proposal_sequence'] as int,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
-      fixedPriceSaleId: json['resource_id'] as String?,
+      forSaleId: forSaleId,
       chatRoomId: json['chat_room_id'] as String?,
       currentPrice: json['current_price'] as int?,
       acceptedPrice: json['accepted_price'] as int?,

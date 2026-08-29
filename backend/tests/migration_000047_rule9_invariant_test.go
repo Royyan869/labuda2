@@ -36,9 +36,9 @@ func TestMigration000047_Rule9_SingleActiveChannelInvariant(t *testing.T) {
 	// The canonical trigger must exist on for_sales.
 	var triggerExists bool
 	require.NoError(t, pool.QueryRow(ctx,
-		`SELECT EXISTS(SELECT 1 FROM pg_trigger WHERE NOT tgisinternal AND tgname='trg_for_sales_single_active_channel')`,
+		`SELECT EXISTS(SELECT 1 FROM pg_trigger WHERE NOT tgisinternal AND tgname='trg_for_sales_permanent_exclusivity')`,
 	).Scan(&triggerExists))
-	require.True(t, triggerExists, "Rule 9 trigger trg_for_sales_single_active_channel must exist on for_sales")
+	require.True(t, triggerExists, "Permanent exclusivity trigger trg_for_sales_permanent_exclusivity must exist on for_sales")
 
 	// Direction 1: product already has an active auction -> for_sale rejected.
 	require.NoError(t, insertRule9Auction(ctx, pool, product, user, "active"))

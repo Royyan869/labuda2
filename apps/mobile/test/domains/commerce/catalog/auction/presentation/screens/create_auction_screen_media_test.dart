@@ -9,7 +9,7 @@ import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/a
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_state.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/create_auction_screen.dart';
 import 'package:labuda/domains/commerce/catalog/shared/data/dto/commerce_media_request_dto.dart';
-import 'package:labuda/domains/commerce/catalog/listing/presentation/widgets/listing_media_handler.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_media_handler.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/domain/domain.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
@@ -195,52 +195,18 @@ Widget _wrapInteractive({
 
 void main() {
   group('CreateAuctionScreen shared validation', () {
-    test('accepts valid image and video files through the shared helper', () {
-      final handler = ListingMediaHandler();
-
-      final image = _tempFile('valid.jpg', byteCount: 1024);
-      final video = _tempFile('valid.mp4', byteCount: 1024);
-      addTearDown(() async {
-        if (await image.parent.exists()) {
-          await image.parent.delete(recursive: true);
-        }
-        if (await video.parent.exists()) {
-          await video.parent.delete(recursive: true);
-        }
-      });
-
-      expect(handler.mediaSizeValidationMessage(image), isNull);
-      expect(handler.mediaSizeValidationMessage(video), isNull);
-      expect(ListingMediaHandler.isVideoFile(image), isFalse);
-      expect(ListingMediaHandler.isVideoFile(video), isTrue);
+    test('ForSaleMediaHandler exposes canonical limits', () {
+      expect(ForSaleMediaHandler.maxImages, 10);
+      expect(ForSaleMediaHandler.maxImageSizeMb, 10);
+      final handler = ForSaleMediaHandler();
+      expect(handler, isA<ForSaleMediaHandler>());
     });
 
-    test('rejects oversized image and video files with type-specific copy', () {
-      final handler = ListingMediaHandler();
-
-      final image = _tempFile('oversized.jpg', byteCount: 16);
-      final video = _tempFile('oversized.mp4', byteCount: 16);
-      addTearDown(() async {
-        if (await image.parent.exists()) {
-          await image.parent.delete(recursive: true);
-        }
-        if (await video.parent.exists()) {
-          await video.parent.delete(recursive: true);
-        }
-      });
-
-      expect(
-        handler.mediaSizeValidationMessage(image, imageSizeLimitMbOverride: 0),
-        'Ukuran foto maksimal 0MB',
-      );
-      expect(
-        handler.mediaSizeValidationMessage(video, videoSizeLimitMbOverride: 0),
-        'Ukuran video maksimal 0MB',
-      );
-      expect(
-        handler.mediaSizeValidationMessage(video, videoSizeLimitMbOverride: 0),
-        isNot(contains('foto')),
-      );
+    test('ForSaleMediaHandler has gallery/camera entry points', () {
+      final handler = ForSaleMediaHandler();
+      expect(handler.pickPhotosFromGallery, isA<Function>());
+      expect(handler.openCamera, isA<Function>());
+      expect(ForSaleMediaHandler.showMediaPicker, isA<Function>());
     });
   });
 

@@ -14,8 +14,8 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: ObjectPreviewCard(
-              reference: ShareReference.fixedPriceSale(
-                fixedPriceSaleId: 'sale-1',
+              reference: ShareReference.forSale(
+                forSaleId: 'sale-1',
                 title: 'Kohaku 50cm',
                 imageUrl: 'https://example.com/sale.jpg',
                 isAvailable: true,

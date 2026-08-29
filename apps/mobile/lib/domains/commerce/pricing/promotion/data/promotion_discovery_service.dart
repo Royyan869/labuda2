@@ -63,9 +63,9 @@ class PromotionDiscoveryService {
     }
   }
 
-  /// Get promoted fixed-price-sale items only
-  Future<PromotedItemsResponse> getPromotedFixedPriceSales({int limit = 10}) {
-    return getPromotedItemsByType(targetType: 'fixed_price_sale', limit: limit);
+  /// Get promoted for-sale items only
+  Future<PromotedItemsResponse> getPromotedForSales({int limit = 10}) {
+    return getPromotedItemsByType(targetType: 'for_sale', limit: limit);
   }
 
   /// Get promoted auctions only

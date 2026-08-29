@@ -15,8 +15,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/app.dart';
 import 'package:labuda/core/core.dart' hide NotificationEntity;
 import 'package:labuda/domains/commerce/catalog/auction/auction.dart';
-import 'package:labuda/domains/commerce/catalog/listing/domain/domain.dart';
-import 'package:labuda/domains/commerce/catalog/listing/presentation/providers/listing_providers.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
 import 'package:labuda/domains/social/content/content.dart';
 import 'package:labuda/domains/social/follow/data/follow_providers.dart';
 import 'package:labuda/domains/social/follow/domain/repositories/i_follow_repository.dart';
@@ -242,7 +242,7 @@ class _Harness {
   final _CountingFcmService countingFcm;
   final _CountingHomeRepository countingHomeRepo;
   final _CountingNotificationRepository countingNotifRepo;
-  int listingProviderCallCount = 0;
+  int forSaleProviderCallCount = 0;
 
   _Harness(AuthState initialState)
       : controller = _SwitchingAuthController(initialState: initialState),
@@ -282,9 +282,9 @@ class _Harness {
       coreNotificationTriggerProvider.overrideWithValue(
         _FakeNotificationTrigger(),
       ),
-      listingsProvider.overrideWith((ref, params) async {
-        listingProviderCallCount++;
-        return const <Listing>[];
+      forSalesProvider.overrideWith((ref, params) async {
+        forSaleProviderCallCount++;
+        return const <ForSale>[];
       }),
       exploreAuctionsStreamProvider.overrideWith((ref) {
         return Stream.value(const <Auction>[]);
@@ -360,8 +360,8 @@ void main() {
         // Feed datasource invocation count = 0.
         expect(h.countingHomeRepo.feedCallCount, 0);
 
-        // Listing provider invocation count = 0.
-        expect(h.listingProviderCallCount, 0);
+        // ForSale provider invocation count = 0.
+        expect(h.forSaleProviderCallCount, 0);
 
         // Notification unread polling count = 0.
         expect(h.countingNotifRepo.unreadCountCallCount, 0);
@@ -389,7 +389,7 @@ void main() {
         expect(find.byType(VerifyEmailScreen), findsOneWidget);
         expect(find.byType(HomeScreen), findsNothing);
         expect(h.countingHomeRepo.feedCallCount, 0);
-        expect(h.listingProviderCallCount, 0);
+        expect(h.forSaleProviderCallCount, 0);
         expect(h.countingNotifRepo.unreadCountCallCount, 0);
         expect(h.countingFcm.initCallCount, 0);
 
@@ -434,7 +434,7 @@ void main() {
         // All counters must still be zero.
         expect(h.countingHomeRepo.feedCallCount, 0,
             reason: 'feed must not be fetched behind portal');
-        expect(h.listingProviderCallCount, 0,
+        expect(h.forSaleProviderCallCount, 0,
             reason: 'listings must not be fetched behind portal');
         expect(h.countingNotifRepo.unreadCountCallCount, 0,
             reason: 'notification unread count must not be polled behind portal');

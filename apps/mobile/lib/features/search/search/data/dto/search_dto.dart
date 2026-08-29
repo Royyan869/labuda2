@@ -865,8 +865,8 @@ class PromotedSearchItemDto {
   final String? sellerFarmName;
   final String? sellerLifecycle;
 
-  // Fixed-price-sale specific
-  final String? fixedPriceSaleId;
+  // Listing-specific (canonical: for_sale_id from backend)
+  final String? forSaleId;
   final int? pricePerUnit;
 
   // Auction-specific
@@ -892,7 +892,7 @@ class PromotedSearchItemDto {
     this.sellerUsername,
     this.sellerFarmName,
     this.sellerLifecycle,
-    this.fixedPriceSaleId,
+    this.forSaleId,
     this.pricePerUnit,
     this.auctionId,
     this.startPrice,
@@ -916,7 +916,7 @@ class PromotedSearchItemDto {
       sellerUsername: json['seller_username'] as String?,
       sellerFarmName: json['seller_farm_name'] as String?,
       sellerLifecycle: json['seller_lifecycle'] as String?,
-      fixedPriceSaleId: json['fixed_price_sale_id'] as String?,
+      forSaleId: json['for_sale_id'] as String?,
       pricePerUnit: (json['price_per_unit'] as num?)?.toInt(),
       auctionId: json['auction_id'] as String?,
       startPrice: (json['start_price'] as num?)?.toInt(),

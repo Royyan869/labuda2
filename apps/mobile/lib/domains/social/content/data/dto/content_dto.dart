@@ -2,7 +2,6 @@
 // Data Transfer Objects untuk API communication
 //
 // CONTRACT ALIGNMENT V1:
-// - Removed requestStatus shadow field - use unified status instead
 // - Status follows canonical contract: active, deleted
 // - FIELD ALIGNMENT: Backend uses "caption" field, frontend maps via @JsonKey
 // - FRONTEND-ONLY FIELDS REMOVED: shippingCity, shippingProvince
@@ -50,14 +49,8 @@ class CreateContentDto {
   final List<String>? tags;
   @JsonKey(name: 'mentioned_user_ids')
   final List<String>? mentionedUserIds;
-  final bool? allowComments;
   final ContentLocationDto? location;
   final DateTime? scheduledAt;
-
-  // Request-specific fields (budget for request type)
-  final double? budgetMin;
-  final double? budgetMax;
-  final DateTime? deadline;
 
   const CreateContentDto({
     required this.content,
@@ -66,12 +59,8 @@ class CreateContentDto {
     this.media,
     this.tags,
     this.mentionedUserIds,
-    this.allowComments,
     this.location,
     this.scheduledAt,
-    this.budgetMin,
-    this.budgetMax,
-    this.deadline,
   });
 
   factory CreateContentDto.fromJson(Map<String, dynamic> json) {
@@ -92,14 +81,8 @@ class UpdateContentDto {
   final List<CreateContentMediaRequestDto>? media;
   final List<String>? tags;
   final List<String>? taggedUsers;
-  final bool? allowComments;
   final ContentLocationDto? location;
   final DateTime? scheduledAt;
-
-  // Request-specific fields
-  final double? budgetMin;
-  final double? budgetMax;
-  final DateTime? deadline;
 
   const UpdateContentDto({
     this.content,
@@ -108,12 +91,8 @@ class UpdateContentDto {
     this.media,
     this.tags,
     this.taggedUsers,
-    this.allowComments,
     this.location,
     this.scheduledAt,
-    this.budgetMin,
-    this.budgetMax,
-    this.deadline,
   });
 
   factory UpdateContentDto.fromJson(Map<String, dynamic> json) {
@@ -130,10 +109,13 @@ class UpdateContentDto {
 /// Content response from API
 ///
 /// CONTRACT: status field uses canonical values (active, deleted)
-/// CONTRACT: requestStatus field is deprecated - ignored if present
 /// SHARE CONTRACT V1: Includes originalAuthorId and canonical resourceProjection for reposts
 /// FIELD ALIGNMENT: Backend uses snake_case JSON keys; mapped via @JsonKey.
 /// C7C: engagement always non-null (backend emits; mobile defaults to zero).
+/// AUTHOR CONTRACT: Author identity (username, avatar_url, lifecycle) lives
+/// exclusively inside card.author. The flat top-level author_username /
+/// author_avatar fields are populated from card.author by the hand-written
+/// fromJson factory.
 @JsonSerializable()
 class ContentDto {
   final String id;
@@ -173,8 +155,6 @@ class ContentDto {
   final String? authorLifecycle;
 
   final String visibility;
-  @JsonKey(name: 'allow_comments', defaultValue: true)
-  final bool allowComments;
 
   final List<MediaDto> media;
   @JsonKey(defaultValue: <String>[])
@@ -188,13 +168,6 @@ class ContentDto {
   final ContentEngagementDto? engagement;
   @JsonKey(name: 'moderation_info')
   final ContentModerationDto? moderationInfo;
-
-  // Request-specific fields
-  @JsonKey(name: 'budget_min')
-  final double? budgetMin;
-  @JsonKey(name: 'budget_max')
-  final double? budgetMax;
-  final DateTime? deadline;
 
   @JsonKey(name: 'published_at')
   final DateTime? publishedAt;
@@ -229,16 +202,12 @@ class ContentDto {
     this.lifecycle,
     this.authorLifecycle,
     required this.visibility,
-    required this.allowComments,
     required this.media,
     required this.tags,
     required this.taggedUsers,
     this.location,
     this.engagement,
     this.moderationInfo,
-    this.budgetMin,
-    this.budgetMax,
-    this.deadline,
     this.publishedAt,
     this.scheduledAt,
     required this.createdAt,
@@ -249,37 +218,47 @@ class ContentDto {
     this.resourceProjection,
   });
 
-  /// E6 — Hand-written factory mirroring the E2.1 FeedItemDto pattern. The
-  /// generated parser remains authoritative for every existing field; this
-  /// wrapper only layers on the lifecycle string extracted from the nested
-  /// wire shape (`card.author.lifecycle`).
+  /// Hand-written factory. The generated parser handles scalar fields;
+  /// this wrapper layers on author identity and lifecycle extracted from
+  /// the canonical nested `card.author` wire shape.
+  ///
+  /// AUTHOR CONTRACT: The backend ContentResponse does NOT emit flat
+  /// `author_username` / `author_avatar` at the top level. These live
+  /// exclusively inside `card.author`. The generated parser reads them
+  /// as null from the flat wire; this factory overrides them with the
+  /// canonical card.author values.
   factory ContentDto.fromJson(Map<String, dynamic> json) {
     _validateVisibilityWire(json['visibility']);
     final base = _$ContentDtoFromJson(json);
-    final extracted = _readContentAuthorLifecycle(json);
-    if (extracted == null) return base;
+
+    // Extract canonical author identity from card.author.
+    final cardAuthor = _readCardAuthor(json);
+    final authorUsername = cardAuthor != null
+        ? cardAuthor['username'] as String?
+        : base.authorUsername;
+    final authorAvatar = cardAuthor != null
+        ? cardAuthor['avatar_url'] as String?
+        : base.authorAvatar;
+    final authorLifecycle = _readContentAuthorLifecycle(json);
+
     return ContentDto(
       id: base.id,
       content: base.content,
       authorId: base.authorId,
-      authorUsername: base.authorUsername,
-      authorAvatar: base.authorAvatar,
+      authorUsername: authorUsername,
+      authorAvatar: authorAvatar,
       authorCity: base.authorCity,
       authorProvince: base.authorProvince,
       status: base.status,
       lifecycle: base.lifecycle,
-      authorLifecycle: extracted,
+      authorLifecycle: authorLifecycle,
       visibility: base.visibility,
-      allowComments: base.allowComments,
       media: base.media,
       tags: base.tags,
       taggedUsers: base.taggedUsers,
       location: base.location,
       engagement: base.engagement,
       moderationInfo: base.moderationInfo,
-      budgetMin: base.budgetMin,
-      budgetMax: base.budgetMax,
-      deadline: base.deadline,
       publishedAt: base.publishedAt,
       scheduledAt: base.scheduledAt,
       createdAt: base.createdAt,
@@ -291,6 +270,20 @@ class ContentDto {
     );
   }
   Map<String, dynamic> toJson() => _$ContentDtoToJson(this);
+}
+
+/// Extract the canonical `card.author` map from the content wire.
+///
+/// The backend ContentResponse nests author identity (username, avatar_url,
+/// lifecycle) inside `card.author` — NOT at the top level. This helper
+/// returns the author map or null when the card/author path is absent.
+Map<String, dynamic>? _readCardAuthor(Map<String, dynamic> json) {
+  final card = json['card'];
+  if (card is Map<String, dynamic>) {
+    final cardAuthor = card['author'];
+    if (cardAuthor is Map<String, dynamic>) return cardAuthor;
+  }
+  return null;
 }
 
 /// E6 — Extract the embedded author lifecycle string from the content
@@ -305,13 +298,10 @@ class ContentDto {
 /// converts null into [ContentLifecycle.active] via the canonical
 /// [ContentLifecycleParse.fromWire] helper.
 String? _readContentAuthorLifecycle(Map<String, dynamic> json) {
-  final card = json['card'];
-  if (card is Map<String, dynamic>) {
-    final cardAuthor = card['author'];
-    if (cardAuthor is Map<String, dynamic>) {
-      final lc = cardAuthor['lifecycle'];
-      if (lc is String && lc.isNotEmpty) return lc;
-    }
+  final cardAuthor = _readCardAuthor(json);
+  if (cardAuthor != null) {
+    final lc = cardAuthor['lifecycle'];
+    if (lc is String && lc.isNotEmpty) return lc;
   }
   // Some content surfaces may also surface the lifecycle at the top-level
   // `author.lifecycle` slot (parity with /feed). Honour it as a fallback so

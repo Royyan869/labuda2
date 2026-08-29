@@ -174,13 +174,13 @@ func (l *ForSale) MarkWithdrawn() error {
 
 // MarkActiveFromModeration restores a moderation-withdrawn for_sale to active.
 //
-// MODERATION AUTHORITY BYPASS: This method intentionally bypasses the normal
-// state machine (which treats withdrawn as terminal) because moderation
-// restoration is a governance authority override, not a seller action.
+// GOVERNANCE BYPASS: This method intentionally bypasses the ordinary transition
+// graph (CanTransition) because moderation restoration is a governance authority
+// override, not a seller action. This is the ONLY path that can transition
+// withdrawn → active.
 //
-// GUARD: Only applies when status == withdrawn. Selling inventory (sold) and
-// draft for_sales are not affected — sold inventory cannot be restored, and
-// a draft was never active.
+// GUARD: Only applies when status == withdrawn. Sold for_sales are rejected
+// (stock was claimed by buyer). Draft for_sales are rejected (never active).
 //
 // IDEMPOTENT: If already active, this is a no-op.
 func (l *ForSale) MarkActiveFromModeration() error {
@@ -225,6 +225,7 @@ func (l *ForSale) IsPublished() bool {
 //
 // Direct calls to RestoreQuantity from ForSaleService are prohibited.
 // This ensures stock restoration is always paired with order lifecycle events.
+// This is the ONLY path that can transition sold → active.
 
 // ReduceQuantity reduces available quantity by specified amount.
 // Enforces:

@@ -18,12 +18,12 @@ import 'package:labuda/domains/chat/chat/presentation/widgets/message_bubble.dar
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/seller_auctions_pager.dart';
-import 'package:labuda/domains/commerce/catalog/listing/domain/entities/listing.dart';
-import 'package:labuda/domains/commerce/catalog/listing/domain/repositories/listing_repository.dart';
-import 'package:labuda/domains/commerce/catalog/listing/presentation/create_listing_route_contract.dart';
-import 'package:labuda/domains/commerce/catalog/listing/presentation/providers/listing_controller.dart';
-import 'package:labuda/domains/commerce/catalog/listing/presentation/providers/listing_providers.dart';
-import 'package:labuda/domains/commerce/catalog/listing/presentation/providers/seller_fps_pager.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/domain/repositories/for_sale_repository.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/presentation/create_for_sale_route_contract.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_controller.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/seller_fps_pager.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_notifier.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_state.dart';
@@ -74,7 +74,7 @@ class _FakeSellerFPSPagerController extends SellerFPSPagerController {
   @override
   SellerFPSPagerState build() {
     return SellerFPSPagerState(
-      items: [_fixedPriceListing()],
+      items: [_fixedPriceForSale()],
       hasMore: false,
       isInitialLoading: false,
       isLoadingMore: false,
@@ -117,7 +117,7 @@ class _FakeSellerAuctionsPagerController extends SellerAuctionsPagerController {
   Future<void> refresh() async {}
 }
 
-class _NoOpListingRepository implements ListingRepository {
+class _NoOpForSaleRepository implements ForSaleRepository {
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
 }
@@ -259,18 +259,18 @@ class _NoOpLogger implements ILoggerService {
   Future<void> log(String message, {LogLevel level = LogLevel.debug}) async {}
 }
 
-class _FakeLookupListingController extends ListingController {
-  _FakeLookupListingController()
-    : super(repository: _NoOpListingRepository(), logger: _NoOpLogger());
+class _FakeLookupForSaleController extends ForSaleController {
+  _FakeLookupForSaleController()
+    : super(repository: _NoOpForSaleRepository(), logger: _NoOpLogger());
 
   @override
-  Future<Result<Listing?>> getFixedPriceSaleById(
-    String fixedPriceSaleId,
+  Future<Result<ForSale?>> getForSaleById(
+    String forSaleId,
   ) async {
     return Result.success(
-      _fixedPriceListing(
-        forSaleId: fixedPriceSaleId,
-        title: 'Created Listing $fixedPriceSaleId',
+      _fixedPriceForSale(
+        fixedPriceSaleId: forSaleId,
+        title: 'Created ForSale $forSaleId',
       ),
     );
   }
@@ -344,10 +344,10 @@ Message _makeReplyTarget() => Message(
   deletedBy: const [],
 );
 
-Listing _fixedPriceListing({
+ForSale _fixedPriceForSale({
   String fixedPriceSaleId = _fixedPriceSaleId,
   String title = 'Koi Test FPS',
-}) => Listing(
+}) => ForSale(
   forSaleId: fixedPriceSaleId,
   productId: _productId,
   title: title,
@@ -355,7 +355,7 @@ Listing _fixedPriceListing({
   price: 500000,
   stock: 1,
   sellerId: _currentUserId,
-  status: ListingStatus.active,
+  status: ForSaleStatus.active,
   createdAt: DateTime.utc(2026, 7, 29),
   updatedAt: DateTime.utc(2026, 7, 29),
 );
@@ -439,9 +439,9 @@ ProviderScope _buildScope({
 }
 
 Widget _buildChatCommerceScope({
-  required Widget createListingRoute,
+  required Widget createForSaleRoute,
   required _FakeChatDetailNotifier chatDetailNotifier,
-  ValueChanged<Object?>? onCreateListingRouteExtra,
+  ValueChanged<Object?>? onCreateForSaleRouteExtra,
 }) {
   final router = GoRouter(
     initialLocation: '/',
@@ -454,11 +454,11 @@ Widget _buildChatCommerceScope({
         ),
       ),
       GoRoute(
-        path: RoutePaths.createListing,
-        name: RouteNames.createListing,
+        path: RoutePaths.createForSale,
+        name: RouteNames.createForSale,
         pageBuilder: (context, state) {
-          onCreateListingRouteExtra?.call(state.extra);
-          return MaterialPage(key: state.pageKey, child: createListingRoute);
+          onCreateForSaleRouteExtra?.call(state.extra);
+          return MaterialPage(key: state.pageKey, child: createForSaleRoute);
         },
       ),
     ],
@@ -479,15 +479,15 @@ Widget _buildChatCommerceScope({
       sellerAuctionsPagerProvider.overrideWith(
         () => _FakeSellerAuctionsPagerController(),
       ),
-      listingControllerProvider.overrideWithValue(
-        _FakeLookupListingController(),
+      forSaleControllerProvider.overrideWithValue(
+        _FakeLookupForSaleController(),
       ),
     ],
     child: MaterialApp.router(routerConfig: router),
   );
 }
 
-Future<void> _openChatCreateListingRoute(WidgetTester tester) async {
+Future<void> _openChatCreateForSaleRoute(WidgetTester tester) async {
   await tester.tap(find.byIcon(Icons.add_circle));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
@@ -496,15 +496,15 @@ Future<void> _openChatCreateListingRoute(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 400));
 
   expect(find.text('Pilih Produk'), findsOneWidget);
-  await tester.tap(find.text('Buat Listing Baru'));
+  await tester.tap(find.text('Buat ForSale Baru'));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 1200));
 }
 
-class _ChatCreateListingRoute extends StatelessWidget {
+class _ChatCreateForSaleRoute extends StatelessWidget {
   final Object? successResult;
 
-  const _ChatCreateListingRoute({this.successResult});
+  const _ChatCreateForSaleRoute({this.successResult});
 
   @override
   Widget build(BuildContext context) {
@@ -545,14 +545,14 @@ void main() {
     expect(find.text('Foto'), findsOneWidget);
     expect(find.text('Video'), findsOneWidget);
     expect(find.text('Lampirkan Produk'), findsOneWidget);
-    expect(find.text('Bagikan Listing'), findsNothing);
+    expect(find.text('Bagikan ForSale'), findsNothing);
 
     await tester.tap(find.text('Lampirkan Produk'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Pilih Produk'), findsOneWidget);
-    expect(find.text('Buat Listing Baru'), findsOneWidget);
+    expect(find.text('Buat ForSale Baru'), findsOneWidget);
   });
 
   testWidgets('canceling commerce picker preserves draft and sends nothing', (
@@ -661,7 +661,7 @@ void main() {
   );
 
   testWidgets(
-    'create listing cancel preserves existing pending selection and draft',
+    'create for-sale cancel preserves existing pending selection and draft',
     (tester) async {
       final notifier = _FakeChatDetailNotifier(
         initialState: ChatDetailState(chat: _makeChat(), messages: const []),
@@ -670,8 +670,8 @@ void main() {
       await tester.pumpWidget(
         _buildChatCommerceScope(
           chatDetailNotifier: notifier,
-          createListingRoute: const _ChatCreateListingRoute(
-            successResult: CreatedFixedPriceSaleResult(
+          createForSaleRoute: const _ChatCreateForSaleRoute(
+            successResult: CreatedForSaleResult(
               forSaleId: _createdFixedPriceSaleId,
             ),
           ),
@@ -697,7 +697,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.text('Pilih Produk'), findsOneWidget);
-      await tester.tap(find.text('Buat Listing Baru'));
+      await tester.tap(find.text('Buat ForSale Baru'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 1200));
 
@@ -714,7 +714,7 @@ void main() {
   );
 
   testWidgets(
-    'create listing success replaces pending selection and stays unsent',
+    'create for-sale success replaces pending selection and stays unsent',
     (tester) async {
       final notifier = _FakeChatDetailNotifier(
         initialState: ChatDetailState(chat: _makeChat(), messages: const []),
@@ -723,8 +723,8 @@ void main() {
       await tester.pumpWidget(
         _buildChatCommerceScope(
           chatDetailNotifier: notifier,
-          createListingRoute: const _ChatCreateListingRoute(
-            successResult: CreatedFixedPriceSaleResult(
+          createForSaleRoute: const _ChatCreateForSaleRoute(
+            successResult: CreatedForSaleResult(
               forSaleId: _createdFixedPriceSaleId,
             ),
           ),
@@ -750,7 +750,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.text('Pilih Produk'), findsOneWidget);
-      await tester.tap(find.text('Buat Listing Baru'));
+      await tester.tap(find.text('Buat ForSale Baru'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 1200));
 
@@ -762,7 +762,7 @@ void main() {
       expect(_composerText(tester), 'draft before create');
       expect(find.text('Koi Test FPS'), findsNothing);
       expect(
-        find.text('Created Listing $_createdFixedPriceSaleId'),
+        find.text('Created ForSale $_createdFixedPriceSaleId'),
         findsOneWidget,
       );
       expect(notifier.sendCalls, 0);
@@ -937,7 +937,7 @@ void main() {
   });
 
   testWidgets(
-    'chat create listing route uses explicit fixed-price-sale return mode',
+    'chat create for-sale route uses explicit fixed-price-sale return mode',
     (tester) async {
       final notifier = _FakeChatDetailNotifier(
         initialState: ChatDetailState(chat: _makeChat(), messages: const []),
@@ -947,22 +947,22 @@ void main() {
       await tester.pumpWidget(
         _buildChatCommerceScope(
           chatDetailNotifier: notifier,
-          onCreateListingRouteExtra: (extra) => capturedExtra = extra,
-          createListingRoute: const _ChatCreateListingRoute(),
+          onCreateForSaleRouteExtra: (extra) => capturedExtra = extra,
+          createForSaleRoute: const _ChatCreateForSaleRoute(),
         ),
       );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      await _openChatCreateListingRoute(tester);
+      await _openChatCreateForSaleRoute(tester);
 
-      expect(capturedExtra, isA<CreateListingRouteArgs>());
-      final args = capturedExtra! as CreateListingRouteArgs;
-      expect(args.returnMode, CreateListingReturnMode.forSaleId);
+      expect(capturedExtra, isA<CreateForSaleRouteArgs>());
+      final args = capturedExtra! as CreateForSaleRouteArgs;
+      expect(args.returnMode, CreateForSaleReturnMode.forSaleId);
     },
   );
 
-  testWidgets('chat create listing null result attaches nothing', (
+  testWidgets('chat create for-sale null result attaches nothing', (
     tester,
   ) async {
     final notifier = _FakeChatDetailNotifier(
@@ -972,23 +972,23 @@ void main() {
     await tester.pumpWidget(
       _buildChatCommerceScope(
         chatDetailNotifier: notifier,
-        createListingRoute: const _ChatCreateListingRoute(successResult: null),
+        createForSaleRoute: const _ChatCreateForSaleRoute(successResult: null),
       ),
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    await _openChatCreateListingRoute(tester);
+    await _openChatCreateForSaleRoute(tester);
     await tester.tap(find.text('Create'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.text('Lampiran produk'), findsNothing);
-    expect(find.textContaining('Created Listing'), findsNothing);
+    expect(find.textContaining('Created ForSale'), findsNothing);
     expect(notifier.sendCalls, 0);
   });
 
-  testWidgets('chat create listing raw Listing result attaches nothing', (
+  testWidgets('chat create for-sale raw ForSale result attaches nothing', (
     tester,
   ) async {
     final notifier = _FakeChatDetailNotifier(
@@ -998,16 +998,16 @@ void main() {
     await tester.pumpWidget(
       _buildChatCommerceScope(
         chatDetailNotifier: notifier,
-        createListingRoute: _ChatCreateListingRoute(
-          successResult: Listing(
+        createForSaleRoute: _ChatCreateForSaleRoute(
+          successResult: ForSale(
             forSaleId: _createdFixedPriceSaleId,
             productId: _productId,
-            title: 'Legacy Listing Result',
+            title: 'Legacy ForSale Result',
             description: 'Should not attach in Chat',
             price: 500000,
             stock: 1,
             sellerId: _currentUserId,
-            status: ListingStatus.active,
+            status: ForSaleStatus.active,
             createdAt: DateTime.utc(2026, 7, 30),
             updatedAt: DateTime.utc(2026, 7, 30),
           ),
@@ -1017,17 +1017,17 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    await _openChatCreateListingRoute(tester);
+    await _openChatCreateForSaleRoute(tester);
     await tester.tap(find.text('Create'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.text('Lampiran produk'), findsNothing);
-    expect(find.textContaining('Created Listing'), findsNothing);
+    expect(find.textContaining('Created ForSale'), findsNothing);
     expect(notifier.sendCalls, 0);
   });
 
-  testWidgets('chat create listing arbitrary object result attaches nothing', (
+  testWidgets('chat create for-sale arbitrary object result attaches nothing', (
     tester,
   ) async {
     final notifier = _FakeChatDetailNotifier(
@@ -1037,7 +1037,7 @@ void main() {
     await tester.pumpWidget(
       _buildChatCommerceScope(
         chatDetailNotifier: notifier,
-        createListingRoute: const _ChatCreateListingRoute(
+        createForSaleRoute: const _ChatCreateForSaleRoute(
           successResult: {'fixedPriceSaleId': _createdFixedPriceSaleId},
         ),
       ),
@@ -1045,13 +1045,13 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    await _openChatCreateListingRoute(tester);
+    await _openChatCreateForSaleRoute(tester);
     await tester.tap(find.text('Create'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.text('Lampiran produk'), findsNothing);
-    expect(find.textContaining('Created Listing'), findsNothing);
+    expect(find.textContaining('Created ForSale'), findsNothing);
     expect(notifier.sendCalls, 0);
   });
 }

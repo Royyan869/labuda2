@@ -16,8 +16,8 @@ package tests
 //      handler boundary;
 //   5. discovery search enforces quantity>0 for FPS and excludes non-public
 //      auction states;
-//   6. re-listing a reused Product never carries hidden quantity — the new
-//      surface's availability is exactly its own explicit declaration.
+//   6. a Product cannot receive a second ForSale surface after its first
+//      surface exists.
 
 import (
 	"context"
@@ -418,7 +418,7 @@ func TestStage6B_AuctionBrowse_AnonymousRestricted_OwnerStatusScoped(t *testing.
 	require.Contains(t, ids, auctionDraft, "owner status=draft must list own drafts")
 }
 
-func TestStage6B_ReuseQuantity_NoHiddenCarryOver(t *testing.T) {
+func TestStage6B_ReuseQuantity_RejectsSecondForSale(t *testing.T) {
 	tdb, cleanup := testdb.SetupDB(t)
 	defer cleanup()
 	ctx := context.Background()
@@ -450,15 +450,7 @@ func TestStage6B_ReuseQuantity_NoHiddenCarryOver(t *testing.T) {
 		return repo.UpdateStock(ctx, tx, l)
 	}))
 
-	// The old surface must be terminal (sold) before the Product is reusable —
-	// the single-active-surface invariant forbids two active FPS on one Product.
-	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		_, err := tx.Exec(ctx, `UPDATE for_sales SET status = 'sold', sold_at = NOW() WHERE id = $1`, saleA.ID)
-		return err
-	}))
-
-	// Relist same Product with an explicit quantity declaration (default
-	// semantics path: quantity comes from the new surface's own input).
+	// A second ForSale cannot replace the existing stock-owning surface.
 	saleB, err := fpsEntity.NewForSale(
 		seller, "Koi B", "desc", []byte(`[]`), "Kohaku",
 		nil, nil, nil, nil, nil, []string{},
@@ -469,32 +461,11 @@ func TestStage6B_ReuseQuantity_NoHiddenCarryOver(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, saleB.Publish())
 	saleB.ProductID = product
-	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error { return repo.Create(ctx, tx, saleB) }))
-
-	// Close saleB, then relist a third time with an explicit qty=4.
-	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		_, err := tx.Exec(ctx, `UPDATE for_sales SET status = 'sold', sold_at = NOW() WHERE id = $1`, saleB.ID)
-		return err
-	}))
-	saleC, err := fpsEntity.NewForSale(
-		seller, "Koi C", "desc", []byte(`[]`), "Kohaku",
-		nil, nil, nil, nil, nil, []string{},
-		fpsEntity.ForSaleTypeFixedPrice, money.New(200000), 4, false,
-		fpsEntity.ForSaleVisibilityPublic, fpsEntity.ForSaleOriginDirectCreate,
-		nil, fpsEntity.PreparationTimeImmediate, nil,
-	)
-	require.NoError(t, err)
-	require.NoError(t, saleC.Publish())
-	saleC.ProductID = product
-	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error { return repo.Create(ctx, tx, saleC) }))
+	require.Error(t, tdb.WithTx(ctx, func(tx db.Tx) error { return repo.Create(ctx, tx, saleB) }))
 
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
 		qtyA, _ := stage6bFPSSetRaw(ctx, tx, saleA.ID)
-		qtyB, _ := stage6bFPSSetRaw(ctx, tx, saleB.ID)
-		qtyC, _ := stage6bFPSSetRaw(ctx, tx, saleC.ID)
-		require.Equal(t, 7, qtyA, "old surface keeps its remaining units")
-		require.Equal(t, 1, qtyB, "relisted surface quantity == its own declared default")
-		require.Equal(t, 4, qtyC, "relisted surface quantity == its own explicit declaration")
+		require.Equal(t, 7, qtyA, "existing surface keeps its remaining units")
 		return nil
 	}))
 }

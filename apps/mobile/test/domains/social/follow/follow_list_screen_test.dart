@@ -56,7 +56,7 @@ class _RecordingNavigationHandler implements NavigationHandler {
   void navigateToCreateContent() {}
 
   @override
-  void navigateToCreateListing() {}
+  void navigateToCreateForSale() {}
 
   @override
   void navigateToEditProfile() {}
@@ -74,7 +74,7 @@ class _RecordingNavigationHandler implements NavigationHandler {
   void navigateToKycVerification({String? userId}) {}
 
   @override
-  void navigateToListingDetail(String fixedPriceSaleId) {}
+  void navigateToForSaleDetail(String fixedPriceSaleId) {}
 
   @override
   void navigateToLogin() {}

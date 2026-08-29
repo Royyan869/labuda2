@@ -52,14 +52,14 @@ class _FakeSearchApiService implements SearchApiService {
       offset: offset,
       promotedItems: const [
         PromotedSearchItemDto(
-          type: 'promoted_fixed_price_sale',
-          promotionInstanceId: 'pi-fixed-price-sale',
-          targetType: 'fixed_price_sale',
+          type: 'promoted_for_sale',
+          promotionInstanceId: 'pi-for-sale',
+          targetType: 'for_sale',
           injectAt: 0,
-          title: 'Promoted fixed-price-sale',
-          imageUrl: 'https://example.com/fixed-price-sale.jpg',
+          title: 'Promoted for-sale',
+          imageUrl: 'https://example.com/for-sale.jpg',
           sellerUsername: 'seller_user',
-          fixedPriceSaleId: 'fixed-price-sale-1',
+          forSaleId: 'for-sale-1',
           pricePerUnit: 150000,
         ),
       ],
@@ -128,14 +128,14 @@ void main() {
     expect(result.error, isNull);
 
     final data = result.data!;
-    final promotedFixedPriceSale = data.listings.singleWhere(
-      (item) => item.promotionInstanceId == 'pi-fixed-price-sale',
+    final promotedForSale = data.listings.singleWhere(
+      (item) => item.promotionInstanceId == 'pi-for-sale',
     );
     final promotedAuction = data.auctions.singleWhere(
       (item) => item.promotionInstanceId == 'pi-auction',
     );
 
-    expect(promotedFixedPriceSale.subtitle, '@seller_user');
+    expect(promotedForSale.subtitle, '@seller_user');
     expect(promotedAuction.subtitle, '@seller_user');
     expect(data.allResults.where((item) => item.isPromoted).length, 2);
   });

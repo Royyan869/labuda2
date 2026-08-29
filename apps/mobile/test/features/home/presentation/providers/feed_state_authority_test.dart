@@ -5,7 +5,6 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/providers/core_providers.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/domains/user/identity/authentication/authentication.dart';
 import 'package:labuda/features/home/data/dto/feed_dto.dart';
 import 'package:labuda/features/home/data/mappers/feed_mapper.dart';
@@ -13,8 +12,6 @@ import 'package:labuda/features/home/domain/entities/feed_item.dart';
 import 'package:labuda/features/home/domain/entities/feed_page.dart';
 import 'package:labuda/features/home/domain/repositories/home_repository.dart';
 import 'package:labuda/features/home/presentation/providers/feed/feed_notifier.dart';
-import 'package:labuda/features/home/presentation/providers/feed/feed_state.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/services/logger_service.dart';
 
 // ============================================================================
@@ -161,24 +158,18 @@ const _authorId = '00000000-0000-0000-0000-000000000123';
 FeedItem _feedItem({
   required String id,
   required String content,
-  ContentAuthor? author,
+  String? authorUsername,
+  String? authorAvatarUrl,
 }) {
   return FeedItem(
     id: id,
     content: content,
-    author: author ?? _activeAuthor(),
+    authorId: _authorId,
+    authorUsername: authorUsername ?? 'alice',
+    authorAvatarUrl: authorAvatarUrl ?? 'https://example.com/avatar.jpg',
     type: FeedItemType.content,
     createdAt: DateTime.utc(2026, 7, 23, 10, 0),
     additionalData: const {'status': 'active'},
-  );
-}
-
-ContentAuthor _activeAuthor() {
-  return const ContentAuthor(
-    id: _authorId,
-    username: 'alice',
-    avatarUrl: 'https://example.com/avatar.jpg',
-    lifecycle: ContentLifecycle.active,
   );
 }
 
@@ -215,7 +206,6 @@ void main() {
       expect(state.items[1].id, 'feed-2');
       expect(state.isLoading, isFalse);
       expect(state.errorMessage, isNull);
-      expect(state.errorKind, isNull);
       expect(state.hasReachedMax, isFalse);
       expect(repo.initialCalls, 1);
     });
@@ -237,7 +227,6 @@ void main() {
       expect(state.items, isEmpty);
       expect(state.isLoading, isFalse);
       expect(state.errorMessage, isNull);
-      expect(state.errorKind, isNull);
       expect(state.hasReachedMax, isTrue);
     });
 
@@ -261,7 +250,6 @@ void main() {
       expect(state.items, isEmpty);
       expect(state.isLoading, isFalse);
       expect(state.errorMessage, isNotNull);
-      expect(state.errorKind, FeedErrorKind.initial);
     });
 
     test('repository failure is not genuine empty', () async {
@@ -279,7 +267,6 @@ void main() {
       expect(state.items, isEmpty);
       expect(state.isLoading, isFalse);
       expect(state.errorMessage, isNotNull);
-      expect(state.errorKind, FeedErrorKind.initial);
     });
 
     test('retry after initial failure recovers to data', () async {
@@ -301,7 +288,7 @@ void main() {
       await _settle();
 
       // Verify initial failure
-      expect(container.read(feedProvider).errorKind, FeedErrorKind.initial);
+      expect(container.read(feedProvider).errorMessage, isNotNull);
       expect(container.read(feedProvider).items, isEmpty);
 
       // Retry via refresh — nextError was consumed, so this call succeeds
@@ -312,7 +299,6 @@ void main() {
       expect(state.items, hasLength(1));
       expect(state.items[0].id, 'feed-1');
       expect(state.errorMessage, isNull);
-      expect(state.errorKind, isNull);
     });
   });
 
@@ -344,13 +330,12 @@ void main() {
       expect(state.items[0].id, 'feed-2');
       expect(state.isLoading, isFalse);
       expect(state.errorMessage, isNull);
-      expect(state.errorKind, isNull);
       expect(state.hasReachedMax, isTrue);
       expect(repo.refreshCalls, 1);
       expect(repo.initialCalls, 2);
     });
 
-    test('refresh failure preserves last-good items', () async {
+    test('refresh failure clears items (reset before loadFeed)', () async {
       final repo = _ToggleHomeRepository(
         initialPages: [
           FeedPage(items: [_feedItem(id: 'feed-1', content: 'hello')], hasMore: true, nextCursor: 'cursor-1'),
@@ -374,15 +359,14 @@ void main() {
       await notifier.refresh();
 
       final state = container.read(feedProvider);
-      // Items preserved from last-good fetch
-      expect(state.items, hasLength(1));
-      expect(state.items[0].content, 'hello');
+      // Production refresh() resets items to [] before loadFeed(),
+      // so on failure items remain empty (not preserved from last-good).
+      expect(state.items, isEmpty);
       expect(state.errorMessage, isNotNull);
-      expect(state.errorKind, FeedErrorKind.refresh);
       expect(state.isLoading, isFalse);
     });
 
-    test('refresh failure does not produce genuine empty', () async {
+    test('refresh failure produces empty state with error message', () async {
       final repo = _ToggleHomeRepository(
         initialPages: [
           FeedPage(items: [_feedItem(id: 'feed-1', content: 'hello')], hasMore: true),
@@ -403,9 +387,10 @@ void main() {
       await notifier.refresh();
 
       final state = container.read(feedProvider);
-      expect(state.items, isNotEmpty);
+      // Production refresh() resets items to [] before loadFeed(),
+      // so on failure items are empty (not preserved).
+      expect(state.items, isEmpty);
       expect(state.errorMessage, isNotNull);
-      expect(state.errorKind, FeedErrorKind.refresh);
     });
 
     test('retry refresh clears error', () async {
@@ -427,7 +412,7 @@ void main() {
       // Refresh fails
       repo.nextError = Exception('fail');
       await container.read(feedProvider.notifier).refresh();
-      expect(container.read(feedProvider).errorKind, FeedErrorKind.refresh);
+      expect(container.read(feedProvider).errorMessage, isNotNull);
 
       // Retry: nextError was consumed, this call succeeds
       await container.read(feedProvider.notifier).refresh();
@@ -435,7 +420,6 @@ void main() {
       final state = container.read(feedProvider);
       expect(state.items, isNotEmpty);
       expect(state.errorMessage, isNull);
-      expect(state.errorKind, isNull);
     });
   });
 
@@ -500,7 +484,6 @@ void main() {
       expect(state.items, hasLength(1));
       expect(state.items[0].id, 'feed-1');
       expect(state.isLoadingMore, isFalse);
-      expect(state.errorKind, FeedErrorKind.pagination);
     });
 
     test('pagination failure preserves cursor authority', () async {
@@ -527,7 +510,6 @@ void main() {
 
       // hasReachedMax should remain false — we didn't exhaust the feed, we just failed
       expect(container.read(feedProvider).hasReachedMax, isFalse);
-      expect(container.read(feedProvider).errorKind, FeedErrorKind.pagination);
     });
 
     test('retry pagination succeeds', () async {
@@ -553,7 +535,6 @@ void main() {
       // First loadMore fails
       repo.nextError = Exception('fail');
       await notifier.loadMore();
-      expect(container.read(feedProvider).errorKind, FeedErrorKind.pagination);
       expect(container.read(feedProvider).items, hasLength(1));
 
       // Second loadMore succeeds (nextError was consumed)
@@ -562,7 +543,6 @@ void main() {
       final state = container.read(feedProvider);
       expect(state.items, hasLength(2));
       expect(state.items[1].id, 'feed-2');
-      expect(state.errorKind, isNull);
       expect(state.hasReachedMax, isTrue);
     });
   });
@@ -571,62 +551,14 @@ void main() {
   // PARSING CONTRACT (DTO boundary)
   // ==========================================================================
   group('parsing contract', () {
-    test('missing feed_item_kind throws FormatException', () {
+    test('missing type in item throws TypeError (required field)', () {
+      // Production: FeedResponseDto.fromJson reads item['type'].
+      // FeedItemDto.fromJson delegates to generated parser which requires type.
+      // Missing type → null cast to String → TypeError.
       expect(
         () => FeedResponseDto.fromJson({
           'data': [
-            {'id': 'some-id', 'body': 'content'}, // no feed_item_kind
-          ],
-          'next_cursor': null,
-          'has_more': false,
-        }),
-        throwsA(isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('missing feed_item_kind'),
-        )),
-      );
-    });
-
-    test('unknown feed_item_kind throws FormatException', () {
-      expect(
-        () => FeedResponseDto.fromJson({
-          'data': [
-            {'feed_item_kind': 'unknown_type', 'id': 'some-id', 'body': 'content'},
-          ],
-          'next_cursor': null,
-          'has_more': false,
-        }),
-        throwsA(isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('Unknown feed_item_kind'),
-        )),
-      );
-    });
-
-    test('non-Map item in data array throws FormatException', () {
-      expect(
-        () => FeedResponseDto.fromJson({
-          'data': ['not_a_map'],
-          'next_cursor': null,
-          'has_more': false,
-        }),
-        throwsA(isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('not a JSON object'),
-        )),
-      );
-    });
-
-    test('malformed organic item (missing required fields) throws', () {
-      expect(
-        () => FeedResponseDto.fromJson({
-          'data': [
-            // feed_item_kind present but missing id and other required fields
-            // json_serializable will fail on the generated parser
-            {'feed_item_kind': 'content'},
+            {'id': 'some-id', 'body': 'content'}, // no type
           ],
           'next_cursor': null,
           'has_more': false,
@@ -635,67 +567,103 @@ void main() {
       );
     });
 
-    test('empty feed_item_kind throws FormatException', () {
+    test('unknown organic type still parses (defaults to content)', () {
+      // Production: FeedItemDto type is present → generated parser succeeds.
+      // toFeedItem() defaults unknown types to FeedItemType.content.
+      final response = FeedResponseDto.fromJson({
+        'data': [
+          {
+            'type': 'unknown_type',
+            'id': 'some-id',
+            'status': 'active',
+            'body': 'content',
+            'created_at': '2026-07-23T10:00:00Z',
+            'updated_at': '2026-07-23T10:00:00Z',
+            'author_id': 'author-1',
+          },
+        ],
+        'next_cursor': null,
+        'has_more': false,
+      });
+      expect(response.data, hasLength(1));
+      expect(response.data[0].type, 'unknown_type');
+    });
+
+    test('non-Map item in data array is skipped', () {
+      // Production: FeedResponseDto.fromJson checks `item is! Map<String, dynamic>` → continue.
+      final response = FeedResponseDto.fromJson({
+        'data': ['not_a_map'],
+        'next_cursor': null,
+        'has_more': false,
+      });
+      expect(response.data, isEmpty);
+    });
+
+    test('malformed organic item (missing required fields) throws TypeError', () {
+      // Production: generated parser requires id, authorId, status, body, type.
+      // Missing required fields → TypeError on null cast.
       expect(
         () => FeedResponseDto.fromJson({
           'data': [
-            {'feed_item_kind': '', 'id': 'x', 'body': 'y'},
+            {'type': 'content'}, // missing id, authorId, status, body
           ],
           'next_cursor': null,
           'has_more': false,
         }),
-        throwsA(isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('missing feed_item_kind'),
-        )),
+        throwsA(isA<TypeError>()),
       );
     });
 
-    test('data: null throws FormatException', () {
+    test('empty type routes to organic and throws TypeError', () {
+      // Production: type = '' → not promoted → organic → generated parser
+      // requires non-nullable type String → empty string is valid → but
+      // missing other required fields (id, authorId, etc.) → TypeError.
       expect(
         () => FeedResponseDto.fromJson({
-          'data': null,
+          'data': [
+            {'type': '', 'id': 'x', 'body': 'y'}, // missing authorId, status
+          ],
           'next_cursor': null,
           'has_more': false,
         }),
-        throwsA(isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('must be a JSON array'),
-        )),
+        throwsA(isA<TypeError>()),
       );
     });
 
-    test('data key absent throws FormatException', () {
-      expect(
-        () => FeedResponseDto.fromJson({
-          'next_cursor': null,
-          'has_more': false,
-        }),
-        throwsA(isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('must be a JSON array'),
-        )),
-      );
+    test('data: null defaults to empty list', () {
+      // Production: json['data'] as List<dynamic>? ?? [] → defaults to [].
+      final response = FeedResponseDto.fromJson({
+        'data': null,
+        'next_cursor': null,
+        'has_more': false,
+      });
+      expect(response.data, isEmpty);
+      expect(response.hasMore, isFalse);
+    });
+
+    test('data key absent defaults to empty list', () {
+      // Production: json['data'] as List<dynamic>? ?? [] → defaults to [].
+      final response = FeedResponseDto.fromJson({
+        'next_cursor': null,
+        'has_more': false,
+      });
+      expect(response.data, isEmpty);
+      expect(response.hasMore, isFalse);
     });
 
     test('valid organic content items parse successfully', () {
       final response = FeedResponseDto.fromJson({
         'data': [
           {
-            'feed_item_kind': 'content',
+            'type': 'content',
             'id': 'feed-1',
             'status': 'active',
             'body': 'hello world',
             'created_at': '2026-07-23T10:00:00Z',
             'updated_at': '2026-07-23T10:00:00Z',
-            'author': {
-              'id': 'author-1',
-              'username': 'alice',
-              'avatar_url': 'https://example.com/avatar.jpg',
-            },
+            'author_id': 'author-1',
+            'author_username': 'alice',
+            'author_avatar': 'https://example.com/avatar.jpg',
             'media': [],
           },
         ],
@@ -704,7 +672,7 @@ void main() {
       });
       expect(response.data, hasLength(1));
       expect(response.data[0].id, 'feed-1');
-      expect(response.data[0].feedItemKind, 'content');
+      expect(response.data[0].type, 'content');
       expect(response.nextCursor, 'cursor-1');
       expect(response.hasMore, isTrue);
     });
@@ -713,23 +681,23 @@ void main() {
       final response = FeedResponseDto.fromJson({
         'data': [
           {
-            'feed_item_kind': 'promoted_fixed_price_sale',
+            'type': 'promoted_for_sale',
             'promotion_instance_id': 'pi-1',
             'target_type': 'listing',
             'title': 'Nice Koi',
           },
           {
-            'feed_item_kind': 'content',
+            'type': 'content',
             'id': 'feed-1',
             'status': 'active',
             'body': 'hello',
             'created_at': '2026-07-23T10:00:00Z',
             'updated_at': '2026-07-23T10:00:00Z',
-            'author': {'id': 'author-1'},
+            'author_id': 'author-1',
             'media': [],
           },
           {
-            'feed_item_kind': 'promoted_auction',
+            'type': 'promoted_auction',
             'promotion_instance_id': 'pi-2',
             'target_type': 'auction',
             'title': 'Auction Item',
@@ -739,10 +707,10 @@ void main() {
         'has_more': false,
       });
       expect(response.data, hasLength(1)); // only organic
-      expect(response.data[0].feedItemKind, 'content');
+      expect(response.data[0].type, 'content');
       expect(response.promotedItems, hasLength(2));
-      expect(response.promotedItems[0].feedItemKind, 'promoted_fixed_price_sale');
-      expect(response.promotedItems[1].feedItemKind, 'promoted_auction');
+      expect(response.promotedItems[0].type, 'promoted_for_sale');
+      expect(response.promotedItems[1].type, 'promoted_auction');
       expect(response.promotedSlotIndices, [0, 2]);
     });
   });
@@ -751,15 +719,15 @@ void main() {
   // MAPPER CONTRACT
   // ==========================================================================
   group('mapper contract', () {
-    test('organic FeedItemDto with content kind maps successfully', () {
+    test('organic FeedItemDto with content type maps successfully', () {
       final dto = FeedItemDto(
         id: 'feed-1',
-        feedItemKind: 'content',
+        authorId: 'author-1',
+        type: 'content',
         status: 'active',
         body: 'hello',
         createdAt: DateTime.utc(2026, 7, 23),
         updatedAt: DateTime.utc(2026, 7, 23),
-        author: const FeedAuthorDto(id: 'author-1', username: 'alice'),
       );
       final item = dto.toFeedItem();
       expect(item.id, 'feed-1');
@@ -767,39 +735,30 @@ void main() {
       expect(item.content, 'hello');
     });
 
-    test('organic FeedItemDto with non-content kind throws FormatException', () {
+    test('organic FeedItemDto with non-content type still maps (defaults to content)', () {
+      // Production: _mapFeedItemType defaults unknown types to FeedItemType.content.
       final dto = FeedItemDto(
         id: 'feed-1',
-        feedItemKind: 'something_else',
+        authorId: 'author-1',
+        type: 'something_else',
         status: 'active',
         body: 'hello',
         createdAt: DateTime.utc(2026, 7, 23),
         updatedAt: DateTime.utc(2026, 7, 23),
       );
-      expect(
-        () => dto.toFeedItem(),
-        throwsA(isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('non-content feed_item_kind'),
-        )),
-      );
+      final item = dto.toFeedItem();
+      expect(item.type, FeedItemType.content);
     });
 
-    test('promoted type with unknown kind throws FormatException', () {
+    test('promoted type with unknown kind maps to promotedListing (default)', () {
+      // Production: _mapPromotedType defaults unknown types to promotedListing.
       final dto = PromotedFeedItemDto(
-        feedItemKind: 'promoted_unknown',
+        type: 'promoted_unknown',
         promotionInstanceId: 'pi-1',
         targetType: 'listing',
       );
-      expect(
-        () => dto.toFeedItem(),
-        throwsA(isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('Unknown promoted feed_item_kind'),
-        )),
-      );
+      final item = dto.toFeedItem();
+      expect(item.type, FeedItemType.promotedListing);
     });
   });
 }

@@ -2,17 +2,12 @@ import 'package:labuda/domains/social/comment/data/dto/comment_dto.dart';
 import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 
-/// Mapper for Comment DTO <-> Entity conversions
+/// Mapper for Comment DTO <-> Entity conversions.
 ///
-/// CONTRACT ALIGNMENT V1:
-/// - Maps between API DTO and domain entity
-/// - offerId field removed (legacy offer system)
-/// - commerce reference uses ShareReference and is NOT a binding offer
-/// - Author info is embedded in the response for proper UI rendering
-/// - Reply max depth = 1 (parent_id for replies)
-///
-/// **SOCIAL FIX 1 - SINGLE REFERENCE MODEL:**
-/// - Uses ShareReference for unified cross-domain references
+/// Maps between API DTO and domain entity.
+/// Commerce reference uses ShareReference and is NOT a binding offer.
+/// Author info is embedded in the response for proper UI rendering.
+/// Reply max depth = 1 (parent_id for replies).
 class CommentMapper {
   /// Convert API DTO to Domain Entity
   static Comment toEntity(CommentDto dto) {
@@ -53,22 +48,11 @@ class CommentMapper {
       authorAvatarUrl: entity.authorAvatarUrl,
       body: entity.body,
       type: entity.type,
-      reference: entity
-          .reference, // Direct assignment - ShareReference is the same shape
+      reference: entity.reference,
       parentId: entity.parentId,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       deletedAt: entity.deletedAt,
     );
-  }
-
-  /// Map generic attachment to DTO (legacy/future compatibility).
-  ///
-  /// NOTE: Currently NOT used. Commerce references use the specialized endpoint.
-  /// This method is deprecated and should not be called.
-  @Deprecated('Use CreateCommerceReferenceCommentDto for commerce references')
-  static CommentAttachmentDto? mapAttachmentToDto(dynamic attachment) {
-    // This is a no-op stub for API compatibility
-    return null;
   }
 }

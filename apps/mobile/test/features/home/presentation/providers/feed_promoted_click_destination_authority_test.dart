@@ -3,7 +3,7 @@
 //
 // Proves that actual user taps on promoted feed cards:
 // 1. Fire exactly one canonical click event per tap
-// 2. Navigate to the correct Listing / Auction / External destination
+// 2. Navigate to the correct ForSale / Auction / External destination
 // 3. Never let tracking failure block the destination action
 // 4. Never emit a click event for empty promotion instance IDs
 // 5. Never construct malformed destination routes
@@ -32,9 +32,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/auction.dart';
-import 'package:labuda/domains/commerce/catalog/listing/domain/domain.dart';
-import 'package:labuda/domains/commerce/catalog/listing/presentation/providers/listing_providers.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
 import 'package:labuda/domains/commerce/catalog/shared/shared.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
 import 'package:labuda/domains/social/like/domain/entities/like.dart';
 import 'package:labuda/domains/social/like/domain/repositories/like_repository.dart';
 import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
@@ -81,15 +82,15 @@ Map<String, dynamic> _promotedListingItem({
   required String instanceId,
   required String title,
   int pricePerUnit = 5000000,
-  String fixedPriceSaleId = 'listing-1',
+  String forSaleId = 'listing-1',
 }) {
   return <String, dynamic>{
-    'feed_item_kind': 'promoted_fixed_price_sale',
+    'type': 'promoted_for_sale',
     'promotion_instance_id': instanceId,
-    'target_type': 'listing',
+    'target_type': 'for_sale',
     'title': title,
     'image_url': 'https://example.com/koi.jpg',
-    'fixed_price_sale_id': fixedPriceSaleId,
+    'for_sale_id': forSaleId,
     'price_per_unit': pricePerUnit,
   };
 }
@@ -192,7 +193,7 @@ class _CaptureHttpAdapter implements HttpClientAdapter {
 }
 
 ApiClient _fakeApiClient(_CaptureHttpAdapter adapter) {
-  final client = ApiClient.testing();
+  final client = ApiClient(logger: null);
   client.dio.httpClientAdapter = adapter;
   return client;
 }
@@ -223,10 +224,10 @@ class _FakeAuthedAuthController extends AuthController {
   );
 }
 
-class _FakeListingRepository implements ListingRepository {
+class _FakeForSaleRepository implements ForSaleRepository {
   @override
-  Future<Result<List<Listing>>> getListings(GetListingsParams params) async {
-    return Result.success(const <Listing>[]);
+  Future<Result<List<ForSale>>> getForSales(GetForSalesParams params) async {
+    return Result.success(const <ForSale>[]);
   }
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -290,7 +291,7 @@ FeedItem _makeFeedItem({
   return FeedItem(
     id: id,
     content: title,
-    author: null,
+    authorId: '',
     type: type,
     createdAt: DateTime.utc(2026, 8, 5, 10, 0),
     additionalData: <String, dynamic>{
@@ -306,8 +307,8 @@ FeedItem _makeFeedItem({
 
 FeedItem _listingItem({
   String promotionInstanceId = 'pi-click-listing',
-  String title = 'Click Test Listing',
-  String? fixedPriceSaleId = 'fps-click-1',
+  String title = 'Click Test ForSale',
+  String? forSaleId = 'fps-click-1',
   int pricePerUnit = 5000000,
 }) {
   return _makeFeedItem(
@@ -316,7 +317,7 @@ FeedItem _listingItem({
     promotionInstanceId: promotionInstanceId,
     title: title,
     extra: {
-      if (fixedPriceSaleId != null) 'fixedPriceSaleId': fixedPriceSaleId,
+      if (forSaleId != null) 'forSaleId': forSaleId,
       'pricePerUnit': pricePerUnit,
     },
   );
@@ -377,10 +378,10 @@ GoRouter _pipelineRouter() {
         builder: (context, state) => const Scaffold(body: HomeScreen()),
       ),
       GoRoute(
-        path: '/listing/:fixedPriceSaleId',
+        path: '/for-sale/:forSaleId',
         builder: (context, state) {
-          final id = state.pathParameters['fixedPriceSaleId'] ?? '';
-          return Scaffold(body: Text('listing-dest:$id'));
+          final id = state.pathParameters['forSaleId'] ?? '';
+          return Scaffold(body: Text('for-sale-dest:$id'));
         },
       ),
       GoRoute(
@@ -422,10 +423,10 @@ Widget _buildCardRouterHarness({
         builder: (context, state) => Scaffold(body: ListView(children: [card])),
       ),
       GoRoute(
-        path: '/listing/:fixedPriceSaleId',
+        path: '/for-sale/:forSaleId',
         builder: (context, state) {
-          final id = state.pathParameters['fixedPriceSaleId'] ?? '';
-          return Scaffold(body: Text('listing-dest:$id'));
+          final id = state.pathParameters['forSaleId'] ?? '';
+          return Scaffold(body: Text('for-sale-dest:$id'));
         },
       ),
       GoRoute(
@@ -441,8 +442,8 @@ Widget _buildCardRouterHarness({
   return ProviderScope(
     overrides: [
       apiClientProvider.overrideWithValue(_fakeApiClient(adapter)),
-      authControllerProvider.overrideWith(_FakeAuthController.new),
-      listingRepositoryProvider.overrideWithValue(_FakeListingRepository()),
+      authControllerProvider.overrideWith(_FakeAuthedAuthController.new),
+      forSaleRepositoryProvider.overrideWithValue(_FakeForSaleRepository()),
       auctionRepositoryProvider.overrideWithValue(_FakeAuctionRepository()),
       likeRepositoryProvider.overrideWithValue(_FakeLikeRepository()),
       loggerServiceProvider.overrideWithValue(LoggerService.instance),
@@ -460,7 +461,7 @@ Widget _buildPipelineHarness({
     overrides: [
       apiClientProvider.overrideWithValue(_fakeApiClient(adapter)),
       authControllerProvider.overrideWith(_FakeAuthedAuthController.new),
-      listingRepositoryProvider.overrideWithValue(_FakeListingRepository()),
+      forSaleRepositoryProvider.overrideWithValue(_FakeForSaleRepository()),
       auctionRepositoryProvider.overrideWithValue(_FakeAuctionRepository()),
       likeRepositoryProvider.overrideWithValue(_FakeLikeRepository()),
       loggerServiceProvider.overrideWithValue(LoggerService.instance),
@@ -479,10 +480,10 @@ Future<void> _pump(WidgetTester tester) async {
 // Tap helper — finds the tappable area of a promoted card
 // ============================================================================
 
-/// Taps the CommerceMarketplaceCardShell (for Listing/Auction) or
+/// Taps the CommerceMarketplaceCardShell (for ForSale/Auction) or
 /// the Card's InkWell (for External) inside a promoted card.
 Future<void> _tapPromotedCard(WidgetTester tester) async {
-  // Try CommerceMarketplaceCardShell first (Listing / Auction).
+  // Try CommerceMarketplaceCardShell first (ForSale / Auction).
   final shell = find.byType(CommerceMarketplaceCardShell);
   if (shell.evaluate().isNotEmpty) {
     await tester.tap(shell);
@@ -515,10 +516,10 @@ void main() {
   });
 
   // ==========================================================================
-  // SCENARIO 1: Promoted Listing click → event + /listing/:id
+  // SCENARIO 1: Promoted ForSale click → event + /for-sale/:id
   // ==========================================================================
-  group('SCENARIO 1: Promoted Listing click', () {
-    testWidgets('tap → 1 click POST + navigation to /listing/:id', (
+  group('SCENARIO 1: Promoted ForSale click', () {
+    testWidgets('tap → 1 click POST + navigation to /for-sale/:id', (
       tester,
     ) async {
       _setViewport(tester);
@@ -530,9 +531,8 @@ void main() {
           adapter: adapter,
           card: PromotedListingCard(
             item: _listingItem(
-              promotionInstanceId: 'pi-click-list-001',
-              fixedPriceSaleId: 'fps-42',
-              title: 'Tap Me Listing',
+              promotionInstanceId: 'pi-click-list-001',               forSaleId: 'fps-42',
+              title: 'Tap Me ForSale',
             ),
           ),
         ),
@@ -541,7 +541,7 @@ void main() {
 
       // Card is rendered.
       expect(find.byType(PromotedListingCard), findsOneWidget);
-      expect(find.text('Tap Me Listing'), findsOneWidget);
+      expect(find.text('Tap Me ForSale'), findsOneWidget);
 
       // Before tap: no click events, still on home route.
       expect(adapter.clickPosts, isEmpty);
@@ -556,8 +556,8 @@ void main() {
       expect(clicks.first.body['event_type'], 'click');
       expect(clicks.first.surface, 'feed');
 
-      // Navigation to /listing/fps-42.
-      expect(find.text('listing-dest:fps-42'), findsOneWidget);
+      // Navigation to /for-sale/fps-42.
+      expect(find.text('for-sale-dest:fps-42'), findsOneWidget);
     });
 
     testWidgets('route argument is the actual mapped listing ID', (
@@ -572,8 +572,7 @@ void main() {
           adapter: adapter,
           card: PromotedListingCard(
             item: _listingItem(
-              promotionInstanceId: 'pi-route-id',
-              fixedPriceSaleId: 'custom-listing-uuid-999',
+              promotionInstanceId: 'pi-route-id',               forSaleId: 'custom-listing-uuid-999',
               title: 'Route ID Test',
             ),
           ),
@@ -583,10 +582,10 @@ void main() {
 
       await _tapPromotedCard(tester);
 
-      // The destination page shows the exact ID from fixedPriceSaleId.
-      expect(find.text('listing-dest:custom-listing-uuid-999'), findsOneWidget);
+      // The destination page shows the exact ID from forSaleId.
+      expect(find.text('for-sale-dest:custom-listing-uuid-999'), findsOneWidget);
       // Not a different ID.
-      expect(find.text('listing-dest:fps-click-1'), findsNothing);
+      expect(find.text('for-sale-dest:fps-click-1'), findsNothing);
     });
   });
 
@@ -726,7 +725,7 @@ void main() {
   // SCENARIO 4-6: Tracking failure does not block destination
   // ==========================================================================
   group('SCENARIO 4-6: Tracking failure continuity', () {
-    testWidgets('Listing: click POST 500 → still navigates to listing', (
+    testWidgets('ForSale: click POST 500 → still navigates to listing', (
       tester,
     ) async {
       _setViewport(tester);
@@ -739,8 +738,7 @@ void main() {
           adapter: adapter,
           card: PromotedListingCard(
             item: _listingItem(
-              promotionInstanceId: 'pi-fail-list',
-              fixedPriceSaleId: 'fps-survive',
+              promotionInstanceId: 'pi-fail-list',               forSaleId: 'fps-survive',
               title: 'Survive Failure',
             ),
           ),
@@ -752,7 +750,7 @@ void main() {
 
       // Click POST was attempted but failed.
       // The POST is captured then throws — navigation still proceeds.
-      expect(find.text('listing-dest:fps-survive'), findsOneWidget);
+      expect(find.text('for-sale-dest:fps-survive'), findsOneWidget);
       // Card no longer visible (we navigated away).
       expect(find.byType(PromotedListingCard), findsNothing);
     });
@@ -823,7 +821,7 @@ void main() {
   // SCENARIO 7: Empty promotion identity
   // ==========================================================================
   group('SCENARIO 7: Empty promotion identity', () {
-    testWidgets('Listing: empty promoInstanceId → 0 clicks, still navigates', (
+    testWidgets('ForSale: empty promoInstanceId → 0 clicks, still navigates', (
       tester,
     ) async {
       _setViewport(tester);
@@ -835,8 +833,7 @@ void main() {
           adapter: adapter,
           card: PromotedListingCard(
             item: _listingItem(
-              promotionInstanceId: '', // empty
-              fixedPriceSaleId: 'fps-empty-id',
+              promotionInstanceId: '', // empty               forSaleId: 'fps-empty-id',
               title: 'Empty Click ID',
             ),
           ),
@@ -850,7 +847,7 @@ void main() {
       expect(adapter.clickPosts, isEmpty);
 
       // Navigation still works.
-      expect(find.text('listing-dest:fps-empty-id'), findsOneWidget);
+      expect(find.text('for-sale-dest:fps-empty-id'), findsOneWidget);
     });
 
     testWidgets('External: empty promoInstanceId → 0 clicks, interstitial shows', (
@@ -931,9 +928,8 @@ void main() {
           adapter: adapter,
           card: PromotedListingCard(
             item: _listingItem(
-              promotionInstanceId: 'pi-no-dest',
-              fixedPriceSaleId: null, // missing
-              title: 'No Dest Listing',
+              promotionInstanceId: 'pi-no-dest',               forSaleId: null, // missing
+              title: 'No Dest ForSale',
             ),
           ),
         ),
@@ -941,13 +937,13 @@ void main() {
       await _pump(tester);
 
       expect(find.byType(PromotedListingCard), findsOneWidget);
-      expect(find.text('No Dest Listing'), findsOneWidget);
+      expect(find.text('No Dest ForSale'), findsOneWidget);
 
       // Tap should not navigate (onTap is null) and not crash.
       await _tapPromotedCard(tester);
 
       // Still on the original page, no navigation.
-      expect(find.text('listing-dest:'), findsNothing);
+      expect(find.text('for-sale-dest:'), findsNothing);
       expect(find.byType(PromotedListingCard), findsOneWidget);
 
       // No click events (no tap handler = no click tracking either).
@@ -1039,8 +1035,7 @@ void main() {
               items: [
                 _promotedListingItem(
                   instanceId: 'pi-pipeline-click',
-                  title: 'Pipeline Listing Click',
-                  fixedPriceSaleId: 'fps-pipeline-1',
+                  title: 'Pipeline ForSale Click',                   forSaleId: 'fps-pipeline-1',
                 ),
               ],
               hasMore: false,
@@ -1059,7 +1054,7 @@ void main() {
         // HomeScreen renders the promoted listing.
         expect(find.byType(HomeScreen), findsOneWidget);
         expect(find.byType(PromotedListingCard), findsOneWidget);
-        expect(find.text('Pipeline Listing Click'), findsOneWidget);
+        expect(find.text('Pipeline ForSale Click'), findsOneWidget);
 
         // Tap the promoted card inside HomeScreen.
         await _tapPromotedCard(tester);
@@ -1072,7 +1067,7 @@ void main() {
         expect(clicks.first.surface, 'feed');
 
         // Navigation to listing destination.
-        expect(find.text('listing-dest:fps-pipeline-1'), findsOneWidget);
+        expect(find.text('for-sale-dest:fps-pipeline-1'), findsOneWidget);
       },
     );
 
@@ -1088,8 +1083,7 @@ void main() {
               items: [
                 _promotedListingItem(
                   instanceId: 'pi-click-only',
-                  title: 'Click Only Test',
-                  fixedPriceSaleId: 'fps-click-1',
+                  title: 'Click Only Test',                   forSaleId: 'fps-click-1',
                 ),
               ],
               hasMore: false,
@@ -1119,7 +1113,7 @@ void main() {
         expect(clicksAfter, clicksBefore + 1);
 
         // Navigation succeeded.
-        expect(find.text('listing-dest:fps-click-1'), findsOneWidget);
+        expect(find.text('for-sale-dest:fps-click-1'), findsOneWidget);
       },
     );
   });

@@ -42,7 +42,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               _buildSection(
                 '3. Information Sharing',
                 'We may share your information in the following situations:\n'
-                    '• With other users (profile information, listings, reviews)\n'
+                    '• With other users (profile information, products, reviews)\n'
                     '• With service providers who assist our operations\n'
                     '• For legal compliance and protection of rights\n'
                     '• In connection with business transfers or acquisitions\n'

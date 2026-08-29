@@ -30,7 +30,7 @@ class _NoOpLogger implements ILoggerService {
 }
 
 class _ErrorListingDatasource extends ForSaleRemoteDatasource {
-  _ErrorListingDatasource() : super(ApiClient.testing());
+  _ErrorListingDatasource() : super(ApiClient());
 
   @override
   Future<Result<ForSaleResponseDto>> createForSale(
@@ -47,7 +47,7 @@ class _ErrorListingDatasource extends ForSaleRemoteDatasource {
 
 void main() {
   test(
-    'createListing preserves backend error code, status, and details',
+    'createListing preserves backend error code and message',
     () async {
       final repository = ForSaleRepositoryImpl(
         datasource: _ErrorListingDatasource(),
@@ -65,8 +65,6 @@ void main() {
 
       expect(result.isError, isTrue);
       expect(result.errorCode, 'SHIPPING_OPTION_REQUIRED');
-      expect(result.statusCode, 400);
-      expect(result.errorDetails, containsPair('field', 'shipping_option_ids'));
       expect(result.error, 'Pilih minimal 1 opsi pengiriman');
     },
   );

@@ -10,7 +10,8 @@ import 'package:labuda/shared/governance/content_lifecycle.dart';
 ///
 /// CONTRACT ALIGNMENT:
 /// - Status mapping aligned with backend canonical status (active, deleted)
-/// - Removed requestStatus shadow enum - use unified ContentStatus instead
+/// - Author identity (username, avatar) sourced from card.author by the DTO
+///   hand-written fromJson factory; the mapper reads the already-extracted values.
 class ContentMapper {
   // ==========================================================================
   // DTO → Entity (Response to Domain)
@@ -19,7 +20,6 @@ class ContentMapper {
   /// Map ContentDto to Content entity
   ///
   /// CONTRACT: Backend returns canonical status (active, deleted)
-  /// CONTRACT: requestStatus field is deprecated - ignore if present
   /// SHARE CONTRACT V1: Maps originalAuthorId and resourceProjection for reposts
   static Content toEntity(ContentDto dto) {
     return Content(
@@ -46,7 +46,6 @@ class ContentMapper {
       mentionedUserIds: [], // Not provided by API, extract from content text
       settings: ContentSettings(
         visibility: _mapVisibility(dto.visibility),
-        allowComments: dto.allowComments,
       ),
       // C7C: engagement nullable from DTO — default to zero counts.
       engagement: ContentEngagement(
@@ -110,7 +109,6 @@ class ContentMapper {
           : null,
       tags: entity.tags.isNotEmpty ? entity.tags : null,
       mentionedUserIds: entity.taggedUsers.isNotEmpty ? entity.taggedUsers : null,
-      allowComments: entity.settings.allowComments,
       location: entity.location != null
           ? ContentLocationDto(
               city: entity.location!.city,
@@ -136,7 +134,6 @@ class ContentMapper {
           : null,
       tags: entity.tags.isNotEmpty ? entity.tags : null,
       taggedUsers: entity.taggedUsers.isNotEmpty ? entity.taggedUsers : null,
-      allowComments: entity.settings.allowComments,
       location: entity.location != null
           ? ContentLocationDto(
               city: entity.location!.city,

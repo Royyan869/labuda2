@@ -1,29 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:labuda/core/core.dart' as core;
 import 'package:labuda/shared/widgets/app_text_field.dart';
 
-/// Section untuk limits & status discount
+/// Section untuk limits, minimum purchase, & status discount
+///
+/// CANONICAL MODEL: totalUsageLimit (optional), minPurchase (optional),
+/// active status. No maxUsagePerUser.
 class LimitsSection extends StatefulWidget {
-  final double? minPurchase;
-  final int? maxUsagePerUser;
   final int? totalUsageLimit;
+  final double minPurchase;
   final bool isActive;
-  final ValueChanged<double?> onMinPurchaseChanged;
-  final ValueChanged<int?> onMaxUsagePerUserChanged;
   final ValueChanged<int?> onTotalUsageLimitChanged;
+  final ValueChanged<double> onMinPurchaseChanged;
   final ValueChanged<bool> onIsActiveChanged;
 
   const LimitsSection({
     super.key,
-    this.minPurchase,
-    this.maxUsagePerUser,
     this.totalUsageLimit,
+    this.minPurchase = 0.0,
     required this.isActive,
-    required this.onMinPurchaseChanged,
-    required this.onMaxUsagePerUserChanged,
     required this.onTotalUsageLimitChanged,
+    required this.onMinPurchaseChanged,
     required this.onIsActiveChanged,
   });
 
@@ -32,37 +30,24 @@ class LimitsSection extends StatefulWidget {
 }
 
 class _LimitsSectionState extends State<LimitsSection> {
-  late TextEditingController _minPurchaseController;
-  late TextEditingController _maxUsagePerUserController;
   late TextEditingController _totalUsageLimitController;
-
-  final _currencyFormatter = NumberFormat.currency(
-    locale: 'id_ID',
-    symbol: '',
-    decimalDigits: 0,
-  );
+  late TextEditingController _minPurchaseController;
 
   @override
   void initState() {
     super.initState();
-    _minPurchaseController = TextEditingController(
-      text: widget.minPurchase != null
-          ? _currencyFormatter.format(widget.minPurchase!)
-          : '',
-    );
-    _maxUsagePerUserController = TextEditingController(
-      text: widget.maxUsagePerUser?.toString() ?? '',
-    );
     _totalUsageLimitController = TextEditingController(
       text: widget.totalUsageLimit?.toString() ?? '',
+    );
+    _minPurchaseController = TextEditingController(
+      text: widget.minPurchase > 0 ? widget.minPurchase.toStringAsFixed(0) : '',
     );
   }
 
   @override
   void dispose() {
-    _minPurchaseController.dispose();
-    _maxUsagePerUserController.dispose();
     _totalUsageLimitController.dispose();
+    _minPurchaseController.dispose();
     super.dispose();
   }
 
@@ -93,63 +78,22 @@ class _LimitsSectionState extends State<LimitsSection> {
           ),
           const SizedBox(height: 16),
 
-          // Min Purchase
+          // Minimum Purchase Amount
           AppTextField(
             controller: _minPurchaseController,
-            labelText: 'Minimum Purchase (Optional)',
-            hintText: 'Example: 500000',
+            labelText: 'Minimum Purchase Amount (Optional)',
+            hintText: 'Example: 100000',
             prefixIcon: Icons.shopping_cart,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             onChanged: (value) {
-              final cleanValue = value.replaceAll(RegExp(r'[^\d]'), '');
-              final numValue = cleanValue.isEmpty
-                  ? null
-                  : double.tryParse(cleanValue);
+              final numValue = value.isEmpty ? 0.0 : (double.tryParse(value) ?? 0.0);
               widget.onMinPurchaseChanged(numValue);
-
-              // Format display
-              if (numValue != null) {
-                final formatted = _currencyFormatter.format(numValue);
-                if (formatted != value) {
-                  _minPurchaseController.value = TextEditingValue(
-                    text: formatted,
-                    selection: TextSelection.collapsed(
-                      offset: formatted.length,
-                    ),
-                  );
-                }
-              }
             },
           ),
           const SizedBox(height: 8),
           Text(
-            'Discount only applies if purchase subtotal reaches this value',
-            style: TextStyle(
-              fontSize: 12,
-              color: isDark
-                  ? core.AppColors.neutralGray400
-                  : core.AppColors.neutralGray600,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Max Usage Per User
-          AppTextField(
-            controller: _maxUsagePerUserController,
-            labelText: 'Max Usage Per User (Optional)',
-            hintText: 'Example: 3',
-            prefixIcon: Icons.person,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            onChanged: (value) {
-              final numValue = value.isEmpty ? null : int.tryParse(value);
-              widget.onMaxUsagePerUserChanged(numValue);
-            },
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Limit how many times one user can use this code',
+            'Pembeli harus membeli minimal sejumlah ini untuk menggunakan kode diskon.',
             style: TextStyle(
               fontSize: 12,
               color: isDark
@@ -174,7 +118,7 @@ class _LimitsSectionState extends State<LimitsSection> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Limit total usage of this code by all users',
+            'Limit total usage of this code by all buyers. Leave empty for unlimited.',
             style: TextStyle(
               fontSize: 12,
               color: isDark

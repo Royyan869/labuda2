@@ -58,25 +58,28 @@ const (
 	ForSaleStatusActive ForSaleStatus = "active"
 
 	// ForSaleStatusSold is when for_sale has been successfully sold out.
-	// Terminal state - cannot be reversed.
+	// Ordinarily terminal for seller actions. Can return to active ONLY through
+	// stock restoration (order cancellation/expiration) — never through seller action.
 	ForSaleStatusSold ForSaleStatus = "sold"
 
 	// ForSaleStatusWithdrawn is when seller removes the for_sale from sale.
-	// Terminal state - cannot be reversed.
+	// Ordinarily terminal for seller actions. Can return to active ONLY through
+	// moderation restoration (governance override) — never through seller action.
 	ForSaleStatusWithdrawn ForSaleStatus = "withdrawn"
 )
 
-// transitionAllowed defines valid state transitions.
+// transitionAllowed defines ordinary (non-governed) state transitions.
+// This is the primary transition graph for seller-initiated actions.
 // ─────────────────────────────────────────────────────────────────────────────
 // DRAFT can transition to: active (publish), withdrawn (discard)
-// ACTIVE can transition to: sold, withdrawn
-// SOLD is terminal
-// WITHDRAWN is terminal
+// ACTIVE can transition to: sold (stock exhaustion), withdrawn (seller withdrawal)
+// SOLD → active: ONLY through stock restoration (order cancel/expire) — not here
+// WITHDRAWN → active: ONLY through moderation restoration — not here
 var transitionAllowed = map[ForSaleStatus][]ForSaleStatus{
 	ForSaleStatusDraft:     {ForSaleStatusActive, ForSaleStatusWithdrawn},
 	ForSaleStatusActive:    {ForSaleStatusSold, ForSaleStatusWithdrawn},
-	ForSaleStatusSold:      {}, // Terminal state
-	ForSaleStatusWithdrawn: {}, // Terminal state
+	ForSaleStatusSold:      {}, // Seller-terminal; governed reversal via RestoreQuantity only
+	ForSaleStatusWithdrawn: {}, // Seller-terminal; governed reversal via Moderation only
 }
 
 // CanTransition checks if a state transition is allowed.

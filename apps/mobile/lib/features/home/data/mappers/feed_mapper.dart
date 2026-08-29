@@ -86,16 +86,21 @@ extension FeedItemMapper on FeedItemDto {
 
   /// Map backend type string to FeedItemType enum
   ///
-  /// PROJECTION CONTRACT: Only universal social content is mapped.
-  /// Backend filters out commerce types (auction) from home feed.
-  /// Falls back to content for unknown types (protects against unexpected backend changes).
+  /// PROJECTION CONTRACT: Backend feed wire emits 'post' / 'repost' for
+  /// organic items and 'promoted_*' for injected items. The latter are
+  /// dispatched by [FeedResponseDto.fromJson] before reaching this mapper,
+  /// so only organic values arrive here.
+  ///
+  /// Falls back to content for unknown types (defensive against backend changes).
   FeedItemType _mapFeedItemType(String backendType) {
     switch (backendType.toLowerCase()) {
-      case 'content':
+      // 'post' and 'repost' are backend feed wire discriminators,
+      // NOT Content domain types. Both map to FeedItemType.content
+      // for Feed rendering.
+      case 'post':
+      case 'repost':
         return FeedItemType.content;
       default:
-        // Default to content for unknown types
-        // This protects against unexpected backend changes
         return FeedItemType.content;
     }
   }
@@ -140,7 +145,7 @@ extension PromotedFeedItemMapper on PromotedFeedItemDto {
         'sellerLabel': sellerLabel,
         'sellerLifecycle': sellerLifecycle,
         // Listing
-        'fixedPriceSaleId': fixedPriceSaleId,
+        'forSaleId': forSaleId,
         'pricePerUnit': pricePerUnit,
         // Auction
         'auctionId': auctionId,

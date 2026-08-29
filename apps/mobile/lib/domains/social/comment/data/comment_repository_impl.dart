@@ -52,8 +52,6 @@ class CommentRepositoryImpl implements CommentRepository {
     required String targetId,
     required CommentTargetType targetType,
     required String content,
-    List<String> mediaUrls = const [],
-    CommentAttachment? attachment,
     String? parentId,
     List<String> mentionedUserIds = const [],
   }) async {
@@ -68,8 +66,6 @@ class CommentRepositoryImpl implements CommentRepository {
       targetType: targetType.name,
       content: content,
       parentId: parentId,
-      mediaUrls: mediaUrls.isEmpty ? null : mediaUrls,
-      attachment: CommentMapper.mapAttachmentToDto(attachment),
       mentionedUserIds: mentionedUserIds.isEmpty ? null : mentionedUserIds,
     );
 

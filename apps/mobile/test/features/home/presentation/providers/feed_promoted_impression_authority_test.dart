@@ -82,7 +82,7 @@ Map<String, dynamic> _feedContentItem({
   required String body,
 }) {
   return <String, dynamic>{
-    'feed_item_kind': 'content',
+    'type': 'post',
     'id': id,
     'status': 'active',
     'body': body,
@@ -102,15 +102,15 @@ Map<String, dynamic> _promotedListingItem({
   required String instanceId,
   required String title,
   int pricePerUnit = 5000000,
-  String fixedPriceSaleId = 'listing-1',
+  String forSaleId = 'listing-1',
 }) {
   return <String, dynamic>{
-    'feed_item_kind': 'promoted_fixed_price_sale',
+    'type': 'promoted_for_sale',
     'promotion_instance_id': instanceId,
-    'target_type': 'listing',
+    'target_type': 'for_sale',
     'title': title,
     'image_url': 'https://example.com/koi.jpg',
-    'fixed_price_sale_id': fixedPriceSaleId,
+    'for_sale_id': forSaleId,
     'price_per_unit': pricePerUnit,
   };
 }
@@ -124,7 +124,7 @@ Map<String, dynamic> _promotedAuctionItem({
   int bidCount = 3,
 }) {
   return <String, dynamic>{
-    'feed_item_kind': 'promoted_auction',
+    'type': 'promoted_auction',
     'promotion_instance_id': instanceId,
     'target_type': 'auction',
     'title': title,
@@ -143,7 +143,7 @@ Map<String, dynamic> _promotedExternalItem({
   String externalUrl = 'https://example.com/product',
 }) {
   return <String, dynamic>{
-    'feed_item_kind': 'promoted_external',
+    'type': 'promoted_external',
     'promotion_instance_id': instanceId,
     'target_type': 'external_product',
     'title': title,
@@ -366,7 +366,7 @@ FeedItem _makeFeedItem({
 FeedItem _listingItem({
   String promotionInstanceId = 'pi-imp-listing',
   String title = 'Impression Test Listing',
-  String fixedPriceSaleId = 'fps-1',
+  String forSaleId = 'fps-1',
   int pricePerUnit = 5000000,
 }) {
   return _makeFeedItem(
@@ -375,7 +375,7 @@ FeedItem _listingItem({
     promotionInstanceId: promotionInstanceId,
     title: title,
     extra: {
-      'fixedPriceSaleId': fixedPriceSaleId,
+      'forSaleId': forSaleId,
       'pricePerUnit': pricePerUnit,
     },
   );
@@ -826,7 +826,7 @@ void main() {
         additionalData: const {
           'isPromoted': true,
           'title': 'No Instance',
-          'fixedPriceSaleId': 'fps-empty',
+          'forSaleId': 'fps-empty',
           'pricePerUnit': 100000,
           // promotionInstanceId deliberately absent
         },

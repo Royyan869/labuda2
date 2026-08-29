@@ -60,7 +60,7 @@ void main() {
         additionalData: const {
           'promotionInstanceId': 'pi-1',
           'targetType': 'listing',
-          'fixedPriceSaleId': 'listing-1',
+          'forSaleId': 'listing-1',
           'pricePerUnit': 150000,
           'imageUrl': 'https://example.com/listing.jpg',
           'sellerUsername': 'seller_user',
@@ -139,7 +139,7 @@ void main() {
         additionalData: const {
           'promotionInstanceId': 'pi-4',
           'targetType': 'listing',
-          'fixedPriceSaleId': 'listing-2',
+          'forSaleId': 'listing-2',
           'pricePerUnit': 150000,
           'imageUrl': 'https://example.com/listing.jpg',
           'sellerUsername': 'seller_user',
@@ -164,7 +164,7 @@ void main() {
         additionalData: const {
           'promotionInstanceId': 'pi-5',
           'targetType': 'listing',
-          'fixedPriceSaleId': 'listing-3',
+          'forSaleId': 'listing-3',
           'pricePerUnit': 150000,
           'imageUrl': 'https://example.com/listing.jpg',
           'sellerUsername': 'seller_user',

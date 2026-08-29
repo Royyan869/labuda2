@@ -11,28 +11,21 @@ class ValidateCommentContentUseCase {
 
   ValidateCommentContentUseCase(this._repository);
 
-  /// Execute the use case
+  /// Execute the use case.
   ///
-  /// Validates comment content according to business rules:
-  /// - Content must not be empty OR media must be provided
-  /// - Content must pass validation rules (profanity, length, etc.)
+  /// Validates comment content: must not be empty, must pass length check.
   Future<Result<void>> call({
     required String content,
-    required List<String> mediaUrls,
   }) async {
-    // Business Rule: Comment must have content OR media
-    if (content.trim().isEmpty && mediaUrls.isEmpty) {
-      return Result.error('Comment must have content or media');
+    if (content.trim().isEmpty) {
+      return Result.error('Comment must have content');
     }
 
-    // Business Rule: If content is provided, validate it
-    if (content.trim().isNotEmpty) {
-      final validationResult = await _repository.validateContent(content);
-      if (validationResult.isError) {
-        return Result.error(
-          validationResult.error ?? 'Content validation failed',
-        );
-      }
+    final validationResult = await _repository.validateContent(content);
+    if (validationResult.isError) {
+      return Result.error(
+        validationResult.error ?? 'Content validation failed',
+      );
     }
 
     return Result.success(null);

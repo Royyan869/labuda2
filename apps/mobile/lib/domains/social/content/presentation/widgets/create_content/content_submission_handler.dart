@@ -109,14 +109,10 @@ class ContentSubmissionHandler {
           ? ContentVisibility.followersOnly
           : ContentVisibility.private;
 
-      // Create settings object (allowComments is always true by platform design)
-      final settings = ContentSettings(
-        visibility: visibility,
-      );
-
-      // Use ContentActions from Riverpod
-      final contentActions = container.read(contentActionsProvider.notifier);
-      final result = await contentActions.createContent(
+      // Read the canonical repository directly — ContentActions notifier
+      // is auto-dispose and unsafe for fire-and-forget background uploads.
+      final repo = container.read(contentRepositoryProvider);
+      final result = await repo.createContent(
         authorId: user.id,
         authorUsername: user.username,
         authorAvatarUrl: user.avatarUrl,
@@ -124,7 +120,9 @@ class ContentSubmissionHandler {
         media: uploadedMedia,
         tags: hashtags,
         taggedUsers: taggedPeople,
-        settings: settings,
+        settings: ContentSettings(
+          visibility: visibility,
+        ),
         location: selectedLocation != null
             ? ContentLocation(
                 city: selectedLocation.address,

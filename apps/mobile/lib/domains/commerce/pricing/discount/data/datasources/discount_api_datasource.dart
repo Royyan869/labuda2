@@ -178,8 +178,6 @@ class DiscountApiDatasource {
     required int subtotalCents,
     required String contextType,
     required String sellerId,
-    String? listingId,
-    String? auctionId,
   }) async {
     return _executeRequest<DiscountModel>(
       request: () => _apiClient.post(
@@ -189,8 +187,6 @@ class DiscountApiDatasource {
           'subtotal': subtotalCents,
           'context_type': contextType,
           'seller_id': sellerId,
-          ...?(listingId == null ? null : {'listing_id': listingId}),
-          ...?(auctionId == null ? null : {'auction_id': auctionId}),
         },
       ),
       parser: (data) {
@@ -211,15 +207,9 @@ class DiscountApiDatasource {
       type: DiscountTypeDto.fromEntity(discount.type),
       value: discount.value,
       minPurchase: discount.minPurchase,
-      maxDiscount: discount.maxDiscount,
-      maxUsagePerUser: discount.maxUsagePerUser,
       totalUsageLimit: discount.totalUsageLimit,
       appliesTo: DiscountAppliesToDto.fromEntity(discount.appliesTo),
-      targetMode: DiscountTargetModeDto.fromEntity(discount.targetMode),
       sellerId: discount.sellerId,
-      applicableListingIds: discount.applicableListingIds,
-      applicableAuctionIds: discount.applicableAuctionIds,
-      validFrom: discount.validFrom,
       validUntil: discount.validUntil,
     );
 

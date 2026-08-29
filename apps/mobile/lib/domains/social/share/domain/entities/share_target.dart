@@ -49,7 +49,7 @@ class ShareTarget {
       case ExternalShareType.post:
         return '$base/content/$id';
       case ExternalShareType.listing:
-        return '$base/listing/$id';
+        return '$base/for-sale/$id';
       case ExternalShareType.request:
         return '$base/content/$id';
       case ExternalShareType.auction:
@@ -101,6 +101,26 @@ enum ExternalShareType { post, listing, request, auction, profile }
 
 /// Extension for ExternalShareType helpers
 extension ExternalShareTypeExtension on ExternalShareType {
+  /// Canonical chat wire-type for [ChatResourceOccurrenceResourceType.fromWire].
+  /// Maps every [ExternalShareType] to the chat resource wire vocabulary
+  /// (profile/content/for_sale/auction). The legacy `wireTargetType` getter
+  /// was removed without updating [share_to_chat_dialog.dart] — this restores
+  /// the minimal forward mapping without recreating deleted Listing authority.
+  String get wireTargetType {
+    switch (this) {
+      case ExternalShareType.post:
+        return 'content';
+      case ExternalShareType.listing:
+        return 'for_sale';
+      case ExternalShareType.request:
+        return 'content';
+      case ExternalShareType.auction:
+        return 'auction';
+      case ExternalShareType.profile:
+        return 'profile';
+    }
+  }
+
   String get displayName {
     switch (this) {
       case ExternalShareType.post:

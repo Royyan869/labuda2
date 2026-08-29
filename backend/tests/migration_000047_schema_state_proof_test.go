@@ -98,10 +98,10 @@ func TestMigration000047_SchemaStateProof(t *testing.T) {
 	require.False(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='moderation_resource_enum' AND enumlabel='fixed_price_sale')`),
 		"moderation_resource_enum must not have 'fixed_price_sale'")
 
-	require.True(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='discount_scope_enum' AND enumlabel='for_sale')`),
-		"discount_scope_enum must have 'for_sale'")
-	require.False(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='discount_scope_enum' AND enumlabel='listing')`),
-		"discount_scope_enum must not have 'listing'")
+	require.True(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='discount_applies_to_enum' AND enumlabel='for_sale')`),
+		"discount_applies_to_enum must have 'for_sale'")
+	require.False(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='discount_applies_to_enum' AND enumlabel='listing')`),
+		"discount_applies_to_enum must not have 'listing'")
 
 	require.True(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='chat_commerce_reference_target_type_enum' AND enumlabel='for_sale')`),
 		"chat_commerce_reference_target_type_enum must have 'for_sale'")
@@ -109,8 +109,8 @@ func TestMigration000047_SchemaStateProof(t *testing.T) {
 		"chat_commerce_reference_target_type_enum must not have 'fixed_price_sale'")
 
 	// 6. Triggers renamed
-	require.True(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_trigger WHERE NOT tgisinternal AND tgname='trg_for_sales_single_active_channel')`),
-		"trg_for_sales_single_active_channel must exist")
+	require.True(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_trigger WHERE NOT tgisinternal AND tgname='trg_for_sales_permanent_exclusivity')`),
+		"trg_for_sales_permanent_exclusivity must exist")
 	require.False(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_trigger WHERE NOT tgisinternal AND tgname='trg_fixed_price_sales_single_active_channel')`),
 		"trg_fixed_price_sales_single_active_channel must not exist")
 

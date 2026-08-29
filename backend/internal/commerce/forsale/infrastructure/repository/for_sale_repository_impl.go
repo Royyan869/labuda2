@@ -36,9 +36,8 @@ func (r *ForSaleRepositoryImpl) Create(ctx context.Context, tx db.Tx, for_sale *
 	}
 
 	// Reuse path: an explicit ProductID attaches the sale to an existing
-	// Product (stable Product identity). The product must exist and be owned
-	// by this seller. No product row is written — nothing is minted nor
-	// clobbered on reuse.
+	// Product (stable Product identity). The product must exist, be owned
+	// by this seller, and be unattached to any selling surface.
 	if for_sale.ProductID != uuid.Nil {
 		product, err := r.productRepo.GetByID(ctx, tx, for_sale.ProductID)
 		if err != nil {
@@ -46,6 +45,12 @@ func (r *ForSaleRepositoryImpl) Create(ctx context.Context, tx db.Tx, for_sale *
 		}
 		if product.SellerID != for_sale.SellerID {
 			return fmt.Errorf("cannot attach fixed-price sale to product owned by another seller")
+		}
+		// INVARIANT: Product must not already belong to any selling surface.
+		// ClaimSellingSurface uses SELECT ... FOR UPDATE to prevent concurrent
+		// attachment to both ForSale and Auction.
+		if err := r.productRepo.ClaimSellingSurface(ctx, tx, for_sale.ProductID, productEntity.SellingSurfaceForSale); err != nil {
+			return fmt.Errorf("cannot attach for_sale to product: %w", err)
 		}
 		for_sale.Product = product
 		for_sale.Visibility = derivedVisibility(for_sale.Status, for_sale.PublishedAt)
@@ -55,8 +60,8 @@ func (r *ForSaleRepositoryImpl) Create(ctx context.Context, tx db.Tx, for_sale *
 		return nil
 	}
 
-	// Mint path (legacy default): a Product is created atomically with the
-	// sale when the caller did not supply an existing ProductID.
+	// Mint path: a Product is created atomically with the sale when the
+	// caller did not supply an existing ProductID.
 	product := buildProductFromSale(for_sale)
 	if product.ID == uuid.Nil {
 		product.ID = uuid.New()
@@ -64,6 +69,9 @@ func (r *ForSaleRepositoryImpl) Create(ctx context.Context, tx db.Tx, for_sale *
 	if for_sale.ID == uuid.Nil {
 		for_sale.ID = uuid.New()
 	}
+
+	// Set selling_surface atomically with Product creation.
+	product.SellingSurface = productEntity.SellingSurfaceForSale
 
 	if err := r.productRepo.Create(ctx, tx, product); err != nil {
 		return fmt.Errorf("create product failed: %w", err)
@@ -244,26 +252,6 @@ func (r *ForSaleRepositoryImpl) UpdateStatus(ctx context.Context, tx db.Tx, for_
 	)
 	if err != nil {
 		return fmt.Errorf("update fixed price sale status failed: %w", err)
-	}
-
-	return nil
-}
-
-func (r *ForSaleRepositoryImpl) Delete(ctx context.Context, tx db.Tx, id uuid.UUID) error {
-	// Product carries no selling lifecycle/status (Stage 3 cleanup dropped
-	// products.status / products.sold_at). Withdrawing a fixed-price sale is
-	// purely a selling-surface state change on for_sales; the Product
-	// row is untouched.
-	now := time.Now()
-	_, err := tx.Exec(ctx, `
-		UPDATE for_sales
-		SET status = 'withdrawn',
-		    withdrawn_at = $2,
-		    updated_at = $2
-		WHERE id = $1
-	`, id, now)
-	if err != nil {
-		return fmt.Errorf("withdraw fixed price sale failed: %w", err)
 	}
 
 	return nil
@@ -478,6 +466,7 @@ func joinedSaleSelectColumns() string {
 		p.farm_address_id,
 		p.preparation_time,
 		p.preparation_note,
+		p.selling_surface,
 		p.created_at,
 		p.updated_at,
 		u.id,
@@ -529,6 +518,7 @@ func scanJoinedSaleFromRow(scanner interface {
 	var productFarmAddressID *uuid.UUID
 	var productID uuid.UUID
 	var productSellerID uuid.UUID
+	var sellingSurfaceRaw *string
 	var deletedAt *time.Time
 	var userAccountStatus string
 	var userID uuid.UUID
@@ -561,6 +551,7 @@ func scanJoinedSaleFromRow(scanner interface {
 		&productFarmAddressID,
 		&sale.PreparationTime,
 		&preparationNote,
+		&sellingSurfaceRaw,
 		&productCreatedAt,
 		&productUpdatedAt,
 		&userID,
@@ -575,6 +566,11 @@ func scanJoinedSaleFromRow(scanner interface {
 		if err := json.Unmarshal(mediaURLsRaw, &mediaURLs); err != nil {
 			return nil, fmt.Errorf("unmarshal product media urls failed: %w", err)
 		}
+	}
+
+	var sellingSurface productEntity.SellingSurface
+	if sellingSurfaceRaw != nil {
+		sellingSurface = productEntity.SellingSurface(*sellingSurfaceRaw)
 	}
 
 	product := &productEntity.Product{
@@ -593,6 +589,7 @@ func scanJoinedSaleFromRow(scanner interface {
 		FarmAddressID:   productFarmAddressID,
 		PreparationTime: string(sale.PreparationTime),
 		PreparationNote: preparationNote,
+		SellingSurface:  sellingSurface,
 		CreatedAt:       productCreatedAt,
 		UpdatedAt:       productUpdatedAt,
 	}
@@ -643,6 +640,12 @@ func buildProductFromSale(for_sale *entity.ForSale) *productEntity.Product {
 	if product.CreatedAt.IsZero() {
 		product.CreatedAt = for_sale.CreatedAt
 	}
+	// INVARIANT: SellingSurface is NEVER set by buildProductFromSale.
+	// It is set exclusively by Create() (mint path) and ClaimSellingSurface()
+	// (reuse path). If the source Product already has a SellingSurface, it
+	// is preserved via the copy from for_sale.Product above. If the source
+	// Product is nil (mint path), SellingSurface defaults to zero value and
+	// is explicitly set by the caller (Create method).
 	return product
 }
 

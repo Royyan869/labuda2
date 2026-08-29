@@ -94,7 +94,6 @@ var domainTables = []string{
 	"content_likes",
 	"content_media",
 	"contents",
-	"discount_targets",
 	"discount_usages",
 	"discounts",
 	"dispute_freezes",

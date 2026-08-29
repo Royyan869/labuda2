@@ -133,7 +133,7 @@ void main() {
     expect(find.text('Like'), findsOneWidget);
   });
 
-  testWidgets('rapid repeated taps are deduped while a mutation is in flight', (
+  testWidgets('single widget deduplicates rapid taps while mutation in flight', (
     tester,
   ) async {
     final repo = _ControlledLikeRepository(
@@ -147,28 +147,20 @@ void main() {
 
     await tester.pumpWidget(
       _wrap(
-        Column(
-          children: const [
-            ContentLikeAction(
-              contentId: 'content-1',
-              contentOwnerId: 'author-1',
-              fallbackLikeCount: 4,
-            ),
-            ContentLikeAction(
-              contentId: 'content-1',
-              contentOwnerId: 'author-1',
-              fallbackLikeCount: 4,
-            ),
-          ],
+        const ContentLikeAction(
+          contentId: 'content-1',
+          contentOwnerId: 'author-1',
+          fallbackLikeCount: 4,
         ),
         likeRepository: repo,
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(ContentLikeAction).first);
+    // Tap the same widget twice rapidly — second tap should be deduped
+    await tester.tap(find.byType(ContentLikeAction));
     await tester.pump();
-    await tester.tap(find.byType(ContentLikeAction).last);
+    await tester.tap(find.byType(ContentLikeAction));
     await tester.pump();
 
     expect(repo.toggleCalls, 1);

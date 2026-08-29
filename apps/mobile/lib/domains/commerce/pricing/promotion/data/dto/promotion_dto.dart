@@ -173,7 +173,7 @@ class PromotionInstanceDto {
       id: json['id'] as String? ?? '',
       ownershipId: json['ownership_id'] as String? ?? '',
       userId: json['user_id'] as String? ?? '',
-      targetType: json['target_type'] as String? ?? 'fixed_price_sale',
+      targetType: json['target_type'] as String? ?? 'for_sale',
       targetId: json['target_id'] as String?,
       status: json['status'] as String? ?? 'inactive',
       activatedAt: json['activated_at'] != null
@@ -292,7 +292,7 @@ class PromotedItemDto {
   factory PromotedItemDto.fromJson(Map<String, dynamic> json) {
     return PromotedItemDto(
       instanceId: json['instance_id'] as String? ?? '',
-      targetType: json['target_type'] as String? ?? 'fixed_price_sale',
+      targetType: json['target_type'] as String? ?? 'for_sale',
       targetId: json['target_id'] as String?,
       externalUrl: json['external_url'] as String?,
       // Legacy inline path sends 'external_title'; public external_product
@@ -306,8 +306,8 @@ class PromotedItemDto {
   /// Whether this is an external product promotion
   bool get isExternalProduct => targetType == 'external_product';
 
-  /// Whether this is a fixed-price-sale promotion
-  bool get isFixedPriceSale => targetType == 'fixed_price_sale';
+  /// Whether this is a for-sale promotion (canonical backend wire: 'for_sale')
+  bool get isForSale => targetType == 'for_sale';
 
   /// Whether this is an auction promotion
   bool get isAuction => targetType == 'auction';

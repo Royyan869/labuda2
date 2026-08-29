@@ -514,10 +514,10 @@ class AppRouter implements NavigationHandler {
 
   // Missing NavigationHandler implementations
   @override
-  void navigateToForSaleDetail(String fixedPriceSaleId) => _currentRouter?.push(
+  void navigateToForSaleDetail(String forSaleId) => _currentRouter?.push(
     RoutePaths.forSaleDetail.replaceFirst(
-      ':fixedPriceSaleId',
-      fixedPriceSaleId,
+      ':forSaleId',
+      forSaleId,
     ),
   );
 

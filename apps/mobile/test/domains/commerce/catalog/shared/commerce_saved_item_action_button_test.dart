@@ -57,11 +57,11 @@ class _FakeSavedItemRepository extends SavedItemRepository {
     return SavedItemModel(
       id: 'saved-1',
       userId: 'user-1',
-      targetType: targetType == 'listing'
-          ? TargetType.listing
+      targetType: targetType == 'for_sale'
+          ? TargetType.forSale
           : TargetType.auction,
       targetId: targetId,
-      intentType: targetType == 'listing'
+      intentType: targetType == 'for_sale'
           ? IntentType.bookmark
           : IntentType.watch,
       createdAt: DateTime.utc(2026, 1, 1),
@@ -118,8 +118,8 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         child: const CommerceSavedItemActionButton(
-          targetType: 'listing',
-          targetId: 'listing-1',
+          targetType: 'for_sale',
+          targetId: 'for-sale-1',
           label: 'Simpan',
           activeLabel: 'Tersimpan',
           icon: Icons.bookmark_border_outlined,
@@ -146,8 +146,8 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         child: const CommerceSavedItemActionButton(
-          targetType: 'listing',
-          targetId: 'listing-1',
+          targetType: 'for_sale',
+          targetId: 'for-sale-1',
           label: 'Simpan',
           activeLabel: 'Tersimpan',
           icon: Icons.bookmark_border_outlined,
@@ -169,8 +169,8 @@ void main() {
     expect(find.byTooltip('Tersimpan'), findsOneWidget);
     expect(find.bySemanticsLabel('Tersimpan'), findsOneWidget);
     expect(repo.isSavedCalls, 1);
-    expect(repo.lastTargetType, 'listing');
-    expect(repo.lastTargetId, 'listing-1');
+    expect(repo.lastTargetType, 'for_sale');
+    expect(repo.lastTargetId, 'for-sale-1');
   });
 
   testWidgets('optimistically toggles save state and persists it', (
@@ -182,8 +182,8 @@ void main() {
       _wrap(
         child: const CommerceSavedItemActionButton(
           key: ValueKey('initial-save-toggle'),
-          targetType: 'listing',
-          targetId: 'listing-2',
+          targetType: 'for_sale',
+          targetId: 'for-sale-2',
           label: 'Simpan',
           activeLabel: 'Tersimpan',
           icon: Icons.bookmark_border_outlined,
@@ -215,8 +215,8 @@ void main() {
       _wrap(
         child: const CommerceSavedItemActionButton(
           key: ValueKey('reloaded-save-toggle'),
-          targetType: 'listing',
-          targetId: 'listing-2',
+          targetType: 'for_sale',
+          targetId: 'for-sale-2',
           label: 'Simpan',
           activeLabel: 'Tersimpan',
           icon: Icons.bookmark_border_outlined,

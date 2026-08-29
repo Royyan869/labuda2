@@ -124,8 +124,8 @@ Map<String, dynamic> _promotedItemsPayload() => {
   'promoted_items': [
     {
       'instance_id': 'inst-1',
-      'target_type': 'fixed_price_sale',
-      'target_id': 'fixed-price-sale-1',
+      'target_type': 'for_sale',
+      'target_id': 'for-sale-1',
     },
   ],
   'count': 1,
@@ -288,10 +288,10 @@ void main() {
       expect(all.count, 1);
 
       client.getPayload = _promotedItemsPayload();
-      final byType = await service.getPromotedFixedPriceSales(limit: 7);
-      expect(client.lastGetPath, '/promotions/discover/fixed_price_sale');
+      final byType = await service.getPromotedForSales(limit: 7);
+      expect(client.lastGetPath, '/promotions/discover/for_sale');
       expect(client.lastGetQuery, {'limit': '7'});
-      expect(byType.promotedItems.single.targetType, 'fixed_price_sale');
+      expect(byType.promotedItems.single.targetType, 'for_sale');
 
       client.getPayload = {
         'packages': [_packagePayload()],
