@@ -32,7 +32,10 @@ func readCommentImplFile(t *testing.T) string {
 	if err != nil {
 		t.Fatalf("cannot read comment_repository_impl.go: %v", err)
 	}
-	return string(b)
+	// Normalize CRLF to LF so source-inspection assertions are
+	// resilient to platform line-ending differences.
+	normalized := strings.ReplaceAll(string(b), "\r\n", "\n")
+	return normalized
 }
 
 // TestCommentListByTarget_AuthorLifecycleFilterInSQL verifies the F1-B1 filter

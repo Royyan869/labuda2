@@ -2,7 +2,7 @@
 //
 // This module follows the Flutter Clean-ish Architecture pattern:
 // - Domain: Entities, Repository Interfaces (pure Dart)
-// - Data: DTOs, Mappers, Datasources, Repository Implementations (Firebase, etc.)
+// - Data: Datasources, Repository Implementations
 // - Application: Notifiers, State (Riverpod)
 // - Presentation: Providers, Widgets (Flutter UI)
 //

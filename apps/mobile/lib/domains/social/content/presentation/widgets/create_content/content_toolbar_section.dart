@@ -10,7 +10,7 @@ class ContentToolbarSection extends StatelessWidget {
   final ContentMediaHandler mediaHandler;
   final List<File> selectedImages;
   final List<File> selectedVideos;
-  final List<String> taggedPeople;
+  final int taggedPeopleCount;
   final bool hasLocation;
   final Function(List<File> images, List<File> videos) onMediaAdded;
   final VoidCallback onTagPeople;
@@ -22,7 +22,7 @@ class ContentToolbarSection extends StatelessWidget {
     required this.mediaHandler,
     required this.selectedImages,
     required this.selectedVideos,
-    required this.taggedPeople,
+    required this.taggedPeopleCount,
     required this.hasLocation,
     required this.onMediaAdded,
     required this.onTagPeople,
@@ -52,7 +52,7 @@ class ContentToolbarSection extends StatelessWidget {
         onCameraTap: () => _handleCameraTap(context),
         onTagPeopleTap: onTagPeople,
         onLocationTap: onAddLocation,
-        taggedPeopleCount: taggedPeople.length,
+        taggedPeopleCount: taggedPeopleCount,
         hasLocation: hasLocation,
       ),
     );

@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/entities/post_location.dart' as loc;
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/content_metadata_sections.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_content_input.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_media_section.dart';
@@ -12,17 +11,15 @@ class ContentScrollableContent extends StatelessWidget {
   final bool isDark;
   final List<File> selectedImages;
   final List<File> selectedVideos;
-  final List<String> taggedPeople;
   final loc.PostLocation? selectedLocation;
   final List<String> hashtags;
   final Function(String) onContentChanged;
+  final ValueChanged<List<String>>? onMentionsChanged;
   final Function(int, int) onImageReorder;
   final Function(int) onImageRemove;
   final VoidCallback onVideoRemove;
-  final VoidCallback onTagPeopleEdit;
   final VoidCallback onLocationEdit;
   final VoidCallback onHashtagEdit;
-  final Function(String) onTaggedPersonRemove;
   final VoidCallback onLocationRemove;
   final Function(String) onHashtagRemove;
 
@@ -32,17 +29,15 @@ class ContentScrollableContent extends StatelessWidget {
     required this.isDark,
     required this.selectedImages,
     required this.selectedVideos,
-    required this.taggedPeople,
     required this.selectedLocation,
     required this.hashtags,
     required this.onContentChanged,
+    this.onMentionsChanged,
     required this.onImageReorder,
     required this.onImageRemove,
     required this.onVideoRemove,
-    required this.onTagPeopleEdit,
     required this.onLocationEdit,
     required this.onHashtagEdit,
-    required this.onTaggedPersonRemove,
     required this.onLocationRemove,
     required this.onHashtagRemove,
   });
@@ -59,6 +54,7 @@ class ContentScrollableContent extends StatelessWidget {
             controller: contentController,
             isDark: isDark,
             onChanged: onContentChanged,
+            onMentionsChanged: onMentionsChanged,
           ),
 
           const SizedBox(height: 16),
@@ -74,12 +70,6 @@ class ContentScrollableContent extends StatelessWidget {
           ),
 
           // Metadata Sections
-          ContentMetadataSections.buildTaggedPeopleSection(
-            taggedPeople: taggedPeople,
-            onEdit: onTagPeopleEdit,
-            onRemove: onTaggedPersonRemove,
-            isDark: isDark,
-          ),
           ContentMetadataSections.buildLocationSection(
             location: selectedLocation?.address,
             onEdit: onLocationEdit,

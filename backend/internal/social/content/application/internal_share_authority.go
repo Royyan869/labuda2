@@ -5,14 +5,14 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	commerceResponse "github.com/labuda/backend/internal/commerce/response"
 	"github.com/labuda/backend/internal/identity/auth"
 	"github.com/labuda/backend/internal/social/content/entity"
 	"github.com/labuda/backend/pkg/db"
 )
 
 const (
-	internalShareSourceEntrypointRepostEndpoint              = "repost_endpoint"
-	internalShareSourceEntrypointCreateContentShareReference = "create_content_share_reference"
+	internalShareSourceEntrypointRepostEndpoint = "repost_endpoint"
 )
 
 // internalShareAuthority owns the compatibility-layer internal share writer.
@@ -144,6 +144,22 @@ func (s *ContentService) createInternalReferenceShare(
 		return nil, err
 	}
 
+	// Commerce reference validation: ForSale and Auction targets must pass
+	// canonical existence + displayability validation before the occurrence
+	// is created. This converges Internal Share with CreateContentWithResourceOccurrence
+	// on the same canonical commerce response validator.
+	targetID := mustParseUUID(input.TargetID)
+	switch input.TargetType {
+	case entity.ShareTargetTypeForSale:
+		if err := s.validateCommerceReference(ctx, tx, commerceResponse.ResourceTypeForSale, targetID); err != nil {
+			return nil, err
+		}
+	case entity.ShareTargetTypeAuction:
+		if err := s.validateCommerceReference(ctx, tx, commerceResponse.ResourceTypeAuction, targetID); err != nil {
+			return nil, err
+		}
+	}
+
 	content := entity.NewContent(input.ActorID, input.Caption)
 	content.Visibility = entity.VisibilityPublic
 	content.City = input.City
@@ -156,7 +172,7 @@ func (s *ContentService) createInternalReferenceShare(
 	occurrence := &entity.ContentResourceOccurrenceIdentity{
 		Operation:    entity.ContentResourceOccurrenceOperationShareToFeed,
 		ResourceType: shareTargetTypeToOccurrenceType(input.TargetType),
-		ResourceID:   mustParseUUID(input.TargetID),
+		ResourceID:   targetID,
 	}
 	if err := createContentResourceOccurrence(ctx, tx, s.contentRepo, entity.NewContentResourceOccurrence(content.ID, input.ActorID, occurrence)); err != nil {
 		return nil, fmt.Errorf("create content occurrence failed: %w", err)

@@ -42,45 +42,21 @@ class ContentMapper {
       authorLifecycle: ContentLifecycleParse.fromWire(dto.authorLifecycle),
       media: dto.media.map(_mapMediaEntity).toList(),
       tags: dto.tags,
-      taggedUsers: dto.taggedUsers,
-      mentionedUserIds: [], // Not provided by API, extract from content text
+      mentionedUserIds: dto.mentionedUserIds,
       settings: ContentSettings(
         visibility: _mapVisibility(dto.visibility),
       ),
-      // C7C: engagement nullable from DTO — default to zero counts.
+      // C7C: engagement nullable from DTO — canonical fields only.
       engagement: ContentEngagement(
-        viewCount: dto.engagement?.viewCount ?? 0,
         likeCount: dto.engagement?.likeCount ?? 0,
         commentCount: dto.engagement?.commentCount ?? 0,
-        shareCount: dto.engagement?.shareCount ?? 0,
-        saveCount: dto.engagement?.saveCount ?? 0,
-        reportCount: dto.engagement?.reportCount ?? 0,
       ),
       location: dto.location != null
           ? ContentLocation(
               city: dto.location!.city,
               province: dto.location!.province,
-              country: dto.location!.country ?? 'Indonesia',
-              latitude: dto.location!.latitude,
-              longitude: dto.location!.longitude,
-              placeName: dto.location!.placeName,
             )
           : null,
-      moderationInfo: dto.moderationInfo != null
-          ? ContentModerationInfo(
-              isApproved: dto.moderationInfo!.isApproved,
-              hasBeenModerated: dto.moderationInfo!.hasBeenModerated,
-              flagCount: dto.moderationInfo!.flagCount,
-              violationCount: 0, // Not provided by API
-              detectedViolations: [], // Not provided by API
-              moderatorId: dto.moderationInfo!.moderatorId,
-              moderatedAt: dto.moderationInfo!.moderatedAt,
-              moderationNote: dto.moderationInfo!.moderationNote,
-              lastAction: dto.moderationInfo!.lastAction,
-            )
-          : const ContentModerationInfo(),
-      publishedAt: dto.publishedAt,
-      scheduledAt: dto.scheduledAt,
       createdAt: dto.createdAt,
       updatedAt: dto.updatedAt,
       // SHARE CONTRACT V1: Map share fields
@@ -102,24 +78,18 @@ class ContentMapper {
   static CreateContentDto toCreateDto(Content entity) {
     return CreateContentDto(
       content: entity.content,
-      status: _mapContentStatusToString(entity.status),
       visibility: _mapVisibilityToString(entity.settings.visibility),
       media: entity.media.isNotEmpty
           ? entity.media.map(_mapMediaToDto).toList()
           : null,
       tags: entity.tags.isNotEmpty ? entity.tags : null,
-      mentionedUserIds: entity.taggedUsers.isNotEmpty ? entity.taggedUsers : null,
+      mentionedUserIds: entity.mentionedUserIds.isNotEmpty ? entity.mentionedUserIds : null,
       location: entity.location != null
           ? ContentLocationDto(
               city: entity.location!.city,
               province: entity.location!.province,
-              country: entity.location!.country,
-              latitude: entity.location!.latitude,
-              longitude: entity.location!.longitude,
-              placeName: entity.location!.placeName,
             )
           : null,
-      scheduledAt: entity.scheduledAt,
     );
   }
 
@@ -127,24 +97,7 @@ class ContentMapper {
   static UpdateContentDto toUpdateDto(Content entity) {
     return UpdateContentDto(
       content: entity.content,
-      status: _mapContentStatusToString(entity.status),
       visibility: _mapVisibilityToString(entity.settings.visibility),
-      media: entity.media.isNotEmpty
-          ? entity.media.map(_mapMediaToDto).toList()
-          : null,
-      tags: entity.tags.isNotEmpty ? entity.tags : null,
-      taggedUsers: entity.taggedUsers.isNotEmpty ? entity.taggedUsers : null,
-      location: entity.location != null
-          ? ContentLocationDto(
-              city: entity.location!.city,
-              province: entity.location!.province,
-              country: entity.location!.country,
-              latitude: entity.location!.latitude,
-              longitude: entity.location!.longitude,
-              placeName: entity.location!.placeName,
-            )
-          : null,
-      scheduledAt: entity.scheduledAt,
     );
   }
 
@@ -171,18 +124,6 @@ class ContentMapper {
         return ContentStatus.deleted;
       default:
         return ContentStatus.active;
-    }
-  }
-
-  /// Map ContentStatus enum to backend status string
-  ///
-  /// CONTRACT: Only send canonical status values to backend
-  static String _mapContentStatusToString(ContentStatus status) {
-    switch (status) {
-      case ContentStatus.active:
-        return 'active';
-      case ContentStatus.deleted:
-        return 'deleted';
     }
   }
 

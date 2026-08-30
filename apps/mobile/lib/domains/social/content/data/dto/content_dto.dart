@@ -16,25 +16,17 @@ part 'content_dto.g.dart';
 // ============================================================================
 
 /// Create-content media request item.
+@JsonSerializable()
 class CreateContentMediaRequestDto {
   final String url;
   final String type;
 
   const CreateContentMediaRequestDto({required this.url, required this.type});
 
-  factory CreateContentMediaRequestDto.fromJson(Map<String, dynamic> json) {
-    final url = json['url'];
-    final type = json['type'];
-    if (url is! String || url.isEmpty) {
-      throw const FormatException('create content media requires url');
-    }
-    if (type is! String || type.isEmpty) {
-      throw const FormatException('create content media requires type');
-    }
-    return CreateContentMediaRequestDto(url: url, type: type);
-  }
+  factory CreateContentMediaRequestDto.fromJson(Map<String, dynamic> json) =>
+      _$CreateContentMediaRequestDtoFromJson(json);
 
-  Map<String, dynamic> toJson() => <String, dynamic>{'url': url, 'type': type};
+  Map<String, dynamic> toJson() => _$CreateContentMediaRequestDtoToJson(this);
 }
 
 /// Create content request
@@ -42,25 +34,20 @@ class CreateContentMediaRequestDto {
 class CreateContentDto {
   @JsonKey(name: 'caption')
   final String content;
-  @JsonKey(includeIfNull: false)
-  final String? status; // active | deleted (canonical status)
   final String? visibility; // public | followers_only | private
   final List<CreateContentMediaRequestDto>? media;
   final List<String>? tags;
   @JsonKey(name: 'mentioned_user_ids')
   final List<String>? mentionedUserIds;
   final ContentLocationDto? location;
-  final DateTime? scheduledAt;
 
   const CreateContentDto({
     required this.content,
-    this.status,
     this.visibility,
     this.media,
     this.tags,
     this.mentionedUserIds,
     this.location,
-    this.scheduledAt,
   });
 
   factory CreateContentDto.fromJson(Map<String, dynamic> json) {
@@ -75,24 +62,11 @@ class CreateContentDto {
 class UpdateContentDto {
   @JsonKey(name: 'caption')
   final String? content;
-  @JsonKey(includeIfNull: false)
-  final String? status;
   final String? visibility;
-  final List<CreateContentMediaRequestDto>? media;
-  final List<String>? tags;
-  final List<String>? taggedUsers;
-  final ContentLocationDto? location;
-  final DateTime? scheduledAt;
 
   const UpdateContentDto({
     this.content,
-    this.status,
     this.visibility,
-    this.media,
-    this.tags,
-    this.taggedUsers,
-    this.location,
-    this.scheduledAt,
   });
 
   factory UpdateContentDto.fromJson(Map<String, dynamic> json) {
@@ -159,20 +133,11 @@ class ContentDto {
   final List<MediaDto> media;
   @JsonKey(defaultValue: <String>[])
   final List<String> tags;
-  @JsonKey(name: 'tagged_users', defaultValue: <String>[])
-  final List<String> taggedUsers;
-
   final ContentLocationDto? location;
   // C7C: engagement always present from backend (EngagementResponse).
   // Defensive null-safe: defaults to zero counts if backend ever omits.
   final ContentEngagementDto? engagement;
-  @JsonKey(name: 'moderation_info')
-  final ContentModerationDto? moderationInfo;
 
-  @JsonKey(name: 'published_at')
-  final DateTime? publishedAt;
-  @JsonKey(name: 'scheduled_at')
-  final DateTime? scheduledAt;
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
   @JsonKey(name: 'updated_at')
@@ -181,8 +146,10 @@ class ContentDto {
   // User-specific flags
   @JsonKey(name: 'is_liked')
   final bool? isLiked;
-  @JsonKey(name: 'is_saved')
-  final bool? isSaved;
+
+  // Canonical mention relation — read from content_mentioned_users table.
+  @JsonKey(name: 'mentioned_user_ids')
+  final List<String> mentionedUserIds;
 
   // SHARE CONTRACT V1: Repost attribution fields
   @JsonKey(name: 'original_author_id')
@@ -204,16 +171,12 @@ class ContentDto {
     required this.visibility,
     required this.media,
     required this.tags,
-    required this.taggedUsers,
+    this.mentionedUserIds = const [],
     this.location,
     this.engagement,
-    this.moderationInfo,
-    this.publishedAt,
-    this.scheduledAt,
     required this.createdAt,
     required this.updatedAt,
     this.isLiked,
-    this.isSaved,
     this.originalAuthorId,
     this.resourceProjection,
   });
@@ -255,16 +218,12 @@ class ContentDto {
       visibility: base.visibility,
       media: base.media,
       tags: base.tags,
-      taggedUsers: base.taggedUsers,
+      mentionedUserIds: base.mentionedUserIds,
       location: base.location,
       engagement: base.engagement,
-      moderationInfo: base.moderationInfo,
-      publishedAt: base.publishedAt,
-      scheduledAt: base.scheduledAt,
       createdAt: base.createdAt,
       updatedAt: base.updatedAt,
       isLiked: base.isLiked,
-      isSaved: base.isSaved,
       originalAuthorId: base.originalAuthorId,
       resourceProjection: _readContentResourceProjection(json),
     );
@@ -432,18 +391,10 @@ class MediaDto {
 class ContentLocationDto {
   final String? city;
   final String? province;
-  final String? country;
-  final double? latitude;
-  final double? longitude;
-  final String? placeName;
 
   const ContentLocationDto({
     this.city,
     this.province,
-    this.country,
-    this.latitude,
-    this.longitude,
-    this.placeName,
   });
 
   factory ContentLocationDto.fromJson(Map<String, dynamic> json) =>
@@ -452,22 +403,18 @@ class ContentLocationDto {
 }
 
 /// Content engagement DTO
+///
+/// Canonical fields: likeCount, commentCount (live from backend).
+/// viewCount, shareCount, saveCount, reportCount removed — backend does not
+/// provide authoritative values for these fields on content.
 @JsonSerializable()
 class ContentEngagementDto {
-  final int viewCount;
   final int likeCount;
   final int commentCount;
-  final int shareCount;
-  final int saveCount;
-  final int reportCount;
 
   const ContentEngagementDto({
-    required this.viewCount,
-    required this.likeCount,
-    required this.commentCount,
-    required this.shareCount,
-    required this.saveCount,
-    required this.reportCount,
+    this.likeCount = 0,
+    this.commentCount = 0,
   });
 
   factory ContentEngagementDto.fromJson(Map<String, dynamic> json) =>
@@ -475,28 +422,3 @@ class ContentEngagementDto {
   Map<String, dynamic> toJson() => _$ContentEngagementDtoToJson(this);
 }
 
-/// Content moderation DTO
-@JsonSerializable()
-class ContentModerationDto {
-  final bool isApproved;
-  final bool hasBeenModerated;
-  final int flagCount;
-  final String? moderatorId;
-  final DateTime? moderatedAt;
-  final String? moderationNote;
-  final String? lastAction; // warning | content_removed | user_banned
-
-  const ContentModerationDto({
-    required this.isApproved,
-    required this.hasBeenModerated,
-    required this.flagCount,
-    this.moderatorId,
-    this.moderatedAt,
-    this.moderationNote,
-    this.lastAction,
-  });
-
-  factory ContentModerationDto.fromJson(Map<String, dynamic> json) =>
-      _$ContentModerationDtoFromJson(json);
-  Map<String, dynamic> toJson() => _$ContentModerationDtoToJson(this);
-}

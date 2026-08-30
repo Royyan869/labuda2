@@ -75,15 +75,6 @@ func (e *ErrInvalidComment) Error() string {
 	return fmt.Sprintf("invalid comment: %s", e.Reason)
 }
 
-// ErrCommerceReferenceOnPost is returned when trying to add a commerce reference to non-request content.
-type ErrCommerceReferenceOnPost struct {
-	Reason string
-}
-
-func (e *ErrCommerceReferenceOnPost) Error() string {
-	return fmt.Sprintf("commerce reference only allowed on request-type content: %s", e.Reason)
-}
-
 // NewComment creates a new normal comment.
 // PRECONDITION: body must not be empty.
 func NewComment(targetID, authorID uuid.UUID, body string) (*Comment, error) {

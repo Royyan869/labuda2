@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	commerceResponse "github.com/labuda/backend/internal/commerce/response"
 	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	infraRepo "github.com/labuda/backend/internal/interaction/chat/infrastructure/repository"
 	chatRepo "github.com/labuda/backend/internal/interaction/chat/repository"
@@ -46,17 +47,7 @@ type ChatMetrics interface {
 	RecordChatRateLimited()
 }
 
-// ForSaleChecker defines the interface for checking fixed-price sale existence.
-// This allows attachment validation without importing the full fixed-price sale domain.
-type ForSaleChecker interface {
-	GetByID(ctx context.Context, tx db.Tx, id uuid.UUID) (interface{}, error)
-}
 
-// AuctionChecker defines the interface for checking auction existence.
-// This allows attachment validation without importing the full auction domain.
-type AuctionChecker interface {
-	GetByID(ctx context.Context, tx db.Tx, id uuid.UUID) (interface{}, error)
-}
 
 // OrderOwnershipReader is the minimal order-domain contract needed to
 // validate order/room ownership before a manual order-link mutation
@@ -82,11 +73,10 @@ type Service struct {
 	outboxRepo            OutboxInserter
 	rateLimiter           *rate.RateLimiter
 	metrics               ChatMetrics           // Optional metrics collector
-	forSaleChecker ForSaleChecker // For attachment validation
-	auctionChecker        AuctionChecker        // For attachment validation
 	statusChecker         AccountStatusChecker  // Account status enforcement (service-layer authority)
 	orderReader           OrderOwnershipReader  // Order buyer/seller lookup for LinkOrderToChat authorization
 	log                   *zap.Logger           // Optional logger for warnings
+	commerceRefValidator   commerceResponse.Validator // Validates commerce resource references for display
 }
 
 // OutboxInserter defines the interface for inserting outbox events.
@@ -107,25 +97,28 @@ func NewService(
 	outboxRepo OutboxInserter,
 	rateLimiter *rate.RateLimiter,
 	metrics ChatMetrics,
-	forSaleChecker ForSaleChecker,
-	auctionChecker AuctionChecker,
 	statusChecker AccountStatusChecker,
 	orderReader OrderOwnershipReader,
 	log *zap.Logger,
 ) *Service {
 	return &Service{
-		db:                    db,
-		repo:                  repo,
-		socialRepo:            socialRepo,
-		outboxRepo:            outboxRepo,
-		rateLimiter:           rateLimiter,
-		metrics:               metrics,
-		forSaleChecker: forSaleChecker,
-		auctionChecker:        auctionChecker,
-		statusChecker:         statusChecker,
-		orderReader:           orderReader,
-		log:                   log,
+		db:            db,
+		repo:          repo,
+		socialRepo:    socialRepo,
+		outboxRepo:    outboxRepo,
+		rateLimiter:   rateLimiter,
+		metrics:       metrics,
+		statusChecker: statusChecker,
+		orderReader:   orderReader,
+		log:           log,
 	}
+}
+
+// SetCommerceReferenceValidator injects the canonical Commerce Response resource
+// reference validator. Must be called before any SendMessage requests that may
+// include commerce attachment references.
+func (s *Service) SetCommerceReferenceValidator(v commerceResponse.Validator) {
+	s.commerceRefValidator = v
 }
 
 // NewServiceWithDefaults creates a chat service with the default repository.
@@ -134,8 +127,6 @@ func NewServiceWithDefaults(
 	outboxRepo OutboxInserter,
 	rateLimiter *rate.RateLimiter,
 	metrics ChatMetrics,
-	forSaleChecker ForSaleChecker,
-	auctionChecker AuctionChecker,
 	statusChecker AccountStatusChecker,
 	orderReader OrderOwnershipReader,
 	log *zap.Logger,
@@ -147,8 +138,6 @@ func NewServiceWithDefaults(
 		outboxRepo,
 		rateLimiter,
 		metrics,
-		forSaleChecker,
-		auctionChecker,
 		statusChecker,
 		orderReader,
 		log,
@@ -1315,9 +1304,9 @@ func (s *Service) validateAttachmentReferences(
 		}
 		switch targetType {
 		case "for_sale":
-			return s.validateForSaleReferenceExists(ctx, tx, targetID)
+			return s.validateCommerceAttachment(ctx, tx, commerceResponse.ResourceTypeForSale, targetID)
 		case "auction":
-			return s.validateAuctionReferenceExists(ctx, tx, targetID)
+			return s.validateCommerceAttachment(ctx, tx, commerceResponse.ResourceTypeAuction, targetID)
 		case "post":
 			return s.validateContentReferenceExists(ctx, tx, targetID, "post", chatRepo.ErrAttachmentPostNotFound)
 		case "request":
@@ -1327,7 +1316,7 @@ func (s *Service) validateAttachmentReferences(
 		}
 
 	case "for_sale":
-		// Validate fixed-price sale exists
+		// Validate fixed-price sale with canonical Commerce Response authority
 		forSaleIDRaw, hasID := data["for_sale_id"]
 		if !hasID {
 			return nil // Missing ID should be caught by structural validation
@@ -1340,10 +1329,10 @@ func (s *Service) validateAttachmentReferences(
 		if err != nil {
 			return nil // Invalid UUID should be caught by structural validation
 		}
-		return s.validateForSaleReferenceExists(ctx, tx, forSaleID)
+		return s.validateCommerceAttachment(ctx, tx, commerceResponse.ResourceTypeForSale, forSaleID)
 
 	case "auction":
-		// Validate auction exists
+		// Validate auction with canonical Commerce Response authority
 		auctionIDRaw, hasID := data["auction_id"]
 		if !hasID {
 			return nil // Missing ID should be caught by structural validation
@@ -1356,36 +1345,42 @@ func (s *Service) validateAttachmentReferences(
 		if err != nil {
 			return nil // Invalid UUID should be caught by structural validation
 		}
-		return s.validateAuctionReferenceExists(ctx, tx, auctionID)
+		return s.validateCommerceAttachment(ctx, tx, commerceResponse.ResourceTypeAuction, auctionID)
 	}
 
 	return nil
 }
 
-func (s *Service) validateForSaleReferenceExists(ctx context.Context, tx db.Tx, forSaleID uuid.UUID) error {
-	if s.forSaleChecker == nil {
-		if s.log != nil {
-			s.log.Warn("attachment validation skipped: missing fixed-price sale checker")
-		}
-		return nil
+// validateCommerceAttachment validates that the referenced commerce resource
+// exists and is in a valid state for display/reference in chat. This is
+// displayability validation, NOT ownership authorization — any user may reference
+// any displayable commerce resource. Ownership and capability authority remain
+// in the commerce domain.
+//
+// FAIL-CLOSED: if commerceRefValidator is not wired, returns an explicit
+// configuration error rather than silently allowing the attachment.
+func (s *Service) validateCommerceAttachment(
+	ctx context.Context, tx db.Tx,
+	resourceType commerceResponse.ResourceType,
+	resourceID uuid.UUID,
+) error {
+	if s.commerceRefValidator == nil {
+		return fmt.Errorf("commerce resource validator not configured: commerce attachment rejected")
 	}
-	_, err := s.forSaleChecker.GetByID(ctx, tx, forSaleID)
-	if err != nil {
-		return chatRepo.ErrAttachmentForSaleNotFound
-	}
-	return nil
-}
 
-func (s *Service) validateAuctionReferenceExists(ctx context.Context, tx db.Tx, auctionID uuid.UUID) error {
-	if s.auctionChecker == nil {
-		if s.log != nil {
-			s.log.Warn("attachment validation skipped: missing auction checker")
-		}
-		return nil
-	}
-	_, err := s.auctionChecker.GetByID(ctx, tx, auctionID)
+	err := s.commerceRefValidator.ValidateReference(ctx, tx, resourceType, resourceID)
 	if err != nil {
-		return chatRepo.ErrAttachmentAuctionNotFound
+		switch err {
+		case commerceResponse.ErrResourceNotFound:
+			if resourceType == commerceResponse.ResourceTypeForSale {
+				return chatRepo.ErrAttachmentForSaleNotFound
+			}
+			return chatRepo.ErrAttachmentAuctionNotFound
+		case commerceResponse.ErrResourceNotDisplayable:
+			return chatRepo.ErrResourceNotPromotable
+		default:
+			return err
+		}
 	}
 	return nil
 }

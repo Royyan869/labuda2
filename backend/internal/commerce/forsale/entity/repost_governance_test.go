@@ -3,8 +3,9 @@ package entity
 // Repost governance regression lock for ForSaleStatus.IsRepostable()
 // and ForSale.MarkActiveFromModeration().
 //
-// FIX-1 (2026-05-28): validateForSaleTarget() in content_service now rejects
-// any status that is not active. IsRepostable() is the single source of truth.
+// FIX-1 (2026-05-28): ContentService.validateCommerceReference() (via
+// commerceResponse.Validator) rejects any status that is not active.
+// IsRepostable() is the single source of truth.
 //
 // FIX-5 (2026-05-28): ForSale.MarkActiveFromModeration() bypasses the state
 // machine to restore moderation-withdrawn for_sales. Sold inventory is rejected.

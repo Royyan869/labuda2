@@ -292,10 +292,6 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Status badge
-        Row(children: [_buildStatusBadge(content.status)]),
-        const SizedBox(height: 16),
-
         // Author info
         _buildAuthorInfo(context, content),
         const SizedBox(height: 16),
@@ -341,35 +337,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     );
   }
 
-  Widget _buildStatusBadge(ContentStatus status) {
-    late final Color badgeColor;
-    final String label = status.displayName;
 
-    switch (status) {
-      case ContentStatus.active:
-        badgeColor = Colors.green;
-        break;
-      case ContentStatus.deleted:
-        badgeColor = Colors.red;
-        break;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: badgeColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: badgeColor,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
 
   Widget _buildAuthorInfo(BuildContext context, Content content) {
     // E6 — Author identity lifecycle redaction. Independent from content
@@ -524,13 +492,6 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
         const SizedBox(height: 12),
         Row(
           children: [
-            // View count removed - not tracked by backend
-            // _buildEngagementItem(
-            //   context,
-            //   icon: Icons.visibility_outlined,
-            //   label: 'Views',
-            //   value: content.engagement.viewCount.toString(),
-            // ),
             const SizedBox(width: 24),
             // Like button - now tappable using canonical Like system
             _buildLikeEngagementItem(

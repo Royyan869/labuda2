@@ -1,37 +1,22 @@
-/// Create Content Screen
-///
-/// Presentation layer - UI untuk membuat konten post.
-/// Mendukung CREATE mode dengan fitur lengkap.
-library;
-
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/entities/post_location.dart' as loc;
-import 'package:labuda/domains/social/content/presentation/widgets/content_media_handler.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_type_visibility_header.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_modals.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_submission_handler.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_event_handlers.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_toolbar_section.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_scrollable_content.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_app_bar.dart';
+import 'package:labuda/domains/social/content/presentation/widgets/content_media_handler.dart';
+import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_event_handlers.dart';
+import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_modals.dart';
+import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_scrollable_content.dart';
+import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_submission_handler.dart';
+import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_toolbar_section.dart';
+import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_type_visibility_header.dart';
 import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
+import 'package:labuda/shared/entities/post_location.dart' as loc;
+import 'package:labuda/shared/widgets/user_search_bottom_sheet.dart';
 
-/// Create Content Screen
-///
-/// Supports CREATE mode
-/// Features:
-/// - Universal content composer (no content-kind selector)
-/// - Visibility (Public/Followers/Private)
-/// - Media upload (images/videos)
-/// - Tag people
-/// - Add location
-/// - Hashtags (auto-detect)
-/// - Link items (Listing/Auction)
 class CreateContentScreen extends ConsumerStatefulWidget {
   const CreateContentScreen({super.key});
 
@@ -45,8 +30,9 @@ class _CreateContentScreenState extends ConsumerState<CreateContentScreen> {
   final _formKey = GlobalKey<FormState>();
   final List<File> _selectedImages = [];
   final List<File> _selectedVideos = [];
-  final List<String> _taggedPeople = [];
   final List<String> _hashtags = [];
+  final List<String> _mentionedUserIds = [];
+  List<String> _captionMentionedUserIds = [];
   loc.PostLocation? _selectedLocation;
   String _postVisibility = 'Public';
   bool _isSubmitting = false;
@@ -65,7 +51,6 @@ class _CreateContentScreenState extends ConsumerState<CreateContentScreen> {
         _contentController.text.trim().isNotEmpty ||
         _selectedImages.isNotEmpty ||
         _selectedVideos.isNotEmpty ||
-        _taggedPeople.isNotEmpty ||
         _selectedLocation != null;
     if (_hasUnsavedChanges != hasContent) {
       setState(() => _hasUnsavedChanges = hasContent);
@@ -113,19 +98,18 @@ class _CreateContentScreenState extends ConsumerState<CreateContentScreen> {
                   isDark: isDark,
                   selectedImages: _selectedImages,
                   selectedVideos: _selectedVideos,
-                  taggedPeople: _taggedPeople,
                   selectedLocation: _selectedLocation,
                   hashtags: _hashtags,
                   onContentChanged: _handleContentChanged,
+                  onMentionsChanged: (ids) {
+                    setState(() => _captionMentionedUserIds = ids);
+                  },
                   onImageReorder: _handleImageReorder,
                   onImageRemove: (index) =>
                       setState(() => _selectedImages.removeAt(index)),
                   onVideoRemove: () => setState(() => _selectedVideos.clear()),
-                  onTagPeopleEdit: _handleTagPeople,
                   onLocationEdit: _handleAddLocation,
                   onHashtagEdit: _handleAddHashtag,
-                  onTaggedPersonRemove: (p) =>
-                      setState(() => _taggedPeople.remove(p)),
                   onLocationRemove: () =>
                       setState(() => _selectedLocation = null),
                   onHashtagRemove: (h) =>
@@ -136,7 +120,7 @@ class _CreateContentScreenState extends ConsumerState<CreateContentScreen> {
                 mediaHandler: _mediaHandler,
                 selectedImages: _selectedImages,
                 selectedVideos: _selectedVideos,
-                taggedPeople: _taggedPeople,
+                taggedPeopleCount: _mentionedUserIds.length,
                 hasLocation: _selectedLocation != null,
                 onMediaAdded: (images, videos) {
                   setState(() {
@@ -184,20 +168,6 @@ class _CreateContentScreenState extends ConsumerState<CreateContentScreen> {
     }
   }
 
-  void _handleTagPeople() async {
-    final ids = await ContentEventHandlers.handleTagPeople(
-      context: context,
-      alreadyTaggedPeople: _taggedPeople,
-    );
-    if (ids != null && ids.isNotEmpty) {
-      setState(() {
-        _taggedPeople.clear();
-        _taggedPeople.addAll(ids);
-      });
-      _onContentChanged();
-    }
-  }
-
   void _handleAddLocation() async {
     final loc = await ContentEventHandlers.handleAddLocation(
       context: context,
@@ -205,6 +175,21 @@ class _CreateContentScreenState extends ConsumerState<CreateContentScreen> {
     );
     if (loc != null) {
       setState(() => _selectedLocation = loc);
+      _onContentChanged();
+    }
+  }
+
+  void _handleTagPeople() async {
+    final ids = await UserSearchBottomSheet.show(
+      context: context,
+      alreadyTaggedUserIds: _mentionedUserIds,
+      maxSelections: 50,
+    );
+    if (ids != null && ids.isNotEmpty) {
+      setState(() {
+        _mentionedUserIds.clear();
+        _mentionedUserIds.addAll(ids);
+      });
       _onContentChanged();
     }
   }
@@ -268,7 +253,10 @@ class _CreateContentScreenState extends ConsumerState<CreateContentScreen> {
           selectedVideos: _selectedVideos,
           content: _contentController.text,
           hashtags: _hashtags,
-          taggedPeople: _taggedPeople,
+          mentionedUserIds: {
+            ..._mentionedUserIds,
+            ..._captionMentionedUserIds,
+          }.toList(),
           postVisibility: _postVisibility,
           selectedLocation: _selectedLocation,
           container: ref.container,

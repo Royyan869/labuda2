@@ -1,25 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:labuda/core/src/config/google_config.dart';
-import 'package:labuda/shared/widgets/user_search_bottom_sheet.dart';
 import 'package:labuda/shared/widgets/interactive_map_picker_bottom_sheet.dart';
 import 'package:labuda/shared/entities/post_location.dart' as loc;
 import 'package:labuda/domains/social/content/presentation/widgets/content_media_handler.dart';
 
 /// Handles events for create post screen
 class ContentEventHandlers {
-  /// Handle tag people action
-  static Future<List<String>?> handleTagPeople({
-    required BuildContext context,
-    required List<String> alreadyTaggedPeople,
-  }) async {
-    return await UserSearchBottomSheet.show(
-      context: context,
-      alreadyTaggedUserIds: alreadyTaggedPeople,
-      maxSelections: 50,
-    );
-  }
-
   /// Handle add location action
   static Future<loc.PostLocation?> handleAddLocation({
     required BuildContext context,

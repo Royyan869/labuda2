@@ -132,7 +132,7 @@ func (unusedContentRepository) GetForUpdate(ctx context.Context, tx interface{},
 func (unusedContentRepository) Update(ctx context.Context, tx interface{}, content *contentEntity.Content) error {
 	panic("unusedContentRepository.Update: should not be called by GetAppeal")
 }
-func (unusedContentRepository) ListByAuthor(ctx context.Context, tx interface{}, authorID uuid.UUID, limit int, cursor string) ([]*contentEntity.Content, string, error) {
+func (unusedContentRepository) ListByAuthor(ctx context.Context, tx interface{}, authorID uuid.UUID, viewerID uuid.UUID, limit int, cursor string) ([]*contentEntity.Content, string, error) {
 	panic("unusedContentRepository.ListByAuthor: should not be called by GetAppeal")
 }
 func (unusedContentRepository) GetMedia(ctx context.Context, tx interface{}, contentID uuid.UUID) ([]*contentEntity.ContentMedia, error) {

@@ -49,7 +49,7 @@ func (r *moderationRestoreRepo) Update(ctx context.Context, tx interface{}, cont
 	return nil
 }
 
-func (r *moderationRestoreRepo) ListByAuthor(ctx context.Context, tx interface{}, authorID uuid.UUID, limit int, cursor string) ([]*entity.Content, string, error) {
+func (r *moderationRestoreRepo) ListByAuthor(ctx context.Context, tx interface{}, authorID uuid.UUID, viewerID uuid.UUID, limit int, cursor string) ([]*entity.Content, string, error) {
 	return nil, "", nil
 }
 
@@ -63,6 +63,14 @@ func (r *moderationRestoreRepo) GetTagsByContentID(ctx context.Context, tx inter
 
 func (r *moderationRestoreRepo) InsertTags(ctx context.Context, tx interface{}, contentID uuid.UUID, tags []string) error {
 	return nil
+}
+
+func (r *moderationRestoreRepo) InsertMentionedUsers(ctx context.Context, tx interface{}, contentID uuid.UUID, userIDs []uuid.UUID) error {
+	return nil
+}
+
+func (r *moderationRestoreRepo) GetMentionedUserIDs(ctx context.Context, tx interface{}, contentID uuid.UUID) ([]uuid.UUID, error) {
+	return []uuid.UUID{}, nil
 }
 
 func newModerationRestoreService(content *entity.Content) (*ContentService, *moderationRestoreRepo) {

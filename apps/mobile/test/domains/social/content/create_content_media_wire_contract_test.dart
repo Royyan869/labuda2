@@ -24,13 +24,10 @@ Content _contentWithMedia() {
       ),
     ],
     tags: const ['koi'],
-    taggedUsers: const [],
-    mentionedUserIds: const [],
     settings: const ContentSettings(
       visibility: ContentVisibility.public,
     ),
     engagement: const ContentEngagement(),
-    moderationInfo: const ContentModerationInfo(),
     createdAt: DateTime.utc(2026, 8, 11),
     updatedAt: DateTime.utc(2026, 8, 11),
   );

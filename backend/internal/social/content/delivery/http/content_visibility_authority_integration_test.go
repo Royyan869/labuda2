@@ -866,22 +866,22 @@ func TestUpdateContent_PreservesCanonicalResourceOccurrenceOnCaptionOnlyUpdate(t
 	targetID := seedVisibilityHTTPUser(t, ctx, appDB, "active")
 
 	var contentID uuid.UUID
-	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		content, err := handler.contentService.CreateContentWithResourceOccurrence(
-			ctx,
-			tx,
-			userID,
-			"occurrence target",
-			contententity.VisibilityPublic,
-			nil,
-			nil,
-			&contententity.ContentResourceOccurrenceIdentity{
-				Operation:    contententity.ContentResourceOccurrenceOperationShareToFeed,
-				ResourceType: contententity.ContentResourceOccurrenceResourceTypeProfile,
-				ResourceID:   targetID,
-			},
-			nil,
-		)
+	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {			content, err := handler.contentService.CreateContentWithResourceOccurrence(
+				ctx,
+				tx,
+				userID,
+				"occurrence target",
+				contententity.VisibilityPublic,
+				nil,
+				nil,
+				&contententity.ContentResourceOccurrenceIdentity{
+					Operation:    contententity.ContentResourceOccurrenceOperationShareToFeed,
+					ResourceType: contententity.ContentResourceOccurrenceResourceTypeProfile,
+					ResourceID:   targetID,
+				},
+				nil,
+				nil,
+			)
 		if err != nil {
 			return err
 		}

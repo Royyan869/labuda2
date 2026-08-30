@@ -38,27 +38,32 @@ class ContentSubmissionHandler {
     final mediaEntities = <MediaEntity>[];
     final s3Service = container.read(s3ServiceProvider);
 
-    // Upload images using canonical MediaEntity upload method
+    // Upload images using canonical MediaEntity upload method.
+    // Abort on first failure — partial media is not a valid content.
     for (final image in selectedImages) {
       final result = await s3Service.uploadImageWithBlurhash(image);
-      if (result.isSuccess) mediaEntities.add(result.data!);
+      if (!result.isSuccess) {
+        throw Exception('Image upload failed: ${result.error}');
+      }
+      mediaEntities.add(result.data!);
     }
 
-    // Upload videos and create MediaEntity from URL
+    // Upload videos and create MediaEntity from URL.
+    // Abort on first failure — partial media is not a valid content.
     for (final video in selectedVideos) {
       final result = await s3Service.uploadVideo(video);
-      if (result.isSuccess) {
-        // Create MediaEntity from uploaded video URL
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        mediaEntities.add(
-          MediaEntity(
-            id: timestamp.toString(),
-            originalUrl: result.data!,
-            type: MediaType.video,
-            createdAt: DateTime.now(),
-          ),
-        );
+      if (!result.isSuccess) {
+        throw Exception('Video upload failed: ${result.error}');
       }
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      mediaEntities.add(
+        MediaEntity(
+          id: timestamp.toString(),
+          originalUrl: result.data!,
+          type: MediaType.video,
+          createdAt: DateTime.now(),
+        ),
+      );
     }
 
     return mediaEntities;
@@ -73,7 +78,7 @@ class ContentSubmissionHandler {
     required List<File> selectedVideos,
     required String content,
     required List<String> hashtags,
-    required List<String> taggedPeople,
+    required List<String> mentionedUserIds,
     required String postVisibility,
     required loc.PostLocation? selectedLocation,
     required ProviderContainer container,
@@ -119,7 +124,7 @@ class ContentSubmissionHandler {
         content: content.trim(),
         media: uploadedMedia,
         tags: hashtags,
-        taggedUsers: taggedPeople,
+        mentionedUserIds: mentionedUserIds,
         settings: ContentSettings(
           visibility: visibility,
         ),
@@ -127,9 +132,6 @@ class ContentSubmissionHandler {
             ? ContentLocation(
                 city: selectedLocation.address,
                 province: null,
-                country: 'Indonesia',
-                latitude: selectedLocation.latitude,
-                longitude: selectedLocation.longitude,
               )
             : null,
       );

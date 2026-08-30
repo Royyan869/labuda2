@@ -216,8 +216,6 @@ var (
 	// application layer for resource-occurrence authorization decisions.
 	ErrResourceNotFound        = errorString("resource not found")
 	ErrResourceNotAccessible   = errorString("resource not accessible")
-	ErrNotResourceOwner        = errorString("not resource owner")
-	ErrMarketAuthorityRequired = errorString("market authority required")
 	ErrResourceNotPromotable   = errorString("resource not promotable")
 )
 

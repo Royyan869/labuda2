@@ -702,8 +702,9 @@ type CreateCommerceReferenceRequest struct {
 // CreateCommerceReferenceComment handles POST /api/v1/contents/{id}/comments/reference
 //
 // Authorization:
-// - Only sellers can add commerce reference comments
-// - Backend enforces ownership and market authority
+// - Any active user can add commerce reference comments
+// - Backend validates commerce resource existence and displayability
+// - Any user may reference any displayable commerce resource
 //
 // Requires Idempotency-Key header for safe retries.
 func (h *CommentHandler) CreateCommerceReferenceComment(c *gin.Context) {
@@ -799,10 +800,6 @@ func (h *CommentHandler) CreateCommerceReferenceComment(c *gin.Context) {
 
 		// Check for specific errors
 		if _, ok := err.(*entity.ErrInvalidComment); ok {
-			response.BadRequest(c, "Invalid request")
-			return
-		}
-		if _, ok := err.(*entity.ErrCommerceReferenceOnPost); ok {
 			response.BadRequest(c, "Invalid request")
 			return
 		}

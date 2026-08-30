@@ -465,10 +465,6 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
         return;
       }
 
-      // Canonical chat share uses a ShareReference objectReference, not the
-      // legacy idempotencyKey/resourceOccurrence pair. The latter were
-      // removed from ChatDetail.sendMessage in the ChatResourceOccurrence
-      // convergence — build a ShareReference from the ShareTarget.
       final shareReference = _shareTargetToShareReference(widget.target);
       final result = await ref
           .read(chatDetailProvider(chat.id).notifier)

@@ -7,8 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
-	forSaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
+	commerceResponse "github.com/labuda/backend/internal/commerce/response"
 	"github.com/labuda/backend/internal/identity/auth"
 	"github.com/labuda/backend/internal/social/content/entity"
 	contentrepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
@@ -25,6 +24,7 @@ type ContentService struct {
 	ownership              *auth.OwnershipValidator
 	invariantLogger        InvariantLogger // Logs invariant violations for monitoring
 	internalShareAuthority internalShareAuthority
+	commerceRefValidator   commerceResponse.Validator // Validates commerce resource references for display
 }
 
 type contentResourceOccurrenceWriter interface {
@@ -56,6 +56,13 @@ func NewContentService(
 	return svc
 }
 
+// SetCommerceReferenceValidator injects the canonical Commerce Response resource
+// reference validator. Must be called before any CreateContentWithResourceOccurrence
+// requests that reference ForSale or Auction resources.
+func (s *ContentService) SetCommerceReferenceValidator(v commerceResponse.Validator) {
+	s.commerceRefValidator = v
+}
+
 // CreateContent creates a new active content.
 // AUTHORIZATION: Any active user can create content.
 // ENFORCES: Caption must not be empty.
@@ -66,53 +73,13 @@ func (s *ContentService) CreateContent(
 	tx db.Tx,
 	callerID uuid.UUID,
 	caption string,
-	args ...any,
+	visibility entity.Visibility,
+	city *string,
+	province *string,
+	originalAuthorID *uuid.UUID,
+	tags []string,
+	mentionedUserIDs []uuid.UUID,
 ) (*entity.Content, error) {
-	visibility := entity.VisibilityPublic
-	var city *string
-	var province *string
-	var originalAuthorID *uuid.UUID
-	var tags []string
-
-	switch {
-	case len(args) >= 5:
-		if v, ok := args[0].(entity.Visibility); ok {
-			visibility = v
-		}
-		if v, ok := args[1].(*string); ok {
-			city = v
-		}
-		if v, ok := args[2].(*string); ok {
-			province = v
-		}
-		if v, ok := args[3].(*uuid.UUID); ok {
-			originalAuthorID = v
-		}
-		if v, ok := args[4].([]string); ok {
-			tags = v
-		}
-	default:
-		if len(args) > 0 {
-			if v, ok := args[0].(*string); ok {
-				city = v
-			}
-		}
-		if len(args) > 1 {
-			if v, ok := args[1].(*string); ok {
-				province = v
-			}
-		}
-		if len(args) > 2 {
-			if v, ok := args[2].(*uuid.UUID); ok {
-				originalAuthorID = v
-			}
-		}
-		if len(args) > 3 {
-			if v, ok := args[3].([]string); ok {
-				tags = v
-			}
-		}
-	}
 
 	// Validate caller
 	if err := auth.ValidateCaller(callerID); err != nil {
@@ -154,6 +121,33 @@ func (s *ContentService) CreateContent(
 		}
 	}
 
+	// Persist mentioned users — validate each user ID exists, then insert.
+	// Deterministic: if any mentioned user ID is invalid, creation fails.
+	// The transaction rolls back content creation if mention persistence fails.
+	if len(mentionedUserIDs) > 0 {
+		validIDs := make([]uuid.UUID, 0, len(mentionedUserIDs))
+		for _, uid := range mentionedUserIDs {
+			if uid == uuid.Nil {
+				continue
+			}
+			if tx != nil {
+				var exists bool
+				if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)`, uid).Scan(&exists); err != nil {
+					return nil, fmt.Errorf("mention validation failed for user %s: %w", uid, err)
+				}
+				if !exists {
+					return nil, fmt.Errorf("mentioned user %s does not exist", uid)
+				}
+			}
+			validIDs = append(validIDs, uid)
+		}
+		if len(validIDs) > 0 {
+			if err := s.contentRepo.InsertMentionedUsers(ctx, tx, content.ID, validIDs); err != nil {
+				return nil, fmt.Errorf("mention persistence failed: %w", err)
+			}
+		}
+	}
+
 	return content, nil
 }
 
@@ -169,6 +163,7 @@ func (s *ContentService) CreateContentWithResourceOccurrence(
 	province *string,
 	occurrence *entity.ContentResourceOccurrenceIdentity,
 	tags []string,
+	mentionedUserIDs []uuid.UUID,
 ) (*entity.Content, error) {
 	if err := auth.ValidateCaller(callerID); err != nil {
 		return nil, err
@@ -195,39 +190,56 @@ func (s *ContentService) CreateContentWithResourceOccurrence(
 		return nil, fmt.Errorf("resource id is required")
 	}
 	if occurrence != nil {
+		// Commerce Response authorization (ForSale / Auction) is delegated to
+		// the canonical Commerce Response boundary for direct_commerce_insert_content
+		// operations. Non-commerce resource types and share_to_feed operations
+		// retain their own validation.
 		if occurrence.Operation == entity.ContentResourceOccurrenceOperationDirectCommerceInsertContent {
-			if s.roleChecker == nil {
-				return nil, auth.ErrMarketAuthorityRequired
+			switch occurrence.ResourceType {
+			case entity.ContentResourceOccurrenceResourceTypeForSale:
+				if err := s.validateCommerceReference(ctx, tx, commerceResponse.ResourceTypeForSale, occurrence.ResourceID); err != nil {
+					return nil, err
+				}
+			case entity.ContentResourceOccurrenceResourceTypeAuction:
+				if err := s.validateCommerceReference(ctx, tx, commerceResponse.ResourceTypeAuction, occurrence.ResourceID); err != nil {
+					return nil, err
+				}
+			case entity.ContentResourceOccurrenceResourceTypeContent:
+				if err := s.validateContentTarget(ctx, tx, occurrence.ResourceID.String()); err != nil {
+					return nil, err
+				}
+			case entity.ContentResourceOccurrenceResourceTypeProfile:
+				if err := s.validateProfileTarget(ctx, tx, occurrence.ResourceID.String()); err != nil {
+					return nil, err
+				}
+			default:
+				return nil, fmt.Errorf("invalid resource type for direct commerce insert: %s", occurrence.ResourceType)
+			}			} else {
+				// share_to_feed and other non-commerce operations: validate resource
+				// existence and displayability. Commerce resource types (ForSale, Auction)
+				// route through the canonical Commerce Response validator. Non-commerce
+				// types use their own validation.
+				switch occurrence.ResourceType {
+				case entity.ContentResourceOccurrenceResourceTypeContent:
+					if err := s.validateContentTarget(ctx, tx, occurrence.ResourceID.String()); err != nil {
+						return nil, err
+					}
+				case entity.ContentResourceOccurrenceResourceTypeForSale:
+					if err := s.validateCommerceReference(ctx, tx, commerceResponse.ResourceTypeForSale, occurrence.ResourceID); err != nil {
+						return nil, err
+					}
+				case entity.ContentResourceOccurrenceResourceTypeAuction:
+					if err := s.validateCommerceReference(ctx, tx, commerceResponse.ResourceTypeAuction, occurrence.ResourceID); err != nil {
+						return nil, err
+					}
+				case entity.ContentResourceOccurrenceResourceTypeProfile:
+					if err := s.validateProfileTarget(ctx, tx, occurrence.ResourceID.String()); err != nil {
+						return nil, err
+					}
+				default:
+					return nil, fmt.Errorf("invalid resource type: %s", occurrence.ResourceType)
+				}
 			}
-			ok, capErr := s.roleChecker.HasActiveSellerCapability(ctx, callerID)
-			if capErr != nil {
-				return nil, capErr
-			}
-			if !ok {
-				return nil, auth.ErrMarketAuthorityRequired
-			}
-		}
-
-		switch occurrence.ResourceType {
-		case entity.ContentResourceOccurrenceResourceTypeContent:
-			if err := s.validateContentTarget(ctx, tx, occurrence.ResourceID.String()); err != nil {
-				return nil, err
-			}
-		case entity.ContentResourceOccurrenceResourceTypeForSale:
-			if err := s.validateForSaleTarget(ctx, tx, occurrence.ResourceID.String()); err != nil {
-				return nil, err
-			}
-		case entity.ContentResourceOccurrenceResourceTypeAuction:
-			if err := s.validateAuctionTarget(ctx, tx, occurrence.ResourceID.String()); err != nil {
-				return nil, err
-			}
-		case entity.ContentResourceOccurrenceResourceTypeProfile:
-			if err := s.validateProfileTarget(ctx, tx, occurrence.ResourceID.String()); err != nil {
-				return nil, err
-			}
-		default:
-			return nil, fmt.Errorf("invalid resource type: %s", occurrence.ResourceType)
-		}
 	}
 
 	content := entity.NewContent(callerID, caption)
@@ -255,6 +267,31 @@ func (s *ContentService) CreateContentWithResourceOccurrence(
 		}
 	}
 
+	// Persist mentioned users — same deterministic contract as CreateContent.
+	if len(mentionedUserIDs) > 0 {
+		validIDs := make([]uuid.UUID, 0, len(mentionedUserIDs))
+		for _, uid := range mentionedUserIDs {
+			if uid == uuid.Nil {
+				continue
+			}
+			if tx != nil {
+				var exists bool
+				if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)`, uid).Scan(&exists); err != nil {
+					return nil, fmt.Errorf("mention validation failed for user %s: %w", uid, err)
+				}
+				if !exists {
+					return nil, fmt.Errorf("mentioned user %s does not exist", uid)
+				}
+			}
+			validIDs = append(validIDs, uid)
+		}
+		if len(validIDs) > 0 {
+			if err := s.contentRepo.InsertMentionedUsers(ctx, tx, content.ID, validIDs); err != nil {
+				return nil, fmt.Errorf("mention persistence failed: %w", err)
+			}
+		}
+	}
+
 	return content, nil
 }
 
@@ -277,67 +314,31 @@ func (s *ContentService) validateContentTarget(
 	return nil
 }
 
-// validateForSaleTarget validates that a fixed-price sale exists and is in a shareable state
-func (s *ContentService) validateForSaleTarget(
+// validateCommerceReference validates that the referenced commerce resource
+// exists and is in a valid state for display/reference. This is displayability
+// validation, NOT ownership authorization — any user may reference any displayable
+// commerce resource. Ownership and capability authority remain in the commerce domain.
+func (s *ContentService) validateCommerceReference(
 	ctx context.Context,
 	tx db.Tx,
-	forSaleID string,
+	resourceType commerceResponse.ResourceType,
+	resourceID uuid.UUID,
 ) error {
-	// for_sales has no deleted_at; lifecycle is managed via status only.
-	// withdrawn/sold/draft statuses are all rejected by IsRepostable() below.
-	query := `
-		SELECT id, status
-		FROM for_sales
-		WHERE id = $1
-	`
-
-	var id uuid.UUID
-	var status string
-
-	err := tx.QueryRow(ctx, query, forSaleID).Scan(&id, &status)
-	if err != nil {
-		return shareTargetNotFoundError("fixed-price sale", forSaleID, err)
+	if s.commerceRefValidator == nil {
+		// Fallback: canonical validator not wired. Return an explicit error
+		// rather than silently passing.
+		return fmt.Errorf("commerce resource validator not configured")
 	}
-
-	// Reject unless active — only active fixed-price sales are repostable.
-	// Sold, withdrawn, draft, and unknown statuses are all rejected.
-	// fixed-price sale status is the single source of truth.
-	forSaleStatus := forSaleEntity.ForSaleStatus(status)
-	if !forSaleStatus.IsRepostable() {
-		return shareTargetStatusError("fixed-price sale", status, forSaleID)
+	if err := s.commerceRefValidator.ValidateReference(ctx, tx, resourceType, resourceID); err != nil {
+		switch err {
+		case commerceResponse.ErrResourceNotFound:
+			return shareTargetNotFoundError(string(resourceType), resourceID.String(), err)
+		case commerceResponse.ErrResourceNotDisplayable:
+			return shareTargetStatusError(string(resourceType), "invalid", resourceID.String())
+		default:
+			return err
+		}
 	}
-
-	return nil
-}
-
-// validateAuctionTarget validates that an auction exists and is in a shareable state
-func (s *ContentService) validateAuctionTarget(
-	ctx context.Context,
-	tx db.Tx,
-	auctionID string,
-) error {
-	query := `
-		SELECT id, status
-		FROM auctions
-		WHERE id = $1
-	`
-
-	var id uuid.UUID
-	var status string
-	err := tx.QueryRow(ctx, query, auctionID).Scan(&id, &status)
-	if err != nil {
-		return shareTargetNotFoundError("auction", auctionID, err)
-	}
-
-	// Reject unless scheduled or active — only open/upcoming auctions are repostable.
-	// Terminal states (ended, cancelled, expired_bnr, waiting_settlement) and
-	// draft are all rejected. auctionEntity.Status.IsRepostable() is the single
-	// source of truth; the old "closed" check was wrong (no such status exists).
-	auctionStatus := auctionEntity.Status(status)
-	if !auctionStatus.IsRepostable() {
-		return shareTargetStatusError("auction", status, auctionID)
-	}
-
 	return nil
 }
 
@@ -610,10 +611,11 @@ func (s *ContentService) ListByAuthor(
 	ctx context.Context,
 	tx db.Tx,
 	authorID uuid.UUID,
+	viewerID uuid.UUID,
 	limit int,
 	cursor string,
 ) ([]*entity.Content, string, error) {
-	return s.contentRepo.ListByAuthor(ctx, tx, authorID, limit, cursor)
+	return s.contentRepo.ListByAuthor(ctx, tx, authorID, viewerID, limit, cursor)
 }
 
 // GetContentMedia retrieves all media for a content.
@@ -699,6 +701,16 @@ func (s *ContentService) IsLiked(
 	userID, contentID uuid.UUID,
 ) (bool, error) {
 	return s.likeRepo.ExistsLike(ctx, tx, contentID, userID)
+}
+
+// GetMentionedUserIDs retrieves the canonical mentioned user IDs for a content item.
+// Returns an empty slice when the content has no mentions.
+func (s *ContentService) GetMentionedUserIDs(
+	ctx context.Context,
+	tx db.Tx,
+	contentID uuid.UUID,
+) ([]uuid.UUID, error) {
+	return s.contentRepo.GetMentionedUserIDs(ctx, tx, contentID)
 }
 
 // ============================================================================

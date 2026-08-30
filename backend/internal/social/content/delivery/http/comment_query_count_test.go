@@ -86,7 +86,6 @@ func newQcEnv(t *testing.T) *qcEnv {
 		nil, // outboxRepo
 		nil, // idempotencyRepo
 		nil, // blockChecker
-		nil, // sellerCapabilityChecker
 		nil, // invariantLogger
 	)
 	handler := NewCommentHandler(commentService, contentService, tracedDB, zap.NewNop())

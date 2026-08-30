@@ -43,10 +43,8 @@ Future<void> openCommerceChat({
 
   if (chat == null) return;
 
-  // Commerce reference creation is now handled via chat context at room
-  // creation (getOrCreateChat context) or via message resourceOccurrence.
-  // The legacy createCommerceReference endpoint no longer exists in
-  // ChatApiDatasource — navigate directly without a referenceId.
+  // Commerce reference is handled via chat context at room creation
+  // or via message objectReference. Navigate directly without a referenceId.
   final queryParameters = <String, String>{};
   if (autoOpenNegotiation) {
     queryParameters['action'] = 'negotiate';

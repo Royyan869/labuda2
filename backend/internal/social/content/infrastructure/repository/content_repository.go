@@ -29,8 +29,10 @@ type ContentRepository interface {
 	Update(ctx context.Context, tx interface{}, content *entity.Content) error
 
 	// ListByAuthor retrieves content by author ID with cursor-based pagination.
-	// Returns active, non-deleted content by the author.
-	ListByAuthor(ctx context.Context, tx interface{}, authorID uuid.UUID, limit int, cursor string) ([]*entity.Content, string, error)
+	// Returns active, non-deleted content by the author, filtered by viewer-aware
+	// visibility: owner sees all; followers see public+followers_only; strangers
+	// see public only. Pass uuid.Nil as viewerID for anonymous callers.
+	ListByAuthor(ctx context.Context, tx interface{}, authorID uuid.UUID, viewerID uuid.UUID, limit int, cursor string) ([]*entity.Content, string, error)
 
 	// GetMedia retrieves all media for a content.
 	GetMedia(ctx context.Context, tx interface{}, contentID uuid.UUID) ([]*entity.ContentMedia, error)
@@ -43,4 +45,12 @@ type ContentRepository interface {
 	// Each tag string is stored as-is (caller responsible for normalisation).
 	// Idempotent: duplicate (content_id, hashtag) rows are ignored via ON CONFLICT DO NOTHING.
 	InsertTags(ctx context.Context, tx interface{}, contentID uuid.UUID, tags []string) error
+
+	// InsertMentionedUsers persists mentioned user IDs for a content item within a transaction.
+	// Each user ID is validated to exist by the caller. Duplicate pairs are ignored via ON CONFLICT DO NOTHING.
+	InsertMentionedUsers(ctx context.Context, tx interface{}, contentID uuid.UUID, userIDs []uuid.UUID) error
+
+	// GetMentionedUserIDs retrieves mentioned user IDs for a content item.
+	// Returns an empty (non-nil) slice when the content has no mentions.
+	GetMentionedUserIDs(ctx context.Context, tx interface{}, contentID uuid.UUID) ([]uuid.UUID, error)
 }

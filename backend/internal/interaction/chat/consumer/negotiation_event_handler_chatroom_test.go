@@ -179,7 +179,7 @@ func buildNegotiationLinkageTestHandler(t *testing.T, repo *negotiationFakeChatR
 		&negotiationFakeSocialRepo{},
 		&negotiationFakeOutbox{},
 		rate.NewRateLimiter(),
-		nil, nil, nil, nil, nil,
+		nil, nil, nil,
 		zap.NewNop(),
 	)
 	return NewNegotiationEventHandler(&negotiationFakeTransactor{}, svc, zap.NewNop())

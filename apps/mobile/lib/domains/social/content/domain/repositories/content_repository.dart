@@ -23,7 +23,7 @@ abstract class ContentRepository {
     required String content,
     List<MediaEntity> media = const [],
     List<String> tags = const [],
-    List<String> taggedUsers = const [],
+    List<String> mentionedUserIds = const [],
     ContentSettings settings = const ContentSettings(),
     ContentLocation? location,
   });

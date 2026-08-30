@@ -158,9 +158,6 @@ class CommentNotifier extends _$CommentNotifier {
   }
 
   /// Create a new comment
-  ///
-  /// NOTE: mediaUrls and attachment are NOT supported in V1.
-  /// These parameters exist for future compatibility only.
   Future<Result<Comment>> createComment({
     required String targetId,
     required CommentTargetType targetType,

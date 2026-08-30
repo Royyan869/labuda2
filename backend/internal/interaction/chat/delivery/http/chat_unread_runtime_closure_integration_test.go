@@ -112,8 +112,6 @@ func newUnreadIntegrationFixture(t *testing.T) *unreadIntegrationFixture {
 		nil,
 		nil,
 		nil,
-		nil,
-		nil,
 		zap.NewNop(),
 	)
 
@@ -390,8 +388,6 @@ func TestChatUnreadRuntimeClosure_PostgresBacked(t *testing.T) {
 			socialInfraRepo.NewSocialRepository(),
 			&recordingUnreadOutbox{},
 			rate.NewRateLimiter(),
-			nil,
-			nil,
 			nil,
 			nil,
 			nil,

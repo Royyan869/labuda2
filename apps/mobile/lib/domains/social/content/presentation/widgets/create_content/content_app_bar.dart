@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
 
 /// Custom AppBar for create post screen
 class ContentAppBar extends StatelessWidget implements PreferredSizeWidget {

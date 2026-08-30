@@ -49,41 +49,30 @@ class _StubNativeShareService implements NativeShareService {
   }
 
   @override
-  Future<Either<ShareFailure, bool>> shareToInstagramStory({
-    required String imageUrl,
-  }) async {
-    return Left(ShareFailure.unknown('unused'));
-  }
-
-  @override
-  Future<Either<ShareFailure, bool>> shareToTelegram({
-    required String text,
-  }) async {
-    return Left(ShareFailure.unknown('unused'));
-  }
-
-  @override
-  Future<Either<ShareFailure, bool>> shareToWhatsApp({
-    required String text,
-  }) async {
-    return Left(ShareFailure.unknown('unused'));
-  }
-
-  @override
   Future<Either<ShareFailure, bool>> shareViaDialog({
     required String text,
     String? subject,
-  }) async {
-    return Left(ShareFailure.unknown('unused'));
-  }
+  }) async => Right(true);
 
   @override
   Future<Either<ShareFailure, bool>> shareViaEmail({
     required String subject,
     required String body,
-  }) async {
-    return Left(ShareFailure.unknown('unused'));
-  }
+  }) async => Right(true);
+
+  @override
+  Future<Either<ShareFailure, bool>> shareViaWhatsApp({
+    required String text,
+    String? phoneNumber,
+  }) async => Right(true);
+
+  @override
+  Future<Either<ShareFailure, bool>> shareViaInstagram({
+    required String text,
+  }) async => Right(true);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _RecordingShareApiDatasource extends ShareApiDatasource {
@@ -96,32 +85,21 @@ class _RecordingShareApiDatasource extends ShareApiDatasource {
     required String originalContentId,
     required String authorId,
     String? caption,
-    required String originalAuthorId,
-    required String originalContentTitle,
+    String? originalAuthorId,
+    String? originalContentTitle,
     String? originalContentImageURL,
+    String? targetType,
+    String? targetId,
   }) async {
     lastCall = 'createRepost';
     return <String, dynamic>{'id': 'repost-id'};
-  }
-
-  @override
-  Future<Map<String, dynamic>> createShareReferencePost({
-    required String authorId,
-    String? authorUsername,
-    String? authorAvatarUrl,
-    required String content,
-    required ShareTarget target,
-    List<String> mediaUrls = const [],
-  }) async {
-    lastCall = 'createShareReferencePost';
-    return <String, dynamic>{'id': 'shared-id'};
   }
 }
 
 void main() {
   group('share sheet rewire contract', () {
     test(
-      'createShareReferencePost rewires non-content shares to canonical create-content route',
+      'createRepost sends target_type and target_id for non-content shares',
       () async {
         final client = _RecordingApiClient();
         final datasource = ShareApiDatasource(client);
@@ -151,36 +129,28 @@ void main() {
         ];
 
         for (final target in cases) {
-          await datasource.createShareReferencePost(
+          await datasource.createRepost(
+            originalContentId: target.id,
             authorId: 'user-1',
-            content: 'Shared caption',
-            target: target,
+            caption: 'Shared caption',
+            originalContentTitle: target.title,
+            originalContentImageURL: target.imageUrl,
+            targetType: target.type.name == 'listing'
+                ? 'for_sale'
+                : target.type.name,
+            targetId: target.id,
           );
 
-          expect(client.lastPostPath, '/contents');
+          expect(client.lastPostPath, '/contents/${target.id}/repost');
           final body = client.lastPostData as Map<String, dynamic>;
           expect(body['caption'], 'Shared caption');
-          expect(body['type'], 'post');
-          expect(body['visibility'], 'public');
-          expect(body.containsKey('allow_comments'), isFalse);
-
-          final shareReference =
-              body['share_reference'] as Map<String, dynamic>;
-          expect(shareReference['targetType'], target.type.name);
-          expect(shareReference['targetId'], target.id);
-
-          final preview = shareReference['preview'] as Map<String, dynamic>;
-          expect(preview['title'], target.title);
-          expect(preview['imageUrl'], target.imageUrl);
-          expect(preview['isAvailable'], isTrue);
-          expect(preview['isSold'], isFalse);
-          expect(preview['isClosed'], isFalse);
-          expect(preview['isDeleted'], isFalse);
+          expect(body['target_type'], isNotNull);
+          expect(body['target_id'], target.id);
         }
       },
     );
 
-    test('shareAsPost keeps post/request on canonical repost writer', () async {
+    test('shareAsPost routes ALL share types through createRepost', () async {
       final datasource = _RecordingShareApiDatasource();
       final repo = ShareRepositoryApi(
         datasource: datasource,
@@ -190,17 +160,20 @@ void main() {
       final cases = <ExternalShareType>[
         ExternalShareType.post,
         ExternalShareType.request,
+        ExternalShareType.listing,
+        ExternalShareType.auction,
+        ExternalShareType.profile,
       ];
 
       for (final type in cases) {
         datasource.lastCall = null;
         final result = await repo.shareAsPost(
           target: ShareTarget(
-            id: 'content-1',
+            id: '${type.name}-1',
             type: type,
-            title: 'Content title',
-            description: 'Content description',
-            imageUrl: 'https://img.example/content.jpg',
+            title: '${type.name} title',
+            description: '${type.name} description',
+            imageUrl: 'https://img.example/${type.name}.jpg',
           ),
           authorId: 'author-1',
           caption: 'Caption',
@@ -214,45 +187,6 @@ void main() {
         expect(datasource.lastCall, 'createRepost');
       }
     });
-
-    test(
-      'shareAsPost rewires listing/auction/profile to createShareReferencePost',
-      () async {
-        final datasource = _RecordingShareApiDatasource();
-        final repo = ShareRepositoryApi(
-          datasource: datasource,
-          nativeShareService: _StubNativeShareService(),
-        );
-
-        final cases = <ExternalShareType>[
-          ExternalShareType.listing,
-          ExternalShareType.auction,
-          ExternalShareType.profile,
-        ];
-
-        for (final type in cases) {
-          datasource.lastCall = null;
-          final result = await repo.shareAsPost(
-            target: ShareTarget(
-              id: '${type.name}-1',
-              type: type,
-              title: '${type.name} title',
-              description: '${type.name} description',
-              imageUrl: 'https://img.example/${type.name}.jpg',
-            ),
-            authorId: 'author-1',
-            caption: 'Caption',
-          );
-
-          result.fold(
-            (failure) => fail('unexpected failure: ${failure.message}'),
-            (value) => expect(value, 'shared-id'),
-          );
-
-          expect(datasource.lastCall, 'createShareReferencePost');
-        }
-      },
-    );
 
     test('sendToChat remains unimplemented', () async {
       final repo = ShareRepositoryApi(

@@ -1,35 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/tagged_users_chips.dart';
 
-/// Content Metadata Sections - Display tagged people, location, hashtags, linked items
+/// Content Metadata Sections - Display location, hashtags
 ///
 /// Reusable section widgets for displaying post metadata
 class ContentMetadataSections {
-  /// Build tagged people section
-  static Widget buildTaggedPeopleSection({
-    required List<String> taggedPeople,
-    required VoidCallback onEdit,
-    required Function(String) onRemove,
-    required bool isDark,
-  }) {
-    if (taggedPeople.isEmpty) return const SizedBox.shrink();
-
-    return _buildSection(
-      icon: Icons.group,
-      iconColor: AppColors.primaryGreen,
-      title: 'Tagged People',
-      isDark: isDark,
-      onEdit: onEdit,
-      content: TaggedUsersChips(
-        taggedUserIds: taggedPeople,
-        onTap: onEdit,
-        onRemove: onRemove,
-        readOnly: false,
-      ),
-    );
-  }
-
   /// Build location section
   static Widget buildLocationSection({
     required String? location,

@@ -66,26 +66,6 @@ class LikeRepositoryImpl implements LikeRepository {
     );
   }
 
-  @override
-  Future<Result<bool>> hasUserLiked({
-    required String targetId,
-    required LikeTargetType targetType,
-    required String userId,
-  }) async {
-    _logger?.info('Checking if user $userId liked $targetType: $targetId');
-
-    final result = await getLikeStats(
-      targetId: targetId,
-      targetType: targetType,
-      currentUserId: userId,
-    );
-
-    return result.fold(
-      (error) => Result.error(error),
-      (stats) => Result.success(stats.isLikedByCurrentUser),
-    );
-  }
-
   // ===========================================
   // REAL-TIME STREAMS (POLLING-BASED)
   // ===========================================

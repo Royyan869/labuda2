@@ -1069,6 +1069,11 @@ residue dari desain sebelumnya
 
 Sementara yang belum terbukti obsolete tidak boleh disentuh sembarangan.
 
+PRINCIPLE:
+Setiap residu/dead code/zombie implementation yang terbukti obsolete WAJIB dihapus.
+"Masih dipakai" bukan alasan cukup. Trace business purpose dan authority-nya.
+"Deprecated tapi masih aktif" WAJIB diselesaikan statusnya.
+
 # Prinsip yang dikunci
 
 Jika ditemukan desain yang rumit tapi sebenarnya bisa dibuat sederhana tanpa mengurangi nilai bisnis

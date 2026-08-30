@@ -1,14 +1,9 @@
 // Share Repository API Implementation
 // Implements ShareRepository using Go Backend API
-//
-// HONESTY CLEANUP v1:
-// - Share tracking calls removed - backend does not implement /social/shares endpoints
-// - Only canonical repost flow is preserved
 
 import 'package:dartz/dartz.dart';
 import 'package:labuda/core/api/api.dart';
 import 'package:labuda/domains/social/share/data/datasources/share_api_datasource.dart';
-import 'package:labuda/domains/social/share/data/dto/share_dto.dart';
 import 'package:labuda/domains/social/share/data/remote/native_share_service.dart';
 import 'package:labuda/domains/social/share/domain/domain.dart';
 
@@ -86,52 +81,33 @@ class ShareRepositoryApi implements ShareRepository {
     }
 
     try {
-      // SHARE CONTRACT V1: Use repost endpoint for content-type shares
-      // Universal content share flow enabled
-      if (target.type == ExternalShareType.post ||
-          target.type == ExternalShareType.request) {
-        // For post and request shares, use the canonical repost endpoint
-        final content = caption?.trim().isEmpty ?? true ? '' : caption!.trim();
+      // SHARE CONTRACT V1: Single canonical path for ALL share types.
+      // All shares go through POST /contents/{id}/repost.
+      // Content shares: target_type=content (implicit from repost endpoint).
+      // Non-content shares: target_type + target_id for backend routing.
+      final content = caption?.trim().isEmpty ?? true ? '' : caption!.trim();
 
-        final response = await _datasource.createRepost(
-          originalContentId: target.id,
-          authorId: authorId,
-          caption: content.isEmpty ? null : content,
-          originalAuthorId: '', // Backend will fetch from original content
-          originalContentTitle: target.title,
-          originalContentImageURL: target.imageUrl,
+      // Map ExternalShareType to backend ShareTargetType
+      final backendTargetType = _mapToBackendTargetType(target.type);
+
+      final response = await _datasource.createRepost(
+        originalContentId: target.id,
+        authorId: authorId,
+        caption: content.isEmpty ? null : content,
+        originalContentTitle: target.title,
+        originalContentImageURL: target.imageUrl,
+        targetType: backendTargetType,
+        targetId: target.id,
+      );
+
+      final postId = response['id'] as String?;
+      if (postId == null || postId.isEmpty) {
+        return Left(
+          ShareFailure.unknown('Failed to get post ID from response'),
         );
-
-        final postId = response['id'] as String?;
-        if (postId == null || postId.isEmpty) {
-          return Left(
-            ShareFailure.unknown('Failed to get post ID from response'),
-          );
-        }
-
-        return Right(postId);
-      } else {
-        // For non-content shares (auction, contest, etc), use legacy method
-        final content = caption?.trim().isEmpty ?? true
-            ? ShareMapper.generateDefaultCaption(target)
-            : caption!.trim();
-
-        final response = await _datasource.createShareReferencePost(
-          authorId: authorId,
-          content: content,
-          target: target,
-          mediaUrls: target.imageUrl != null ? [target.imageUrl!] : [],
-        );
-
-        final postId = response['id'] as String?;
-        if (postId == null || postId.isEmpty) {
-          return Left(
-            ShareFailure.unknown('Failed to get post ID from response'),
-          );
-        }
-
-        return Right(postId);
       }
+
+      return Right(postId);
     } on ApiException catch (e) {
       return Left(ShareFailure.network(e.message));
     } catch (e) {
@@ -201,6 +177,21 @@ class ShareRepositoryApi implements ShareRepository {
 
       case ShareDestinationType.sendToChat:
         return Left(ShareFailure.invalidDestination('Use sendToChat instead'));
+    }
+  }
+
+  /// Map mobile ExternalShareType to backend ShareTargetType.
+  String _mapToBackendTargetType(ExternalShareType type) {
+    switch (type) {
+      case ExternalShareType.post:
+      case ExternalShareType.request:
+        return 'content';
+      case ExternalShareType.listing:
+        return 'for_sale';
+      case ExternalShareType.auction:
+        return 'auction';
+      case ExternalShareType.profile:
+        return 'profile';
     }
   }
 }

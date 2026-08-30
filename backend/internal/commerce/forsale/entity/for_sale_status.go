@@ -128,7 +128,7 @@ func (s ForSaleStatus) String() string {
 // and any unknown status are not repostable.
 //
 // This is the single source of truth for the repost creation gate
-// (content_service.validateForSaleTarget) and the read-side governance filter
+// (commerceResponse.Validator via content_service.validateCommerceReference) and the read-side governance filter
 // (feed/search SQL NOT EXISTS checks for targetType='for_sale').
 func (s ForSaleStatus) IsRepostable() bool {
 	return s == ForSaleStatusActive

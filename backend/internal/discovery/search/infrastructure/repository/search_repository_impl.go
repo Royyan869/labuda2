@@ -321,6 +321,8 @@ func (r *SearchRepositoryImpl) SearchContent(ctx context.Context, tx db.Tx, filt
 		  -- forSale/auction search where suspended seller inventory is preserved).
 		  -- account_status enum: 'active'|'suspended'|'banned'. Deletion = deleted_at IS NOT NULL.
 		  AND u.account_status = 'active' AND u.deleted_at IS NULL
+		  -- V-VISIBILITY: search only surfaces public content.
+		  AND c.visibility = 'public'
 		  -- SEARCH REPOST GOVERNANCE: exclude reposts whose target is no longer available.
 		  -- Short-circuits on NULL original_author_id (non-reposts, most rows).
 		  -- FIX-1 (2026-05-15): content-type reposts
@@ -447,6 +449,8 @@ func (r *SearchRepositoryImpl) SearchContent(ctx context.Context, tx db.Tx, filt
 		WHERE c.status = 'active' AND c.deleted_at IS NULL AND c.is_hidden = false
 		  -- F1-B1 (2026-06-14): mirrors base query author lifecycle filter.
 		  AND u.account_status = 'active' AND u.deleted_at IS NULL
+		  -- V-VISIBILITY: search only surfaces public content.
+		  AND c.visibility = 'public'
 		  -- SEARCH REPOST GOVERNANCE (count query mirrors base query — FIX-1/3/4)
 		  AND NOT (
 		    c.original_author_id IS NOT NULL

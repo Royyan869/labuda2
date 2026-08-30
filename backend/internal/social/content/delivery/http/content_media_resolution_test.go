@@ -1,26 +1,19 @@
 package http
 
 import (
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/platform/mediaresolve"
-	"github.com/labuda/backend/internal/platform/s3presign"
 	"github.com/labuda/backend/internal/social/content/entity"
 )
 
-func TestToContentResponse_ResolvesLegacyRawBucketMedia(t *testing.T) {
-	mediaresolve.SetDefaultConfig(mediaresolve.Config{
-		PresignCfg: s3presign.Config{
-			Region:    "us-east-1",
-			AccessKey: "test-access-key",
-			SecretKey: "test-secret-key",
-			Bucket:    "labuda-uploads",
-		},
-		ReadTTL: time.Minute,
-	})
+func TestToContentResponse_PassesThroughMediaURL(t *testing.T) {
+	// MEDIA RESOLUTION V2: ToContentResponse passes media URLs through
+	// without resolution. Legacy S3 bucket URL resolution now happens in
+	// the projection layer (content_resource_projection_resolver.go via
+	// resolveMediaRefs). This test verifies the current pass-through
+	// contract.
 
 	content := &entity.Content{
 		ID:         uuid.New(),
@@ -42,13 +35,10 @@ func TestToContentResponse_ResolvesLegacyRawBucketMedia(t *testing.T) {
 	if len(resp.Media) != 1 {
 		t.Fatalf("media length = %d; want 1", len(resp.Media))
 	}
-	if resp.Media[0].URL == media[0].MediaURL {
-		t.Fatalf("media url = %q; want resolved read URL", resp.Media[0].URL)
-	}
-	if !strings.Contains(resp.Media[0].URL, "content/photo.jpg") {
-		t.Fatalf("media url = %q; want object key path", resp.Media[0].URL)
-	}
-	if !strings.Contains(resp.Media[0].URL, "X-Amz-Signature=") {
-		t.Fatalf("media url = %q; want presigned GET URL", resp.Media[0].URL)
+
+	// ToContentResponse passes the URL through without resolution.
+	// Resolution is handled by the projection layer.
+	if resp.Media[0].URL != media[0].MediaURL {
+		t.Fatalf("media url = %q; want pass-through URL %q", resp.Media[0].URL, media[0].MediaURL)
 	}
 }

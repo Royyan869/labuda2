@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -10,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	chatRepo "github.com/labuda/backend/internal/interaction/chat/repository"
+	commerceResponse "github.com/labuda/backend/internal/commerce/response"
 	socialRepo "github.com/labuda/backend/internal/social/graph"
 	"github.com/labuda/backend/pkg/db"
 )
@@ -50,10 +49,6 @@ func (m *mockAttachmentRow) Scan(dest ...any) error {
 
 type mockAttachmentSocialRepo struct {
 	existsBlockFn func(ctx context.Context, tx interface{}, userA, userB uuid.UUID) (bool, error)
-}
-
-type mockAttachmentChecker struct {
-	getByIDFn func(ctx context.Context, tx db.Tx, id uuid.UUID) (interface{}, error)
 }
 
 func (m *mockAttachmentSocialRepo) InsertFollow(context.Context, interface{}, uuid.UUID, uuid.UUID) error {
@@ -127,21 +122,25 @@ func (m *mockAttachmentSocialRepo) ListBlocked(context.Context, interface{}, uui
 	return nil, nil
 }
 
-func (m *mockAttachmentChecker) GetByID(
-	ctx context.Context,
-	tx db.Tx,
-	id uuid.UUID,
-) (interface{}, error) {
-	if m.getByIDFn != nil {
-		return m.getByIDFn(ctx, tx, id)
+// mockCommerceRefValidator implements commerceResponse.Validator for tests.
+type mockCommerceRefValidator struct {
+	pass bool // true = resource exists + displayable; false = not found
+}
+
+func (m *mockCommerceRefValidator) ValidateReference(_ context.Context, _ db.Tx, _ commerceResponse.ResourceType, _ uuid.UUID) error {
+	if m.pass {
+		return nil
 	}
-	return struct{}{}, nil
+	return commerceResponse.ErrResourceNotFound
 }
 
 var _ db.Tx = (*mockAttachmentTx)(nil)
 var _ socialRepo.SocialRepository = (*mockAttachmentSocialRepo)(nil)
-var _ ForSaleChecker = (*mockAttachmentChecker)(nil)
-var _ AuctionChecker = (*mockAttachmentChecker)(nil)
+var _ commerceResponse.Validator = (*mockCommerceRefValidator)(nil)
+
+// =====================================================================
+// Allows valid references (any user can reference any displayable resource)
+// =====================================================================
 
 func TestValidateAttachmentReferences_AllowsCanonicalForSaleAuctionPostRequestReferences(t *testing.T) {
 	senderID := uuid.MustParse("00000000-0000-0000-0000-000000000040")
@@ -149,17 +148,11 @@ func TestValidateAttachmentReferences_AllowsCanonicalForSaleAuctionPostRequestRe
 	auctionID := uuid.MustParse("00000000-0000-0000-0000-000000000042")
 	contentID := uuid.MustParse("00000000-0000-0000-0000-000000000043")
 
+	// Validator passes — resource exists and is displayable.
+	mockValidator := &mockCommerceRefValidator{pass: true}
+
 	service := &Service{
-		forSaleChecker: &mockAttachmentChecker{
-			getByIDFn: func(context.Context, db.Tx, uuid.UUID) (interface{}, error) {
-				return struct{}{}, nil
-			},
-		},
-		auctionChecker: &mockAttachmentChecker{
-			getByIDFn: func(context.Context, db.Tx, uuid.UUID) (interface{}, error) {
-				return struct{}{}, nil
-			},
-		},
+		commerceRefValidator: mockValidator,
 		socialRepo: &mockAttachmentSocialRepo{
 			existsBlockFn: func(context.Context, interface{}, uuid.UUID, uuid.UUID) (bool, error) {
 				return false, nil
@@ -187,82 +180,102 @@ func TestValidateAttachmentReferences_AllowsCanonicalForSaleAuctionPostRequestRe
 		},
 	}
 
-	cases := []struct {
+	tests := []struct {
 		name       string
 		attachment map[string]interface{}
 	}{
 		{
-			name: "for_sale",
+			name: "for_sale reference",
 			attachment: map[string]interface{}{
 				"type": "reference",
 				"data": map[string]interface{}{
 					"target_type": "for_sale",
 					"target_id":   forSaleID.String(),
-					"preview": map[string]interface{}{
-						"title": "Fixed-price sale",
-					},
 				},
 			},
 		},
 		{
-			name: "auction",
+			name: "auction reference",
 			attachment: map[string]interface{}{
 				"type": "reference",
 				"data": map[string]interface{}{
 					"target_type": "auction",
 					"target_id":   auctionID.String(),
-					"preview": map[string]interface{}{
-						"title": "Auction",
-					},
 				},
 			},
 		},
 		{
-			name: "post",
+			name: "post reference",
 			attachment: map[string]interface{}{
 				"type": "reference",
 				"data": map[string]interface{}{
 					"target_type": "post",
 					"target_id":   contentID.String(),
-					"preview": map[string]interface{}{
-						"title": "Post",
-					},
 				},
 			},
 		},
 		{
-			name: "request",
+			name: "request reference",
 			attachment: map[string]interface{}{
 				"type": "reference",
 				"data": map[string]interface{}{
 					"target_type": "request",
 					"target_id":   contentID.String(),
-					"preview": map[string]interface{}{
-						"title": "Request",
-					},
 				},
 			},
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			err := service.validateAttachmentReferences(
 				context.Background(),
 				tx,
 				senderID,
-				tc.attachment,
+				tt.attachment,
 			)
 			if err != nil {
-				t.Fatalf("expected %s reference to validate, got %v", tc.name, err)
+				t.Fatalf("expected no error for %s, got: %v", tt.name, err)
 			}
 		})
 	}
 }
 
-func TestValidateAttachmentReferences_AllowsPublicProfileReference(t *testing.T) {
-	senderID := uuid.MustParse("00000000-0000-0000-0000-000000000010")
-	profileID := uuid.MustParse("00000000-0000-0000-0000-000000000011")
+func TestValidateAttachmentReferences_CommerceRefValidatorMissing_RejectsForSale(t *testing.T) {
+	forSaleID := uuid.MustParse("00000000-0000-0000-0000-000000000081")
+
+	// Service with NO commerceRefValidator wired — must fail closed.
+	service := &Service{
+		socialRepo: &mockAttachmentSocialRepo{
+			existsBlockFn: func(context.Context, interface{}, uuid.UUID, uuid.UUID) (bool, error) {
+				return false, nil
+			},
+		},
+	}
+
+	senderID := uuid.New()
+	err := service.validateAttachmentReferences(
+		context.Background(),
+		&mockAttachmentTx{},
+		senderID,
+		map[string]interface{}{
+			"type": "for_sale",
+			"data": map[string]interface{}{
+				"for_sale_id": forSaleID.String(),
+			},
+		},
+	)
+
+	if err == nil {
+		t.Fatal("expected error when commerceRefValidator is nil (fail-closed), got nil")
+	}
+	if !strings.Contains(err.Error(), "not configured") {
+		t.Fatalf("expected 'not configured' error, got: %v", err)
+	}
+}
+
+func TestValidateAttachmentReferences_CommerceRefValidatorMissing_RejectsAuction(t *testing.T) {
+	auctionID := uuid.MustParse("00000000-0000-0000-0000-000000000082")
 
 	service := &Service{
 		socialRepo: &mockAttachmentSocialRepo{
@@ -272,89 +285,102 @@ func TestValidateAttachmentReferences_AllowsPublicProfileReference(t *testing.T)
 		},
 	}
 
-	tx := &mockAttachmentTx{
-		queryRowFn: func(query string, args ...any) pgx.Row {
-			if !contains(query, "FROM users") {
-				return &mockAttachmentRow{}
-			}
-			return &mockAttachmentRow{
-				scanFn: func(dest ...any) error {
-					if len(dest) == 0 {
-						return nil
-					}
-					if idPtr, ok := dest[0].(*uuid.UUID); ok {
-						*idPtr = profileID
-					}
-					return nil
-				},
-			}
-		},
-	}
-
+	senderID := uuid.New()
 	err := service.validateAttachmentReferences(
 		context.Background(),
-		tx,
+		&mockAttachmentTx{},
 		senderID,
 		map[string]interface{}{
-			"type": "reference",
+			"type": "auction",
 			"data": map[string]interface{}{
-				"target_type": "profile",
-				"target_id":   profileID.String(),
+				"auction_id": auctionID.String(),
 			},
 		},
 	)
 
+	if err == nil {
+		t.Fatal("expected error when commerceRefValidator is nil (fail-closed), got nil")
+	}
+	if !strings.Contains(err.Error(), "not configured") {
+		t.Fatalf("expected 'not configured' error, got: %v", err)
+	}
+}
+
+func TestValidateAttachmentReferences_CommerceRefValidatorMissing_RejectsReferenceType(t *testing.T) {
+	forSaleID := uuid.MustParse("00000000-0000-0000-0000-000000000083")
+
+	service := &Service{
+		socialRepo: &mockAttachmentSocialRepo{
+			existsBlockFn: func(context.Context, interface{}, uuid.UUID, uuid.UUID) (bool, error) {
+				return false, nil
+			},
+		},
+	}
+
+	senderID := uuid.New()
+	err := service.validateAttachmentReferences(
+		context.Background(),
+		&mockAttachmentTx{},
+		senderID,
+		map[string]interface{}{
+			"type": "reference",
+			"data": map[string]interface{}{
+				"target_type": "for_sale",
+				"target_id":   forSaleID.String(),
+			},
+		},
+	)
+
+	if err == nil {
+		t.Fatal("expected error when commerceRefValidator is nil (fail-closed), got nil")
+	}
+	if !strings.Contains(err.Error(), "not configured") {
+		t.Fatalf("expected 'not configured' error, got: %v", err)
+	}
+}
+
+// =====================================================================
+// ANY USER CAN REFERENCE: displayable resources pass regardless of caller
+// =====================================================================
+
+func TestValidateAttachmentReferences_AnyUserCanReference_ForSale(t *testing.T) {
+	forSaleID := uuid.MustParse("00000000-0000-0000-0000-0000000000A1")
+
+	// Validator passes — resource exists and is displayable.
+	mockValidator := &mockCommerceRefValidator{pass: true}
+	service := &Service{
+		commerceRefValidator: mockValidator,
+		socialRepo: &mockAttachmentSocialRepo{
+			existsBlockFn: func(context.Context, interface{}, uuid.UUID, uuid.UUID) (bool, error) {
+				return false, nil
+			},
+		},
+	}
+
+	// ANY user can reference — ownership is NOT checked.
+	senderID := uuid.New()
+	err := service.validateAttachmentReferences(
+		context.Background(),
+		&mockAttachmentTx{},
+		senderID,
+		map[string]interface{}{
+			"type": "for_sale",
+			"data": map[string]interface{}{
+				"for_sale_id": forSaleID.String(),
+			},
+		},
+	)
 	if err != nil {
-		t.Fatalf("expected public profile reference to validate, got %v", err)
+		t.Fatalf("expected no error for any-user for_sale reference, got: %v", err)
 	}
 }
 
-func TestValidateAttachmentReferences_RejectsBlockedProfileReference(t *testing.T) {
-	senderID := uuid.MustParse("00000000-0000-0000-0000-000000000020")
-	profileID := uuid.MustParse("00000000-0000-0000-0000-000000000021")
-	usersQueried := false
+func TestValidateAttachmentReferences_AnyUserCanReference_Auction(t *testing.T) {
+	auctionID := uuid.MustParse("00000000-0000-0000-0000-0000000000A2")
 
+	mockValidator := &mockCommerceRefValidator{pass: true}
 	service := &Service{
-		socialRepo: &mockAttachmentSocialRepo{
-			existsBlockFn: func(context.Context, interface{}, uuid.UUID, uuid.UUID) (bool, error) {
-				return true, nil
-			},
-		},
-	}
-
-	tx := &mockAttachmentTx{
-		queryRowFn: func(query string, args ...any) pgx.Row {
-			usersQueried = usersQueried || contains(query, "FROM users")
-			return &mockAttachmentRow{}
-		},
-	}
-
-	err := service.validateAttachmentReferences(
-		context.Background(),
-		tx,
-		senderID,
-		map[string]interface{}{
-			"type": "reference",
-			"data": map[string]interface{}{
-				"target_type": "profile",
-				"target_id":   profileID.String(),
-			},
-		},
-	)
-
-	if !errors.Is(err, chatRepo.ErrAttachmentProfileNotFound) {
-		t.Fatalf("expected ErrAttachmentProfileNotFound, got %v", err)
-	}
-	if usersQueried {
-		t.Fatal("expected blocked profile to fail before profile lookup")
-	}
-}
-
-func TestValidateAttachmentReferences_RejectsMissingProfileReference(t *testing.T) {
-	senderID := uuid.MustParse("00000000-0000-0000-0000-000000000030")
-	profileID := uuid.MustParse("00000000-0000-0000-0000-000000000031")
-
-	service := &Service{
+		commerceRefValidator: mockValidator,
 		socialRepo: &mockAttachmentSocialRepo{
 			existsBlockFn: func(context.Context, interface{}, uuid.UUID, uuid.UUID) (bool, error) {
 				return false, nil
@@ -362,39 +388,30 @@ func TestValidateAttachmentReferences_RejectsMissingProfileReference(t *testing.
 		},
 	}
 
-	tx := &mockAttachmentTx{
-		queryRowFn: func(query string, args ...any) pgx.Row {
-			return &mockAttachmentRow{
-				scanFn: func(dest ...any) error {
-					return pgx.ErrNoRows
-				},
-			}
-		},
-	}
-
+	senderID := uuid.New()
 	err := service.validateAttachmentReferences(
 		context.Background(),
-		tx,
+		&mockAttachmentTx{},
 		senderID,
 		map[string]interface{}{
-			"type": "reference",
+			"type": "auction",
 			"data": map[string]interface{}{
-				"target_type": "profile",
-				"target_id":   profileID.String(),
+				"auction_id": auctionID.String(),
 			},
 		},
 	)
-
-	if !errors.Is(err, chatRepo.ErrAttachmentProfileNotFound) {
-		t.Fatalf("expected ErrAttachmentProfileNotFound, got %v", err)
+	if err != nil {
+		t.Fatalf("expected no error for any-user auction reference, got: %v", err)
 	}
 }
 
-func TestValidateAttachmentReferences_RejectsDeletedProfileReference(t *testing.T) {
-	senderID := uuid.MustParse("00000000-0000-0000-0000-000000000032")
-	profileID := uuid.MustParse("00000000-0000-0000-0000-000000000033")
+func TestValidateAttachmentReferences_RejectsNotFound_ForSale(t *testing.T) {
+	forSaleID := uuid.MustParse("00000000-0000-0000-0000-0000000000B1")
 
+	// Validator rejects: resource not found.
+	mockValidator := &mockCommerceRefValidator{pass: false}
 	service := &Service{
+		commerceRefValidator: mockValidator,
 		socialRepo: &mockAttachmentSocialRepo{
 			existsBlockFn: func(context.Context, interface{}, uuid.UUID, uuid.UUID) (bool, error) {
 				return false, nil
@@ -402,36 +419,49 @@ func TestValidateAttachmentReferences_RejectsDeletedProfileReference(t *testing.
 		},
 	}
 
-	tx := &mockAttachmentTx{
-		queryRowFn: func(query string, args ...any) pgx.Row {
-			return &mockAttachmentRow{
-				scanFn: func(dest ...any) error {
-					return pgx.ErrNoRows
-				},
-			}
-		},
-	}
-
+	senderID := uuid.New()
 	err := service.validateAttachmentReferences(
 		context.Background(),
-		tx,
+		&mockAttachmentTx{},
 		senderID,
 		map[string]interface{}{
-			"type": "reference",
+			"type": "for_sale",
 			"data": map[string]interface{}{
-				"target_type": "profile",
-				"target_id":   profileID.String(),
+				"for_sale_id": forSaleID.String(),
 			},
 		},
 	)
-
-	if !errors.Is(err, chatRepo.ErrAttachmentProfileNotFound) {
-		t.Fatalf("expected ErrAttachmentProfileNotFound, got %v", err)
+	if err == nil {
+		t.Fatal("expected rejection for not-found for_sale")
 	}
 }
 
-func contains(s, substr string) bool {
-	return strings.Contains(s, substr)
+func TestValidateAttachmentReferences_RejectsNotFound_Auction(t *testing.T) {
+	auctionID := uuid.MustParse("00000000-0000-0000-0000-0000000000B2")
+
+	mockValidator := &mockCommerceRefValidator{pass: false}
+	service := &Service{
+		commerceRefValidator: mockValidator,
+		socialRepo: &mockAttachmentSocialRepo{
+			existsBlockFn: func(context.Context, interface{}, uuid.UUID, uuid.UUID) (bool, error) {
+				return false, nil
+			},
+		},
+	}
+
+	senderID := uuid.New()
+	err := service.validateAttachmentReferences(
+		context.Background(),
+		&mockAttachmentTx{},
+		senderID,
+		map[string]interface{}{
+			"type": "auction",
+			"data": map[string]interface{}{
+				"auction_id": auctionID.String(),
+			},
+		},
+	)
+	if err == nil {
+		t.Fatal("expected rejection for not-found auction")
+	}
 }
-
-

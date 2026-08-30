@@ -16,6 +16,7 @@ import (
 	"go.uber.org/zap"
 
 	forsaleApp "github.com/labuda/backend/internal/commerce/forsale/application"
+	commerceResponse "github.com/labuda/backend/internal/commerce/response"
 	shippingrepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
 	idempotencyRepo "github.com/labuda/backend/internal/platform/idempotency/repository"
 	contentApp "github.com/labuda/backend/internal/social/content/application"
@@ -24,18 +25,10 @@ import (
 	"github.com/labuda/backend/pkg/testdb"
 )
 
-// commentCommerceCapChecker grants active seller capability for the
-// commerce-reference create path (CREATE-time market authority gate).
-type commentCommerceCapChecker struct{}
-
-func (commentCommerceCapChecker) HasActiveSellerCapability(context.Context, uuid.UUID) (bool, error) {
-	return true, nil
-}
-
 // newCommentCommerceWireHandler wires a production-shaped CommentHandler over
 // a real DB: real forSaleService (live for_sale previews), real idempotency,
-// no-op outbox, granted seller capability. contentService is the canonical
-// real ContentService instance (visibility gate dependency).
+// no-op outbox, commerce response reference validator. contentService is the
+// canonical real ContentService instance (visibility gate dependency).
 func newCommentCommerceWireHandler(appDB *db.DB) *CommentHandler {
 	contentService := contentApp.NewContentService(
 		contentrepo.NewContentRepository(),
@@ -62,9 +55,12 @@ func newCommentCommerceWireHandler(appDB *db.DB) *CommentHandler {
 		nil,                     // visibilityChecker (falls back to contentRepo)
 		commentWireTestOutbox{}, // outboxRepo (no-op)
 		idempotencyRepo.NewRepository(),
-		nil,                         // blockChecker
-		commentCommerceCapChecker{}, // sellerCapabilityChecker
-		nil,                         // invariantLogger
+		nil, // blockChecker
+		nil, // invariantLogger
+	)
+	// Wire the canonical commerce response reference validator (existence + displayability only).
+	commentService.SetCommerceReferenceValidator(
+		commerceResponse.NewValidator(forSaleSvc, nil), // nil AuctionGetter: ForSale-only tests
 	)
 	return NewCommentHandler(
 		commentService,

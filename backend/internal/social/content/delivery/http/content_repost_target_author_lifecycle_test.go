@@ -2,24 +2,26 @@ package http
 
 // F2 — Content detail repost target author lifecycle regression lock.
 //
-// Verifies that the public content-detail path uses GetContentPublic for the
-// requested row and for the repost target row, so suspended/banned/deleted
-// target authors cannot bypass visibility via a repost wrapper.
+// Verifies that the repost target author lifecycle check exists in the
+// service layer (validatePublicContentVisibility in content_service.go).
+// The check was originally in the handler (GetContentPublic for origID)
+// but was refactored into the recursive validatePublicContentVisibility
+// function which handles both the content itself and its repost target.
 
 import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
 )
 
 func TestGetContent_RepostTargetAuthorLifecycleUsesPublicLookup(t *testing.T) {
 	_, thisFile, _, _ := runtime.Caller(0)
-	handlerPath := filepath.Join(filepath.Dir(thisFile), "content_handler.go")
-	b, err := os.ReadFile(handlerPath)
+	// Check content_service.go for the recursive repost target validation
+	servicePath := filepath.Join(filepath.Dir(thisFile), "..", "..", "application", "content_service.go")
+	b, err := os.ReadFile(servicePath)
 	if err != nil {
-		t.Fatalf("cannot read content_handler.go: %v", err)
+		t.Fatalf("cannot read content_service.go: %v", err)
 	}
 	src := string(b)
 
@@ -29,26 +31,43 @@ func TestGetContent_RepostTargetAuthorLifecycleUsesPublicLookup(t *testing.T) {
 		wantMinCount int
 	}{
 		{
-			"public lookup for requested content",
-			"h.contentService.GetContentPublic(ctx, tx, contentID)",
+			"recursive repost target visibility check",
+			"s.validatePublicContentVisibility(ctx, tx, targetContent)",
 			1,
 		},
 		{
-			"public lookup for repost target",
-			"h.contentService.GetContentPublic(ctx, tx, origID)",
+			"target content existence check for reposts",
+			"s.contentRepo.GetByID(ctx, tx, targetID)",
 			1,
 		},
 	}
 
 	for _, tt := range tokens {
-		count := strings.Count(src, tt.token)
+		count := 0
+		start := 0
+		for {
+			idx := searchSubstring(src[start:], tt.token)
+			if idx < 0 {
+				break
+			}
+			count++
+			start += idx + 1
+		}
 		if count < tt.wantMinCount {
 			t.Errorf(
-				"content detail target-author token appears %d time(s) in content_handler.go, want >=%d: %s\n  token: %q",
+				"content_service.go token appears %d time(s), want >=%d: %s\n  token: %q",
 				count, tt.wantMinCount, tt.description, tt.token,
 			)
 		}
 	}
 }
 
-
+// searchSubstring is a simple substring search (no regex).
+func searchSubstring(s, substr string) int {
+	for i := 0; i+len(substr) <= len(s); i++ {
+		if s[i:i+len(substr)] == substr {
+			return i
+		}
+	}
+	return -1
+}

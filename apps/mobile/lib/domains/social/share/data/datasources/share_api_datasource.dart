@@ -1,13 +1,7 @@
 // Share API Datasource
 // HTTP operations for Share domain - Go Backend API
-//
-// HONESTY CLEANUP v1:
-// - Share tracking endpoints (/social/shares, etc.) removed - backend does not implement them
-// - Only canonical repost flow is preserved (createRepost)
-// - Native share operations (WhatsApp, Instagram, etc.) are handled by NativeShareService
 
 import 'package:labuda/core/api/api.dart';
-import '../../domain/entities/share_target.dart';
 
 /// Share API Datasource
 ///
@@ -22,28 +16,33 @@ class ShareApiDatasource {
   // Share as Post Operations (Canonical Repost Flow)
   // ==========================================================================
 
-  /// Create a repost via Content API
+  /// Create a share/repost via Content API.
   /// POST /api/v1/contents/{id}/repost
   ///
-  /// SHARE CONTRACT V1: Creates NEW Content with ShareReference
-  /// - Original author attribution is preserved via originalAuthorId
-  /// - ShareReference contains canonical reference to original content
-  /// - Source object is NOT mutated
+  /// SHARE CONTRACT V1: Single canonical path for ALL share types.
+  /// - Content shares: target_type=content, target_id=content ID
+  /// - Non-content shares (listing, auction, profile): target_type + target_id
+  /// - Backend routes through CreateInternalShare() for all target types
   Future<Map<String, dynamic>> createRepost({
     required String originalContentId,
     required String authorId,
     String? caption,
-    required String originalAuthorId,
-    required String originalContentTitle,
+    String? originalAuthorId,
+    String? originalContentTitle,
     String? originalContentImageURL,
+    String? targetType,
+    String? targetId,
   }) async {
-    final requestData = {
+    final requestData = <String, dynamic>{
       'original_content_id': originalContentId,
-      'original_author_id': originalAuthorId,
-      if (caption != null) 'caption': caption,
-      'original_content_title': originalContentTitle,
-      if (originalContentImageURL != null)
-        'original_content_image_url': originalContentImageURL,
+      if (originalAuthorId != null && originalAuthorId.isNotEmpty)
+        'original_author_id': originalAuthorId,
+      'caption': ?caption,
+      if (originalContentTitle != null && originalContentTitle.isNotEmpty)
+        'original_content_title': originalContentTitle,
+      'original_content_image_url': ?originalContentImageURL,
+      if (targetType != null) 'target_type': targetType,
+      if (targetId != null) 'target_id': targetId,
     };
 
     final response = await _apiClient.post(
@@ -51,52 +50,5 @@ class ShareApiDatasource {
       data: requestData,
     );
     return response.data['data'] as Map<String, dynamic>;
-  }
-
-  /// Create a share-reference post via Content API.
-  /// POST /api/v1/contents
-  ///
-  /// Uses the canonical CreateContent contract with share_reference for
-  /// non-content share targets.
-  @Deprecated('Use createRepost for content shares instead')
-  Future<Map<String, dynamic>> createShareReferencePost({
-    required String authorId,
-    String? authorUsername,
-    String? authorAvatarUrl,
-    required String content,
-    required ShareTarget target,
-    List<String> mediaUrls = const [],
-  }) async {
-    final requestData = <String, dynamic>{
-      'caption': content,
-      'type': 'post',
-      'visibility': 'public',
-      'share_reference': _buildShareReferencePayload(target),
-      if (mediaUrls.isNotEmpty) 'media': mediaUrls,
-    };
-
-    final response = await _apiClient.post('/contents', data: requestData);
-    return response.data['data'] as Map<String, dynamic>;
-  }
-
-  Map<String, dynamic> _buildShareReferencePayload(ShareTarget target) {
-    return {
-      'targetType': target.type.name,
-      'targetId': target.id,
-      'preview': {
-        'title': target.title,
-        if (target.imageUrl != null) 'imageUrl': target.imageUrl,
-        'isAvailable': _metadataBool(target, 'isAvailable', true),
-        'isSold': _metadataBool(target, 'isSold', false),
-        'isClosed': _metadataBool(target, 'isClosed', false),
-        'isDeleted': _metadataBool(target, 'isDeleted', false),
-      },
-    };
-  }
-
-  bool _metadataBool(ShareTarget target, String key, bool fallback) {
-    final value = target.metadata[key];
-    if (value is bool) return value;
-    return fallback;
   }
 }

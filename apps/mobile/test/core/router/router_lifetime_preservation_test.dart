@@ -454,7 +454,7 @@ class _FakeContentRepository implements ContentRepository {
     required String content,
     List<MediaEntity> media = const [],
     List<String> tags = const [],
-    List<String> taggedUsers = const [],
+    List<String> mentionedUserIds = const [],
     ContentSettings settings = const ContentSettings(),
     ContentLocation? location,
   }) async => ContentRepositoryResult.error('not used');

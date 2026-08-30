@@ -52,11 +52,6 @@ extension FeedItemMapper on FeedItemDto {
       createdAt: createdAt,
       // MEDIA INTEGRATION: Use mapped MediaEntity list from backend
       media: mediaList,
-      // Note: Backend Feed domain doesn't return engagement counts
-      // UI layer handles this by not displaying fake "0" counts
-      likes: 0,
-      comments: 0,
-      likedByUsers: const [],
       // Governance lifecycle is its own field, separate from raw status.
       // Tolerant parse: null / unknown / missing → active.
       lifecycle: ContentLifecycleParse.fromWire(lifecycle),
@@ -71,10 +66,6 @@ extension FeedItemMapper on FeedItemDto {
         originalAuthorLifecycle,
       ),
       additionalData: {
-        'title': title,
-        'caption': caption,
-        'isHidden': isHidden,
-        'status': status,
         // SHARE CONTRACT V1: Include repost attribution data
         // This enables proper canonical repost rendering
         'isRepost': isRepost,

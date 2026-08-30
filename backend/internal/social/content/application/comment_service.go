@@ -10,6 +10,7 @@ import (
 	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
 	forSaleApp "github.com/labuda/backend/internal/commerce/forsale/application"
 	forSaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
+	commerceResponse "github.com/labuda/backend/internal/commerce/response"
 	"github.com/labuda/backend/internal/identity/auth"
 	"github.com/labuda/backend/internal/platform/events"
 	idempotencyRepo "github.com/labuda/backend/internal/platform/idempotency/repository"
@@ -22,11 +23,6 @@ import (
 // BlockChecker defines the interface for checking block relationships.
 type BlockChecker interface {
 	ExistsBlock(ctx context.Context, tx interface{}, userA, userB uuid.UUID) (bool, error)
-}
-
-// SellerCapabilityChecker checks whether a caller currently has market authority.
-type SellerCapabilityChecker interface {
-	HasActiveSellerCapability(ctx context.Context, userID uuid.UUID) (bool, error)
 }
 
 // AuctionValidator validates and loads auction state for commerce references.
@@ -55,8 +51,8 @@ type CommentService struct {
 	outboxRepo              OutboxInserter
 	idempotencyRepo         *idempotencyRepo.Repository
 	blockChecker            BlockChecker // For filtering comments from blocked users
-	sellerCapabilityChecker SellerCapabilityChecker
 	invariantLogger         InvariantLogger // Logs invariant violations for monitoring
+	commerceRefValidator    commerceResponse.Validator // Validates commerce resource references for display
 }
 
 // OutboxInserter defines the interface for inserting outbox events.
@@ -97,8 +93,7 @@ func NewCommentService(
 		svc.outboxRepo, _ = extra[2].(OutboxInserter)
 		svc.idempotencyRepo, _ = extra[3].(*idempotencyRepo.Repository)
 		svc.blockChecker, _ = extra[4].(BlockChecker)
-		svc.sellerCapabilityChecker, _ = extra[5].(SellerCapabilityChecker)
-		svc.invariantLogger, _ = extra[6].(InvariantLogger)
+		svc.invariantLogger, _ = extra[5].(InvariantLogger)
 	default:
 		// Best-effort compatibility: interpret the legacy six-argument wiring
 		// or the newer ten-argument wiring when call sites drift.
@@ -122,14 +117,17 @@ func NewCommentService(
 			svc.blockChecker, _ = extra[4].(BlockChecker)
 		}
 		if len(extra) > 5 {
-			svc.sellerCapabilityChecker, _ = extra[5].(SellerCapabilityChecker)
-		}
-		if len(extra) > 6 {
-			svc.invariantLogger, _ = extra[6].(InvariantLogger)
+			svc.invariantLogger, _ = extra[5].(InvariantLogger)
 		}
 	}
 
 	return svc
+}
+
+// SetCommerceReferenceValidator injects the canonical Commerce Response resource
+// reference validator. Must be called before any AddCommerceReferenceComment requests.
+func (s *CommentService) SetCommerceReferenceValidator(v commerceResponse.Validator) {
+	s.commerceRefValidator = v
 }
 
 // CommerceReferenceInput carries the canonical commerce-reference payload.
@@ -352,11 +350,11 @@ func (s *CommentService) ListComments(
 }
 
 // AddCommerceReferenceComment adds a commerce-reference comment to a content.
-// AUTHORIZATION: Any active user with market authority can add commerce refs.
+// AUTHORIZATION: Any active user can add commerce refs.
 // ENFORCES:
 // - Cannot comment on deleted content
-// - Fixed-price sale references must point at an active sale owned by caller
-// - Auction references must point at a promotable auction owned by caller
+// - Commerce resource must exist and be displayable (active for sale, scheduled/active auction)
+// - Any user may reference any displayable commerce resource (no ownership or seller-capability gate)
 func (s *CommentService) AddCommerceReferenceComment(
 	ctx context.Context,
 	tx db.Tx,
@@ -396,14 +394,15 @@ func (s *CommentService) AddCommerceReferenceComment(
 		}
 	}
 
-	hasCapability, err := s.ensureSellerCapability(ctx, callerID)
-	if err != nil {
+	// Canonical Commerce Response validation: existence + displayability only.
+	// Any user may reference any displayable commerce resource.
+	// Ownership and capability authority remain in the commerce domain.
+	if err := s.validateCommerceReference(ctx, tx, input); err != nil {
 		return nil, err
 	}
-	if !hasCapability {
-		return nil, auth.ErrMarketAuthorityRequired
-	}
 
+	// Load the full entity for building the ShareReference response data.
+	// The canonical authority already validated; this is for response hydration.
 	var shareReference *entity.ShareReference
 	switch input.ResourceType {
 	case entity.ResourceTypeForSale:
@@ -413,13 +412,6 @@ func (s *CommentService) AddCommerceReferenceComment(
 		forSale, err := s.forSaleService.GetByID(ctx, tx, input.ResourceID)
 		if err != nil {
 			return nil, &entity.ErrInvalidComment{Reason: "fixed-price sale not found"}
-		}
-		if forSale.Status != forSaleEntity.ForSaleStatusActive {
-			return nil, &entity.ErrInvalidComment{Reason: "fixed-price sale is not active"}
-		}
-		if forSale.SellerID != callerID {
-			ForSaleOwnershipMismatchViolation(ctx, s.invariantLogger, callerID, content.ID, input.ResourceID, forSale.SellerID)
-			return nil, entity.ErrResourceNotOwned
 		}
 
 		// Product is the sole canonical authority for fixed-price sale
@@ -448,12 +440,6 @@ func (s *CommentService) AddCommerceReferenceComment(
 		auction, err := s.auctionValidator.GetAuction(ctx, tx, input.ResourceID)
 		if err != nil {
 			return nil, &entity.ErrInvalidComment{Reason: "auction not found"}
-		}
-		if auction.SellerID != callerID {
-			return nil, entity.ErrResourceNotOwned
-		}
-		if !auction.Status.IsRepostable() {
-			return nil, &entity.ErrInvalidComment{Reason: "auction must be promotable"}
 		}
 		// Product is the sole canonical authority for auction content (title,
 		// description, media). Auction never carries its own content copy.
@@ -525,16 +511,41 @@ func (s *CommentService) loadVisibleContentForComment(ctx context.Context, tx db
 	return content, nil
 }
 
-func (s *CommentService) ensureSellerCapability(ctx context.Context, userID uuid.UUID) (bool, error) {
-	if s.sellerCapabilityChecker == nil {
-		return false, auth.ErrMarketAuthorityRequired
+// validateCommerceReference validates that the referenced commerce resource
+// exists and is in a valid state for display/reference. This is displayability
+// validation, NOT ownership authorization — any user may reference any displayable
+// commerce resource. Ownership and capability authority remain in the commerce domain.
+func (s *CommentService) validateCommerceReference(
+	ctx context.Context,
+	tx db.Tx,
+	input CommerceReferenceInput,
+) error {
+	if s.commerceRefValidator == nil {
+		return fmt.Errorf("commerce resource validator not configured")
 	}
 
-	ok, err := s.sellerCapabilityChecker.HasActiveSellerCapability(ctx, userID)
-	if err != nil {
-		return false, fmt.Errorf("failed to verify seller capability: %w", err)
+	var resourceType commerceResponse.ResourceType
+	switch input.ResourceType {
+	case entity.ResourceTypeForSale:
+		resourceType = commerceResponse.ResourceTypeForSale
+	case entity.ResourceTypeAuction:
+		resourceType = commerceResponse.ResourceTypeAuction
+	default:
+		return &entity.ErrInvalidComment{Reason: "unsupported commerce resource type"}
 	}
-	return ok, nil
+
+	err := s.commerceRefValidator.ValidateReference(ctx, tx, resourceType, input.ResourceID)
+	if err != nil {
+		switch err {
+		case commerceResponse.ErrResourceNotFound:
+			return &entity.ErrInvalidComment{Reason: "commerce resource not found"}
+		case commerceResponse.ErrResourceNotDisplayable:
+			return &entity.ErrInvalidComment{Reason: "commerce resource is not valid for response"}
+		default:
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *CommentService) commerceReferenceOperationFingerprint(actorID uuid.UUID, input CommerceReferenceInput) string {

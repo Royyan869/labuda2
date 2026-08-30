@@ -1,7 +1,6 @@
 // Content Notifier
 // Application layer - Riverpod Notifier menggantikan UseCase classes
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'content_state.dart';
 import 'package:labuda/domains/social/content/data/content_providers.dart';
@@ -164,7 +163,7 @@ class ContentActions extends _$ContentActions {
     required String content,
     List<MediaEntity> media = const [],
     List<String> tags = const [],
-    List<String> taggedUsers = const [],
+    List<String> mentionedUserIds = const [],
     ContentSettings settings = const ContentSettings(),
     ContentLocation? location,
   }) async {
@@ -178,7 +177,7 @@ class ContentActions extends _$ContentActions {
       content: content,
       media: media,
       tags: tags,
-      taggedUsers: taggedUsers,
+      mentionedUserIds: mentionedUserIds,
       settings: settings,
       location: location,
     );

@@ -275,7 +275,7 @@ func TestListByAuthor_RespectsVisibilityAndExcludesHiddenAndDeleted(t *testing.T
 		_ = mustInsert(tx, contententity.VisibilityPublic, true, "active", base.Add(-3*time.Minute), "hidden")
 		_ = mustInsert(tx, contententity.VisibilityPublic, false, "deleted", base.Add(-4*time.Minute), "deleted")
 
-		got, nextCursor, err := service.ListByAuthor(ctx, tx, authorID, 20, "")
+		got, nextCursor, err := service.ListByAuthor(ctx, tx, authorID, uuid.Nil, 20, "")
 		require.NoError(t, err)
 		require.Empty(t, nextCursor)
 		require.Len(t, got, 3)

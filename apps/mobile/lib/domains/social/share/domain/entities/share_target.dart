@@ -103,9 +103,7 @@ enum ExternalShareType { post, listing, request, auction, profile }
 extension ExternalShareTypeExtension on ExternalShareType {
   /// Canonical chat wire-type for [ChatResourceOccurrenceResourceType.fromWire].
   /// Maps every [ExternalShareType] to the chat resource wire vocabulary
-  /// (profile/content/for_sale/auction). The legacy `wireTargetType` getter
-  /// was removed without updating [share_to_chat_dialog.dart] — this restores
-  /// the minimal forward mapping without recreating deleted Listing authority.
+  /// (profile/content/for_sale/auction).
   String get wireTargetType {
     switch (this) {
       case ExternalShareType.post:

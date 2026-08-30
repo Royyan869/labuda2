@@ -103,10 +103,9 @@ func TestMigration000047_SchemaStateProof(t *testing.T) {
 	require.False(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='discount_applies_to_enum' AND enumlabel='listing')`),
 		"discount_applies_to_enum must not have 'listing'")
 
-	require.True(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='chat_commerce_reference_target_type_enum' AND enumlabel='for_sale')`),
-		"chat_commerce_reference_target_type_enum must have 'for_sale'")
-	require.False(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='chat_commerce_reference_target_type_enum' AND enumlabel='fixed_price_sale')`),
-		"chat_commerce_reference_target_type_enum must not have 'fixed_price_sale'")
+	// chat_commerce_reference_target_type_enum dropped by migration 000054
+	require.False(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_type t WHERE t.typname='chat_commerce_reference_target_type_enum')`),
+		"chat_commerce_reference_target_type_enum must not exist after migration 000054")
 
 	// 6. Triggers renamed
 	require.True(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_trigger WHERE NOT tgisinternal AND tgname='trg_for_sales_permanent_exclusivity')`),

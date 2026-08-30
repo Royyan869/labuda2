@@ -83,7 +83,7 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
   FeedItem _contentToFeedItem(Content content) {
     const feedItemType = FeedItemType.content;
 
-    final additionalData = <String, dynamic>{'status': content.status.name};
+    final additionalData = <String, dynamic>{};
     if (content.isRepost) {
       additionalData['isRepost'] = true;
       additionalData['originalAuthorId'] = content.originalAuthorId;
@@ -101,11 +101,8 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
       type: feedItemType,
       createdAt: content.createdAt,
       media: content.media,
-      likes: content.engagement.likeCount,
-      comments: content.engagement.commentCount,
       additionalData: additionalData,
-      // E6/E9 — propagate author lifecycle so FeedCard can redact degraded
-      // author identities on the profile surface.
+      lifecycle: content.lifecycle,
       authorLifecycle: content.authorLifecycle,
     );
   }

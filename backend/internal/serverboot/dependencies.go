@@ -24,6 +24,7 @@ import (
 	auctionApp "github.com/labuda/backend/internal/commerce/auction/application"
 	auctionHTTP "github.com/labuda/backend/internal/commerce/auction/delivery/http"
 	auctionRepo "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
+	commerceResponse "github.com/labuda/backend/internal/commerce/response"
 	"github.com/labuda/backend/internal/config"
 	bankaccountApp "github.com/labuda/backend/internal/finance/bankaccount/application"
 	bankaccountHTTP "github.com/labuda/backend/internal/finance/bankaccount/delivery/http"
@@ -947,7 +948,7 @@ func InitServices(
 	}
 
 	chatOrderOwnershipReader := &chatOrderOwnershipAdapter{orderRepo: orderRepository}
-	chatService := chatApp.NewServiceWithDefaults(db.Pgx(), outboxRepository, chatRateLimiter, realtimeMetrics, nil, nil, accountStatusChecker, chatOrderOwnershipReader, log.Logger)
+	chatService := chatApp.NewServiceWithDefaults(db.Pgx(), outboxRepository, chatRateLimiter, realtimeMetrics, accountStatusChecker, chatOrderOwnershipReader, log.Logger)
 	chatHandler := chatHTTP.NewHandler(
 		chatService,
 		orderService,
@@ -2280,9 +2281,21 @@ func InitServices(
 		outboxRepository,
 		idempotencyCommentRepo,
 		blockChecker,
-		roleChecker, // sellerCapabilityChecker — canonical auth.RoleCheckerDB market-authority instance
-		nil,         // invariantLogger - optional
+		nil, // invariantLogger - optional
 	)
+
+	// ===== COMMERCE RESPONSE AUTHORIZATION =====
+	// Canonical Commerce Response resource reference validator: single validation point
+	// for ForSale/Auction existence + state validation. Displayability only.
+	// Consumed by Create Content, Comment, and Chat.
+	commerceRefValidator := commerceResponse.NewValidator(
+		forSaleRepository,   // ForSaleGetter — already constructed in LISTING MODULE
+		auctionRepository,   // AuctionGetter — already constructed in AUCTION MODULE
+	)
+	contentService.SetCommerceReferenceValidator(commerceRefValidator)
+	commentService.SetCommerceReferenceValidator(commerceRefValidator)
+	chatService.SetCommerceReferenceValidator(commerceRefValidator)
+
 	commentHandler := contentHTTP.NewCommentHandler(
 		commentService,
 		contentService, // canonical ContentService instance from CONTENT MODULE above

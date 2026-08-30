@@ -1,8 +1,4 @@
 // Share Notifier
-//
-// HONESTY CLEANUP v1:
-// - Share tracking method calls removed - backend does not implement tracking
-// - Only canonical share operations are preserved
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/domain.dart';

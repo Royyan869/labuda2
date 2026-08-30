@@ -1,9 +1,4 @@
 // Share Repository Interface
-//
-// HONESTY CLEANUP v1:
-// - Share tracking methods (incrementShareCount, getShareStats) removed
-// - Backend does not implement /social/shares endpoints
-// - Only canonical share operations are preserved
 
 import '../entities/share_target.dart';
 import '../entities/share_destination.dart';

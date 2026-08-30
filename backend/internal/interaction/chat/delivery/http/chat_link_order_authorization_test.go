@@ -203,8 +203,6 @@ func newLinkOrderTestHandler(repo *linkOrderFakeRepo, orderReader chatApp.OrderO
 		rate.NewRateLimiter(),
 		nil,
 		nil,
-		nil,
-		nil,
 		orderReader,
 		zap.NewNop(),
 	)

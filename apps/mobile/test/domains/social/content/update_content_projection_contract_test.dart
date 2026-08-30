@@ -56,12 +56,8 @@ Map<String, dynamic> _contentJson({
     'tags': <String>[],
     'location': null,
     'engagement': <String, dynamic>{
-      'viewCount': 0,
       'likeCount': 0,
       'commentCount': 0,
-      'shareCount': 0,
-      'saveCount': 0,
-      'reportCount': 0,
     },
     'moderation_info': null,
     'published_at': null,

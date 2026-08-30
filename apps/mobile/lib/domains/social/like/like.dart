@@ -3,7 +3,7 @@
 /// This module follows the backend-first pattern:
 /// - Domain: Entities and Repository interfaces
 /// - Data: DTOs, Mappers, Datasources, Repository Implementation
-/// - Presentation: Notifiers, State, and Widgets
+/// - Presentation: Notifiers and State
 ///
 /// Usage:
 /// ```dart
@@ -24,7 +24,3 @@ export 'domain/repositories/like_repository.dart';
 export 'presentation/providers/like_state.dart';
 export 'presentation/providers/like_notifier.dart';
 
-// Presentation (Widgets)
-export 'presentation/widgets/like_count_widget.dart';
-export 'presentation/widgets/like_count_style_utils.dart';
-export 'presentation/widgets/like_count_states.dart';

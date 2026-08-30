@@ -77,11 +77,10 @@ func TestInitServices_WiresCommentListContentService(t *testing.T) {
 	}
 }
 
-// TestInitServices_WiresSellerCapabilityChecker is the Scope 1B/1C production
+// TestInitServices_WiresCommerceResponseAuthorizer is the production
 // wiring proof. It verifies that the CommentService built by InitServices has
-// a non-nil sellerCapabilityChecker wired from the real production roleChecker.
-// If future wiring omits or nil-replaces this field, the test fails.
-func TestInitServices_WiresSellerCapabilityChecker(t *testing.T) {
+// a non-nil commerceRefValidator wired from the canonical Commerce Response reference validator.
+func TestInitServices_WiresCommerceResponseReferenceValidator(t *testing.T) {
 	loadEnvFromParents(t)
 
 	cfg, err := config.Load()
@@ -111,7 +110,7 @@ func TestInitServices_WiresSellerCapabilityChecker(t *testing.T) {
 		t.Fatal("InitServices returned nil CommentHandler")
 	}
 
-	// Navigate: CommentHandler.commentService → CommentService.sellerCapabilityChecker
+	// Navigate: CommentHandler.commentService → CommentService.commerceRefValidator
 	commentServiceField := reflect.ValueOf(deps.CommentHandler).Elem().FieldByName("commentService")
 	if !commentServiceField.IsValid() {
 		t.Fatal("CommentHandler.commentService field missing — structure drifted")
@@ -120,16 +119,14 @@ func TestInitServices_WiresSellerCapabilityChecker(t *testing.T) {
 		t.Fatal("CommentHandler.commentService is nil — wiring broken")
 	}
 
-	// The commentService field is itself an interface/pointer; dereference to
-	// reach the CommentService struct.
 	svcValue := reflect.Indirect(commentServiceField)
-	sccField := svcValue.FieldByName("sellerCapabilityChecker")
-	if !sccField.IsValid() {
-		t.Fatal("CommentService.sellerCapabilityChecker field missing — structure drifted (did the field get renamed?)")
+	authzField := svcValue.FieldByName("commerceRefValidator")
+	if !authzField.IsValid() {
+		t.Fatal("CommentService.commerceRefValidator field missing — structure drifted")
 	}
-	if sccField.IsNil() {
-		t.Fatal("SCOPE 1B/1C WIRING REGRESSION: sellerCapabilityChecker is nil. " +
-			"dependencies.go must pass a non-nil roleChecker to NewCommentService. " +
-			"Without this, AddListingReferenceComment panics on nil checker or (worse) skips market-authority enforcement.")
+	if authzField.IsNil() {
+		t.Fatal("WIRING REGRESSION: commerceRefValidator is nil. " +
+			"dependencies.go must wire a non-nil Commerce Response reference validator. " +
+			"Without this, AddCommerceReferenceComment fails closed.")
 	}
 }

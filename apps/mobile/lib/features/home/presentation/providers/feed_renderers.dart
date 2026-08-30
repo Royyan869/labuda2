@@ -26,7 +26,10 @@ import 'package:go_router/go_router.dart';
 import 'package:labuda/domains/social/content/domain/entities/content_resource_projection.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:labuda/domains/social/like/domain/entities/like.dart';
+import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
 import 'package:labuda/domains/social/share/share.dart';
+import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 // Navigation state for pending tab switch (e.g., Home -> Explore with specific sub-tab)
@@ -166,24 +169,23 @@ class FeedCard extends ConsumerWidget {
                 ),
               ),
             // MEDIA INTEGRATION: Render media from MediaEntity
-            if (item.media.isNotEmpty) _buildMediaImage(context),
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Author info
-                  _buildAuthorInfo(context, isDark),
-                  const SizedBox(height: 8),
-                  // Content text
-                  _buildContentText(context, isDark),
-                  const SizedBox(height: 8),
-                  // QUALITY PASS: Honest footer - NO fake engagement counts
-                  _buildHonestFooter(context, isDark),
-                ],
+            if (item.media.isNotEmpty) _buildMediaImage(context),              // Content
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Author info
+                    _buildAuthorInfo(context, isDark),
+                    const SizedBox(height: 8),
+                    // Content text
+                    _buildContentText(context, isDark),
+                    const SizedBox(height: 8),
+                    // Footer with Like, Comment, Share
+                    _buildHonestFooter(context, ref, isDark),
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -393,19 +395,81 @@ class FeedCard extends ConsumerWidget {
     );
   }
 
-  /// QUALITY PASS: Honest footer - NO fake engagement counts
-  ///
-  /// Backend Feed domain doesn't return engagement counts yet.
-  /// Instead of showing misleading "0 likes" (which implies no one liked it),
-  /// we hide the counts entirely and only show interaction affordances.
-  ///
-  /// NO FAKE LIVELINESS: Better to be simple but honest than rich but fake.
-  ///
-  /// DISCUSSION SURFACE V1: Comment CTA now tappable, opens DiscussionScreen
-  Widget _buildHonestFooter(BuildContext context, bool isDark) {
+  /// Footer with Like, Comment, and Share actions.
+  /// Like uses live stats from the canonical Like domain.
+  Widget _buildHonestFooter(BuildContext context, WidgetRef ref, bool isDark) {
+    // Watch like stats for this content (only if authenticated)
+    final authState = ref.watch(authControllerProvider);
+    final currentUserId = authState is AuthStateAuthenticated
+        ? authState.user.id
+        : null;
+    final currentUserName = authState is AuthStateAuthenticated
+        ? authState.user.username
+        : null;
+    final isAuthenticated = currentUserId != null && currentUserId.isNotEmpty;
+
+    final likeStatsAsync = isAuthenticated
+        ? ref.watch(
+            likeStatsProvider(
+              LikeStatsParams(
+                targetId: item.id,
+                targetType: LikeTargetType.content,
+                currentUserId: currentUserId,
+              ),
+            ),
+          )
+        : null;
+
+    final stats = likeStatsAsync?.maybeWhen(
+      data: (s) => s,
+      orElse: () => null,
+    );
+    final likeCount = stats?.totalLikes ?? 0;
+    final isLiked = stats?.isLikedByCurrentUser ?? false;
+
     return Row(
       children: [
-        // Comment affordance - NOW TAPPABLE to open DiscussionScreen
+        // Like action
+        InkWell(
+          onTap: isAuthenticated
+              ? () => _handleLike(context, ref, currentUserId, currentUserName)
+              : null,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isLiked ? Icons.favorite : Icons.favorite_border,
+                  size: 16,
+                  color: isLiked
+                      ? AppColors.primaryRed
+                      : (isAuthenticated
+                            ? AppColors.primaryRed
+                            : AppColors.neutralGray500),
+                ),
+                if (likeCount > 0) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    '$likeCount',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isLiked
+                          ? AppColors.primaryRed
+                          : (isAuthenticated
+                                ? AppColors.primaryRed
+                                : AppColors.neutralGray500),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        // Comment action
         InkWell(
           onTap: () => _navigateToComments(context),
           borderRadius: BorderRadius.circular(8),
@@ -418,20 +482,18 @@ class FeedCard extends ConsumerWidget {
               ),
               const SizedBox(width: 4),
               Text(
-                'Lihat komentar',
+                'Komentar',
                 style: TextStyle(
                   fontSize: 12,
                   color: AppColors.primaryRed,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(width: 4),
-              Icon(Icons.chevron_right, size: 14, color: AppColors.primaryRed),
             ],
           ),
         ),
         const Spacer(),
-        // SHARE CONTRACT V1: Share affordance - opens ShareBottomSheet
+        // Share action
         InkWell(
           onTap: () => _handleShareContent(context),
           borderRadius: BorderRadius.circular(8),
@@ -442,6 +504,34 @@ class FeedCard extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  /// Handle like toggle for this content.
+  void _handleLike(
+    BuildContext context,
+    WidgetRef ref,
+    String currentUserId,
+    String? currentUserName,
+  ) async {
+    final authState = ref.read(authControllerProvider);
+    if (authState is AuthStateAuthenticated && !authState.emailVerified) {
+      if (context.mounted) {
+        await showBlockedActionGate(
+          context,
+          actionDescription: 'menyukai konten',
+        );
+      }
+      return;
+    }
+
+    final notifier = ref.read(likeNotifierProvider.notifier);
+    await notifier.toggleLike(
+      targetId: item.id,
+      targetType: LikeTargetType.content,
+      userId: currentUserId,
+      likerName: currentUserName ?? '',
+      targetOwnerId: item.authorId,
     );
   }
 

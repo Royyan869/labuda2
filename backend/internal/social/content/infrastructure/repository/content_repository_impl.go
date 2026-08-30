@@ -264,10 +264,15 @@ func (r *ContentRepositoryImpl) Update(
 }
 
 // ListByAuthor retrieves content by author ID with cursor-based pagination.
+// Viewer-aware visibility filtering:
+//   - Owner sees all own content (public, followers_only, private)
+//   - Followers see public + followers_only
+//   - Strangers/anonymous see public only
 func (r *ContentRepositoryImpl) ListByAuthor(
 	ctx context.Context,
 	tx interface{},
 	authorID uuid.UUID,
+	viewerID uuid.UUID,
 	limit int,
 	cursor string,
 ) ([]*entity.Content, string, error) {
@@ -279,7 +284,10 @@ func (r *ContentRepositoryImpl) ListByAuthor(
 	// F1-B1 (2026-06-14): JOIN users to exclude content from suspended/banned/deleted authors.
 	// Profile feed is a public discovery surface; accounts with non-active status or deleted_at
 	// set must not expose their content to other viewers.
-	// Column aliases (c.) are required to avoid ambiguity with users columns (id, created_at, etc.).
+	// V-VISIBILITY: Viewer-aware visibility filtering.
+	//   - Owner sees all own content.
+	//   - Followers see public + followers_only.
+	//   - Strangers/anonymous see public only.
 	query := `
 		SELECT c.id, c.author_id, c.status, c.caption,
 		       c.city, c.province,
@@ -288,8 +296,14 @@ func (r *ContentRepositoryImpl) ListByAuthor(
 		       c.created_at, c.updated_at, c.deleted_at
 		FROM contents c
 		JOIN users u ON u.id = c.author_id
+		LEFT JOIN user_follows f ON f.follower_id = $2 AND f.following_id = c.author_id
 		WHERE c.author_id = $1 AND c.deleted_at IS NULL AND c.status = 'active' AND c.is_hidden = false
 		  AND u.account_status = 'active' AND u.deleted_at IS NULL
+		  AND (
+		      c.author_id = $2
+		      OR (f.follower_id IS NOT NULL AND c.visibility IN ('public', 'followers_only'))
+		      OR (f.follower_id IS NULL AND c.visibility = 'public')
+		  )
 		  AND NOT (
 		    c.original_author_id IS NOT NULL
 		    AND EXISTS (
@@ -314,8 +328,8 @@ func (r *ContentRepositoryImpl) ListByAuthor(
 		    )
 		  )
 	`
-	args := []interface{}{authorID}
-	argIdx := 2
+	args := []interface{}{authorID, viewerID}
+	argIdx := 3
 
 	// Cursor-based pagination
 	if cursor != "" {
@@ -610,4 +624,74 @@ func (r *ContentRepositoryImpl) InsertTags(
 		}
 	}
 	return nil
+}
+
+// InsertMentionedUsers persists mentioned user IDs for a content item within a transaction.
+// Duplicate (content_id, user_id) pairs are silently ignored via ON CONFLICT DO NOTHING.
+// No-op when userIDs is empty.
+func (r *ContentRepositoryImpl) InsertMentionedUsers(
+	ctx context.Context,
+	tx interface{},
+	contentID uuid.UUID,
+	userIDs []uuid.UUID,
+) error {
+	if len(userIDs) == 0 {
+		return nil
+	}
+	dbTx, ok := tx.(db.Tx)
+	if !ok {
+		return fmt.Errorf("invalid transaction type")
+	}
+
+	for _, userID := range userIDs {
+		if userID == uuid.Nil {
+			continue
+		}
+		_, err := dbTx.Exec(ctx, `
+			INSERT INTO content_mentioned_users (content_id, user_id)
+			VALUES ($1, $2)
+			ON CONFLICT (content_id, user_id) DO NOTHING
+		`, contentID, userID)
+		if err != nil {
+			return fmt.Errorf("insert mentioned user %s failed: %w", userID, err)
+		}
+	}
+	return nil
+}
+
+// GetMentionedUserIDs retrieves mentioned user IDs for a content item.
+// Returns an empty (non-nil) slice when the content has no mentions.
+func (r *ContentRepositoryImpl) GetMentionedUserIDs(
+	ctx context.Context,
+	tx interface{},
+	contentID uuid.UUID,
+) ([]uuid.UUID, error) {
+	dbTx, ok := tx.(db.Tx)
+	if !ok {
+		return []uuid.UUID{}, fmt.Errorf("invalid transaction type")
+	}
+
+	rows, err := dbTx.Query(ctx, `
+		SELECT user_id
+		FROM content_mentioned_users
+		WHERE content_id = $1
+		ORDER BY created_at ASC
+	`, contentID)
+	if err != nil {
+		return []uuid.UUID{}, fmt.Errorf("get mentioned users failed: %w", err)
+	}
+	defer rows.Close()
+
+	userIDs := []uuid.UUID{}
+	for rows.Next() {
+		var userID uuid.UUID
+		if err := rows.Scan(&userID); err != nil {
+			return []uuid.UUID{}, fmt.Errorf("scan mentioned user failed: %w", err)
+		}
+		userIDs = append(userIDs, userID)
+	}
+	if err := rows.Err(); err != nil {
+		return []uuid.UUID{}, fmt.Errorf("mentioned users rows error: %w", err)
+	}
+	return userIDs, nil
 }

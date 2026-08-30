@@ -29,6 +29,9 @@ import 'package:labuda/shared/object/object_preview.dart';
 import 'package:labuda/shared/object/object_preview_batch_provider.dart';
 import 'package:labuda/shared/object/object_reference.dart';
 import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
+import 'package:labuda/domains/social/like/domain/entities/like.dart';
+import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
+import 'package:labuda/domains/social/comment/presentation/utils/comment_like_handlers.dart';
 
 /// Discussion Screen - Full screen comment surface
 ///
@@ -541,6 +544,15 @@ class _CommentsBatchWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Auth state for comment like functionality
+    final authState = ref.watch(authControllerProvider);
+    final currentUserId = authState is AuthStateAuthenticated
+        ? authState.user.id
+        : null;
+    final currentUserName = authState is AuthStateAuthenticated
+        ? authState.user.username
+        : null;
+
     // STEP 1: Collect all ObjectReferences from comments
     final references = <ObjectReference>[];
     final commentMap = <String, _CommentItem>{};
@@ -580,7 +592,7 @@ class _CommentsBatchWidget extends ConsumerWidget {
 
           final item = flatList[index];
           if (item.isReply) {
-            return _buildReplyItem(context, item.comment);
+            return _buildReplyItem(context, ref, item.comment, currentUserId, currentUserName);
           }
 
           final comment = item.comment;
@@ -603,6 +615,8 @@ class _CommentsBatchWidget extends ConsumerWidget {
             userUsername: comment.authorUsername,
             userAvatar: comment.authorAvatarUrl,
             userId: comment.authorId,
+            currentUserId: currentUserId,
+            currentUserName: currentUserName,
             onFixedPriceSaleTap: onFixedPriceSaleTap,
             onAuthorTap: onAuthorTap,
             onReply: () => onReply(comment),
@@ -613,7 +627,13 @@ class _CommentsBatchWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildReplyItem(BuildContext context, Comment comment) {
+  Widget _buildReplyItem(
+    BuildContext context,
+    WidgetRef ref,
+    Comment comment,
+    String? currentUserId,
+    String? currentUserName,
+  ) {
     // E3.1 — Reply renderer mirrors the CommentCard header redaction
     // rules. The reply has no tap target / no avatar / no badge, so the
     // only gate needed is the username label. Comment body remains
@@ -622,6 +642,19 @@ class _CommentsBatchWidget extends ConsumerWidget {
     final authorLabel = authorRedacted
         ? comment.authorLifecycle.publicRedactionLabel
         : '@${comment.authorUsername}';
+
+    // Watch like stats for this reply (replies are comments — same canonical Like system)
+    final likeStatsAsync = (currentUserId != null && currentUserId.isNotEmpty)
+        ? ref.watch(
+            likeStatsProvider(
+              LikeStatsParams(
+                targetId: comment.id,
+                targetType: LikeTargetType.comment,
+                currentUserId: currentUserId,
+              ),
+            ),
+          )
+        : null;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -662,9 +695,51 @@ class _CommentsBatchWidget extends ConsumerWidget {
               padding: const EdgeInsets.only(left: 24, top: 8),
               child: Text(comment.body!, style: const TextStyle(fontSize: 14)),
             ),
+          // Like button for replies — same canonical Comment Like system
+          if (currentUserId != null && currentUserId.isNotEmpty)
+            _buildReplyLikeSection(context, ref, likeStatsAsync, comment, currentUserId, currentUserName),
         ],
       ),
     );
+  }
+
+  Widget _buildReplyLikeSection(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue<LikeStats>? likeStatsAsync,
+    Comment comment,
+    String currentUserId,
+    String? currentUserName,
+  ) {
+    return likeStatsAsync?.when(
+          data: (stats) => _ReplyLikeButton(
+            likeCount: stats.totalLikes,
+            isLiked: stats.isLikedByCurrentUser,
+            onTap: () {
+              final handlers = CommentLikeHandlers(
+                ref: ref,
+                context: context,
+                comment: comment,
+              );
+              handlers.handleLike(currentUserId, currentUserName ?? '');
+            },
+          ),
+          loading: () =>
+              const _ReplyLikeButton(likeCount: null, isLiked: false, onTap: null),
+          error: (_, _) => _ReplyLikeButton(
+            likeCount: 0,
+            isLiked: false,
+            onTap: () {
+              final handlers = CommentLikeHandlers(
+                ref: ref,
+                context: context,
+                comment: comment,
+              );
+              handlers.handleLike(currentUserId, currentUserName ?? '');
+            },
+          ),
+        ) ??
+        const SizedBox.shrink();
   }
 
   String _formatDate(DateTime dateTime) {
@@ -682,5 +757,49 @@ class _CommentsBatchWidget extends ConsumerWidget {
     } else {
       return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
     }
+  }
+}
+
+/// Like button widget for reply comments
+///
+/// Uses the same canonical Comment Like system as CommentCard.
+/// target_type=comment, target_id=reply.comment.id
+class _ReplyLikeButton extends StatelessWidget {
+  final int? likeCount;
+  final bool isLiked;
+  final VoidCallback? onTap;
+
+  const _ReplyLikeButton({
+    required this.likeCount,
+    required this.isLiked,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 24, top: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isLiked ? Icons.favorite : Icons.favorite_border,
+              size: 14,
+              color: isLiked ? Colors.red : AppColors.neutralGray600,
+            ),
+            if (likeCount != null) ...[
+              const SizedBox(width: 4),
+              Text(
+                likeCount! > 0 ? '$likeCount' : '',
+                style: const TextStyle(fontSize: 12, color: AppColors.neutralGray600),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }

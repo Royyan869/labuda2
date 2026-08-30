@@ -568,12 +568,6 @@ class ContentResourceProjection extends Equatable {
   bool get isLive => state == ContentResourceProjectionState.live;
   bool get isTombstone => state == ContentResourceProjectionState.tombstone;
 
-  ContentResourceProjectionProfilePayload? get profilePayload => profile;
-  ContentResourceProjectionContentPayload? get contentPayload => content;
-  ContentResourceProjectionFixedPriceSalePayload? get fixedPriceSalePayload =>
-      fixedPriceSale;
-  ContentResourceProjectionAuctionPayload? get auctionPayload => auction;
-
   String get typeLabel => resourceType.displayLabel;
 
   String get canonicalPath {

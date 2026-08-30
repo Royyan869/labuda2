@@ -66,7 +66,6 @@ func newCommentListHTTPHandler(pool *db.DB) *CommentHandler {
 		nil, // outboxRepo
 		nil, // idempotencyRepo
 		nil, // blockChecker
-		nil, // sellerCapabilityChecker
 		nil, // invariantLogger
 	)
 	return NewCommentHandler(

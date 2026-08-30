@@ -128,7 +128,7 @@ func (r *repostGateRepo) Update(ctx context.Context, tx interface{}, content *en
 	return nil
 }
 
-func (r *repostGateRepo) ListByAuthor(ctx context.Context, tx interface{}, authorID uuid.UUID, limit int, cursor string) ([]*entity.Content, string, error) {
+func (r *repostGateRepo) ListByAuthor(ctx context.Context, tx interface{}, authorID uuid.UUID, viewerID uuid.UUID, limit int, cursor string) ([]*entity.Content, string, error) {
 	return nil, "", nil
 }
 
@@ -143,6 +143,22 @@ func (r *repostGateRepo) GetResourceOccurrenceByContentID(ctx context.Context, t
 		}
 	}
 	return nil, errors.New("content resource occurrence not found")
+}
+
+func (r *repostGateRepo) InsertTags(ctx context.Context, tx interface{}, contentID uuid.UUID, tags []string) error {
+	return nil
+}
+
+func (r *repostGateRepo) GetTagsByContentID(ctx context.Context, tx interface{}, contentID uuid.UUID) ([]string, error) {
+	return []string{}, nil
+}
+
+func (r *repostGateRepo) InsertMentionedUsers(ctx context.Context, tx interface{}, contentID uuid.UUID, userIDs []uuid.UUID) error {
+	return nil
+}
+
+func (r *repostGateRepo) GetMentionedUserIDs(ctx context.Context, tx interface{}, contentID uuid.UUID) ([]uuid.UUID, error) {
+	return []uuid.UUID{}, nil
 }
 
 type activeAccountChecker struct{}

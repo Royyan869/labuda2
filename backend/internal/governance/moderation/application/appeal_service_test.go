@@ -130,7 +130,7 @@ func (m *mockContentRepository) Update(ctx context.Context, tx interface{}, cont
 	return nil
 }
 
-func (m *mockContentRepository) ListByAuthor(ctx context.Context, tx interface{}, authorID uuid.UUID, limit int, cursor string) ([]*contentEntity.Content, string, error) {
+func (m *mockContentRepository) ListByAuthor(ctx context.Context, tx interface{}, authorID uuid.UUID, viewerID uuid.UUID, limit int, cursor string) ([]*contentEntity.Content, string, error) {
 	return nil, "", nil
 }
 

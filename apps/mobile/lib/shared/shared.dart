@@ -142,7 +142,6 @@ export 'utils/app_formatters.dart'; // ⭐ Centralized formatting utility (curre
 export 'services/local_storage_service.dart';
 export 'services/validation_service.dart'; // PLATFORM_INFRA: Generic validation primitives
 export 'services/logger_service.dart';
-export 'services/media_upload_service.dart';
 export 'services/local_wilayah_service.dart'; // Local Wilayah service (offline-first)
 export 'services/firebase_wilayah_service.dart'; // Firebase Wilayah service
 export 'services/postal_code_service.dart'; // Postal code lookup service

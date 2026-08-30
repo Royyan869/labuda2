@@ -39,23 +39,9 @@ enum ContentStatus {
   /// Content is soft-deleted (terminal state)
   deleted;
 
-  String get displayName {
-    switch (this) {
-      case ContentStatus.active:
-        return 'Aktif';
-      case ContentStatus.deleted:
-        return 'Dihapus';
-    }
-  }
-
-  String get description {
-    switch (this) {
-      case ContentStatus.active:
-        return 'Content aktif dan visible';
-      case ContentStatus.deleted:
-        return 'Content dihapus';
-    }
-  }
+  // displayName and description removed -- user-facing status badges are not
+  // part of the Content business model. Internal status is for lifecycle
+  // governance only, not presentation.
 
   /// Check if content is in active state (published and visible)
   bool get isActive => this == ContentStatus.active;
@@ -70,7 +56,7 @@ enum ContentStatus {
   ///
   /// Returns null for unknown/null input (fail-closed).
   ///
-  /// FIX-3 — eliminates raw magic-string comparisons at call sites.
+  /// FIX-3 -- eliminates raw magic-string comparisons at call sites.
   static ContentStatus? fromApiString(String? value) {
     switch (value) {
       case 'active':
@@ -78,7 +64,7 @@ enum ContentStatus {
       case 'deleted':
         return ContentStatus.deleted;
       default:
-        return null; // unknown / null → fail-closed
+        return null; // unknown / null -> fail-closed
     }
   }
 }
@@ -113,63 +99,39 @@ enum MediaType { image, video }
 // ============================================================================
 
 /// Value object untuk engagement metrics
+///
+/// Canonical fields: likeCount, commentCount (live from backend).
+/// viewCount, shareCount, saveCount, reportCount removed -- backend does not
+/// provide them for content; they were always hardcoded to 0.
 class ContentEngagement extends Equatable {
-  final int viewCount;
   final int likeCount;
   final int commentCount;
-  final int shareCount;
-  final int saveCount;
-  final int reportCount;
-  final List<String> likedByUsers; // For like toggle logic
 
   const ContentEngagement({
-    this.viewCount = 0,
     this.likeCount = 0,
     this.commentCount = 0,
-    this.shareCount = 0,
-    this.saveCount = 0,
-    this.reportCount = 0,
-    this.likedByUsers = const [],
   });
-
-  /// Business logic: Get total engagement
-  int get totalEngagement => likeCount + commentCount + shareCount + saveCount;
 
   @override
   List<Object> get props => [
-    viewCount,
     likeCount,
     commentCount,
-    shareCount,
-    saveCount,
-    reportCount,
-    likedByUsers,
   ];
 
   ContentEngagement copyWith({
-    int? viewCount,
     int? likeCount,
     int? commentCount,
-    int? shareCount,
-    int? saveCount,
-    int? reportCount,
-    List<String>? likedByUsers,
   }) {
     return ContentEngagement(
-      viewCount: viewCount ?? this.viewCount,
       likeCount: likeCount ?? this.likeCount,
       commentCount: commentCount ?? this.commentCount,
-      shareCount: shareCount ?? this.shareCount,
-      saveCount: saveCount ?? this.saveCount,
-      reportCount: reportCount ?? this.reportCount,
-      likedByUsers: likedByUsers ?? this.likedByUsers,
     );
   }
 }
 
 /// Value object untuk settings content
 ///
-/// Comments are always supported by Content — there is no allowComments
+/// Comments are always supported by Content -- there is no allowComments
 /// business switch.
 class ContentSettings extends Equatable {
   final ContentVisibility visibility;
@@ -194,55 +156,31 @@ class ContentSettings extends Equatable {
 class ContentLocation extends Equatable {
   final String? city;
   final String? province;
-  final String? country;
-  final double? latitude;
-  final double? longitude;
-  final String? placeName;
 
   const ContentLocation({
     this.city,
     this.province,
-    this.country = 'Indonesia',
-    this.latitude,
-    this.longitude,
-    this.placeName,
   });
 
   /// Business logic: Get display location
   String get displayLocation {
-    if (placeName != null) return placeName!;
     if (city != null && province != null) return '$city, $province';
     return province ?? city ?? 'Lokasi tidak diketahui';
   }
-
-  /// Business logic: Check if location has coordinates
-  bool get hasCoordinates => latitude != null && longitude != null;
 
   @override
   List<Object?> get props => [
     city,
     province,
-    country,
-    latitude,
-    longitude,
-    placeName,
   ];
 
   ContentLocation copyWith({
     String? city,
     String? province,
-    String? country,
-    double? latitude,
-    double? longitude,
-    String? placeName,
   }) {
     return ContentLocation(
       city: city ?? this.city,
       province: province ?? this.province,
-      country: country ?? this.country,
-      latitude: latitude ?? this.latitude,
-      longitude: longitude ?? this.longitude,
-      placeName: placeName ?? this.placeName,
     );
   }
 }
@@ -255,73 +193,7 @@ class ContentLocation extends Equatable {
 // - originalAuthorId preserves repost attribution
 // - ContentLinkedItem.description -> REMOVED (was UI-only price display, not business logic)
 
-/// Value object untuk informasi moderasi
-class ContentModerationInfo extends Equatable {
-  final bool isApproved;
-  final bool hasBeenModerated;
-  final int flagCount;
-  final int violationCount;
-  final List<String> detectedViolations;
-  final String? moderatorId;
-  final DateTime? moderatedAt;
-  final String? moderationNote;
-  final String? lastAction;
-
-  const ContentModerationInfo({
-    this.isApproved = true,
-    this.hasBeenModerated = false,
-    this.flagCount = 0,
-    this.violationCount = 0,
-    this.detectedViolations = const [],
-    this.moderatorId,
-    this.moderatedAt,
-    this.moderationNote,
-    this.lastAction,
-  });
-
-  /// Business logic: Check if post needs attention
-  bool get needsAttention => flagCount > 0 || violationCount > 0;
-
-  /// Business logic: Check if post is clean
-  bool get isClean => isApproved && violationCount == 0 && flagCount == 0;
-
-  @override
-  List<Object?> get props => [
-    isApproved,
-    hasBeenModerated,
-    flagCount,
-    violationCount,
-    detectedViolations,
-    moderatorId,
-    moderatedAt,
-    moderationNote,
-    lastAction,
-  ];
-
-  ContentModerationInfo copyWith({
-    bool? isApproved,
-    bool? hasBeenModerated,
-    int? flagCount,
-    int? violationCount,
-    List<String>? detectedViolations,
-    String? moderatorId,
-    DateTime? moderatedAt,
-    String? moderationNote,
-    String? lastAction,
-  }) {
-    return ContentModerationInfo(
-      isApproved: isApproved ?? this.isApproved,
-      hasBeenModerated: hasBeenModerated ?? this.hasBeenModerated,
-      flagCount: flagCount ?? this.flagCount,
-      violationCount: violationCount ?? this.violationCount,
-      detectedViolations: detectedViolations ?? this.detectedViolations,
-      moderatorId: moderatorId ?? this.moderatorId,
-      moderatedAt: moderatedAt ?? this.moderatedAt,
-      moderationNote: moderationNote ?? this.moderationNote,
-      lastAction: lastAction ?? this.lastAction,
-    );
-  }
-}
+/// ContentModerationInfo removed -- no backend authority, never rendered.
 
 /// Value object untuk media
 class MediaEntity extends Equatable {
@@ -350,7 +222,7 @@ class MediaEntity extends Equatable {
   /// Get thumbnail URL if available
   String? get thumbnailUrl => variants['thumbnail'] ?? originalUrl;
 
-  /// Poster frame URL (video) — falls back to thumbnail.
+  /// Poster frame URL (video) -- falls back to thumbnail.
   String? get posterUrl => variants['poster'] ?? thumbnailUrl;
 
   @override
@@ -449,8 +321,8 @@ class Content extends Equatable {
   final String? authorProvince;
   final ContentStatus status;
 
-  /// D1 — canonical governance lifecycle ({active, unavailable, removed}).
-  /// Separate from raw `status` — never coerce one into the other. Defaults
+  /// D1 -- canonical governance lifecycle ({active, unavailable, removed}).
+  /// Separate from raw `status` -- never coerce one into the other. Defaults
   /// to active when wire is null/missing/unknown via
   /// ContentLifecycleParse.fromWire so legacy payloads keep rendering
   /// today's behavior. Detail screen reads this to render the unavailable
@@ -458,7 +330,7 @@ class Content extends Equatable {
   /// non-active lifecycle decision.
   final ContentLifecycle lifecycle;
 
-  /// E6 — canonical author identity lifecycle ({active, unavailable, removed}).
+  /// E6 -- canonical author identity lifecycle ({active, unavailable, removed}).
   /// Sourced from the wire's nested `card.author.lifecycle` slot populated
   /// by content_handler.go via publiccard.NewWithLifecycle through the
   /// lifecycle-aware author hydrator (E6).
@@ -475,15 +347,11 @@ class Content extends Equatable {
   final List<MediaEntity> media;
 
   final List<String> tags;
-  final List<String> taggedUsers; // Tagged people (@username)
-  final List<String> mentionedUserIds; // Mentioned users in content (@mention)
+  final List<String> mentionedUserIds; // Canonical mention IDs from content_mentioned_users
 
   final ContentSettings settings; // Visibility, comments, shares settings
   final ContentEngagement engagement;
   final ContentLocation? location;
-  final ContentModerationInfo moderationInfo;
-  final DateTime? publishedAt;
-  final DateTime? scheduledAt;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -507,14 +375,10 @@ class Content extends Equatable {
     this.authorLifecycle = ContentLifecycle.active,
     this.media = const [],
     this.tags = const [],
-    this.taggedUsers = const [],
     this.mentionedUserIds = const [],
     this.settings = const ContentSettings(),
     required this.engagement,
     this.location,
-    required this.moderationInfo,
-    this.publishedAt,
-    this.scheduledAt,
     required this.createdAt,
     required this.updatedAt,
     this.originalAuthorId,
@@ -536,30 +400,8 @@ class Content extends Equatable {
 
   bool get hasResourceProjection => resourceProjection != null;
 
-  /// Business logic: Check if content needs moderation
-  bool get needsModeration =>
-      moderationInfo.flagCount > 0 || !moderationInfo.isApproved;
-
   /// Business logic: Check if content can be edited by user
   bool canBeEditedBy(String userId) => authorId == userId && status.isActive;
-
-  /// Business logic: Get engagement rate
-  double get engagementRate {
-    final totalEngagementVal =
-        engagement.likeCount + engagement.commentCount + engagement.shareCount;
-
-    if (engagement.viewCount == 0) return 0.0;
-    return totalEngagementVal / engagement.viewCount;
-  }
-
-  /// Business logic: Check if post has high engagement
-  bool get hasHighEngagement => engagementRate > 0.1;
-
-  /// Business logic: Check if post content is safe
-  bool get isContentSafe =>
-      moderationInfo.isApproved &&
-      moderationInfo.violationCount == 0 &&
-      engagement.reportCount < 3;
 
   /// Business logic: Check if content is active and can receive
   /// commerce resource attachments in comments.
@@ -591,14 +433,10 @@ class Content extends Equatable {
     authorLifecycle,
     media,
     tags,
-    taggedUsers,
     mentionedUserIds,
     settings,
     engagement,
     location,
-    moderationInfo,
-    publishedAt,
-    scheduledAt,
     originalAuthorId,
     createdAt,
     updatedAt,
@@ -617,14 +455,10 @@ class Content extends Equatable {
     ContentLifecycle? authorLifecycle,
     List<MediaEntity>? media,
     List<String>? tags,
-    List<String>? taggedUsers,
     List<String>? mentionedUserIds,
     ContentSettings? settings,
     ContentEngagement? engagement,
     ContentLocation? location,
-    ContentModerationInfo? moderationInfo,
-    DateTime? publishedAt,
-    DateTime? scheduledAt,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? originalAuthorId,
@@ -643,14 +477,10 @@ class Content extends Equatable {
       authorLifecycle: authorLifecycle ?? this.authorLifecycle,
       media: media ?? this.media,
       tags: tags ?? this.tags,
-      taggedUsers: taggedUsers ?? this.taggedUsers,
       mentionedUserIds: mentionedUserIds ?? this.mentionedUserIds,
       settings: settings ?? this.settings,
       engagement: engagement ?? this.engagement,
       location: location ?? this.location,
-      moderationInfo: moderationInfo ?? this.moderationInfo,
-      publishedAt: publishedAt ?? this.publishedAt,
-      scheduledAt: scheduledAt ?? this.scheduledAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       originalAuthorId: originalAuthorId ?? this.originalAuthorId,

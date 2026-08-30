@@ -2,9 +2,9 @@ package entity
 
 // Repost governance regression lock for auction Status.IsRepostable().
 //
-// FIX-2 (2026-05-28): validateAuctionTarget() in content_service previously
-// checked status == "closed" which never matches any real auction status.
-// IsRepostable() is now the single source of truth.
+// FIX-2 (2026-05-28): ContentService.validateCommerceReference() (via
+// commerceResponse.Validator) uses IsRepostable() as the single source of
+// truth, replacing the old validateAuctionTarget() which checked status == "closed".
 
 import "testing"
 
@@ -40,7 +40,7 @@ func TestAuctionStatus_IsRepostable(t *testing.T) {
 
 // TestAuctionStatus_ClosedNeverRepostable regression-locks that the old "closed"
 // string is NOT repostable. This was the exact string used in the broken
-// validateAuctionTarget check before FIX-2.
+// IsRepostable check (formerly validateAuctionTarget) before FIX-2.
 func TestAuctionStatus_ClosedNeverRepostable(t *testing.T) {
 	if Status("closed").IsRepostable() {
 		t.Error("Status(\"closed\") must not be repostable — this status does not exist in the enum")

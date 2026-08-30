@@ -216,8 +216,6 @@ func newNotificationLifecycleFixture(t *testing.T) *notificationLifecycleFixture
 		nil,
 		nil,
 		nil,
-		nil,
-		nil,
 		zap.NewNop(),
 	)
 

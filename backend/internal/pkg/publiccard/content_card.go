@@ -23,11 +23,9 @@ import (
 //     and inherits its public-safety guarantees — no email / phone /
 //     firebase_uid / full_name reads anywhere upstream.
 //   - SharedForSale / SharedAuction are reserved for future live-hydrated
-//     share embedding. They are always nil today; current surfaces continue
-//     to expose snapshot share data through the legacy share_reference
-//     block. Once live revalidation lands (out of scope this batch), these
-//     fields will carry canonical ForSaleCard / AuctionCard values built
-//     from live commerce truth, not snapshot data.
+//     share embedding. They are always nil today. Once live revalidation
+//     lands, these fields will carry canonical ForSaleCard / AuctionCard
+//     values built from live commerce truth.
 //
 // Field nullability:
 //   - ID:            required.

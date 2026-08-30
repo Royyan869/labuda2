@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/widgets/mentions/mention_text_field.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
 
 /// Widget for post content text input area with mention support
 ///
@@ -13,15 +12,15 @@ import 'package:labuda/domains/social/content/domain/entities/content.dart';
 class ContentContentInput extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
+  final ValueChanged<List<String>>? onMentionsChanged;
   final bool isDark;
-  final Function(List<String> mentionedUserIds)? onMentionsChanged;
 
   const ContentContentInput({
     super.key,
     required this.controller,
     required this.onChanged,
-    required this.isDark,
     this.onMentionsChanged,
+    required this.isDark,
   });
 
   @override

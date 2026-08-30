@@ -23,12 +23,8 @@ Map<String, dynamic> _contentJson({
     'tags': <String>[],
     'location': null,
     'engagement': <String, dynamic>{
-      'viewCount': 0,
       'likeCount': 0,
       'commentCount': 0,
-      'shareCount': 0,
-      'saveCount': 0,
-      'reportCount': 0,
     },
     'moderation_info': <String, dynamic>{
       'isApproved': true,
@@ -69,7 +65,6 @@ Content _buildEntity(ContentVisibility visibility) {
     tags: const [],
     settings: ContentSettings(visibility: visibility),
     engagement: const ContentEngagement(),
-    moderationInfo: const ContentModerationInfo(),
     createdAt: DateTime.utc(2026, 7, 23),
     updatedAt: DateTime.utc(2026, 7, 23),
   );

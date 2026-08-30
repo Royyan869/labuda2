@@ -12,18 +12,16 @@ import (
 // Verifies that:
 // 1. ContentResponse serialises engagement with camelCase keys matching
 //    mobile ContentEngagementDto expectations.
-// 2. Zero-value EngagementResponse serialises all six fields explicitly
-//    (no omitempty on int fields — zero IS meaningful).
+// 2. Zero-value EngagementResponse serialises likeCount and commentCount
+//    explicitly (no omitempty on int fields — zero IS meaningful).
 // 3. engagement=nil omits the field entirely (omitempty on the pointer).
+// 4. Removed phantom fields (viewCount, shareCount, saveCount, reportCount)
+//    are no longer emitted.
 
 func TestEngagementResponse_CamelCaseKeys(t *testing.T) {
 	eng := &EngagementResponse{
-		ViewCount:    10,
 		LikeCount:    5,
 		CommentCount: 3,
-		ShareCount:   2,
-		SaveCount:    1,
-		ReportCount:  0,
 	}
 
 	data, err := json.Marshal(eng)
@@ -36,15 +34,24 @@ func TestEngagementResponse_CamelCaseKeys(t *testing.T) {
 		t.Fatalf("unmarshal: %v", err)
 	}
 
-	wantKeys := []string{"viewCount", "likeCount", "commentCount", "shareCount", "saveCount", "reportCount"}
+	// Only canonical fields should be present.
+	wantKeys := []string{"likeCount", "commentCount"}
 	for _, k := range wantKeys {
 		if _, ok := raw[k]; !ok {
 			t.Errorf("missing key %q in engagement JSON", k)
 		}
 	}
 
-	// Verify no snake_case keys leaked
-	snakeKeys := []string{"view_count", "like_count", "comment_count", "share_count", "save_count", "report_count"}
+	// Verify removed phantom fields are NOT present.
+	removedKeys := []string{"viewCount", "shareCount", "saveCount", "reportCount"}
+	for _, k := range removedKeys {
+		if _, ok := raw[k]; ok {
+			t.Errorf("removed phantom field %q still present in engagement JSON", k)
+		}
+	}
+
+	// Verify no snake_case keys leaked.
+	snakeKeys := []string{"like_count", "comment_count"}
 	for _, k := range snakeKeys {
 		if _, ok := raw[k]; ok {
 			t.Errorf("unexpected snake_case key %q — mobile expects camelCase", k)
@@ -65,8 +72,8 @@ func TestEngagementResponse_ZeroValuesPresent(t *testing.T) {
 		t.Fatalf("unmarshal: %v", err)
 	}
 
-	// All six fields must be present even at zero (no omitempty on int).
-	wantKeys := []string{"viewCount", "likeCount", "commentCount", "shareCount", "saveCount", "reportCount"}
+	// Both canonical fields must be present even at zero (no omitempty on int).
+	wantKeys := []string{"likeCount", "commentCount"}
 	for _, k := range wantKeys {
 		v, ok := raw[k]
 		if !ok {

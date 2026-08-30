@@ -14,10 +14,6 @@ import (
 type InvariantType string
 
 const (
-	// CommerceReferenceOnPost: Someone tried to add a commerce reference to a post (only requests)
-	CommerceReferenceOnPost InvariantType = "commerce_reference_on_post"
-	// ForSaleOwnershipMismatch: Someone tried to reference a forSale they don't own
-	ForSaleOwnershipMismatch InvariantType = "for_sale_ownership_mismatch"
 	// DuplicateLikeAttempt: Someone tried to like something they already liked
 	DuplicateLikeAttempt InvariantType = "duplicate_like_attempt"
 	// InvalidCommentType: An invalid comment type was used
@@ -101,23 +97,6 @@ func LogInvariantViolation(ctx context.Context, logger InvariantLogger, invType 
 	logger.LogViolation(ctx, violation)
 }
 
-// CommerceReferenceOnPostViolation logs an attempt to add a commerce reference to a post.
-func CommerceReferenceOnPostViolation(ctx context.Context, logger InvariantLogger, userID, contentID uuid.UUID, resourceID uuid.UUID) {
-	LogInvariantViolation(ctx, logger, CommerceReferenceOnPost, userID, contentID, "content", map[string]interface{}{
-		"for_sale_id": resourceID.String(),
-		"attempt":     "add_commerce_reference",
-	})
-}
-
-// ForSaleOwnershipMismatchViolation logs an attempt to reference a forSale you don't own.
-func ForSaleOwnershipMismatchViolation(ctx context.Context, logger InvariantLogger, userID, contentID, forSaleID, forSaleOwnerID uuid.UUID) {
-	LogInvariantViolation(ctx, logger, ForSaleOwnershipMismatch, userID, contentID, "comment", map[string]interface{}{
-		"for_sale_id":       forSaleID.String(),
-		"for_sale_owner_id": forSaleOwnerID.String(),
-		"attempt":           "reference_forSale",
-	})
-}
-
 // InvalidCommentTypeViolation logs an attempt to create comment with invalid type.
 func InvalidCommentTypeViolation(ctx context.Context, logger InvariantLogger, userID, targetID uuid.UUID, requestedType string) {
 	LogInvariantViolation(ctx, logger, InvalidCommentType, userID, targetID, "comment", map[string]interface{}{
@@ -136,10 +115,6 @@ func ContentNotFoundViolation(ctx context.Context, logger InvariantLogger, userI
 // String returns a descriptive string about the violation for error messages.
 func (i InvariantType) String() string {
 	switch i {
-	case CommerceReferenceOnPost:
-		return "commerce references only allowed on requests"
-	case ForSaleOwnershipMismatch:
-		return "can only reference own forSales"
 	case DuplicateLikeAttempt:
 		return "already liked"
 	case InvalidCommentType:

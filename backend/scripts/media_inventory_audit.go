@@ -360,42 +360,6 @@ func main() {
 					) AS key_count,
 					count(*) AS total_count
 				FROM external_product_media
-			`,
-		},
-		{
-			Table:        "contents",
-			Column:       "share_reference.preview.imageUrl",
-			Domain:       "content share preview",
-			ValueFormat:  "jsonb scalar",
-			Migrated:     true,
-			UsesResolver: true,
-			Query: `
-				WITH vals AS (
-					SELECT COALESCE(share_reference #>> '{preview,imageUrl}', '') AS media_url
-					FROM contents
-				)
-				SELECT
-					count(*) FILTER (WHERE media_url = '') AS null_count,
-					0 AS blank_count,
-					count(*) FILTER (
-						WHERE media_url ~ '^https?://(labuda-uploads\.s3\.[^/]+\.amazonaws\.com/|labuda-uploads\.s3\.amazonaws\.com/|s3\.[^/]+\.amazonaws\.com/labuda-uploads/|s3\.amazonaws\.com/labuda-uploads/)'
-						AND media_url !~ 'X-Amz-Signature='
-					) AS raw_count,
-					count(*) FILTER (WHERE media_url ~ 'X-Amz-Signature=') AS signed_count,
-					count(*) FILTER (
-						WHERE media_url ~ '^https?://'
-						AND media_url !~ '^https?://(labuda-uploads\.s3\.[^/]+\.amazonaws\.com/|labuda-uploads\.s3\.amazonaws\.com/|s3\.[^/]+\.amazonaws\.com/labuda-uploads/|s3\.amazonaws\.com/labuda-uploads/)'
-						AND media_url !~ 'X-Amz-Signature='
-					) AS external_count,
-					count(*) FILTER (
-						WHERE media_url <> ''
-						AND media_url !~ '^https?://'
-					) AS key_count,
-					count(*) AS total_count
-				FROM vals
-			`,
-		},
-	}
 
 	fmt.Println("MEDIA INVENTORY AUDIT")
 	for _, spec := range specs {

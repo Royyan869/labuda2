@@ -44,7 +44,7 @@ class ContentRepositoryImpl implements ContentRepository {
     required String content,
     List<MediaEntity> media = const [],
     List<String> tags = const [],
-    List<String> taggedUsers = const [],
+    List<String> mentionedUserIds = const [],
     ContentSettings settings = const ContentSettings(),
     ContentLocation? location,
   }) async {
@@ -58,12 +58,11 @@ class ContentRepositoryImpl implements ContentRepository {
         status: ContentStatus.active, // All content starts as active
         media: media,
         tags: tags,
-        taggedUsers: taggedUsers,
-        mentionedUserIds: [],
+        mentionedUserIds: mentionedUserIds,
         settings: settings,
         location: location,
         engagement: const ContentEngagement(),
-        moderationInfo: const ContentModerationInfo(),
+        
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );

@@ -271,17 +271,18 @@ type ContentResponse struct {
 	// New clients SHOULD consume the nested card, which is the canonical
 	// PublicCard seam shared with feed / search.
 	Card *publiccard.ContentCard `json:"card,omitempty"`
+
+	// Canonical content mention relation — read from content_mentioned_users table.
+	MentionedUserIDs []uuid.UUID `json:"mentioned_user_ids,omitempty"`
 }
 
 // EngagementResponse holds engagement metrics for a content item.
-// C7C: Fields use camelCase JSON keys to match mobile ContentEngagementDto.
+// C7C: Canonical fields only — likeCount and commentCount are live queries.
+// viewCount, shareCount, saveCount, reportCount removed — backend does not
+// provide authoritative values for these fields on content.
 type EngagementResponse struct {
-	ViewCount    int `json:"viewCount"`
 	LikeCount    int `json:"likeCount"`
 	CommentCount int `json:"commentCount"`
-	ShareCount   int `json:"shareCount"`
-	SaveCount    int `json:"saveCount"`
-	ReportCount  int `json:"reportCount"`
 }
 
 // UserContentListResponse is the paginated envelope for GET /users/:id/contents.
@@ -564,10 +565,20 @@ func (h *ContentHandler) CreateContent(c *gin.Context) {
 		}
 
 		visibility := entity.Visibility(req.Visibility).Normalize()
+
+		// Parse mentioned user IDs from string to UUID.
+		// Invalid UUIDs are silently skipped (consistent with tags fail-open policy).
+		var mentionedUserIDs []uuid.UUID
+		for _, idStr := range req.MentionedUserIDs {
+			if uid, parseErr := uuid.Parse(idStr); parseErr == nil && uid != uuid.Nil {
+				mentionedUserIDs = append(mentionedUserIDs, uid)
+			}
+		}
+
 		if req.ResourceOccurrence != nil {
-			newContent, err = h.contentService.CreateContentWithResourceOccurrence(ctx, tx, userID, req.Caption, visibility, city, province, occurrence, req.Tags)
+			newContent, err = h.contentService.CreateContentWithResourceOccurrence(ctx, tx, userID, req.Caption, visibility, city, province, occurrence, req.Tags, mentionedUserIDs)
 		} else {
-			newContent, err = h.contentService.CreateContent(ctx, tx, userID, req.Caption, city, province, nil, req.Tags)
+			newContent, err = h.contentService.CreateContent(ctx, tx, userID, req.Caption, visibility, city, province, nil, req.Tags, mentionedUserIDs)
 		}
 		if err != nil {
 			return err
@@ -898,6 +909,7 @@ func (h *ContentHandler) GetContent(c *gin.Context) {
 	var likeCount int
 	var commentCount int
 	var isLiked bool
+	var mentionedIDs []uuid.UUID
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		vc = constructContentDetailViewerContext(c, tx)
 		var loadErr error
@@ -932,6 +944,10 @@ func (h *ContentHandler) GetContent(c *gin.Context) {
 			if liked, likedErr := h.contentService.IsLiked(ctx, tx, userID, contentID); likedErr == nil {
 				isLiked = liked
 			}
+		}
+		// Canonical mention hydration — read from content_mentioned_users table.
+		if mIDs, mErr := h.contentService.GetMentionedUserIDs(ctx, tx, contentID); mErr == nil {
+			mentionedIDs = mIDs
 		}
 		return nil
 	})
@@ -1006,11 +1022,39 @@ func (h *ContentHandler) GetContent(c *gin.Context) {
 		}
 	}
 
+	// V-VISIBILITY — Viewer-aware visibility enforcement on content detail.
+	// Rules:
+	//   - Owner can always see own content.
+	//   - Followers can see public + followers_only.
+	//   - Strangers/anonymous can see public only.
+	if content.AuthorID != userID {
+		canSee := content.Visibility == entity.VisibilityPublic
+		if !canSee && content.Visibility == entity.VisibilityFollowersOnly && userID != uuid.Nil {
+			var isFollower bool
+			if fErr := h.db.WithTx(ctx, func(tx db.Tx) error {
+				return tx.QueryRow(ctx,
+					`SELECT EXISTS(SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = $2)`,
+					userID, content.AuthorID,
+				).Scan(&isFollower)
+			}); fErr == nil {
+				canSee = isFollower
+			}
+		}
+		if !canSee {
+			response.NotFound(c, "Content not found")
+			return
+		}
+	}
+
 	contentResp := ToContentResponseWithAuthorAndProjection(content, media, &authorCard, projection)
 	// C7C — attach engagement stats to content detail response.
 	contentResp.Engagement = &EngagementResponse{LikeCount: likeCount, CommentCount: commentCount}
 	if userID != uuid.Nil {
 		contentResp.IsLiked = &isLiked
+	}
+	// Attach canonical mention IDs from WithTx hydration.
+	if len(mentionedIDs) > 0 {
+		contentResp.MentionedUserIDs = mentionedIDs
 	}
 	response.Success(c, contentResp)
 
@@ -1098,7 +1142,7 @@ func (h *ContentHandler) GetUserContent(c *gin.Context) {
 	var nextCursorStr string
 	if lErr := h.db.WithTx(ctx, func(tx db.Tx) error {
 		var e error
-		contents, nextCursorStr, e = h.contentService.ListByAuthor(ctx, tx, targetID, limit, cursor)
+		contents, nextCursorStr, e = h.contentService.ListByAuthor(ctx, tx, targetID, viewerID, limit, cursor)
 		return e
 	}); lErr != nil {
 		h.log.Error("ListByAuthor failed for GetUserContent",
@@ -1171,6 +1215,11 @@ func (h *ContentHandler) GetUserContent(c *gin.Context) {
 				}
 			}
 
+			// Canonical mention hydration.
+			if mIDs, mErr := h.contentService.GetMentionedUserIDs(ctx, tx, ct.ID); mErr == nil && len(mIDs) > 0 {
+				resp.MentionedUserIDs = mIDs
+			}
+
 			items = append(items, resp)
 		}
 		return nil
@@ -1198,6 +1247,9 @@ func (h *ContentHandler) GetUserContent(c *gin.Context) {
 // ============================================================================
 
 // CreateRepostRequest holds the request body for creating a repost.
+// SHARE CONTRACT V1: Single endpoint for ALL share types.
+// - Content shares: target_type=content (or omitted for backward compat)
+// - Non-content shares: target_type=for_sale|auction|profile, target_id=entity ID
 type CreateRepostRequest struct {
 	OriginalContentID string `json:"original_content_id" binding:"required"`
 	Caption           string `json:"caption"`
@@ -1205,6 +1257,8 @@ type CreateRepostRequest struct {
 	OriginalAuthorID        string `json:"original_author_id"`
 	OriginalContentTitle    string `json:"original_content_title"`
 	OriginalContentImageURL string `json:"original_content_image_url"`
+	TargetType              string `json:"target_type"`  // content | for_sale | auction | profile
+	TargetID                string `json:"target_id"`    // Entity ID for non-content shares
 }
 
 // RepostContent handles POST /api/v1/contents/{id}/repost
@@ -1265,12 +1319,49 @@ func (h *ContentHandler) RepostContent(c *gin.Context) {
 	}
 
 	// Execute repost within transaction
+	// SHARE CONTRACT V1: Single endpoint for ALL share types.
+	// Non-content shares route through CreateInternalShare with proper TargetType.
 	var repost *entity.Content
-	err = h.db.WithTx(ctx, func(tx db.Tx) error {
-		var err error
-		repost, err = h.contentService.CreateRepost(ctx, tx, userID, serviceReq)
-		return err
-	})
+	targetType := entity.ShareTargetType(req.TargetType)
+	if targetType != "" && targetType != entity.ShareTargetTypeContent {
+		// Non-content share: route through CreateInternalShare
+		switch targetType {
+		case entity.ShareTargetTypeForSale, entity.ShareTargetTypeAuction, entity.ShareTargetTypeProfile:
+			// valid non-content target type
+		default:
+			response.BadRequest(c, "Invalid target_type: "+string(targetType))
+			return
+		}
+		if req.TargetID == "" {
+			response.BadRequest(c, "target_id is required for non-content shares")
+			return
+		}
+		var targetID uuid.UUID
+		if targetID, err = uuid.Parse(req.TargetID); err != nil {
+			response.BadRequest(c, "Invalid target_id format")
+			return
+		}
+		_ = targetID // Used in service request below
+
+		err = h.db.WithTx(ctx, func(tx db.Tx) error {
+			var err error
+			repost, err = h.contentService.CreateInternalShare(ctx, tx, &contentApp.CreateInternalShareRequest{
+				ActorID:          userID,
+				TargetType:       targetType,
+				TargetID:         req.TargetID,
+				Caption:          req.Caption,
+				SourceEntrypoint: "repost_endpoint",
+			})
+			return err
+		})
+	} else {
+		// Content share: existing repost path
+		err = h.db.WithTx(ctx, func(tx db.Tx) error {
+			var err error
+			repost, err = h.contentService.CreateRepost(ctx, tx, userID, serviceReq)
+			return err
+		})
+	}
 
 	if err != nil {
 		// Map service-level EnsureActive errors to typed 403s so the mobile

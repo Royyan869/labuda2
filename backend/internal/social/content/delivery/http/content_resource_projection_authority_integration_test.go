@@ -452,18 +452,18 @@ func createCanonicalContentWithOccurrence(
 	t.Helper()
 
 	var contentID uuid.UUID
-	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		content, err := handler.contentService.CreateContentWithResourceOccurrence(
-			ctx,
-			tx,
-			authorID,
-			caption,
-			contententity.VisibilityPublic,
-			nil,
-			nil,
-			occurrence,
-			nil,
-		)
+	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {			content, err := handler.contentService.CreateContentWithResourceOccurrence(
+				ctx,
+				tx,
+				authorID,
+				caption,
+				contententity.VisibilityPublic,
+				nil,
+				nil,
+				occurrence,
+				nil,
+				nil,
+			)
 		if err != nil {
 			return err
 		}

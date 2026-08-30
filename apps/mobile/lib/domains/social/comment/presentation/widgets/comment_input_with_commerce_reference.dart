@@ -37,8 +37,6 @@ class CommentInputWithCommerceReference extends ConsumerStatefulWidget {
       _CommentInputWithCommerceReferenceState();
 }
 
-/// Legacy alias for backward-compatible imports.
-
 class _CommentInputWithCommerceReferenceState
     extends ConsumerState<CommentInputWithCommerceReference> {
   late TextEditingController _controller;

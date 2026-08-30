@@ -307,15 +307,6 @@ class _FakeLikeRepository implements LikeRepository {
   }
 
   @override
-  Future<Result<bool>> hasUserLiked({
-    required String targetId,
-    required LikeTargetType targetType,
-    required String userId,
-  }) async {
-    return Result.success(false);
-  }
-
-  @override
   Stream<LikeStats> watchLikeStats({
     required String targetId,
     required LikeTargetType targetType,
@@ -377,7 +368,7 @@ Widget _buildHarness(
       // Unrelated commerce providers needed by CommercePreviewSection.
       
       auctionRepositoryProvider.overrideWithValue(_FakeAuctionRepository()),
-      // Like repository — prevents ContentLikeAction from making real API calls.
+      // Like repository — prevents real API calls.
       likeRepositoryProvider.overrideWithValue(_FakeLikeRepository()),
       // Logger service override.
       loggerServiceProvider.overrideWithValue(LoggerService.instance),

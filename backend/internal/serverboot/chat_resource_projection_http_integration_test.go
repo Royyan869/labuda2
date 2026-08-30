@@ -46,8 +46,6 @@ func newChatProjectionHTTPFixture(t *testing.T) *chatProjectionHTTPFixture {
 		noopChatOutbox{},
 		rate.NewRateLimiter(),
 		nil,
-		nil,
-		nil,
 		auth.NewAccountStatusCheckerDB(base.traced),
 		nil,
 		zap.NewNop(),

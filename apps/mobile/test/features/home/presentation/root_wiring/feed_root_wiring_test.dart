@@ -539,13 +539,6 @@ class _FakeLikeRepository extends Fake implements LikeRepository {
   ));
 
   @override
-  Future<Result<bool>> hasUserLiked({
-    required String targetId,
-    required LikeTargetType targetType,
-    required String userId,
-  }) async => Result.success(false);
-
-  @override
   Stream<LikeStats> watchLikeStats({
     required String targetId,
     required LikeTargetType targetType,

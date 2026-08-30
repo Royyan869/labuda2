@@ -73,9 +73,6 @@ class FeedItem {
   /// Contract: Sourced from content_media table via backend Feed API
   final List<MediaEntity> media;
 
-  final int likes;
-  final int comments;
-  final List<String> likedByUsers;
   final Map<String, dynamic> additionalData;
 
   /// Canonical governance lifecycle. Defaults to active for null/unknown
@@ -109,26 +106,11 @@ class FeedItem {
     required this.type,
     required this.createdAt,
     this.media = const [],
-    this.likes = 0,
-    this.comments = 0,
-    this.likedByUsers = const [],
     this.additionalData = const {},
     this.lifecycle = ContentLifecycle.active,
     this.authorLifecycle = ContentLifecycle.active,
     this.originalAuthorLifecycle = ContentLifecycle.active,
   });
-
-  /// Get title from additional data
-  String? get title => additionalData['title'] as String?;
-
-  /// Get caption from additional data
-  String? get caption => additionalData['caption'] as String?;
-
-  /// Check if item is hidden
-  bool get isHidden => additionalData['isHidden'] as bool? ?? false;
-
-  /// Get status from additional data
-  String? get status => additionalData['status'] as String?;
 
   /// Check if this is a repost
   bool get isRepost => additionalData['isRepost'] as bool? ?? false;
@@ -149,9 +131,6 @@ class FeedItem {
     FeedItemType? type,
     DateTime? createdAt,
     List<MediaEntity>? media,
-    int? likes,
-    int? comments,
-    List<String>? likedByUsers,
     Map<String, dynamic>? additionalData,
     ContentLifecycle? lifecycle,
     ContentLifecycle? authorLifecycle,
@@ -166,9 +145,6 @@ class FeedItem {
       type: type ?? this.type,
       createdAt: createdAt ?? this.createdAt,
       media: media ?? this.media,
-      likes: likes ?? this.likes,
-      comments: comments ?? this.comments,
-      likedByUsers: likedByUsers ?? this.likedByUsers,
       additionalData: additionalData ?? this.additionalData,
       lifecycle: lifecycle ?? this.lifecycle,
       authorLifecycle: authorLifecycle ?? this.authorLifecycle,

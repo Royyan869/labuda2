@@ -123,7 +123,7 @@ func canTransition(from, to Status) bool {
 // misleading. Use scheduled/active to confirm the auction is still open.
 //
 // This is the single source of truth for the repost creation gate
-// (content_service.validateAuctionTarget) and the read-side governance filter
+// (commerceResponse.Validator via content_service.validateCommerceReference) and the read-side governance filter
 // (feed/search SQL NOT EXISTS checks for targetType='auction').
 func (s Status) IsRepostable() bool {
 	return s == StatusScheduled || s == StatusActive
