@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/labuda/backend/internal/governance/moderation/entity"
 	"github.com/labuda/backend/pkg/db"
 )
@@ -28,44 +27,51 @@ const caseColumns = `id, subject_type, subject_id, status, created_at, closed_at
 // FindOrCreateOpenCase finds an existing open Case for the subject,
 // or creates a new one if none exists.
 //
-// Race safety: The partial unique index uniq_active_case_per_subject
-// is the final guard. Under concurrent requests for the same subject:
-//   - First request: SELECT returns no rows → INSERT succeeds
-//   - Concurrent request: SELECT returns no rows → INSERT gets 23505 → retry SELECT
+// Race safety: Uses INSERT ... ON CONFLICT ... DO NOTHING to avoid
+// transaction abort on 23505. Under concurrent requests:
+//   - First request: INSERT succeeds (RowsAffected=1)
+//   - Concurrent request: INSERT DO NOTHING (RowsAffected=0) → SELECT finds existing
 //
-// This pattern is safe because:
-// 1. The unique index prevents duplicate open Cases
-// 2. The retry after 23505 finds the Case created by the concurrent request
-// 3. The transaction ensures atomicity
+// The partial unique index uniq_active_case_per_subject is the final guard.
 func (r *CaseRepositoryImpl) FindOrCreateOpenCase(ctx context.Context, tx db.Tx, subjectType entity.ReportTargetType, subjectID uuid.UUID) (*entity.CanonicalCase, error) {
-	// Try to find existing open Case first
+	caseID := uuid.New()
+	now := time.Now().UTC()
+
+	// Atomic: try to insert. If a row already exists (same subject, open status),
+	// the unique index rejects the INSERT but ON CONFLICT DO NOTHING keeps
+	// the transaction valid (no 23505 abort).
+	result, err := tx.Exec(ctx, `
+		INSERT INTO cases (id, subject_type, subject_id, status, created_at, updated_at)
+		VALUES ($1, $2, $3, 'open', $4, $5)
+		ON CONFLICT (subject_type, subject_id) WHERE status = 'open'
+		DO NOTHING
+	`, caseID, string(subjectType), subjectID, now, now)
+	if err != nil {
+		return nil, fmt.Errorf("insert or skip case failed: %w", err)
+	}
+
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 1 {
+		// We created the Case — return it directly
+		return &entity.CanonicalCase{
+			ID:          caseID,
+			SubjectType: subjectType,
+			SubjectID:   subjectID,
+			Status:      entity.CaseStatusOpen,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		}, nil
+	}
+
+	// RowsAffected == 0: another transaction created the Case.
+	// SELECT to retrieve it (transaction is still valid — no abort).
 	kase, err := r.findOpenCase(ctx, tx, subjectType, subjectID)
 	if err != nil {
-		return nil, fmt.Errorf("find open case failed: %w", err)
+		return nil, fmt.Errorf("find existing case after conflict failed: %w", err)
 	}
-	if kase != nil {
-		return kase, nil
+	if kase == nil {
+		return nil, fmt.Errorf("case not found after conflict resolution: subject_type=%s subject_id=%s", subjectType, subjectID)
 	}
-
-	// No open Case found — create a new one
-	kase, err = r.createOpenCase(ctx, tx, subjectType, subjectID)
-	if err != nil {
-		// If unique constraint violation (23505), another request created the Case
-		// — retry the SELECT
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			kase, err = r.findOpenCase(ctx, tx, subjectType, subjectID)
-			if err != nil {
-				return nil, fmt.Errorf("retry find open case after race failed: %w", err)
-			}
-			if kase != nil {
-				return kase, nil
-			}
-			return nil, fmt.Errorf("case not found after race resolution: subject_type=%s subject_id=%s", subjectType, subjectID)
-		}
-		return nil, fmt.Errorf("create open case failed: %w", err)
-	}
-
 	return kase, nil
 }
 
@@ -87,34 +93,6 @@ func (r *CaseRepositoryImpl) findOpenCase(ctx context.Context, tx db.Tx, subject
 	return kase, nil
 }
 
-// createOpenCase inserts a new open Case.
-func (r *CaseRepositoryImpl) createOpenCase(ctx context.Context, tx db.Tx, subjectType entity.ReportTargetType, subjectID uuid.UUID) (*entity.CanonicalCase, error) {
-	now := time.Now().UTC()
-	kase := &entity.CanonicalCase{
-		ID:          uuid.New(),
-		SubjectType: subjectType,
-		SubjectID:   subjectID,
-		Status:      entity.CaseStatusOpen,
-		CreatedAt:   now,
-		UpdatedAt:   now,
-	}
-
-	_, err := tx.Exec(ctx, `
-		INSERT INTO cases (id, subject_type, subject_id, status, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`,
-		kase.ID,
-		string(kase.SubjectType),
-		kase.SubjectID,
-		string(kase.Status),
-		kase.CreatedAt,
-		kase.UpdatedAt,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return kase, nil
-}
 
 // GetByID retrieves a Case by its ID. Returns (nil, nil) when not found.
 func (r *CaseRepositoryImpl) GetByID(ctx context.Context, tx db.Tx, caseID uuid.UUID) (*entity.CanonicalCase, error) {

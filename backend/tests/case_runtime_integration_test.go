@@ -255,9 +255,30 @@ func TestCanonicalCaseRuntime(t *testing.T) {
 	// ── 7. Concurrent Reports → no duplicate Case ────────────────
 	t.Run("concurrent_reports_no_duplicate_case", func(t *testing.T) {
 		newContent := insertReportFixtureContent(t, ctx, pool, subjectOwner)
-		const concurrentAttempts = 8
+		const concurrentAttempts = 10
+
+		// Create N different reporters (one per concurrent request)
+		// to avoid report duplicate protection interfering with Case concurrency test.
+		reporters := make([]uuid.UUID, concurrentAttempts)
+		for i := 0; i < concurrentAttempts; i++ {
+			reporters[i] = insertModerationUser(t, ctx, pool)
+		}
+
+		// Build per-request routers with unique user_id
+		routers := make([]*gin.Engine, concurrentAttempts)
+		for i := 0; i < concurrentAttempts; i++ {
+			routers[i] = gin.New()
+			idx := i
+			routers[i].Use(func(c *gin.Context) {
+				c.Set("user_id", reporters[idx])
+				c.Next()
+			})
+			routers[i].POST("/reports", handler.CreateReport)
+		}
+
 		var wg sync.WaitGroup
 		statuses := make([]int, concurrentAttempts)
+		caseIDs := make([]string, concurrentAttempts)
 
 		for i := 0; i < concurrentAttempts; i++ {
 			wg.Add(1)
@@ -271,30 +292,61 @@ func TestCanonicalCaseRuntime(t *testing.T) {
 				req := httptest.NewRequest(http.MethodPost, "/reports", bytes.NewReader(body))
 				req.Header.Set("Content-Type", "application/json")
 				w := httptest.NewRecorder()
-				router.ServeHTTP(w, req)
+				routers[idx].ServeHTTP(w, req)
 				statuses[idx] = w.Code
+
+				if w.Code == http.StatusCreated {
+					var resp struct {
+						Data struct {
+							CaseID string `json:"case_id"`
+						} `json:"data"`
+					}
+					_ = json.Unmarshal(w.Body.Bytes(), &resp)
+					caseIDs[idx] = resp.Data.CaseID
+				}
 			}(i)
 		}
 		wg.Wait()
 
-		// Count successes and conflicts
+		// PROOF 1: ALL requests succeed (no 409, no 500)
 		created := 0
-		conflicted := 0
 		for _, s := range statuses {
-			switch s {
-			case http.StatusCreated:
-				created++
-			case http.StatusConflict:
-				conflicted++
-			}
+			require.Equal(t, http.StatusCreated, s, "concurrent report must succeed")
+			created++
 		}
-		require.Equal(t, created+conflicted, concurrentAttempts, "all requests should complete")
+		require.Equal(t, concurrentAttempts, created, "all concurrent reports must succeed")
 
-		// Verify only one open Case for this subject
+		// PROOF 2: ALL reports point to the SAME Case
+		firstCaseID := caseIDs[0]
+		require.NotEmpty(t, firstCaseID, "first report must have case_id")
+		for i := 1; i < concurrentAttempts; i++ {
+			require.Equal(t, firstCaseID, caseIDs[i],
+				"report %d must have same case_id as report 0", i)
+		}
+
+		// PROOF 3: Only ONE open Case exists in DB
 		var openCount int
 		require.NoError(t, pool.QueryRow(ctx,
 			`SELECT COUNT(*) FROM cases WHERE subject_type = 'content' AND subject_id = $1 AND status = 'open'`, newContent).Scan(&openCount))
 		require.Equal(t, 1, openCount, "only one open Case should exist after concurrent reports")
+
+		// PROOF 4: Report count matches concurrent attempts
+		var reportCount int
+		require.NoError(t, pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM reports WHERE subject_type = 'content' AND subject_id = $1`, newContent).Scan(&reportCount))
+		require.Equal(t, concurrentAttempts, reportCount, "report count must match concurrent attempts")
+
+		// PROOF 5: Every report has the same case_id
+		var mismatchCount int
+		require.NoError(t, pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM reports WHERE subject_type = 'content' AND subject_id = $1 AND case_id != $2`, newContent, firstCaseID).Scan(&mismatchCount))
+		require.Equal(t, 0, mismatchCount, "all reports must point to the same Case")
+
+		// PROOF 6: No orphan Reports (case_id references valid Case)
+		var orphanCount int
+		require.NoError(t, pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM reports WHERE subject_type = 'content' AND subject_id = $1 AND case_id IS NULL`, newContent).Scan(&orphanCount))
+		require.Equal(t, 0, orphanCount, "no orphan reports allowed")
 	})
 
 	// ── 8. Report → Case FK integrity ────────────────────────────
