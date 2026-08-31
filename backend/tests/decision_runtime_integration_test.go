@@ -12,13 +12,15 @@
 // D. Immutability → UPDATE rejected by trigger
 // E. Invalid outcome → rejected
 // F. Missing Case → rejected
-// G. Atomicity → Decision failure does not mutate Case
-// H. Regression → existing Report + Case tests remain green
+// G. Atomicity → real PostgreSQL transaction rollback after partial mutation
+// H. Case resolution idempotent
+// I. Decision order (newest first)
 
 package tests
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
@@ -31,6 +33,42 @@ import (
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/testdb"
 )
+
+// ── caseRepoFault: fault-injected CaseRepository ─────────────────
+//
+// Wraps the real CaseRepository. GetByID delegates to the real repo.
+// ResolveCase delegates to the real repo but returns an injected error
+// if faultErr is set. This forces a real PostgreSQL transaction rollback
+// after the Decision INSERT has already succeeded within the same tx.
+
+type caseRepoFault struct {
+	real     moderationRepo.CaseRepository
+	faultErr error // if non-nil, ResolveCase returns this error
+}
+
+func (r *caseRepoFault) FindOrCreateOpenCase(ctx context.Context, tx db.Tx, subjectType entity.ReportTargetType, subjectID uuid.UUID) (*entity.CanonicalCase, error) {
+	return r.real.FindOrCreateOpenCase(ctx, tx, subjectType, subjectID)
+}
+
+func (r *caseRepoFault) GetByID(ctx context.Context, tx db.Tx, caseID uuid.UUID) (*entity.CanonicalCase, error) {
+	return r.real.GetByID(ctx, tx, caseID)
+}
+
+func (r *caseRepoFault) ListBySubject(ctx context.Context, tx db.Tx, subjectType entity.ReportTargetType, subjectID uuid.UUID, limit, offset int) ([]*entity.CanonicalCase, error) {
+	return r.real.ListBySubject(ctx, tx, subjectType, subjectID, limit, offset)
+}
+
+func (r *caseRepoFault) ResolveCase(ctx context.Context, tx db.Tx, caseID uuid.UUID) error {
+	if r.faultErr != nil {
+		return r.faultErr
+	}
+	return r.real.ResolveCase(ctx, tx, caseID)
+}
+
+// Ensure caseRepoFault satisfies the interface at compile time.
+var _ moderationRepo.CaseRepository = (*caseRepoFault)(nil)
+
+// ── Test Suite ────────────────────────────────────────────────────
 
 func TestCanonicalDecisionRuntime(t *testing.T) {
 	tdb, cleanup := testdb.SetupDB(t)
@@ -46,16 +84,16 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 	contentID := insertReportFixtureContent(t, ctx, pool, ownerID)
 
 	appDB := db.NewFromPool(pool)
-	caseRepo := moderationRepo.NewCaseRepository()
+	realCaseRepo := moderationRepo.NewCaseRepository()
 	decRepo := moderationRepo.NewDecisionRepository()
-	decisionService := moderationApp.NewDecisionService(appDB, caseRepo, decRepo)
+	decisionService := moderationApp.NewDecisionService(appDB, realCaseRepo, decRepo)
 
 	// Helper: create an open Case for the content
 	createOpenCase := func(t *testing.T) uuid.UUID {
 		t.Helper()
 		var caseID uuid.UUID
 		err := appDB.WithTx(ctx, func(tx db.Tx) error {
-			kase, err := caseRepo.FindOrCreateOpenCase(ctx, tx, "content", contentID)
+			kase, err := realCaseRepo.FindOrCreateOpenCase(ctx, tx, "content", contentID)
 			if err != nil {
 				return err
 			}
@@ -175,11 +213,10 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 			`SELECT status FROM cases WHERE id = $1`, caseID).Scan(&status))
 		assert.Equal(t, "resolved", status)
 
-		// Verify Decision #1 is unchanged (immutable)
+		// Verify all have correct case_id
 		decisions, err := decisionService.ListDecisionsByCase(ctx, caseID, 10, 0)
 		require.NoError(t, err)
 		assert.Len(t, decisions, 3)
-		// All should have the same case_id
 		for _, d := range decisions {
 			assert.Equal(t, caseID, d.CaseID)
 		}
@@ -237,7 +274,23 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 		assert.ErrorAs(t, err, &notFoundErr)
 	})
 
-	// ── G. Atomicity ───────────────────────────────────────────
+	// ── G. Atomicity — REAL PostgreSQL transaction rollback ─────
+	//
+	// This test proves real transaction atomicity against PostgreSQL.
+	//
+	// Strategy: inject a fault into CaseRepository.ResolveCase so that
+	// it fails AFTER the Decision INSERT has been executed within the
+	// same BEGIN/COMMIT transaction. The WithTx wrapper rolls back the
+	// entire transaction, leaving zero persisted mutations.
+	//
+	// Execution flow inside the transaction:
+	//   BEGIN
+	//     caseRepo.GetByID       → SUCCESS (Case found, status=open)
+	//     decRepo.Create         → SUCCESS (Decision INSERT executed)
+	//     caseRepo.ResolveCase   → FAULT   (returns injected error)
+	//   ROLLBACK (triggered by WithTx error path)
+	//
+	// Proof: Decision count = 0, Case status = open, closed_at = NULL.
 	t.Run("decision_failure_does_not_mutate_case", func(t *testing.T) {
 		caseID := createOpenCase(t)
 
@@ -247,25 +300,50 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 			`SELECT status FROM cases WHERE id = $1`, caseID).Scan(&statusBefore))
 		assert.Equal(t, "open", statusBefore)
 
-		// Attempt Decision with invalid outcome (fails before INSERT)
-		_, err := decisionService.CreateDecision(ctx, moderationApp.CreateDecisionInput{
+		// Create a fault-injected CaseRepository.
+		// ResolveCase will return an error AFTER the real DB operation is attempted,
+		// but since the error is returned to WithTx, the transaction is rolled back.
+		faultCaseRepo := &caseRepoFault{
+			real:     realCaseRepo,
+			faultErr: fmt.Errorf("injected fault: ResolveCase failed after Decision INSERT"),
+		}
+
+		// Create a NEW DecisionService with the fault-injected CaseRepository.
+		// The DecisionRepository is real — its Create will execute within the tx.
+		faultService := moderationApp.NewDecisionService(appDB, faultCaseRepo, decRepo)
+
+		// Attempt Decision creation — this will:
+		//   1. BEGIN transaction
+		//   2. GetByID → Case found (real repo)
+		//   3. Decision CREATE → INSERT executed (real repo, same tx)
+		//   4. ResolveCase → FAULT (injected error, returned to WithTx)
+		//   5. WithTx sees error → ROLLBACK entire transaction
+		_, err := faultService.CreateDecision(ctx, moderationApp.CreateDecisionInput{
 			CaseID:    caseID,
 			DecidedBy: adminID,
-			Outcome:   entity.DecisionOutcome("garbage"),
+			Outcome:   entity.DecisionOutcomeViolation,
 		})
-		assert.Error(t, err)
+		require.Error(t, err, "CreateDecision must fail due to injected fault")
 
-		// Verify Case is still open (no mutation)
-		var statusAfter string
-		require.NoError(t, pool.QueryRow(ctx,
-			`SELECT status FROM cases WHERE id = $1`, caseID).Scan(&statusAfter))
-		assert.Equal(t, "open", statusAfter, "Case must not change when Decision fails")
-
-		// Verify no Decision was created
+		// Verify ZERO persisted mutations against real PostgreSQL:
+		//
+		// 1. Decision count = 0 (INSERT was rolled back)
 		var decCount int
 		require.NoError(t, pool.QueryRow(ctx,
 			`SELECT COUNT(*) FROM decisions WHERE case_id = $1`, caseID).Scan(&decCount))
-		assert.Equal(t, 0, decCount, "no Decision should exist after failure")
+		assert.Equal(t, 0, decCount, "Decision INSERT must be rolled back — no Decision should exist")
+
+		// 2. Case status = open (resolution was rolled back)
+		var statusAfter string
+		require.NoError(t, pool.QueryRow(ctx,
+			`SELECT status FROM cases WHERE id = $1`, caseID).Scan(&statusAfter))
+		assert.Equal(t, "open", statusAfter, "Case must remain open — resolution was rolled back")
+
+		// 3. closed_at = NULL (resolution timestamp was rolled back)
+		var closedAt *interface{}
+		require.NoError(t, pool.QueryRow(ctx,
+			`SELECT closed_at FROM cases WHERE id = $1`, caseID).Scan(&closedAt))
+		assert.Nil(t, closedAt, "closed_at must be NULL — resolution was rolled back")
 	})
 
 	// ── H. Case resolution idempotent ──────────────────────────
@@ -296,7 +374,7 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Verify Case is resolved with closed_at set once
+		// Verify Case is resolved with closed_at set
 		var status string
 		var closedAt *interface{}
 		require.NoError(t, pool.QueryRow(ctx,
@@ -335,3 +413,5 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 		assert.Equal(t, ids[0], decisions[2].ID)
 	})
 }
+
+

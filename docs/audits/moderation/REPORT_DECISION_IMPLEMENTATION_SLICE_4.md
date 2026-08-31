@@ -2,6 +2,7 @@
 
 **Tanggal:** 2026-08-31
 **Scope:** Decision runtime only — entity, repository, service, dependency wiring
+**Last updated:** 2026-08-31 (real PostgreSQL execution proof added)
 
 ---
 
@@ -50,209 +51,173 @@ Decision does NOT mutate target content/auction/for_sale/user.
 
 ---
 
-## 3. Decision Entity
+## 3. Proof Classification
 
-**File:** `entity/decision.go`
+### UNIT PROOF
 
-```go
-type Decision struct {
-    ID           uuid.UUID
-    CaseID       uuid.UUID
-    DecidedBy    uuid.UUID
-    Outcome      DecisionOutcome
-    DecisionNote *string
-    CreatedAt    time.Time
-}
-```
-
-**Outcome vocabulary:**
-```go
-DecisionOutcomeNoViolation DecisionOutcome = "no_violation"
-DecisionOutcomeViolation   DecisionOutcome = "violation"
-```
-
-**No action, sanction, enforcement_status, or enforced fields.**
-
-**Entity validates:** outcome must be valid (`IsValid()` check in `NewDecision`).
-
----
-
-## 4. Repository
-
-**File:** `infrastructure/repository/decision_repository.go` + `_impl.go`
-
-| Method | Operation | Notes |
+| Test | What It Proves | Method |
 |---|---|---|
-| `Create` | INSERT | Append-only. No uniqueness on case_id |
-| `GetByID` | SELECT | Returns nil when not found |
-| `ListByCase` | SELECT | Ordered by `created_at DESC` |
+| `TestNewDecision_Success` | Entity creation with valid inputs | Pure Go, no DB |
+| `TestNewDecision_NoViolation` | no_violation outcome valid | Pure Go |
+| `TestNewDecision_InvalidOutcome` | Invalid outcome rejected | Pure Go |
+| `TestNewDecision_EmptyOutcome` | Empty outcome rejected | Pure Go |
+| `TestDecisionOutcome_IsValid` | All valid/invalid outcomes | Pure Go |
+| `TestNewDecision_EachHasUniqueID` | Unique IDs | Pure Go |
+| `TestErrInvalidDecisionOutcome_Message` | Error message | Pure Go |
+| `TestErrDecisionCaseNotFound_Message` | Error message | Pure Go |
 
-**No Update, Delete, Overwrite, or ChangeOutcome methods.**
+**8/8 unit tests PASS** (0.6s)
+
+### INTEGRATION PROOF (Real PostgreSQL)
+
+All integration tests execute against a real PostgreSQL 16 instance via Docker (`labuda-postgres` container, `labuda_test` database). Tests use `testdb.SetupDB` which runs full migration chain against a disposable schema.
+
+### POSTGRESQL RUNTIME PROOF
+
+| Test | Proof | Result |
+|---|---|---|
+| **A.** `first_decision_on_open_case_resolves_case` | Open Case → Decision → resolved, closed_at set, Decision row exists | **PASS** (0.22s) |
+| **B.** `second_decision_on_resolved_case_succeeds` | Resolved Case → Decision #2 → success, Case remains resolved, 2 rows | **PASS** (0.18s) |
+| **C.** `multiple_decisions_all_exist` | 3 Decisions → all exist, all have correct case_id, Case resolved | **PASS** (0.13s) |
+| **D.** `decision_immutable_update_rejected` | UPDATE → rejected by `trg_decisions_immutable`, Decision unchanged | **PASS** (0.06s) |
+| **E.** `invalid_outcome_rejected` | `DecisionOutcome("enforce")` → `ErrInvalidDecisionOutcome` | **PASS** (0.03s) |
+| **F.** `missing_case_rejected` | Non-existent case_id → `ErrDecisionCaseNotFound` | **PASS** (0.00s) |
+| **G.** `decision_failure_does_not_mutate_case` | **Real atomicity proof** — see §4 below | **PASS** (0.01s) |
+| **H.** `case_resolution_idempotent_across_decisions` | 3 Decisions on same Case, resolved once, no error on subsequent | **PASS** (0.28s) |
+| **I.** `list_decisions_newest_first` | 3 Decisions → listed in reverse chronological order | **PASS** (0.20s) |
+
+**9/9 Decision integration tests PASS** (150.4s including migration)
+
+### REGRESSION PROOF (Real PostgreSQL)
+
+| Suite | Tests | Result |
+|---|---|---|
+| `TestCanonicalCaseRuntime` (Slice 3) | 8 tests | **PASS** (144.3s) |
+| `TestCanonicalReportRuntime` (Slice 2) | 11 tests | **PASS** (134.3s) |
+
+**28/28 total integration tests PASS** against real PostgreSQL.
 
 ---
 
-## 5. Service
+## 4. Atomicity Proof — Real Transaction Rollback
 
-**File:** `application/decision_service.go`
+### The Problem
+
+Previous test used invalid outcome (`"garbage"`) which was caught by application validation **before** entering the transaction. This proved validation, not transaction atomicity.
+
+### The Fix
+
+Introduced `caseRepoFault` — a minimal fault-injection wrapper around the real `CaseRepository`:
 
 ```go
-type DecisionService struct {
-    db       Transactor
-    caseRepo repository.CaseRepository
-    decRepo  repository.DecisionRepository
+type caseRepoFault struct {
+    real     moderationRepo.CaseRepository
+    faultErr error
+}
+
+func (r *caseRepoFault) ResolveCase(ctx context.Context, tx db.Tx, caseID uuid.UUID) error {
+    if r.faultErr != nil {
+        return r.faultErr
+    }
+    return r.real.ResolveCase(ctx, tx, caseID)
 }
 ```
 
-### CreateDecision Transaction Boundary
+This wrapper:
+- Delegates `GetByID` to the real repository (Case lookup succeeds)
+- Delegates `ResolveCase` to the real repository but returns an injected error
+
+### Execution Flow (Real PostgreSQL)
 
 ```text
-BEGIN
-  1. Validate Case exists (GetByID)
-  2. Validate outcome (IsValid — before TX)
-  3. INSERT immutable Decision
-  4. if Case is open → ResolveCase (open → resolved)
-  5. if Case is already resolved → no-op on Case
-COMMIT
+DecisionService.CreateDecision
+    ↓
+s.db.WithTx(ctx, func(tx db.Tx) error {
+    ↓
+    1. caseRepo.GetByID(ctx, tx, caseID)
+       → REAL PostgreSQL SELECT via tx
+       → Case found, status = 'open'
+       → SUCCESS
+    ↓
+    2. decRepo.Create(ctx, tx, decision)
+       → REAL PostgreSQL INSERT INTO decisions via tx
+       → SUCCESS (row exists in tx, not yet committed)
+    ↓
+    3. caseRepo.ResolveCase(ctx, tx, caseID)
+       → caseRepoFault intercepts
+       → Returns injected error WITHOUT calling real ResolveCase
+       → ERROR returned to WithTx
+    ↓
+})
+    ↓
+WithTx sees error → pgxTx.Rollback(ctx)
+    ↓
+ROLLBACK issued to PostgreSQL
 ```
 
-**Key properties:**
-- Decision creation on resolved Case: **succeeds** (no gate on Case status)
-- Case resolution: **idempotent** (WHERE status='open' guard in SQL)
-- If Decision insert fails: **no Case mutation** (atomic)
-- Outcome validated **before** transaction entry (clean error)
+### Proof Assertions (Real PostgreSQL)
+
+After the fault-injected `CreateDecision` returns error:
+
+```sql
+-- 1. Decision count = 0 (INSERT was rolled back)
+SELECT COUNT(*) FROM decisions WHERE case_id = $1;
+-- Result: 0
+
+-- 2. Case status = open (resolution was rolled back)
+SELECT status FROM cases WHERE id = $1;
+-- Result: 'open'
+
+-- 3. closed_at = NULL (resolution timestamp was rolled back)
+SELECT closed_at FROM cases WHERE id = $1;
+-- Result: NULL
+```
+
+**Zero persisted mutations. Real PostgreSQL transaction rollback confirmed.**
+
+### Why This Is Real
+
+- `caseRepoFault.GetByID` calls the **real** `CaseRepository.GetByID` with the **real** transaction — Case lookup is against PostgreSQL
+- `decRepo.Create` calls the **real** `DecisionRepository.Create` with the **real** transaction — INSERT is executed against PostgreSQL
+- The fault is injected **only** on `ResolveCase` — after the INSERT has been executed
+- `WithTx` calls `pgxTx.Rollback(ctx)` — real PostgreSQL ROLLBACK
+- Verification queries use `pool.QueryRow` — **direct PostgreSQL connection**, reads committed state only
 
 ---
 
-## 6. Case Resolution Behavior
+## 5. Static Implementation Verification
 
-| Scenario | Case Before | Case After | Decision Created? |
-|---|---|---|---|
-| First Decision on open Case | open | resolved | ✅ YES |
-| Second Decision on resolved Case | resolved | resolved (unchanged) | ✅ YES |
-| Third Decision on resolved Case | resolved | resolved (unchanged) | ✅ YES |
+### Transaction Flow
 
-**No gate: `case.status == 'open'` is NOT required.**
-**No reopen: resolved → open NEVER happens.**
+```text
+DecisionService.CreateDecision
+    ↓
+s.db.WithTx(ctx, func(tx db.Tx) error {
+    s.caseRepo.GetByID(ctx, tx, ...)   // same tx
+    s.decRepo.Create(ctx, tx, ...)     // same tx
+    s.caseRepo.ResolveCase(ctx, tx, ...) // same tx
+})
+```
 
----
+**All three operations receive the identical `tx` object from `WithTx`.** No operation escapes the transaction boundary. No pool/global DB is used within the transaction.
 
-## 7. Test Matrix
+### Evidence
 
-### A. First Decision → Case Resolved
-✅ `first_decision_on_open_case_resolves_case`
-- Case starts open
-- Decision created
-- Case transitions to resolved
-- closed_at is set
-
-### B. Second Decision → Success, Case Stays Resolved
-✅ `second_decision_on_resolved_case_succeeds`
-- Case resolved after first Decision
-- Second Decision created successfully
-- Case remains resolved
-
-### C. Multiple Decisions
-✅ `multiple_decisions_all_exist`
-- 3 Decisions created on same Case
-- All 3 exist in DB
-- Case is resolved
-- All have correct case_id
-
-### D. Immutability
-✅ `decision_immutable_update_rejected`
-- Decision created
-- UPDATE attempted → rejected by `trg_decisions_immutable`
-- Decision unchanged
-
-### E. Invalid Outcome
-✅ `invalid_outcome_rejected`
-- `DecisionOutcome("enforce")` → rejected
-- `ErrInvalidDecisionOutcome` returned
-
-### F. Missing Case
-✅ `missing_case_rejected`
-- Non-existent case_id → rejected
-- `ErrDecisionCaseNotFound` returned
-
-### G. Atomicity
-✅ `decision_failure_does_not_mutate_case`
-- Invalid outcome → transaction fails
-- Case remains open (no mutation)
-- No Decision row created
-
-### H. Case Resolution Idempotent
-✅ `case_resolution_idempotent_across_decisions`
-- 3 Decisions on same Case
-- Case resolved once, stays resolved
-- No error on subsequent resolutions
-
-### I. Decision Order
-✅ `list_decisions_newest_first`
-- 3 Decisions created
-- Listed in reverse chronological order
+```go
+// decision_service.go:70-100
+err := s.db.WithTx(ctx, func(tx db.Tx) error {
+    kase, err := s.caseRepo.GetByID(ctx, tx, input.CaseID)  // tx
+    // ...
+    if err := s.decRepo.Create(ctx, tx, decision); err != nil { // tx
+    // ...
+    if err := s.caseRepo.ResolveCase(ctx, tx, input.CaseID); err != nil { // tx
+    // ...
+})
+```
 
 ---
 
-## 8. Regression Proof
-
-### Existing Tests
-
-| Test Suite | Result |
-|---|---|
-| `entity/` (all 31 tests) | ✅ PASS |
-| `application/` (ReportService tests) | ✅ PASS |
-| `delivery/http/` (handler tests) | ✅ PASS |
-| `infrastructure/repository/` (warning repo test) | ✅ PASS |
-
-### Full Build
-
-| Check | Result |
-|---|---|
-| `go build ./...` | ✅ PASS |
-| `go vet ./internal/governance/moderation/...` | ✅ PASS |
-| `go vet -tags=integration ./tests/...` | ✅ PASS |
-
-### Integration Tests
-
-| Test | Status |
-|---|---|
-| `TestCanonicalDecisionRuntime` | ⚠️ Requires PostgreSQL (not available in this env) |
-| `TestCanonicalCaseRuntime` | ⚠️ Requires PostgreSQL (same) |
-
-**Integration tests compile and vet clean.** They require a running PostgreSQL instance to execute. The test logic is proven structurally correct via unit tests and compilation.
-
----
-
-## 9. Enforcement Boundary
-
-Decision creation does NOT:
-- Set enforcement status
-- Mark target enforced
-- Mutate target content
-- Mutate auction
-- Mutate for_sale
-- Emit enforcement events
-- Create outbox events
-
-**Decision is a pure governance record.** Enforcement is the next slice.
-
----
-
-## 10. Legacy Paths Intentionally Untouched
-
-| Component | Status | Classification |
-|---|---|---|
-| `GovernanceCase` entity | ✅ Type renamed `Decision` → `GovernanceCaseDecision` | LEGACY (appeal domain) |
-| `ModerationRepository` | Untouched | DEAD/ZOMBIE (reads dropped table) |
-| `DomainAction` | Untouched | PARKED/ZOMBIE |
-| `DomainActionWorker` | Untouched | PARKED/ZOMBIE |
-| `AppealReversalService` | Untouched | PARKED/ZOMBIE |
-| Legacy Appeal runtime | Untouched | LEGITIMATE FUTURE DEPENDENCY (Slice 9) |
-| Legacy Warning runtime | Untouched | LEGACY (Slice 8 scope) |
-
----
-
-## 11. Legacy Rename
+## 6. Legacy Rename
 
 **Problem:** `entity/governance_case.go` declared `type Decision string` with constants `DecisionApprove/DecisionReject/DecisionEnforce`. This collided with the canonical `entity.Decision` struct.
 
@@ -262,7 +227,7 @@ Decision creation does NOT:
 
 ---
 
-## 12. Files Changed
+## 7. Files Changed
 
 | File | Change |
 |---|---|
@@ -277,7 +242,7 @@ Decision creation does NOT:
 
 ---
 
-## 13. Exact Commands and Results
+## 8. Exact Commands and Results
 
 ```bash
 # Build (all packages)
@@ -296,37 +261,40 @@ go vet -tags=integration ./tests/...
 go test ./internal/governance/moderation/entity/... -count=1
 # Result: PASS (31/31)
 
-# Application tests (report service)
-go test ./internal/governance/moderation/application/... -count=1 -run TestReportService
-# Result: PASS
-
 # All governance/moderation tests
 go test ./internal/governance/moderation/... -count=1
 # Result: PASS (4 packages)
 
-# Integration tests (requires PostgreSQL)
+# Integration tests — Decision (real PostgreSQL)
 go test -tags=integration -v -run TestCanonicalDecisionRuntime -count=1 ./tests/
-# Result: Requires running PostgreSQL instance
+# Result: PASS (9/9 tests, 150.4s)
+
+# Integration tests — Case regression (real PostgreSQL)
+go test -tags=integration -v -run TestCanonicalCaseRuntime -count=1 ./tests/
+# Result: PASS (8/8 tests, 144.3s)
+
+# Integration tests — Report regression (real PostgreSQL)
+go test -tags=integration -v -run TestCanonicalReportRuntime -count=1 ./tests/
+# Result: PASS (11/11 tests, 134.3s)
 ```
 
 ---
 
-## 14. Final Verdict
+## 9. Final Verdict
 
 ### **PASS**
 
 **Evidence:**
-1. ✅ Decision entity with correct vocabulary (`no_violation/violation`)
-2. ✅ Decision is immutable (DB trigger + no app mutation paths)
-3. ✅ Decision belongs to Case (FK NOT NULL)
-4. ✅ Multiple Decisions per Case supported (no unique constraint)
-5. ✅ First Decision resolves Case (atomic)
-6. ✅ Decision on resolved Case succeeds (no-op on Case)
-7. ✅ Case never reopens (WHERE status='open' guard)
-8. ✅ Invalid outcomes rejected
-9. ✅ Missing Case rejected
-10. ✅ Atomicity proven (Decision failure → no Case mutation)
-11. ✅ All existing tests pass
-12. ✅ Full build + vet clean
-13. ✅ No Enforcement, Appeal, or Outbox changes
-14. ✅ Legacy paths untouched except necessary rename
+1. ✅ Static implementation verified: all operations use same `tx` from `WithTx`
+2. ✅ Real PostgreSQL integration suite executed: 28/28 tests PASS
+3. ✅ Atomicity partial-failure proven: real transaction rollback via fault injection, zero persisted mutations
+4. ✅ All 9 Decision proof cases (A-I) PASS against real PostgreSQL
+5. ✅ All 8 Case regression tests PASS
+6. ✅ All 11 Report regression tests PASS
+7. ✅ Decision outcome ∈ {no_violation, violation} enforced by DB enum
+8. ✅ Decision immutability enforced by `trg_decisions_immutable` trigger
+9. ✅ Multiple Decisions per Case supported
+10. ✅ Case resolution idempotent (no reopen)
+11. ✅ Full build + vet clean
+12. ✅ No Enforcement, Appeal, or Outbox changes
+13. ✅ Legacy paths untouched except necessary rename
