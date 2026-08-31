@@ -126,34 +126,38 @@ func (r *EnforcementRepositoryImpl) MarkProcessing(ctx context.Context, tx db.Tx
 }
 
 // MarkSucceeded transitions processing → succeeded atomically.
-// Sets finished_at = now(). Returns nil if no rows affected.
+// Sets finished_at = now(). Returns nil if no rows affected (idempotent).
+// GUARD: Only transitions from processing status — prevents pending→succeeded.
 func (r *EnforcementRepositoryImpl) MarkSucceeded(ctx context.Context, tx db.Tx, id uuid.UUID) error {
 	now := time.Now().UTC()
-	_, err := tx.Exec(ctx, `
+	result, err := tx.Exec(ctx, `
 		UPDATE enforcements
 		SET status = $1, finished_at = $2, updated_at = $3
-		WHERE id = $4
+		WHERE id = $4 AND status = $5
 	`,
 		string(entity.EnforcementStatusSucceeded),
 		now,
 		now,
 		id,
+		string(entity.EnforcementStatusProcessing),
 	)
 	if err != nil {
 		return fmt.Errorf("mark enforcement succeeded failed: %w", err)
 	}
+	_ = result.RowsAffected() // 0 rows = already terminal, idempotent
 	return nil
 }
 
 // MarkFailed transitions processing → failed atomically.
 // Sets finished_at = now(), last_error, next_attempt_at for retry.
-// Returns nil if no rows affected.
+// Returns nil if no rows affected (idempotent).
+// GUARD: Only transitions from processing status — prevents pending→failed.
 func (r *EnforcementRepositoryImpl) MarkFailed(ctx context.Context, tx db.Tx, id uuid.UUID, lastError string, nextAttemptAt *time.Time) error {
 	now := time.Now().UTC()
-	_, err := tx.Exec(ctx, `
+	result, err := tx.Exec(ctx, `
 		UPDATE enforcements
 		SET status = $1, finished_at = $2, last_error = $3, next_attempt_at = $4, updated_at = $5
-		WHERE id = $6
+		WHERE id = $6 AND status = $7
 	`,
 		string(entity.EnforcementStatusFailed),
 		now,
@@ -161,10 +165,12 @@ func (r *EnforcementRepositoryImpl) MarkFailed(ctx context.Context, tx db.Tx, id
 		nextAttemptAt,
 		now,
 		id,
+		string(entity.EnforcementStatusProcessing),
 	)
 	if err != nil {
 		return fmt.Errorf("mark enforcement failed: %w", err)
 	}
+	_ = result.RowsAffected() // 0 rows = already terminal, idempotent
 	return nil
 }
 

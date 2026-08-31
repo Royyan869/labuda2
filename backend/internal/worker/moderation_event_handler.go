@@ -549,7 +549,8 @@ func (h *ModerationEventHandler) handleCommentRestored(
 // All within one transaction for atomicity.
 //
 // IDEMPOTENT: Safe to retry - Withdraw() validates fixed-price sale state.
-// InvalidTransitionError (already terminal) is treated as idempotent success.
+// InvalidTransitionError (already terminal) is handled INSIDE enforceLifecycle
+// so that the lifecycle always passes through processing → succeeded.
 func (h *ModerationEventHandler) handleForSaleRemoved(
 	ctx context.Context,
 	forSaleID uuid.UUID,
@@ -572,35 +573,32 @@ func (h *ModerationEventHandler) handleForSaleRemoved(
 	enforcementID := parseEnforcementID(payload)
 
 	// Canonical enforcement lifecycle within a single transaction.
+	// InvalidTransitionError is caught INSIDE the target function so that
+	// MarkProcessing → MarkSucceeded always executes atomically.
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
 		return h.enforceLifecycle(ctx, tx, enforcementID, func() error {
-			return h.forSaleService.Withdraw(ctx, tx, forSaleID)
+			withdrawErr := h.forSaleService.Withdraw(ctx, tx, forSaleID)
+			if withdrawErr != nil {
+				// IDEMPOTENCY: If fixed-price sale is already in a terminal state
+				// (withdrawn/sold), Withdraw() returns InvalidTransitionError.
+				// The sale is no longer purchasable, which is the moderation intent.
+				var ite *forSaleEntity.InvalidTransitionError
+				if errors.As(withdrawErr, &ite) {
+					h.log.Info("Fixed-price sale already in terminal state, treating as idempotent",
+						zap.String("for_sale_id", forSaleID.String()),
+						zap.String("case_id", payload.CaseID),
+						zap.String("current_status", string(ite.CurrentStatus)),
+						zap.String("target_status", string(ite.TargetStatus)),
+					)
+					return nil // Skip mutation, lifecycle proceeds to MarkSucceeded
+				}
+				return withdrawErr // Real failure — TX rolls back, outbox retries
+			}
+			return nil
 		})
 	})
 
 	if err != nil {
-		// IDEMPOTENCY: If fixed-price sale is already in a terminal state (withdrawn/sold),
-		// Withdraw() returns InvalidTransitionError. Treat as success — the sale
-		// is no longer purchasable, which is the moderation intent.
-		var ite *forSaleEntity.InvalidTransitionError
-		if errors.As(err, &ite) {
-			h.log.Info("Fixed-price sale already in terminal state, treating as idempotent",
-				zap.String("for_sale_id", forSaleID.String()),
-				zap.String("case_id", payload.CaseID),
-				zap.String("current_status", string(ite.CurrentStatus)),
-				zap.String("target_status", string(ite.TargetStatus)),
-			)
-			// Idempotent success — re-run within tx to mark enforcement succeeded.
-			// Withdraw will return InvalidTransitionError again → we catch it here.
-			_ = h.db.WithTx(ctx, func(tx db.Tx) error {
-				if enforcementID != nil && h.enfRepo != nil {
-					_ = h.enfRepo.MarkSucceeded(ctx, tx, *enforcementID)
-				}
-				return nil
-			})
-			return nil
-		}
-
 		h.log.Error("Failed to withdraw fixed-price sale for moderation",
 			zap.String("for_sale_id", forSaleID.String()),
 			zap.String("case_id", payload.CaseID),
@@ -623,7 +621,8 @@ func (h *ModerationEventHandler) handleForSaleRemoved(
 // All within one transaction for atomicity.
 //
 // IDEMPOTENT: Terminal states (ended, expired_bnr, cancelled) return
-// InvalidTransitionError which is treated as idempotent success.
+// InvalidTransitionError which is handled INSIDE enforceLifecycle so that
+// the lifecycle always passes through processing → succeeded.
 func (h *ModerationEventHandler) handleAuctionRemoved(
 	ctx context.Context,
 	auctionID uuid.UUID,
@@ -643,32 +642,31 @@ func (h *ModerationEventHandler) handleAuctionRemoved(
 
 	enforcementID := parseEnforcementID(payload)
 
+	// Canonical enforcement lifecycle within a single transaction.
+	// InvalidTransitionError is caught INSIDE the target function so that
+	// MarkProcessing → MarkSucceeded always executes atomically.
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
 		return h.enforceLifecycle(ctx, tx, enforcementID, func() error {
-			return h.auctionService.CancelForModeration(ctx, tx, auctionID)
+			cancelErr := h.auctionService.CancelForModeration(ctx, tx, auctionID)
+			if cancelErr != nil {
+				// IDEMPOTENCY: Terminal states (ended, expired_bnr, cancelled) cannot
+				// transition to cancelled. Auction is no longer active.
+				var ite *auctionEntity.InvalidTransitionError
+				if errors.As(cancelErr, &ite) {
+					h.log.Info("Auction already in terminal state, treating as idempotent",
+						zap.String("auction_id", auctionID.String()),
+						zap.String("case_id", payload.CaseID),
+						zap.String("current_status", string(ite.CurrentStatus)),
+					)
+					return nil // Skip mutation, lifecycle proceeds to MarkSucceeded
+				}
+				return cancelErr // Real failure — TX rolls back, outbox retries
+			}
+			return nil
 		})
 	})
 
 	if err != nil {
-		// IDEMPOTENCY: Terminal states (ended, expired_bnr, cancelled) cannot
-		// transition to cancelled. Treat as success — auction is no longer active.
-		var ite *auctionEntity.InvalidTransitionError
-		if errors.As(err, &ite) {
-			h.log.Info("Auction already in terminal state, treating as idempotent",
-				zap.String("auction_id", auctionID.String()),
-				zap.String("case_id", payload.CaseID),
-				zap.String("current_status", string(ite.CurrentStatus)),
-			)
-			// Idempotent success — mark enforcement succeeded directly.
-			_ = h.db.WithTx(ctx, func(tx db.Tx) error {
-				if enforcementID != nil && h.enfRepo != nil {
-					_ = h.enfRepo.MarkSucceeded(ctx, tx, *enforcementID)
-				}
-				return nil
-			})
-			return nil
-		}
-
 		h.log.Error("Failed to cancel auction for moderation",
 			zap.String("auction_id", auctionID.String()),
 			zap.String("case_id", payload.CaseID),

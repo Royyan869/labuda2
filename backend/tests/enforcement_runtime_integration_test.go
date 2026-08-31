@@ -28,6 +28,7 @@ import (
 	"github.com/labuda/backend/internal/governance/moderation/application"
 	"github.com/labuda/backend/internal/governance/moderation/entity"
 	"github.com/labuda/backend/internal/governance/moderation/infrastructure/repository"
+	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/testdb"
 )
@@ -80,7 +81,8 @@ func TestEnforcementRuntime(t *testing.T) {
 	realCaseRepo := repository.NewCaseRepository()
 	decRepo := repository.NewDecisionRepository()
 	enfRepo := repository.NewEnforcementRepository()
-	decisionService := application.NewDecisionService(appDB, realCaseRepo, decRepo, enfRepo, nil)
+	obRepo := outboxRepo.NewOutboxRepository(appDB)
+	decisionService := application.NewDecisionService(appDB, realCaseRepo, decRepo, enfRepo, obRepo)
 
 	// Helper: insert a moderation user
 	insertModUser := func(t *testing.T) uuid.UUID {
@@ -475,7 +477,7 @@ func TestEnforcementRuntime(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("J - Decision creation with violation requires valid target type", func(t *testing.T) {
+	t	.Run("J - Decision creation with violation requires valid target type", func(t *testing.T) {
 		reporter := insertModUser(t)
 		contentOwner := insertModUser(t)
 		contentID := insertContent(t, contentOwner)
@@ -489,5 +491,307 @@ func TestEnforcementRuntime(t *testing.T) {
 			TargetID:   contentID,
 		})
 		require.Error(t, err, "invalid target type must be rejected")
+	})
+
+	// ── F1 GUARD PROOF: Invalid state transitions ──────────────────────────
+
+	t.Run("K - MarkSucceeded from pending is REJECTED (F1 guard)", func(t *testing.T) {
+		// PROVES: pending → succeeded is impossible without passing through processing.
+		// Before F1 fix, MarkSucceeded had no WHERE status guard and would silently
+		// transition from any state to succeeded.
+		reporter := insertModUser(t)
+		contentOwner := insertModUser(t)
+		contentID := insertContent(t, contentOwner)
+		caseID := createOpenCase(t, "content", contentID)
+
+		decision, err := decisionService.CreateDecision(ctx, application.CreateDecisionInput{
+			CaseID:     caseID,
+			DecidedBy:  reporter,
+			Outcome:    entity.DecisionOutcomeViolation,
+			TargetType: entity.ModerationTargetTypeContent,
+			TargetID:   contentID,
+		})
+		require.NoError(t, err)
+
+		var enfID uuid.UUID
+		err = pool.QueryRow(ctx,
+			`SELECT id FROM enforcements WHERE decision_id = $1`, decision.ID,
+		).Scan(&enfID)
+		require.NoError(t, err)
+
+		// Attempt: pending → succeeded (DIRECTLY, skipping processing)
+		err = appDB.WithTx(ctx, func(tx db.Tx) error {
+			return enfRepo.MarkSucceeded(ctx, tx, enfID)
+		})
+		require.NoError(t, err, "MarkSucceeded should not error (0 rows = idempotent no-op)")
+
+		// VERIFY: status must STILL be pending — the guard prevented the transition
+		var status string
+		err = pool.QueryRow(ctx,
+			`SELECT status FROM enforcements WHERE id = $1`, enfID,
+		).Scan(&status)
+		require.NoError(t, err)
+		require.Equal(t, "pending", status, "F1: pending→succeeded must be rejected by status guard")
+	})
+
+	t.Run("L - MarkFailed from pending is REJECTED (F1 guard)", func(t *testing.T) {
+		// PROVES: pending → failed is impossible without passing through processing.
+		reporter := insertModUser(t)
+		contentOwner := insertModUser(t)
+		contentID := insertContent(t, contentOwner)
+		caseID := createOpenCase(t, "content", contentID)
+
+		decision, err := decisionService.CreateDecision(ctx, application.CreateDecisionInput{
+			CaseID:     caseID,
+			DecidedBy:  reporter,
+			Outcome:    entity.DecisionOutcomeViolation,
+			TargetType: entity.ModerationTargetTypeContent,
+			TargetID:   contentID,
+		})
+		require.NoError(t, err)
+
+		var enfID uuid.UUID
+		err = pool.QueryRow(ctx,
+			`SELECT id FROM enforcements WHERE decision_id = $1`, decision.ID,
+		).Scan(&enfID)
+		require.NoError(t, err)
+
+		// Attempt: pending → failed (DIRECTLY, skipping processing)
+		err = appDB.WithTx(ctx, func(tx db.Tx) error {
+			return enfRepo.MarkFailed(ctx, tx, enfID, "bypass attempt", nil)
+		})
+		require.NoError(t, err, "MarkFailed should not error (0 rows = idempotent no-op)")
+
+		// VERIFY: status must STILL be pending
+		var status string
+		err = pool.QueryRow(ctx,
+			`SELECT status FROM enforcements WHERE id = $1`, enfID,
+		).Scan(&status)
+		require.NoError(t, err)
+		require.Equal(t, "pending", status, "F1: pending→failed must be rejected by status guard")
+	})
+
+	t.Run("M - MarkSucceeded on already-succeeded is idempotent", func(t *testing.T) {
+		reporter := insertModUser(t)
+		contentOwner := insertModUser(t)
+		contentID := insertContent(t, contentOwner)
+		caseID := createOpenCase(t, "content", contentID)
+
+		decision, err := decisionService.CreateDecision(ctx, application.CreateDecisionInput{
+			CaseID:     caseID,
+			DecidedBy:  reporter,
+			Outcome:    entity.DecisionOutcomeViolation,
+			TargetType: entity.ModerationTargetTypeContent,
+			TargetID:   contentID,
+		})
+		require.NoError(t, err)
+
+		var enfID uuid.UUID
+		err = pool.QueryRow(ctx,
+			`SELECT id FROM enforcements WHERE decision_id = $1`, decision.ID,
+		).Scan(&enfID)
+		require.NoError(t, err)
+
+		// Normal lifecycle: pending → processing → succeeded
+		err = appDB.WithTx(ctx, func(tx db.Tx) error {
+			return enfRepo.MarkProcessing(ctx, tx, enfID)
+		})
+		require.NoError(t, err)
+		err = appDB.WithTx(ctx, func(tx db.Tx) error {
+			return enfRepo.MarkSucceeded(ctx, tx, enfID)
+		})
+		require.NoError(t, err)
+
+		// Duplicate: processing → succeeded on already-succeeded (idempotent no-op)
+		err = appDB.WithTx(ctx, func(tx db.Tx) error {
+			return enfRepo.MarkSucceeded(ctx, tx, enfID)
+		})
+		require.NoError(t, err, "MarkSucceeded on already-succeeded must be idempotent")
+
+		var status string
+		err = pool.QueryRow(ctx,
+			`SELECT status FROM enforcements WHERE id = $1`, enfID,
+		).Scan(&status)
+		require.NoError(t, err)
+		require.Equal(t, "succeeded", status)
+	})
+
+	t.Run("N - MarkFailed on already-failed is idempotent", func(t *testing.T) {
+		reporter := insertModUser(t)
+		contentOwner := insertModUser(t)
+		contentID := insertContent(t, contentOwner)
+		caseID := createOpenCase(t, "content", contentID)
+
+		decision, err := decisionService.CreateDecision(ctx, application.CreateDecisionInput{
+			CaseID:     caseID,
+			DecidedBy:  reporter,
+			Outcome:    entity.DecisionOutcomeViolation,
+			TargetType: entity.ModerationTargetTypeContent,
+			TargetID:   contentID,
+		})
+		require.NoError(t, err)
+
+		var enfID uuid.UUID
+		err = pool.QueryRow(ctx,
+			`SELECT id FROM enforcements WHERE decision_id = $1`, decision.ID,
+		).Scan(&enfID)
+		require.NoError(t, err)
+
+		// Normal lifecycle: pending → processing → failed
+		err = appDB.WithTx(ctx, func(tx db.Tx) error {
+			return enfRepo.MarkProcessing(ctx, tx, enfID)
+		})
+		require.NoError(t, err)
+
+		err = appDB.WithTx(ctx, func(tx db.Tx) error {
+			return enfRepo.MarkFailed(ctx, tx, enfID, "first failure", nil)
+		})
+		require.NoError(t, err)
+
+		// Duplicate: processing → failed on already-failed (idempotent no-op)
+		err = appDB.WithTx(ctx, func(tx db.Tx) error {
+			return enfRepo.MarkFailed(ctx, tx, enfID, "second failure", nil)
+		})
+		require.NoError(t, err, "MarkFailed on already-failed must be idempotent")
+
+		var status string
+		err = pool.QueryRow(ctx,
+			`SELECT status FROM enforcements WHERE id = $1`, enfID,
+		).Scan(&status)
+		require.NoError(t, err)
+		require.Equal(t, "failed", status)
+	})
+
+	t.Run("O - attempt_count incremented correctly across retries", func(t *testing.T) {
+		reporter := insertModUser(t)
+		contentOwner := insertModUser(t)
+		contentID := insertContent(t, contentOwner)
+		caseID := createOpenCase(t, "content", contentID)
+
+		decision, err := decisionService.CreateDecision(ctx, application.CreateDecisionInput{
+			CaseID:     caseID,
+			DecidedBy:  reporter,
+			Outcome:    entity.DecisionOutcomeViolation,
+			TargetType: entity.ModerationTargetTypeContent,
+			TargetID:   contentID,
+		})
+		require.NoError(t, err)
+
+		var enfID uuid.UUID
+		err = pool.QueryRow(ctx,
+			`SELECT id FROM enforcements WHERE decision_id = $1`, decision.ID,
+		).Scan(&enfID)
+		require.NoError(t, err)
+
+		// Check initial attempt_count = 0
+		var ac int
+		err = pool.QueryRow(ctx,
+			`SELECT attempt_count FROM enforcements WHERE id = $1`, enfID,
+		).Scan(&ac)
+		require.NoError(t, err)
+		require.Equal(t, 0, ac, "initial attempt_count must be 0")
+
+		// 1st attempt: pending → processing (attempt_count = 1)
+		err = appDB.WithTx(ctx, func(tx db.Tx) error {
+			return enfRepo.MarkProcessing(ctx, tx, enfID)
+		})
+		require.NoError(t, err)
+
+		err = pool.QueryRow(ctx,
+			`SELECT attempt_count FROM enforcements WHERE id = $1`, enfID,
+		).Scan(&ac)
+		require.NoError(t, err)
+		require.Equal(t, 1, ac, "attempt_count must be 1 after first MarkProcessing")
+
+		// → failed
+		err = appDB.WithTx(ctx, func(tx db.Tx) error {
+			return enfRepo.MarkFailed(ctx, tx, enfID, "transient", nil)
+		})
+		require.NoError(t, err)
+
+		// 2nd attempt: failed → processing (attempt_count = 2)
+		err = appDB.WithTx(ctx, func(tx db.Tx) error {
+			return enfRepo.MarkProcessing(ctx, tx, enfID)
+		})
+		require.NoError(t, err)
+
+		err = pool.QueryRow(ctx,
+			`SELECT attempt_count FROM enforcements WHERE id = $1`, enfID,
+		).Scan(&ac)
+		require.NoError(t, err)
+		require.Equal(t, 2, ac, "attempt_count must be 2 after retry MarkProcessing")
+
+		// → succeeded
+		err = appDB.WithTx(ctx, func(tx db.Tx) error {
+			return enfRepo.MarkSucceeded(ctx, tx, enfID)
+		})
+		require.NoError(t, err)
+
+		// attempt_count must remain 2 (MarkSucceeded does not increment)
+		err = pool.QueryRow(ctx,
+			`SELECT attempt_count FROM enforcements WHERE id = $1`, enfID,
+		).Scan(&ac)
+		require.NoError(t, err)
+		require.Equal(t, 2, ac, "attempt_count must remain 2 after MarkSucceeded")
+	})
+
+	t.Run("P - Decision+Enforcement+Outbox+Case atomicity", func(t *testing.T) {
+		// PROVES: All four operations happen in one transaction.
+		// If any single operation fails, ZERO partial state persists.
+		reporter := insertModUser(t)
+		contentOwner := insertModUser(t)
+		contentID := insertContent(t, contentOwner)
+		caseID := createOpenCase(t, "content", contentID)
+
+		decision, err := decisionService.CreateDecision(ctx, application.CreateDecisionInput{
+			CaseID:     caseID,
+			DecidedBy:  reporter,
+			Outcome:    entity.DecisionOutcomeViolation,
+			TargetType: entity.ModerationTargetTypeContent,
+			TargetID:   contentID,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, decision)
+
+		// 1. Decision must exist
+		var dOutcome string
+		err = pool.QueryRow(ctx,
+			`SELECT outcome FROM decisions WHERE id = $1`, decision.ID,
+		).Scan(&dOutcome)
+		require.NoError(t, err)
+		require.Equal(t, "violation", dOutcome)
+
+		// 2. Enforcement must exist and be pending
+		var enfStatus string
+		err = pool.QueryRow(ctx,
+			`SELECT status FROM enforcements WHERE decision_id = $1 AND target_type = 'content' AND target_id = $2`,
+			decision.ID, contentID,
+		).Scan(&enfStatus)
+		require.NoError(t, err)
+		require.Equal(t, "pending", enfStatus)
+
+		// 3. Outbox event must exist with correct event type
+		// NOTE: outbox aggregate_id = TargetID (content ID), not Decision ID
+		var evtType string
+		err = pool.QueryRow(ctx,
+			`SELECT event_type FROM outbox WHERE aggregate_id = $1`, contentID,
+		).Scan(&evtType)
+		require.NoError(t, err)
+		require.Equal(t, "moderation.content.removed", evtType)
+
+		// 4. Outbox payload must contain enforcement_id
+		p := moderationEventPayload(t, ctx, pool, evtType, contentID)
+		require.Equal(t, decision.ID.String(), p.DecisionID)
+		require.NotEmpty(t, p.EnforcementID, "outbox payload must contain enforcement_id")
+		require.Equal(t, "content", p.ResourceType)
+		require.Equal(t, contentID.String(), p.ResourceID)
+
+		// 5. Case must be resolved
+		var caseStatus string
+		err = pool.QueryRow(ctx,
+			`SELECT status FROM cases WHERE id = $1`, caseID,
+		).Scan(&caseStatus)
+		require.NoError(t, err)
+		require.Equal(t, "resolved", caseStatus)
 	})
 }
