@@ -50,13 +50,16 @@ const (
 	GovernanceCaseStatusEnforced GovernanceCaseStatus = "enforced" // Actions applied
 )
 
-// Decision represents the admin's review decision.
-type Decision string
+// GovernanceCaseDecision represents the admin's review decision on a legacy GovernanceCase.
+// RENAMED from Decision to avoid collision with the canonical entity.Decision (SLICE 4).
+// This type is LEGACY: it operates on the dropped moderation_cases table and is retained
+// only for Appeal domain compilation (Slice 9 scope).
+type GovernanceCaseDecision string
 
 const (
-	DecisionApprove Decision = "approve" // Content complies, no action needed
-	DecisionReject  Decision = "reject"  // Case dismissed as false positive
-	DecisionEnforce Decision = "enforce" // Actions applied (replaces old "remove" decision)
+	GovernanceCaseDecisionApprove GovernanceCaseDecision = "approve" // Content complies, no action needed
+	GovernanceCaseDecisionReject  GovernanceCaseDecision = "reject"  // Case dismissed as false positive
+	GovernanceCaseDecisionEnforce GovernanceCaseDecision = "enforce" // Actions applied (replaces old "remove" decision)
 )
 
 // ErrAlreadyReviewed is returned when attempting to transition a non-pending case.

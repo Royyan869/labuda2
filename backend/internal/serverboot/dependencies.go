@@ -2367,12 +2367,18 @@ func InitServices(
 	caseService := moderationApp.NewCaseService(db.Pgx(), caseRepository)
 	reportHandler := moderationHTTP.NewReportHandler(reportService, log.Logger)
 
+	// SLICE 4: DecisionRepository provides canonical Decision persistence.
+	decisionRepository := moderationRepo.NewDecisionRepository()
+
+decisionService := moderationApp.NewDecisionService(db.Pgx(), caseRepository, decisionRepository)
+
 	// LEGACY READ-ONLY REPOSITORY (compile-only): the out-of-scope Appeal
 	// domain (Slice 9) still depends on ModerationRepository.GetByID. This is
 	// runtime-dead (moderation_cases dropped in 000056) and is replaced when
 	// the Appeal domain is rebuilt. It is NOT wired to any Report/Case path.
 	moderationRepository := moderationRepo.NewModerationRepository()
 	_ = caseService // wired for future admin use; currently unused in routes
+	_ = decisionService // wired for future admin use; currently unused in routes
 
 	// ===== SOCIAL MODULE =====
 	// Initialize social service for follow/block/mute operations
