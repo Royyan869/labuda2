@@ -19,20 +19,24 @@ type Transactor interface {
 
 // ReportService is the canonical Report intake service.
 //
-// SLICE 2: The single authority for Report creation. It replaces the rejected
+// SLICE 2+3: The single authority for Report creation. It replaces the rejected
 // CreateCase → GovernanceCase → moderation_cases intake path.
 //
 // Report is an immutable historical intake record: after creation there is no
 // update path for reporter_id, subject_type, subject_id, reason_code,
 // reason_note, evidence_snapshot, or created_at.
+//
+// SLICE 3: Report creation atomically correlates to a Case. The Case is
+// found or created within the same transaction as the Report insert.
 type ReportService struct {
-	db   Transactor
-	repo repository.ReportRepository
+	db        Transactor
+	repo      repository.ReportRepository
+	caseRepo  repository.CaseRepository
 }
 
 // NewReportService creates the canonical Report service.
-func NewReportService(db Transactor, repo repository.ReportRepository) *ReportService {
-	return &ReportService{db: db, repo: repo}
+func NewReportService(db Transactor, repo repository.ReportRepository, caseRepo repository.CaseRepository) *ReportService {
+	return &ReportService{db: db, repo: repo, caseRepo: caseRepo}
 }
 
 // CreateReportInput is the validated input for creating a Report.
@@ -58,6 +62,9 @@ type CreateReportInput struct {
 //   - Same reporter + same subject → duplicate rejected (DB unique index is
 //     the race-safe final guard; ErrDuplicateReport for early UX).
 //   - Different reporter + same subject → valid.
+//
+// SLICE 3: Report creation atomically correlates to a Case. The Case is
+// found (if open exists) or created (if none) within the same transaction.
 func (s *ReportService) CreateReport(ctx context.Context, input CreateReportInput) (*entity.Report, error) {
 	// Canonical target type validation (backend is the authority).
 	if !input.SubjectType.IsValid() {
@@ -101,6 +108,14 @@ func (s *ReportService) CreateReport(ctx context.Context, input CreateReportInpu
 			}
 		}
 
+		// SLICE 3: Find or create Case for this subject.
+		// This happens WITHIN the same transaction as Report insert,
+		// ensuring atomicity: Report + Case correlation is all-or-nothing.
+		kase, err := s.caseRepo.FindOrCreateOpenCase(ctx, tx, input.SubjectType, input.SubjectID)
+		if err != nil {
+			return fmt.Errorf("failed to correlate case: %w", err)
+		}
+
 		report = entity.NewReport(
 			input.ReporterID,
 			input.SubjectType,
@@ -109,6 +124,8 @@ func (s *ReportService) CreateReport(ctx context.Context, input CreateReportInpu
 			input.ReasonNote,
 			snapshot,
 		)
+		// Set CaseID before insert — Report is immutable after insert.
+		report.CaseID = &kase.ID
 
 		if err := s.repo.Create(ctx, tx, report); err != nil {
 			return err

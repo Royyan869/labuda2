@@ -83,8 +83,38 @@ func (m *mockReportRepo) HasUserReported(ctx context.Context, tx db.Tx, reporter
 	return false, nil
 }
 
+// mockCaseRepo is a configurable CaseRepository for tests.
+type mockCaseRepo struct {
+	findOrCreateFn func(ctx context.Context, tx db.Tx, st entity.ReportTargetType, id uuid.UUID) (*entity.CanonicalCase, error)
+}
+
+func (m *mockCaseRepo) FindOrCreateOpenCase(ctx context.Context, tx db.Tx, st entity.ReportTargetType, id uuid.UUID) (*entity.CanonicalCase, error) {
+	if m.findOrCreateFn != nil {
+		return m.findOrCreateFn(ctx, tx, st, id)
+	}
+	// Default: return a mock open case
+	return &entity.CanonicalCase{
+		ID:          uuid.New(),
+		SubjectType: st,
+		SubjectID:   id,
+		Status:      entity.CaseStatusOpen,
+	}, nil
+}
+
+func (m *mockCaseRepo) GetByID(ctx context.Context, tx db.Tx, caseID uuid.UUID) (*entity.CanonicalCase, error) {
+	return nil, nil
+}
+
+func (m *mockCaseRepo) ListBySubject(ctx context.Context, tx db.Tx, st entity.ReportTargetType, id uuid.UUID, limit, offset int) ([]*entity.CanonicalCase, error) {
+	return nil, nil
+}
+
+func (m *mockCaseRepo) ResolveCase(ctx context.Context, tx db.Tx, caseID uuid.UUID) error {
+	return nil
+}
+
 func TestReportService_CreateReport_RejectsInvalidTarget(t *testing.T) {
-	svc := NewReportService(&mockReportTransactor{}, &mockReportRepo{})
+	svc := NewReportService(&mockReportTransactor{}, &mockReportRepo{}, &mockCaseRepo{})
 	_, err := svc.CreateReport(context.Background(), CreateReportInput{
 		ReporterID:  uuid.New(),
 		SubjectType: "chat_message",
@@ -97,7 +127,7 @@ func TestReportService_CreateReport_RejectsInvalidTarget(t *testing.T) {
 }
 
 func TestReportService_CreateReport_RejectsInvalidReason(t *testing.T) {
-	svc := NewReportService(&mockReportTransactor{}, &mockReportRepo{})
+	svc := NewReportService(&mockReportTransactor{}, &mockReportRepo{}, &mockCaseRepo{})
 	_, err := svc.CreateReport(context.Background(), CreateReportInput{
 		ReporterID:  uuid.New(),
 		SubjectType: entity.ReportTargetContent,
@@ -114,7 +144,7 @@ func TestReportService_CreateReport_TargetNotFound(t *testing.T) {
 		validateFn: func(context.Context, db.Tx, entity.ReportTargetType, uuid.UUID) (*entity.EvidenceSnapshot, error) {
 			return nil, &repository.ErrReportTargetNotFound{SubjectID: uuid.New()}
 		},
-	})
+	}, &mockCaseRepo{})
 	_, err := svc.CreateReport(context.Background(), CreateReportInput{
 		ReporterID:  uuid.New(),
 		SubjectType: entity.ReportTargetContent,
@@ -132,7 +162,7 @@ func TestReportService_CreateReport_SelfReportDenied(t *testing.T) {
 		validateFn: func(context.Context, db.Tx, entity.ReportTargetType, uuid.UUID) (*entity.EvidenceSnapshot, error) {
 			return &entity.EvidenceSnapshot{AuthorID: owner.String()}, nil
 		},
-	})
+	}, &mockCaseRepo{})
 	_, err := svc.CreateReport(context.Background(), CreateReportInput{
 		ReporterID:  owner,
 		SubjectType: entity.ReportTargetContent,
@@ -151,7 +181,7 @@ func TestReportService_CreateReport_DuplicateRejected(t *testing.T) {
 		hasReportedFn: func(context.Context, db.Tx, uuid.UUID, entity.ReportTargetType, uuid.UUID) (bool, error) {
 			return true, nil
 		},
-	})
+	}, &mockCaseRepo{})
 	_, err := svc.CreateReport(context.Background(), CreateReportInput{
 		ReporterID:  reporter,
 		SubjectType: entity.ReportTargetContent,
@@ -172,7 +202,7 @@ func TestReportService_CreateReport_ConcurrentDuplicateFromDB(t *testing.T) {
 		createFn: func(context.Context, db.Tx, *entity.Report) error {
 			return &repository.ErrDuplicateReport{ReporterID: reporter, SubjectType: entity.ReportTargetContent, SubjectID: subjectID}
 		},
-	})
+	}, &mockCaseRepo{})
 	_, err := svc.CreateReport(context.Background(), CreateReportInput{
 		ReporterID:  reporter,
 		SubjectType: entity.ReportTargetContent,
@@ -193,7 +223,7 @@ func TestReportService_CreateReport_Success(t *testing.T) {
 			created = report
 			return nil
 		},
-	})
+	}, &mockCaseRepo{})
 	report, err := svc.CreateReport(context.Background(), CreateReportInput{
 		ReporterID:  reporter,
 		SubjectType: entity.ReportTargetContent,
@@ -208,4 +238,27 @@ func TestReportService_CreateReport_Success(t *testing.T) {
 	require.Equal(t, subjectID, created.SubjectID)
 	require.Equal(t, entity.ReportReasonScamOrFraud, created.ReasonCode)
 	require.NotNil(t, created.EvidenceSnapshot)
+}
+
+func TestReportService_CreateReport_SetsCaseID(t *testing.T) {
+	// Verify that Report creation sets CaseID from Case correlation
+	reporter := uuid.New()
+	subjectID := uuid.New()
+	var created *entity.Report
+	svc := NewReportService(&mockReportTransactor{}, &mockReportRepo{
+		createFn: func(_ context.Context, _ db.Tx, report *entity.Report) error {
+			created = report
+			return nil
+		},
+	}, &mockCaseRepo{})
+	report, err := svc.CreateReport(context.Background(), CreateReportInput{
+		ReporterID:  reporter,
+		SubjectType: entity.ReportTargetContent,
+		SubjectID:   subjectID,
+		ReasonCode:  entity.ReportReasonScamOrFraud,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	require.NotNil(t, created)
+	require.NotNil(t, created.CaseID, "CaseID should be set after Case correlation")
 }

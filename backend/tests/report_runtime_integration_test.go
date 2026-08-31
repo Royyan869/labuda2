@@ -62,7 +62,7 @@ func TestCanonicalReportRuntime(t *testing.T) {
 	missingID := uuid.New()
 
 	appDB := db.NewFromPool(pool)
-	reportService := moderationApp.NewReportService(appDB, moderationRepo.NewReportRepository())
+	reportService := moderationApp.NewReportService(appDB, moderationRepo.NewReportRepository(), moderationRepo.NewCaseRepository())
 	handler := moderationHTTP.NewReportHandler(reportService, zap.NewNop())
 
 	gin.SetMode(gin.TestMode)

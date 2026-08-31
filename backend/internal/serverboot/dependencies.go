@@ -2357,18 +2357,22 @@ func InitServices(
 	)
 	likeHandler := likeHTTP.NewLikeHandler(db.Pgx(), log.Logger, likeService, commentLikeService)
 
-	// ===== MODERATION MODULE — CANONICAL REPORT RUNTIME (SLICE 2) =====
+	// ===== MODERATION MODULE — CANONICAL REPORT + CASE RUNTIME (SLICE 2+3) =====
 	// The legacy GovernanceCase intake (CreateCase → moderation_cases) has been
 	// removed. The canonical Report service is the single Report authority.
+	// SLICE 3: CaseRepository provides atomic Report → Case correlation.
 	reportRepository := moderationRepo.NewReportRepository()
-	reportService := moderationApp.NewReportService(db.Pgx(), reportRepository)
+	caseRepository := moderationRepo.NewCaseRepository()
+	reportService := moderationApp.NewReportService(db.Pgx(), reportRepository, caseRepository)
+	caseService := moderationApp.NewCaseService(db.Pgx(), caseRepository)
 	reportHandler := moderationHTTP.NewReportHandler(reportService, log.Logger)
 
 	// LEGACY READ-ONLY REPOSITORY (compile-only): the out-of-scope Appeal
 	// domain (Slice 9) still depends on ModerationRepository.GetByID. This is
 	// runtime-dead (moderation_cases dropped in 000056) and is replaced when
-	// the Appeal domain is rebuilt. It is NOT wired to any Report path.
+	// the Appeal domain is rebuilt. It is NOT wired to any Report/Case path.
 	moderationRepository := moderationRepo.NewModerationRepository()
+	_ = caseService // wired for future admin use; currently unused in routes
 
 	// ===== SOCIAL MODULE =====
 	// Initialize social service for follow/block/mute operations
