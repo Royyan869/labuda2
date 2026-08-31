@@ -21,6 +21,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { useGovernanceCase, useCreateDecision } from '@/hooks/useGovernance'
+import { useAuth } from '@/hooks/useAuth'
+import { hasCapability } from '@/lib/permissions'
 import { formatDate } from '@/lib/utils'
 import {
   caseStatusLabels,
@@ -44,6 +46,8 @@ export function GovernanceCaseDetailPage() {
   const navigate = useNavigate()
   const { data, loading, error, refetch } = useGovernanceCase(caseId || null)
   const { createDecision, loading: isCreating } = useCreateDecision()
+  const { capabilities } = useAuth()
+  const canCreateDecision = hasCapability(capabilities, 'moderation.case.resolve')
 
   // Decision form state
   const [showDecisionForm, setShowDecisionForm] = useState(false)
@@ -149,13 +153,24 @@ export function GovernanceCaseDetailPage() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Cases
         </Button>
-        {isOpen && (
+        {isOpen && canCreateDecision && (
           <Button onClick={() => setShowDecisionForm(!showDecisionForm)}>
             <Gavel className="h-4 w-4 mr-2" />
             {showDecisionForm ? 'Cancel' : 'Create Decision'}
           </Button>
         )}
       </div>
+
+      {/* Read-only notice for admins without decision authority */}
+      {isOpen && !canCreateDecision && (
+        <div className="bg-gray-50 border border-gray-200 text-gray-600 p-3 rounded-lg flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          <span className="text-sm">
+            You can view this case but do not have permission to create decisions
+            (requires moderation.case.resolve).
+          </span>
+        </div>
+      )}
 
       {/* Success banner */}
       {decisionSuccess && (

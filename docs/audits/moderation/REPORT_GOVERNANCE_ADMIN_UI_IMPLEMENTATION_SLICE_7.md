@@ -1,7 +1,7 @@
 # GOVERNANCE ADMIN UI IMPLEMENTATION — SLICE 7
 
 **Date:** 2026-09-01
-**Baseline:** 58642a8 (Slice 6 admin governance backend)
+**Baseline:** c81ca5c (Slice 7 initial + capability fix)
 **Status:** PASS
 
 ---
@@ -148,9 +148,16 @@ No sidebar changes required — existing paths and capabilities are correct.
 |-------|-----------|--------|
 | `/moderation/cases` | `moderation.case.read` | ✅ Via RequireCapability wrapper |
 | `/moderation/cases/:id` | `moderation.case.read` | ✅ Via RequireCapability wrapper |
-| Create Decision | `moderation.case.resolve` | ⚠️ Backend enforces; UI does not gate button (relies on backend 403) |
+| Create Decision | `moderation.case.resolve` | ✅ UI gates button + backend enforces |
 
-**Note:** Create Decision button is visible when Case is open. Backend enforces `moderation.case.resolve` capability. If unauthorized, backend returns 403 and UI shows error.
+**Capability gating (defense-in-depth):**
+- UI: Create Decision button only visible when admin has `moderation.case.resolve` capability
+- UI: Read-only notice shown for admins without resolve capability
+- Backend: `moderation.case.resolve` enforced at route level
+- Backend: DecisionService validates all input
+
+**Proven by tests:**
+- `GovernanceCaseDetailPage.test.tsx` — 4 tests proving capability gating
 
 ---
 
@@ -197,6 +204,30 @@ The canonical UI is built against the verified Slice 6 backend endpoints:
 | `GET /admin/governance/decisions/:id/enforcement` | ✅ Slice 6 | Available (enforcement shown inline in Case Detail) |
 
 **Backend endpoints proven with 12/12 integration tests against real PostgreSQL (Slice 6).**
+
+### E2E Integration Proof
+
+**File:** `backend/tests/governance_e2e_integration_test.go`
+
+Proves the complete data flow that the Admin UI triggers, against real PostgreSQL:
+
+| Test | Flow | Status |
+|------|------|--------|
+| Full E2E | Report → Case → Decision(violation) → Enforcement(pending) → Worker(MarkProcessing) → target mutation(content soft-delete) → MarkSucceeded | ✅ PASS |
+| no_violation | Report → Case → Decision(no_violation) → no Enforcement → no target mutation | ✅ PASS |
+| Admin read path | List cases + get detail with reports + decisions + enforcements | ✅ PASS |
+| Failure/retry | Decision → Enforcement → MarkProcessing → MarkFailed → retry → MarkProcessing → target mutation → MarkSucceeded | ✅ PASS |
+
+**4/4 E2E tests PASS against real PostgreSQL.**
+
+### Test Classification
+
+| Level | Scope | Count | Status |
+|-------|-------|-------|--------|
+| Unit test | Component behavior (mocked API) | 103 | PASS |
+| Capability gating test | UI component rendering by capability | 4 | PASS |
+| Backend integration test | Real PostgreSQL, real services | 12 (Slice 6) + 4 (E2E) | PASS |
+| E2E data flow | Report → Case → Decision → Enforcement → Worker → target mutation | 4 | PASS |
 
 ---
 
@@ -303,5 +334,9 @@ Worker executes outbox event → target mutation → Enforcement updated
 - Real API contract (no mocked endpoints) ✅
 - Truthful states (loading/empty/error) ✅
 - No fake capabilities (no retry button, no edit/delete Decision) ✅
-- All 99 admin tests pass ✅
+- Capability gating: UI + backend defense-in-depth ✅
+- E2E data flow proven against real PostgreSQL ✅
+- Worker/enforcement result observed truthfully ✅
+- All 103 admin tests pass ✅
+- All 4 E2E integration tests pass ✅
 - Backend builds clean ✅
