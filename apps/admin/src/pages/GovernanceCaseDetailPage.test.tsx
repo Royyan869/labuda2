@@ -15,11 +15,13 @@ import { GovernanceCaseDetailPage } from './GovernanceCaseDetailPage'
 
 const useGovernanceCaseMock = vi.hoisted(() => vi.fn())
 const useCreateDecisionMock = vi.hoisted(() => vi.fn())
+const useGovernanceCaseAuditMock = vi.hoisted(() => vi.fn())
 const useAuthMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@/hooks/useGovernance', () => ({
   useGovernanceCase: useGovernanceCaseMock,
   useCreateDecision: useCreateDecisionMock,
+  useGovernanceCaseAudit: useGovernanceCaseAuditMock,
 }))
 
 vi.mock('@/hooks/useAuth', () => ({
@@ -75,6 +77,13 @@ describe('GovernanceCaseDetailPage — capability gating', () => {
       createDecision: vi.fn(),
       loading: false,
       error: null,
+    })
+    useGovernanceCaseAuditMock.mockReturnValue({
+      events: [],
+      loading: false,
+      error: null,
+      count: 0,
+      refetch: vi.fn(),
     })
   })
 

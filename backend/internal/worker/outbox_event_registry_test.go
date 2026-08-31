@@ -146,17 +146,6 @@ var knownProducedEvents = []string{
 	// Appeal events
 	"appeal.reversed",
 
-	// ForSale/auction governance (domain action worker)
-	"for_sale.visibility.apply",
-	"for_sale.visibility.applied",
-	"for_sale.visibility.restored",
-	"auction.pause.apply",
-	"auction.pause.applied",
-	"auction.pause.restored",
-
-	// Domain action worker
-	"domain_action.executed",
-
 	// Support events
 	"support.ticket.created",
 	"support.ticket.resolved",

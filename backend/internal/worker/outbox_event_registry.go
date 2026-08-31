@@ -193,47 +193,21 @@ var AcknowledgedNoHandlerEvents = map[string]NoHandlerEntry{
 	},
 
 	// =========================================================================
-	// FOR SALE / AUCTION GOVERNANCE (domain action worker internal events)
+	// FOR SALE / AUCTION GOVERNANCE
 	//
-	// DomainActionWorker is PARKED: never instantiated in serverboot, no
-	// domain_actions DB migration, no application code creates rows. The
-	// canonical enforcement paths are ModerationEventHandler (via
+	// Canonical enforcement paths: ModerationEventHandler (via
 	// moderation.for_sale.removed / moderation.auction.removed outbox events
-	// emitted by ModerationService.ReviewCase). These event types are audit
-	// stubs reserved for a future DomainActionWorker enablement.
+	// emitted by DecisionService.CreateDecision). DomainAction worker removed
+	// in Slice 9 cleanup — was parked/dead parallel enforcement mechanism.
 	// =========================================================================
-	"for_sale.visibility.apply": {
-		Class: NoHandlerAuditOnly,
-		Note:  "domain action worker PARKED: for_sale visibility change request (canonical path: moderation.for_sale.removed → ModerationEventHandler)",
-	},
-	"for_sale.visibility.applied": {
-		Class: NoHandlerAuditOnly,
-		Note:  "domain action worker PARKED: for_sale visibility change completed stub",
-	},
-	"for_sale.visibility.restored": {
-		Class: NoHandlerAuditOnly,
-		Note:  "domain action worker PARKED: for_sale visibility restored stub (canonical path: moderation.for_sale.restored → ModerationEventHandler)",
-	},
-	"auction.pause.apply": {
-		Class: NoHandlerAuditOnly,
-		Note:  "domain action worker PARKED: auction pause request (canonical path: moderation.auction.removed → ModerationEventHandler)",
-	},
-	"auction.pause.applied": {
-		Class: NoHandlerAuditOnly,
-		Note:  "domain action worker PARKED: auction pause completed stub",
-	},
-	"auction.pause.restored": {
-		Class: NoHandlerAuditOnly,
-		Note:  "domain action worker PARKED: auction pause restored stub (appeal: intentionally no-op per handleAuctionRestored)",
-	},
 
 	// =========================================================================
-	// DOMAIN ACTION WORKER
+	// DOMAIN ACTION WORKER (REMOVED)
 	// =========================================================================
-	"domain_action.executed": {
-		Class: NoHandlerAuditOnly,
-		Note:  "domain action execution audit trail",
-	},
+	// DomainActionWorker, DomainAction entity, and DomainActionRepository were
+	// removed in Slice 9 cleanup. Canonical enforcement is ModerationEventHandler
+	// via outbox events. These event types were never produced by any active code.
+
 
 	// seller.tier.upgraded — consumed by SetupNotificationHandlers (B1)
 	// seller.tier.downgraded — consumed by SetupNotificationHandlers (B1)

@@ -2369,7 +2369,6 @@ func InitServices(
 	reportRepository := moderationRepo.NewReportRepository()
 	caseRepository := moderationRepo.NewCaseRepository()
 	reportService := moderationApp.NewReportService(db.Pgx(), reportRepository, caseRepository)
-	caseService := moderationApp.NewCaseService(db.Pgx(), caseRepository)
 	reportHandler := moderationHTTP.NewReportHandler(reportService, log.Logger)
 
 	// SLICE 4: DecisionRepository provides canonical Decision persistence.
@@ -2393,8 +2392,10 @@ func InitServices(
 	// domain (Slice 9) still depends on ModerationRepository.GetByID. This is
 	// runtime-dead (moderation_cases dropped in 000056) and is replaced when
 	// the Appeal domain is rebuilt. It is NOT wired to any Report/Case path.
+	// moderationRepository is kept for Appeal domain compilation (FUTURE DEPENDENCY).
+	// It reads the dropped moderation_cases table — always fails at runtime.
+	// Will be removed when Appeal domain is rebuilt against canonical cases.
 	moderationRepository := moderationRepo.NewModerationRepository()
-	_ = caseService // wired for future admin use; currently unused in routes
 
 	// ===== SOCIAL MODULE =====
 	// Initialize social service for follow/block/mute operations

@@ -112,7 +112,6 @@ var domainTables = []string{
 	"listing_shipping_options",
 	"listing_views",
 	"listings",
-	"moderation_cases",
 	"negotiation_messages",
 	"negotiation_price_history",
 	"negotiation_sessions",
