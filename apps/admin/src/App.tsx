@@ -6,7 +6,8 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { OrdersPage } from '@/pages/OrdersPage'
 import { DisputesPage } from '@/pages/DisputesPage'
 import { DisputeWorkspacePage } from '@/pages/DisputeWorkspacePage'
-import { ModerationCasesPage } from '@/pages/ModerationCasesPage'
+import { GovernanceCasesPage } from '@/pages/GovernanceCasesPage'
+import { GovernanceCaseDetailPage } from '@/pages/GovernanceCaseDetailPage'
 import { AppealsPage } from '@/pages/AppealsPage'
 import { WarningsPage } from '@/pages/WarningsPage'
 import { WithdrawalsPage } from '@/pages/WithdrawalsPage'
@@ -84,7 +85,15 @@ function App() {
           path="/moderation/cases"
           element={
             <RequireCapability cap="moderation.case.read">
-              <ModerationCasesPage />
+              <GovernanceCasesPage />
+            </RequireCapability>
+          }
+        />
+        <Route
+          path="/moderation/cases/:id"
+          element={
+            <RequireCapability cap="moderation.case.read">
+              <GovernanceCaseDetailPage />
             </RequireCapability>
           }
         />

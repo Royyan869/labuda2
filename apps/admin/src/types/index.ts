@@ -1,6 +1,9 @@
 // Moderation types - these are actively used in the admin app
 export * from './moderation'
 
+// Governance types - canonical Case/Decision/Enforcement
+export * from './governance'
+
 // Orders and Disputes types
 export * from './orders'
 
