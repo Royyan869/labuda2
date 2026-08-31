@@ -83,6 +83,10 @@ func (m *mockReportRepo) HasUserReported(ctx context.Context, tx db.Tx, reporter
 	return false, nil
 }
 
+func (m *mockReportRepo) ListByCaseID(ctx context.Context, tx db.Tx, caseID uuid.UUID) ([]*entity.Report, error) {
+	return nil, nil
+}
+
 // mockCaseRepo is a configurable CaseRepository for tests.
 type mockCaseRepo struct {
 	findOrCreateFn func(ctx context.Context, tx db.Tx, st entity.ReportTargetType, id uuid.UUID) (*entity.CanonicalCase, error)
@@ -111,6 +115,14 @@ func (m *mockCaseRepo) ListBySubject(ctx context.Context, tx db.Tx, st entity.Re
 
 func (m *mockCaseRepo) ResolveCase(ctx context.Context, tx db.Tx, caseID uuid.UUID) error {
 	return nil
+}
+
+func (m *mockCaseRepo) ListAll(ctx context.Context, tx db.Tx, statusFilter *entity.CaseStatus, limit, offset int) ([]*entity.CanonicalCase, error) {
+	return nil, nil
+}
+
+func (m *mockCaseRepo) CountAll(ctx context.Context, tx db.Tx, statusFilter *entity.CaseStatus) (int, error) {
+	return 0, nil
 }
 
 func TestReportService_CreateReport_RejectsInvalidTarget(t *testing.T) {

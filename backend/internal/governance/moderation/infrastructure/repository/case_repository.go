@@ -31,4 +31,12 @@ type CaseRepository interface {
 	// ResolveCase marks a Case as resolved (used when a Decision is made).
 	// Returns ErrCaseAlreadyResolved if the Case is not open.
 	ResolveCase(ctx context.Context, tx db.Tx, caseID uuid.UUID) error
+
+	// ListAll retrieves all Cases for admin governance view, ordered by created_at DESC.
+	// If statusFilter is non-nil, only cases with that status are returned.
+	ListAll(ctx context.Context, tx db.Tx, statusFilter *entity.CaseStatus, limit, offset int) ([]*entity.CanonicalCase, error)
+
+	// CountAll returns the total number of Cases for admin pagination.
+	// If statusFilter is non-nil, only cases with that status are counted.
+	CountAll(ctx context.Context, tx db.Tx, statusFilter *entity.CaseStatus) (int, error)
 }

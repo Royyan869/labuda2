@@ -756,12 +756,37 @@ func SetupRoutes(
 				middleware.RequireCapability("seller.verification.review"),
 				deps.AdminVerificationHandler.GetDocumentViewURL)
 
-			// ===== MODERATION ADMIN ROUTES — REMOVED (SLICE 2) =====
-			// The legacy admin Case review endpoints (ListCases/GetCase/
-			// GetCaseEvidence/ApplyAction) were backed by the rejected
-			// GovernanceCase runtime reading the dropped moderation_cases table.
-			// They are removed with that runtime. The canonical Case/Decision/
-			// Enforcement admin workflow is rebuilt in a later slice.
+			// ===== CANONICAL GOVERNANCE ADMIN ROUTES (SLICE 6) =====
+			// Admin governance workflow: View Cases → Create Decision → Observe Enforcement.
+			// Uses canonical Case/Decision/Enforcement runtime only.
+			// Capability: moderation.case.read for reads, moderation.case.resolve for decisions.
+			governanceRoutes := adminRoutes.Group("/governance")
+			{
+				// Case list — all Cases (open/resolved), filterable by status
+				governanceRoutes.GET("/cases",
+					middleware.RequireCapability("moderation.case.read"),
+					deps.GovernanceAdminHandler.ListCases)
+
+				// Case detail — Case + related Reports + Decisions + Enforcement
+				governanceRoutes.GET("/cases/:id",
+					middleware.RequireCapability("moderation.case.read"),
+					deps.GovernanceAdminHandler.GetCase)
+
+				// Create Decision — immutable Decision + atomic Enforcement + Outbox
+				governanceRoutes.POST("/cases/:id/decisions",
+					middleware.RequireCapability("moderation.case.resolve"),
+					deps.GovernanceAdminHandler.CreateDecision)
+
+				// Decision detail — immutable Decision info + Enforcement
+				governanceRoutes.GET("/decisions/:id",
+					middleware.RequireCapability("moderation.case.read"),
+					deps.GovernanceAdminHandler.GetDecision)
+
+				// Enforcement status — lifecycle per Decision
+				governanceRoutes.GET("/decisions/:id/enforcement",
+					middleware.RequireCapability("moderation.case.read"),
+					deps.GovernanceAdminHandler.GetEnforcement)
+			}
 
 			// ===== PROMOTION EXTERNAL PRODUCT REVIEW =====
 			// Admin review queue and moderation actions for external products.

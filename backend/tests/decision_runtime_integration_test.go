@@ -65,6 +65,14 @@ func (r *caseRepoFault) ResolveCase(ctx context.Context, tx db.Tx, caseID uuid.U
 	return r.real.ResolveCase(ctx, tx, caseID)
 }
 
+func (r *caseRepoFault) ListAll(ctx context.Context, tx db.Tx, statusFilter *entity.CaseStatus, limit, offset int) ([]*entity.CanonicalCase, error) {
+	return r.real.ListAll(ctx, tx, statusFilter, limit, offset)
+}
+
+func (r *caseRepoFault) CountAll(ctx context.Context, tx db.Tx, statusFilter *entity.CaseStatus) (int, error) {
+	return r.real.CountAll(ctx, tx, statusFilter)
+}
+
 // Ensure caseRepoFault satisfies the interface at compile time.
 var _ moderationRepo.CaseRepository = (*caseRepoFault)(nil)
 

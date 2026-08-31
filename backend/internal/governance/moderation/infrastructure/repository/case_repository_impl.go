@@ -156,6 +156,67 @@ func (r *CaseRepositoryImpl) ResolveCase(ctx context.Context, tx db.Tx, caseID u
 	return nil
 }
 
+// ListAll retrieves all Cases for admin governance view, ordered by created_at DESC.
+func (r *CaseRepositoryImpl) ListAll(ctx context.Context, tx db.Tx, statusFilter *entity.CaseStatus, limit, offset int) ([]*entity.CanonicalCase, error) {
+	var query string
+	var args []interface{}
+
+	if statusFilter != nil {
+		query = `SELECT ` + caseColumns + `
+			FROM cases
+			WHERE status = $1
+			ORDER BY created_at DESC
+			LIMIT $2 OFFSET $3`
+		args = []interface{}{string(*statusFilter), limit, offset}
+	} else {
+		query = `SELECT ` + caseColumns + `
+			FROM cases
+			ORDER BY created_at DESC
+			LIMIT $1 OFFSET $2`
+		args = []interface{}{limit, offset}
+	}
+
+	rows, err := tx.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list all cases failed: %w", err)
+	}
+	defer rows.Close()
+
+	var cases []*entity.CanonicalCase
+	for rows.Next() {
+		kase, err := scanCaseRow(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan case row failed: %w", err)
+		}
+		cases = append(cases, kase)
+	}
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("iterate case rows failed: %w", rows.Err())
+	}
+	return cases, nil
+}
+
+// CountAll returns the total number of Cases for admin pagination.
+func (r *CaseRepositoryImpl) CountAll(ctx context.Context, tx db.Tx, statusFilter *entity.CaseStatus) (int, error) {
+	var query string
+	var args []interface{}
+
+	if statusFilter != nil {
+		query = `SELECT COUNT(*) FROM cases WHERE status = $1`
+		args = []interface{}{string(*statusFilter)}
+	} else {
+		query = `SELECT COUNT(*) FROM cases`
+		args = []interface{}{}
+	}
+
+	var count int
+	err := tx.QueryRow(ctx, query, args...).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count all cases failed: %w", err)
+	}
+	return count, nil
+}
+
 // caseScanner is satisfied by pgx.Row and pgx.Rows.
 type caseScanner interface {
 	Scan(dest ...any) error

@@ -36,6 +36,10 @@ type ReportRepository interface {
 	// the same subject. Used for early UX feedback; the unique index remains
 	// the final guard.
 	HasUserReported(ctx context.Context, tx db.Tx, reporterID uuid.UUID, subjectType entity.ReportTargetType, subjectID uuid.UUID) (bool, error)
+
+	// ListByCaseID retrieves all Reports correlated to a Case, ordered by created_at ASC.
+	// Returns nil, nil if no reports found.
+	ListByCaseID(ctx context.Context, tx db.Tx, caseID uuid.UUID) ([]*entity.Report, error)
 }
 
 // ErrDuplicateReport is returned when a report already exists for the same

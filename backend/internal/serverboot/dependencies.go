@@ -238,6 +238,7 @@ type Dependencies struct {
 	NotificationHandler    *notificationHTTP.NotificationHandler
 	FCMTokenHandler        *notificationHTTP.FCMTokenHandler
 	ReportHandler          *moderationHTTP.ReportHandler      // SLICE 2: canonical Report intake
+	GovernanceAdminHandler *moderationHTTP.GovernanceAdminHandler // SLICE 6: admin governance workflow
 	FollowHandler          *socialhttp.FollowHandler          // SOCIAL domain: follow/block/mute
 	ShippingQuoteHandler   *shippingQuoteHTTP.Handler         // Shipping quote feature (chat-based manual quotes)
 	RatingHandler          *ratingHTTP.RatingHandler          // RATING DOMAIN: buyer→seller order ratings
@@ -2376,13 +2377,23 @@ func InitServices(
 
 	decisionService := moderationApp.NewDecisionService(db.Pgx(), caseRepository, decisionRepository, enforcementRepository, outboxRepository)
 
+	// SLICE 6: Canonical admin governance handler — pure adapter to existing services.
+	governanceAdminHandler := moderationHTTP.NewGovernanceAdminHandler(
+		db.Pgx(),
+		caseRepository,
+		reportRepository,
+		decisionService,
+		enforcementRepository,
+		decisionRepository,
+		log.Logger,
+	)
+
 	// LEGACY READ-ONLY REPOSITORY (compile-only): the out-of-scope Appeal
 	// domain (Slice 9) still depends on ModerationRepository.GetByID. This is
 	// runtime-dead (moderation_cases dropped in 000056) and is replaced when
 	// the Appeal domain is rebuilt. It is NOT wired to any Report/Case path.
 	moderationRepository := moderationRepo.NewModerationRepository()
 	_ = caseService // wired for future admin use; currently unused in routes
-	_ = decisionService // wired for future admin use; currently unused in routes
 
 	// ===== SOCIAL MODULE =====
 	// Initialize social service for follow/block/mute operations
@@ -2994,6 +3005,7 @@ func InitServices(
 		NotificationHandler:    notificationHandler,
 		FCMTokenHandler:        fcmTokenHandler,
 		ReportHandler:          reportHandler,             // SLICE 2: canonical Report intake
+		GovernanceAdminHandler: governanceAdminHandler,   // SLICE 6: admin governance workflow
 		FollowHandler:          followHandler,             // SOCIAL domain: follow/block/mute
 		ShippingQuoteHandler:   shippingQuoteHandler,   // Shipping quote feature (chat-based manual quotes)
 		RatingHandler:          ratingHandler,          // RATING DOMAIN: buyer→seller order ratings

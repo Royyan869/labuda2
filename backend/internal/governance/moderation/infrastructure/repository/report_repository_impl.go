@@ -275,6 +275,33 @@ func (r *ReportRepositoryImpl) ListByReporter(ctx context.Context, tx db.Tx, rep
 	return reports, nil
 }
 
+// ListByCaseID retrieves all Reports correlated to a Case, ordered by created_at ASC.
+func (r *ReportRepositoryImpl) ListByCaseID(ctx context.Context, tx db.Tx, caseID uuid.UUID) ([]*entity.Report, error) {
+	query := `SELECT ` + reportColumns + `
+		FROM reports
+		WHERE case_id = $1
+		ORDER BY created_at ASC`
+
+	rows, err := tx.Query(ctx, query, caseID)
+	if err != nil {
+		return nil, fmt.Errorf("list reports by case_id failed: %w", err)
+	}
+	defer rows.Close()
+
+	var reports []*entity.Report
+	for rows.Next() {
+		report, err := scanReport(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan report row failed: %w", err)
+		}
+		reports = append(reports, report)
+	}
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("iterate report rows failed: %w", rows.Err())
+	}
+	return reports, nil
+}
+
 // HasUserReported returns true if the reporter already reported the subject.
 func (r *ReportRepositoryImpl) HasUserReported(ctx context.Context, tx db.Tx, reporterID uuid.UUID, subjectType entity.ReportTargetType, subjectID uuid.UUID) (bool, error) {
 	var exists int
