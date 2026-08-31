@@ -64,6 +64,10 @@ const (
 	EntityAuction EntityType = "auction"
 	// EntityShippingQuote represents a shipping quote entity
 	EntityShippingQuote EntityType = "shipping_quote"
+
+	// Governance entities
+	// EntityGovernanceDecision represents a governance decision entity
+	EntityGovernanceDecision EntityType = "governance.decision"
 )
 
 // EventType defines the type of event that occurred.
@@ -137,6 +141,12 @@ const (
 	DisputeAutoResolved EventType = "dispute.auto_resolved"
 	// DisputeResolved events
 	DisputeResolved EventType = "dispute.resolved"
+)
+
+// Governance events
+const (
+	// GovernanceDecisionCreated events — admin creates a Decision against a Case
+	GovernanceDecisionCreated EventType = "governance.decision.created"
 )
 
 // String returns the string representation of the EventType.

@@ -46,7 +46,7 @@ func TestGovernanceAdminBackend(t *testing.T) {
 	enfRepo := repository.NewEnforcementRepository()
 	reportRepo := repository.NewReportRepository()
 	obRepo := outboxRepo.NewOutboxRepository(appDB)
-	decisionService := application.NewDecisionService(appDB, realCaseRepo, decRepo, enfRepo, obRepo)
+	decisionService := application.NewDecisionService(appDB, realCaseRepo, decRepo, enfRepo, obRepo, nil)
 
 	// Helper: insert a moderation user
 	insertModUser := func(t *testing.T) uuid.UUID {

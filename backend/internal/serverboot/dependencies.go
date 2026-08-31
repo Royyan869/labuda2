@@ -2375,7 +2375,7 @@ func InitServices(
 	// SLICE 4: DecisionRepository provides canonical Decision persistence.
 	decisionRepository := moderationRepo.NewDecisionRepository()
 
-	decisionService := moderationApp.NewDecisionService(db.Pgx(), caseRepository, decisionRepository, enforcementRepository, outboxRepository)
+	decisionService := moderationApp.NewDecisionService(db.Pgx(), caseRepository, decisionRepository, enforcementRepository, outboxRepository, auditService)
 
 	// SLICE 6: Canonical admin governance handler — pure adapter to existing services.
 	governanceAdminHandler := moderationHTTP.NewGovernanceAdminHandler(

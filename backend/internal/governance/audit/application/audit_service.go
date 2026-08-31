@@ -596,6 +596,49 @@ func (s *AuditService) DisputeResolved(ctx context.Context, tx db.Tx, disputeID,
 }
 
 // =============================================================================
+// GOVERNANCE EVENTS
+// =============================================================================
+
+// GovernanceDecisionCreated emits an audit event when an admin creates a Decision.
+// This is the primary governance audit event — it captures the admin's governance
+// action with full provenance (who decided what, against which case, with which outcome).
+//
+// MUST be called within the same transaction as the Decision creation.
+// Actor: admin (the decided_by user).
+//
+// IMPORTANT: Unlike Emit/EmitAdmin, this method RETURNS an error because
+// governance Decision audit is MANDATORY. If the audit INSERT fails, the caller
+// must propagate the error to roll back the containing transaction.
+// This bypasses the Emit error-swallowing behavior for mandatory governance audit.
+func (s *AuditService) GovernanceDecisionCreated(
+	ctx context.Context,
+	tx db.Tx,
+	decisionID, caseID, adminID uuid.UUID,
+	outcome string,
+	payload map[string]interface{},
+) error {
+	event := auditentity.NewAuditEvent(
+		auditentity.GovernanceDecisionCreated,
+		auditentity.EntityGovernanceDecision,
+		decisionID,
+		auditentity.ActorTypeAdmin,
+		&adminID,
+		payload,
+	)
+
+	// Resolve actor name for immutability
+	if resolvedName := s.resolveActorName(ctx, tx, adminID); resolvedName != "" {
+		if p, ok := event.PayloadJSON.(map[string]interface{}); ok {
+			p["actor_name"] = resolvedName
+		}
+	}
+
+	// Direct repository call — error is NOT swallowed.
+	// The caller (DecisionService) propagates this error to roll back the TX.
+	return s.repo.Emit(ctx, tx, event)
+}
+
+// =============================================================================
 // AUDIT TRAIL QUERY
 // =============================================================================
 

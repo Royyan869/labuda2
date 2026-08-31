@@ -95,7 +95,7 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 	realCaseRepo := moderationRepo.NewCaseRepository()
 	decRepo := moderationRepo.NewDecisionRepository()
 	enfRepo := moderationRepo.NewEnforcementRepository()
-	decisionService := moderationApp.NewDecisionService(appDB, realCaseRepo, decRepo, enfRepo, nil)
+	decisionService := moderationApp.NewDecisionService(appDB, realCaseRepo, decRepo, enfRepo, nil, nil)
 
 	// Helper: create an open Case for the content
 	createOpenCase := func(t *testing.T) uuid.UUID {
@@ -332,7 +332,7 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 
 		// Create a NEW DecisionService with the fault-injected CaseRepository.
 		// The DecisionRepository is real — its Create will execute within the tx.
-		faultService := moderationApp.NewDecisionService(appDB, faultCaseRepo, decRepo, enfRepo, nil)
+		faultService := moderationApp.NewDecisionService(appDB, faultCaseRepo, decRepo, enfRepo, nil, nil)
 
 		// Attempt Decision creation — this will:
 		//   1. BEGIN transaction

@@ -44,7 +44,7 @@ func TestGovernanceE2EFlow(t *testing.T) {
 	enfRepo := repository.NewEnforcementRepository()
 	reportRepo := repository.NewReportRepository()
 	obRepo := outboxRepo.NewOutboxRepository(appDB)
-	decisionService := application.NewDecisionService(appDB, realCaseRepo, decRepo, enfRepo, obRepo)
+	decisionService := application.NewDecisionService(appDB, realCaseRepo, decRepo, enfRepo, obRepo, nil)
 
 	// ── Helpers ──────────────────────────────────────────────
 

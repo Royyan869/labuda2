@@ -23,6 +23,27 @@ type OutboxInserter interface {
 	) error
 }
 
+// GovernanceAuditEmitter is the minimal interface for emitting governance audit events.
+// Satisfied by *auditApp.AuditService.
+//
+// DESIGN: The audit event MUST be emitted within the same transaction as the
+// Decision creation. If the audit write fails, the entire transaction rolls back.
+// This ensures the invariant: either both Decision and audit event persist, or neither.
+type GovernanceAuditEmitter interface {
+	// GovernanceDecisionCreated emits an audit event when an admin creates a Decision.
+	// Called within the same DB transaction as the Decision insert.
+	// Returns an error if the audit INSERT fails — caller must propagate to roll back TX.
+	// payload contains: case_id, outcome, target_type (if violation), target_id (if violation),
+	// decision_note (if present).
+	GovernanceDecisionCreated(
+		ctx context.Context,
+		tx db.Tx,
+		decisionID, caseID, adminID uuid.UUID,
+		outcome string,
+		payload map[string]interface{},
+	) error
+}
+
 // DecisionService is the canonical Decision service.
 //
 // SLICE 5: The single authority for Decision creation and lifecycle.
@@ -41,11 +62,12 @@ type OutboxInserter interface {
 //	  if Case is already resolved → no-op on Case
 //	COMMIT
 type DecisionService struct {
-	db          Transactor
-	caseRepo    repository.CaseRepository
-	decRepo     repository.DecisionRepository
-	enfRepo     repository.EnforcementRepository
-	outboxRepo  OutboxInserter
+	db           Transactor
+	caseRepo     repository.CaseRepository
+	decRepo      repository.DecisionRepository
+	enfRepo      repository.EnforcementRepository
+	outboxRepo   OutboxInserter
+	auditEmitter GovernanceAuditEmitter
 }
 
 // NewDecisionService creates the canonical Decision service.
@@ -55,13 +77,15 @@ func NewDecisionService(
 	decRepo repository.DecisionRepository,
 	enfRepo repository.EnforcementRepository,
 	outboxRepo OutboxInserter,
+	auditEmitter GovernanceAuditEmitter,
 ) *DecisionService {
 	return &DecisionService{
-		db:         db,
-		caseRepo:   caseRepo,
-		decRepo:    decRepo,
-		enfRepo:    enfRepo,
-		outboxRepo: outboxRepo,
+		db:           db,
+		caseRepo:     caseRepo,
+		decRepo:      decRepo,
+		enfRepo:      enfRepo,
+		outboxRepo:   outboxRepo,
+		auditEmitter: auditEmitter,
 	}
 }
 
@@ -178,6 +202,32 @@ func (s *DecisionService) CreateDecision(ctx context.Context, input CreateDecisi
 		if kase.IsOpen() {
 			if err := s.caseRepo.ResolveCase(ctx, tx, input.CaseID); err != nil {
 				return fmt.Errorf("resolve case failed: %w", err)
+			}
+		}
+
+		// 5. Emit governance audit event within the same transaction.
+		// This is MANDATORY for Decision creation — the audit event must persist
+		// atomically with the Decision. If the audit write fails, the entire
+		// transaction rolls back, ensuring: either both Decision + audit persist, or neither.
+		if s.auditEmitter != nil {
+			auditPayload := map[string]interface{}{
+				"case_id": input.CaseID.String(),
+				"outcome": string(input.Outcome),
+			}
+			if input.Outcome == entity.DecisionOutcomeViolation {
+				auditPayload["target_type"] = string(input.TargetType)
+				auditPayload["target_id"] = input.TargetID.String()
+			}
+			if input.DecisionNote != nil {
+				auditPayload["decision_note"] = *input.DecisionNote
+			}
+			if err := s.auditEmitter.GovernanceDecisionCreated(
+				ctx, tx,
+				decision.ID, input.CaseID, input.DecidedBy,
+				string(input.Outcome),
+				auditPayload,
+			); err != nil {
+				return fmt.Errorf("governance audit event failed: %w", err)
 			}
 		}
 
