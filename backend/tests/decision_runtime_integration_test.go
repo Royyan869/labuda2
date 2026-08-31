@@ -86,7 +86,8 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 	appDB := db.NewFromPool(pool)
 	realCaseRepo := moderationRepo.NewCaseRepository()
 	decRepo := moderationRepo.NewDecisionRepository()
-	decisionService := moderationApp.NewDecisionService(appDB, realCaseRepo, decRepo)
+	enfRepo := moderationRepo.NewEnforcementRepository()
+	decisionService := moderationApp.NewDecisionService(appDB, realCaseRepo, decRepo, enfRepo, nil)
 
 	// Helper: create an open Case for the content
 	createOpenCase := func(t *testing.T) uuid.UUID {
@@ -114,11 +115,13 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 			`SELECT status FROM cases WHERE id = $1`, caseID).Scan(&status))
 		assert.Equal(t, "open", status)
 
-		// Create Decision
+		// Create Decision (with enforcement target for violation)
 		decision, err := decisionService.CreateDecision(ctx, moderationApp.CreateDecisionInput{
-			CaseID:    caseID,
-			DecidedBy: adminID,
-			Outcome:   entity.DecisionOutcomeViolation,
+			CaseID:     caseID,
+			DecidedBy:  adminID,
+			Outcome:    entity.DecisionOutcomeViolation,
+			TargetType: entity.ModerationTargetTypeContent,
+			TargetID:   contentID,
 		})
 		require.NoError(t, err)
 		require.NotNil(t, decision)
@@ -142,17 +145,17 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 		require.NoError(t, pool.QueryRow(ctx,
 			`SELECT COUNT(*) FROM decisions WHERE case_id = $1`, caseID).Scan(&decCount))
 		assert.Equal(t, 1, decCount)
-	})
-
-	// ── B. Second Decision on resolved Case → success ──────────
+	})	// ── B. Second Decision on resolved Case → success ──────────
 	t.Run("second_decision_on_resolved_case_succeeds", func(t *testing.T) {
 		caseID := createOpenCase(t)
 
 		// First Decision → resolves Case
 		_, err := decisionService.CreateDecision(ctx, moderationApp.CreateDecisionInput{
-			CaseID:    caseID,
-			DecidedBy: adminID,
-			Outcome:   entity.DecisionOutcomeViolation,
+			CaseID:     caseID,
+			DecidedBy:  adminID,
+			Outcome:    entity.DecisionOutcomeViolation,
+			TargetType: entity.ModerationTargetTypeContent,
+			TargetID:   contentID,
 		})
 		require.NoError(t, err)
 
@@ -176,6 +179,7 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 			`SELECT status FROM cases WHERE id = $1`, caseID).Scan(&status))
 		assert.Equal(t, "resolved", status)
 
+
 		// Verify both Decisions exist
 		var decCount int
 		require.NoError(t, pool.QueryRow(ctx,
@@ -193,11 +197,16 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 			if i%2 == 1 {
 				outcome = entity.DecisionOutcomeNoViolation
 			}
-			_, err := decisionService.CreateDecision(ctx, moderationApp.CreateDecisionInput{
+			input := moderationApp.CreateDecisionInput{
 				CaseID:    caseID,
 				DecidedBy: adminID,
 				Outcome:   outcome,
-			})
+			}
+			if outcome == entity.DecisionOutcomeViolation {
+				input.TargetType = entity.ModerationTargetTypeContent
+				input.TargetID = contentID
+			}
+			_, err := decisionService.CreateDecision(ctx, input)
 			require.NoError(t, err)
 		}
 
@@ -227,9 +236,11 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 		caseID := createOpenCase(t)
 
 		decision, err := decisionService.CreateDecision(ctx, moderationApp.CreateDecisionInput{
-			CaseID:    caseID,
-			DecidedBy: adminID,
-			Outcome:   entity.DecisionOutcomeViolation,
+			CaseID:     caseID,
+			DecidedBy:  adminID,
+			Outcome:    entity.DecisionOutcomeViolation,
+			TargetType: entity.ModerationTargetTypeContent,
+			TargetID:   contentID,
 		})
 		require.NoError(t, err)
 
@@ -265,11 +276,14 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 		fakeCaseID := uuid.New()
 
 		_, err := decisionService.CreateDecision(ctx, moderationApp.CreateDecisionInput{
-			CaseID:    fakeCaseID,
-			DecidedBy: adminID,
-			Outcome:   entity.DecisionOutcomeViolation,
+			CaseID:     fakeCaseID,
+			DecidedBy:  adminID,
+			Outcome:    entity.DecisionOutcomeViolation,
+			TargetType: entity.ModerationTargetTypeContent,
+			TargetID:   contentID,
 		})
 		assert.Error(t, err)
+		// ErrDecisionCaseNotFound is expected — validation passes, then DB lookup fails.
 		var notFoundErr *entity.ErrDecisionCaseNotFound
 		assert.ErrorAs(t, err, &notFoundErr)
 	})
@@ -310,7 +324,7 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 
 		// Create a NEW DecisionService with the fault-injected CaseRepository.
 		// The DecisionRepository is real — its Create will execute within the tx.
-		faultService := moderationApp.NewDecisionService(appDB, faultCaseRepo, decRepo)
+		faultService := moderationApp.NewDecisionService(appDB, faultCaseRepo, decRepo, enfRepo, nil)
 
 		// Attempt Decision creation — this will:
 		//   1. BEGIN transaction
@@ -319,9 +333,11 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 		//   4. ResolveCase → FAULT (injected error, returned to WithTx)
 		//   5. WithTx sees error → ROLLBACK entire transaction
 		_, err := faultService.CreateDecision(ctx, moderationApp.CreateDecisionInput{
-			CaseID:    caseID,
-			DecidedBy: adminID,
-			Outcome:   entity.DecisionOutcomeViolation,
+			CaseID:     caseID,
+			DecidedBy:  adminID,
+			Outcome:    entity.DecisionOutcomeViolation,
+			TargetType: entity.ModerationTargetTypeContent,
+			TargetID:   contentID,
 		})
 		require.Error(t, err, "CreateDecision must fail due to injected fault")
 
@@ -352,9 +368,11 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 
 		// First Decision → resolves
 		_, err := decisionService.CreateDecision(ctx, moderationApp.CreateDecisionInput{
-			CaseID:    caseID,
-			DecidedBy: adminID,
-			Outcome:   entity.DecisionOutcomeViolation,
+			CaseID:     caseID,
+			DecidedBy:  adminID,
+			Outcome:    entity.DecisionOutcomeViolation,
+			TargetType: entity.ModerationTargetTypeContent,
+			TargetID:   contentID,
 		})
 		require.NoError(t, err)
 
@@ -368,9 +386,11 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 
 		// Third Decision → still resolved, no error
 		_, err = decisionService.CreateDecision(ctx, moderationApp.CreateDecisionInput{
-			CaseID:    caseID,
-			DecidedBy: adminID,
-			Outcome:   entity.DecisionOutcomeViolation,
+			CaseID:     caseID,
+			DecidedBy:  adminID,
+			Outcome:    entity.DecisionOutcomeViolation,
+			TargetType: entity.ModerationTargetTypeContent,
+			TargetID:   contentID,
 		})
 		require.NoError(t, err)
 
@@ -396,9 +416,11 @@ func TestCanonicalDecisionRuntime(t *testing.T) {
 		var ids []uuid.UUID
 		for i := 0; i < 3; i++ {
 			d, err := decisionService.CreateDecision(ctx, moderationApp.CreateDecisionInput{
-				CaseID:    caseID,
-				DecidedBy: adminID,
-				Outcome:   entity.DecisionOutcomeViolation,
+				CaseID:     caseID,
+				DecidedBy:  adminID,
+				Outcome:    entity.DecisionOutcomeViolation,
+				TargetType: entity.ModerationTargetTypeContent,
+				TargetID:   contentID,
 			})
 			require.NoError(t, err)
 			ids = append(ids, d.ID)

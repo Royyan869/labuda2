@@ -2323,15 +2323,19 @@ func InitServices(
 	//
 	// Default ON. Disable via DISABLE_MODERATION_EVENT_HANDLER=true.
 	// ───────────────────────────────────────────────────────────────────
+	// SLICE 5: EnforcementRepository for canonical Enforcement persistence.
+	enforcementRepository := moderationRepo.NewEnforcementRepository()
+
 	if workerEnabled("MODERATION_EVENT_HANDLER", true, log.Logger) {
 		outboxWorker.SetupModerationHandlers(
 			db.Pgx(),
 			contentService,    // SoftDeleteForModeration / RestoreFromModeration
 			commentService,    // SoftDeleteForModeration / RestoreFromModeration
 			forSaleService,    // Withdraw (idempotent on terminal state)
-			auctionService,    // Cancel PARKED — handler consumes event as no-op
+			auctionService,    // CancelForModeration (governance bypass)
 			userRepository,    // Update account_status (suspended / active)
 			chatService,       // Chat moderation service: hide/restore + room.updated projection
+			enforcementRepository, // SLICE 5: enforcement write-back
 			notifEventHandler, // fanout: notification fires AFTER enforcement
 		)
 		log.Info("Moderation event handlers registered with outbox worker (enforcement + notification fanout)")
@@ -2370,7 +2374,7 @@ func InitServices(
 	// SLICE 4: DecisionRepository provides canonical Decision persistence.
 	decisionRepository := moderationRepo.NewDecisionRepository()
 
-decisionService := moderationApp.NewDecisionService(db.Pgx(), caseRepository, decisionRepository)
+	decisionService := moderationApp.NewDecisionService(db.Pgx(), caseRepository, decisionRepository, enforcementRepository, outboxRepository)
 
 	// LEGACY READ-ONLY REPOSITORY (compile-only): the out-of-scope Appeal
 	// domain (Slice 9) still depends on ModerationRepository.GetByID. This is

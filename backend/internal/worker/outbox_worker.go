@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	orderApp "github.com/labuda/backend/internal/commerce/order/application"
 	disputeApp "github.com/labuda/backend/internal/governance/dispute/application"
+	moderationRepo "github.com/labuda/backend/internal/governance/moderation/infrastructure/repository"
 	coinsApp "github.com/labuda/backend/internal/incentive/coins/application"
 	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
 	chatConsumer "github.com/labuda/backend/internal/interaction/chat/consumer"
@@ -886,6 +887,7 @@ func (w *OutboxWorker) SetupModerationHandlers(
 	auctionService interface{},
 	userRepo interface{},
 	chatMessageStore ChatMessageModerationService,
+	enfRepo moderationRepo.EnforcementRepository,
 	notifHandler EventHandler,
 ) *OutboxWorker {
 	// The contentService is expected to be *contentapp.ContentService
@@ -895,7 +897,7 @@ func (w *OutboxWorker) SetupModerationHandlers(
 	// The userRepo is expected to be userrepo.UserRepository
 	// The chatMessageStore is expected to satisfy ChatMessageModerationStore
 	// Type assertion will happen in NewModerationEventHandler
-	handler := NewModerationEventHandler(db, contentService, commentService, forSaleService, auctionService, userRepo, chatMessageStore, w.log)
+	handler := NewModerationEventHandler(db, contentService, commentService, forSaleService, auctionService, userRepo, chatMessageStore, enfRepo, w.log)
 
 	// Enforcement-only: chat_message has no seller-facing notification.
 	w.dispatcher.RegisterMultiple([]string{

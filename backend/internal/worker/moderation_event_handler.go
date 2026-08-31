@@ -13,6 +13,7 @@ import (
 	forSaleApp "github.com/labuda/backend/internal/commerce/forsale/application"
 	forSaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
 	userRepositoryPkg "github.com/labuda/backend/internal/identity/user/repository"
+	moderationRepo "github.com/labuda/backend/internal/governance/moderation/infrastructure/repository"
 	platformevent "github.com/labuda/backend/internal/platform/event"
 	contentApp "github.com/labuda/backend/internal/social/content/application"
 	"github.com/labuda/backend/pkg/db"
@@ -57,6 +58,7 @@ type ModerationEventHandler struct {
 	auctionService   auctionCanceller // interface: *auctionApp.AuctionService satisfies this
 	userRepo         userRepositoryPkg.UserRepository
 	chatMessageStore ChatMessageModerationService
+	enfRepo          moderationRepo.EnforcementRepository
 	log              *zap.Logger
 }
 
@@ -75,6 +77,7 @@ func NewModerationEventHandler(
 	auctionService interface{},
 	userRepo interface{},
 	chatMessageStore ChatMessageModerationService,
+	enfRepo moderationRepo.EnforcementRepository,
 	log *zap.Logger,
 ) *ModerationEventHandler {
 	if log == nil {
@@ -120,16 +123,19 @@ func NewModerationEventHandler(
 		auctionService:   as,
 		userRepo:         ur,
 		chatMessageStore: chatMessageStore,
+		enfRepo:          enfRepo,
 		log:              log,
 	}
 }
 
 // moderationRemovedPayload represents the payload of a moderation.removed event.
 type moderationRemovedPayload struct {
-	CaseID       string  `json:"case_id"`
-	ResourceType string  `json:"resource_type"`
-	ResourceID   string  `json:"resource_id"`
-	DecisionNote *string `json:"decision_note,omitempty"`
+	DecisionID    string  `json:"decision_id,omitempty"`
+	EnforcementID string  `json:"enforcement_id,omitempty"`
+	CaseID        string  `json:"case_id"`
+	ResourceType  string  `json:"resource_type"`
+	ResourceID    string  `json:"resource_id"`
+	DecisionNote  *string `json:"decision_note,omitempty"`
 }
 
 // moderationRestoredPayload represents the payload of a moderation.restored event.
@@ -297,9 +303,63 @@ func splitEventSuffix(eventType string) []string {
 	return parts
 }
 
+// parseEnforcementID extracts the enforcement_id from a payload.
+// Returns nil if the payload has no enforcement_id (legacy events).
+func parseEnforcementID(payload moderationRemovedPayload) *uuid.UUID {
+	if payload.EnforcementID == "" {
+		return nil
+	}
+	id, err := uuid.Parse(payload.EnforcementID)
+	if err != nil {
+		return nil
+	}
+	return &id
+}
+
+// enforceLifecycle runs the canonical enforcement lifecycle within a transaction:
+//
+//	MarkProcessing → target mutation → MarkSucceeded
+//
+// If enforcementID is nil (legacy event), the lifecycle is skipped.
+// If MarkProcessing fails, the tx rolls back (infra error).
+// If target mutation fails, the tx rolls back and outbox retries.
+// If MarkSucceeded fails (extremely rare), the tx rolls back and outbox retries.
+//
+// Returns any error from the lifecycle (caller must decide tx outcome).
+func (h *ModerationEventHandler) enforceLifecycle(
+	ctx context.Context,
+	tx db.Tx,
+	enforcementID *uuid.UUID,
+	targetFn func() error,
+) error {
+	if enforcementID == nil || h.enfRepo == nil {
+		return targetFn()
+	}
+
+	// Step 1: Mark enforcement as processing.
+	if err := h.enfRepo.MarkProcessing(ctx, tx, *enforcementID); err != nil {
+		return fmt.Errorf("mark enforcement processing failed: %w", err)
+	}
+
+	// Step 2: Execute target-domain mutation.
+	if err := targetFn(); err != nil {
+		return err
+	}
+
+	// Step 3: Mark enforcement as succeeded.
+	if err := h.enfRepo.MarkSucceeded(ctx, tx, *enforcementID); err != nil {
+		return fmt.Errorf("mark enforcement succeeded failed: %w", err)
+	}
+
+	return nil
+}
+
 // handleContentRemoved soft-deletes content via ContentService.
 //
-// Creates its own transaction for the soft-delete operation.
+// CANONICAL ENFORCEMENT LIFECYCLE: MarkProcessing → soft-delete → MarkSucceeded
+// All within one transaction for atomicity. If any step fails, the entire
+// transaction rolls back and the outbox worker retries.
+//
 // Idempotent: calling on already-deleted content returns nil.
 func (h *ModerationEventHandler) handleContentRemoved(
 	ctx context.Context,
@@ -317,9 +377,14 @@ func (h *ModerationEventHandler) handleContentRemoved(
 		return nil // Don't retry - configuration issue
 	}
 
-	// Execute soft-delete in a new transaction
+	enforcementID := parseEnforcementID(payload)
+
+	// Canonical enforcement lifecycle within a single transaction:
+	// MarkProcessing → soft-delete → MarkSucceeded
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
-		return h.contentService.SoftDeleteForModeration(ctx, tx, contentID)
+		return h.enforceLifecycle(ctx, tx, enforcementID, func() error {
+			return h.contentService.SoftDeleteForModeration(ctx, tx, contentID)
+		})
 	})
 
 	if err != nil {
@@ -328,7 +393,6 @@ func (h *ModerationEventHandler) handleContentRemoved(
 			zap.String("case_id", payload.CaseID),
 			zap.Error(err),
 		)
-		// Return error to trigger retry
 		return fmt.Errorf("soft-delete content failed: %w", err)
 	}
 
@@ -342,7 +406,9 @@ func (h *ModerationEventHandler) handleContentRemoved(
 
 // handleCommentRemoved soft-deletes comment via CommentService.
 //
-// Creates its own transaction for the soft-delete operation.
+// CANONICAL ENFORCEMENT LIFECYCLE: MarkProcessing → soft-delete → MarkSucceeded
+// All within one transaction for atomicity.
+//
 // Idempotent: calling on already-deleted comment returns nil.
 func (h *ModerationEventHandler) handleCommentRemoved(
 	ctx context.Context,
@@ -360,9 +426,12 @@ func (h *ModerationEventHandler) handleCommentRemoved(
 		return nil // Don't retry - configuration issue
 	}
 
-	// Execute soft-delete in a new transaction
+	enforcementID := parseEnforcementID(payload)
+
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
-		return h.commentService.SoftDeleteForModeration(ctx, tx, commentID)
+		return h.enforceLifecycle(ctx, tx, enforcementID, func() error {
+			return h.commentService.SoftDeleteForModeration(ctx, tx, commentID)
+		})
 	})
 
 	if err != nil {
@@ -371,7 +440,6 @@ func (h *ModerationEventHandler) handleCommentRemoved(
 			zap.String("case_id", payload.CaseID),
 			zap.Error(err),
 		)
-		// Return error to trigger retry
 		return fmt.Errorf("soft-delete comment failed: %w", err)
 	}
 
@@ -477,10 +545,11 @@ func (h *ModerationEventHandler) handleCommentRestored(
 
 // handleForSaleRemoved handles fixed-price sale enforcement.
 //
-// ENFORCEMENT: Mark fixed-price sale as withdrawn/inactive via ForSaleService.Withdraw().
-// This prevents further transactions and hides from search/results.
+// CANONICAL ENFORCEMENT LIFECYCLE: MarkProcessing → Withdraw → MarkSucceeded
+// All within one transaction for atomicity.
 //
 // IDEMPOTENT: Safe to retry - Withdraw() validates fixed-price sale state.
+// InvalidTransitionError (already terminal) is treated as idempotent success.
 func (h *ModerationEventHandler) handleForSaleRemoved(
 	ctx context.Context,
 	forSaleID uuid.UUID,
@@ -500,9 +569,13 @@ func (h *ModerationEventHandler) handleForSaleRemoved(
 		return nil // Don't retry - configuration issue
 	}
 
-	// Execute withdrawal in a new transaction
+	enforcementID := parseEnforcementID(payload)
+
+	// Canonical enforcement lifecycle within a single transaction.
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
-		return h.forSaleService.Withdraw(ctx, tx, forSaleID)
+		return h.enforceLifecycle(ctx, tx, enforcementID, func() error {
+			return h.forSaleService.Withdraw(ctx, tx, forSaleID)
+		})
 	})
 
 	if err != nil {
@@ -517,6 +590,14 @@ func (h *ModerationEventHandler) handleForSaleRemoved(
 				zap.String("current_status", string(ite.CurrentStatus)),
 				zap.String("target_status", string(ite.TargetStatus)),
 			)
+			// Idempotent success — re-run within tx to mark enforcement succeeded.
+			// Withdraw will return InvalidTransitionError again → we catch it here.
+			_ = h.db.WithTx(ctx, func(tx db.Tx) error {
+				if enforcementID != nil && h.enfRepo != nil {
+					_ = h.enfRepo.MarkSucceeded(ctx, tx, *enforcementID)
+				}
+				return nil
+			})
 			return nil
 		}
 
@@ -525,7 +606,6 @@ func (h *ModerationEventHandler) handleForSaleRemoved(
 			zap.String("case_id", payload.CaseID),
 			zap.Error(err),
 		)
-		// Return error to trigger retry
 		return fmt.Errorf("withdraw fixed-price sale failed: %w", err)
 	}
 
@@ -539,11 +619,11 @@ func (h *ModerationEventHandler) handleForSaleRemoved(
 
 // handleAuctionRemoved handles auction moderation enforcement.
 //
-// ENFORCEMENT: Cancel auction via AuctionService.CancelForModeration().
-// This bypasses seller ownership and bid-count restrictions — governance authority.
+// CANONICAL ENFORCEMENT LIFECYCLE: MarkProcessing → CancelForModeration → MarkSucceeded
+// All within one transaction for atomicity.
 //
 // IDEMPOTENT: Terminal states (ended, expired_bnr, cancelled) return
-// InvalidTransitionError which is treated as success.
+// InvalidTransitionError which is treated as idempotent success.
 func (h *ModerationEventHandler) handleAuctionRemoved(
 	ctx context.Context,
 	auctionID uuid.UUID,
@@ -561,8 +641,12 @@ func (h *ModerationEventHandler) handleAuctionRemoved(
 		return nil // Don't retry - configuration issue
 	}
 
+	enforcementID := parseEnforcementID(payload)
+
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
-		return h.auctionService.CancelForModeration(ctx, tx, auctionID)
+		return h.enforceLifecycle(ctx, tx, enforcementID, func() error {
+			return h.auctionService.CancelForModeration(ctx, tx, auctionID)
+		})
 	})
 
 	if err != nil {
@@ -575,6 +659,13 @@ func (h *ModerationEventHandler) handleAuctionRemoved(
 				zap.String("case_id", payload.CaseID),
 				zap.String("current_status", string(ite.CurrentStatus)),
 			)
+			// Idempotent success — mark enforcement succeeded directly.
+			_ = h.db.WithTx(ctx, func(tx db.Tx) error {
+				if enforcementID != nil && h.enfRepo != nil {
+					_ = h.enfRepo.MarkSucceeded(ctx, tx, *enforcementID)
+				}
+				return nil
+			})
 			return nil
 		}
 
@@ -596,8 +687,8 @@ func (h *ModerationEventHandler) handleAuctionRemoved(
 
 // handleUserAction handles user enforcement.
 //
-// ENFORCEMENT: Suspend user account by setting account_status = 'suspended'.
-// This restricts user capabilities and prevents further actions.
+// CANONICAL ENFORCEMENT LIFECYCLE: MarkProcessing → suspend user → MarkSucceeded
+// All within one transaction for atomicity.
 //
 // IDEMPOTENT: Only updates if not already suspended.
 func (h *ModerationEventHandler) handleUserAction(
@@ -619,32 +710,36 @@ func (h *ModerationEventHandler) handleUserAction(
 		return nil // Don't retry - configuration issue
 	}
 
-	// Execute suspension in a new transaction
+	enforcementID := parseEnforcementID(payload)
+
+	// Canonical enforcement lifecycle within a single transaction.
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
-		// Lock user for update
-		user, err := h.userRepo.GetByIDForUpdate(ctx, tx, userID)
-		if err != nil {
-			return fmt.Errorf("failed to lock user: %w", err)
-		}
+		return h.enforceLifecycle(ctx, tx, enforcementID, func() error {
+			// Lock user for update
+			user, err := h.userRepo.GetByIDForUpdate(ctx, tx, userID)
+			if err != nil {
+				return fmt.Errorf("failed to lock user: %w", err)
+			}
 
-		// IDEMPOTENCY CHECK: Only update if not already suspended
-		if user.AccountStatus == "suspended" {
-			h.log.Info("User already suspended, skipping update",
-				zap.String("user_id", userID.String()),
-			)
-			return nil // Already suspended - idempotent
-		}
+			// IDEMPOTENCY CHECK: Only update if not already suspended
+			if user.AccountStatus == "suspended" {
+				h.log.Info("User already suspended, skipping update",
+					zap.String("user_id", userID.String()),
+				)
+				return nil // Already suspended - idempotent
+			}
 
-		// Update account status to suspended
-		user.AccountStatus = "suspended"
-		user.UpdatedAt = time.Now()
+			// Update account status to suspended
+			user.AccountStatus = "suspended"
+			user.UpdatedAt = time.Now()
 
-		// Persist the change
-		if err := h.userRepo.Update(ctx, tx, user); err != nil {
-			return fmt.Errorf("failed to update user status: %w", err)
-		}
+			// Persist the change
+			if err := h.userRepo.Update(ctx, tx, user); err != nil {
+				return fmt.Errorf("failed to update user status: %w", err)
+			}
 
-		return nil
+			return nil
+		})
 	})
 
 	if err != nil {
@@ -653,7 +748,6 @@ func (h *ModerationEventHandler) handleUserAction(
 			zap.String("case_id", payload.CaseID),
 			zap.Error(err),
 		)
-		// Return error to trigger retry
 		return fmt.Errorf("suspend user failed: %w", err)
 	}
 
@@ -851,6 +945,9 @@ func (h *ModerationEventHandler) handleUserRestored(
 
 // handleChatMessageHidden soft-hides a chat message via chat boundary.
 //
+// CANONICAL ENFORCEMENT LIFECYCLE: MarkProcessing → hide → MarkSucceeded
+// All within one transaction for atomicity.
+//
 // IDEMPOTENT: repository operation is guarded by deleted_at IS NULL.
 func (h *ModerationEventHandler) handleChatMessageHidden(
 	ctx context.Context,
@@ -862,10 +959,13 @@ func (h *ModerationEventHandler) handleChatMessageHidden(
 		zap.String("case_id", payload.CaseID),
 	)
 
+	enforcementID := parseEnforcementID(payload)
 	reason := fmt.Sprintf("Moderation: hidden by admin (case %s)", payload.CaseID)
 
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
-		return h.chatMessageStore.SoftHideForModeration(ctx, tx, messageID, uuid.Nil, reason, payload.CaseID)
+		return h.enforceLifecycle(ctx, tx, enforcementID, func() error {
+			return h.chatMessageStore.SoftHideForModeration(ctx, tx, messageID, uuid.Nil, reason, payload.CaseID)
+		})
 	})
 
 	if err != nil {

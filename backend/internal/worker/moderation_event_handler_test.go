@@ -625,6 +625,7 @@ func TestNewModerationEventHandler_NilChatMessageStorePanics(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		nil, // enfRepo — not needed for panic test
 		zaptest.NewLogger(t),
 	)
 }
