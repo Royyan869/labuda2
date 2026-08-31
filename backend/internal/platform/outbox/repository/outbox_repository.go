@@ -103,8 +103,9 @@ type OutboxRepository interface {
 	// MarkProcessing marks an event as being processed.
 	//
 	// ATOMIC STATUS TRANSITION:
-	// Only updates if the current status is 'pending'.
-	// Returns ErrInvalidStatusTransition if the event is not in pending state.
+	// Accepts events in 'pending' or 'failed' status and transitions them to 'processing'.
+	// This enables retry: failed events ready for retry can be claimed by a worker.
+	// Returns ErrInvalidStatusTransition if the event is not in pending or failed state.
 	MarkProcessing(
 		ctx context.Context,
 		tx db.Tx,

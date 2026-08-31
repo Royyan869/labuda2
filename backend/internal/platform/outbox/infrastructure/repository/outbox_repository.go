@@ -260,8 +260,12 @@ func (r *OutboxRepository) FetchPendingBatch(
 // MarkProcessing marks an event as being processed.
 //
 // ATOMIC STATUS TRANSITION:
-// Only updates if the current status is 'pending'.
-// Returns ErrInvalidStatusTransition if the event is not in pending state.
+// Accepts events in 'pending' or 'failed' status and transitions them to 'processing'.
+// This enables retry: events that failed and are ready for retry (next_attempt_at <= NOW())
+// can be claimed by a worker just like pending events.
+//
+// Returns ErrInvalidStatusTransition if the event is not in pending or failed state
+// (e.g. already processing, succeeded, or dead_letter).
 func (r *OutboxRepository) MarkProcessing(
 	ctx context.Context,
 	tx db.Tx,
@@ -271,10 +275,10 @@ func (r *OutboxRepository) MarkProcessing(
 	query := `
 		UPDATE outbox
 		SET status = $1, updated_at = $2
-		WHERE id = $3 AND status = $4
+		WHERE id = $3 AND status IN ($4, $5)
 	`
 
-	result, err := tx.Exec(ctx, query, StatusProcessing, now, eventID, StatusPending)
+	result, err := tx.Exec(ctx, query, StatusProcessing, now, eventID, StatusPending, StatusFailed)
 	if err != nil {
 		return fmt.Errorf("failed to mark event as processing: %w", err)
 	}
