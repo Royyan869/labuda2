@@ -142,11 +142,24 @@ apps/mobile/
 
 Edit `.env` file:
 ```env
-GOOGLE_MAPS_API_KEY=your_api_key_here
 MIDTRANS_MERCHANT_ID=your_midtrans_merchant_id_here
 MIDTRANS_CLIENT_KEY=your_midtrans_client_key_here
 # Never put a Midtrans server key in the mobile app or mobile env files.
 ```
+
+### Google Maps API Key (Android)
+
+The Android Maps API key is **not** committed. Provide it at build time via
+`android/local.properties` (untracked):
+
+```properties
+MAPS_API_KEY=AIza...
+```
+
+The manifest reads `${MAPS_API_KEY}` through Gradle; without it the build
+uses a placeholder and map surfaces fail at runtime. The Dart-side
+`lib/core/src/config/google_config.dart` keys are placeholders too — set them
+locally if you use the Places/static-map surfaces.
 
 ### Backend Base URL (dev)
 

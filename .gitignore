@@ -95,6 +95,10 @@ aws-lambda/**/*.zip
 .firebaserc
 .firebase/
 
+# Firebase API key scratch files (backend/configs/)
+backend/configs/firebase_api_key.txt
+backend/configs/*.txt
+
 # API Keys & Credentials
 **/api_keys.dart
 **/secrets.dart
@@ -185,10 +189,17 @@ backend/tmp/
 backend/*.out
 backend/*.test
 backend/coverage.html
+backend/vet_errors.txt
+backend/vet_output.txt
+backend/build_b*.txt
+
+# One-off scratch command packages (never build artifacts)
+backend/cmd/*_tmp/
 
 # Tools & scripts output
 reports/
 scripts/output/
+/gs.txt
 
 # Test artifacts
 tests/reports/

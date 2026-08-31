@@ -1,97 +1,75 @@
 /// Report DTOs for API Integration
 ///
-/// These models match the Go backend moderation/cases endpoints.
+/// These models match the canonical Go backend /reports endpoints (SLICE 2).
 library;
 
 // =====================
 // Report DTOs
 // =====================
 
-/// Moderation case DTO from backend.
+/// Report DTO from backend.
 ///
-/// Backend contract (POST /moderation/cases → 201):
-///   {case_id, resource_type, resource_id, status, created_at}
-///
-/// Backend contract (GET /moderation/my-cases, GET /moderation/cases/:id):
-///   {id, resource_type, resource_id, status, reported_by, reason,
-///    created_at, reviewed_by?, decision_note?, reviewed_at?}
-class ModerationCaseDto {
+/// Backend contract (POST /reports → 201, GET /reports/mine, GET /reports/:id):
+///   {id, reporter_id, subject_type, subject_id, reason_code,
+///    reason_note?, evidence_snapshot?, case_id?, created_at}
+class ReportDto {
   final String id;
-  final String resourceType;
-  final String resourceId;
-  final String status;
-  final String? reportedBy;
-  final String? reason;
+  final String reporterId;
+  final String subjectType;
+  final String subjectId;
+  final String reasonCode;
+  final String? reasonNote;
   final DateTime createdAt;
-  final String? reviewedBy;
-  final String? decisionNote;
-  final DateTime? reviewedAt;
 
-  const ModerationCaseDto({
+  const ReportDto({
     required this.id,
-    required this.resourceType,
-    required this.resourceId,
-    required this.status,
-    this.reportedBy,
-    this.reason,
+    required this.reporterId,
+    required this.subjectType,
+    required this.subjectId,
+    required this.reasonCode,
+    this.reasonNote,
     required this.createdAt,
-    this.reviewedBy,
-    this.decisionNote,
-    this.reviewedAt,
   });
 
-  /// Parse from POST /moderation/cases 201 response.
-  /// Create response uses "case_id" key, not "id".
-  factory ModerationCaseDto.fromCreateJson(Map<String, dynamic> json) {
-    return ModerationCaseDto(
-      id: json['case_id'] as String,
-      resourceType: json['resource_type'] as String,
-      resourceId: json['resource_id'] as String,
-      status: json['status'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
-    );
-  }
-
-  /// Parse from GET /moderation/my-cases or GET /moderation/cases/:id response.
-  factory ModerationCaseDto.fromJson(Map<String, dynamic> json) {
-    return ModerationCaseDto(
+  /// Parse from POST /reports 201 response or GET /reports/:id response.
+  factory ReportDto.fromJson(Map<String, dynamic> json) {
+    return ReportDto(
       id: json['id'] as String,
-      resourceType: json['resource_type'] as String,
-      resourceId: json['resource_id'] as String,
-      status: json['status'] as String,
-      reportedBy: json['reported_by'] as String?,
-      reason: json['reason'] as String?,
+      reporterId: json['reporter_id'] as String,
+      subjectType: json['subject_type'] as String,
+      subjectId: json['subject_id'] as String,
+      reasonCode: json['reason_code'] as String,
+      reasonNote: json['reason_note'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
-      reviewedBy: json['reviewed_by'] as String?,
-      decisionNote: json['decision_note'] as String?,
-      reviewedAt: json['reviewed_at'] != null
-          ? DateTime.parse(json['reviewed_at'] as String)
-          : null,
     );
   }
 }
 
-/// Request DTO for POST /moderation/cases.
+/// Request DTO for POST /reports.
 ///
-/// Backend contract: {entity_type, entity_id, reason}
-/// - entity_type: "content" | "comment" | "user" (V1 supported)
-/// - entity_id: UUID of the entity being reported
-/// - reason: description text (1-500 chars)
-class CreateCaseRequestDto {
-  final String entityType;
-  final String entityId;
-  final String reason;
+/// Backend contract: {subject_type, subject_id, reason_code, reason_note?}
+/// - subject_type: "content" | "comment" | "for_sale" | "auction" | "user"
+/// - subject_id: UUID of the entity being reported
+/// - reason_code: locked taxonomy value
+/// - reason_note: optional free text (1-2000 chars)
+class CreateReportRequestDto {
+  final String subjectType;
+  final String subjectId;
+  final String reasonCode;
+  final String? reasonNote;
 
-  const CreateCaseRequestDto({
-    required this.entityType,
-    required this.entityId,
-    required this.reason,
+  const CreateReportRequestDto({
+    required this.subjectType,
+    required this.subjectId,
+    required this.reasonCode,
+    this.reasonNote,
   });
 
   Map<String, dynamic> toJson() => {
-    'entity_type': entityType,
-    'entity_id': entityId,
-    'reason': reason,
+    'subject_type': subjectType,
+    'subject_id': subjectId,
+    'reason_code': reasonCode,
+    if (reasonNote != null && reasonNote!.isNotEmpty) 'reason_note': reasonNote,
   };
 }
 

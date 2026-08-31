@@ -12,48 +12,37 @@ import '../dto/dto.dart';
 
 /// Mapper for Report entity
 class ReportMapper {
-  /// Map backend ModerationCaseDto to domain Report entity.
+  /// Map backend ReportDto to domain Report entity.
   ///
-  /// Backend returns resource_type as the entity type string.
-  /// Reason is stored as free-text; we parse the leading token back to enum.
-  static Report toEntity(ModerationCaseDto dto) {
+  /// Backend returns subject_type / subject_id / reason_code / reason_note.
+  static Report toEntity(ReportDto dto) {
     return Report(
       id: dto.id,
-      reporterId: dto.reportedBy ?? '',
-      targetId: dto.resourceId,
-      targetType: _mapResourceType(dto.resourceType),
-      reason: _parseReasonFromText(dto.reason ?? ''),
-      description: dto.reason,
+      reporterId: dto.reporterId,
+      subjectId: dto.subjectId,
+      subjectType: ReportTargetTypeExtension.fromString(dto.subjectType),
+      reason: ReportReasonTypeExtension.fromString(dto.reasonCode),
+      description: dto.reasonNote,
       evidenceUrls: const [],
-      status: _mapStatusString(dto.status),
+      status: ReportStatus.pending,
       action: ReportAction.none,
-      moderatorId: dto.reviewedBy,
-      moderatorNote: dto.decisionNote,
       createdAt: dto.createdAt,
-      reviewedAt: dto.reviewedAt,
-      resolvedAt: dto.reviewedAt,
     );
   }
 
-  /// Map CreateReportRequest to backend CreateCaseRequestDto.
+  /// Map CreateReportRequest to backend CreateReportRequestDto.
   ///
   /// Serializes:
-  ///   targetType → entity_type (content/comment/user)
-  ///   targetId   → entity_id
-  ///   reason + description → reason (free-text, 1-500 chars)
-  static CreateCaseRequestDto toCreateRequestDto(CreateReportRequest request) {
-    // Build reason text: enum value, optionally followed by description
-    final reasonText =
-        request.description != null && request.description!.isNotEmpty
-        ? '${request.reason.value}: ${request.description}'
-        : request.reason.value;
-
-    return CreateCaseRequestDto(
-      entityType: request.targetType.backendValue,
-      entityId: request.targetId,
-      reason: reasonText.length > 500
-          ? reasonText.substring(0, 500)
-          : reasonText,
+  ///   subjectType → subject_type (content/comment/for_sale/auction/user)
+  ///   subjectId   → subject_id
+  ///   reason      → reason_code (locked taxonomy)
+  ///   description → reason_note (optional free text)
+  static CreateReportRequestDto toCreateRequestDto(CreateReportRequest request) {
+    return CreateReportRequestDto(
+      subjectType: request.subjectType.backendValue,
+      subjectId: request.subjectId,
+      reasonCode: request.reason.backendValue,
+      reasonNote: request.description,
     );
   }
 
@@ -70,39 +59,6 @@ class ReportMapper {
   // =====================
   // Private Helpers
   // =====================
-
-  /// Map backend resource_type string to domain ReportTargetType.
-  static ReportTargetType _mapResourceType(String value) {
-    switch (value) {
-      case 'content':
-        return ReportTargetType.content;
-      case 'comment':
-        return ReportTargetType.comment;
-      case 'user':
-        return ReportTargetType.user;
-      case 'chat_message':
-        return ReportTargetType.message;
-      case 'fixed_price_sale':
-        return ReportTargetType.forSale;
-      default:
-        return ReportTargetType.content;
-    }
-  }
-
-  /// Parse reason enum from the leading token of the stored reason text.
-  /// Backend stores "spam" or "spam: user description here".
-  static ReportReasonType _parseReasonFromText(String text) {
-    final token = text.contains(':')
-        ? text.split(':').first.trim()
-        : text.trim();
-    return ReportReasonTypeExtension.fromString(token);
-  }
-
-  static ReportStatus _mapStatusString(String value) {
-    // Backend uses "enforced" for cases where action was taken
-    if (value == 'enforced') return ReportStatus.resolved;
-    return ReportStatusExtension.fromString(value);
-  }
 
   static String _actionToString(ReportAction action) {
     return action.value;
@@ -263,8 +219,8 @@ class ReportStatisticsMapper {
     for (final report in reports) {
       final data = report as Map<String, dynamic>;
       final statusStr = data['status'] as String? ?? 'pending';
-      final reasonStr = data['reason'] as String? ?? 'other';
-      final targetStr = data['target_type'] as String? ?? 'content';
+      final reasonStr = data['reason_code'] as String? ?? 'other';
+      final targetStr = data['subject_type'] as String? ?? 'content';
 
       // Count by status
       final status = ReportStatusExtension.fromString(statusStr);

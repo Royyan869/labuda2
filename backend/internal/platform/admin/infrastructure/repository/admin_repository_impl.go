@@ -386,9 +386,11 @@ func (r *AdminRepositoryImpl) GetDashboardMetrics(
 		return nil, fmt.Errorf("failed to query orders today: %w", err)
 	}
 
-	// Pending reports
+	// Pending reports (canonical moderation: cases with status 'open').
+	// The legacy moderation_cases table was dropped in migration 000056;
+	// the canonical replacement is cases.status = 'open'.
 	err = dbTx.QueryRow(ctx,
-		"SELECT COUNT(*) FROM moderation_cases WHERE status = 'pending'",
+		"SELECT COUNT(*) FROM cases WHERE status = 'open'",
 	).Scan(&metrics.PendingReports)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query pending reports: %w", err)

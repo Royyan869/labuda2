@@ -97,7 +97,7 @@ class _ReportSubmissionDialogState
 
               // Reason selector
               ReportReasonSelector(
-                selectedReason: _selectedReason ?? ReportReasonType.spam,
+                selectedReason: _selectedReason ?? ReportReasonType.other,
                 onReasonSelected: (reason) {
                   setState(() => _selectedReason = reason);
                 },
@@ -263,8 +263,6 @@ class _ReportSubmissionDialogState
         return Icons.shopping_bag_outlined;
       case ReportTargetType.auction:
         return Icons.gavel_outlined;
-      case ReportTargetType.message:
-        return Icons.chat_bubble_outline;
     }
   }
 
@@ -285,8 +283,8 @@ class _ReportSubmissionDialogState
     setState(() => _isSubmitting = true);
 
     final request = CreateReportRequest(
-      targetId: widget.targetId,
-      targetType: widget.targetType,
+      subjectId: widget.targetId,
+      subjectType: widget.targetType,
       targetTitle: widget.targetTitle,
       reason: _selectedReason!,
       description: _description.isEmpty ? null : _description,
@@ -304,7 +302,7 @@ class _ReportSubmissionDialogState
         context,
         targetType: widget.targetType,
         reason: _selectedReason!,
-        isHarassment: _selectedReason == ReportReasonType.harassment,
+        isHarassment: _selectedReason == ReportReasonType.harassmentOrAbuse,
       );
     } else if (mounted) {
       // Show error

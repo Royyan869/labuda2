@@ -141,24 +141,18 @@ class _ReasonCard extends StatelessWidget {
 
   IconData _getIconForReason(ReportReasonType reason) {
     switch (reason) {
-      case ReportReasonType.spam:
-        return Icons.mark_email_unread_outlined;
-      case ReportReasonType.harassment:
-        return Icons.person_off_outlined;
-      case ReportReasonType.inappropriateContent:
-        return Icons.block_outlined;
-      case ReportReasonType.scam:
+      case ReportReasonType.scamOrFraud:
         return Icons.warning_outlined;
-      case ReportReasonType.fakeProduct:
-        return Icons.shopping_bag_outlined;
-      case ReportReasonType.copyrightViolation:
-        return Icons.copyright_outlined;
-      case ReportReasonType.violence:
-        return Icons.error_outline;
-      case ReportReasonType.hateSpeech:
-        return Icons.report_problem_outlined;
-      case ReportReasonType.falseInformation:
+      case ReportReasonType.prohibitedContent:
+        return Icons.block_outlined;
+      case ReportReasonType.harassmentOrAbuse:
+        return Icons.person_off_outlined;
+      case ReportReasonType.impersonation:
+        return Icons.badge_outlined;
+      case ReportReasonType.misleadingInformation:
         return Icons.help_outline;
+      case ReportReasonType.commerceViolation:
+        return Icons.shopping_bag_outlined;
       case ReportReasonType.other:
         return Icons.more_horiz;
     }

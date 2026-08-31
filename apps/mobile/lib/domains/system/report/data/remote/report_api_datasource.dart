@@ -11,12 +11,12 @@ import '../dto/dto.dart';
 /// Abstract interface for Report API
 abstract class ReportApiDatasource {
   // =====================
-  // Moderation Case APIs (POST /moderation/cases)
+  // Report APIs (POST /reports, GET /reports/mine, GET /reports/:id)
   // =====================
 
-  Future<ModerationCaseDto> createCase(CreateCaseRequestDto request);
-  Future<ModerationCaseDto> getCase(String caseId);
-  Future<List<ModerationCaseDto>> getMyCases({String? status, int page = 1});
+  Future<ReportDto> createReport(CreateReportRequestDto request);
+  Future<ReportDto> getReport(String reportId);
+  Future<List<ReportDto>> getMyReports({int page = 1});
 
   // =====================
   // Appeal APIs
@@ -65,37 +65,36 @@ class ReportApiDatasourceImpl implements ReportApiDatasource {
   }
 
   // =====================
-  // Moderation Case APIs
+  // Report APIs
   // =====================
 
   @override
-  Future<ModerationCaseDto> createCase(CreateCaseRequestDto request) async {
+  Future<ReportDto> createReport(CreateReportRequestDto request) async {
     final response = await _apiClient.post(
-      '/moderation/cases',
+      '/reports',
       data: request.toJson(),
     );
-    return ModerationCaseDto.fromCreateJson(_extractData(response));
+    return ReportDto.fromJson(_extractData(response));
   }
 
   @override
-  Future<ModerationCaseDto> getCase(String caseId) async {
-    final response = await _apiClient.get('/moderation/cases/$caseId');
-    return ModerationCaseDto.fromJson(_extractData(response));
+  Future<ReportDto> getReport(String reportId) async {
+    final response = await _apiClient.get('/reports/$reportId');
+    final data = response.data['data'] as Map<String, dynamic>;
+    final report = data['report'] as Map<String, dynamic>? ?? data;
+    return ReportDto.fromJson(report);
   }
 
   @override
-  Future<List<ModerationCaseDto>> getMyCases({
-    String? status,
-    int page = 1,
-  }) async {
+  Future<List<ReportDto>> getMyReports({int page = 1}) async {
     final response = await _apiClient.get(
-      '/moderation/my-cases',
-      queryParameters: {'status': ?status, 'page': page, 'page_size': 20},
+      '/reports/mine',
+      queryParameters: {'page': page, 'limit': 20},
     );
-    final list = response.data['data'] as Map<String, dynamic>;
-    final cases = list['cases'] as List<dynamic>? ?? [];
-    return cases
-        .map((json) => ModerationCaseDto.fromJson(json as Map<String, dynamic>))
+    final data = response.data['data'] as Map<String, dynamic>;
+    final reports = data['reports'] as List<dynamic>? ?? [];
+    return reports
+        .map((json) => ReportDto.fromJson(json as Map<String, dynamic>))
         .toList();
   }
 

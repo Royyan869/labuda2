@@ -237,7 +237,7 @@ type Dependencies struct {
 	LikeHandler            *likeHTTP.LikeHandler
 	NotificationHandler    *notificationHTTP.NotificationHandler
 	FCMTokenHandler        *notificationHTTP.FCMTokenHandler
-	ModerationHandler      *moderationHTTP.ModerationHandler  // Trust MVP: moderation endpoints
+	ReportHandler          *moderationHTTP.ReportHandler      // SLICE 2: canonical Report intake
 	FollowHandler          *socialhttp.FollowHandler          // SOCIAL domain: follow/block/mute
 	ShippingQuoteHandler   *shippingQuoteHTTP.Handler         // Shipping quote feature (chat-based manual quotes)
 	RatingHandler          *ratingHTTP.RatingHandler          // RATING DOMAIN: buyer→seller order ratings
@@ -2357,22 +2357,18 @@ func InitServices(
 	)
 	likeHandler := likeHTTP.NewLikeHandler(db.Pgx(), log.Logger, likeService, commentLikeService)
 
-	// ===== MODERATION MODULE (Trust MVP) =====
-	// Initialize moderation repository
+	// ===== MODERATION MODULE — CANONICAL REPORT RUNTIME (SLICE 2) =====
+	// The legacy GovernanceCase intake (CreateCase → moderation_cases) has been
+	// removed. The canonical Report service is the single Report authority.
+	reportRepository := moderationRepo.NewReportRepository()
+	reportService := moderationApp.NewReportService(db.Pgx(), reportRepository)
+	reportHandler := moderationHTTP.NewReportHandler(reportService, log.Logger)
+
+	// LEGACY READ-ONLY REPOSITORY (compile-only): the out-of-scope Appeal
+	// domain (Slice 9) still depends on ModerationRepository.GetByID. This is
+	// runtime-dead (moderation_cases dropped in 000056) and is replaced when
+	// the Appeal domain is rebuilt. It is NOT wired to any Report path.
 	moderationRepository := moderationRepo.NewModerationRepository()
-	// Initialize moderation service with outbox for event emission
-	moderationService := moderationApp.NewModerationService(
-		db.Pgx(),
-		moderationRepository,
-		outboxRepository,
-	)
-	// Initialize moderation handler
-	moderationHandler := moderationHTTP.NewModerationHandler(
-		moderationService,
-		db.Pgx(),
-		log.Logger,
-		adminAuditLogger,
-	)
 
 	// ===== SOCIAL MODULE =====
 	// Initialize social service for follow/block/mute operations
@@ -2983,8 +2979,8 @@ func InitServices(
 		LikeHandler:            likeHandler,
 		NotificationHandler:    notificationHandler,
 		FCMTokenHandler:        fcmTokenHandler,
-		ModerationHandler:      moderationHandler,      // Trust MVP: moderation endpoints
-		FollowHandler:          followHandler,          // SOCIAL domain: follow/block/mute
+		ReportHandler:          reportHandler,             // SLICE 2: canonical Report intake
+		FollowHandler:          followHandler,             // SOCIAL domain: follow/block/mute
 		ShippingQuoteHandler:   shippingQuoteHandler,   // Shipping quote feature (chat-based manual quotes)
 		RatingHandler:          ratingHandler,          // RATING DOMAIN: buyer→seller order ratings
 		PromotionHandler:       promotionHandler,       // PROMOTION PHASE 4: Discovery endpoints

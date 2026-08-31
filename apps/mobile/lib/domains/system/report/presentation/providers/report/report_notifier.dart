@@ -35,7 +35,7 @@ class ReportActionsNotifier extends Notifier<ReportActionsState> {
   /// Submit a new report
   Future<bool> submitReport(CreateReportRequest request) async {
     // Guard: block unsupported types before API call
-    if (!request.targetType.isBackendSupported) {
+    if (!request.subjectType.isBackendSupported) {
       state = state.copyWith(
         isLoading: false,
         error: 'Fitur laporan ini belum tersedia.',

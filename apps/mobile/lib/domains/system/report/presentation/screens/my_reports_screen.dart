@@ -190,13 +190,13 @@ class ReportCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    _getIconForTargetType(report.targetType),
+                    _getIconForTargetType(report.subjectType),
                     size: 16,
                     color: AppColors.neutralGray500,
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    report.targetType.displayName,
+                    report.subjectType.displayName,
                     style: TextStyle(
                       fontSize: 13,
                       color: AppColors.neutralGray500,
@@ -351,8 +351,6 @@ class ReportCard extends StatelessWidget {
         return Icons.comment_outlined;
       case ReportTargetType.user:
         return Icons.person_outlined;
-      case ReportTargetType.message:
-        return Icons.chat_bubble_outline;
       case ReportTargetType.forSale:
         return Icons.shopping_bag_outlined;
       case ReportTargetType.auction:

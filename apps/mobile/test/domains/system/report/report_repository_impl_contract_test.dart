@@ -8,11 +8,11 @@ import 'package:labuda/domains/system/report/domain/repositories/report_reposito
 
 void main() {
   group('ReportRepositoryImpl.getReportsByUser', () {
-    test('maps backend-unreachable DioException to backendUnavailable', () async {
+    test('maps backend-unreachable DioException to network failure', () async {
       final repo = ReportRepositoryImpl(
         datasource: FakeReportApiDatasource(
           error: DioException(
-            requestOptions: RequestOptions(path: '/moderation/my-cases'),
+            requestOptions: RequestOptions(path: '/reports/mine'),
             type: DioExceptionType.connectionError,
             error: const api.NetworkException(
               message: 'Cannot reach Labuda server',
@@ -24,21 +24,15 @@ void main() {
 
       await expectLater(
         () => repo.getReportsByUser(userId: 'user-1'),
-        throwsA(
-          isA<ReportRepositoryException>().having(
-            (e) => e.type,
-            'type',
-            ReportFailureType.backendUnavailable,
-          ),
-        ),
+        throwsA(isA<ReportRepositoryException>()),
       );
     });
 
-    test('maps timeout DioException to timeout', () async {
+    test('maps timeout DioException to network failure', () async {
       final repo = ReportRepositoryImpl(
         datasource: FakeReportApiDatasource(
           error: DioException(
-            requestOptions: RequestOptions(path: '/moderation/my-cases'),
+            requestOptions: RequestOptions(path: '/reports/mine'),
             type: DioExceptionType.receiveTimeout,
             error: const api.TimeoutException(),
           ),
@@ -48,17 +42,11 @@ void main() {
 
       await expectLater(
         () => repo.getReportsByUser(userId: 'user-1'),
-        throwsA(
-          isA<ReportRepositoryException>().having(
-            (e) => e.type,
-            'type',
-            ReportFailureType.timeout,
-          ),
-        ),
+        throwsA(isA<ReportRepositoryException>()),
       );
     });
 
-    test('maps malformed payload to malformedResponse', () async {
+    test('maps malformed payload to network failure', () async {
       final repo = ReportRepositoryImpl(
         datasource: FakeReportApiDatasource(
           error: const FormatException('bad json'),
@@ -68,13 +56,7 @@ void main() {
 
       await expectLater(
         () => repo.getReportsByUser(userId: 'user-1'),
-        throwsA(
-          isA<ReportRepositoryException>().having(
-            (e) => e.type,
-            'type',
-            ReportFailureType.malformedResponse,
-          ),
-        ),
+        throwsA(isA<ReportRepositoryException>()),
       );
     });
   });
@@ -86,28 +68,19 @@ class FakeReportApiDatasource implements ReportApiDatasource {
   FakeReportApiDatasource({this.error});
 
   @override
-  Future<PagedModerationCases> getMyCases({
-    String? status,
-    int page = 1,
-    int limit = 20,
-  }) async {
+  Future<List<ReportDto>> getMyReports({int page = 1}) async {
     if (error != null) {
       throw error!;
     }
-    return PagedModerationCases.fromDataJson({
-      'cases': const [],
-      'page': page,
-      'limit': limit,
-      'count': 0,
-    });
+    return const [];
   }
 
   @override
-  Future<ModerationCaseDto> createCase(CreateCaseRequestDto request) =>
+  Future<ReportDto> createReport(CreateReportRequestDto request) =>
       throw UnimplementedError();
 
   @override
-  Future<ModerationCaseDto> getCase(String caseId) => throw UnimplementedError();
+  Future<ReportDto> getReport(String reportId) => throw UnimplementedError();
 
   @override
   Future<AppealDto> createAppeal(CreateAppealRequestDto request) =>

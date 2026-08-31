@@ -1,4 +1,0 @@
-internal\social\content\application\comment_response.go:4:2: package encoding/sson is not in std (C:\Program Files\Go\src\encoding\sson)
-internal\social\content\application\invariant_logger.go:5:12: missing import path
-internal\discovery\search\delivery\http\search_handler.go:4:12: missing import path
-internal\worker\notification_worker_social.go:4:12: missing import path

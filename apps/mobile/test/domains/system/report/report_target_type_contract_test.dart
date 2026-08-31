@@ -2,11 +2,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/domains/system/report/report.dart';
 
 void main() {
-  test(
-    'fixedPriceSale serializes to fixed_price_sale for backend requests',
-    () {
-      expect(ReportTargetType.forSale.backendValue, 'fixed_price_sale');
-      expect(ReportTargetType.forSale.displayName, 'Fixed-Price Sale');
-    },
-  );
+  test('forSale serializes to for_sale for backend requests', () {
+    expect(ReportTargetType.forSale.backendValue, 'for_sale');
+    expect(ReportTargetType.forSale.displayName, 'For Sale');
+  });
+
+  test('canonical targets only — chat_message is not a target', () {
+    expect(ReportTargetType.values.map((e) => e.backendValue),
+        ['content', 'comment', 'user', 'for_sale', 'auction']);
+  });
 }

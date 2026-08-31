@@ -1437,12 +1437,14 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     if (chat == null) return;
 
     // Navigate to report screen with message context
-    // We report the user with message context in the description
+    // Canonical moderation (SLICE 2): chat_message is NOT a canonical target.
+    // The message sender's user profile is the canonical report subject;
+    // message context is carried in the report description.
     await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (context) => ReportScreen(
-          targetType: ReportTargetType.message.name,
-          targetId: message.id,
+          targetType: ReportTargetType.user.name,
+          targetId: message.senderId,
         ),
       ),
     );

@@ -10,39 +10,40 @@ library;
 
 /// Report Target Type - Jenis konten/user yang bisa dilaporkan
 ///
-/// **All 6 types are backend-supported via POST /moderation/cases.**
-/// Backend resource types: content, comment, for_sale, auction, user, chat_message.
+/// **Canonical targets (backend contract POST /reports):**
+/// content, comment, for_sale, auction, user.
 ///
-/// Enforcement per type:
-///   content / comment -> soft-delete (automatic on admin enforce)
-///   for_sale          -> Withdraw() via moderation event (admin enforce)
-///   auction           -> CancelForModeration() via moderation event (admin enforce)
-///   user              -> account_status='suspended' (admin enforce)
-///   message           -> SoftHideForModeration() for chat_message (admin enforce)
+/// `chat_message` and `fixed_price_sale` are NOT canonical moderation targets
+/// and are rejected by the backend (LABUDA — CANONICAL MODERATION SPEC v1 §12).
 enum ReportTargetType {
   content,
   comment,
   user,
-  message, // Backend value: chat_message
   forSale,
   auction,
 }
 
-/// Report Reason Type - Alasan pelaporan
+/// Report Reason Code - Alasan pelaporan (backend-owned locked taxonomy)
+///
+/// Backend contract: reason_code must be one of:
+/// scam_or_fraud, prohibited_content, harassment_or_abuse, impersonation,
+/// misleading_information, commerce_violation, other.
 enum ReportReasonType {
-  spam,
-  harassment,
-  inappropriateContent,
-  scam,
-  fakeProduct,
-  copyrightViolation,
-  violence,
-  hateSpeech,
-  falseInformation,
+  scamOrFraud,
+  prohibitedContent,
+  harassmentOrAbuse,
+  impersonation,
+  misleadingInformation,
+  commerceViolation,
   other,
 }
 
-/// Report Status - Status laporan
+/// Report Status - Status laporan (UI display)
+///
+/// Canonical Report is an immutable historical intake record; it has no
+/// decision/enforcement status of its own. The canonical backend contract
+/// does not carry a mutable report status — these values remain for UI
+/// display and are populated from Case/Decision state in a later slice.
 enum ReportStatus { pending, underReview, approved, rejected, resolved }
 
 /// Report Action - Tindakan yang diambil moderator
@@ -62,17 +63,15 @@ enum ReportAction {
 extension ReportTargetTypeExtension on ReportTargetType {
   String get value => name;
 
-  /// Backend entity_type string for POST /moderation/cases.
-  /// Only valid for backend-supported types.
+  /// Backend subject_type string for POST /reports.
+  /// Canonical: content | comment | for_sale | auction | user.
   String get backendValue {
-    if (this == ReportTargetType.message) return 'chat_message';
     if (this == ReportTargetType.forSale) return 'for_sale';
     return name;
   }
 
-  /// Whether the backend accepts this type via POST /moderation/cases.
-  /// All 6 types are supported. Backend moderation_resource_enum includes:
-  /// content, comment, for_sale, auction, user, chat_message.
+  /// Whether the backend accepts this type via POST /reports.
+  /// All canonical targets are supported.
   bool get isBackendSupported => true;
 
   /// Check if this target type has fully automatic enforcement (soft-delete).
@@ -99,42 +98,54 @@ extension ReportTargetTypeExtension on ReportTargetType {
         return 'Auction';
       case ReportTargetType.comment:
         return 'Comment';
-      case ReportTargetType.message:
-        return 'Message';
     }
   }
 
   static ReportTargetType fromString(String value) {
     return ReportTargetType.values.firstWhere(
-      (e) => e.name == value,
+      (e) => e.name == value || e.backendValue == value,
       orElse: () => ReportTargetType.user,
     );
   }
 }
-
 extension ReportReasonTypeExtension on ReportReasonType {
   String get value => name;
 
+  /// Backend reason_code value for POST /reports (locked taxonomy).
+  /// snake_case mapping of the Dart enum names.
+  String get backendValue {
+    switch (this) {
+      case ReportReasonType.scamOrFraud:
+        return 'scam_or_fraud';
+      case ReportReasonType.prohibitedContent:
+        return 'prohibited_content';
+      case ReportReasonType.harassmentOrAbuse:
+        return 'harassment_or_abuse';
+      case ReportReasonType.impersonation:
+        return 'impersonation';
+      case ReportReasonType.misleadingInformation:
+        return 'misleading_information';
+      case ReportReasonType.commerceViolation:
+        return 'commerce_violation';
+      case ReportReasonType.other:
+        return 'other';
+    }
+  }
+
   String get displayName {
     switch (this) {
-      case ReportReasonType.spam:
-        return 'Spam';
-      case ReportReasonType.harassment:
-        return 'Harassment / Bullying';
-      case ReportReasonType.inappropriateContent:
-        return 'Inappropriate Content';
-      case ReportReasonType.scam:
-        return 'Scam';
-      case ReportReasonType.fakeProduct:
-        return 'Fake Product';
-      case ReportReasonType.copyrightViolation:
-        return 'Copyright Violation';
-      case ReportReasonType.violence:
-        return 'Violence';
-      case ReportReasonType.hateSpeech:
-        return 'Hate Speech';
-      case ReportReasonType.falseInformation:
-        return 'False Information';
+      case ReportReasonType.scamOrFraud:
+        return 'Scam / Fraud';
+      case ReportReasonType.prohibitedContent:
+        return 'Prohibited Content';
+      case ReportReasonType.harassmentOrAbuse:
+        return 'Harassment / Abuse';
+      case ReportReasonType.impersonation:
+        return 'Impersonation';
+      case ReportReasonType.misleadingInformation:
+        return 'Misleading Information';
+      case ReportReasonType.commerceViolation:
+        return 'Commerce Violation';
       case ReportReasonType.other:
         return 'Other';
     }
@@ -142,24 +153,18 @@ extension ReportReasonTypeExtension on ReportReasonType {
 
   String get description {
     switch (this) {
-      case ReportReasonType.spam:
-        return 'Repetitive content, excessive promotion, or irrelevant content';
-      case ReportReasonType.harassment:
-        return 'Intimidating or harassing behavior towards other users';
-      case ReportReasonType.inappropriateContent:
-        return 'Adult, vulgar, or unsuitable content';
-      case ReportReasonType.scam:
+      case ReportReasonType.scamOrFraud:
         return 'Fraud attempts or suspicious activity';
-      case ReportReasonType.fakeProduct:
-        return 'Product does not match description or is fake';
-      case ReportReasonType.copyrightViolation:
-        return 'Using photos or content belonging to others';
-      case ReportReasonType.violence:
-        return 'Content containing violence';
-      case ReportReasonType.hateSpeech:
-        return 'Attacking specific groups or individuals';
-      case ReportReasonType.falseInformation:
+      case ReportReasonType.prohibitedContent:
+        return 'Content that violates platform rules';
+      case ReportReasonType.harassmentOrAbuse:
+        return 'Intimidating or harassing behavior';
+      case ReportReasonType.impersonation:
+        return 'Pretending to be someone else';
+      case ReportReasonType.misleadingInformation:
         return 'Misleading or false information';
+      case ReportReasonType.commerceViolation:
+        return 'Violates commerce / listing rules';
       case ReportReasonType.other:
         return 'Other reasons not listed above';
     }
@@ -167,7 +172,7 @@ extension ReportReasonTypeExtension on ReportReasonType {
 
   static ReportReasonType fromString(String value) {
     return ReportReasonType.values.firstWhere(
-      (e) => e.name == value,
+      (e) => e.name == value || e.backendValue == value,
       orElse: () => ReportReasonType.other,
     );
   }
@@ -236,8 +241,8 @@ class Report {
   final String id;
   final String reporterId;
   final String? reporterName;
-  final String targetId;
-  final ReportTargetType targetType;
+  final String subjectId;
+  final ReportTargetType subjectType;
   final String? targetTitle;
   final ReportReasonType reason;
   final String? description;
@@ -254,8 +259,8 @@ class Report {
     required this.id,
     required this.reporterId,
     this.reporterName,
-    required this.targetId,
-    required this.targetType,
+    required this.subjectId,
+    required this.subjectType,
     this.targetTitle,
     required this.reason,
     this.description,
@@ -286,8 +291,8 @@ class Report {
     String? id,
     String? reporterId,
     String? reporterName,
-    String? targetId,
-    ReportTargetType? targetType,
+    String? subjectId,
+    ReportTargetType? subjectType,
     String? targetTitle,
     ReportReasonType? reason,
     String? description,
@@ -304,8 +309,8 @@ class Report {
       id: id ?? this.id,
       reporterId: reporterId ?? this.reporterId,
       reporterName: reporterName ?? this.reporterName,
-      targetId: targetId ?? this.targetId,
-      targetType: targetType ?? this.targetType,
+      subjectId: subjectId ?? this.subjectId,
+      subjectType: subjectType ?? this.subjectType,
       targetTitle: targetTitle ?? this.targetTitle,
       reason: reason ?? this.reason,
       description: description ?? this.description,
@@ -331,16 +336,16 @@ class Report {
 
 /// Create Report Request - DTO untuk membuat laporan baru
 class CreateReportRequest {
-  final String targetId;
-  final ReportTargetType targetType;
+  final String subjectId;
+  final ReportTargetType subjectType;
   final String? targetTitle;
   final ReportReasonType reason;
   final String? description;
   final List<String> evidenceUrls;
 
   const CreateReportRequest({
-    required this.targetId,
-    required this.targetType,
+    required this.subjectId,
+    required this.subjectType,
     this.targetTitle,
     required this.reason,
     this.description,
@@ -349,29 +354,29 @@ class CreateReportRequest {
 
   /// Validate request.
   ///
-  /// Only backend-supported types (content, comment, user) pass validation.
+  /// Only canonical backend-supported types pass validation.
   bool get isValid {
-    if (targetId.isEmpty) return false;
-    if (description != null && description!.length > 500) return false;
-    if (!targetType.isBackendSupported) return false;
+    if (subjectId.isEmpty) return false;
+    if (description != null && description!.length > 2000) return false;
+    if (!subjectType.isBackendSupported) return false;
 
     return true;
   }
 
   /// Check if the target type is supported for reporting
-  bool get isTargetTypeSupported => targetType.isBackendSupported;
+  bool get isTargetTypeSupported => subjectType.isBackendSupported;
 
   CreateReportRequest copyWith({
-    String? targetId,
-    ReportTargetType? targetType,
+    String? subjectId,
+    ReportTargetType? subjectType,
     String? targetTitle,
     ReportReasonType? reason,
     String? description,
     List<String>? evidenceUrls,
   }) {
     return CreateReportRequest(
-      targetId: targetId ?? this.targetId,
-      targetType: targetType ?? this.targetType,
+      subjectId: subjectId ?? this.subjectId,
+      subjectType: subjectType ?? this.subjectType,
       targetTitle: targetTitle ?? this.targetTitle,
       reason: reason ?? this.reason,
       description: description ?? this.description,
@@ -451,12 +456,6 @@ class ReviewReportRequest {
   bool get isValid {
     if (reportId.isEmpty) return false;
     if (moderatorId.isEmpty) return false;
-    // Can only approve/reject/resolve from pending or under_review
-    if (status == ReportStatus.approved ||
-        status == ReportStatus.rejected ||
-        status == ReportStatus.resolved) {
-      return action != ReportAction.none;
-    }
     return true;
   }
 

@@ -1,14 +1,17 @@
 package tests
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/labuda/backend/pkg/testdb"
 )
 
 func TestMigration000054_DropsDeadChatCommerceReferences(t *testing.T) {
-	tdb := setupTestDB(t)
-	ctx := tdb.Ctx()
+	tdb, _ := testdb.SetupDB(t)
+	ctx := context.Background()
 
 	exists := func(query string) bool {
 		var ok bool

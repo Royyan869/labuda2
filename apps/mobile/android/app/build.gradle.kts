@@ -6,6 +6,17 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+// Google Maps API key is supplied at build time via local.properties (untracked):
+//   MAPS_API_KEY=AIza...
+// A placeholder fallback keeps the manifest merge valid for CI; the map
+// surfaces fail at runtime until a real key is configured locally.
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { localProperties.load(it) }
+}
+val mapsApiKey: String = localProperties.getProperty("MAPS_API_KEY") ?: "YOUR_MAPS_API_KEY_HERE"
+
 android {
     namespace = "com.labuda.app.labuda"
     compileSdk = flutter.compileSdkVersion
@@ -37,6 +48,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
 
     buildTypes {

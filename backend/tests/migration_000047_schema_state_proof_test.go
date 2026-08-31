@@ -93,10 +93,15 @@ func TestMigration000047_SchemaStateProof(t *testing.T) {
 	require.False(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='negotiation_resource_enum' AND enumlabel='listing')`),
 		"negotiation_resource_enum must not have 'listing'")
 
-	require.True(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='moderation_resource_enum' AND enumlabel='for_sale')`),
-		"moderation_resource_enum must have 'for_sale'")
-	require.False(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='moderation_resource_enum' AND enumlabel='fixed_price_sale')`),
-		"moderation_resource_enum must not have 'fixed_price_sale'")
+	// moderation_resource_enum was dropped by migration 000056 (legacy
+	// GovernanceCase schema removed). The canonical replacement enum is
+	// moderation_target_type_enum (000055).
+	require.False(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_type t WHERE t.typname='moderation_resource_enum')`),
+		"moderation_resource_enum must not exist after migration 000056 (rejected legacy schema)")
+	require.True(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='moderation_target_type_enum' AND enumlabel='for_sale')`),
+		"moderation_target_type_enum must have 'for_sale'")
+	require.False(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='moderation_target_type_enum' AND enumlabel='fixed_price_sale')`),
+		"moderation_target_type_enum must not have 'fixed_price_sale'")
 
 	require.True(t, exists(`SELECT EXISTS(SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='discount_applies_to_enum' AND enumlabel='for_sale')`),
 		"discount_applies_to_enum must have 'for_sale'")

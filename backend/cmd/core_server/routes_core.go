@@ -756,23 +756,12 @@ func SetupRoutes(
 				middleware.RequireCapability("seller.verification.review"),
 				deps.AdminVerificationHandler.GetDocumentViewURL)
 
-			// ===== MODERATION MODULE (Trust MVP) - Admin Routes =====
-			// Admin moderation routes - requires admin role
-			// RBAC IMPLEMENTATION: Added moderation.case.read for viewing
-			adminRoutes.GET("/moderation/cases",
-				middleware.RequireCapability("moderation.case.read"),
-				deps.ModerationHandler.ListCases)
-			adminRoutes.GET("/moderation/cases/:id",
-				middleware.RequireCapability("moderation.case.read"),
-				deps.ModerationHandler.GetCase)
-			adminRoutes.GET("/moderation/cases/:id/evidence",
-				middleware.RequireCapability("moderation.evidence.read"),
-				deps.ModerationHandler.GetCaseEvidence)
-			// SLICE 6: MIGRATED to capability-based auth with moderation.case.resolve
-			// DUAL PROTECTION: RequireAdminMiddleware (existing) + RequireCapability (new)
-			adminRoutes.POST("/moderation/cases/:id/action",
-				middleware.RequireCapability("moderation.case.resolve"),
-				deps.ModerationHandler.ApplyAction)
+			// ===== MODERATION ADMIN ROUTES — REMOVED (SLICE 2) =====
+			// The legacy admin Case review endpoints (ListCases/GetCase/
+			// GetCaseEvidence/ApplyAction) were backed by the rejected
+			// GovernanceCase runtime reading the dropped moderation_cases table.
+			// They are removed with that runtime. The canonical Case/Decision/
+			// Enforcement admin workflow is rebuilt in a later slice.
 
 			// ===== PROMOTION EXTERNAL PRODUCT REVIEW =====
 			// Admin review queue and moderation actions for external products.
@@ -1286,16 +1275,21 @@ func SetupRoutes(
 		}
 
 		// ===== MODERATION MODULE =====
-		// Moderation case management
-		moderationRoutes := v1.Group("/moderation")
+		// CANONICAL REPORT RUNTIME (SLICE 2)
+		// The legacy POST /moderation/cases (CreateCase → GovernanceCase →
+		// moderation_cases) intake has been removed. The canonical Report
+		// contract is the single Report authority:
+		//   POST /reports      — create an immutable Report
+		//   GET  /reports/mine — list own Reports
+		//   GET  /reports/:id  — get own Report by ID
+		reportRoutes := v1.Group("/reports")
 		{
-			// Create a moderation case
 			// Report submission is an interaction — require verified email + active account.
-			moderationRoutes.POST("/cases", middleware.RequireActiveAccount(db.Pgx()), deps.ModerationHandler.CreateCase)
-			// Get user's own cases
-			moderationRoutes.GET("/my-cases", deps.ModerationHandler.GetMyCases)
-			// Get specific case details (user's own cases only, no preview)
-			moderationRoutes.GET("/cases/:id", deps.ModerationHandler.GetMyCase)
+			reportRoutes.POST("", middleware.RequireActiveAccount(db.Pgx()), deps.ReportHandler.CreateReport)
+			// Get user's own reports
+			reportRoutes.GET("/mine", deps.ReportHandler.ListMyReports)
+			// Get specific report (user's own reports only)
+			reportRoutes.GET("/:id", deps.ReportHandler.GetMyReport)
 		}
 
 		// ========================================================================

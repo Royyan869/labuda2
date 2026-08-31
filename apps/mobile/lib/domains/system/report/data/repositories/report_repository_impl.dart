@@ -31,7 +31,7 @@ class ReportRepositoryImpl implements ReportRepository {
     required CreateReportRequest request,
   }) async {
     try {
-      final dto = await _datasource.createCase(
+      final dto = await _datasource.createReport(
         ReportMapper.toCreateRequestDto(request),
       );
 
@@ -49,7 +49,7 @@ class ReportRepositoryImpl implements ReportRepository {
   @override
   Future<Report?> getReportById(String reportId) async {
     try {
-      final dto = await _datasource.getCase(reportId);
+      final dto = await _datasource.getReport(reportId);
       return ReportMapper.toEntity(dto);
     } on ReportRepositoryException {
       return null;
@@ -67,7 +67,7 @@ class ReportRepositoryImpl implements ReportRepository {
     int limit = 20,
   }) async {
     try {
-      final dtos = await _datasource.getMyCases(page: (limit / 20).ceil());
+      final dtos = await _datasource.getMyReports(page: (limit / 20).ceil());
       return dtos.map((dto) => ReportMapper.toEntity(dto)).toList();
     } catch (e) {
       throw ReportRepositoryException(
@@ -84,8 +84,8 @@ class ReportRepositoryImpl implements ReportRepository {
     required ReportTargetType targetType,
   }) async {
     try {
-      final dtos = await _datasource.getMyCases();
-      return dtos.any((dto) => dto.resourceId == targetId);
+      final dtos = await _datasource.getMyReports();
+      return dtos.any((dto) => dto.subjectId == targetId);
     } catch (e) {
       return false;
     }
