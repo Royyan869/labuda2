@@ -257,6 +257,12 @@ func (s *AuditService) GetByEventType(ctx context.Context, eventType string, lim
 	return s.repo.GetByEventType(ctx, nil, eventType, limit)
 }
 
+// GetByEntityIDs retrieves audit events for multiple entity IDs of the same type.
+// Useful for fetching audit trail across related entities (e.g., all decisions for a case).
+func (s *AuditService) GetByEntityIDs(ctx context.Context, entityType string, entityIDs []uuid.UUID, limit int) ([]*auditentity.AuditEvent, error) {
+	return s.repo.GetByEntityIDs(ctx, nil, entityType, entityIDs, limit)
+}
+
 // =============================================================================
 // DOMAIN-SPECIFIC CONVENIENCE METHODS
 // =============================================================================

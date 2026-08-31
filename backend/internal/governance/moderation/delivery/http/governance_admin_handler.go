@@ -14,11 +14,13 @@
 package http
 
 import (
+	"context"
 	"errors"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	auditentity "github.com/labuda/backend/internal/governance/audit/entity"
 	"github.com/labuda/backend/internal/governance/moderation/application"
 	"github.com/labuda/backend/internal/governance/moderation/entity"
 	"github.com/labuda/backend/internal/governance/moderation/infrastructure/repository"
@@ -28,6 +30,16 @@ import (
 	"go.uber.org/zap"
 )
 
+// GovernanceAuditQuerier is the minimal interface for querying governance audit events.
+// Satisfied by *auditApp.AuditService.
+type GovernanceAuditQuerier interface {
+	// GetByEntity retrieves audit events for a specific entity type and ID.
+	GetByEntity(ctx context.Context, entityType string, entityID uuid.UUID, limit int) ([]*auditentity.AuditEvent, error)
+
+	// GetByEntityIDs retrieves audit events for multiple entity IDs of the same type.
+	GetByEntityIDs(ctx context.Context, entityType string, entityIDs []uuid.UUID, limit int) ([]*auditentity.AuditEvent, error)
+}
+
 // GovernanceAdminHandler handles canonical admin governance HTTP requests.
 type GovernanceAdminHandler struct {
 	db          db.Transactor
@@ -36,6 +48,7 @@ type GovernanceAdminHandler struct {
 	decisionSvc *application.DecisionService
 	enfRepo     repository.EnforcementRepository
 	decRepo     repository.DecisionRepository
+	auditQuerier GovernanceAuditQuerier
 	log         *zap.Logger
 }
 
@@ -47,19 +60,21 @@ func NewGovernanceAdminHandler(
 	decisionSvc *application.DecisionService,
 	enfRepo repository.EnforcementRepository,
 	decRepo repository.DecisionRepository,
+	auditQuerier GovernanceAuditQuerier,
 	log *zap.Logger,
 ) *GovernanceAdminHandler {
 	if log == nil {
 		log = zap.NewNop()
 	}
 	return &GovernanceAdminHandler{
-		db:          dbConn,
-		caseRepo:    caseRepo,
-		reportRepo:  reportRepo,
-		decisionSvc: decisionSvc,
-		enfRepo:     enfRepo,
-		decRepo:     decRepo,
-		log:         log,
+		db:           dbConn,
+		caseRepo:     caseRepo,
+		reportRepo:   reportRepo,
+		decisionSvc:  decisionSvc,
+		enfRepo:      enfRepo,
+		decRepo:      decRepo,
+		auditQuerier: auditQuerier,
+		log:          log,
 	}
 }
 
@@ -236,6 +251,94 @@ func (h *GovernanceAdminHandler) GetCase(c *gin.Context) {
 		"case":      caseToDetailResponse(kase),
 		"reports":   reportItems,
 		"decisions": decisionItems,
+	})
+}
+
+// ============================================================================
+// AUDIT ENDPOINTS
+// ============================================================================
+
+// GetCaseAudit handles GET /admin/governance/cases/:id/audit
+//
+// Returns governance audit events for all Decisions belonging to this Case.
+// Requires: moderation.case.read capability (same as Case Detail).
+func (h *GovernanceAdminHandler) GetCaseAudit(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	_, ok := middleware.MustGetUserIDFromContext(c)
+	if !ok {
+		return
+	}
+
+	caseID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid case ID")
+		return
+	}
+
+	// Verify case exists
+	var kase *entity.CanonicalCase
+	err = h.db.WithTx(ctx, func(tx db.Tx) error {
+		var err error
+		kase, err = h.caseRepo.GetByID(ctx, tx, caseID)
+		return err
+	})
+	if err != nil {
+		h.log.Error("Failed to get case for audit", zap.String("case_id", caseID.String()), zap.Error(err))
+		response.InternalServerError(c, "Failed to retrieve case")
+		return
+	}
+	if kase == nil {
+		response.NotFound(c, "Case not found")
+		return
+	}
+
+	// No audit querier configured
+	if h.auditQuerier == nil {
+		response.Success(c, gin.H{"events": []gin.H{}, "count": 0})
+		return
+	}
+
+	// Fetch all Decisions for this Case
+	var decisions []*entity.Decision
+	err = h.db.WithTx(ctx, func(tx db.Tx) error {
+		var err error
+		decisions, err = h.decRepo.ListByCase(ctx, tx, caseID, 100, 0)
+		return err
+	})
+	if err != nil {
+		h.log.Error("Failed to list decisions for audit", zap.String("case_id", caseID.String()), zap.Error(err))
+		response.InternalServerError(c, "Failed to retrieve audit events")
+		return
+	}
+
+	if len(decisions) == 0 {
+		response.Success(c, gin.H{"events": []gin.H{}, "count": 0})
+		return
+	}
+
+	// Collect decision IDs for bulk audit query
+	decisionIDs := make([]uuid.UUID, len(decisions))
+	for i, d := range decisions {
+		decisionIDs[i] = d.ID
+	}
+
+	// Fetch audit events for all decisions in one query
+	auditEvents, err := h.auditQuerier.GetByEntityIDs(ctx, "governance.decision", decisionIDs, 100)
+	if err != nil {
+		h.log.Error("Failed to query audit events", zap.String("case_id", caseID.String()), zap.Error(err))
+		response.InternalServerError(c, "Failed to retrieve audit events")
+		return
+	}
+
+	items := make([]gin.H, len(auditEvents))
+	for i, event := range auditEvents {
+		items[i] = auditEventToResponse(event)
+	}
+
+	response.Success(c, gin.H{
+		"events": items,
+		"count":  len(items),
 	})
 }
 
@@ -524,6 +627,50 @@ func enforcementToResponse(e *entity.Enforcement) gin.H {
 	if e.NextAttemptAt != nil {
 		resp["next_attempt_at"] = *e.NextAttemptAt
 	}
+	return resp
+}
+
+// ============================================================================
+// AUDIT RESPONSE MAPPER
+// ============================================================================
+
+// auditEventToResponse converts an audit event to a clean admin-facing DTO.
+// Exposes only governance-relevant fields; raw payload is structured into
+// meaningful top-level fields.
+func auditEventToResponse(event *auditentity.AuditEvent) gin.H {
+	resp := gin.H{
+		"id":         event.ID,
+		"event_type": event.EventType,
+		"actor_type": event.ActorType,
+		"created_at": event.CreatedAt,
+	}
+
+	if event.ActorID != nil {
+		resp["actor_id"] = *event.ActorID
+	}
+
+	// Extract governance-relevant payload fields into top-level response
+	if payload, ok := event.PayloadJSON.(map[string]interface{}); ok {
+		if outcome, ok := payload["outcome"]; ok {
+			resp["outcome"] = outcome
+		}
+		if caseID, ok := payload["case_id"]; ok {
+			resp["case_id"] = caseID
+		}
+		if targetType, ok := payload["target_type"]; ok {
+			resp["target_type"] = targetType
+		}
+		if targetID, ok := payload["target_id"]; ok {
+			resp["target_id"] = targetID
+		}
+		if decisionNote, ok := payload["decision_note"]; ok {
+			resp["decision_note"] = decisionNote
+		}
+		if actorName, ok := payload["actor_name"]; ok {
+			resp["actor_name"] = actorName
+		}
+	}
+
 	return resp
 }
 

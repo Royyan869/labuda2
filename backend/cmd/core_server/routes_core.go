@@ -772,6 +772,11 @@ func SetupRoutes(
 					middleware.RequireCapability("moderation.case.read"),
 					deps.GovernanceAdminHandler.GetCase)
 
+				// Case audit — governance audit trail for a Case
+				governanceRoutes.GET("/cases/:id/audit",
+					middleware.RequireCapability("moderation.case.read"),
+					deps.GovernanceAdminHandler.GetCaseAudit)
+
 				// Create Decision — immutable Decision + atomic Enforcement + Outbox
 				governanceRoutes.POST("/cases/:id/decisions",
 					middleware.RequireCapability("moderation.case.resolve"),

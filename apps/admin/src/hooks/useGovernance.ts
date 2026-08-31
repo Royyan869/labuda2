@@ -11,10 +11,12 @@ import {
   listGovernanceCases,
   getGovernanceCase,
   createGovernanceDecision,
+  getGovernanceCaseAudit,
 } from '@/lib/api/governance'
 import type {
   GovernanceCase,
   GovernanceCaseDetailResponse,
+  GovernanceAuditEvent,
   GovernanceCaseStatus,
   CreateDecisionRequest,
 } from '@/types/governance'
@@ -143,5 +145,48 @@ export function useCreateDecision() {
     createDecision,
     loading,
     error,
+  }
+}
+
+// ============================================================================
+// CASE AUDIT HOOK
+// ============================================================================
+
+/**
+ * Hook for fetching governance audit events for a Case.
+ * GET /admin/governance/cases/:id/audit
+ */
+export function useGovernanceCaseAudit(caseId: string | null) {
+  const [events, setEvents] = useState<GovernanceAuditEvent[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+  const [count, setCount] = useState(0)
+
+  const fetchAudit = useCallback(async () => {
+    if (!caseId) return
+
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await getGovernanceCaseAudit(caseId)
+      setEvents(response.events)
+      setCount(response.count)
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch audit events'))
+    } finally {
+      setLoading(false)
+    }
+  }, [caseId])
+
+  useEffect(() => {
+    fetchAudit()
+  }, [fetchAudit])
+
+  return {
+    events,
+    loading,
+    error,
+    count,
+    refetch: fetchAudit,
   }
 }

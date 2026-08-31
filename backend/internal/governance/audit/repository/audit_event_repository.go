@@ -37,6 +37,11 @@ type AuditEventRepository interface {
 	// GetByTimeRange retrieves audit events within a time range, ordered by created_at DESC.
 	// Useful for generating audit reports.
 	GetByTimeRange(ctx context.Context, tx db.Tx, startTime, endTime string, limit int) ([]*entity.AuditEvent, error)
+
+	// GetByEntityIDs retrieves audit events for multiple entity IDs of the same type,
+	// ordered by created_at DESC. Useful for fetching audit trail across related entities
+	// (e.g., all decisions for a case).
+	GetByEntityIDs(ctx context.Context, tx db.Tx, entityType string, entityIDs []uuid.UUID, limit int) ([]*entity.AuditEvent, error)
 }
 
 // AuditEventRepositoryImpl implements AuditEventRepository using PostgreSQL.
@@ -184,6 +189,30 @@ func (r *AuditEventRepositoryImpl) GetByTimeRange(ctx context.Context, tx db.Tx,
 	`
 
 	rows, err := tx.Query(ctx, query, startTime, endTime, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return r.scanRows(rows)
+}
+
+// GetByEntityIDs retrieves audit events for multiple entity IDs of the same type.
+func (r *AuditEventRepositoryImpl) GetByEntityIDs(ctx context.Context, tx db.Tx, entityType string, entityIDs []uuid.UUID, limit int) ([]*entity.AuditEvent, error) {
+	if len(entityIDs) == 0 {
+		return nil, nil
+	}
+
+	query := `
+		SELECT id, event_type, entity_type, entity_id,
+		       actor_type, actor_id, payload_json, created_at
+		FROM audit_events
+		WHERE entity_type = $1 AND entity_id = ANY($2)
+		ORDER BY created_at DESC
+		LIMIT $3
+	`
+
+	rows, err := tx.Query(ctx, query, entityType, entityIDs, limit)
 	if err != nil {
 		return nil, err
 	}

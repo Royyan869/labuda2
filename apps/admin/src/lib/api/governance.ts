@@ -16,6 +16,7 @@ import type {
   GovernanceCaseDetailResponse,
   GovernanceDecisionDetailResponse,
   GovernanceEnforcementResponse,
+  GovernanceAuditResponse,
   CreateDecisionRequest,
   GovernanceCaseStatus,
 } from '@/types/governance'
@@ -94,6 +95,21 @@ export async function getGovernanceDecision(decisionId: string): Promise<Governa
 export async function getGovernanceEnforcement(decisionId: string): Promise<GovernanceEnforcementResponse> {
   const resp = await api.get<{ data: GovernanceEnforcementResponse }>(
     `/api/v1/admin/governance/decisions/${decisionId}/enforcement`
+  )
+  return resp.data
+}
+
+// ============================================================================
+// AUDIT
+// ============================================================================
+
+/**
+ * Get governance audit events for a Case.
+ * GET /api/v1/admin/governance/cases/:id/audit
+ */
+export async function getGovernanceCaseAudit(caseId: string): Promise<GovernanceAuditResponse> {
+  const resp = await api.get<{ data: GovernanceAuditResponse }>(
+    `/api/v1/admin/governance/cases/${caseId}/audit`
   )
   return resp.data
 }

@@ -100,6 +100,25 @@ export interface GovernanceEnforcement {
 }
 
 // ============================================================================
+// AUDIT EVENTS
+// ============================================================================
+
+/** Governance audit event as returned by GET /admin/governance/cases/:id/audit */
+export interface GovernanceAuditEvent {
+  id: string
+  event_type: string
+  actor_type: string
+  actor_id?: string
+  actor_name?: string
+  outcome?: string
+  case_id?: string
+  target_type?: string
+  target_id?: string
+  decision_note?: string
+  created_at: string
+}
+
+// ============================================================================
 // API RESPONSES
 // ============================================================================
 
@@ -123,6 +142,11 @@ export interface GovernanceDecisionDetailResponse {
 export interface GovernanceEnforcementResponse {
   enforcements: GovernanceEnforcement[]
   message?: string
+}
+
+export interface GovernanceAuditResponse {
+  events: GovernanceAuditEvent[]
+  count: number
 }
 
 // ============================================================================

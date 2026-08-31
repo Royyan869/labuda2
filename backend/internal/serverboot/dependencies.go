@@ -2385,6 +2385,7 @@ func InitServices(
 		decisionService,
 		enforcementRepository,
 		decisionRepository,
+		auditService,
 		log.Logger,
 	)
 

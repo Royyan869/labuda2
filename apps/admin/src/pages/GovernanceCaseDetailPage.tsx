@@ -20,7 +20,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-import { useGovernanceCase, useCreateDecision } from '@/hooks/useGovernance'
+import { useGovernanceCase, useCreateDecision, useGovernanceCaseAudit } from '@/hooks/useGovernance'
 import { useAuth } from '@/hooks/useAuth'
 import { hasCapability } from '@/lib/permissions'
 import { formatDate } from '@/lib/utils'
@@ -36,6 +36,7 @@ import {
 import type {
   GovernanceDecision,
   GovernanceEnforcement,
+  GovernanceAuditEvent,
   DecisionOutcome,
   GovernanceTargetType,
   CreateDecisionRequest,
@@ -45,6 +46,7 @@ export function GovernanceCaseDetailPage() {
   const { id: caseId } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data, loading, error, refetch } = useGovernanceCase(caseId || null)
+  const { events: auditEvents, loading: auditLoading, error: auditError } = useGovernanceCaseAudit(caseId || null)
   const { createDecision, loading: isCreating } = useCreateDecision()
   const { capabilities } = useAuth()
   const canCreateDecision = hasCapability(capabilities, 'moderation.case.resolve')
@@ -429,6 +431,128 @@ export function GovernanceCaseDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Audit Timeline */}
+      <AuditTimeline events={auditEvents} loading={auditLoading} error={auditError} />
+    </div>
+  )
+}
+
+// ============================================================================
+// AUDIT TIMELINE COMPONENT
+// ============================================================================
+
+function AuditTimeline({
+  events,
+  loading,
+  error,
+}: {
+  events: GovernanceAuditEvent[]
+  loading: boolean
+  error: Error | null
+}) {
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Audit Timeline
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+            <span className="ml-3 text-sm text-gray-500">Loading audit events...</span>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Audit Timeline
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <p className="text-sm text-red-600">Failed to load audit events: {error.message}</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Clock className="h-5 w-5" />
+          Audit Timeline ({events.length})
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {events.length === 0 ? (
+          <div className="text-center py-8">
+            <Clock className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+            <p className="text-sm text-gray-500">No audit events recorded for this case.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {events.map((event) => (
+              <AuditEventRow key={event.id} event={event} />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function AuditEventRow({ event }: { event: GovernanceAuditEvent }) {
+  const outcomeLabel = event.outcome === 'violation' ? 'Violation' : event.outcome === 'no_violation' ? 'No Violation' : event.outcome
+  const outcomeVariant = event.outcome === 'violation' ? 'warning' as const : 'success' as const
+
+  return (
+    <div className="border border-gray-200 rounded-lg p-4">
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <Badge variant="default">{event.event_type}</Badge>
+            {event.outcome && (
+              <Badge variant={outcomeVariant}>{outcomeLabel}</Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <span className="font-medium capitalize">{event.actor_type}</span>
+            {event.actor_name && (
+              <span>({event.actor_name})</span>
+            )}
+            {event.actor_id && !event.actor_name && (
+              <span className="font-mono">{event.actor_id.slice(0, 8)}</span>
+            )}
+          </div>
+          {event.target_type && (
+            <div className="text-xs text-gray-500">
+              Target: {targetTypeLabels[event.target_type] || event.target_type}
+              {event.target_id && (
+                <span className="font-mono ml-1">{event.target_id.slice(0, 8)}</span>
+              )}
+            </div>
+          )}
+          {event.decision_note && (
+            <p className="text-sm bg-gray-50 p-2 rounded mt-1">{event.decision_note}</p>
+          )}
+        </div>
+        <span className="text-xs text-gray-400 whitespace-nowrap">
+          {formatDate(event.created_at)}
+        </span>
+      </div>
     </div>
   )
 }
