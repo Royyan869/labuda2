@@ -316,3 +316,160 @@ func (s *DecisionService) ListDecisionsByCase(ctx context.Context, caseID uuid.U
 	}
 	return decisions, nil
 }
+
+// ============================================================================
+// APPEAL DECISION #2
+// ============================================================================
+
+// CreateAppealDecisionInput contains the parameters for creating an Appeal Decision #2.
+// SLICE B: Appeal review produces Decision #2 atomically.
+type CreateAppealDecisionInput struct {
+	CaseID       uuid.UUID   // Same Case as Decision #1
+	DecidedBy    uuid.UUID   // Reviewing admin
+	Outcome      entity.DecisionOutcome // no_violation (reversal) or violation (upheld)
+	DecisionNote *string
+	AppealID     uuid.UUID   // For audit trail
+
+	// Enforcement target — required for reversal (no_violation outcome).
+	// For upheld (violation outcome), no new Enforcement is created.
+	TargetType entity.ModerationTargetType
+	TargetID   uuid.UUID
+}
+
+// CreateAppealDecision creates Decision #2 for an Appeal review.
+//
+// SLICE B: Canonical Appeal reversal path.
+//
+// Transaction boundary: Accepts an existing db.Tx from the caller.
+// Decision #2 + Enforcement #2 + Outbox + Audit + Appeal status update
+// MUST all execute within the SAME transaction to guarantee atomicity.
+// This method does NOT open a nested transaction.
+//
+// For reversal (outcome = no_violation):
+//   - Decision #2 created (same Case, outcome = no_violation)
+//   - Enforcement #2 created (for restoration)
+//   - Outbox event = moderation.<type>.restored
+//
+// For upheld (outcome = violation):
+//   - Decision #2 created (same Case, outcome = violation)
+//   - NO new Enforcement (original enforcement already applied)
+//   - NO outbox event
+func (s *DecisionService) CreateAppealDecision(ctx context.Context, tx db.Tx, input CreateAppealDecisionInput) (*entity.Decision, error) {
+	if !input.Outcome.IsValid() {
+		return nil, &entity.ErrInvalidDecisionOutcome{Outcome: input.Outcome}
+	}
+
+	// For reversal, enforcement target is required.
+	if input.Outcome == entity.DecisionOutcomeNoViolation {
+		if !input.TargetType.IsValid() {
+			return nil, &entity.ErrInvalidEnforcementTargetType{TargetType: input.TargetType}
+		}
+		if input.TargetID == uuid.Nil {
+			return nil, fmt.Errorf("target_id is required for appeal reversal decisions")
+		}
+	}
+
+	// 1. Validate Case exists.
+	kase, err := s.caseRepo.GetByID(ctx, tx, input.CaseID)
+	if err != nil {
+		return nil, fmt.Errorf("fetch case for appeal decision failed: %w", err)
+	}
+	if kase == nil {
+		return nil, &entity.ErrDecisionCaseNotFound{CaseID: input.CaseID}
+	}
+
+	// 2. Create immutable Decision #2.
+	decision, err := entity.NewDecision(
+		input.CaseID,
+		input.DecidedBy,
+		input.Outcome,
+		input.DecisionNote,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.decRepo.Create(ctx, tx, decision); err != nil {
+		return nil, fmt.Errorf("insert appeal decision failed: %w", err)
+	}
+
+	// 3. For reversal: create Enforcement #2 + outbox event.
+	if input.Outcome == entity.DecisionOutcomeNoViolation {
+		enforcement, err := entity.NewEnforcement(
+			decision.ID,
+			input.TargetType,
+			input.TargetID,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := s.enfRepo.Create(ctx, tx, enforcement); err != nil {
+			return nil, fmt.Errorf("insert appeal enforcement failed: %w", err)
+		}
+
+		// Emit outbox event for restoration.
+		if s.outboxRepo != nil {
+			payload, err := buildModerationEventPayload(
+				decision.ID,
+				enforcement.ID,
+				input.CaseID,
+				string(input.TargetType),
+				input.TargetID,
+				input.DecisionNote,
+			)
+			if err != nil {
+				return nil, fmt.Errorf("build appeal event payload failed: %w", err)
+			}
+
+			eventType := buildRestorationEventType(input.TargetType)
+			if err := s.outboxRepo.InsertEvent(ctx, tx, eventType, input.TargetID, payload); err != nil {
+				return nil, fmt.Errorf("insert appeal outbox event failed: %w", err)
+			}
+		}
+	}
+
+	// 4. Emit governance audit event within the same transaction.
+	if s.auditEmitter != nil {
+		auditPayload := map[string]interface{}{
+			"case_id":   input.CaseID.String(),
+			"outcome":   string(input.Outcome),
+			"appeal_id": input.AppealID.String(),
+		}
+		if input.Outcome == entity.DecisionOutcomeNoViolation {
+			auditPayload["target_type"] = string(input.TargetType)
+			auditPayload["target_id"] = input.TargetID.String()
+		}
+		if input.DecisionNote != nil {
+			auditPayload["decision_note"] = *input.DecisionNote
+		}
+		if err := s.auditEmitter.GovernanceDecisionCreated(
+			ctx, tx,
+			decision.ID, input.CaseID, input.DecidedBy,
+			string(input.Outcome),
+			auditPayload,
+		); err != nil {
+			return nil, fmt.Errorf("governance audit event failed: %w", err)
+		}
+	}
+
+	return decision, nil
+}
+
+// targetRestorationSuffix maps ModerationTargetType to the restoration event suffix.
+var targetRestorationSuffix = map[entity.ModerationTargetType]string{
+	entity.ModerationTargetTypeContent: "restored",
+	entity.ModerationTargetTypeComment: "restored",
+	entity.ModerationTargetTypeForSale: "restored",
+	entity.ModerationTargetTypeAuction: "restored",
+	entity.ModerationTargetTypeUser:    "restored",
+}
+
+// buildRestorationEventType constructs the canonical outbox event type for restoration.
+func buildRestorationEventType(targetType entity.ModerationTargetType) string {
+	suffix, ok := targetRestorationSuffix[targetType]
+	if !ok {
+		suffix = "restored"
+	}
+	return "moderation." + string(targetType) + "." + suffix
+}

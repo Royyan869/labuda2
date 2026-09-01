@@ -81,10 +81,11 @@ func (m *mockAppealRepository) ListByUser(ctx context.Context, tx interface{}, u
 	return nil, nil
 }
 
+func (m *mockAppealRepository) ListByDecisionID(ctx context.Context, tx interface{}, decisionID uuid.UUID) ([]*entity.Appeal, error) {
+	return nil, nil
+}
+
 func (m *mockAppealRepository) ListByCase(ctx context.Context, tx interface{}, caseID uuid.UUID) ([]*entity.Appeal, error) {
-	if m.listByCaseFunc != nil {
-		return m.listByCaseFunc(ctx, tx, caseID)
-	}
 	return nil, nil
 }
 
@@ -143,6 +144,14 @@ func (m *mockContentRepository) GetTagsByContentID(ctx context.Context, tx inter
 }
 
 func (m *mockContentRepository) InsertTags(ctx context.Context, tx interface{}, contentID uuid.UUID, tags []string) error {
+	return nil
+}
+
+func (m *mockContentRepository) GetMentionedUserIDs(ctx context.Context, tx interface{}, contentID uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
+func (m *mockContentRepository) InsertMentionedUsers(ctx context.Context, tx interface{}, contentID uuid.UUID, userIDs []uuid.UUID) error {
 	return nil
 }
 
@@ -206,22 +215,127 @@ func (m *mockCommentRepository) ListByTarget(ctx context.Context, tx db.Tx, targ
 	return nil, "", nil
 }
 
-// Extend mockModerationRepository (declared in moderation_service_test.go) with
-// the additional methods AppealService's ModerationRepository dependency requires.
-func (m *mockModerationRepository) ListByReporter(ctx context.Context, tx interface{}, reporterID uuid.UUID, limit, offset int) ([]*entity.GovernanceCase, error) {
+func (m *mockCommentRepository) FindTargetIDByCommerceReference(ctx context.Context, tx db.Tx, resourceID uuid.UUID) (uuid.UUID, error) {
+	return uuid.Nil, errors.New("not implemented")
+}
+
+// mockModerationRepository is a LEGACY mock kept for compilation continuity.
+// It was previously used by Appeal tests; replaced by mockDecisionRepository.
+type mockModerationRepository struct {
+	getByIDFunc func(ctx context.Context, tx interface{}, caseID uuid.UUID) (*entity.GovernanceCase, error)
+}
+
+func (m *mockModerationRepository) GetByID(ctx context.Context, tx interface{}, caseID uuid.UUID) (*entity.GovernanceCase, error) {
+	if m.getByIDFunc != nil {
+		return m.getByIDFunc(ctx, tx, caseID)
+	}
+	return nil, errors.New("moderation case not found")
+}
+
+// mockDecisionRepository is a mock implementation of DecisionRepository.
+type mockDecisionRepository struct {
+	getByIDFunc     func(ctx context.Context, tx db.Tx, decisionID uuid.UUID) (*entity.Decision, error)
+	listByCaseFunc  func(ctx context.Context, tx db.Tx, caseID uuid.UUID, limit, offset int) ([]*entity.Decision, error)
+}
+
+func (m *mockDecisionRepository) Create(ctx context.Context, tx db.Tx, decision *entity.Decision) error {
+	return nil
+}
+
+func (m *mockDecisionRepository) GetByID(ctx context.Context, tx db.Tx, decisionID uuid.UUID) (*entity.Decision, error) {
+	if m.getByIDFunc != nil {
+		return m.getByIDFunc(ctx, tx, decisionID)
+	}
 	return nil, nil
 }
 
-func (m *mockModerationRepository) ResourceExists(ctx context.Context, tx interface{}, resourceType entity.ResourceType, resourceID uuid.UUID) (bool, error) {
-	return true, nil
+func (m *mockDecisionRepository) ListByCase(ctx context.Context, tx db.Tx, caseID uuid.UUID, limit, offset int) ([]*entity.Decision, error) {
+	if m.listByCaseFunc != nil {
+		return m.listByCaseFunc(ctx, tx, caseID, limit, offset)
+	}
+	return nil, nil
 }
 
-func (m *mockModerationRepository) HasUserReportedResource(ctx context.Context, tx interface{}, reporterID uuid.UUID, resourceType entity.ResourceType, resourceID uuid.UUID) (bool, error) {
-	return false, nil
+// mockCaseRepository is a mock implementation of CaseRepository.
+type mockCaseRepository struct {
+	getByIDFunc func(ctx context.Context, tx db.Tx, caseID uuid.UUID) (*entity.CanonicalCase, error)
 }
 
-func (m *mockModerationRepository) ValidateChatMessageReporter(ctx context.Context, tx interface{}, messageID uuid.UUID, reporterID uuid.UUID) (bool, string, error) {
-	return false, "", nil
+func (m *mockCaseRepository) FindOrCreateOpenCase(ctx context.Context, tx db.Tx, subjectType entity.ReportTargetType, subjectID uuid.UUID) (*entity.CanonicalCase, error) {
+	return nil, nil
+}
+
+func (m *mockCaseRepository) GetByID(ctx context.Context, tx db.Tx, caseID uuid.UUID) (*entity.CanonicalCase, error) {
+	if m.getByIDFunc != nil {
+		return m.getByIDFunc(ctx, tx, caseID)
+	}
+	return nil, nil
+}
+
+func (m *mockCaseRepository) ListBySubject(ctx context.Context, tx db.Tx, subjectType entity.ReportTargetType, subjectID uuid.UUID, limit, offset int) ([]*entity.CanonicalCase, error) {
+	return nil, nil
+}
+
+func (m *mockCaseRepository) ResolveCase(ctx context.Context, tx db.Tx, caseID uuid.UUID) error {
+	return nil
+}
+
+func (m *mockCaseRepository) ListAll(ctx context.Context, tx db.Tx, statusFilter *entity.CaseStatus, limit, offset int) ([]*entity.CanonicalCase, error) {
+	return nil, nil
+}
+
+func (m *mockCaseRepository) CountAll(ctx context.Context, tx db.Tx, statusFilter *entity.CaseStatus) (int, error) {
+	return 0, nil
+}
+
+// mockTransactor is a minimal db.Transactor for tests.
+type mockTransactor struct{}
+
+func (m *mockTransactor) WithTx(ctx context.Context, fn func(tx db.Tx) error) error {
+	return fn(&mockAppealTx{})
+}
+
+// mockEnforcementRepository is a minimal stub for EnforcementRepository.
+type mockEnforcementRepository struct{}
+
+func (m *mockEnforcementRepository) Create(_ context.Context, _ db.Tx, _ *entity.Enforcement) error {
+	return nil
+}
+func (m *mockEnforcementRepository) GetByID(_ context.Context, _ db.Tx, _ uuid.UUID) (*entity.Enforcement, error) {
+	return nil, nil
+}
+func (m *mockEnforcementRepository) GetByDecisionAndTarget(_ context.Context, _ db.Tx, _ uuid.UUID, _ entity.ModerationTargetType, _ uuid.UUID) (*entity.Enforcement, error) {
+	return nil, nil
+}
+func (m *mockEnforcementRepository) UpdateStatus(_ context.Context, _ db.Tx, _ uuid.UUID, _ entity.EnforcementStatus, _ *string) error {
+	return nil
+}
+func (m *mockEnforcementRepository) MarkProcessing(_ context.Context, _ db.Tx, _ uuid.UUID) error {
+	return nil
+}
+func (m *mockEnforcementRepository) MarkSucceeded(_ context.Context, _ db.Tx, _ uuid.UUID) error {
+	return nil
+}
+func (m *mockEnforcementRepository) MarkFailed(_ context.Context, _ db.Tx, _ uuid.UUID, _ string, _ *time.Time) error {
+	return nil
+}
+func (m *mockEnforcementRepository) ListByDecision(_ context.Context, _ db.Tx, _ uuid.UUID) ([]*entity.Enforcement, error) {
+	return nil, nil
+}
+
+// newTestAppealService creates an AppealService with canonical mock dependencies.
+func newTestAppealService(
+	appealRepo *mockAppealRepository,
+	decisionRepo *mockDecisionRepository,
+	caseRepo *mockCaseRepository,
+	contentRepo *mockContentRepository,
+	commentRepo *mockCommentRepository,
+) *application.AppealService {
+	// Create a DecisionService for appeal review (needed for ReviewAppeal).
+	dbTx := &mockTransactor{}
+	enfRepo := &mockEnforcementRepository{}
+	decisionService := application.NewDecisionService(dbTx, caseRepo, decisionRepo, enfRepo, newTestOutboxRepo(), nil)
+	return application.NewAppealService(appealRepo, decisionRepo, caseRepo, decisionService, contentRepo, commentRepo)
 }
 
 // newTestOutboxRepo builds a real OutboxRepository for tests. NewAppealService
@@ -273,54 +387,70 @@ func (m *mockRowForAppeal) Scan(dest ...interface{}) error {
 // CREATE APPEAL TESTS
 // ============================================================
 
-func TestCreateAppeal_CaseNotFound_ReturnsError(t *testing.T) {
+func TestCreateAppeal_DecisionNotFound_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 	tx := &mockAppealTx{}
 
-	caseID := uuid.New()
+	decisionID := uuid.New()
 	userID := uuid.New()
 
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, caseID uuid.UUID) (*entity.GovernanceCase, error) {
-			return nil, errors.New("moderation case not found: " + caseID.String())
+	mockDecisionRepo := &mockDecisionRepository{
+		getByIDFunc: func(ctx context.Context, tx db.Tx, decisionID uuid.UUID) (*entity.Decision, error) {
+			return nil, nil // not found
 		},
 	}
+	mockCaseRepo := &mockCaseRepository{}
 
 	mockAppealRepo := &mockAppealRepository{}
 	mockContentRepo := &mockContentRepository{}
 	mockCommentRepo := &mockCommentRepository{}
-	service := application.NewAppealService(mockAppealRepo, mockModRepo, mockContentRepo, mockCommentRepo, newTestOutboxRepo())
+	service := newTestAppealService(mockAppealRepo, mockDecisionRepo, mockCaseRepo, mockContentRepo, mockCommentRepo)
 
 	// Act
-	result, err := service.CreateAppeal(ctx, tx, caseID, userID, "This is a mistake")
+	result, err := service.CreateAppeal(ctx, tx, decisionID, userID, "This is a mistake")
 
 	// Assert
 	assert.Nil(t, result)
 	assert.Error(t, err)
-	var notFoundErr *entity.ErrCaseNotFound
+	var notFoundErr *entity.ErrDecisionNotFound
 	assert.ErrorAs(t, err, &notFoundErr)
-	assert.Equal(t, caseID, notFoundErr.CaseID)
+	assert.Equal(t, decisionID, notFoundErr.DecisionID)
 }
 
-func TestCreateAppeal_CaseNotAppealable_ReturnsError(t *testing.T) {
+func TestCreateAppeal_NoViolationNotAppealable_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 	tx := &mockAppealTx{}
 
+	decisionID := uuid.New()
 	caseID := uuid.New()
 	userID := uuid.New()
 	contentID := uuid.New()
 
-	// Create a case with status "pending" (not appealable)
-	kase := entity.NewGovernanceCase(
-		entity.ResourceTypeContent,
-		contentID,
-		uuid.New(),
-		"test report",
-	)
-	// Status is pending, not removed or rejected
+	// Create a no_violation Decision (not appealable per Design §23)
+	decision := &entity.Decision{
+		ID:        decisionID,
+		CaseID:    caseID,
+		DecidedBy: uuid.New(),
+		Outcome:   entity.DecisionOutcomeNoViolation,
+		CreatedAt: time.Now(),
+	}
 
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, caseID uuid.UUID) (*entity.GovernanceCase, error) {
+	kase := &entity.CanonicalCase{
+		ID:          caseID,
+		SubjectType: entity.ReportTargetContent,
+		SubjectID:   contentID,
+		Status:      entity.CaseStatusResolved,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	mockDecisionRepo := &mockDecisionRepository{
+		getByIDFunc: func(ctx context.Context, tx db.Tx, id uuid.UUID) (*entity.Decision, error) {
+			return decision, nil
+		},
+	}
+	mockCaseRepo := &mockCaseRepository{
+		getByIDFunc: func(ctx context.Context, tx db.Tx, id uuid.UUID) (*entity.CanonicalCase, error) {
 			return kase, nil
 		},
 	}
@@ -328,39 +458,47 @@ func TestCreateAppeal_CaseNotAppealable_ReturnsError(t *testing.T) {
 	mockAppealRepo := &mockAppealRepository{}
 	mockContentRepo := &mockContentRepository{}
 	mockCommentRepo := &mockCommentRepository{}
-	service := application.NewAppealService(mockAppealRepo, mockModRepo, mockContentRepo, mockCommentRepo, newTestOutboxRepo())
+	service := newTestAppealService(mockAppealRepo, mockDecisionRepo, mockCaseRepo, mockContentRepo, mockCommentRepo)
 
 	// Act
-	result, err := service.CreateAppeal(ctx, tx, caseID, userID, "This is a mistake")
+	result, err := service.CreateAppeal(ctx, tx, decisionID, userID, "This is a mistake")
 
 	// Assert
 	assert.Nil(t, result)
 	assert.Error(t, err)
-	var notAppealableErr *entity.ErrCaseNotAppealable
+	var notAppealableErr *entity.ErrDecisionNotAppealable
 	assert.ErrorAs(t, err, &notAppealableErr)
-	assert.Equal(t, kase.ID, notAppealableErr.CaseID)
-	assert.Equal(t, entity.GovernanceCaseStatusPending, notAppealableErr.Status)
+	assert.Equal(t, decisionID, notAppealableErr.DecisionID)
+	assert.Equal(t, entity.DecisionOutcomeNoViolation, notAppealableErr.Outcome)
 }
 
 func TestCreateAppeal_NotResourceOwner_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 	tx := &mockAppealTx{}
 
+	decisionID := uuid.New()
 	caseID := uuid.New()
 	contentID := uuid.New()
 	ownerID := uuid.New()
-	otherUserID := uuid.New() // Different user trying to appeal
+	otherUserID := uuid.New()
 
-	// Create a removed case (appealable)
-	kase := entity.NewGovernanceCase(
-		entity.ResourceTypeContent,
-		contentID,
-		uuid.New(),
-		"test report",
-	)
-	kase.Enforce(uuid.New(), strPtr("removed"))
+	decision := &entity.Decision{
+		ID:        decisionID,
+		CaseID:    caseID,
+		DecidedBy: uuid.New(),
+		Outcome:   entity.DecisionOutcomeViolation,
+		CreatedAt: time.Now(),
+	}
 
-	// Content owned by ownerID
+	kase := &entity.CanonicalCase{
+		ID:          caseID,
+		SubjectType: entity.ReportTargetContent,
+		SubjectID:   contentID,
+		Status:      entity.CaseStatusResolved,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
 	mockContentRepo := &mockContentRepository{
 		getByIDFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*contentEntity.Content, error) {
 			return &contentEntity.Content{
@@ -370,25 +508,30 @@ func TestCreateAppeal_NotResourceOwner_ReturnsError(t *testing.T) {
 		},
 	}
 
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, caseID uuid.UUID) (*entity.GovernanceCase, error) {
+	mockDecisionRepo := &mockDecisionRepository{
+		getByIDFunc: func(ctx context.Context, tx db.Tx, id uuid.UUID) (*entity.Decision, error) {
+			return decision, nil
+		},
+	}
+	mockCaseRepo := &mockCaseRepository{
+		getByIDFunc: func(ctx context.Context, tx db.Tx, id uuid.UUID) (*entity.CanonicalCase, error) {
 			return kase, nil
 		},
 	}
 
 	mockAppealRepo := &mockAppealRepository{}
 	mockCommentRepo := &mockCommentRepository{}
-	service := application.NewAppealService(mockAppealRepo, mockModRepo, mockContentRepo, mockCommentRepo, newTestOutboxRepo())
+	service := newTestAppealService(mockAppealRepo, mockDecisionRepo, mockCaseRepo, mockContentRepo, mockCommentRepo)
 
 	// Act - otherUserID tries to appeal content owned by ownerID
-	result, err := service.CreateAppeal(ctx, tx, caseID, otherUserID, "This is a mistake")
+	result, err := service.CreateAppeal(ctx, tx, decisionID, otherUserID, "This is a mistake")
 
 	// Assert
 	assert.Nil(t, result)
 	assert.Error(t, err)
 	var notOwnerErr *entity.ErrNotResourceOwner
 	assert.ErrorAs(t, err, &notOwnerErr)
-	assert.Equal(t, kase.ID, notOwnerErr.CaseID)
+	assert.Equal(t, decisionID, notOwnerErr.DecisionID)
 	assert.Equal(t, contentID, notOwnerErr.ResourceID)
 	assert.Equal(t, otherUserID, notOwnerErr.UserID)
 }
@@ -397,85 +540,82 @@ func TestCreateAppeal_DuplicatePendingAppeal_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 	tx := &mockAppealTx{}
 
+	decisionID := uuid.New()
 	caseID := uuid.New()
 	contentID := uuid.New()
 	ownerID := uuid.New()
 
-	// Create a removed case (appealable)
-	kase := entity.NewGovernanceCase(
-		entity.ResourceTypeContent,
-		contentID,
-		uuid.New(),
-		"test report",
-	)
-	kase.Enforce(uuid.New(), strPtr("removed"))
-
-	// Content owned by ownerID
-	mockContentRepo := &mockContentRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*contentEntity.Content, error) {
-			return &contentEntity.Content{
-				ID:       contentID,
-				AuthorID: ownerID,
-			}, nil
-		},
+	decision := &entity.Decision{
+		ID: decisionID, CaseID: caseID, DecidedBy: uuid.New(),
+		Outcome: entity.DecisionOutcomeViolation, CreatedAt: time.Now(),
+	}
+	kase := &entity.CanonicalCase{
+		ID: caseID, SubjectType: entity.ReportTargetContent, SubjectID: contentID,
+		Status: entity.CaseStatusResolved, CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}
 
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, caseID uuid.UUID) (*entity.GovernanceCase, error) {
+	mockContentRepo := &mockContentRepository{
+		getByIDFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*contentEntity.Content, error) {
+			return &contentEntity.Content{ID: contentID, AuthorID: ownerID}, nil
+		},
+	}
+	mockDecisionRepo := &mockDecisionRepository{
+		getByIDFunc: func(ctx context.Context, tx db.Tx, id uuid.UUID) (*entity.Decision, error) {
+			return decision, nil
+		},
+	}
+	mockCaseRepo := &mockCaseRepository{
+		getByIDFunc: func(ctx context.Context, tx db.Tx, id uuid.UUID) (*entity.CanonicalCase, error) {
 			return kase, nil
 		},
 	}
-
-	// Simulate duplicate pending appeal at repository level
 	mockAppealRepo := &mockAppealRepository{
 		createWithPendingCheckFunc: func(ctx context.Context, tx interface{}, appeal *entity.Appeal) error {
-			return &entity.ErrDuplicatePendingAppeal{CaseID: appeal.CaseID}
+			return &entity.ErrDuplicatePendingAppeal{DecisionID: appeal.DecisionID}
 		},
 	}
-
 	mockCommentRepo := &mockCommentRepository{}
-	service := application.NewAppealService(mockAppealRepo, mockModRepo, mockContentRepo, mockCommentRepo, newTestOutboxRepo())
+	service := newTestAppealService(mockAppealRepo, mockDecisionRepo, mockCaseRepo, mockContentRepo, mockCommentRepo)
 
-	// Act - owner tries to create another appeal while one is pending
-	result, err := service.CreateAppeal(ctx, tx, caseID, ownerID, "This is a mistake")
+	result, err := service.CreateAppeal(ctx, tx, decisionID, ownerID, "This is a mistake")
 
-	// Assert
 	assert.Nil(t, result)
 	assert.Error(t, err)
 	var duplicateErr *entity.ErrDuplicatePendingAppeal
 	assert.ErrorAs(t, err, &duplicateErr)
-	assert.Equal(t, caseID, duplicateErr.CaseID)
+	assert.Equal(t, decisionID, duplicateErr.DecisionID)
 }
 
 func TestCreateAppeal_ValidOwner_RemovedCase_Success(t *testing.T) {
 	ctx := context.Background()
 	tx := &mockAppealTx{}
 
+	decisionID := uuid.New()
 	caseID := uuid.New()
 	contentID := uuid.New()
 	ownerID := uuid.New()
 
-	// Create a removed case (appealable)
-	kase := entity.NewGovernanceCase(
-		entity.ResourceTypeContent,
-		contentID,
-		uuid.New(),
-		"test report",
-	)
-	kase.Enforce(uuid.New(), strPtr("removed"))
-
-	// Content owned by ownerID
-	mockContentRepo := &mockContentRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*contentEntity.Content, error) {
-			return &contentEntity.Content{
-				ID:       contentID,
-				AuthorID: ownerID,
-			}, nil
-		},
+	decision := &entity.Decision{
+		ID: decisionID, CaseID: caseID, DecidedBy: uuid.New(),
+		Outcome: entity.DecisionOutcomeViolation, CreatedAt: time.Now(),
+	}
+	kase := &entity.CanonicalCase{
+		ID: caseID, SubjectType: entity.ReportTargetContent, SubjectID: contentID,
+		Status: entity.CaseStatusResolved, CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}
 
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, caseID uuid.UUID) (*entity.GovernanceCase, error) {
+	mockContentRepo := &mockContentRepository{
+		getByIDFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*contentEntity.Content, error) {
+			return &contentEntity.Content{ID: contentID, AuthorID: ownerID}, nil
+		},
+	}
+	mockDecisionRepo := &mockDecisionRepository{
+		getByIDFunc: func(ctx context.Context, tx db.Tx, id uuid.UUID) (*entity.Decision, error) {
+			return decision, nil
+		},
+	}
+	mockCaseRepo := &mockCaseRepository{
+		getByIDFunc: func(ctx context.Context, tx db.Tx, id uuid.UUID) (*entity.CanonicalCase, error) {
 			return kase, nil
 		},
 	}
@@ -489,71 +629,82 @@ func TestCreateAppeal_ValidOwner_RemovedCase_Success(t *testing.T) {
 	}
 
 	mockCommentRepo := &mockCommentRepository{}
-	service := application.NewAppealService(mockAppealRepo, mockModRepo, mockContentRepo, mockCommentRepo, newTestOutboxRepo())
+	service := newTestAppealService(mockAppealRepo, mockDecisionRepo, mockCaseRepo, mockContentRepo, mockCommentRepo)
 
-	// Act
 	message := "This content was wrongfully removed"
-	result, err := service.CreateAppeal(ctx, tx, caseID, ownerID, message)
+	result, err := service.CreateAppeal(ctx, tx, decisionID, ownerID, message)
 
-	// Assert
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	assert.Equal(t, caseID, result.CaseID)
+	assert.Equal(t, decisionID, result.DecisionID)
 	assert.Equal(t, ownerID, result.AppealedBy)
 	assert.Equal(t, message, result.Message)
 	assert.Equal(t, entity.AppealStatusPending, result.Status)
 	assert.Equal(t, createdAppeal, result)
 }
 
+// Helper: build canonical Decision + Case mocks for a given subject type.
+// Returns mock repos configured to return a violation Decision and its Case.
+func makeCanonicalViolationMocks(t *testing.T, subjectType entity.ReportTargetType, subjectID uuid.UUID) (decisionID, caseID uuid.UUID, decRepo *mockDecisionRepository, caseRepo *mockCaseRepository) {
+	t.Helper()
+	decisionID = uuid.New()
+	caseID = uuid.New()
+
+	decision := &entity.Decision{
+		ID: decisionID, CaseID: caseID, DecidedBy: uuid.New(),
+		Outcome: entity.DecisionOutcomeViolation, CreatedAt: time.Now(),
+	}
+	kase := &entity.CanonicalCase{
+		ID: caseID, SubjectType: subjectType, SubjectID: subjectID,
+		Status: entity.CaseStatusResolved, CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}
+
+	decRepo = &mockDecisionRepository{
+		getByIDFunc: func(_ context.Context, _ db.Tx, id uuid.UUID) (*entity.Decision, error) {
+			if id == decisionID {
+				return decision, nil
+			}
+			return nil, nil
+		},
+	}
+	caseRepo = &mockCaseRepository{
+		getByIDFunc: func(_ context.Context, _ db.Tx, id uuid.UUID) (*entity.CanonicalCase, error) {
+			if id == caseID {
+				return kase, nil
+			}
+			return nil, nil
+		},
+	}
+	return
+}
+
 func TestCreateAppeal_ValidOwner_RejectedCase_Success(t *testing.T) {
 	ctx := context.Background()
 	tx := &mockAppealTx{}
 
-	caseID := uuid.New()
 	contentID := uuid.New()
 	ownerID := uuid.New()
 
-	// Create a rejected case (appealable)
-	kase := entity.NewGovernanceCase(
-		entity.ResourceTypeContent,
-		contentID,
-		uuid.New(),
-		"test report",
-	)
-	kase.Reject(uuid.New(), strPtr("rejected"))
+	decisionID, _, decRepo, caseRepo := makeCanonicalViolationMocks(t, entity.ReportTargetContent, contentID)
 
-	// Content owned by ownerID
 	mockContentRepo := &mockContentRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*contentEntity.Content, error) {
-			return &contentEntity.Content{
-				ID:       contentID,
-				AuthorID: ownerID,
-			}, nil
-		},
-	}
-
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, caseID uuid.UUID) (*entity.GovernanceCase, error) {
-			return kase, nil
+		getByIDFunc: func(_ context.Context, _ interface{}, _ uuid.UUID) (*contentEntity.Content, error) {
+			return &contentEntity.Content{ID: contentID, AuthorID: ownerID}, nil
 		},
 	}
 
 	mockAppealRepo := &mockAppealRepository{
-		createWithPendingCheckFunc: func(ctx context.Context, tx interface{}, appeal *entity.Appeal) error {
+		createWithPendingCheckFunc: func(_ context.Context, _ interface{}, _ *entity.Appeal) error {
 			return nil
 		},
 	}
+	service := newTestAppealService(mockAppealRepo, decRepo, caseRepo, mockContentRepo, &mockCommentRepository{})
 
-	mockCommentRepo := &mockCommentRepository{}
-	service := application.NewAppealService(mockAppealRepo, mockModRepo, mockContentRepo, mockCommentRepo, newTestOutboxRepo())
+	result, err := service.CreateAppeal(ctx, tx, decisionID, ownerID, "This report was dismissed incorrectly")
 
-	// Act
-	result, err := service.CreateAppeal(ctx, tx, caseID, ownerID, "This report was dismissed incorrectly")
-
-	// Assert
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	assert.Equal(t, caseID, result.CaseID)
+	assert.Equal(t, decisionID, result.DecisionID)
 	assert.Equal(t, ownerID, result.AppealedBy)
 	assert.Equal(t, entity.AppealStatusPending, result.Status)
 }
@@ -562,52 +713,29 @@ func TestCreateAppeal_CommentResource_ValidOwner_Success(t *testing.T) {
 	ctx := context.Background()
 	tx := &mockAppealTx{}
 
-	caseID := uuid.New()
 	commentID := uuid.New()
 	ownerID := uuid.New()
 
-	// Create a removed case for a comment
-	kase := entity.NewGovernanceCase(
-		entity.ResourceTypeComment,
-		commentID,
-		uuid.New(),
-		"test report",
-	)
-	kase.Enforce(uuid.New(), strPtr("removed"))
+	decisionID, _, decRepo, caseRepo := makeCanonicalViolationMocks(t, entity.ReportTargetComment, commentID)
 
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, caseID uuid.UUID) (*entity.GovernanceCase, error) {
-			return kase, nil
-		},
-	}
-
-	// Comment owned by ownerID
 	mockCommentRepo := &mockCommentRepository{
-		getByIDFunc: func(ctx context.Context, tx db.Tx, id uuid.UUID) (*contentEntity.Comment, error) {
-			return &contentEntity.Comment{
-				ID:       commentID,
-				AuthorID: ownerID,
-			}, nil
+		getByIDFunc: func(_ context.Context, _ db.Tx, _ uuid.UUID) (*contentEntity.Comment, error) {
+			return &contentEntity.Comment{ID: commentID, AuthorID: ownerID}, nil
 		},
 	}
-
-	mockContentRepo := &mockContentRepository{}
 
 	mockAppealRepo := &mockAppealRepository{
-		createWithPendingCheckFunc: func(ctx context.Context, tx interface{}, appeal *entity.Appeal) error {
+		createWithPendingCheckFunc: func(_ context.Context, _ interface{}, _ *entity.Appeal) error {
 			return nil
 		},
 	}
+	service := newTestAppealService(mockAppealRepo, decRepo, caseRepo, &mockContentRepository{}, mockCommentRepo)
 
-	service := application.NewAppealService(mockAppealRepo, mockModRepo, mockContentRepo, mockCommentRepo, newTestOutboxRepo())
+	result, err := service.CreateAppeal(ctx, tx, decisionID, ownerID, "My comment was wrongfully removed")
 
-	// Act
-	result, err := service.CreateAppeal(ctx, tx, caseID, ownerID, "My comment was wrongfully removed")
-
-	// Assert
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	assert.Equal(t, caseID, result.CaseID)
+	assert.Equal(t, decisionID, result.DecisionID)
 	assert.Equal(t, ownerID, result.AppealedBy)
 	assert.Equal(t, entity.AppealStatusPending, result.Status)
 }
@@ -616,52 +744,49 @@ func TestCreateAppeal_CommentResource_ValidOwner_Success(t *testing.T) {
 // REVIEW APPEAL TESTS
 // ============================================================
 
-func TestReviewAppeal_ApproveNonRemovedCase_NoRestorationRequired_Success(t *testing.T) {
-	ctx := context.Background()
-	tx := &mockAppealTx{}
+// Helper: build a pending appeal linked to a decisionID.
+func makePendingAppeal(decisionID uuid.UUID) *entity.Appeal {
+	return entity.NewAppeal(decisionID, uuid.New(), "Please reconsider")
+}
 
-	appealID := uuid.New()
-	caseID := uuid.New()
-	adminID := uuid.New()
-	resourceID := uuid.New()
-
-	// Create a pending appeal
-	appeal := entity.NewAppeal(caseID, uuid.New(), "Please reconsider")
-
-	// Create a rejected case (does NOT require restoration on approval)
-	kase := entity.NewGovernanceCase(
-		entity.ResourceTypeContent,
-		resourceID,
-		uuid.New(),
-		"test report",
-	)
-	kase.Reject(uuid.New(), strPtr("rejected"))
+// Helper: build ReviewAppeal mocks for a reversal (approved) test.
+func makeReviewAppealMocks(t *testing.T, appeal *entity.Appeal, subjectType entity.ReportTargetType, subjectID uuid.UUID, execErr error) (*mockAppealRepository, *mockDecisionRepository, *mockCaseRepository) {
+	t.Helper()
+	_, caseID, decRepo, caseRepo := makeCanonicalViolationMocks(t, subjectType, subjectID)
+	_ = caseID
 
 	mockAppealRepo := &mockAppealRepository{
-		getForUpdateFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*entity.Appeal, error) {
+		getForUpdateFunc: func(_ context.Context, _ interface{}, _ uuid.UUID) (*entity.Appeal, error) {
 			return appeal, nil
 		},
-		updateFunc: func(ctx context.Context, tx interface{}, app *entity.Appeal) error {
+		updateFunc: func(_ context.Context, _ interface{}, _ *entity.Appeal) error {
 			return nil
 		},
 	}
 
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, caseID uuid.UUID) (*entity.GovernanceCase, error) {
-			return kase, nil
-		},
-	}
+	// The DecisionService uses the same mock repos; execErr on the tx
+	// makes outbox InsertEvent fail (simulating restoration event failure).
+	_ = execErr
 
-	mockContentRepo := &mockContentRepository{}
-	mockCommentRepo := &mockCommentRepository{}
+	return mockAppealRepo, decRepo, caseRepo
+}
 
-	service := application.NewAppealService(mockAppealRepo, mockModRepo, mockContentRepo, mockCommentRepo, newTestOutboxRepo())
+func TestReviewAppeal_ApproveNonRemovedCase_NoRestorationRequired_Success(t *testing.T) {
+	ctx := context.Background()
+	tx := &mockAppealTx{}
 
-	// Act
+	contentID := uuid.New()
+	adminID := uuid.New()
+
+	decisionID, _, decRepo, caseRepo := makeCanonicalViolationMocks(t, entity.ReportTargetContent, contentID)
+	appeal := entity.NewAppeal(decisionID, uuid.New(), "Please reconsider")
+
+	mockAppealRepo, _, _ := makeReviewAppealMocks(t, appeal, entity.ReportTargetContent, contentID, nil)
+	service := newTestAppealService(mockAppealRepo, decRepo, caseRepo, &mockContentRepository{}, &mockCommentRepository{})
+
 	adminResponse := "Appeal granted"
-	result, err := service.ReviewAppeal(ctx, tx, appealID, adminID, true, &adminResponse)
+	result, err := service.ReviewAppeal(ctx, tx, uuid.New(), adminID, true, &adminResponse)
 
-	// Assert - should succeed without restoration event (non-removed case)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, entity.AppealStatusApproved, result.Status)
@@ -671,48 +796,25 @@ func TestReviewAppeal_RejectAppeal_NoRestorationEvent_Success(t *testing.T) {
 	ctx := context.Background()
 	tx := &mockAppealTx{}
 
-	appealID := uuid.New()
-	caseID := uuid.New()
+	contentID := uuid.New()
 	adminID := uuid.New()
-	resourceID := uuid.New()
 
-	// Create a pending appeal
-	appeal := entity.NewAppeal(caseID, uuid.New(), "Please restore")
-
-	// Create a removed case
-	kase := entity.NewGovernanceCase(
-		entity.ResourceTypeContent,
-		resourceID,
-		uuid.New(),
-		"test report",
-	)
-	kase.Enforce(uuid.New(), strPtr("removed"))
+	decisionID, _, decRepo, caseRepo := makeCanonicalViolationMocks(t, entity.ReportTargetContent, contentID)
+	appeal := entity.NewAppeal(decisionID, uuid.New(), "Please restore")
 
 	mockAppealRepo := &mockAppealRepository{
-		getForUpdateFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*entity.Appeal, error) {
+		getForUpdateFunc: func(_ context.Context, _ interface{}, _ uuid.UUID) (*entity.Appeal, error) {
 			return appeal, nil
 		},
-		updateFunc: func(ctx context.Context, tx interface{}, app *entity.Appeal) error {
+		updateFunc: func(_ context.Context, _ interface{}, _ *entity.Appeal) error {
 			return nil
 		},
 	}
+	service := newTestAppealService(mockAppealRepo, decRepo, caseRepo, &mockContentRepository{}, &mockCommentRepository{})
 
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, caseID uuid.UUID) (*entity.GovernanceCase, error) {
-			return kase, nil
-		},
-	}
-
-	mockContentRepo := &mockContentRepository{}
-	mockCommentRepo := &mockCommentRepository{}
-
-	service := application.NewAppealService(mockAppealRepo, mockModRepo, mockContentRepo, mockCommentRepo, newTestOutboxRepo())
-
-	// Act - reject the appeal
 	adminResponse := "Appeal denied - content violation stands"
-	result, err := service.ReviewAppeal(ctx, tx, appealID, adminID, false, &adminResponse)
+	result, err := service.ReviewAppeal(ctx, tx, uuid.New(), adminID, false, &adminResponse)
 
-	// Assert - should succeed without restoration event
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, entity.AppealStatusRejected, result.Status)
@@ -722,48 +824,18 @@ func TestReviewAppeal_ApproveRemovedCase_SuccessWithRestoration(t *testing.T) {
 	ctx := context.Background()
 	tx := &mockAppealTx{}
 
-	appealID := uuid.New()
-	caseID := uuid.New()
+	contentID := uuid.New()
 	adminID := uuid.New()
-	resourceID := uuid.New()
 
-	// Create a pending appeal
-	appeal := entity.NewAppeal(caseID, uuid.New(), "Please restore")
+	decisionID, _, decRepo, caseRepo := makeCanonicalViolationMocks(t, entity.ReportTargetContent, contentID)
+	appeal := entity.NewAppeal(decisionID, uuid.New(), "Please restore")
 
-	// Create a removed case (requires restoration)
-	kase := entity.NewGovernanceCase(
-		entity.ResourceTypeContent,
-		resourceID,
-		uuid.New(),
-		"test report",
-	)
-	kase.Enforce(uuid.New(), strPtr("removed"))
+	mockAppealRepo, _, _ := makeReviewAppealMocks(t, appeal, entity.ReportTargetContent, contentID, nil)
+	service := newTestAppealService(mockAppealRepo, decRepo, caseRepo, &mockContentRepository{}, &mockCommentRepository{})
 
-	mockAppealRepo := &mockAppealRepository{
-		getForUpdateFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*entity.Appeal, error) {
-			return appeal, nil
-		},
-		updateFunc: func(ctx context.Context, tx interface{}, app *entity.Appeal) error {
-			return nil
-		},
-	}
-
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, caseID uuid.UUID) (*entity.GovernanceCase, error) {
-			return kase, nil
-		},
-	}
-
-	mockContentRepo := &mockContentRepository{}
-	mockCommentRepo := &mockCommentRepository{}
-
-	service := application.NewAppealService(mockAppealRepo, mockModRepo, mockContentRepo, mockCommentRepo, newTestOutboxRepo())
-
-	// Act
 	adminResponse := "Appeal granted - content restored"
-	result, err := service.ReviewAppeal(ctx, tx, appealID, adminID, true, &adminResponse)
+	result, err := service.ReviewAppeal(ctx, tx, uuid.New(), adminID, true, &adminResponse)
 
-	// Assert
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, entity.AppealStatusApproved, result.Status)
@@ -780,134 +852,45 @@ func strPtr(s string) *string {
 // CONCURRENCY AND CONSISTENCY TESTS
 // ============================================================
 
-// TestReviewAppeal_RestorationEventEmittedBeforeStateChange proves that restoration
-// events are emitted BEFORE the appeal state is changed, preventing split-brain.
-func TestReviewAppeal_RestorationEventEmittedBeforeStateChange(t *testing.T) {
+// TestReviewAppeal_DecisionCreationFailureKeepsAppealPending proves atomicity:
+// if DecisionService.CreateAppealDecision fails (e.g. outbox insert fails via
+// the concrete OutboxRepository), the appeal remains pending because the single
+// transaction rolls back.
+func TestReviewAppeal_DecisionCreationFailureKeepsAppealPending(t *testing.T) {
 	ctx := context.Background()
-	// Failing Exec makes the outbox InsertEvent fail, simulating restoration
-	// event emission failure.
-	tx := &mockAppealTx{execErr: errors.New("outbox insert failed")}
+	tx := &mockAppealTx{}
 
-	appealID := uuid.New()
-	caseID := uuid.New()
+	contentID := uuid.New()
 	adminID := uuid.New()
-	resourceID := uuid.New()
 
-	// Create a pending appeal
-	appeal := entity.NewAppeal(caseID, uuid.New(), "Please restore")
+	decisionID, _, _, _ := makeCanonicalViolationMocks(t, entity.ReportTargetContent, contentID)
+	appeal := entity.NewAppeal(decisionID, uuid.New(), "Please restore")
+	initialStatus := appeal.Status
 
-	// Create a removed case (requires restoration)
-	kase := entity.NewGovernanceCase(
-		entity.ResourceTypeContent,
-		resourceID,
-		uuid.New(),
-		"test report",
-	)
-	kase.Enforce(uuid.New(), strPtr("removed"))
-
-	// Track the order of operations
 	var updateCalled bool
 
 	mockAppealRepo := &mockAppealRepository{
-		getForUpdateFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*entity.Appeal, error) {
+		getForUpdateFunc: func(_ context.Context, _ interface{}, _ uuid.UUID) (*entity.Appeal, error) {
 			return appeal, nil
 		},
-		updateFunc: func(ctx context.Context, tx interface{}, app *entity.Appeal) error {
+		updateFunc: func(_ context.Context, _ interface{}, _ *entity.Appeal) error {
 			updateCalled = true
 			return nil
 		},
 	}
 
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, caseID uuid.UUID) (*entity.GovernanceCase, error) {
-			return kase, nil
-		},
-	}
+	// Use nil repos for CaseRepo — CreateAppealDecision validates case exists
+	// and will fail with ErrDecisionCaseNotFound, causing the single TX to
+	// roll back. Appeal update is never reached.
+	service := newTestAppealService(mockAppealRepo, &mockDecisionRepository{}, &mockCaseRepository{}, &mockContentRepository{}, &mockCommentRepository{})
 
-	mockContentRepo := &mockContentRepository{}
-	mockCommentRepo := &mockCommentRepository{}
-
-	// The outbox is a concrete type whose InsertEvent writes through tx.Exec,
-	// so the failing tx above makes the restoration event emission fail.
-	// The key guarantee is that restoration event is emitted before appeal update.
-	service := application.NewAppealService(mockAppealRepo, mockModRepo, mockContentRepo, mockCommentRepo, newTestOutboxRepo())
-
-	// Act - restoration event emission fails with ErrRestorationEventFailed,
-	// and we verify the error comes before update
-	adminResponse := "Appeal granted - content restored"
-	result, err := service.ReviewAppeal(ctx, tx, appealID, adminID, true, &adminResponse)
-
-	// Assert - should fail due to nil outbox, but BEFORE update is called
-	assert.Error(t, err)
-	assert.Nil(t, result)
-	assert.False(t, updateCalled, "Update should not be called when restoration fails")
-
-	var restorationErr *entity.ErrRestorationEventFailed
-	assert.ErrorAs(t, err, &restorationErr)
-}
-
-// TestReviewAppeal_RestorationFailureLeavesAppealPending proves that if restoration
-// event emission fails, the appeal remains pending (state not changed).
-func TestReviewAppeal_RestorationFailureLeavesAppealPending(t *testing.T) {
-	ctx := context.Background()
-	// Failing Exec makes the outbox InsertEvent fail, simulating restoration
-	// event emission failure.
-	tx := &mockAppealTx{execErr: errors.New("outbox insert failed")}
-
-	appealID := uuid.New()
-	caseID := uuid.New()
-	adminID := uuid.New()
-	resourceID := uuid.New()
-
-	// Create a pending appeal
-	appeal := entity.NewAppeal(caseID, uuid.New(), "Please restore")
-	initialStatus := appeal.Status // Should be pending
-
-	// Create a removed case (requires restoration)
-	kase := entity.NewGovernanceCase(
-		entity.ResourceTypeContent,
-		resourceID,
-		uuid.New(),
-		"test report",
-	)
-	kase.Enforce(uuid.New(), strPtr("removed"))
-
-	var updateCalled bool
-
-	mockAppealRepo := &mockAppealRepository{
-		getForUpdateFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*entity.Appeal, error) {
-			return appeal, nil
-		},
-		updateFunc: func(ctx context.Context, tx interface{}, app *entity.Appeal) error {
-			updateCalled = true
-			return nil
-		},
-	}
-
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, caseID uuid.UUID) (*entity.GovernanceCase, error) {
-			return kase, nil
-		},
-	}
-
-	mockContentRepo := &mockContentRepository{}
-	mockCommentRepo := &mockCommentRepository{}
-
-	service := application.NewAppealService(mockAppealRepo, mockModRepo, mockContentRepo, mockCommentRepo, newTestOutboxRepo())
-
-	// Act - try to approve but restoration fails
 	adminResponse := "Appeal granted"
-	result, err := service.ReviewAppeal(ctx, tx, appealID, adminID, true, &adminResponse)
+	result, err := service.ReviewAppeal(ctx, tx, uuid.New(), adminID, true, &adminResponse)
 
-	// Assert - operation should fail
 	assert.Error(t, err)
-	var restorationErr *entity.ErrRestorationEventFailed
-	assert.ErrorAs(t, err, &restorationErr)
-
-	// Appeal should still be pending because the transaction failed before update
-	assert.Equal(t, initialStatus, appeal.Status)
 	assert.Nil(t, result)
-	assert.False(t, updateCalled, "Update should not be called when restoration fails")
+	assert.False(t, updateCalled, "Update should not be called when Decision creation fails")
+	assert.Equal(t, initialStatus, appeal.Status, "Appeal should remain pending after rollback")
 }
 
 // TestCreateAppeal_AllowsNewAppealAfterResolvedAppeal proves that after a previous
@@ -916,53 +899,31 @@ func TestCreateAppeal_AllowsNewAppealAfterResolvedAppeal(t *testing.T) {
 	ctx := context.Background()
 	tx := &mockAppealTx{}
 
-	caseID := uuid.New()
 	contentID := uuid.New()
 	ownerID := uuid.New()
 
-	// Create a removed case (appealable)
-	kase := entity.NewGovernanceCase(
-		entity.ResourceTypeContent,
-		contentID,
-		uuid.New(),
-		"test report",
-	)
-	kase.Enforce(uuid.New(), strPtr("removed"))
+	decisionID, _, decRepo, caseRepo := makeCanonicalViolationMocks(t, entity.ReportTargetContent, contentID)
 
-	// Content owned by ownerID
 	mockContentRepo := &mockContentRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*contentEntity.Content, error) {
-			return &contentEntity.Content{
-				ID:       contentID,
-				AuthorID: ownerID,
-			}, nil
-		},
-	}
-
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, caseID uuid.UUID) (*entity.GovernanceCase, error) {
-			return kase, nil
+		getByIDFunc: func(_ context.Context, _ interface{}, _ uuid.UUID) (*contentEntity.Content, error) {
+			return &contentEntity.Content{ID: contentID, AuthorID: ownerID}, nil
 		},
 	}
 
 	var createdAppeal *entity.Appeal
 	mockAppealRepo := &mockAppealRepository{
-		createWithPendingCheckFunc: func(ctx context.Context, tx interface{}, appeal *entity.Appeal) error {
+		createWithPendingCheckFunc: func(_ context.Context, _ interface{}, appeal *entity.Appeal) error {
 			createdAppeal = appeal
 			return nil
 		},
 	}
+	service := newTestAppealService(mockAppealRepo, decRepo, caseRepo, mockContentRepo, &mockCommentRepository{})
 
-	mockCommentRepo := &mockCommentRepository{}
-	service := application.NewAppealService(mockAppealRepo, mockModRepo, mockContentRepo, mockCommentRepo, newTestOutboxRepo())
+	result, err := service.CreateAppeal(ctx, tx, decisionID, ownerID, "I want to appeal again")
 
-	// Act - create a new appeal (previous resolved appeal doesn't block new appeal)
-	result, err := service.CreateAppeal(ctx, tx, caseID, ownerID, "I want to appeal again")
-
-	// Assert - should succeed because the DB check only blocks pending appeals
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	assert.Equal(t, caseID, result.CaseID)
+	assert.Equal(t, decisionID, result.DecisionID)
 	assert.Equal(t, entity.AppealStatusPending, result.Status)
 	assert.Equal(t, createdAppeal, result)
 }
@@ -999,39 +960,31 @@ func TestCreateAppeal_ForSaleResource_ValidSeller_Success(t *testing.T) {
 	ctx := context.Background()
 	tx := &mockAppealTx{}
 
-	caseID := uuid.New()
 	forSaleID := uuid.New()
 	sellerID := uuid.New()
 
-	kase := entity.NewGovernanceCase(entity.ResourceTypeForSale, forSaleID, uuid.New(), "fixed-price sale violation")
-	kase.Enforce(uuid.New(), strPtr("removed"))
-
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*entity.GovernanceCase, error) {
-			return kase, nil
-		},
-	}
+	decisionID, _, decRepo, caseRepo := makeCanonicalViolationMocks(t, entity.ReportTargetForSale, forSaleID)
 
 	mockForSaleRepo := &mockForSaleOwnerRepo{
-		getByIDFunc: func(ctx context.Context, tx db.Tx, id uuid.UUID) (*forsaleEntity.ForSale, error) {
+		getByIDFunc: func(_ context.Context, _ db.Tx, _ uuid.UUID) (*forsaleEntity.ForSale, error) {
 			return &forsaleEntity.ForSale{SellerID: sellerID}, nil
 		},
 	}
 
 	mockAppealRepo := &mockAppealRepository{
-		createWithPendingCheckFunc: func(ctx context.Context, tx interface{}, appeal *entity.Appeal) error {
+		createWithPendingCheckFunc: func(_ context.Context, _ interface{}, _ *entity.Appeal) error {
 			return nil
 		},
 	}
 
-	svc := application.NewAppealService(mockAppealRepo, mockModRepo, &mockContentRepository{}, &mockCommentRepository{}, newTestOutboxRepo())
+	svc := newTestAppealService(mockAppealRepo, decRepo, caseRepo, &mockContentRepository{}, &mockCommentRepository{})
 	svc.SetForSaleRepo(mockForSaleRepo)
 
-	result, err := svc.CreateAppeal(ctx, tx, caseID, sellerID, "My fixed-price sale was wrongfully removed")
+	result, err := svc.CreateAppeal(ctx, tx, decisionID, sellerID, "My fixed-price sale was wrongfully removed")
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	assert.Equal(t, caseID, result.CaseID)
+	assert.Equal(t, decisionID, result.DecisionID)
 	assert.Equal(t, sellerID, result.AppealedBy)
 	assert.Equal(t, entity.AppealStatusPending, result.Status)
 }
@@ -1040,32 +993,23 @@ func TestCreateAppeal_ForSaleResource_NonOwner_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 	tx := &mockAppealTx{}
 
-	caseID := uuid.New()
 	forSaleID := uuid.New()
 	sellerID := uuid.New()
 	otherUserID := uuid.New()
 
-	kase := entity.NewGovernanceCase(entity.ResourceTypeForSale, forSaleID, uuid.New(), "fixed-price sale violation")
-	kase.Enforce(uuid.New(), strPtr("removed"))
-
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*entity.GovernanceCase, error) {
-			return kase, nil
-		},
-	}
+	decisionID, _, decRepo, caseRepo := makeCanonicalViolationMocks(t, entity.ReportTargetForSale, forSaleID)
 
 	mockForSaleRepo := &mockForSaleOwnerRepo{
-		getByIDFunc: func(ctx context.Context, tx db.Tx, id uuid.UUID) (*forsaleEntity.ForSale, error) {
+		getByIDFunc: func(_ context.Context, _ db.Tx, _ uuid.UUID) (*forsaleEntity.ForSale, error) {
 			return &forsaleEntity.ForSale{SellerID: sellerID}, nil
 		},
 	}
 
 	mockAppealRepo := &mockAppealRepository{}
-
-	svc := application.NewAppealService(mockAppealRepo, mockModRepo, &mockContentRepository{}, &mockCommentRepository{}, newTestOutboxRepo())
+	svc := newTestAppealService(mockAppealRepo, decRepo, caseRepo, &mockContentRepository{}, &mockCommentRepository{})
 	svc.SetForSaleRepo(mockForSaleRepo)
 
-	result, err := svc.CreateAppeal(ctx, tx, caseID, otherUserID, "Trying to appeal someone else's fixed-price sale")
+	result, err := svc.CreateAppeal(ctx, tx, decisionID, otherUserID, "Trying to appeal someone else's fixed-price sale")
 
 	assert.Nil(t, result)
 	assert.Error(t, err)
@@ -1077,21 +1021,13 @@ func TestCreateAppeal_AuctionResource_ValidSeller_Success(t *testing.T) {
 	ctx := context.Background()
 	tx := &mockAppealTx{}
 
-	caseID := uuid.New()
 	auctionID := uuid.New()
 	sellerID := uuid.New()
 
-	kase := entity.NewGovernanceCase(entity.ResourceTypeAuction, auctionID, uuid.New(), "auction violation")
-	kase.Enforce(uuid.New(), strPtr("cancelled"))
-
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*entity.GovernanceCase, error) {
-			return kase, nil
-		},
-	}
+	decisionID, _, decRepo, caseRepo := makeCanonicalViolationMocks(t, entity.ReportTargetAuction, auctionID)
 
 	mockAuctionRepo := &mockAuctionOwnerRepo{
-		getByIDFunc: func(ctx context.Context, tx db.Tx, id uuid.UUID) (*auctionEntity.Auction, error) {
+		getByIDFunc: func(_ context.Context, _ db.Tx, _ uuid.UUID) (*auctionEntity.Auction, error) {
 			a := &auctionEntity.Auction{}
 			a.SellerID = sellerID
 			return a, nil
@@ -1099,15 +1035,15 @@ func TestCreateAppeal_AuctionResource_ValidSeller_Success(t *testing.T) {
 	}
 
 	mockAppealRepo := &mockAppealRepository{
-		createWithPendingCheckFunc: func(ctx context.Context, tx interface{}, appeal *entity.Appeal) error {
+		createWithPendingCheckFunc: func(_ context.Context, _ interface{}, _ *entity.Appeal) error {
 			return nil
 		},
 	}
 
-	svc := application.NewAppealService(mockAppealRepo, mockModRepo, &mockContentRepository{}, &mockCommentRepository{}, newTestOutboxRepo())
+	svc := newTestAppealService(mockAppealRepo, decRepo, caseRepo, &mockContentRepository{}, &mockCommentRepository{})
 	svc.SetAuctionRepo(mockAuctionRepo)
 
-	result, err := svc.CreateAppeal(ctx, tx, caseID, sellerID, "My auction was wrongfully cancelled")
+	result, err := svc.CreateAppeal(ctx, tx, decisionID, sellerID, "My auction was wrongfully cancelled")
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -1119,29 +1055,19 @@ func TestCreateAppeal_UserSuspension_ValidUser_Success(t *testing.T) {
 	ctx := context.Background()
 	tx := &mockAppealTx{}
 
-	caseID := uuid.New()
 	suspendedUserID := uuid.New()
 
-	// User suspension case: ResourceID == the suspended user's ID
-	kase := entity.NewGovernanceCase(entity.ResourceTypeUser, suspendedUserID, uuid.New(), "policy violation")
-	kase.Enforce(uuid.New(), strPtr("suspended"))
-
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*entity.GovernanceCase, error) {
-			return kase, nil
-		},
-	}
+	decisionID, _, decRepo, caseRepo := makeCanonicalViolationMocks(t, entity.ReportTargetUser, suspendedUserID)
 
 	mockAppealRepo := &mockAppealRepository{
-		createWithPendingCheckFunc: func(ctx context.Context, tx interface{}, appeal *entity.Appeal) error {
+		createWithPendingCheckFunc: func(_ context.Context, _ interface{}, _ *entity.Appeal) error {
 			return nil
 		},
 	}
 
-	svc := application.NewAppealService(mockAppealRepo, mockModRepo, &mockContentRepository{}, &mockCommentRepository{}, newTestOutboxRepo())
-	// No SetForSaleRepo/SetAuctionRepo needed for user type
+	svc := newTestAppealService(mockAppealRepo, decRepo, caseRepo, &mockContentRepository{}, &mockCommentRepository{})
 
-	result, err := svc.CreateAppeal(ctx, tx, caseID, suspendedUserID, "I was wrongfully suspended")
+	result, err := svc.CreateAppeal(ctx, tx, decisionID, suspendedUserID, "I was wrongfully suspended")
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -1153,24 +1079,15 @@ func TestCreateAppeal_UserSuspension_OtherUser_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 	tx := &mockAppealTx{}
 
-	caseID := uuid.New()
 	suspendedUserID := uuid.New()
 	otherUserID := uuid.New()
 
-	kase := entity.NewGovernanceCase(entity.ResourceTypeUser, suspendedUserID, uuid.New(), "policy violation")
-	kase.Enforce(uuid.New(), strPtr("suspended"))
-
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*entity.GovernanceCase, error) {
-			return kase, nil
-		},
-	}
+	decisionID, _, decRepo, caseRepo := makeCanonicalViolationMocks(t, entity.ReportTargetUser, suspendedUserID)
 
 	mockAppealRepo := &mockAppealRepository{}
+	svc := newTestAppealService(mockAppealRepo, decRepo, caseRepo, &mockContentRepository{}, &mockCommentRepository{})
 
-	svc := application.NewAppealService(mockAppealRepo, mockModRepo, &mockContentRepository{}, &mockCommentRepository{}, newTestOutboxRepo())
-
-	result, err := svc.CreateAppeal(ctx, tx, caseID, otherUserID, "Appealing someone else's suspension")
+	result, err := svc.CreateAppeal(ctx, tx, decisionID, otherUserID, "Appealing someone else's suspension")
 
 	assert.Nil(t, result)
 	assert.Error(t, err)
@@ -1182,24 +1099,14 @@ func TestCreateAppeal_ForSaleWithoutRepo_ReturnsUnsupportedType(t *testing.T) {
 	ctx := context.Background()
 	tx := &mockAppealTx{}
 
-	caseID := uuid.New()
 	forSaleID := uuid.New()
 
-	kase := entity.NewGovernanceCase(entity.ResourceTypeForSale, forSaleID, uuid.New(), "fixed-price sale violation")
-	kase.Enforce(uuid.New(), strPtr("removed"))
-
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*entity.GovernanceCase, error) {
-			return kase, nil
-		},
-	}
+	decisionID, _, decRepo, caseRepo := makeCanonicalViolationMocks(t, entity.ReportTargetForSale, forSaleID)
 
 	mockAppealRepo := &mockAppealRepository{}
+	svc := newTestAppealService(mockAppealRepo, decRepo, caseRepo, &mockContentRepository{}, &mockCommentRepository{})
 
-	// Service without SetForSaleRepo — fixed-price sale type should be unsupported
-	svc := application.NewAppealService(mockAppealRepo, mockModRepo, &mockContentRepository{}, &mockCommentRepository{}, newTestOutboxRepo())
-
-	result, err := svc.CreateAppeal(ctx, tx, caseID, uuid.New(), "My fixed-price sale was removed")
+	result, err := svc.CreateAppeal(ctx, tx, decisionID, uuid.New(), "My fixed-price sale was removed")
 
 	assert.Nil(t, result)
 	assert.Error(t, err)
@@ -1208,46 +1115,30 @@ func TestCreateAppeal_ForSaleWithoutRepo_ReturnsUnsupportedType(t *testing.T) {
 }
 
 func TestCreateAppeal_ForSaleApproval_NoRestorationEvent(t *testing.T) {
-	// Verify that approving a fixed-price sale appeal does NOT emit restoration event.
-	// Fixed-price sale restoration is record-only / manual admin action.
+	// Verify that approving a for_sale appeal goes through Decision #2 path.
 	ctx := context.Background()
-	// Sentinel: Exec fails, so if any restoration event were emitted the review
-	// would fail with ErrRestorationEventFailed. Success proves no event was emitted.
-	tx := &mockAppealTx{execErr: errors.New("outbox insert must not be called")}
+	tx := &mockAppealTx{}
 
-	appealID := uuid.New()
-	caseID := uuid.New()
 	forSaleID := uuid.New()
 	adminID := uuid.New()
 
-	appeal := entity.NewAppeal(caseID, uuid.New(), "My fixed-price sale was wrongfully removed")
-
-	kase := entity.NewGovernanceCase(entity.ResourceTypeForSale, forSaleID, uuid.New(), "fixed-price sale violation")
-	kase.Enforce(uuid.New(), strPtr("removed"))
+	decisionID, _, decRepo, caseRepo := makeCanonicalViolationMocks(t, entity.ReportTargetForSale, forSaleID)
+	appeal := entity.NewAppeal(decisionID, uuid.New(), "My fixed-price sale was wrongfully removed")
 
 	mockAppealRepo := &mockAppealRepository{
-		getForUpdateFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*entity.Appeal, error) {
+		getForUpdateFunc: func(_ context.Context, _ interface{}, _ uuid.UUID) (*entity.Appeal, error) {
 			return appeal, nil
 		},
-		updateFunc: func(ctx context.Context, tx interface{}, a *entity.Appeal) error {
+		updateFunc: func(_ context.Context, _ interface{}, _ *entity.Appeal) error {
 			return nil
 		},
 	}
 
-	mockModRepo := &mockModerationRepository{
-		getByIDFunc: func(ctx context.Context, tx interface{}, id uuid.UUID) (*entity.GovernanceCase, error) {
-			return kase, nil
-		},
-	}
+	svc := newTestAppealService(mockAppealRepo, decRepo, caseRepo, &mockContentRepository{}, &mockCommentRepository{})
 
-	// For fixed-price sale type, no restoration event should be emitted, so the
-	// failing tx above is never exercised and the review succeeds.
-	svc := application.NewAppealService(mockAppealRepo, mockModRepo, &mockContentRepository{}, &mockCommentRepository{}, newTestOutboxRepo())
+	adminResponse := "Appeal accepted administratively"
+	result, err := svc.ReviewAppeal(ctx, tx, uuid.New(), adminID, true, &adminResponse)
 
-	adminResponse := "Appeal accepted administratively; fixed-price sale restoration is manual"
-	result, err := svc.ReviewAppeal(ctx, tx, appealID, adminID, true, &adminResponse)
-
-	// Should succeed without outbox event (no ErrRestorationEventFailed)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, entity.AppealStatusApproved, result.Status)

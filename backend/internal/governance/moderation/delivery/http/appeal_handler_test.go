@@ -17,7 +17,6 @@ import (
 	appealEntity "github.com/labuda/backend/internal/governance/moderation/entity"
 	"github.com/labuda/backend/internal/platform/capability"
 	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
-	outboxInfraRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
 	contentEntity "github.com/labuda/backend/internal/social/content/entity"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/stretchr/testify/assert"
@@ -68,6 +67,9 @@ func (f *fakeAppealRepository) ListByUser(ctx context.Context, tx interface{}, u
 func (f *fakeAppealRepository) ListByCase(ctx context.Context, tx interface{}, caseID uuid.UUID) ([]*appealEntity.Appeal, error) {
 	panic("fakeAppealRepository.ListByCase: not used by GetAppeal, should not be called")
 }
+func (f *fakeAppealRepository) ListByDecisionID(ctx context.Context, tx interface{}, decisionID uuid.UUID) ([]*appealEntity.Appeal, error) {
+	panic("fakeAppealRepository.ListByDecisionID: not used by GetAppeal, should not be called")
+}
 func (f *fakeAppealRepository) ListAll(ctx context.Context, tx interface{}, statusFilter *appealEntity.AppealStatus, limit, offset int) ([]*appealEntity.Appeal, error) {
 	panic("fakeAppealRepository.ListAll: not used by GetAppeal, should not be called")
 }
@@ -75,42 +77,47 @@ func (f *fakeAppealRepository) ListPending(ctx context.Context, tx interface{}, 
 	panic("fakeAppealRepository.ListPending: not used by GetAppeal, should not be called")
 }
 
-// unusedModerationRepository satisfies moderationrepo.ModerationRepository
-// structurally. GetAppeal never touches it.
-type unusedModerationRepository struct{}
+// fakeDecisionRepository is a minimal stub for DecisionRepository.
+// Only used to satisfy AppealService constructor; never exercised by GetAppeal.
+type fakeDecisionRepository struct{}
 
-func (unusedModerationRepository) Create(ctx context.Context, tx interface{}, caseEntity *appealEntity.GovernanceCase) error {
-	panic("unusedModerationRepository.Create: should not be called by GetAppeal")
+func (fakeDecisionRepository) Create(_ context.Context, _ db.Tx, _ *appealEntity.Decision) error {
+	panic("fakeDecisionRepository.Create: not used")
 }
-func (unusedModerationRepository) GetByID(ctx context.Context, tx interface{}, caseID uuid.UUID) (*appealEntity.GovernanceCase, error) {
-	panic("unusedModerationRepository.GetByID: should not be called by GetAppeal")
+func (fakeDecisionRepository) GetByID(_ context.Context, _ db.Tx, _ uuid.UUID) (*appealEntity.Decision, error) {
+	panic("fakeDecisionRepository.GetByID: not used")
 }
-func (unusedModerationRepository) GetForUpdate(ctx context.Context, tx interface{}, caseID uuid.UUID) (*appealEntity.GovernanceCase, error) {
-	panic("unusedModerationRepository.GetForUpdate: should not be called by GetAppeal")
+func (fakeDecisionRepository) ListByCase(_ context.Context, _ db.Tx, _ uuid.UUID, _, _ int) ([]*appealEntity.Decision, error) {
+	panic("fakeDecisionRepository.ListByCase: not used")
 }
-func (unusedModerationRepository) Update(ctx context.Context, tx interface{}, caseEntity *appealEntity.GovernanceCase) error {
-	panic("unusedModerationRepository.Update: should not be called by GetAppeal")
+
+// fakeCaseRepository is a minimal stub for CaseRepository.
+type fakeCaseRepository struct{}
+
+func (fakeCaseRepository) FindOrCreateOpenCase(_ context.Context, _ db.Tx, _ appealEntity.ReportTargetType, _ uuid.UUID) (*appealEntity.CanonicalCase, error) {
+	panic("fakeCaseRepository.FindOrCreateOpenCase: not used")
 }
-func (unusedModerationRepository) ListPending(ctx context.Context, tx interface{}, limit, offset int) ([]*appealEntity.GovernanceCase, error) {
-	panic("unusedModerationRepository.ListPending: should not be called by GetAppeal")
+func (fakeCaseRepository) GetByID(_ context.Context, _ db.Tx, _ uuid.UUID) (*appealEntity.CanonicalCase, error) {
+	panic("fakeCaseRepository.GetByID: not used")
 }
-func (unusedModerationRepository) ListByResource(ctx context.Context, tx interface{}, resourceType appealEntity.ResourceType, resourceID uuid.UUID) ([]*appealEntity.GovernanceCase, error) {
-	panic("unusedModerationRepository.ListByResource: should not be called by GetAppeal")
+func (fakeCaseRepository) ListBySubject(_ context.Context, _ db.Tx, _ appealEntity.ReportTargetType, _ uuid.UUID, _, _ int) ([]*appealEntity.CanonicalCase, error) {
+	panic("fakeCaseRepository.ListBySubject: not used")
 }
-func (unusedModerationRepository) ListByReporter(ctx context.Context, tx interface{}, reporterID uuid.UUID, limit, offset int) ([]*appealEntity.GovernanceCase, error) {
-	panic("unusedModerationRepository.ListByReporter: should not be called by GetAppeal")
+func (fakeCaseRepository) ResolveCase(_ context.Context, _ db.Tx, _ uuid.UUID) error {
+	panic("fakeCaseRepository.ResolveCase: not used")
 }
-func (unusedModerationRepository) ListWithStatus(ctx context.Context, tx interface{}, statusFilter *appealEntity.GovernanceCaseStatus, resourceTypeFilter *appealEntity.ResourceType, limit, offset int) ([]*appealEntity.GovernanceCase, int64, error) {
-	panic("unusedModerationRepository.ListWithStatus: should not be called by GetAppeal")
+func (fakeCaseRepository) ListAll(_ context.Context, _ db.Tx, _ *appealEntity.CaseStatus, _, _ int) ([]*appealEntity.CanonicalCase, error) {
+	panic("fakeCaseRepository.ListAll: not used")
 }
-func (unusedModerationRepository) ResourceExists(ctx context.Context, tx interface{}, resourceType appealEntity.ResourceType, resourceID uuid.UUID) (bool, error) {
-	panic("unusedModerationRepository.ResourceExists: should not be called by GetAppeal")
+func (fakeCaseRepository) CountAll(_ context.Context, _ db.Tx, _ *appealEntity.CaseStatus) (int, error) {
+	panic("fakeCaseRepository.CountAll: not used")
 }
-func (unusedModerationRepository) HasUserReportedResource(ctx context.Context, tx interface{}, reporterID uuid.UUID, resourceType appealEntity.ResourceType, resourceID uuid.UUID) (bool, error) {
-	panic("unusedModerationRepository.HasUserReportedResource: should not be called by GetAppeal")
-}
-func (unusedModerationRepository) ValidateChatMessageReporter(ctx context.Context, tx interface{}, messageID uuid.UUID, reporterID uuid.UUID) (bool, string, error) {
-	panic("unusedModerationRepository.ValidateChatMessageReporter: should not be called by GetAppeal")
+
+// fakeTransactor provides a no-op db.Transactor for test construction.
+type fakeTransactor struct{}
+
+func (fakeTransactor) WithTx(_ context.Context, fn func(db.Tx) error) error {
+	return fn(nil)
 }
 
 // unusedContentRepository satisfies contentRepo.ContentRepository
@@ -143,6 +150,12 @@ func (unusedContentRepository) GetTagsByContentID(ctx context.Context, tx interf
 }
 func (unusedContentRepository) InsertTags(ctx context.Context, tx interface{}, contentID uuid.UUID, tags []string) error {
 	panic("unusedContentRepository.InsertTags: should not be called by GetAppeal")
+}
+func (unusedContentRepository) GetMentionedUserIDs(_ context.Context, _ interface{}, _ uuid.UUID) ([]uuid.UUID, error) {
+	panic("unusedContentRepository.GetMentionedUserIDs: should not be called by GetAppeal")
+}
+func (unusedContentRepository) InsertMentionedUsers(_ context.Context, _ interface{}, _ uuid.UUID, _ []uuid.UUID) error {
+	panic("unusedContentRepository.InsertMentionedUsers: should not be called by GetAppeal")
 }
 
 // unusedCommentRepository satisfies contentrepository.CommentRepository
@@ -188,6 +201,9 @@ func (unusedCommentRepository) SoftDelete(ctx context.Context, tx db.Tx, id uuid
 func (unusedCommentRepository) Restore(ctx context.Context, tx db.Tx, id uuid.UUID) error {
 	panic("unusedCommentRepository.Restore: should not be called by GetAppeal")
 }
+func (unusedCommentRepository) FindTargetIDByCommerceReference(_ context.Context, _ db.Tx, _ uuid.UUID) (uuid.UUID, error) {
+	panic("unusedCommentRepository.FindTargetIDByCommerceReference: should not be called by GetAppeal")
+}
 
 // fakeAppealDB implements db.Transactor without a live Postgres connection.
 // AppealRepository.GetByID's tx parameter is untyped (interface{}), so a nil
@@ -224,12 +240,12 @@ func TestCreateAppeal(t *testing.T) {
 
 	handler := NewAppealHandler(nil, nil, log, fakeAdminAuditLogger{})
 
-	caseID := uuid.New()
+	decisionID := uuid.New()
 
 	// Create request body
 	reqBody := CreateAppealRequest{
-		CaseID:  caseID.String(),
-		Message: "This is a mistake",
+		DecisionID: decisionID.String(),
+		Message:    "This is a mistake",
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -355,14 +371,14 @@ func TestAppealToResponse(t *testing.T) {
 	log := zap.NewNop()
 	handler := NewAppealHandler(nil, nil, log, fakeAdminAuditLogger{})
 
-	caseID := uuid.New()
+	decisionID := uuid.New()
 	userID := uuid.New()
-	appeal := appealEntity.NewAppeal(caseID, userID, "Test appeal message")
+	appeal := appealEntity.NewAppeal(decisionID, userID, "Test appeal message")
 
 	resp := handler.appealToResponse(appeal)
 
 	assert.Equal(t, appeal.ID, resp["id"])
-	assert.Equal(t, caseID, resp["case_id"])
+	assert.Equal(t, decisionID, resp["decision_id"])
 	assert.Equal(t, "pending", resp["status"])
 	assert.Equal(t, "Test appeal message", resp["message"])
 	assert.NotNil(t, resp["created_at"])
@@ -657,12 +673,17 @@ func setupGetAppealRouterWithUser(handler *AppealHandler, userID uuid.UUID) *gin
 // panic-if-called stubs / a zero-value struct — see the fakes above.
 func newRealAppealServiceForGetAppeal(getByID func(ctx context.Context, tx interface{}, appealID uuid.UUID) (*appealEntity.Appeal, error)) *appealApp.AppealService {
 	repo := &fakeAppealRepository{getByIDFunc: getByID}
+	fakeDecRepo := &fakeDecisionRepository{}
+	fakeCaseRepo := &fakeCaseRepository{}
+	dbTx := &fakeTransactor{}
+	decisionService := appealApp.NewDecisionService(dbTx, fakeCaseRepo, fakeDecRepo, nil, nil, nil)
 	return appealApp.NewAppealService(
 		repo,
-		unusedModerationRepository{},
-		unusedContentRepository{},
-		unusedCommentRepository{},
-		&outboxInfraRepo.OutboxRepository{},
+		fakeDecRepo,
+		fakeCaseRepo,
+		decisionService,
+		&unusedContentRepository{},
+		&unusedCommentRepository{},
 	)
 }
 

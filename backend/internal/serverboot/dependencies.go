@@ -2392,10 +2392,10 @@ func InitServices(
 	// domain (Slice 9) still depends on ModerationRepository.GetByID. This is
 	// runtime-dead (moderation_cases dropped in 000056) and is replaced when
 	// the Appeal domain is rebuilt. It is NOT wired to any Report/Case path.
-	// moderationRepository is kept for Appeal domain compilation (FUTURE DEPENDENCY).
-	// It reads the dropped moderation_cases table — always fails at runtime.
-	// Will be removed when Appeal domain is rebuilt against canonical cases.
-	moderationRepository := moderationRepo.NewModerationRepository()
+	// moderationRepository (LEGACY) — Appeal domain no longer uses it.
+	// Kept temporarily for GovernanceCase entity compilation continuity.
+	// TODO: Delete GovernanceCase + ModerationRepository in cleanup slice.
+	_ = moderationRepo.NewModerationRepository() // unused — Appeal now uses decisionRepository + caseRepository
 
 	// ===== SOCIAL MODULE =====
 	// Initialize social service for follow/block/mute operations
@@ -2618,7 +2618,7 @@ func InitServices(
 
 	// 2. Appeal Handler - Appeals system for moderation decisions
 	appealRepository := appealInfraRepo.NewAppealRepository()
-	appealSvc := appealApp.NewAppealService(appealRepository, moderationRepository, contentRepo, commentRepo, outboxRepository)
+	appealSvc := appealApp.NewAppealService(appealRepository, decisionRepository, caseRepository, decisionService, contentRepo, commentRepo)
 	// Wire forSale/auction repos for expanded appeal eligibility (forSale/auction/user).
 	// These are record-only appeals: no auto-restoration; approval is administrative.
 	appealSvc.SetForSaleRepo(forSaleRepo.NewForSaleRepository())

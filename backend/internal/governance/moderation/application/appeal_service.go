@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -10,7 +9,6 @@ import (
 	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
 	"github.com/labuda/backend/internal/governance/moderation/entity"
 	moderationrepo "github.com/labuda/backend/internal/governance/moderation/infrastructure/repository"
-	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
 	contentRepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
 	contentrepository "github.com/labuda/backend/internal/social/content/repository"
 	"github.com/labuda/backend/pkg/db"
@@ -28,50 +26,98 @@ type auctionOwnerRepo interface {
 	GetByID(ctx context.Context, tx db.Tx, id uuid.UUID) (*auctionEntity.Auction, error)
 }
 
+// ============================================================================
+// APPEAL CONTEXT — Read model for canonical Decision→Case→Subject resolution
+// ============================================================================
+
+// AppealContext provides the canonical context for an Appeal.
+// It resolves Decision → Case → Subject and optionally the latest Enforcement.
+//
+// This is a READ MODEL / QUERY abstraction only.
+// It does NOT create another governance state table.
+type AppealContext struct {
+	Decision   *entity.Decision
+	Case       *entity.CanonicalCase
+	Enforcement *entity.Enforcement // latest enforcement for this Decision (may be nil)
+}
+
+// SubjectResourceType returns the Case's subject type as a ResourceType
+// suitable for the ownership lookup.
+func (c *AppealContext) SubjectResourceType() entity.ResourceType {
+	if c.Case == nil {
+		return ""
+	}
+	return entity.ResourceType(c.Case.SubjectType.String())
+}
+
+// SubjectID returns the Case's subject ID.
+func (c *AppealContext) SubjectID() uuid.UUID {
+	if c.Case == nil {
+		return uuid.Nil
+	}
+	return c.Case.SubjectID
+}
+
+// ============================================================================
+// APPEAL SERVICE
+// ============================================================================
+
 // AppealService handles appeal business logic.
 //
+// SLICE A: Canonical alignment — Appeal → Decision.
+// Dependencies use canonical DecisionRepository + CaseRepository (NOT ModerationRepository).
+//
 // DOMAIN TERMINOLOGY:
-// - REPORT: User action that created a CASE
-// - CASE: Moderation case that was reviewed (now being appealed)
-// - APPEAL: User contest of a moderation decision
+// - DECISION: Governance outcome being appealed
+// - CASE: The subject being governed (via Decision → Case)
+// - APPEAL: User contest of a Decision's outcome
 //
 // V1 APPEALABLE TYPES:
-// - content removed → auto-restore on approval via outbox event
-// - comment removed → auto-restore on approval via outbox event
-// - fixed-price sale removed → record-only; approval is administrative, restoration is manual
-// - auction cancelled → record-only; auction cannot be auto-restored (bids/timing lost)
+// - content removed → auto-restore on approval via outbox event (DEFERRED TO SLICE B)
+// - comment removed → auto-restore on approval via outbox event (DEFERRED TO SLICE B)
+// - fixed-price sale removed → record-only; approval is administrative
+// - auction cancelled → record-only; auction cannot be auto-restored
 // - user suspended → record-only; account reinstatement is manual admin action
 //
 // NON-APPEALABLE (V1):
 // - chat_message hidden → too low trust-impact
-// - warning issued → passive record; admin can revoke directly
+// - no_violation Decisions → pure rejection/no-action (Design §23)
 type AppealService struct {
 	appealRepo     moderationrepo.AppealRepository
-	moderationRepo moderationrepo.ModerationRepository
+	decisionRepo   moderationrepo.DecisionRepository
+	caseRepo       moderationrepo.CaseRepository
+	decisionService *DecisionService
 	contentRepo    contentRepo.ContentRepository
 	commentRepo    contentrepository.CommentRepository
-	outboxRepo     *outboxRepo.OutboxRepository
 
 	// Optional: set via SetForSaleRepo / SetAuctionRepo after construction.
-	// If nil, fixed-price sale/auction resource-type appeals return ErrUnsupportedResourceType.
-	forSaleRepo forSaleOwnerRepo
-	auctionRepo auctionOwnerRepo
+	forSaleRepo  forSaleOwnerRepo
+	auctionRepo  auctionOwnerRepo
 }
 
 // NewAppealService creates a new AppealService.
-// Panics at boot time if any required dependency is nil.
+// SLICE A: Uses canonical DecisionRepository + CaseRepository instead of ModerationRepository.
+// SLICE B: outboxRepo removed — restoration authority is via Decision #2 + Outbox
+// in DecisionService, not AppealService.
 func NewAppealService(
 	appealRepo moderationrepo.AppealRepository,
-	moderationRepo moderationrepo.ModerationRepository,
+	decisionRepo moderationrepo.DecisionRepository,
+	caseRepo moderationrepo.CaseRepository,
+	decisionService *DecisionService,
 	contentRepo contentRepo.ContentRepository,
 	commentRepo contentrepository.CommentRepository,
-	outboxRepo *outboxRepo.OutboxRepository,
 ) *AppealService {
 	if appealRepo == nil {
 		panic("NewAppealService: appealRepo must not be nil")
 	}
-	if moderationRepo == nil {
-		panic("NewAppealService: moderationRepo must not be nil")
+	if decisionRepo == nil {
+		panic("NewAppealService: decisionRepo must not be nil")
+	}
+	if caseRepo == nil {
+		panic("NewAppealService: caseRepo must not be nil")
+	}
+	if decisionService == nil {
+		panic("NewAppealService: decisionService must not be nil")
 	}
 	if contentRepo == nil {
 		panic("NewAppealService: contentRepo must not be nil (supports content appeals)")
@@ -79,96 +125,144 @@ func NewAppealService(
 	if commentRepo == nil {
 		panic("NewAppealService: commentRepo must not be nil (supports comment appeals)")
 	}
-	if outboxRepo == nil {
-		panic("NewAppealService: outboxRepo must not be nil")
-	}
 	return &AppealService{
-		appealRepo:     appealRepo,
-		moderationRepo: moderationRepo,
-		contentRepo:    contentRepo,
-		commentRepo:    commentRepo,
-		outboxRepo:     outboxRepo,
+		appealRepo:      appealRepo,
+		decisionRepo:    decisionRepo,
+		caseRepo:        caseRepo,
+		decisionService: decisionService,
+		contentRepo:     contentRepo,
+		commentRepo:     commentRepo,
 	}
 }
 
 // SetForSaleRepo wires the fixed-price sale repository for appeal eligibility.
-// Call from serverboot after construction. If not called, fixed-price sale appeals return
-// ErrUnsupportedResourceType.
 func (s *AppealService) SetForSaleRepo(r forSaleOwnerRepo) {
 	s.forSaleRepo = r
 }
 
 // SetAuctionRepo wires the auction repository for auction-type appeal eligibility.
-// Call from serverboot after construction. If not called, auction appeals return
-// ErrUnsupportedResourceType.
 func (s *AppealService) SetAuctionRepo(r auctionOwnerRepo) {
 	s.auctionRepo = r
 }
 
-// CreateAppeal creates a new appeal for a moderation decision.
+// ============================================================================
+// APPEAL CONTEXT RESOLUTION
+// ============================================================================
+
+// resolveAppealContext resolves the canonical context for an Appeal.
+// It fetches Decision → Case → Enforcement in sequence.
 //
-// DOMAIN TERMINOLOGY:
-// - caseID: The moderation CASE being appealed (was created from a user report)
-// - appealedBy: User creating the appeal (resource owner)
+// Returns AppealContext with at least Decision populated.
+// Case may be nil if the Case does not exist (should not happen in normal operation).
+// Enforcement may be nil if no Enforcement exists for this Decision.
+func (s *AppealService) resolveAppealContext(
+	ctx context.Context,
+	tx interface{},
+	decisionID uuid.UUID,
+) (*AppealContext, error) {
+	dbTx, ok := tx.(db.Tx)
+	if !ok {
+		return nil, fmt.Errorf("invalid transaction type")
+	}
+
+	// 1. Fetch Decision
+	decision, err := s.decisionRepo.GetByID(ctx, dbTx, decisionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch decision: %w", err)
+	}
+	if decision == nil {
+		return nil, &entity.ErrDecisionNotFound{DecisionID: decisionID}
+	}
+
+	// 2. Fetch Case (via decision.case_id)
+	kase, err := s.caseRepo.GetByID(ctx, dbTx, decision.CaseID)
+	if err != nil {
+		// Case not found is non-fatal — return appeal context without Case
+		return &AppealContext{Decision: decision}, nil
+	}
+
+	// 3. Fetch latest Enforcement (best-effort, may be nil)
+	enforcements, err := s.decisionRepo.ListByCase(ctx, dbTx, decision.CaseID, 1, 0)
+	_ = enforcements // Not used directly; enforcement lookup is via separate path
+
+	// For now, Enforcement is not resolved in the context.
+	// Slice B will add full Enforcement resolution.
+	ctx_result := &AppealContext{
+		Decision: decision,
+		Case:     kase,
+	}
+
+	return ctx_result, nil
+}
+
+// ============================================================================
+// CREATE APPEAL
+// ============================================================================
+
+// CreateAppeal creates a new appeal for a governance Decision.
 //
-// Business rules:
-// - Only the resource owner can appeal (content author, fixed-price sale seller, etc.)
-// - Suspended users may appeal their own account suspension (route is RequireAuth only)
-// - Only one pending appeal per case at a time (enforced atomically)
-// - Appeals can only be created for terminal cases (enforced or rejected)
-// - Returns typed domain errors for all validation failures
+// SLICE A: Canonical alignment — appeal targets Decision, not GovernanceCase.
 //
-// Concurrency safety: Uses DB-level atomic check-and-insert to prevent
-// duplicate pending appeals even under concurrent requests.
+// Business rules (Design §23):
+// - Appeal is available to the affected party of a Decision with consequences
+// - Pure rejection/no-action Decisions are NOT appealable (Design §23)
+// - Only one pending appeal per Decision at a time (Design §35)
+// - Suspended users may appeal their own account suspension
+//
+// Concurrency safety: Uses DB-level atomic check-and-insert.
 func (s *AppealService) CreateAppeal(
 	ctx context.Context,
 	tx interface{},
-	caseID uuid.UUID,
+	decisionID uuid.UUID,
 	appealedBy uuid.UUID,
 	message string,
 ) (*entity.Appeal, error) {
-	// 1. Verify the moderation case exists
-	kase, err := s.moderationRepo.GetByID(ctx, tx, caseID)
+	// 1. Resolve canonical context: Decision → Case → Subject
+	appealCtx, err := s.resolveAppealContext(ctx, tx, decisionID)
 	if err != nil {
-		// Check if this is a "not found" error
-		if containsIgnoreCase(err.Error(), "not found") {
-			return nil, &entity.ErrCaseNotFound{CaseID: caseID}
+		return nil, err
+	}
+
+	// 2. Verify the Decision produces consequences (Design §23)
+	// no_violation Decisions are NOT appealable
+	if appealCtx.Decision.Outcome == entity.DecisionOutcomeNoViolation {
+		return nil, &entity.ErrDecisionNotAppealable{
+			DecisionID: decisionID,
+			Outcome:    appealCtx.Decision.Outcome,
 		}
-		return nil, fmt.Errorf("failed to fetch moderation case: %w", err)
 	}
 
-	// 2. Verify the case is in a terminal state (only removed/rejected can be appealed)
-	// Approved cases don't need appeal as content was not removed
-	if kase.Status != entity.GovernanceCaseStatusEnforced && kase.Status != entity.GovernanceCaseStatusRejected {
-		return nil, &entity.ErrCaseNotAppealable{CaseID: kase.ID, Status: kase.Status}
+	// 3. Verify Case exists and has a subject
+	if appealCtx.Case == nil {
+		return nil, &entity.ErrDecisionNotFound{DecisionID: decisionID}
 	}
 
-	// 3. Verify ownership - the appealedBy user must own the moderated resource
-	resourceOwnerID, err := s.getResourceOwner(ctx, tx, kase.ResourceType, kase.ResourceID)
+	// 4. Verify ownership — the appealedBy user must own the moderated resource
+	resourceType := appealCtx.SubjectResourceType()
+	resourceID := appealCtx.SubjectID()
+
+	resourceOwnerID, err := s.getResourceOwner(ctx, tx, resourceType, resourceID)
 	if err != nil {
 		if containsIgnoreCase(err.Error(), "not found") {
-			return nil, &entity.ErrCaseNotFound{CaseID: caseID}
+			return nil, &entity.ErrDecisionNotFound{DecisionID: decisionID}
 		}
 		return nil, fmt.Errorf("failed to verify resource ownership: %w", err)
 	}
 
 	if resourceOwnerID != appealedBy {
 		return nil, &entity.ErrNotResourceOwner{
-			CaseID:       kase.ID,
-			ResourceID:   kase.ResourceID,
+			DecisionID:   decisionID,
+			ResourceID:   resourceID,
 			UserID:       appealedBy,
-			ResourceType: string(kase.ResourceType),
+			ResourceType: string(resourceType),
 		}
 	}
 
-	// 4. Create and persist the appeal with atomic duplicate check
-	// The repository method ensures no two concurrent requests can create
-	// pending appeals for the same report
-	appeal := entity.NewAppeal(caseID, appealedBy, message)
+	// 5. Create and persist the appeal with atomic duplicate check
+	appeal := entity.NewAppeal(decisionID, appealedBy, message)
 	if err := s.appealRepo.CreateWithPendingCheck(ctx, tx, appeal); err != nil {
-		// Handle the specific duplicate error
 		if isDuplicatePendingError(err) {
-			return nil, &entity.ErrDuplicatePendingAppeal{CaseID: caseID}
+			return nil, &entity.ErrDuplicatePendingAppeal{DecisionID: decisionID}
 		}
 		return nil, fmt.Errorf("failed to create appeal: %w", err)
 	}
@@ -185,15 +279,14 @@ func isDuplicatePendingError(err error) bool {
 	return ok
 }
 
+// ============================================================================
+// OWNERSHIP
+// ============================================================================
+
 // getResourceOwner retrieves the owner ID of a resource by type.
 // Returns the owner's user ID or ErrUnsupportedResourceType for non-appealable types.
 //
-// Ownership semantics per type:
-// - content: AuthorID (social content creator)
-// - comment: AuthorID (comment author)
-// - fixed-price sale: SellerID (fixed-price sale seller) — requires SetForSaleRepo
-// - auction: SellerID (auction seller) — requires SetAuctionRepo
-// - user: ResourceID itself (the user is their own resource owner — for suspension appeals)
+// SLICE A: Uses ResourceType (derived from Case.SubjectType).
 func (s *AppealService) getResourceOwner(
 	ctx context.Context,
 	tx interface{},
@@ -209,7 +302,6 @@ func (s *AppealService) getResourceOwner(
 		return content.AuthorID, nil
 
 	case entity.ResourceTypeComment:
-		// Comment repository requires db.Tx type, do type assertion
 		dbTx, ok := tx.(db.Tx)
 		if !ok {
 			return uuid.Nil, fmt.Errorf("invalid transaction type for comment repository")
@@ -250,7 +342,6 @@ func (s *AppealService) getResourceOwner(
 
 	case entity.ResourceTypeUser:
 		// For user suspension appeals, the suspended user IS the resource.
-		// The user can only appeal their own suspension (resourceID == appealedBy).
 		return resourceID, nil
 
 	default:
@@ -258,32 +349,9 @@ func (s *AppealService) getResourceOwner(
 	}
 }
 
-// isAutoRestorableType returns true for resource types where appeal approval
-// triggers an automatic outbox restoration event (content, comment).
-//
-// For fixed-price sale/auction/user, approval is administrative record-only.
-// Restoration/reinstatement requires separate manual admin action.
-func isAutoRestorableType(rt entity.ResourceType) bool {
-	return rt == entity.ResourceTypeContent || rt == entity.ResourceTypeComment
-}
-
-// containsIgnoreCase checks if a string contains a substring (case-insensitive).
-func containsIgnoreCase(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (
-	// Simple case-insensitive contains check for common error patterns
-	s[len(s)-len(substr):] == substr || // suffix check
-		s[:len(substr)] == substr || // prefix check
-		customContains(s, substr)))
-}
-
-func customContains(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
+// ============================================================================
+// READ OPERATIONS
+// ============================================================================
 
 // GetAppeal retrieves an appeal by ID.
 func (s *AppealService) GetAppeal(
@@ -294,25 +362,39 @@ func (s *AppealService) GetAppeal(
 	return s.appealRepo.GetByID(ctx, tx, appealID)
 }
 
-// GetAppealWithCase retrieves an appeal with its original moderation case.
-// W1-B2: Operational hardening - provides context for appeal review.
-func (s *AppealService) GetAppealWithCase(
+// GetAppealWithContext retrieves an appeal with its canonical Decision/Case context.
+// SLICE A: Replaces GetAppealWithCase — returns AppealContext instead of GovernanceCase.
+func (s *AppealService) GetAppealWithContext(
 	ctx context.Context,
 	tx interface{},
 	appealID uuid.UUID,
-) (*entity.Appeal, *entity.GovernanceCase, error) {
+) (*entity.Appeal, *AppealContext, error) {
 	appeal, err := s.appealRepo.GetByID(ctx, tx, appealID)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	kase, err := s.moderationRepo.GetByID(ctx, tx, appeal.CaseID)
+	appealCtx, err := s.resolveAppealContext(ctx, tx, appeal.DecisionID)
 	if err != nil {
-		// Return appeal but nil case if case not found
+		// Return appeal but nil context if resolution fails
 		return appeal, nil, nil
 	}
 
-	return appeal, kase, nil
+	return appeal, appealCtx, nil
+}
+
+// GetAppealWithCase is kept for backward compatibility during Slice A.
+// Returns GovernanceCase from legacy ModerationRepository.
+// DEFERRED: This method will be removed when GovernanceCase is deleted.
+func (s *AppealService) GetAppealWithCase(
+	ctx context.Context,
+	tx interface{},
+	appealID uuid.UUID,
+) (*entity.Appeal, *entity.GovernanceCase, error) {
+	// This method should not be called after Slice A.
+	// It exists only for compilation continuity.
+	// Use GetAppealWithContext instead.
+	return nil, nil, fmt.Errorf("GetAppealWithCase is deprecated: use GetAppealWithContext")
 }
 
 // ListAppealsByUser retrieves all appeals created by a specific user.
@@ -325,13 +407,14 @@ func (s *AppealService) ListAppealsByUser(
 	return s.appealRepo.ListByUser(ctx, tx, userID, limit, offset)
 }
 
-// ListAppealsByCase retrieves all appeals for a specific case.
-func (s *AppealService) ListAppealsByCase(
+// ListAppealsByDecision retrieves all appeals for a specific Decision.
+// Canonical: Decision 1 → 0..N Appeal (Design §5).
+func (s *AppealService) ListAppealsByDecision(
 	ctx context.Context,
 	tx interface{},
-	caseID uuid.UUID,
+	decisionID uuid.UUID,
 ) ([]*entity.Appeal, error) {
-	return s.appealRepo.ListByCase(ctx, tx, caseID)
+	return s.appealRepo.ListByDecisionID(ctx, tx, decisionID)
 }
 
 // ListPendingAppeals retrieves pending appeals awaiting admin review.
@@ -353,18 +436,19 @@ func (s *AppealService) ListAllAppeals(
 	return s.appealRepo.ListAll(ctx, tx, statusFilter, limit, offset)
 }
 
+// ============================================================================
+// REVIEW APPEAL
+// ============================================================================
+
 // ReviewAppeal reviews an appeal and applies a decision.
 //
-// Business rules:
-// - Only pending appeals can be reviewed
-// - Approved content/comment appeals trigger auto-restoration via outbox event
-// - Approved fixed-price sale/auction/user appeals are record-only (no auto-restoration)
-// - Rejected appeals uphold the original moderation decision
+// SLICE B: Canonical Appeal reversal path.
+// Creates Decision #2 atomically via DecisionService.
 //
-// Transaction safety: Restoration events are emitted BEFORE appeal state changes
-// to ensure consistency. If restoration fails, the appeal remains pending and can
-// be retried. This prevents split-brain where appeal is approved but restoration
-// event is not persisted.
+// TRANSACTION INVARIANT: All operations (appeal lock, Decision #2,
+// Enforcement #2, Outbox, Audit, Appeal status update) execute within
+// the SAME transaction provided by the caller. The caller (handler)
+// owns the transaction boundary via db.WithTx.
 func (s *AppealService) ReviewAppeal(
 	ctx context.Context,
 	tx interface{},
@@ -373,61 +457,68 @@ func (s *AppealService) ReviewAppeal(
 	approved bool,
 	adminResponse *string,
 ) (*entity.Appeal, error) {
+	// Type-assert tx to db.Tx for DecisionService
+	dbTx, ok := tx.(db.Tx)
+	if !ok {
+		return nil, fmt.Errorf("invalid transaction type: ReviewAppeal requires db.Tx")
+	}
+
 	// Get appeal with FOR UPDATE lock to prevent concurrent reviews
 	appeal, err := s.appealRepo.GetForUpdate(ctx, tx, appealID)
 	if err != nil {
 		return nil, err
 	}
 
-	// For approval, we need to emit restoration event BEFORE updating appeal state.
-	// This ensures that if event emission fails, the appeal is still pending and
-	// the operation can be retried without leaving inconsistent state.
-	if approved {
-		// Type-assert tx to db.Tx for outbox operations
-		dbTx, ok := tx.(db.Tx)
-		if !ok {
-			// Critical: cannot emit restoration event without proper transaction type
-			return nil, &entity.ErrRestorationEventFailed{
-				AppealID: appeal.ID,
-				Err:      fmt.Errorf("invalid transaction type for outbox operations"),
-			}
-		}
-
-		// Fetch the original moderation case to determine if restoration is needed
-		kase, err := s.moderationRepo.GetByID(ctx, tx, appeal.CaseID)
-		if err != nil {
-			// Critical: cannot determine if restoration is needed
-			return nil, &entity.ErrRestorationEventFailed{
-				AppealID: appeal.ID,
-				Err:      fmt.Errorf("failed to fetch moderation case for restoration: %w", err),
-			}
-		}
-
-		// Emit restoration event only for auto-restorable types (content, comment).
-		// ForSale/auction/user appeals are record-only: approval is administrative,
-		// restoration/reinstatement requires separate manual admin action.
-		if kase.Status == entity.GovernanceCaseStatusEnforced && isAutoRestorableType(kase.ResourceType) {
-			payload := s.buildRestoredPayload(kase, appeal.ID)
-			eventType := s.getRestoredEventType(kase.ResourceType)
-
-			// Emit restoration event BEFORE updating appeal status
-			// If this fails, appeal remains pending and operation can be retried
-			if err := s.outboxRepo.InsertEvent(
-				ctx, dbTx,
-				eventType,
-				kase.ResourceID,
-				payload,
-			); err != nil {
-				return nil, &entity.ErrRestorationEventFailed{
-					AppealID: appeal.ID,
-					Err:      fmt.Errorf("failed to emit restoration event: %w", err),
-				}
-			}
+	// Check appeal is still pending (defense-in-depth after FOR UPDATE lock)
+	if !appeal.Status.IsPending() {
+		return nil, &entity.ErrAppealAlreadyReviewed{
+			AppealID: appeal.ID,
+			Status:   appeal.Status,
 		}
 	}
 
-	// Apply the decision after restoration event is emitted (for approval)
-	// or directly (for rejection)
+	// Resolve canonical context for the appealed Decision
+	appealCtx, err := s.resolveAppealContext(ctx, tx, appeal.DecisionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve appeal context: %w", err)
+	}
+
+	if appealCtx == nil || appealCtx.Case == nil {
+		return nil, fmt.Errorf("appeal context incomplete: cannot resolve case")
+	}
+
+	// Determine Decision #2 outcome based on review result.
+	var decisionOutcome entity.DecisionOutcome
+	var targetType entity.ModerationTargetType
+	var targetID uuid.UUID
+
+	if approved {
+		// Reversal: Decision #2 = no_violation (reversing the original violation)
+		decisionOutcome = entity.DecisionOutcomeNoViolation
+		targetType = entity.ModerationTargetType(appealCtx.SubjectResourceType())
+		targetID = appealCtx.SubjectID()
+	} else {
+		// Upheld: Decision #2 = violation (upholding the original)
+		decisionOutcome = entity.DecisionOutcomeViolation
+	}
+
+	// Create Decision #2 via canonical DecisionService — SAME transaction.
+	// This creates: Decision #2 + Enforcement #2 (if reversal) + Outbox + Audit.
+	decisionNote := adminResponse
+	_, err = s.decisionService.CreateAppealDecision(ctx, dbTx, CreateAppealDecisionInput{
+		CaseID:       appealCtx.Case.ID,
+		DecidedBy:    adminID,
+		Outcome:      decisionOutcome,
+		DecisionNote: decisionNote,
+		AppealID:     appeal.ID,
+		TargetType:   targetType,
+		TargetID:     targetID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create appeal decision: %w", err)
+	}
+
+	// Apply the appeal status transition
 	if approved {
 		err = appeal.Approve(adminID, adminResponse)
 	} else {
@@ -438,7 +529,7 @@ func (s *AppealService) ReviewAppeal(
 		return nil, err
 	}
 
-	// Persist the updated appeal
+	// Persist the updated appeal — SAME transaction as Decision #2.
 	if err := s.appealRepo.Update(ctx, tx, appeal); err != nil {
 		return nil, err
 	}
@@ -446,39 +537,25 @@ func (s *AppealService) ReviewAppeal(
 	return appeal, nil
 }
 
-// buildRestoredPayload creates the JSON payload for a restoration event.
-//
-// Event format:
-//
-//	{
-//	  "case_id": "uuid",
-//	  "appeal_id": "uuid",
-//	  "resource_type": "content|comment|...",
-//	  "resource_id": "uuid"
-//	}
-func (s *AppealService) buildRestoredPayload(kase *entity.GovernanceCase, appealID uuid.UUID) []byte {
-	type payload struct {
-		CaseID       string `json:"case_id"`
-		AppealID     string `json:"appeal_id"`
-		ResourceType string `json:"resource_type"`
-		ResourceID   string `json:"resource_id"`
-	}
-	p := payload{
-		CaseID:       kase.ID.String(),
-		AppealID:     appealID.String(),
-		ResourceType: string(kase.ResourceType),
-		ResourceID:   kase.ResourceID.String(),
-	}
-	b, _ := json.Marshal(p)
-	return b
+
+
+// ============================================================================
+// UTILITIES
+// ============================================================================
+
+// containsIgnoreCase checks if a string contains a substring (case-insensitive).
+func containsIgnoreCase(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (
+		s[len(s)-len(substr):] == substr ||
+			s[:len(substr)] == substr ||
+			customContains(s, substr)))
 }
 
-// getRestoredEventType returns the event type for a restoration.
-//
-// Format: "moderation.<resource_type>.restored"
-// Examples:
-//   - moderation.content.restored
-//   - moderation.comment.restored
-func (s *AppealService) getRestoredEventType(resourceType entity.ResourceType) string {
-	return fmt.Sprintf("moderation.%s.restored", resourceType)
+func customContains(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }
