@@ -15,6 +15,7 @@ package tests
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -412,10 +413,30 @@ func TestAppealSliceB_Upheld(t *testing.T) {
 }
 
 // ============================================================================
-// TEST C — ATOMICITY (single TX rollback proves no partial state)
+// F1 — TRUE LATE-FAILURE ATOMICITY
 // ============================================================================
+//
+// Proves genuine late-failure rollback: all preceding writes (Decision #2,
+// Enforcement #2, Outbox) SUCCEED within the TX, then the audit emitter
+// fails as the LAST operation, causing the entire TX to roll back.
+//
+// This is NOT a validation failure — all DB writes genuinely execute
+// against real PostgreSQL before the injected error.
 
-func TestAppealSliceB_AtomicityRollback(t *testing.T) {
+// failingAuditEmitter implements application.GovernanceAuditEmitter.
+// It always returns an error, simulating a failure at the audit step
+// (the LAST operation in CreateAppealDecision).
+type appealAtomicityAuditFault struct{}
+
+func (f appealAtomicityAuditFault) GovernanceDecisionCreated(
+	_ context.Context, _ db.Tx,
+	_ uuid.UUID, _ uuid.UUID, _ uuid.UUID,
+	_ string, _ map[string]interface{},
+) error {
+	return fmt.Errorf("INJECTED: audit emission forced failure for atomicity proof")
+}
+
+func TestAppealSliceB_LateFailureAtomicity(t *testing.T) {
 	tdb, cleanup := testdb.SetupDB(t)
 	defer cleanup()
 	ctx := context.Background()
@@ -428,27 +449,39 @@ func TestAppealSliceB_AtomicityRollback(t *testing.T) {
 	appealRepo := repository.NewAppealRepository()
 	reportRepo := repository.NewReportRepository()
 	obRepo := outboxRepo.NewOutboxRepository(appDB)
-	decisionService := application.NewDecisionService(appDB, realCaseRepo, decRepo, enfRepo, obRepo, nil)
 
-	// Setup users and content
+	// DecisionService for setup (nil audit = always succeeds)
+	setupDS := application.NewDecisionService(appDB, realCaseRepo, decRepo, enfRepo, obRepo, nil)
+
+	// KEY: DecisionService WITH a failing audit emitter.
+	// In CreateAppealDecision, the execution order is:
+	//   1. validate case → succeeds
+	//   2. INSERT Decision #2 → succeeds (real PG)
+	//   3. INSERT Enforcement #2 → succeeds (real PG)
+	//   4. INSERT Outbox event → succeeds (real PG)
+	//   5. INSERT Audit event → FAILS (injected)
+	// TX rolls back → ALL of 1-4 undone.
+	faultDS := application.NewDecisionService(appDB, realCaseRepo, decRepo, enfRepo, obRepo, &appealAtomicityAuditFault{})
+
+	// ── Setup: user, content, report, case, Decision #1, Appeal ──────────
 	reporterID := uuid.New()
 	_, err := pool.Exec(ctx, `INSERT INTO users (id, firebase_uid, email) VALUES ($1, $2, $3)`,
-		reporterID, uuid.NewString(), "reporter@appeal-atomicity.test")
+		reporterID, uuid.NewString(), "reporter@late-fail.test")
 	require.NoError(t, err)
 
 	contentOwnerID := uuid.New()
 	_, err = pool.Exec(ctx, `INSERT INTO users (id, firebase_uid, email) VALUES ($1, $2, $3)`,
-		contentOwnerID, uuid.NewString(), "owner@appeal-atomicity.test")
+		contentOwnerID, uuid.NewString(), "owner@late-fail.test")
 	require.NoError(t, err)
 
 	contentID := uuid.New()
 	_, err = pool.Exec(ctx, `INSERT INTO contents (author_id, caption) VALUES ($1, 'test content')`,
 		contentOwnerID)
 	require.NoError(t, err)
-	err = pool.QueryRow(ctx, `SELECT id FROM contents WHERE author_id = $1 ORDER BY created_at DESC LIMIT 1`, contentOwnerID).Scan(&contentID)
+	err = pool.QueryRow(ctx, `SELECT id FROM contents WHERE author_id = $1 ORDER BY created_at DESC LIMIT 1`,
+		contentOwnerID).Scan(&contentID)
 	require.NoError(t, err)
 
-	// Report → Case → Decision #1
 	var caseID uuid.UUID
 	err = appDB.WithTx(ctx, func(tx db.Tx) error {
 		kase, err := realCaseRepo.FindOrCreateOpenCase(ctx, tx, entity.ReportTargetContent, contentID)
@@ -456,7 +489,8 @@ func TestAppealSliceB_AtomicityRollback(t *testing.T) {
 			return err
 		}
 		caseID = kase.ID
-		report := entity.NewReport(reporterID, entity.ReportTargetContent, contentID, entity.ReportReasonProhibitedContent, nil, nil)
+		report := entity.NewReport(reporterID, entity.ReportTargetContent, contentID,
+			entity.ReportReasonProhibitedContent, nil, nil)
 		report.CaseID = &caseID
 		return reportRepo.Create(ctx, tx, report)
 	})
@@ -464,10 +498,10 @@ func TestAppealSliceB_AtomicityRollback(t *testing.T) {
 
 	adminID := uuid.New()
 	_, err = pool.Exec(ctx, `INSERT INTO users (id, firebase_uid, email) VALUES ($1, $2, $3)`,
-		adminID, uuid.NewString(), "admin@appeal-atomicity.test")
+		adminID, uuid.NewString(), "admin@late-fail.test")
 	require.NoError(t, err)
 
-	decision1, err := decisionService.CreateDecision(ctx, application.CreateDecisionInput{
+	decision1, err := setupDS.CreateDecision(ctx, application.CreateDecisionInput{
 		CaseID:     caseID,
 		DecidedBy:  adminID,
 		Outcome:    entity.DecisionOutcomeViolation,
@@ -476,7 +510,6 @@ func TestAppealSliceB_AtomicityRollback(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Appeal pending
 	var appealID uuid.UUID
 	err = appDB.WithTx(ctx, func(tx db.Tx) error {
 		appeal := entity.NewAppeal(decision1.ID, contentOwnerID, "Wrongful removal")
@@ -489,65 +522,98 @@ func TestAppealSliceB_AtomicityRollback(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// ATOMICITY TEST: Attempt review with a non-existent case_id to force
-	// CreateAppealDecision to fail AFTER appeal is locked but within the same TX.
-	// The entire TX must roll back — no partial state.
+	// ── LATE-FAILURE INJECTION ──────────────────────────────────────────
+	// Within ONE TX:
+	//   1. Lock appeal (real PG FOR UPDATE)      → succeeds
+	//   2. Resolve case (real PG SELECT)          → succeeds
+	//   3. CreateAppealDecision:                    
+	//      a. validate case (real PG SELECT)       → succeeds
+	//      b. INSERT Decision #2 (real PG)         → succeeds ← WRITTEN
+	//      c. INSERT Enforcement #2 (real PG)      → succeeds ← WRITTEN
+	//      d. INSERT Outbox event (real PG)        → succeeds ← WRITTEN
+	//      e. INSERT Audit event                   → FAILS    ← INJECTED
+	//   4. TX ROLLBACK (automatic on error)        → ALL a-d UNDONE
 	reviewerID := uuid.New()
 	_, err = pool.Exec(ctx, `INSERT INTO users (id, firebase_uid, email) VALUES ($1, $2, $3)`,
-		reviewerID, uuid.NewString(), "reviewer@appeal-atomicity.test")
+		reviewerID, uuid.NewString(), "reviewer@late-fail.test")
 	require.NoError(t, err)
 
-	fakeCaseID := uuid.New() // Non-existent case
-
 	err = appDB.WithTx(ctx, func(tx db.Tx) error {
-		// Lock appeal
-		err := pool.QueryRow(ctx, `SELECT id FROM appeals WHERE id = $1 FOR UPDATE`, appealID).Scan(&appealID)
+		// 1. Lock appeal
+		var lockedAppealID uuid.UUID
+		err := tx.QueryRow(ctx, `SELECT id FROM appeals WHERE id = $1 FOR UPDATE`, appealID).Scan(&lockedAppealID)
 		require.NoError(t, err)
 
-		// Attempt Decision #2 with non-existent case — this MUST fail
-		_, err = decisionService.CreateAppealDecision(ctx, tx, application.CreateAppealDecisionInput{
-			CaseID:       fakeCaseID, // DOES NOT EXIST
+		// 2. Resolve context
+		kase, err := realCaseRepo.GetByID(ctx, tx, caseID)
+		require.NoError(t, err)
+		require.NotNil(t, kase)
+
+		// 3. CreateAppealDecision — will write Decision #2, Enforcement #2,
+		//    Outbox, then FAIL on audit (step 5e above)
+		note := "late failure test"
+		_, err = faultDS.CreateAppealDecision(ctx, tx, application.CreateAppealDecisionInput{
+			CaseID:       caseID,
 			DecidedBy:    reviewerID,
 			Outcome:      entity.DecisionOutcomeNoViolation,
-			DecisionNote: nil,
+			DecisionNote: &note,
 			AppealID:     uuid.Nil,
 			TargetType:   entity.ModerationTargetTypeContent,
 			TargetID:     contentID,
 		})
-		// This must fail — case doesn't exist
+		// MUST return error (audit failure)
 		if err != nil {
 			return err
 		}
 		return nil
 	})
-	// The entire TX must have rolled back
-	require.Error(t, err, "Review must fail due to non-existent case")
 
-	// VERIFY: ZERO partial governance state after rollback
-	// a. No Decision #2
+	// TX MUST have rolled back
+	require.Error(t, err, "TX must fail due to injected audit failure")
+	assert.Contains(t, err.Error(), "INJECTED", "Error should come from our injected failure")
+
+	// ── VERIFY: ZERO partial governance state after late-failure rollback ──
+
+	// a. Decision #2 = 0 (INSERT succeeded but was rolled back)
 	var d2Count int
-	err = pool.QueryRow(ctx, `SELECT COUNT(*) FROM decisions WHERE case_id = $1 AND id != $2`, caseID, decision1.ID).Scan(&d2Count)
+	err = pool.QueryRow(ctx, `SELECT COUNT(*) FROM decisions WHERE case_id = $1 AND id != $2`,
+		caseID, decision1.ID).Scan(&d2Count)
 	require.NoError(t, err)
-	assert.Equal(t, 0, d2Count, "No Decision #2 must exist after rollback")
+	assert.Equal(t, 0, d2Count, "Decision #2 must NOT exist — TX rolled back after late failure")
 
-	// b. No Enforcement #2
+	// b. Enforcement #2 = 0 (INSERT succeeded but was rolled back)
 	var enf2Count int
-	err = pool.QueryRow(ctx, `SELECT COUNT(*) FROM enforcements WHERE decision_id IN (SELECT id FROM decisions WHERE case_id = $1 AND id != $2)`,
+	err = pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM enforcements WHERE decision_id IN
+		 (SELECT id FROM decisions WHERE case_id = $1 AND id != $2)`,
 		caseID, decision1.ID).Scan(&enf2Count)
 	require.NoError(t, err)
-	assert.Equal(t, 0, enf2Count, "No Enforcement #2 must exist after rollback")
+	assert.Equal(t, 0, enf2Count, "Enforcement #2 must NOT exist — TX rolled back after late failure")
 
-	// c. No restoration outbox
+	// c. Restoration outbox = 0 (INSERT succeeded but was rolled back)
 	var restoredCount int
-	err = pool.QueryRow(ctx, `SELECT COUNT(*) FROM outbox WHERE aggregate_id = $1 AND event_type = 'moderation.content.restored'`, contentID).Scan(&restoredCount)
+	err = pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM outbox WHERE aggregate_id = $1 AND event_type = 'moderation.content.restored'`,
+		contentID).Scan(&restoredCount)
 	require.NoError(t, err)
-	assert.Equal(t, 0, restoredCount, "No restoration event must exist after rollback")
+	assert.Equal(t, 0, restoredCount, "Restoration outbox must NOT exist — TX rolled back after late failure")
 
-	// d. Appeal remains pending
+	// d. Audit event: the emitter fails BEFORE INSERT, so no row is created.
+	// This is inherent — the failingAuditEmitter returns error immediately.
+	// No audit assertion needed: the TX rollback of Decision #2 + Enforcement #2
+	// + Outbox is the primary proof. The audit was the CAUSE of the rollback.
+
+	// e. Appeal remains pending
 	var appealStatus string
 	err = pool.QueryRow(ctx, `SELECT status FROM appeals WHERE id = $1`, appealID).Scan(&appealStatus)
 	require.NoError(t, err)
-	assert.Equal(t, "pending", appealStatus, "Appeal must remain pending after rollback")
+	assert.Equal(t, "pending", appealStatus, "Appeal must remain pending — TX rolled back")
+
+	// f. Decision #1 unchanged
+	var d1Outcome string
+	err = pool.QueryRow(ctx, `SELECT outcome FROM decisions WHERE id = $1`, decision1.ID).Scan(&d1Outcome)
+	require.NoError(t, err)
+	assert.Equal(t, "violation", d1Outcome, "Decision #1 must remain violation — untouched by rolled-back TX")
 }
 
 // ============================================================================
@@ -703,37 +769,72 @@ func TestAppealSliceB_Concurrency(t *testing.T) {
 	<-done2
 	wg.Wait()
 
-	// Exactly one must succeed, the other must fail (serialization/deadlock)
+	// Exactly one must succeed, the other must fail (FOR UPDATE lock).
 	successCount := 0
+	failureCount := 0
 	if err1 == nil {
 		successCount++
 	}
 	if err2 == nil {
 		successCount++
 	}
-	// With FOR UPDATE + serializable, exactly one should succeed
-	// The other should get a serialization error or deadlock
+	if err1 != nil {
+		failureCount++
+	}
+	if err2 != nil {
+		failureCount++
+	}
 	t.Logf("err1=%v, err2=%v", err1, err2)
 
-	// Verify: exactly one Decision #2
-	var d2Count int
-	err = pool.QueryRow(ctx, `SELECT COUNT(*) FROM decisions WHERE case_id = $1 AND id != $2`, caseID, decision1.ID).Scan(&d2Count)
-	require.NoError(t, err)
-	assert.LessOrEqual(t, d2Count, 1, "At most one Decision #2 should exist")
+	// EXACT assertions — FOR UPDATE guarantees mutual exclusion
+	assert.Equal(t, 1, successCount, "Exactly one goroutine must succeed")
+	assert.Equal(t, 1, failureCount, "Exactly one goroutine must fail")
 
-	// Verify: exactly one final appeal status
+	// Verify: exactly ONE Decision #2
+	var d2Count int
+	err = pool.QueryRow(ctx, `SELECT COUNT(*) FROM decisions WHERE case_id = $1 AND id != $2`,
+		caseID, decision1.ID).Scan(&d2Count)
+	require.NoError(t, err)
+	assert.Equal(t, 1, d2Count, "Exactly one Decision #2 must exist")
+
+	// Verify: exactly ONE final appeal state
 	var appealStatus string
 	err = pool.QueryRow(ctx, `SELECT status FROM appeals WHERE id = $1`, appealID).Scan(&appealStatus)
 	require.NoError(t, err)
 	assert.True(t, appealStatus == "approved" || appealStatus == "rejected",
-		"Appeal must be in a final state (approved or rejected), got: %s", appealStatus)
+		"Appeal must be in a final state, got: %s", appealStatus)
 
-	// Verify: at most one Enforcement #2
+	// Verify Enforcement #2 and restoration outbox count depends on who won.
+	// If approve (reversal) won → 1 enforcement + 1 restoration outbox.
+	// If reject (upheld) won → 0 enforcement + 0 restoration outbox.
 	var enf2Count int
-	err = pool.QueryRow(ctx, `SELECT COUNT(*) FROM enforcements WHERE decision_id IN (SELECT id FROM decisions WHERE case_id = $1 AND id != $2)`,
+	err = pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM enforcements WHERE decision_id IN
+		 (SELECT id FROM decisions WHERE case_id = $1 AND id != $2)`,
 		caseID, decision1.ID).Scan(&enf2Count)
 	require.NoError(t, err)
-	assert.LessOrEqual(t, enf2Count, 1, "At most one Enforcement #2 should exist")
+
+	var restoredEvtCount int
+	err = pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM outbox WHERE aggregate_id = $1 AND event_type = 'moderation.content.restored'`,
+		contentID).Scan(&restoredEvtCount)
+	require.NoError(t, err)
+
+	if appealStatus == "approved" {
+		// Reversal won: must have enforcement + restoration
+		assert.Equal(t, 1, enf2Count, "Reversal: exactly one Enforcement #2 must exist")
+		assert.Equal(t, 1, restoredEvtCount, "Reversal: exactly one restoration outbox must exist")
+	} else {
+		// Upheld won: must have zero enforcement + zero restoration
+		assert.Equal(t, 0, enf2Count, "Upheld: must NOT have Enforcement #2")
+		assert.Equal(t, 0, restoredEvtCount, "Upheld: must NOT have restoration outbox")
+	}
+
+	// Verify: Decision #1 unchanged
+	var d1Outcome string
+	err = pool.QueryRow(ctx, `SELECT outcome FROM decisions WHERE id = $1`, decision1.ID).Scan(&d1Outcome)
+	require.NoError(t, err)
+	assert.Equal(t, "violation", d1Outcome, "Decision #1 must remain violation")
 }
 
 // ============================================================================
@@ -887,4 +988,239 @@ func TestAppealSliceB_StateMachine(t *testing.T) {
 		// Cleanup: approve appeal to make it reviewable for future tests
 		_ = appealID
 	})
+}
+
+// ============================================================================
+// F3 — DECISION #2 ENFORCEMENT RETRY
+// ============================================================================
+//
+// Proves the worker retry lifecycle for Decision #2 enforcement:
+//   pending → processing → failed → processing → succeeded
+//
+// Uses real PostgreSQL and production enforcement lifecycle methods.
+//
+func TestAppealSliceB_EnforcementRetry(t *testing.T) {
+	tdb, cleanup := testdb.SetupDB(t)
+	defer cleanup()
+	ctx := context.Background()
+	pool := tdb.Pool()
+	appDB := db.NewFromPool(pool)
+
+	realCaseRepo := repository.NewCaseRepository()
+	decRepo := repository.NewDecisionRepository()
+	enfRepo := repository.NewEnforcementRepository()
+	appealRepo := repository.NewAppealRepository()
+	reportRepo := repository.NewReportRepository()
+	obRepo := outboxRepo.NewOutboxRepository(appDB)
+	decisionService := application.NewDecisionService(appDB, realCaseRepo, decRepo, enfRepo, obRepo, nil)
+
+	// ── Setup ──────────────────────────────────────────────────────────
+	reporterID := uuid.New()
+	_, err := pool.Exec(ctx, `INSERT INTO users (id, firebase_uid, email) VALUES ($1, $2, $3)`,
+		reporterID, uuid.NewString(), "reporter@retry.test")
+	require.NoError(t, err)
+
+	contentOwnerID := uuid.New()
+	_, err = pool.Exec(ctx, `INSERT INTO users (id, firebase_uid, email) VALUES ($1, $2, $3)`,
+		contentOwnerID, uuid.NewString(), "owner@retry.test")
+	require.NoError(t, err)
+
+	contentID := uuid.New()
+	_, err = pool.Exec(ctx, `INSERT INTO contents (author_id, caption) VALUES ($1, 'test content')`,
+		contentOwnerID)
+	require.NoError(t, err)
+	err = pool.QueryRow(ctx, `SELECT id FROM contents WHERE author_id = $1 ORDER BY created_at DESC LIMIT 1`,
+		contentOwnerID).Scan(&contentID)
+	require.NoError(t, err)
+
+	var caseID uuid.UUID
+	err = appDB.WithTx(ctx, func(tx db.Tx) error {
+		kase, err := realCaseRepo.FindOrCreateOpenCase(ctx, tx, entity.ReportTargetContent, contentID)
+		if err != nil {
+			return err
+		}
+		caseID = kase.ID
+		report := entity.NewReport(reporterID, entity.ReportTargetContent, contentID,
+			entity.ReportReasonProhibitedContent, nil, nil)
+		report.CaseID = &caseID
+		return reportRepo.Create(ctx, tx, report)
+	})
+	require.NoError(t, err)
+
+	adminID := uuid.New()
+	_, err = pool.Exec(ctx, `INSERT INTO users (id, firebase_uid, email) VALUES ($1, $2, $3)`,
+		adminID, uuid.NewString(), "admin@retry.test")
+	require.NoError(t, err)
+
+	// Decision #1 (violation) — original enforcement
+	decision1, err := decisionService.CreateDecision(ctx, application.CreateDecisionInput{
+		CaseID:     caseID,
+		DecidedBy:  adminID,
+		Outcome:    entity.DecisionOutcomeViolation,
+		TargetType: entity.ModerationTargetTypeContent,
+		TargetID:   contentID,
+	})
+	require.NoError(t, err)
+
+	// ── Create Decision #2 (reversal) via single-TX pattern ────────────
+	reviewerID := uuid.New()
+	_, err = pool.Exec(ctx, `INSERT INTO users (id, firebase_uid, email) VALUES ($1, $2, $3)`,
+		reviewerID, uuid.NewString(), "reviewer@retry.test")
+	require.NoError(t, err)
+
+	var appealID uuid.UUID
+	var decision2ID uuid.UUID
+	err = appDB.WithTx(ctx, func(tx db.Tx) error {
+		// Create appeal
+		appeal := entity.NewAppeal(decision1.ID, contentOwnerID, "Wrongful removal")
+		if err := appealRepo.Create(ctx, tx, appeal); err != nil {
+			return err
+		}
+		appealID = appeal.ID
+
+		// Lock appeal
+		var lockedID uuid.UUID
+		if err := tx.QueryRow(ctx, `SELECT id FROM appeals WHERE id = $1 FOR UPDATE`,
+			appealID).Scan(&lockedID); err != nil {
+			return err
+		}
+
+		// Create Decision #2 (no_violation — reversal)
+		note := "reversal for retry test"
+		decision2, err := decisionService.CreateAppealDecision(ctx, tx, application.CreateAppealDecisionInput{
+			CaseID:       caseID,
+			DecidedBy:    reviewerID,
+			Outcome:      entity.DecisionOutcomeNoViolation,
+			DecisionNote: &note,
+			AppealID:     appeal.ID,
+			TargetType:   entity.ModerationTargetTypeContent,
+			TargetID:     contentID,
+		})
+		if err != nil {
+			return err
+		}
+		decision2ID = decision2.ID
+
+		// Approve appeal
+		_, err = tx.Exec(ctx,
+			`UPDATE appeals SET status = 'approved', reviewed_by = $1, reviewed_at = NOW() WHERE id = $2`,
+			reviewerID, appealID)
+		return err
+	})
+	require.NoError(t, err)
+
+	// ── Verify Decision #2 created correctly ───────────────────────────
+	var d2Outcome string
+	err = pool.QueryRow(ctx, `SELECT outcome FROM decisions WHERE id = $1`, decision2ID).Scan(&d2Outcome)
+	require.NoError(t, err)
+	assert.Equal(t, "no_violation", d2Outcome, "Decision #2 must be no_violation (reversal)")
+
+	// Enforcement #2 created for reversal
+	var enf2ID uuid.UUID
+	err = pool.QueryRow(ctx,
+		`SELECT id FROM enforcements WHERE decision_id = $1 AND target_type = 'content' AND target_id = $2`,
+		decision2ID, contentID).Scan(&enf2ID)
+	require.NoError(t, err)
+
+	// Initial state: pending
+	var enfStatus string
+	err = pool.QueryRow(ctx, `SELECT status FROM enforcements WHERE id = $1`, enf2ID).Scan(&enfStatus)
+	require.NoError(t, err)
+	assert.Equal(t, "pending", enfStatus, "Enforcement #2 must start as pending")
+
+	// ── Worker lifecycle: pending → processing → failed ─────────────────
+	err = appDB.WithTx(ctx, func(tx db.Tx) error {
+		return enfRepo.MarkProcessing(ctx, tx, enf2ID)
+	})
+	require.NoError(t, err, "MarkProcessing must succeed")
+
+	err = pool.QueryRow(ctx, `SELECT status FROM enforcements WHERE id = $1`, enf2ID).Scan(&enfStatus)
+	require.NoError(t, err)
+	assert.Equal(t, "processing", enfStatus)
+
+	err = appDB.WithTx(ctx, func(tx db.Tx) error {
+		return enfRepo.MarkFailed(ctx, tx, enf2ID, "simulated worker failure", nil)
+	})
+	require.NoError(t, err, "MarkFailed must succeed")
+
+	err = pool.QueryRow(ctx, `SELECT status FROM enforcements WHERE id = $1`, enf2ID).Scan(&enfStatus)
+	require.NoError(t, err)
+	assert.Equal(t, "failed", enfStatus, "Enforcement #2 must be failed after first attempt")
+
+	var attemptCount int
+	err = pool.QueryRow(ctx, `SELECT attempt_count FROM enforcements WHERE id = $1`, enf2ID).Scan(&attemptCount)
+	require.NoError(t, err)
+	assert.Equal(t, 1, attemptCount, "attempt_count must be 1 after first failure")
+
+	// ── Worker lifecycle: failed → processing → succeeded (retry) ───────
+	err = appDB.WithTx(ctx, func(tx db.Tx) error {
+		return enfRepo.MarkProcessing(ctx, tx, enf2ID)
+	})
+	require.NoError(t, err, "MarkProcessing (retry) must succeed")
+
+	err = pool.QueryRow(ctx, `SELECT status FROM enforcements WHERE id = $1`, enf2ID).Scan(&enfStatus)
+	require.NoError(t, err)
+	assert.Equal(t, "processing", enfStatus, "Must be processing on retry")
+
+	// Simulate successful target restoration (content soft-delete)
+	_, err = pool.Exec(ctx,
+		`UPDATE contents SET deleted_at = NULL WHERE id = $1`, contentID)
+	require.NoError(t, err)
+
+	err = appDB.WithTx(ctx, func(tx db.Tx) error {
+		return enfRepo.MarkSucceeded(ctx, tx, enf2ID)
+	})
+	require.NoError(t, err, "MarkSucceeded must succeed")
+
+	// ── Verify final state ─────────────────────────────────────────────
+	err = pool.QueryRow(ctx, `SELECT status FROM enforcements WHERE id = $1`, enf2ID).Scan(&enfStatus)
+	require.NoError(t, err)
+	assert.Equal(t, "succeeded", enfStatus, "Enforcement #2 must be succeeded after retry")
+
+	err = pool.QueryRow(ctx, `SELECT attempt_count FROM enforcements WHERE id = $1`, enf2ID).Scan(&attemptCount)
+	require.NoError(t, err)
+	assert.Equal(t, 2, attemptCount, "attempt_count must be 2 after retry")
+
+	// Verify enforcement references Decision #2 (not Decision #1)
+	var enfDecisionID uuid.UUID
+	err = pool.QueryRow(ctx, `SELECT decision_id FROM enforcements WHERE id = $1`, enf2ID).Scan(&enfDecisionID)
+	require.NoError(t, err)
+	assert.Equal(t, decision2ID, enfDecisionID, "Enforcement #2 must reference Decision #2")
+
+	// Verify NO duplicate Enforcement #2
+	var enfCount int
+	err = pool.QueryRow(ctx, `SELECT COUNT(*) FROM enforcements WHERE decision_id = $1`, decision2ID).Scan(&enfCount)
+	require.NoError(t, err)
+	assert.Equal(t, 1, enfCount, "Must have exactly one Enforcement for Decision #2")
+
+	// Verify NO duplicate restoration outbox
+	var restoredCount int
+	err = pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM outbox WHERE aggregate_id = $1 AND event_type = 'moderation.content.restored'`,
+		contentID).Scan(&restoredCount)
+	require.NoError(t, err)
+	assert.Equal(t, 1, restoredCount, "Must have exactly one restoration outbox event")
+
+	// Verify Decision #1 unchanged
+	var d1Outcome string
+	err = pool.QueryRow(ctx, `SELECT outcome FROM decisions WHERE id = $1`, decision1.ID).Scan(&d1Outcome)
+	require.NoError(t, err)
+	assert.Equal(t, "violation", d1Outcome, "Decision #1 must remain violation")
+
+	// Verify Decision #2 immutable (UPDATE must fail)
+	_, err = pool.Exec(ctx, `UPDATE decisions SET outcome = 'violation' WHERE id = $1`, decision2ID)
+	assert.Error(t, err, "Decision #2 must be immutable — UPDATE should fail")
+
+	// Verify Appeal still approved
+	var appealStatus string
+	err = pool.QueryRow(ctx, `SELECT status FROM appeals WHERE id = $1`, appealID).Scan(&appealStatus)
+	require.NoError(t, err)
+	assert.Equal(t, "approved", appealStatus, "Appeal must remain approved")
+
+	// Verify NO Decision #3 or any extra governance state
+	var d3Count int
+	err = pool.QueryRow(ctx, `SELECT COUNT(*) FROM decisions WHERE case_id = $1 AND id NOT IN ($2, $3)`,
+		caseID, decision1.ID, decision2ID).Scan(&d3Count)
+	require.NoError(t, err)
+	assert.Equal(t, 0, d3Count, "Must NOT have Decision #3 or any extra decisions")
 }
