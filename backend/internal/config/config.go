@@ -623,6 +623,17 @@ func (c *Config) ValidateProductionSafety() {
 		}
 	}
 
+	// STEP 3.5: Validate Dev flags — must never be active in production
+	if c.Dev.MockFirebaseAuth {
+		panic("CONFIG ERROR: DEV_MOCK_FIREBASE_AUTH must not be enabled in production. This bypasses all Firebase authentication.")
+	}
+	if c.Dev.AutoApproveVerification {
+		panic("CONFIG ERROR: DEV_AUTO_APPROVE_VERIFICATION must not be enabled in production. This bypasses KYC review.")
+	}
+	if c.Dev.SkipPaymentGateway {
+		panic("CONFIG ERROR: DEV_SKIP_PAYMENT_GATEWAY must not be enabled in production. This skips real payment processing.")
+	}
+
 	// STEP 4: Validate Payout Configuration
 	// Production payouts require explicit enable flag AND webhook secret
 	if c.Payout.Environment == "production" && !c.Payout.EnableProduction {

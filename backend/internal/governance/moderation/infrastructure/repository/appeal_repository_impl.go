@@ -12,6 +12,10 @@ import (
 )
 
 // AppealRepositoryImpl handles appeal persistence using pgx-based DB layer.
+//
+// SLICE A: All SQL references decision_id (canonical: appeals.decision_id → decisions.id).
+// Legacy report_id references have been removed. The appeals table schema
+// was already migrated by migration 000055.
 type AppealRepositoryImpl struct{}
 
 // NewAppealRepository creates a new AppealRepository.
@@ -37,14 +41,14 @@ func (r *AppealRepositoryImpl) Create(
 
 	_, err := dbTx.Exec(ctx, `
 		INSERT INTO appeals (
-			id, report_id, appealed_by, status,
+			id, decision_id, appealed_by, status,
 			message, admin_response, reviewed_by,
 			created_at, reviewed_at
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`,
 		appeal.ID,
-		appeal.CaseID,
+		appeal.DecisionID,
 		appeal.AppealedBy,
 		string(appeal.Status),
 		appeal.Message,
@@ -62,10 +66,9 @@ func (r *AppealRepositoryImpl) Create(
 }
 
 // CreateWithPendingCheck atomically creates an appeal only if no pending appeal
-// exists for the same report. Uses a CTE with FOR UPDATE lock to prevent race conditions.
+// exists for the same Decision. Uses a CTE with FOR UPDATE lock to prevent race conditions.
 //
-// This method is concurrency-safe: two concurrent requests cannot create two pending
-// appeals for the same report, even under race conditions.
+// Canonical: one pending appeal per Decision (Design §35 concurrency constraint).
 func (r *AppealRepositoryImpl) CreateWithPendingCheck(
 	ctx context.Context,
 	tx interface{},
@@ -82,25 +85,25 @@ func (r *AppealRepositoryImpl) CreateWithPendingCheck(
 	}
 
 	// Use a CTE with INSERT ... SELECT ... WHERE NOT EXISTS pattern
-	// The FOR UPDATE lock on the check ensures concurrent requests serialize
+	// Check for existing pending appeal on the same Decision
 	result, err := dbTx.Exec(ctx, `
 		WITH pending_check AS (
 			SELECT id
 			FROM appeals
-			WHERE report_id = $1 AND status = 'pending'
+			WHERE decision_id = $1 AND status = 'pending'
 			FOR UPDATE
 		)
 		INSERT INTO appeals (
-			id, report_id, appealed_by, status,
+			id, decision_id, appealed_by, status,
 			message, admin_response, reviewed_by,
 			created_at, reviewed_at
 		)
 		SELECT $2, $3, $4, $5, $6, $7, $8, $9, $10
 		WHERE NOT EXISTS (SELECT 1 FROM pending_check)
 	`,
-		appeal.CaseID,
+		appeal.DecisionID,
 		appeal.ID,
-		appeal.CaseID,
+		appeal.DecisionID,
 		appeal.AppealedBy,
 		string(appeal.Status),
 		appeal.Message,
@@ -118,7 +121,7 @@ func (r *AppealRepositoryImpl) CreateWithPendingCheck(
 	// If no rows were inserted, a pending appeal already exists
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
-		return &entity.ErrDuplicatePendingAppeal{CaseID: appeal.CaseID}
+		return &entity.ErrDuplicatePendingAppeal{DecisionID: appeal.DecisionID}
 	}
 
 	return nil
@@ -136,7 +139,7 @@ func (r *AppealRepositoryImpl) GetByID(
 	}
 
 	var status string
-	var reportID, appealedBy uuid.UUID
+	var decisionID, appealedBy uuid.UUID
 	var reviewedBy *uuid.UUID
 	var message string
 	var adminResponse *string
@@ -144,13 +147,13 @@ func (r *AppealRepositoryImpl) GetByID(
 	var reviewedAt *time.Time
 
 	err := dbTx.QueryRow(ctx, `
-		SELECT id, report_id, appealed_by, status,
+		SELECT id, decision_id, appealed_by, status,
 		       message, admin_response, reviewed_by,
 		       created_at, reviewed_at
 		FROM appeals
 		WHERE id = $1
 	`, appealID).Scan(
-		&appealID, &reportID, &appealedBy, &status,
+		&appealID, &decisionID, &appealedBy, &status,
 		&message, &adminResponse, &reviewedBy,
 		&createdAt, &reviewedAt,
 	)
@@ -164,7 +167,7 @@ func (r *AppealRepositoryImpl) GetByID(
 
 	return &entity.Appeal{
 		ID:            appealID,
-		CaseID:      reportID,
+		DecisionID:    decisionID,
 		AppealedBy:    appealedBy,
 		Status:        entity.AppealStatus(status),
 		Message:       message,
@@ -188,7 +191,7 @@ func (r *AppealRepositoryImpl) GetForUpdate(
 	}
 
 	var status string
-	var reportID, appealedBy uuid.UUID
+	var decisionID, appealedBy uuid.UUID
 	var reviewedBy *uuid.UUID
 	var message string
 	var adminResponse *string
@@ -196,14 +199,14 @@ func (r *AppealRepositoryImpl) GetForUpdate(
 	var reviewedAt *time.Time
 
 	err := dbTx.QueryRow(ctx, `
-		SELECT id, report_id, appealed_by, status,
+		SELECT id, decision_id, appealed_by, status,
 		       message, admin_response, reviewed_by,
 		       created_at, reviewed_at
 		FROM appeals
 		WHERE id = $1
 		FOR UPDATE
 	`, appealID).Scan(
-		&appealID, &reportID, &appealedBy, &status,
+		&appealID, &decisionID, &appealedBy, &status,
 		&message, &adminResponse, &reviewedBy,
 		&createdAt, &reviewedAt,
 	)
@@ -217,7 +220,7 @@ func (r *AppealRepositoryImpl) GetForUpdate(
 
 	return &entity.Appeal{
 		ID:            appealID,
-		CaseID:      reportID,
+		DecisionID:    decisionID,
 		AppealedBy:    appealedBy,
 		Status:        entity.AppealStatus(status),
 		Message:       message,
@@ -275,7 +278,7 @@ func (r *AppealRepositoryImpl) ListByUser(
 	}
 
 	query := `
-		SELECT id, report_id, appealed_by, status,
+		SELECT id, decision_id, appealed_by, status,
 		       message, admin_response, reviewed_by,
 		       created_at, reviewed_at
 		FROM appeals
@@ -306,11 +309,12 @@ func (r *AppealRepositoryImpl) ListByUser(
 	return appeals, nil
 }
 
-// ListByReport retrieves all appeals for a specific report.
-func (r *AppealRepositoryImpl) ListByCase(
+// ListByDecisionID retrieves all appeals for a specific Decision.
+// Canonical: Decision 1 → 0..N Appeal (Design §5).
+func (r *AppealRepositoryImpl) ListByDecisionID(
 	ctx context.Context,
 	tx interface{},
-	reportID uuid.UUID,
+	decisionID uuid.UUID,
 ) ([]*entity.Appeal, error) {
 	dbTx, ok := tx.(db.Tx)
 	if !ok {
@@ -318,15 +322,59 @@ func (r *AppealRepositoryImpl) ListByCase(
 	}
 
 	query := `
-		SELECT id, report_id, appealed_by, status,
+		SELECT id, decision_id, appealed_by, status,
 		       message, admin_response, reviewed_by,
 		       created_at, reviewed_at
 		FROM appeals
-		WHERE report_id = $1
+		WHERE decision_id = $1
 		ORDER BY created_at DESC
 	`
 
-	rows, err := dbTx.Query(ctx, query, reportID)
+	rows, err := dbTx.Query(ctx, query, decisionID)
+	if err != nil {
+		return nil, fmt.Errorf("list appeals by decision failed: %w", err)
+	}
+	defer rows.Close()
+
+	var appeals []*entity.Appeal
+	for rows.Next() {
+		appeal, err := r.scanRow(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan appeal failed: %w", err)
+		}
+		appeals = append(appeals, appeal)
+	}
+
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("list appeals by decision scan failed: %w", rows.Err())
+	}
+
+	return appeals, nil
+}
+
+// ListByCase retrieves all appeals for a specific Case.
+// Joins through decisions table: appeals → decisions → case.
+func (r *AppealRepositoryImpl) ListByCase(
+	ctx context.Context,
+	tx interface{},
+	caseID uuid.UUID,
+) ([]*entity.Appeal, error) {
+	dbTx, ok := tx.(db.Tx)
+	if !ok {
+		return nil, fmt.Errorf("invalid transaction type")
+	}
+
+	query := `
+		SELECT a.id, a.decision_id, a.appealed_by, a.status,
+		       a.message, a.admin_response, a.reviewed_by,
+		       a.created_at, a.reviewed_at
+		FROM appeals a
+		JOIN decisions d ON d.id = a.decision_id
+		WHERE d.case_id = $1
+		ORDER BY a.created_at DESC
+	`
+
+	rows, err := dbTx.Query(ctx, query, caseID)
 	if err != nil {
 		return nil, fmt.Errorf("list appeals by case failed: %w", err)
 	}
@@ -342,7 +390,7 @@ func (r *AppealRepositoryImpl) ListByCase(
 	}
 
 	if rows.Err() != nil {
-		return nil, fmt.Errorf("list appeals by report scan failed: %w", rows.Err())
+		return nil, fmt.Errorf("list appeals by case scan failed: %w", rows.Err())
 	}
 
 	return appeals, nil
@@ -367,7 +415,7 @@ func (r *AppealRepositoryImpl) ListAll(
 
 	if statusFilter != nil {
 		query = `
-			SELECT id, report_id, appealed_by, status,
+			SELECT id, decision_id, appealed_by, status,
 			       message, admin_response, reviewed_by,
 			       created_at, reviewed_at
 			FROM appeals
@@ -378,7 +426,7 @@ func (r *AppealRepositoryImpl) ListAll(
 		args = []interface{}{string(*statusFilter), limit, offset}
 	} else {
 		query = `
-			SELECT id, report_id, appealed_by, status,
+			SELECT id, decision_id, appealed_by, status,
 			       message, admin_response, reviewed_by,
 			       created_at, reviewed_at
 			FROM appeals
@@ -423,7 +471,7 @@ func (r *AppealRepositoryImpl) ListPending(
 	}
 
 	query := `
-		SELECT id, report_id, appealed_by, status,
+		SELECT id, decision_id, appealed_by, status,
 		       message, admin_response, reviewed_by,
 		       created_at, reviewed_at
 		FROM appeals
@@ -456,7 +504,7 @@ func (r *AppealRepositoryImpl) ListPending(
 
 // scanRow scans an appeal from a row.
 func (r *AppealRepositoryImpl) scanRow(rows pgx.Rows) (*entity.Appeal, error) {
-	var id, reportID, appealedBy uuid.UUID
+	var id, decisionID, appealedBy uuid.UUID
 	var status string
 	var reviewedBy *uuid.UUID
 	var message string
@@ -465,7 +513,7 @@ func (r *AppealRepositoryImpl) scanRow(rows pgx.Rows) (*entity.Appeal, error) {
 	var reviewedAt *time.Time
 
 	err := rows.Scan(
-		&id, &reportID, &appealedBy, &status,
+		&id, &decisionID, &appealedBy, &status,
 		&message, &adminResponse, &reviewedBy,
 		&createdAt, &reviewedAt,
 	)
@@ -476,7 +524,7 @@ func (r *AppealRepositoryImpl) scanRow(rows pgx.Rows) (*entity.Appeal, error) {
 
 	return &entity.Appeal{
 		ID:            id,
-		CaseID:      reportID,
+		DecisionID:    decisionID,
 		AppealedBy:    appealedBy,
 		Status:        entity.AppealStatus(status),
 		Message:       message,
@@ -486,5 +534,3 @@ func (r *AppealRepositoryImpl) scanRow(rows pgx.Rows) (*entity.Appeal, error) {
 		ReviewedAt:    reviewedAt,
 	}, nil
 }
-
-

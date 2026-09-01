@@ -8,12 +8,15 @@ import (
 )
 
 // AppealRepository defines the interface for appeal persistence operations.
+//
+// SLICE A: Appeal → Decision (canonical: appeals.decision_id → decisions.id).
+// Legacy report_id references have been removed.
 type AppealRepository interface {
 	// Create persists a new appeal within a transaction.
 	Create(ctx context.Context, tx interface{}, appeal *entity.Appeal) error
 
 	// CreateWithPendingCheck atomically creates an appeal only if no pending appeal
-	// exists for the same report. Uses CTE with FOR UPDATE to prevent race conditions.
+	// exists for the same Decision. Uses CTE with FOR UPDATE to prevent race conditions.
 	// Returns entity.ErrDuplicatePendingAppeal if a pending appeal already exists.
 	CreateWithPendingCheck(ctx context.Context, tx interface{}, appeal *entity.Appeal) error
 
@@ -31,7 +34,12 @@ type AppealRepository interface {
 	// Ordered by created_at DESC (newest first).
 	ListByUser(ctx context.Context, tx interface{}, userID uuid.UUID, limit, offset int) ([]*entity.Appeal, error)
 
-	// ListByCase retrieves all appeals for a specific case.
+	// ListByDecisionID retrieves all appeals for a specific Decision.
+	// Canonical: Decision 1 → 0..N Appeal (Design §5).
+	ListByDecisionID(ctx context.Context, tx interface{}, decisionID uuid.UUID) ([]*entity.Appeal, error)
+
+	// ListByCase retrieves all appeals for a specific Case.
+	// Joins through decisions table: appeals → decisions → case.
 	ListByCase(ctx context.Context, tx interface{}, caseID uuid.UUID) ([]*entity.Appeal, error)
 
 	// ListAll retrieves all appeals with optional status filter.
@@ -43,5 +51,3 @@ type AppealRepository interface {
 	// Ordered by created_at ASC (oldest first).
 	ListPending(ctx context.Context, tx interface{}, limit, offset int) ([]*entity.Appeal, error)
 }
-
-

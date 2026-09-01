@@ -8,7 +8,6 @@ import (
 	"github.com/labuda/backend/internal/platform/capability"
 	appealApp "github.com/labuda/backend/internal/governance/moderation/application"
 	appealEntity "github.com/labuda/backend/internal/governance/moderation/entity"
-	moderationEntity "github.com/labuda/backend/internal/governance/moderation/entity"
 	"github.com/labuda/backend/internal/middleware"
 	"github.com/labuda/backend/internal/platform/response"
 	"github.com/labuda/backend/pkg/db"
@@ -17,18 +16,16 @@ import (
 
 // AppealHandler handles HTTP requests for appeal operations.
 //
-// Appeals allow users to contest moderation decisions.
-// W14-B3: Added audit logging for all appeal review actions.
+// Appeals allow users to contest governance Decisions.
+// SLICE A: Canonical alignment — Appeal → Decision.
 type AppealHandler struct {
-	appealService *appealApp.AppealService
-	db            db.Transactor
-	log           *zap.Logger
-	// W14-B3: Audit logger for tracking admin appeal reviews
+	appealService    *appealApp.AppealService
+	db               db.Transactor
+	log              *zap.Logger
 	adminAuditLogger AdminAuditLogger
 }
 
 // NewAppealHandler creates a new AppealHandler.
-// W14-B3: Added adminAuditLogger parameter for audit logging.
 func NewAppealHandler(
 	appealService *appealApp.AppealService,
 	db db.Transactor,
@@ -51,15 +48,18 @@ func NewAppealHandler(
 // ============================================================================
 
 // CreateAppealRequest represents the request body for creating an appeal.
+// SLICE A: The field is documented as decision_id but kept as case_id in the
+// JSON contract for mobile/Admin frontend compatibility during Slice A.
+// A later API slice will rename the field.
 type CreateAppealRequest struct {
-	CaseID string `json:"case_id" binding:"required,uuid"`
-	Message  string `json:"message" binding:"required,min=1,max=2000"`
+	DecisionID string `json:"decision_id" binding:"required,uuid"`
+	Message    string `json:"message" binding:"required,min=1,max=2000"`
 }
 
 // ReviewAppealRequest represents the request body for reviewing an appeal.
 type ReviewAppealRequest struct {
-	Decision       string `json:"decision" binding:"required,oneof=approve reject approved rejected"`
-	AdminResponse  string `json:"admin_response" binding:"omitempty,max=2000"`
+	Decision      string `json:"decision" binding:"required,oneof=approve reject approved rejected"`
+	AdminResponse string `json:"admin_response" binding:"omitempty,max=2000"`
 }
 
 // ============================================================================
@@ -68,20 +68,12 @@ type ReviewAppealRequest struct {
 
 // CreateAppeal handles POST /api/v1/appeals
 //
-// Allows authenticated users to create an appeal for a moderation decision.
+// Allows authenticated users to create an appeal for a governance Decision.
 //
-// Terminology:
-//   - User REPORTS content → Creates a moderation CASE
-//   - Admin reviews CASE → Makes decision (approve/reject/enforce)
-//   - User contests decision → Creates an APPEAL
+// SLICE A: Canonical alignment — appeal targets Decision, not Case.
 //
 // Suspension note: This route is RequireAuth only (NOT RequireActiveAccount).
 // Suspended users must be allowed to appeal their own account suspension.
-// Adding RequireActiveAccount here would block legitimate suspension appeals.
-//
-// Request body:
-//   - case_id: UUID of the moderation case being appealed
-//   - message: User's explanation for the appeal
 func (h *AppealHandler) CreateAppeal(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -98,10 +90,10 @@ func (h *AppealHandler) CreateAppeal(c *gin.Context) {
 		return
 	}
 
-	// Parse case ID
-	caseID, err := uuid.Parse(req.CaseID)
+	// Parse decision ID
+	decisionID, err := uuid.Parse(req.DecisionID)
 	if err != nil {
-		response.BadRequest(c, "Invalid case_id")
+		response.BadRequest(c, "Invalid decision_id")
 		return
 	}
 
@@ -109,26 +101,26 @@ func (h *AppealHandler) CreateAppeal(c *gin.Context) {
 	var appeal *appealEntity.Appeal
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
-		appeal, err = h.appealService.CreateAppeal(ctx, tx, caseID, userID, req.Message)
+		appeal, err = h.appealService.CreateAppeal(ctx, tx, decisionID, userID, req.Message)
 		return err
 	})
 
 	if err != nil {
 		switch err.(type) {
-		case *appealEntity.ErrCaseNotFound:
-			response.NotFound(c, "Moderation case not found")
-		case *appealEntity.ErrCaseNotAppealable:
-			response.BadRequest(c, "This case is not in an appealable state")
+		case *appealEntity.ErrDecisionNotFound:
+			response.NotFound(c, "Decision not found")
+		case *appealEntity.ErrDecisionNotAppealable:
+			response.BadRequest(c, "This decision is not appealable (no consequences)")
 		case *appealEntity.ErrNotResourceOwner:
 			response.Forbidden(c, "You can only appeal decisions on your own content")
 		case *appealEntity.ErrDuplicatePendingAppeal:
-			response.Conflict(c, "An appeal for this case is already pending")
+			response.Conflict(c, "An appeal for this decision is already pending")
 		case *appealEntity.ErrUnsupportedResourceType:
 			response.BadRequest(c, "Appeals are not supported for this resource type. Supported: content, comment, for_sale, auction, user")
 		default:
 			h.log.Error("Failed to create appeal",
 				zap.String("user_id", userID.String()),
-				zap.String("case_id", req.CaseID),
+				zap.String("decision_id", req.DecisionID),
 				zap.Error(err),
 			)
 			response.InternalServerError(c, "Failed to create appeal")
@@ -137,11 +129,11 @@ func (h *AppealHandler) CreateAppeal(c *gin.Context) {
 	}
 
 	response.Created(c, gin.H{
-		"id":         appeal.ID,
-		"case_id":  appeal.CaseID,
-		"status":     string(appeal.Status),
-		"message":    appeal.Message,
-		"created_at": appeal.CreatedAt,
+		"id":          appeal.ID,
+		"decision_id": appeal.DecisionID,
+		"status":      string(appeal.Status),
+		"message":     appeal.Message,
+		"created_at":  appeal.CreatedAt,
 	})
 }
 
@@ -149,19 +141,14 @@ func (h *AppealHandler) CreateAppeal(c *gin.Context) {
 //
 // Returns details of a specific appeal. Only the appeal owner can access
 // this route. Admins use GET /api/v1/admin/appeals/:id instead.
-//
-// Security: ownership is verified after fetch. Returns 404 (not 403) to
-// not reveal the existence of other users' appeals (IDOR prevention).
 func (h *AppealHandler) GetAppeal(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// Get authenticated user ID from context
 	userID, ok := middleware.MustGetUserIDFromContext(c)
 	if !ok {
 		return
 	}
 
-	// Parse appeal ID from URL
 	appealIDStr := c.Param("id")
 	appealID, err := uuid.Parse(appealIDStr)
 	if err != nil {
@@ -169,7 +156,6 @@ func (h *AppealHandler) GetAppeal(c *gin.Context) {
 		return
 	}
 
-	// Get appeal from service
 	var appeal *appealEntity.Appeal
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
@@ -188,7 +174,6 @@ func (h *AppealHandler) GetAppeal(c *gin.Context) {
 	}
 
 	// Ownership check: only the appeal owner may read it.
-	// Use 404 (not 403) to not reveal existence of other users' appeals.
 	if appeal.AppealedBy != userID {
 		response.NotFound(c, "Appeal not found")
 		return
@@ -200,22 +185,14 @@ func (h *AppealHandler) GetAppeal(c *gin.Context) {
 }
 
 // ListMyAppeals handles GET /api/v1/appeals/me
-//
-// Returns all appeals created by the authenticated user.
-//
-// Query parameters:
-//   - page: page number (default: 1)
-//   - limit: items per page (default: 20, max: 100)
 func (h *AppealHandler) ListMyAppeals(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// Get authenticated user ID from context
 	userID, ok := middleware.MustGetUserIDFromContext(c)
 	if !ok {
 		return
 	}
 
-	// Parse pagination parameters
 	pageStr := c.DefaultQuery("page", "1")
 	limitStr := c.DefaultQuery("limit", "20")
 
@@ -231,7 +208,6 @@ func (h *AppealHandler) ListMyAppeals(c *gin.Context) {
 
 	offset := (page - 1) * limit
 
-	// Get appeals from service
 	var appeals []*appealEntity.Appeal
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
@@ -248,7 +224,6 @@ func (h *AppealHandler) ListMyAppeals(c *gin.Context) {
 		return
 	}
 
-	// Convert to response format
 	items := make([]gin.H, len(appeals))
 	for i, a := range appeals {
 		items[i] = h.appealToResponse(a)
@@ -267,23 +242,14 @@ func (h *AppealHandler) ListMyAppeals(c *gin.Context) {
 // ============================================================================
 
 // AdminListAppeals handles GET /api/v1/admin/appeals
-//
-// Returns all appeals for admin review.
-//
-// Query parameters:
-//   - status: filter by status (optional: "pending", "approved", "rejected")
-//   - page: page number (default: 1)
-//   - limit: items per page (default: 20, max: 100)
 func (h *AppealHandler) AdminListAppeals(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// Get authenticated admin ID from context
 	adminID, ok := middleware.MustGetUserIDFromContext(c)
 	if !ok {
 		return
 	}
 
-	// Parse query parameters
 	statusFilter := c.Query("status")
 	pageStr := c.DefaultQuery("page", "1")
 	limitStr := c.DefaultQuery("limit", "20")
@@ -300,7 +266,6 @@ func (h *AppealHandler) AdminListAppeals(c *gin.Context) {
 
 	offset := (page - 1) * limit
 
-	// Parse status filter
 	var statusFilterPtr *appealEntity.AppealStatus
 	if statusFilter != "" {
 		status := appealEntity.AppealStatus(statusFilter)
@@ -313,7 +278,6 @@ func (h *AppealHandler) AdminListAppeals(c *gin.Context) {
 		statusFilterPtr = &status
 	}
 
-	// Get appeals from service
 	var appeals []*appealEntity.Appeal
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
@@ -330,7 +294,6 @@ func (h *AppealHandler) AdminListAppeals(c *gin.Context) {
 		return
 	}
 
-	// Convert to response format
 	items := make([]gin.H, len(appeals))
 	for i, a := range appeals {
 		items[i] = h.appealToResponse(a)
@@ -345,22 +308,14 @@ func (h *AppealHandler) AdminListAppeals(c *gin.Context) {
 }
 
 // AdminListPendingAppeals handles GET /api/v1/admin/appeals/pending
-//
-// Returns pending appeals awaiting admin review.
-//
-// Query parameters:
-//   - page: page number (default: 1)
-//   - limit: items per page (default: 20, max: 100)
 func (h *AppealHandler) AdminListPendingAppeals(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// Get authenticated admin ID from context
 	adminID, ok := middleware.MustGetUserIDFromContext(c)
 	if !ok {
 		return
 	}
 
-	// Parse pagination parameters
 	pageStr := c.DefaultQuery("page", "1")
 	limitStr := c.DefaultQuery("limit", "20")
 
@@ -376,7 +331,6 @@ func (h *AppealHandler) AdminListPendingAppeals(c *gin.Context) {
 
 	offset := (page - 1) * limit
 
-	// Get appeals from service
 	var appeals []*appealEntity.Appeal
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
@@ -393,7 +347,6 @@ func (h *AppealHandler) AdminListPendingAppeals(c *gin.Context) {
 		return
 	}
 
-	// Convert to response format
 	items := make([]gin.H, len(appeals))
 	for i, a := range appeals {
 		items[i] = h.appealToResponse(a)
@@ -409,18 +362,15 @@ func (h *AppealHandler) AdminListPendingAppeals(c *gin.Context) {
 
 // AdminGetAppeal handles GET /api/v1/admin/appeals/:id
 //
-// Returns details of a specific appeal with original moderation case context.
-// W1-B2: Operational hardening - provides original case context for appeal review.
+// SLICE A: Uses canonical AppealContext (Decision→Case) instead of GovernanceCase.
 func (h *AppealHandler) AdminGetAppeal(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// Get authenticated admin ID from context
 	adminID, ok := middleware.MustGetUserIDFromContext(c)
 	if !ok {
 		return
 	}
 
-	// Parse appeal ID from URL
 	appealIDStr := c.Param("id")
 	appealID, err := uuid.Parse(appealIDStr)
 	if err != nil {
@@ -428,12 +378,12 @@ func (h *AppealHandler) AdminGetAppeal(c *gin.Context) {
 		return
 	}
 
-	// Get appeal with original case from service
+	// SLICE A: Use GetAppealWithContext (canonical Decision→Case context)
 	var appeal *appealEntity.Appeal
-	var originalCase *moderationEntity.GovernanceCase
+	var appealCtx *appealApp.AppealContext
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
-		appeal, originalCase, err = h.appealService.GetAppealWithCase(ctx, tx, appealID)
+		appeal, appealCtx, err = h.appealService.GetAppealWithContext(ctx, tx, appealID)
 		return err
 	})
 
@@ -448,8 +398,8 @@ func (h *AppealHandler) AdminGetAppeal(c *gin.Context) {
 	}
 
 	resp := h.appealToResponse(appeal)
-	if originalCase != nil {
-		resp["original_case"] = h.governanceCaseToContext(originalCase)
+	if appealCtx != nil {
+		resp["original_case"] = h.appealContextToCaseResponse(appealCtx)
 	}
 
 	response.Success(c, gin.H{
@@ -458,31 +408,20 @@ func (h *AppealHandler) AdminGetAppeal(c *gin.Context) {
 }
 
 // AdminReviewAppeal handles PUT /api/v1/admin/appeals/:id/review
-//
-// Allows admins to review an appeal and apply a decision.
-//
-// Request body:
-//   - decision: "approve" | "reject"
-//   - admin_response: optional admin response
-//
-// SLICE 7: Handler-level defense - requires moderation.appeal.review capability
 func (h *AppealHandler) AdminReviewAppeal(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// SLICE 7: Defense-in-depth - Check capability at handler level
-	// This provides defense even if middleware is bypassed
+	// Defense-in-depth: Check capability at handler level
 	if !capability.HasCapability(ctx, capability.CapModerationAppealReview.String()) {
 		response.Forbidden(c, "Insufficient permissions: moderation.appeal.review capability required")
 		return
 	}
 
-	// Get authenticated admin ID from context
 	adminID, ok := middleware.MustGetUserIDFromContext(c)
 	if !ok {
 		return
 	}
 
-	// Parse appeal ID from URL
 	appealIDStr := c.Param("id")
 	appealID, err := uuid.Parse(appealIDStr)
 	if err != nil {
@@ -490,14 +429,12 @@ func (h *AppealHandler) AdminReviewAppeal(c *gin.Context) {
 		return
 	}
 
-	// Parse request body
 	var req ReviewAppealRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
 	}
 
-	// Convert decision to boolean
 	approved := req.Decision == "approve" || req.Decision == "approved"
 
 	var adminResponse *string
@@ -505,11 +442,9 @@ func (h *AppealHandler) AdminReviewAppeal(c *gin.Context) {
 		adminResponse = &req.AdminResponse
 	}
 
-	// Review appeal
 	var appeal *appealEntity.Appeal
 	var previousStatus appealEntity.AppealStatus
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
-		// Fetch current status before review for audit trail
 		appeal, err = h.appealService.GetAppeal(ctx, tx, appealID)
 		if err == nil {
 			previousStatus = appeal.Status
@@ -521,7 +456,6 @@ func (h *AppealHandler) AdminReviewAppeal(c *gin.Context) {
 	})
 
 	if err != nil {
-		// Check for specific error types
 		if _, ok := err.(*appealEntity.ErrAppealNotFound); ok {
 			response.NotFound(c, "Appeal not found")
 			return
@@ -540,7 +474,7 @@ func (h *AppealHandler) AdminReviewAppeal(c *gin.Context) {
 		return
 	}
 
-	// W14-B3: Log appeal review to audit trail
+	// Log appeal review to audit trail
 	h.adminAuditLogger.LogSafe(ctx, adminID,
 		"appeal_reviewed", "appeal", appealID,
 		map[string]interface{}{
@@ -548,7 +482,7 @@ func (h *AppealHandler) AdminReviewAppeal(c *gin.Context) {
 			"approved":        approved,
 			"previous_status": string(previousStatus),
 			"new_status":      string(appeal.Status),
-			"case_id":       appeal.CaseID.String(),
+			"decision_id":     appeal.DecisionID.String(),
 			"admin_response":  req.AdminResponse,
 		},
 	)
@@ -564,44 +498,40 @@ func (h *AppealHandler) AdminReviewAppeal(c *gin.Context) {
 // HELPER METHODS
 // ============================================================================
 
-// governanceCaseToContext converts a GovernanceCase to minimal context for appeal review.
-// W1-B2: Provides just enough context for admins to make informed appeal decisions.
-func (h *AppealHandler) governanceCaseToContext(kase *moderationEntity.GovernanceCase) gin.H {
-	return gin.H{
-		"id":            kase.ID,
-		"resource_type": string(kase.ResourceType),
-		"resource_id":   kase.ResourceID,
-		"status":        string(kase.Status),
-		"reason":        kase.Reason,
-		"created_at":    kase.CreatedAt,
-		// Decision status helps appeal reviewer understand original outcome
-		"decision_status": mapStatusToDecision(kase.Status),
+// appealContextToCaseResponse converts an AppealContext to the original_case
+// response format. SLICE A: Uses canonical Decision→Case instead of GovernanceCase.
+func (h *AppealHandler) appealContextToCaseResponse(appealCtx *appealApp.AppealContext) gin.H {
+	if appealCtx == nil {
+		return nil
 	}
-}
 
-// mapStatusToDecision converts moderation case status to human-readable decision.
-// Note: "dismissed" refers to the CASE being dismissed (not the original report)
-func mapStatusToDecision(status moderationEntity.GovernanceCaseStatus) string {
-	switch status {
-	case moderationEntity.GovernanceCaseStatusApproved:
-		return "approved" // Content was kept
-	case moderationEntity.GovernanceCaseStatusRejected:
-		return "dismissed" // Case was dismissed (false positive)
-	case moderationEntity.GovernanceCaseStatusEnforced:
-		return "enforced" // Content was removed
-	default:
-		return string(status)
+	resp := gin.H{}
+
+	if appealCtx.Case != nil {
+		resp["id"] = appealCtx.Case.ID
+		resp["resource_type"] = string(appealCtx.Case.SubjectType)
+		resp["resource_id"] = appealCtx.Case.SubjectID
+		resp["status"] = string(appealCtx.Case.Status)
+		resp["created_at"] = appealCtx.Case.CreatedAt
 	}
+
+	if appealCtx.Decision != nil {
+		resp["decision_outcome"] = string(appealCtx.Decision.Outcome)
+		resp["decision_id"] = appealCtx.Decision.ID
+	}
+
+	return resp
 }
 
 // appealToResponse converts an Appeal entity to a response map.
+// SLICE A: Uses DecisionID instead of CaseID.
 func (h *AppealHandler) appealToResponse(appeal *appealEntity.Appeal) gin.H {
 	resp := gin.H{
-		"id":         appeal.ID,
-		"case_id":  appeal.CaseID,
-		"status":     string(appeal.Status),
-		"message":    appeal.Message,
-		"created_at": appeal.CreatedAt,
+		"id":          appeal.ID,
+		"decision_id": appeal.DecisionID,
+		"status":      string(appeal.Status),
+		"message":     appeal.Message,
+		"created_at":  appeal.CreatedAt,
 	}
 
 	if appeal.AdminResponse != nil {
@@ -618,5 +548,3 @@ func (h *AppealHandler) appealToResponse(appeal *appealEntity.Appeal) gin.H {
 
 	return resp
 }
-
-

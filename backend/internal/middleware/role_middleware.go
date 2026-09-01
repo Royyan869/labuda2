@@ -96,18 +96,3 @@ func RequireSellerProfileMiddleware(roleChecker auth.RoleChecker) gin.HandlerFun
 	}
 }
 
-// HasRole is a helper function to check if the current user has a specific role.
-func HasRole(c *gin.Context, role string) bool {
-	roles := GetUserRolesFromContext(c)
-	for _, r := range roles {
-		if r == role {
-			return true
-		}
-	}
-	return false
-}
-
-// IsAdmin is a helper function to check if the current user is an admin.
-func IsAdmin(c *gin.Context) bool {
-	return HasRole(c, "admin")
-}

@@ -2388,14 +2388,6 @@ func InitServices(
 		log.Logger,
 	)
 
-	// LEGACY READ-ONLY REPOSITORY (compile-only): the out-of-scope Appeal
-	// domain (Slice 9) still depends on ModerationRepository.GetByID. This is
-	// runtime-dead (moderation_cases dropped in 000056) and is replaced when
-	// the Appeal domain is rebuilt. It is NOT wired to any Report/Case path.
-	// moderationRepository (LEGACY) — Appeal domain no longer uses it.
-	// Kept temporarily for GovernanceCase entity compilation continuity.
-	// TODO: Delete GovernanceCase + ModerationRepository in cleanup slice.
-	_ = moderationRepo.NewModerationRepository() // unused — Appeal now uses decisionRepository + caseRepository
 
 	// ===== SOCIAL MODULE =====
 	// Initialize social service for follow/block/mute operations

@@ -147,3 +147,64 @@ func TestValidateProductionSafety_Staging_DoesNotPanicOnEnvCheck(t *testing.T) {
 	cfg := &Config{Server: ServerConfig{Env: "staging"}}
 	cfg.ValidateProductionSafety() // must not panic
 }
+
+// PASS_SECURITY: Dev flags must never be active in production.
+
+func TestValidateProductionSafety_MockFirebaseAuth_PanicsInProduction(t *testing.T) {
+	cfg := &Config{
+		Server: ServerConfig{Env: "production", GinMode: "release"},
+		Database: DatabaseConfig{SSLMode: "require"},
+		Dev: DevConfig{MockFirebaseAuth: true},
+	}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic when DEV_MOCK_FIREBASE_AUTH=true in production")
+		}
+	}()
+	cfg.ValidateProductionSafety()
+}
+
+func TestValidateProductionSafety_AutoApproveVerification_PanicsInProduction(t *testing.T) {
+	cfg := &Config{
+		Server: ServerConfig{Env: "production", GinMode: "release"},
+		Database: DatabaseConfig{SSLMode: "require"},
+		Dev: DevConfig{AutoApproveVerification: true},
+	}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic when DEV_AUTO_APPROVE_VERIFICATION=true in production")
+		}
+	}()
+	cfg.ValidateProductionSafety()
+}
+
+func TestValidateProductionSafety_SkipPaymentGateway_PanicsInProduction(t *testing.T) {
+	cfg := &Config{
+		Server: ServerConfig{Env: "production", GinMode: "release"},
+		Database: DatabaseConfig{SSLMode: "require"},
+		Dev: DevConfig{SkipPaymentGateway: true},
+	}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic when DEV_SKIP_PAYMENT_GATEWAY=true in production")
+		}
+	}()
+	cfg.ValidateProductionSafety()
+}
+
+func TestValidateProductionSafety_DevFlagsFalse_DoesNotPanic(t *testing.T) {
+	// Dev flags false (default) should not trigger production guard
+	cfg := &Config{
+		Server: ServerConfig{Env: "production", GinMode: "release"},
+		Database: DatabaseConfig{SSLMode: "require"},
+		Dev: DevConfig{MockFirebaseAuth: false, AutoApproveVerification: false, SkipPaymentGateway: false},
+	}
+	// This may still panic on other production checks (CORS, payout),
+	// but should NOT panic on Dev flag checks
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("Dev flags false should not cause panic, got: %v", r)
+		}
+	}()
+	cfg.ValidateProductionSafety()
+}

@@ -111,17 +111,27 @@ class ReportApiDatasourceImpl implements ReportApiDatasource {
   @override
   Future<AppealDto> getAppeal(String appealId) async {
     final response = await _apiClient.get('/appeals/$appealId');
-    return AppealDto.fromJson(_extractData(response));
+    final data = _extractData(response);
+    final appealData = data['appeal'] as Map<String, dynamic>? ?? data;
+    return AppealDto.fromJson(appealData);
   }
 
   @override
   Future<List<AppealDto>> getMyAppeals({String? status, int page = 1}) async {
+    final queryParams = <String, dynamic>{
+      'page': page,
+      'page_size': 20,
+    };
+    if (status != null) queryParams['status'] = status;
     final response = await _apiClient.get(
       '/appeals/me',
-      queryParameters: {'status': ?status, 'page': page, 'page_size': 20},
+      queryParameters: queryParams,
     );
-    final data = _extractList(response);
-    return data.map((json) => AppealDto.fromJson(json)).toList();
+    final data = _extractData(response);
+    final appeals = data['appeals'] as List<dynamic>? ?? [];
+    return appeals
+        .map((json) => AppealDto.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
 
   // REMOVED: getAppeals() - Admin-only endpoint

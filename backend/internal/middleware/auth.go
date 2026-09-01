@@ -403,15 +403,3 @@ func GetBanReasonFromContext(c *gin.Context) string {
 	return claims.BanReason
 }
 
-// GetUserRolesFromContext extracts user roles from context
-// Returns empty slice if user not authenticated or roles not available
-func GetUserRolesFromContext(c *gin.Context) []string {
-	claims, exists := GetUserFromContext(c)
-	if !exists {
-		return []string{}
-	}
-	if claims.Roles == nil {
-		return []string{}
-	}
-	return claims.Roles
-}

@@ -1,3 +1,13 @@
+// DOMAIN: Moderation Domain (governance/moderation/)
+// RESPONSIBILITY: Appeal entity — user challenge of a governance Decision
+//
+// SLICE A: Canonical alignment — Appeal → Decision (NOT Case, NOT Report).
+// Appeal targets a Decision via decision_id FK.
+// Appeal review produces Decision #2 (deferred to Slice B).
+//
+// Canonical reference: LABUDA — CANONICAL MODERATION BUSINESS TRUTH v1 §24-25
+// Canonical reference: LABUDA — CANONICAL MODERATION DESIGN v1 §23-25
+
 package entity
 
 import (
@@ -7,14 +17,15 @@ import (
 	"github.com/google/uuid"
 )
 
-// Appeal represents an appeal request for a moderation decision.
+// Appeal represents an appeal request against a governance Decision.
 //
-// Users can appeal moderation decisions that resulted in content removal.
-// Appeals are reviewed by admins who can uphold or overturn the decision.
+// Canonical: Appeal → Decision (BT §24, Design §4.6).
+// Users can appeal Decisions that produced consequences against them.
+// Appeals are reviewed by admins who produce Decision #2 (deferred to Slice B).
 type Appeal struct {
 	ID            uuid.UUID
-	CaseID       uuid.UUID   // Reference to the original moderation case
-	AppealedBy    uuid.UUID   // User who created the appeal
+	DecisionID    uuid.UUID   // FK → decisions.id (canonical: Appeal → Decision)
+	AppealedBy    uuid.UUID   // User who created the appeal (affected party)
 	Status        AppealStatus
 	Message       string      // User's explanation for the appeal
 	AdminResponse *string     // Admin's response to the appeal
@@ -23,17 +34,22 @@ type Appeal struct {
 	ReviewedAt    *time.Time
 }
 
-// AppealStatus represents the state of an appeal.
+// AppealStatus represents the state of an appeal request.
+// Note: The canonical state vocabulary is not explicitly locked in Business Truth.
+// These values match the existing DB constraint (migration 000055):
+//   CHECK (status IN ('pending', 'approved', 'rejected'))
 type AppealStatus string
 
 const (
 	// AppealStatusPending means the appeal is awaiting admin review.
 	AppealStatusPending AppealStatus = "pending"
 
-	// AppealStatusApproved means the appeal was approved and the moderation decision was overturned.
+	// AppealStatusApproved means the appeal was approved and the governance
+	// Decision was overturned. Decision #2 will be created (Slice B).
 	AppealStatusApproved AppealStatus = "approved"
 
-	// AppealStatusRejected means the appeal was rejected and the original moderation decision stands.
+	// AppealStatusRejected means the appeal was rejected and the original
+	// governance Decision stands.
 	AppealStatusRejected AppealStatus = "rejected"
 )
 
@@ -46,6 +62,10 @@ func (s AppealStatus) IsPending() bool {
 func (s AppealStatus) IsReviewed() bool {
 	return s != AppealStatusPending
 }
+
+// ============================================================================
+// DOMAIN ERRORS
+// ============================================================================
 
 // ErrAppealNotFound is returned when an appeal cannot be found.
 type ErrAppealNotFound struct {
@@ -68,9 +88,9 @@ func (e *ErrAppealAlreadyReviewed) Error() string {
 
 // ErrInvalidAppealTransition is returned when attempting an invalid status transition.
 type ErrInvalidAppealTransition struct {
-	AppealID       uuid.UUID
-	CurrentStatus  AppealStatus
-	TargetStatus   AppealStatus
+	AppealID      uuid.UUID
+	CurrentStatus AppealStatus
+	TargetStatus  AppealStatus
 }
 
 func (e *ErrInvalidAppealTransition) Error() string {
@@ -78,78 +98,79 @@ func (e *ErrInvalidAppealTransition) Error() string {
 		e.AppealID, e.CurrentStatus, e.TargetStatus)
 }
 
-// ErrCaseNotFound is returned when attempting to appeal a non-existent moderation case.
-type ErrCaseNotFound struct {
-	CaseID uuid.UUID
+// ErrDecisionNotFound is returned when attempting to appeal a non-existent Decision.
+type ErrDecisionNotFound struct {
+	DecisionID uuid.UUID
 }
 
-func (e *ErrCaseNotFound) Error() string {
-	return fmt.Sprintf("moderation case not found: case_id=%s", e.CaseID)
+func (e *ErrDecisionNotFound) Error() string {
+	return fmt.Sprintf("decision not found: %s", e.DecisionID)
+}
+
+// ErrDecisionNotAppealable is returned when attempting to appeal a Decision
+// that does not produce consequences (e.g. no_violation).
+// Design §23: "Tidak ada appeal terhadap pure rejection/no-action."
+type ErrDecisionNotAppealable struct {
+	DecisionID uuid.UUID
+	Outcome    DecisionOutcome
+}
+
+func (e *ErrDecisionNotAppealable) Error() string {
+	return fmt.Sprintf("decision not appealable: decision_id=%s, outcome=%s", e.DecisionID, e.Outcome)
 }
 
 // ErrNotResourceOwner is returned when attempting to appeal a resource you don't own.
 type ErrNotResourceOwner struct {
-	CaseID      uuid.UUID
-	ResourceID  uuid.UUID
-	UserID      uuid.UUID
+	DecisionID   uuid.UUID
+	ResourceID   uuid.UUID
+	UserID       uuid.UUID
 	ResourceType string
 }
 
 func (e *ErrNotResourceOwner) Error() string {
-	return fmt.Sprintf("not resource owner: case_id=%s, resource_type=%s, resource_id=%s, user_id=%s",
-		e.CaseID, e.ResourceType, e.ResourceID, e.UserID)
+	return fmt.Sprintf("not resource owner: decision_id=%s, resource_type=%s, resource_id=%s, user_id=%s",
+		e.DecisionID, e.ResourceType, e.ResourceID, e.UserID)
 }
 
-// ErrDuplicatePendingAppeal is returned when attempting to create a second pending appeal for the same case.
+// ErrDuplicatePendingAppeal is returned when attempting to create a second
+// pending appeal for the same Decision.
 type ErrDuplicatePendingAppeal struct {
-	CaseID uuid.UUID
+	DecisionID uuid.UUID
 }
 
 func (e *ErrDuplicatePendingAppeal) Error() string {
-	return fmt.Sprintf("duplicate pending appeal: case_id=%s", e.CaseID)
+	return fmt.Sprintf("duplicate pending appeal: decision_id=%s", e.DecisionID)
 }
 
-// ErrCaseNotAppealable is returned when attempting to appeal a case that is not in a terminal state.
-type ErrCaseNotAppealable struct {
-	CaseID uuid.UUID
-	Status GovernanceCaseStatus
-}
-
-func (e *ErrCaseNotAppealable) Error() string {
-	return fmt.Sprintf("case not appealable: case_id=%s, status=%s", e.CaseID, e.Status)
-}
-
-// ErrUnsupportedResourceType is returned when attempting to appeal a case
+// ErrUnsupportedResourceType is returned when attempting to appeal a Decision
 // for a resource type that does not support appeals.
-// Supported types: content, comment.
+// Supported types: content, comment, for_sale, auction, user.
 type ErrUnsupportedResourceType struct {
 	ResourceType string
 }
 
 func (e *ErrUnsupportedResourceType) Error() string {
-	return fmt.Sprintf("appeals not supported for resource type: %s (supported: content, comment)", e.ResourceType)
+	return fmt.Sprintf("appeals not supported for resource type: %s (supported: content, comment, for_sale, auction, user)", e.ResourceType)
 }
 
-// ErrRestorationEventFailed is returned when restoration event emission fails.
-type ErrRestorationEventFailed struct {
-	AppealID uuid.UUID
-	Err      error
-}
-
-func (e *ErrRestorationEventFailed) Error() string {
-	return fmt.Sprintf("restoration event failed: appeal_id=%s, error=%v", e.AppealID, e.Err)
-}
+// ============================================================================
+// CONSTRUCTORS AND STATE MACHINE
+// ============================================================================
 
 // NewAppeal creates a new appeal in pending status.
+//
+// Business rules:
+//   - Initial status is always "pending"
+//   - Appeal targets a specific Decision (canonical: Appeal → Decision)
 func NewAppeal(
-	caseID uuid.UUID,
+	decisionID uuid.UUID,
 	appealedBy uuid.UUID,
 	message string,
 ) *Appeal {
 	now := time.Now()
 	return &Appeal{
 		ID:         uuid.New(),
-		CaseID:     caseID,
+		DecisionID: decisionID,
 		AppealedBy: appealedBy,
 		Status:     AppealStatusPending,
 		Message:    message,
@@ -157,7 +178,7 @@ func NewAppeal(
 	}
 }
 
-// CanTransition checks if a status transition is allowed for appeals.
+// CanAppealTransition checks if a status transition is allowed for appeals.
 func CanAppealTransition(from, to AppealStatus) bool {
 	// Only pending -> {approved, rejected} transitions allowed
 	if from != AppealStatusPending {
@@ -167,13 +188,13 @@ func CanAppealTransition(from, to AppealStatus) bool {
 }
 
 // Approve transitions the appeal to approved status.
-// This means the moderation decision was overturned.
+// This means the governance Decision will be overturned (Decision #2 in Slice B).
 func (a *Appeal) Approve(adminID uuid.UUID, adminResponse *string) error {
 	return a.transitionTo(adminID, adminResponse, AppealStatusApproved)
 }
 
 // Reject transitions the appeal to rejected status.
-// This means the original moderation decision stands.
+// This means the original governance Decision stands.
 func (a *Appeal) Reject(adminID uuid.UUID, adminResponse *string) error {
 	return a.transitionTo(adminID, adminResponse, AppealStatusRejected)
 }
@@ -191,9 +212,9 @@ func (a *Appeal) transitionTo(adminID uuid.UUID, adminResponse *string, targetSt
 	// Validate transition
 	if !CanAppealTransition(a.Status, targetStatus) {
 		return &ErrInvalidAppealTransition{
-			AppealID:       a.ID,
-			CurrentStatus:  a.Status,
-			TargetStatus:   targetStatus,
+			AppealID:      a.ID,
+			CurrentStatus: a.Status,
+			TargetStatus:  targetStatus,
 		}
 	}
 
@@ -206,5 +227,3 @@ func (a *Appeal) transitionTo(adminID uuid.UUID, adminResponse *string, targetSt
 
 	return nil
 }
-
-

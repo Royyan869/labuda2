@@ -18,8 +18,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// Note: ErrCaseNotFound is defined in appeal.go and reused here.
-// The existing error type serves both appeal and case lookup use cases.
 
 // CaseStatus represents the canonical Case lifecycle.
 //

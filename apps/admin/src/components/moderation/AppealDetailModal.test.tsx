@@ -20,7 +20,7 @@ vi.mock('@/hooks/useAuth', () => ({
 function makeAppeal(overrides: Partial<Appeal> = {}): Appeal {
   return {
     id: 'appeal-1',
-    report_id: 'report-1',
+    decision_id: 'decision-1',
     status: 'pending',
     message: 'I believe this decision was incorrect.',
     created_at: '2026-06-01T00:00:00.000Z',

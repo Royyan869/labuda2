@@ -73,16 +73,16 @@ class ReportMapper {
 class AppealMapper {
   /// Map DTO to Domain Entity.
   ///
-  /// Backend contract (V1): {id, case_id, status, message, created_at,
+  /// Backend contract (V1): {id, decision_id, status, message, created_at,
   ///                          admin_response?, reviewed_by?, reviewed_at?}
-  /// Domain mapping: caseId→sourceId, message→reason,
+  /// Domain mapping: decisionId→sourceId, message→reason,
   ///                 appealType defaults to contentRemoval (V1 only).
   static Appeal toEntity(AppealDto dto) {
     return Appeal(
       id: dto.id,
       userId: '', // backend create response omits user_id; populated on read
       appealType: AppealType.contentRemoval, // V1: content/comment only
-      sourceId: dto.caseId,
+      sourceId: dto.decisionId,
       reason: dto.message,
       evidenceDescription: null,
       evidenceUrls: const [],
@@ -98,13 +98,13 @@ class AppealMapper {
 
   /// Map Domain Entity to DTO (for creating request).
   ///
-  /// Backend contract: {case_id (uuid), message (string)}.
-  /// sourceId on CreateAppealRequest holds the moderation case UUID.
+  /// Backend contract: {decision_id (uuid), message (string)}.
+  /// sourceId on CreateAppealRequest holds the governance decision UUID.
   static CreateAppealRequestDto toCreateRequestDto(
     CreateAppealRequest request,
   ) {
     return CreateAppealRequestDto(
-      caseId: request.sourceId ?? '',
+      decisionId: request.sourceId ?? '',
       message: request.reason,
     );
   }

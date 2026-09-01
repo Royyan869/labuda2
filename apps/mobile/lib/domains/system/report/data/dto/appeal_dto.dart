@@ -1,7 +1,7 @@
 /// Appeal DTOs for API Integration
 ///
 /// These models match the Go backend API contract.
-/// Backend fields: id, case_id, status, message, created_at,
+/// Backend fields: id, decision_id, status, message, created_at,
 ///                 admin_response?, reviewed_by?, reviewed_at?
 library;
 
@@ -12,7 +12,7 @@ library;
 /// Appeal DTO from API — matches appealToResponse shape in appeal_handler.go
 class AppealDto {
   final String id;
-  final String caseId;
+  final String decisionId;
   final String status;
   final String message;
   final DateTime createdAt;
@@ -22,7 +22,7 @@ class AppealDto {
 
   const AppealDto({
     required this.id,
-    required this.caseId,
+    required this.decisionId,
     required this.status,
     required this.message,
     required this.createdAt,
@@ -34,7 +34,7 @@ class AppealDto {
   factory AppealDto.fromJson(Map<String, dynamic> json) {
     return AppealDto(
       id: json['id'] as String,
-      caseId: json['case_id'] as String,
+      decisionId: json['decision_id'] as String,
       status: json['status'] as String,
       message: json['message'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
@@ -48,7 +48,7 @@ class AppealDto {
 
   Map<String, dynamic> toJson() => {
     'id': id,
-    'case_id': caseId,
+    'decision_id': decisionId,
     'status': status,
     'message': message,
     'created_at': createdAt.toIso8601String(),
@@ -59,15 +59,15 @@ class AppealDto {
 }
 
 /// Request to create an appeal — matches backend CreateAppealRequest:
-///   case_id (required, uuid): the moderation case being appealed
+///   decision_id (required, uuid): the governance decision being appealed
 ///   message (required, 1–2000 chars): user's explanation
 class CreateAppealRequestDto {
-  final String caseId;
+  final String decisionId;
   final String message;
 
-  const CreateAppealRequestDto({required this.caseId, required this.message});
+  const CreateAppealRequestDto({required this.decisionId, required this.message});
 
-  Map<String, dynamic> toJson() => {'case_id': caseId, 'message': message};
+  Map<String, dynamic> toJson() => {'decision_id': decisionId, 'message': message};
 }
 
 /// Request to review an appeal (admin only) — matches backend ReviewAppealRequest:

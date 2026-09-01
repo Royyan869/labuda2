@@ -197,8 +197,8 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500">Report ID</p>
-                  <p className="font-mono text-sm break-all">{appeal.report_id}</p>
+                  <p className="text-sm text-gray-500">Decision ID</p>
+                  <p className="font-mono text-sm break-all">{appeal.decision_id}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Submitted Date</p>
@@ -253,14 +253,7 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
                     <p className="text-sm text-gray-500">Resource Type</p>
                     <p className="text-sm">{resourceTypeLabels[appealDetail.original_case.resource_type]}</p>
                   </div>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Original Reason</p>
-                  <p className="text-gray-900 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap break-words">
-                    {appealDetail.original_case.reason}
-                  </p>
-                </div>
-                <div className="flex items-center gap-4">
+                </div>                <div className="flex items-center gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Case Status</p>
                     <Badge variant={moderationCaseStatusVariants[appealDetail.original_case.status]}>
@@ -268,10 +261,14 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
                     </Badge>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Decision</p>
+                    <p className="text-sm text-gray-500">Decision Outcome</p>
                     <p className="text-sm font-medium capitalize">
-                      {appealDetail.original_case.decision_status}
+                      {appealDetail.original_case.decision_outcome}
                     </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Decision ID</p>
+                    <p className="font-mono text-xs break-all">{appealDetail.original_case.decision_id}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Created</p>

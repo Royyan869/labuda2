@@ -363,7 +363,6 @@ func (s *AppealService) GetAppeal(
 }
 
 // GetAppealWithContext retrieves an appeal with its canonical Decision/Case context.
-// SLICE A: Replaces GetAppealWithCase — returns AppealContext instead of GovernanceCase.
 func (s *AppealService) GetAppealWithContext(
 	ctx context.Context,
 	tx interface{},
@@ -383,19 +382,6 @@ func (s *AppealService) GetAppealWithContext(
 	return appeal, appealCtx, nil
 }
 
-// GetAppealWithCase is kept for backward compatibility during Slice A.
-// Returns GovernanceCase from legacy ModerationRepository.
-// DEFERRED: This method will be removed when GovernanceCase is deleted.
-func (s *AppealService) GetAppealWithCase(
-	ctx context.Context,
-	tx interface{},
-	appealID uuid.UUID,
-) (*entity.Appeal, *entity.GovernanceCase, error) {
-	// This method should not be called after Slice A.
-	// It exists only for compilation continuity.
-	// Use GetAppealWithContext instead.
-	return nil, nil, fmt.Errorf("GetAppealWithCase is deprecated: use GetAppealWithContext")
-}
 
 // ListAppealsByUser retrieves all appeals created by a specific user.
 func (s *AppealService) ListAppealsByUser(

@@ -143,7 +143,7 @@ export function AppealsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Appeal ID</TableHead>
-                    <TableHead>Report ID</TableHead>
+                    <TableHead>Decision ID</TableHead>
                     <TableHead>Message</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Submitted Date</TableHead>
@@ -158,7 +158,7 @@ export function AppealsPage() {
                         {appeal.id.slice(0, 8)}
                       </TableCell>
                       <TableCell className="font-mono text-sm">
-                        {appeal.report_id.slice(0, 8)}
+                        {appeal.decision_id.slice(0, 8)}
                       </TableCell>
                       <TableCell>
                         <div className="max-w-xs truncate">

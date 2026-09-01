@@ -667,10 +667,10 @@ func setupGetAppealRouterWithUser(handler *AppealHandler, userID uuid.UUID) *gin
 }
 
 // newRealAppealServiceForGetAppeal builds a real *application.AppealService
-// wired to a controllable fake AppealRepository. The other 3 dependencies
-// (ModerationRepository, ContentRepository, CommentRepository) and the
-// outbox repository are never invoked by GetAppeal, so they are
-// panic-if-called stubs / a zero-value struct — see the fakes above.
+// wired to a controllable fake AppealRepository. The other dependencies
+// (DecisionRepository, CaseRepository, ContentRepository, CommentRepository)
+// are never invoked by GetAppeal, so they are panic-if-called stubs /
+// a zero-value struct — see the fakes above.
 func newRealAppealServiceForGetAppeal(getByID func(ctx context.Context, tx interface{}, appealID uuid.UUID) (*appealEntity.Appeal, error)) *appealApp.AppealService {
 	repo := &fakeAppealRepository{getByIDFunc: getByID}
 	fakeDecRepo := &fakeDecisionRepository{}

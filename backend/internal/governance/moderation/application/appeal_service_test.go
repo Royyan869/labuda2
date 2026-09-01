@@ -219,18 +219,6 @@ func (m *mockCommentRepository) FindTargetIDByCommerceReference(ctx context.Cont
 	return uuid.Nil, errors.New("not implemented")
 }
 
-// mockModerationRepository is a LEGACY mock kept for compilation continuity.
-// It was previously used by Appeal tests; replaced by mockDecisionRepository.
-type mockModerationRepository struct {
-	getByIDFunc func(ctx context.Context, tx interface{}, caseID uuid.UUID) (*entity.GovernanceCase, error)
-}
-
-func (m *mockModerationRepository) GetByID(ctx context.Context, tx interface{}, caseID uuid.UUID) (*entity.GovernanceCase, error) {
-	if m.getByIDFunc != nil {
-		return m.getByIDFunc(ctx, tx, caseID)
-	}
-	return nil, errors.New("moderation case not found")
-}
 
 // mockDecisionRepository is a mock implementation of DecisionRepository.
 type mockDecisionRepository struct {

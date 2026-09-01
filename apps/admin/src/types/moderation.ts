@@ -19,7 +19,7 @@ export const APPEAL_STATUS = {
 
 export interface Appeal {
   id: string
-  report_id: string
+  decision_id: string
   status: AppealStatus
   message: string
   created_at: string
@@ -37,9 +37,9 @@ export interface OriginalCaseContext {
   resource_type: string
   resource_id: string
   status: string
-  reason: string
   created_at: string
-  decision_status: 'approved' | 'dismissed' | 'enforced'
+  decision_outcome: 'violation' | 'no_violation'
+  decision_id: string
 }
 
 export interface AppealsResponse {
