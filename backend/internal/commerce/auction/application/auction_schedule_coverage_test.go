@@ -22,19 +22,19 @@ import (
 // ============================================================================
 
 type scheduleStubProductShippingRepo struct {
-	options []*shippingEntity.ShippingOption
+	options []*shippingEntity.ShippingSetup
 	err     error
 }
 
-func (r *scheduleStubProductShippingRepo) GetByProduct(_ context.Context, _ db.Tx, _ uuid.UUID) ([]*shippingEntity.ShippingOption, error) {
+func (r *scheduleStubProductShippingRepo) GetByProduct(_ context.Context, _ db.Tx, _ uuid.UUID) ([]*shippingEntity.ShippingSetup, error) {
 	if r.err != nil {
 		return nil, r.err
 	}
 	return r.options, nil
 }
 
-// Unused interface methods — required to satisfy ProductShippingOptionRepository.
-func (r *scheduleStubProductShippingRepo) GetAvailableByProduct(_ context.Context, _ db.Tx, _ uuid.UUID) ([]*shippingEntity.ShippingOption, error) {
+// Unused interface methods — required to satisfy ProductShippingSetupRepository.
+func (r *scheduleStubProductShippingRepo) GetAvailableByProduct(_ context.Context, _ db.Tx, _ uuid.UUID) ([]*shippingEntity.ShippingSetup, error) {
 	return nil, nil
 }
 func (r *scheduleStubProductShippingRepo) Create(_ context.Context, _ db.Tx, _ uuid.UUID, _ uuid.UUID, _ int) error {
@@ -46,7 +46,7 @@ func (r *scheduleStubProductShippingRepo) Delete(_ context.Context, _ db.Tx, _ u
 func (r *scheduleStubProductShippingRepo) DeleteByProduct(_ context.Context, _ db.Tx, _ uuid.UUID) error {
 	return nil
 }
-func (r *scheduleStubProductShippingRepo) DeleteByShippingOption(_ context.Context, _ db.Tx, _ uuid.UUID) error {
+func (r *scheduleStubProductShippingRepo) DeleteByShippingSetup(_ context.Context, _ db.Tx, _ uuid.UUID) error {
 	return nil
 }
 func (r *scheduleStubProductShippingRepo) CreateBulk(_ context.Context, _ db.Tx, _ uuid.UUID, _ []uuid.UUID) error {
@@ -65,7 +65,7 @@ type scheduleStubCoverageRepo struct {
 	err               error
 }
 
-func (r *scheduleStubCoverageRepo) GetByShippingOption(_ context.Context, _ db.Tx, optionID uuid.UUID) ([]*shippingEntity.ShippingCoverage, error) {
+func (r *scheduleStubCoverageRepo) GetByShippingSetup(_ context.Context, _ db.Tx, optionID uuid.UUID) ([]*shippingEntity.ShippingCoverage, error) {
 	if r.err != nil {
 		return nil, r.err
 	}
@@ -86,7 +86,7 @@ func (r *scheduleStubCoverageRepo) GetByOptionAndProvince(_ context.Context, _ d
 	return nil, nil
 }
 func (r *scheduleStubCoverageRepo) Delete(_ context.Context, _ db.Tx, _ uuid.UUID) error { return nil }
-func (r *scheduleStubCoverageRepo) DeleteByShippingOption(_ context.Context, _ db.Tx, _ uuid.UUID) error {
+func (r *scheduleStubCoverageRepo) DeleteByShippingSetup(_ context.Context, _ db.Tx, _ uuid.UUID) error {
 	return nil
 }
 
@@ -131,7 +131,7 @@ func TestEnsureShippingCoverage_OptionWithNoCoverages_Errors(t *testing.T) {
 	optID := uuid.New()
 	svc := newAuctionServiceWithShippingStubs(
 		&scheduleStubProductShippingRepo{
-			options: []*shippingEntity.ShippingOption{{ID: optID}},
+			options: []*shippingEntity.ShippingSetup{{ID: optID}},
 		},
 		&scheduleStubCoverageRepo{
 			coveragesByOption: map[uuid.UUID][]*shippingEntity.ShippingCoverage{
@@ -155,13 +155,13 @@ func TestEnsureShippingCoverage_AllCoveragesInactive_Errors(t *testing.T) {
 	optID := uuid.New()
 	svc := newAuctionServiceWithShippingStubs(
 		&scheduleStubProductShippingRepo{
-			options: []*shippingEntity.ShippingOption{{ID: optID}},
+			options: []*shippingEntity.ShippingSetup{{ID: optID}},
 		},
 		&scheduleStubCoverageRepo{
 			coveragesByOption: map[uuid.UUID][]*shippingEntity.ShippingCoverage{
 				optID: {
-					{ID: uuid.New(), ShippingOptionID: optID, IsAvailable: false},
-					{ID: uuid.New(), ShippingOptionID: optID, IsAvailable: false},
+					{ID: uuid.New(), ShippingSetupID: optID, IsAvailable: false},
+					{ID: uuid.New(), ShippingSetupID: optID, IsAvailable: false},
 				},
 			},
 		},
@@ -182,13 +182,13 @@ func TestEnsureShippingCoverage_HasActiveCoverage_Passes(t *testing.T) {
 	optID := uuid.New()
 	svc := newAuctionServiceWithShippingStubs(
 		&scheduleStubProductShippingRepo{
-			options: []*shippingEntity.ShippingOption{{ID: optID}},
+			options: []*shippingEntity.ShippingSetup{{ID: optID}},
 		},
 		&scheduleStubCoverageRepo{
 			coveragesByOption: map[uuid.UUID][]*shippingEntity.ShippingCoverage{
 				optID: {
-					{ID: uuid.New(), ShippingOptionID: optID, IsAvailable: false},
-					{ID: uuid.New(), ShippingOptionID: optID, IsAvailable: true}, // one active
+					{ID: uuid.New(), ShippingSetupID: optID, IsAvailable: false},
+					{ID: uuid.New(), ShippingSetupID: optID, IsAvailable: true}, // one active
 				},
 			},
 		},
@@ -207,12 +207,12 @@ func TestEnsureShippingCoverage_MultipleOptions_OnlySecondHasCoverage_Passes(t *
 	opt2 := uuid.New()
 	svc := newAuctionServiceWithShippingStubs(
 		&scheduleStubProductShippingRepo{
-			options: []*shippingEntity.ShippingOption{{ID: opt1}, {ID: opt2}},
+			options: []*shippingEntity.ShippingSetup{{ID: opt1}, {ID: opt2}},
 		},
 		&scheduleStubCoverageRepo{
 			coveragesByOption: map[uuid.UUID][]*shippingEntity.ShippingCoverage{
 				opt1: {}, // first has none
-				opt2: {{ID: uuid.New(), ShippingOptionID: opt2, IsAvailable: true}}, // second passes
+				opt2: {{ID: uuid.New(), ShippingSetupID: opt2, IsAvailable: true}}, // second passes
 			},
 		},
 	)

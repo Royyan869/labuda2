@@ -285,7 +285,7 @@ func (w *AuctionEndWorker) endAuction(
 		// In production, this would be replaced by proper claim flow
 		return w.auctionService.EndAuctionInternal(ctx, tx, auctionApp.EndAuctionInput{
 			AuctionID:        auctionID,
-			ShippingOptionID: uuid.Nil, // Will be provided in claim flow
+			ShippingSetupID: uuid.Nil, // Will be provided in claim flow
 			ProvinceCode:     "",       // Will be provided in claim flow
 			CityCode:         "",       // Will be provided in claim flow
 		})

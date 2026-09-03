@@ -247,12 +247,12 @@ func (f *contentProjectionFixture) seedAuction(
 	endAt := now.Add(1 * time.Hour)
 	_, err := f.appDB.Pool().Exec(context.Background(), `
 		INSERT INTO auctions (
-			id, seller_id, product_id, order_id, settlement_deadline,
+			id, seller_id, product_id, order_id,
 			start_price, bid_increment, buy_now_price, start_at, end_at, current_bid,
 			current_winner_id, status, created_at,
 			updated_at, anti_snipe_extension_seconds
 		)
-		VALUES ($1, $2, $3, NULL, NULL, $4, $5, NULL, $6, $7, NULL, NULL, $8, $9, $9, $10)
+		VALUES ($1, $2, $3, NULL, $4, $5, NULL, $6, $7, NULL, NULL, $8, $9, $9, $10)
 	`, id, sellerID, productID, int64(100000), int64(5000), startAt, endAt, string(status), now, int64(0))
 	require.NoError(t, err)
 

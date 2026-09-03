@@ -495,9 +495,6 @@ func startServer(appCtx context.Context, cfg *config.Config, router *gin.Engine,
 		log.Info("Reconciliation worker stopped")
 	}
 
-	// Trade auto-release worker shutdown - REMOVED: worker no longer exists
-	// TODO: Remove this code block if no longer needed
-
 	// Order auto-complete worker shutdown
 	if deps.OrderAutoCompleteWorker != nil && deps.OrderAutoCompleteWorker.IsRunning() {
 		deps.OrderAutoCompleteWorker.Stop()

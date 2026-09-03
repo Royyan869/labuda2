@@ -181,7 +181,7 @@ class AuctionRemoteDatasource extends BaseApiRepository {
   Future<String> claimAuction(
     String auctionId, {
     required String addressId,
-    required String shippingOptionId,
+    required String shippingSetupId,
     String? discountCode,
     bool useCoins = false,
   }) async {
@@ -190,7 +190,7 @@ class AuctionRemoteDatasource extends BaseApiRepository {
         '/auctions/$auctionId/claim',
         data: {
           'address_id': addressId,
-          'shipping_option_id': shippingOptionId,
+          'shipping_setup_id': shippingSetupId,
           if (discountCode != null) 'discount_code': discountCode,
           if (useCoins) 'use_coins': true,
         },

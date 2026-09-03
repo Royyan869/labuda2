@@ -14,7 +14,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
 	auctionRepoImpl "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
+	"github.com/labuda/backend/internal/commerce/governance/commercegov"
 	forSaleRepoImpl "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	forSalerepo "github.com/labuda/backend/internal/commerce/forsale/repository"
 	"github.com/labuda/backend/internal/commerce/order/entity"
@@ -86,6 +88,7 @@ type OrderCompletionService struct {
 	repo                 orderrepository.OrderRepository
 	forSaleRepo          forSalerepo.ForSaleRepository
 	auctionRepo          *auctionRepoImpl.AuctionRepository // PASS_20B: auction order-binding release on cancel/expire
+	commerceViolationRepo commercegov.Repository             // Canonical violation/restriction authority for settlement failure
 	ownership            *auth.OwnershipValidator
 	accountStatusChecker auth.AccountStatusChecker
 	outboxRepo           *outboxRepo.OutboxRepository
@@ -116,6 +119,41 @@ type ShippingQuoteService interface {
 // seller_rejected, escalated_to_admin, admin_refunded.
 type ActiveRefundChecker interface {
 	HasActiveRefundByOrderID(ctx context.Context, tx db.Tx, orderID uuid.UUID) (bool, error)
+}
+
+// reactivateShippingQuoteIfEligible reactivates a USED shipping quote after an
+// order failure — but ONLY for fixed-price (for_sale) orders.
+//
+// QUOTE ISOLATION (canonical auction settlement): auction-sourced orders must
+// NEVER reactivate their quote on expiry/cancel/refund. A relist reuses the
+// same auction record (source_type=auction, source_id=auction.id), so a
+// reactivated old quote would become the current settlement authority for the
+// relist. The quote stays a historical record; the next settlement must obtain
+// a fresh quote (or normal shipping).
+func (s *OrderCompletionService) reactivateShippingQuoteIfEligible(
+	ctx context.Context,
+	tx db.Tx,
+	order *entity.Order,
+) {
+	if order.SourceType == entity.OrderSourceAuction {
+		return
+	}
+	if order.ShippingQuoteID != nil && *order.ShippingQuoteID != uuid.Nil {
+		if err := s.shippingQuoteService.ReactivateQuoteIfEligible(ctx, tx, *order.ShippingQuoteID); err != nil {
+			s.logger.Warn("Failed to reactivate shipping quote after order failure",
+				zap.String("order_id", order.ID.String()),
+				zap.String("shipping_quote_id", order.ShippingQuoteID.String()),
+				zap.Error(err),
+			)
+		}
+	}
+}
+
+// SetCommerceViolationRepo wires the canonical commerce violation/restriction
+// repository used when an auction order expires unpaid and its auction returns
+// to DRAFT. Called post-construction from serverboot.
+func (s *OrderCompletionService) SetCommerceViolationRepo(repo commercegov.Repository) {
+	s.commerceViolationRepo = repo
 }
 
 // NewOrderCompletionService creates a new OrderCompletionService.
@@ -253,6 +291,16 @@ func (s *OrderCompletionService) MarkPaid(
 		return err
 	}
 
+	// Settlement success: when this is an auction-sourced order and the auction
+	// is still in waiting_settlement (bid-win claim flow), settle the auction
+	// to ended atomically with payment success. Buy-now auctions are already
+	// ended at order creation; no-winner/for-sale orders are untouched.
+	if order.SourceType == entity.OrderSourceAuction {
+		if err := s.settleAuctionOnPaymentSuccess(ctx, tx, order); err != nil {
+			return err
+		}
+	}
+
 	// Step 5: Emit outbox event
 	if err := s.outboxRepo.InsertEvent(
 		ctx, tx,
@@ -263,6 +311,32 @@ func (s *OrderCompletionService) MarkPaid(
 		return err
 	}
 
+	return nil
+}
+
+// settleAuctionOnPaymentSuccess settles a bid-win auction (waiting_settlement)
+// to ended once its bound order is paid. Idempotent: an auction already ended
+// (buy-now, or a retried MarkPaid) is a no-op.
+func (s *OrderCompletionService) settleAuctionOnPaymentSuccess(
+	ctx context.Context,
+	tx db.Tx,
+	order *entity.Order,
+) error {
+	auction, err := s.auctionRepo.GetForUpdate(ctx, tx, order.SourceID)
+	if err != nil {
+		return fmt.Errorf("failed to lock auction for payment settlement: %w", err)
+	}
+	if auction.Status != auctionEntity.StatusWaitingSettlement {
+		// Already ended (buy-now) or returned to draft via a concurrent expiry —
+		// nothing to settle.
+		return nil
+	}
+	if err := auction.Settle(); err != nil {
+		return fmt.Errorf("failed to settle auction on payment success: %w", err)
+	}
+	if err := s.auctionRepo.UpdateTx(ctx, tx, auction); err != nil {
+		return fmt.Errorf("failed to persist auction settlement: %w", err)
+	}
 	return nil
 }
 
@@ -772,20 +846,14 @@ func (s *OrderCompletionService) Cancel(
 	}
 
 	// ============================================================
-	// STEP 5.5: REACTIVATE SHIPPING QUOTE IF ELIGIBLE
+	// STEP 5.5: REACTIVATE SHIPPING QUOTE IF ELIGIBLE (fixed-price only)
 	// ============================================================
 	// Quote is marked USED at order creation (checkout), before payment.
 	// If buyer cancels from pending, the quote was consumed for an order
-	// that was never paid — reactivate so buyer can retry.
-	if order.ShippingQuoteID != nil && *order.ShippingQuoteID != uuid.Nil {
-		if err := s.shippingQuoteService.ReactivateQuoteIfEligible(ctx, tx, *order.ShippingQuoteID); err != nil {
-			s.logger.Warn("Failed to reactivate shipping quote after order cancel",
-				zap.String("order_id", order.ID.String()),
-				zap.String("shipping_quote_id", order.ShippingQuoteID.String()),
-				zap.Error(err),
-			)
-		}
-	}
+	// that was never paid — reactivate so buyer can retry. Auction-sourced
+	// orders are excluded (quote isolation: an old auction quote must never
+	// become the current settlement authority for a relist).
+	s.reactivateShippingQuoteIfEligible(ctx, tx, order)
 
 	// ============================================================
 	// STEP 6: UPDATE ORDER STATUS
@@ -951,19 +1019,12 @@ func (s *OrderCompletionService) CancelOverdue(
 	}
 
 	// ============================================================
-	// STEP 9.5: REACTIVATE SHIPPING QUOTE IF ELIGIBLE
+	// STEP 9.5: REACTIVATE SHIPPING QUOTE IF ELIGIBLE (fixed-price only)
 	// ============================================================
 	// Seller did not ship, buyer force-cancelled with full refund.
-	// Quote was consumed at checkout — reactivate so buyer can retry.
-	if order.ShippingQuoteID != nil && *order.ShippingQuoteID != uuid.Nil {
-		if err := s.shippingQuoteService.ReactivateQuoteIfEligible(ctx, tx, *order.ShippingQuoteID); err != nil {
-			s.logger.Warn("Failed to reactivate shipping quote after overdue cancel",
-				zap.String("order_id", order.ID.String()),
-				zap.String("shipping_quote_id", order.ShippingQuoteID.String()),
-				zap.Error(err),
-			)
-		}
-	}
+	// Quote was consumed at checkout — reactivate so buyer can retry
+	// (auction orders excluded — quote isolation).
+	s.reactivateShippingQuoteIfEligible(ctx, tx, order)
 
 	// ============================================================
 	// STEP 10: PERSIST ORDER STATE TO DATABASE
@@ -1121,28 +1182,14 @@ func (s *OrderCompletionService) Expire(
 	}
 
 	// ============================================================
-	// STEP 4.5: REACTIVATE SHIPPING QUOTE IF ELIGIBLE
+	// STEP 4.5: REACTIVATE SHIPPING QUOTE IF ELIGIBLE (fixed-price only)
 	// ============================================================
 	// HARD FIX - SHIPPING QUOTE REUSE
 	// When order expires, reactivate the shipping quote if it was used.
 	// This allows the buyer to reuse the quote for a new order attempt.
-	//
-	// TRIGGER: order_expired (this method)
-	// VALIDATION: Done by ReactivateQuoteIfEligible
-	// - Quote must be in USED status
-	// - Order using quote must be in EXPIRED status
-	// - No other valid orders should be using this quote
-	if order.ShippingQuoteID != nil && *order.ShippingQuoteID != uuid.Nil {
-		if err := s.shippingQuoteService.ReactivateQuoteIfEligible(ctx, tx, *order.ShippingQuoteID); err != nil {
-			// Log error but don't fail the expiry operation
-			// The order expiry is more critical than the quote reactivation
-			s.logger.Warn("Failed to reactivate shipping quote after order expiry",
-				zap.String("order_id", order.ID.String()),
-				zap.String("shipping_quote_id", order.ShippingQuoteID.String()),
-				zap.Error(err),
-			)
-		}
-	}
+	// Auction orders excluded — quote isolation (an expired auction order's
+	// quote must not become the current settlement authority for a relist).
+	s.reactivateShippingQuoteIfEligible(ctx, tx, order)
 
 	// ============================================================
 	// STEP 5: UPDATE ORDER STATUS
@@ -1345,28 +1392,11 @@ func (s *OrderCompletionService) RefundOrder(
 	}
 
 	// ============================================================
-	// REACTIVATE SHIPPING QUOTE IF ELIGIBLE
+	// REACTIVATE SHIPPING QUOTE IF ELIGIBLE (fixed-price only)
 	// ============================================================
-	// HARD FIX - SHIPPING QUOTE REUSE
 	// When order is refunded, reactivate the shipping quote if it was used.
-	// This allows the buyer to reuse the quote for a new order attempt.
-	//
-	// TRIGGER: payment_failed (order refund)
-	// VALIDATION: Done by ReactivateQuoteIfEligible
-	// - Quote must be in USED status
-	// - Order using quote must be in REFUNDED status
-	// - No other valid orders should be using this quote
-	if order.ShippingQuoteID != nil && *order.ShippingQuoteID != uuid.Nil {
-		if err := s.shippingQuoteService.ReactivateQuoteIfEligible(ctx, tx, *order.ShippingQuoteID); err != nil {
-			// Log error but don't fail the refund operation
-			// The refund is more critical than the quote reactivation
-			s.logger.Warn("Failed to reactivate shipping quote after order refund",
-				zap.String("order_id", order.ID.String()),
-				zap.String("shipping_quote_id", order.ShippingQuoteID.String()),
-				zap.Error(err),
-			)
-		}
-	}
+	// Auction orders excluded — quote isolation.
+	s.reactivateShippingQuoteIfEligible(ctx, tx, order)
 
 	// CRITICAL: Set Order.EscrowStatus from Wallet state (not independent)
 	order.EscrowStatus = derivedEscrowStatus
@@ -1511,28 +1541,11 @@ func (s *OrderCompletionService) RefundFromDispute(
 	}
 
 	// ============================================================
-	// REACTIVATE SHIPPING QUOTE IF ELIGIBLE
+	// REACTIVATE SHIPPING QUOTE IF ELIGIBLE (fixed-price only)
 	// ============================================================
-	// HARD FIX - SHIPPING QUOTE REUSE
-	// When order is refunded via dispute, reactivate the shipping quote if it was used.
-	// This allows the buyer to reuse the quote for a new order attempt.
-	//
-	// TRIGGER: payment_failed (order refund via dispute)
-	// VALIDATION: Done by ReactivateQuoteIfEligible
-	// - Quote must be in USED status
-	// - Order using quote must be in REFUNDED status
-	// - No other valid orders should be using this quote
-	if order.ShippingQuoteID != nil && *order.ShippingQuoteID != uuid.Nil {
-		if err := s.shippingQuoteService.ReactivateQuoteIfEligible(ctx, tx, *order.ShippingQuoteID); err != nil {
-			// Log error but don't fail the refund operation
-			// The refund is more critical than the quote reactivation
-			s.logger.Warn("Failed to reactivate shipping quote after dispute refund",
-				zap.String("order_id", order.ID.String()),
-				zap.String("shipping_quote_id", order.ShippingQuoteID.String()),
-				zap.Error(err),
-			)
-		}
-	}
+	// When order is refunded via dispute, reactivate the shipping quote if it
+	// was used. Auction orders excluded — quote isolation.
+	s.reactivateShippingQuoteIfEligible(ctx, tx, order)
 
 	// CRITICAL: Set Order.EscrowStatus from Wallet state (not independent)
 	order.EscrowStatus = derivedEscrowStatus
@@ -2026,13 +2039,22 @@ func (s *OrderCompletionService) restoreFixedPriceForSaleStock(
 	return nil
 }
 
-// releaseAuctionOrderBinding releases the auction<->order binding for a
-// cancelled/expired auction order (PASS_20B — see D2 in the PASS_20B
-// report). Locks the auction row, then clears OrderID via
-// Auction.ReleaseUnpaidOrder (idempotent, mismatch-safe — see that method's
-// doc comment for why the auction's own Status stays Ended rather than
-// reopening). Product carries no selling lifecycle, so no Product row is
-// touched here.
+// releaseAuctionOrderBinding handles an auction-sourced order that is being
+// cancelled or expired before payment succeeded.
+//
+// Bid-win claim flow: the auction stays in waiting_settlement with OrderID
+// bound until payment succeeds. When the bound order is cancelled/expired
+// unpaid, the settlement has FAILED: release the binding, record the buyer's
+// commerce violation (buyer_bnr), apply/extend the buyer restriction, and
+// return the auction to DRAFT so the seller can relist the same auction
+// record. All in the caller's transaction.
+//
+// Buy-now flow: the auction was ended at order creation; cancelling/expiring
+// the unpaid order only releases the binding (the auction stays ended —
+// a settled-by-buy-now auction never reopens).
+//
+// Idempotent: an auction with OrderID already nil or already returned to
+// DRAFT is a no-op.
 func (s *OrderCompletionService) releaseAuctionOrderBinding(
 	ctx context.Context,
 	tx db.Tx,
@@ -2043,9 +2065,43 @@ func (s *OrderCompletionService) releaseAuctionOrderBinding(
 		return fmt.Errorf("failed to lock auction for order release: %w", err)
 	}
 
+	if auction.OrderID == nil {
+		// Already released (idempotent retry).
+		return nil
+	}
+
+	// Release the binding first (validates the order actually belongs to this
+	// auction).
 	if err := auction.ReleaseUnpaidOrder(order.ID); err != nil {
 		return fmt.Errorf("failed to release auction order binding: %w", err)
 	}
+
+	if auction.Status == auctionEntity.StatusWaitingSettlement {
+		// Bid-win settlement failure: record the buyer violation + restriction
+		// and return the auction to DRAFT.
+		if s.commerceViolationRepo == nil {
+			return fmt.Errorf("commerce violation repo not wired; cannot return auction %s to draft safely", auction.ID)
+		}
+		if _, _, err := commercegov.RecordViolationAndRestrict(
+			ctx, tx, s.commerceViolationRepo, commercegov.RecordInput{
+				UserID:        order.BuyerID,
+				ViolationType: commercegov.ViolationBuyerBNR,
+				SourceType:    commercegov.SourceTypeAuction,
+				SourceID:      auction.ID,
+				Reason:        "buyer failed to pay after shipping was resolved (payment window elapsed)",
+				Metadata: map[string]any{
+					"order_id":             order.ID.String(),
+					"shipping_resolved_at": auction.ShippingResolvedAt,
+				},
+			},
+		); err != nil {
+			return fmt.Errorf("failed to record buyer violation for expired auction order: %w", err)
+		}
+		if err := auction.TransitionToDraftOnSettlementFailure(); err != nil {
+			return fmt.Errorf("failed to return auction to draft on payment failure: %w", err)
+		}
+	}
+
 	if err := s.auctionRepo.UpdateTx(ctx, tx, auction); err != nil {
 		return fmt.Errorf("failed to persist auction order release: %w", err)
 	}

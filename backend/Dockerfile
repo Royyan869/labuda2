@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 #
-# Labuda backend runtime image (Render staging/demo).
+# Labuda backend runtime image.
 #
-# Build context: backend/ (see dockerContext in render.yaml).
+# Build context: backend/.
 #
 # The build targets ONLY the production runtime and the migration runner.
 # `go build ./...` is intentionally NOT used: the repository contains a
@@ -55,7 +55,7 @@ COPY --from=builder --chown=app:app /app/backend/migrations ./migrations
 COPY --chown=app:app docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
-# The application reads PORT (injected by Render) and binds on all interfaces.
+# The application reads PORT (injected by the environment) and binds on all interfaces.
 # No hard-coded port is set here.
 ENV GIN_MODE=release
 

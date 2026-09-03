@@ -210,7 +210,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'About LABUDA'**
-  String get aboutShona;
+  String get aboutLabuda;
 
   /// Coming soon text
   ///
@@ -1860,7 +1860,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Why become a LABUDA Seller?'**
-  String get whyBecomeShonaSeeller;
+  String get whyBecomeLabudaSeller;
 
   /// Seller benefit 1
   ///

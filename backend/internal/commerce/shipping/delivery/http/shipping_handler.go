@@ -85,7 +85,7 @@ func (h *ShippingHandler) GetDeliveryOptions(c *gin.Context) {
 		if innerErr != nil {
 			return innerErr
 		}
-		productConfigured, innerErr = h.shippingService.HasAnyShippingOptionsForProduct(ctx, tx, productID)
+		productConfigured, innerErr = h.shippingService.HasAnyShippingSetupsForProduct(ctx, tx, productID)
 		return innerErr
 	})
 
@@ -118,18 +118,11 @@ func (h *ShippingHandler) GetDeliveryOptions(c *gin.Context) {
 // deliveryOptionToResponse converts a DeliveryOption to API response format.
 func deliveryOptionToResponse(opt shippingApp.DeliveryOption) map[string]interface{} {
 	resp := map[string]interface{}{
-		"shipping_option_id": opt.ShippingOptionID.String(),
+		"shipping_option_id": opt.ShippingSetupID.String(),
 		"name":               opt.Name,
 		"transport_type":     string(opt.TransportType),
 		"rate":               opt.Rate,
 		"is_available":       opt.IsAvailable,
-	}
-
-	if opt.ExpeditionName != nil {
-		resp["expedition_name"] = *opt.ExpeditionName
-	}
-	if opt.EstimatedDays != nil {
-		resp["estimated_days"] = *opt.EstimatedDays
 	}
 
 	return resp
@@ -175,7 +168,7 @@ func (h *ShippingHandler) CheckDelivery(c *gin.Context) {
 		if innerErr != nil {
 			return innerErr
 		}
-		productConfigured, innerErr = h.shippingService.HasAnyShippingOptionsForProduct(ctx, tx, productID)
+		productConfigured, innerErr = h.shippingService.HasAnyShippingSetupsForProduct(ctx, tx, productID)
 		return innerErr
 	})
 

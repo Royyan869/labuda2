@@ -17,6 +17,7 @@ import (
 	"github.com/labuda/backend/internal/identity/auth"
 	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
 	chathttp "github.com/labuda/backend/internal/interaction/chat/delivery/http"
+	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	chatInfraRepo "github.com/labuda/backend/internal/interaction/chat/infrastructure/repository"
 	notificationpkg "github.com/labuda/backend/internal/interaction/notification"
 	notificationhttp "github.com/labuda/backend/internal/interaction/notification/delivery/http"
@@ -305,13 +306,19 @@ func insertNotificationMessageWithType(
 	t.Helper()
 
 	messageID := uuid.New()
+	var parsedAttachment map[string]interface{}
+	if attachmentJSON != "" && attachmentJSON != "null" {
+		_ = json.Unmarshal([]byte(attachmentJSON), &parsedAttachment)
+	}
+	messageTypeEntity := chatEntity.MessageType(messageType)
+
 	_, err := pool.Pool().Exec(ctx, `
 		INSERT INTO chat_messages (
 			id, room_id, sender_id, message_type, body, attachment_json,
-			idempotency_key, created_at
+			idempotency_key, command_fingerprint, created_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8)
-	`, messageID, roomID, senderID, messageType, body, attachmentJSON, uuid.NewString(), createdAt)
+		VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9)
+	`, messageID, roomID, senderID, messageType, body, attachmentJSON, uuid.NewString(), chatEntity.ComputeCommandFingerprint(senderID, messageTypeEntity, body, parsedAttachment), createdAt)
 	require.NoError(t, err)
 	return messageID
 }

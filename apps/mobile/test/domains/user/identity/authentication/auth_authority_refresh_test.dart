@@ -37,7 +37,7 @@ AuthUser _seller({
     username: 'sellertest',
     isEmailVerified: true,
     roles: roles,
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     accountStatus: accountStatus,
     hasSellerProfile: hasSellerProfile,
     hasMarketAuthority: hasMarketAuthority,

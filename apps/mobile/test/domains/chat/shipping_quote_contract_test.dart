@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/domains/chat/chat/presentation/screens/chat_detail_screen.dart';
-import 'package:labuda/domains/commerce/catalog/listing/data/dto/shipping_quote_dto.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
 import 'package:labuda/shared/attachment/entities/attachment.dart';
 
 // Canonical distinct UUIDs for ID-confusion proof tests.
@@ -47,7 +47,6 @@ void main() {
         offerId: 'offer-1',
         linkedItemId: _auctionId,
         linkedItemType: 'auction',
-        auctionId: _auctionId,
         linkedItemName: 'Test Ikan',
         linkedItemPrice: 100000,
         shippingType: 'standard',
@@ -129,7 +128,6 @@ void main() {
       productId: _productId,
       sourceType: 'auction',
       sourceId: _auctionId,
-      auctionId: _auctionId,
       sellerId: 'seller-1',
       buyerId: 'buyer-1',
       cost: 42000,
@@ -141,7 +139,7 @@ void main() {
     expect(json['product_id'], _productId);
     expect(json['source_type'], 'auction');
     expect(json['source_id'], _auctionId);
-    expect(json['auction_id'], _auctionId);
+    expect(json.containsKey('auction_id'), isFalse);
     expect(json.containsKey('listing_id'), isFalse);
     // Auction: source_id must equal auctionId, not productId
     expect(json['source_id'], isNot(equals(_productId)));
@@ -150,7 +148,6 @@ void main() {
     expect(parsed.productId, _productId);
     expect(parsed.sourceType, 'auction');
     expect(parsed.sourceId, _auctionId);
-    expect(parsed.auctionId, _auctionId);
   });
 
   // ── E. Distinct-ID regression guard ────────────────────────────────────────

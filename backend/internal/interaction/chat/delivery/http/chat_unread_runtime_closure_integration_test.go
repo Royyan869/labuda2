@@ -182,10 +182,10 @@ func insertUnreadTestMessage(
 	_, err := pool.Pool().Exec(ctx, `
 		INSERT INTO chat_messages (
 			id, room_id, sender_id, message_type, body, attachment_json,
-			idempotency_key, created_at
+			idempotency_key, command_fingerprint, created_at
 		)
-		VALUES ($1, $2, $3, 'text', $4, NULL, $5, $6)
-	`, messageID, roomID, senderID, body, uuid.NewString(), createdAt)
+		VALUES ($1, $2, $3, 'text', $4, NULL, $5, $6, $7)
+	`, messageID, roomID, senderID, body, uuid.NewString(), chatEntity.ComputeCommandFingerprint(senderID, chatEntity.MessageTypeText, &body, nil), createdAt)
 	require.NoError(t, err)
 	return messageID
 }
@@ -202,13 +202,18 @@ func insertUnreadTestMessageWithAttachment(
 	t.Helper()
 
 	messageID := uuid.New()
+	var parsedAttachment map[string]interface{}
+	if attachmentJSON != "" && attachmentJSON != "null" {
+		_ = json.Unmarshal([]byte(attachmentJSON), &parsedAttachment)
+	}
+
 	_, err := pool.Pool().Exec(ctx, `
 		INSERT INTO chat_messages (
 			id, room_id, sender_id, message_type, body, attachment_json,
-			idempotency_key, created_at
+			idempotency_key, command_fingerprint, created_at
 		)
-		VALUES ($1, $2, $3, 'text', $4, $5::jsonb, $6, $7)
-	`, messageID, roomID, senderID, body, attachmentJSON, uuid.NewString(), createdAt)
+		VALUES ($1, $2, $3, 'text', $4, $5::jsonb, $6, $7, $8)
+	`, messageID, roomID, senderID, body, attachmentJSON, uuid.NewString(), chatEntity.ComputeCommandFingerprint(senderID, chatEntity.MessageTypeText, body, parsedAttachment), createdAt)
 	require.NoError(t, err)
 	return messageID
 }

@@ -67,9 +67,6 @@ func (r *linkOrderFakeRepo) GetRoomByOrderID(context.Context, interface{}, uuid.
 func (r *linkOrderFakeRepo) UpdateRoomLastMessageAt(context.Context, interface{}, uuid.UUID, time.Time) error {
 	return nil
 }
-func (r *linkOrderFakeRepo) UpdateRoomContext(context.Context, interface{}, uuid.UUID, json.RawMessage, uuid.UUID) error {
-	return nil
-}
 func (r *linkOrderFakeRepo) UpdateRoomLinkedOrderId(_ context.Context, _ interface{}, _ uuid.UUID, linkedOrderID *uuid.UUID) error {
 	r.updateCalls++
 	if r.room != nil {

@@ -141,11 +141,11 @@ func (r *happyPathForSaleRepo) UpdateStock(_ context.Context, _ db.Tx, _ *forsal
 // happyPathProductShippingRepo backs both OrderCreationService.productShippingRepo
 // and the real ShippingService's internal productShippingRepo — same data either way.
 type happyPathProductShippingRepo struct {
-	shippingrepo.ProductShippingOptionRepository
-	options []*shippingentity.ShippingOption
+	shippingrepo.ProductShippingSetupRepository
+	options []*shippingentity.ShippingSetup
 }
 
-func (r *happyPathProductShippingRepo) GetByProduct(context.Context, db.Tx, uuid.UUID) ([]*shippingentity.ShippingOption, error) {
+func (r *happyPathProductShippingRepo) GetByProduct(context.Context, db.Tx, uuid.UUID) ([]*shippingentity.ShippingSetup, error) {
 	return r.options, nil
 }
 
@@ -253,7 +253,7 @@ func newHappyPathFixtures(_ *testing.T) (*OrderCreationService, CreateFromSaleSu
 	sellerID := uuid.New()
 	productID := uuid.New()
 	listingID := uuid.New()
-	shippingOptionID := uuid.New()
+	shippingSetupID := uuid.New()
 	buyerAddressID := uuid.New()
 	farmAddressID := uuid.New()
 
@@ -284,8 +284,8 @@ func newHappyPathFixtures(_ *testing.T) (*OrderCreationService, CreateFromSaleSu
 		Purpose: addressentity.AddressPurposeSender,
 	}
 
-	shippingOption := &shippingentity.ShippingOption{
-		ID:            shippingOptionID,
+	shippingSetup := &shippingentity.ShippingSetup{
+		ID:            shippingSetupID,
 		SellerID:      sellerID,
 		Name:          "JNE Reguler",
 		TransportType: shippingentity.TransportTrain,
@@ -294,18 +294,18 @@ func newHappyPathFixtures(_ *testing.T) (*OrderCreationService, CreateFromSaleSu
 
 	coverage := &shippingentity.ShippingCoverage{
 		ID:               uuid.New(),
-		ShippingOptionID: shippingOptionID,
+		ShippingSetupID: shippingSetupID,
 		ProvinceCode:     "31",
 		ProvinceRate:     money.New(15_000),
 		IsAvailable:      true,
 	}
 
-	productShippingRepo := &happyPathProductShippingRepo{options: []*shippingentity.ShippingOption{shippingOption}}
+	productShippingRepo := &happyPathProductShippingRepo{options: []*shippingentity.ShippingSetup{shippingSetup}}
 	orderRepo := &happyPathOrderRepo{}
 	coinsRepo := &happyPathCoinsRepo{balance: 5_000} // less than MaxCoinsAllowed -> balance wins the cap
 
 	realShippingService := shippingApp.NewShippingService(
-		nil, // shippingOptionRepo: unused by CheckDeliveryAvailability's actual code path
+		nil, // shippingSetupRepo: unused by CheckDeliveryAvailability's actual code path
 		&happyPathCoverageRepo{coverage: coverage},
 		nil, // cityOverrideRepo: unused since buyerAddress.CityID == ""
 		productShippingRepo,
@@ -343,7 +343,7 @@ func newHappyPathFixtures(_ *testing.T) (*OrderCreationService, CreateFromSaleSu
 		DiscountAmount:     money.New(0),
 		MaxCoinsAllowed:    10_000,
 		OrderValueForCoins: 115_000, // subtotal + shipping - discount
-		ShippingOptionName: "JNE Reguler",
+		ShippingSetupName: "JNE Reguler",
 		TokenID:            uuid.New(),
 		PaymentMethod:      PaymentMethodInstant,
 	}
@@ -355,7 +355,7 @@ func newHappyPathFixtures(_ *testing.T) (*OrderCreationService, CreateFromSaleSu
 		BuyerID:          buyerID,
 		Quantity:         1,
 		AddressID:        buyerAddressID,
-		ShippingOptionID: shippingOptionID,
+		ShippingSetupID: shippingSetupID,
 		PricingSnapshot:  snapshot,
 	}
 

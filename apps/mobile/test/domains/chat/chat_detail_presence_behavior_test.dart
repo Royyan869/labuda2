@@ -43,7 +43,7 @@ class _FakeAuthController extends AuthController {
       hasMarketAuthority: false,
       sellerSubscriptionStatus: 'none',
       roles: const [UserRole.user],
-      provider: ShonaAuthProvider.email,
+      provider: AuthProvider.email,
       lifecycle: ContentLifecycle.active,
     );
     return AuthState.authenticated(user, emailVerified: true);
@@ -69,7 +69,7 @@ AuthUser _verifiedPeerUser({required String id, required String username}) {
     hasMarketAuthority: false,
     sellerSubscriptionStatus: 'none',
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     lifecycle: ContentLifecycle.active,
   );
 }

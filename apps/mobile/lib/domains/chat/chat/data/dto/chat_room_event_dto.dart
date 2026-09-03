@@ -13,8 +13,6 @@ class ChatRoomEventDto extends Equatable {
   final String roomType;
   final String otherUserId;
   final ChatRoomParticipantDto? otherUser;
-  final Map<String, dynamic>? context;
-  final String? contextSetBy;
   final String? linkedOrderId;
   final ChatRoomLastMessageDto? lastMessage;
   final int unreadCount;
@@ -28,8 +26,6 @@ class ChatRoomEventDto extends Equatable {
     required this.roomType,
     required this.otherUserId,
     this.otherUser,
-    this.context,
-    this.contextSetBy,
     this.linkedOrderId,
     this.lastMessage,
     required this.unreadCount,
@@ -74,10 +70,6 @@ class ChatRoomEventDto extends Equatable {
       roomType: roomType,
       otherUserId: otherUserId,
       otherUser: _readOtherUser(json),
-      context: json['context'] is Map<String, dynamic>
-          ? json['context'] as Map<String, dynamic>
-          : null,
-      contextSetBy: json['context_set_by'] as String?,
       linkedOrderId: json['linked_order_id'] as String?,
       lastMessage: json['last_message'] is Map<String, dynamic>
           ? ChatRoomLastMessageDto.fromJson(
@@ -96,8 +88,6 @@ class ChatRoomEventDto extends Equatable {
     'room_type': roomType,
     'other_user_id': otherUserId,
     if (otherUser != null) 'other_user': otherUser!.toJson(),
-    if (context != null) 'context': context,
-    if (contextSetBy != null) 'context_set_by': contextSetBy,
     if (linkedOrderId != null) 'linked_order_id': linkedOrderId,
     if (lastMessage != null) 'last_message': lastMessage!.toJson(),
     'unread_count': unreadCount,
@@ -113,8 +103,6 @@ class ChatRoomEventDto extends Equatable {
     roomType,
     otherUserId,
     otherUser,
-    context,
-    contextSetBy,
     linkedOrderId,
     lastMessage,
     unreadCount,

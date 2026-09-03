@@ -52,7 +52,7 @@ class _FakeAuctionNotifier extends AuctionNotifier {
     DateTime? scheduledStartAt,
     required int durationHours,
     AuctionLocation? location,
-    required List<String> shippingOptionIds,
+    required List<String> shippingSetupIds,
     String? preparationNote,
   }) async {
     createCalls += 1;
@@ -64,11 +64,11 @@ class _FakeAuctionNotifier extends AuctionNotifier {
 }
 
 class _FakeShippingRepository implements ShippingRepository {
-  final List<ShippingOption> _options;
+  final List<ShippingSetup> _options;
 
   _FakeShippingRepository()
     : _options = [
-        ShippingOption(
+        ShippingSetup(
           id: 'ship-1',
           name: 'JNE',
           type: ShippingType.custom,
@@ -79,11 +79,11 @@ class _FakeShippingRepository implements ShippingRepository {
       ];
 
   @override
-  Future<Result<List<ShippingOption>>> listMyShippingOptions() async =>
+  Future<Result<List<ShippingSetup>>> listMyShippingSetups() async =>
       Result.success(_options);
 
   @override
-  Future<Result<List<ShippingOption>>> listMyActiveShippingOptions() async =>
+  Future<Result<List<ShippingSetup>>> listMyActiveShippingSetups() async =>
       Result.success(_options);
 
   @override
@@ -129,7 +129,7 @@ AuthUser _seller({
     isEmailVerified: true,
     accountStatus: AccountStatus.active,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     hasSellerProfile: hasSellerProfile,
     sellerSubscriptionStatus: hasMarketAuthority ? 'active' : 'expired',
     hasMarketAuthority: hasMarketAuthority,

@@ -32,12 +32,12 @@ func NewProductShippingHandler(
 	}
 }
 
-// SetProductShippingOptionsRequest holds the request body for setting shipping options.
-type SetProductShippingOptionsRequest struct {
-	ShippingOptionIDs []string `json:"shipping_option_ids" binding:"required"`
+// SetProductShippingSetupsRequest holds the request body for setting shipping options.
+type SetProductShippingSetupsRequest struct {
+	ShippingSetupIDs []string `json:"shipping_option_ids" binding:"required"`
 }
 
-// SetProductShippingOptions handles PUT /api/v1/products/:id/shipping.
+// SetProductShippingSetups handles PUT /api/v1/products/:id/shipping.
 //
 // Sets shipping options for a product.
 //
@@ -49,7 +49,7 @@ type SetProductShippingOptionsRequest struct {
 // 2. Validate input (non-empty array allowed, empty means clear)
 // 3. Call service to set options (overwrite model)
 // 4. Return success response
-func (h *ProductShippingHandler) SetProductShippingOptions(c *gin.Context) {
+func (h *ProductShippingHandler) SetProductShippingSetups(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Parse product ID from path
@@ -72,31 +72,31 @@ func (h *ProductShippingHandler) SetProductShippingOptions(c *gin.Context) {
 	}
 
 	// Parse request body
-	var req SetProductShippingOptionsRequest
+	var req SetProductShippingSetupsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "Invalid request")
 		return
 	}
 
 	// Parse shipping option IDs
-	shippingOptionIDs := make([]uuid.UUID, 0, len(req.ShippingOptionIDs))
-	for _, idStr := range req.ShippingOptionIDs {
+	shippingSetupIDs := make([]uuid.UUID, 0, len(req.ShippingSetupIDs))
+	for _, idStr := range req.ShippingSetupIDs {
 		id, err := uuid.Parse(idStr)
 		if err != nil {
 			response.BadRequest(c, "Invalid shipping_option_id format: "+idStr)
 			return
 		}
-		shippingOptionIDs = append(shippingOptionIDs, id)
+		shippingSetupIDs = append(shippingSetupIDs, id)
 	}
 
 	// Execute within transaction
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
-		return h.productShippingService.SetProductShippingOptions(
+		return h.productShippingService.SetProductShippingSetups(
 			ctx,
 			tx,
-			shippingApp.SetProductShippingOptionsInput{
+			shippingApp.SetProductShippingSetupsInput{
 				ProductID:         productID,
-				ShippingOptionIDs: shippingOptionIDs,
+				ShippingSetupIDs: shippingSetupIDs,
 				SellerID:          sellerID,
 			},
 		)
@@ -124,8 +124,8 @@ func (h *ProductShippingHandler) SetProductShippingOptions(c *gin.Context) {
 
 	response.SuccessWithMessage(c, "Shipping options updated successfully", gin.H{
 		"product_id":          productID.String(),
-		"shipping_option_ids": req.ShippingOptionIDs,
-		"count":               len(shippingOptionIDs),
+		"shipping_option_ids": req.ShippingSetupIDs,
+		"count":               len(shippingSetupIDs),
 	})
 }
 

@@ -48,11 +48,11 @@ func newAuctionServiceForFarmAddressTests(productRepo *captureAuctionProductCrea
 		ownership:     auth.NewOwnershipValidator(),
 		productRepo:   productRepo,
 		productShippingRepo: &scheduleStubProductShippingRepo{
-			options: []*shippingEntity.ShippingOption{{ID: optID}},
+			options: []*shippingEntity.ShippingSetup{{ID: optID}},
 		},
 		shippingCoverageRepo: &scheduleStubCoverageRepo{
 			coveragesByOption: map[uuid.UUID][]*shippingEntity.ShippingCoverage{
-				optID: {{ID: uuid.New(), ShippingOptionID: optID, IsAvailable: true}},
+				optID: {{ID: uuid.New(), ShippingSetupID: optID, IsAvailable: true}},
 			},
 		},
 		log: zap.NewNop(),
@@ -81,7 +81,7 @@ func TestCreateDraft_PassesFarmAddressIDToCanonicalProduct(t *testing.T) {
 		Variety:           "Kohaku",
 		SizeCM:            intPtr(50),
 		FarmAddressID:     &farmAddressID,
-		ShippingOptionIDs: nil,
+		ShippingSetupIDs: nil,
 	})
 
 	require.NoError(t, err)

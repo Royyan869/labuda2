@@ -119,7 +119,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   /// Shipping options this auction can be fulfilled through. Backend
   /// requires at least one (PASS_18E) — auction is still a physical fish
   /// that must ship, same as a fixed-price listing.
-  List<String> _selectedShippingOptionIds = const [];
+  List<String> _selectedShippingSetupIds = const [];
 
   bool _isSubmitting = false;
   String? _errorMessage;
@@ -254,7 +254,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
       scheduledStartAt = scheduled;
     }
 
-    if (_selectedShippingOptionIds.isEmpty) {
+    if (_selectedShippingSetupIds.isEmpty) {
       setState(
         () => _errorMessage =
             'Pilih minimal 1 opsi pengiriman agar lelang bisa dipublish.',
@@ -300,7 +300,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
           durationHours: durationHours,
           farmAddressId: null,
           location: null,
-          shippingOptionIds: _selectedShippingOptionIds,
+          shippingSetupIds: _selectedShippingSetupIds,
           preparationNote: _preparationNoteController.text.trim().isEmpty
               ? null
               : _preparationNoteController.text.trim(),
@@ -479,13 +479,13 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
-              SellerShippingOptionsSelector(
-                initialSelectedIds: _selectedShippingOptionIds,
+              SellerShippingSetupsSelector(
+                initialSelectedIds: _selectedShippingSetupIds,
                 helperText:
                     'Pilih opsi pengiriman yang berlaku untuk lelang ini. '
                     'Wajib diisi karena ikan tetap perlu dikirim ke pemenang.',
                 onSelectionChanged: (ids) =>
-                    setState(() => _selectedShippingOptionIds = ids),
+                    setState(() => _selectedShippingSetupIds = ids),
               ),
               const SizedBox(height: 16),
               TextFormField(

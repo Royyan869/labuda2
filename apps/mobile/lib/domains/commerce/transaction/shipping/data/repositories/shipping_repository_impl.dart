@@ -20,12 +20,12 @@ class ShippingRepositoryImpl implements ShippingRepository {
   // =====================================
 
   @override
-  Future<Result<List<ShippingOption>>> listMyShippingOptions() async {
+  Future<Result<List<ShippingSetup>>> listMyShippingSetups() async {
     try {
       _logger.info('Getting my shipping options');
 
-      final dtos = await _datasource.listMyShippingOptions();
-      final options = ShippingOptionMapper.toEntityList(dtos);
+      final dtos = await _datasource.listMyShippingSetups();
+      final options = ShippingSetupMapper.toEntityList(dtos);
 
       _logger.info('Retrieved ${options.length} shipping options');
       return Result.success(options);
@@ -40,12 +40,12 @@ class ShippingRepositoryImpl implements ShippingRepository {
   }
 
   @override
-  Future<Result<List<ShippingOption>>> listMyActiveShippingOptions() async {
+  Future<Result<List<ShippingSetup>>> listMyActiveShippingSetups() async {
     try {
       _logger.info('Getting active shipping options');
 
-      final dtos = await _datasource.listMyActiveShippingOptions();
-      final options = ShippingOptionMapper.toEntityList(
+      final dtos = await _datasource.listMyActiveShippingSetups();
+      final options = ShippingSetupMapper.toEntityList(
         dtos,
       ).where((option) => option.isActive).toList();
 
@@ -62,12 +62,12 @@ class ShippingRepositoryImpl implements ShippingRepository {
   }
 
   @override
-  Future<Result<ShippingOption>> getShippingOptionById(String optionId) async {
+  Future<Result<ShippingSetup>> getShippingSetupById(String optionId) async {
     try {
       _logger.info('Getting shipping option', extra: {'optionId': optionId});
 
-      final dto = await _datasource.getShippingOption(optionId);
-      final option = ShippingOptionMapper.toEntity(dto);
+      final dto = await _datasource.getShippingSetup(optionId);
+      final option = ShippingSetupMapper.toEntity(dto);
 
       return Result.success(option);
     } catch (e, stackTrace) {
@@ -81,8 +81,8 @@ class ShippingRepositoryImpl implements ShippingRepository {
   }
 
   @override
-  Future<Result<ShippingOption>> createShippingOption(
-    CreateShippingOptionRequest request,
+  Future<Result<ShippingSetup>> createShippingSetup(
+    CreateShippingSetupRequest request,
   ) async {
     try {
       _logger.info(
@@ -90,9 +90,9 @@ class ShippingRepositoryImpl implements ShippingRepository {
         extra: {'name': request.name, 'type': request.type.name},
       );
 
-      final json = ShippingOptionMapper.toCreateJson(request);
-      final dto = await _datasource.createShippingOption(json);
-      final option = ShippingOptionMapper.toEntity(dto);
+      final json = ShippingSetupMapper.toCreateJson(request);
+      final dto = await _datasource.createShippingSetup(json);
+      final option = ShippingSetupMapper.toEntity(dto);
 
       _logger.info(
         'Shipping option created successfully',
@@ -110,16 +110,16 @@ class ShippingRepositoryImpl implements ShippingRepository {
   }
 
   @override
-  Future<Result<ShippingOption>> updateShippingOption(
+  Future<Result<ShippingSetup>> updateShippingSetup(
     String optionId,
-    UpdateShippingOptionRequest request,
+    UpdateShippingSetupRequest request,
   ) async {
     try {
       _logger.info('Updating shipping option', extra: {'optionId': optionId});
 
-      final json = ShippingOptionMapper.toUpdateJson(request);
-      final dto = await _datasource.updateShippingOption(optionId, json);
-      final option = ShippingOptionMapper.toEntity(dto);
+      final json = ShippingSetupMapper.toUpdateJson(request);
+      final dto = await _datasource.updateShippingSetup(optionId, json);
+      final option = ShippingSetupMapper.toEntity(dto);
 
       _logger.info('Shipping option updated successfully');
       return Result.success(option);
@@ -134,14 +134,14 @@ class ShippingRepositoryImpl implements ShippingRepository {
   }
 
   @override
-  Future<Result<ShippingOption>> updateShippingOptionFull(
+  Future<Result<ShippingSetup>> updateShippingSetupFull(
     String optionId,
-    UpdateShippingOptionFullRequest request,
+    UpdateShippingSetupFullRequest request,
   ) async {
-    // Fallback aman sementara: membungkus dummy ShippingOption agar rantai
+    // Fallback aman sementara: membungkus dummy ShippingSetup agar rantai
     // compiler & alur screen tidak putus. TODO: implementasi API nyata.
     return Result.success(
-      ShippingOption(
+      ShippingSetup(
         id: optionId,
         name: request.name,
         type: request.transportType,
@@ -153,11 +153,11 @@ class ShippingRepositoryImpl implements ShippingRepository {
   }
 
   @override
-  Future<Result<void>> deleteShippingOption(String optionId) async {
+  Future<Result<void>> deleteShippingSetup(String optionId) async {
     try {
       _logger.info('Deleting shipping option', extra: {'optionId': optionId});
 
-      await _datasource.deleteShippingOption(optionId);
+      await _datasource.deleteShippingSetup(optionId);
 
       _logger.info('Shipping option deleted successfully');
       return Result.success(null);
@@ -182,7 +182,7 @@ class ShippingRepositoryImpl implements ShippingRepository {
         extra: {'optionId': optionId, 'isActive': isActive},
       );
 
-      await _datasource.toggleShippingOption(optionId, isActive);
+      await _datasource.toggleShippingSetup(optionId, isActive);
 
       _logger.info('Active status toggled successfully');
       return Result.success(null);
@@ -275,17 +275,17 @@ class ShippingRepositoryImpl implements ShippingRepository {
   // =====================================
 
   @override
-  Future<Result<void>> setProductShippingOptions(
+  Future<Result<void>> setProductShippingSetups(
     String productId,
-    List<String> shippingOptionIds,
+    List<String> shippingSetupIds,
   ) async {
     try {
       _logger.info(
         'Setting product shipping options',
-        extra: {'productId': productId, 'count': shippingOptionIds.length},
+        extra: {'productId': productId, 'count': shippingSetupIds.length},
       );
 
-      await _datasource.setProductShippingOptions(productId, shippingOptionIds);
+      await _datasource.setProductShippingSetups(productId, shippingSetupIds);
 
       _logger.info('Product shipping options updated');
       return Result.success(null);

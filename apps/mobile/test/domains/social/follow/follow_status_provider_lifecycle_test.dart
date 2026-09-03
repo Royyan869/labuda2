@@ -269,7 +269,7 @@ AuthUser _authUser({required String id, required String username}) {
     isEmailVerified: true,
     accountStatus: AccountStatus.active,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     lifecycle: ContentLifecycle.active,
   );
 }

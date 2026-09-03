@@ -294,11 +294,9 @@ type OrderDetailResponse struct {
 	CoinsUsed int64 `json:"coins_used,omitempty"`
 
 	// Shipping option snapshot
-	ShippingOptionID       uuid.UUID `json:"shipping_option_id"`
-	ShippingOptionName     string    `json:"shipping_option_name"`
-	ShippingTransportType  string    `json:"shipping_transport_type"`
-	ShippingExpeditionName *string   `json:"shipping_expedition_name,omitempty"`
-	ShippingEstimatedDays  *string   `json:"shipping_estimated_days,omitempty"`
+	ShippingSetupID       uuid.UUID `json:"shipping_option_id"`
+	ShippingSetupName     string    `json:"shipping_option_name"`
+	ShippingTransportType string `json:"shipping_transport_type"`
 
 	// Shipping Readiness Snapshot (for overdue calculation)
 	PreparationTimeSnapshot *string `json:"preparation_time_snapshot,omitempty"`
@@ -728,11 +726,9 @@ func OrderToDetailResponseWithIdentity(
 		ServiceFeeAmount:        order.ServiceFeeAmount.Int64(),
 		TotalPayableAmount:      order.TotalPayableAmount.Int64(),
 		CoinsUsed:               order.CoinsUsed,
-		ShippingOptionID:        getShippingOptionID(order.ShippingOptionID),
-		ShippingOptionName:      order.ShippingOptionName,
+		ShippingSetupID:        getShippingSetupID(order.ShippingSetupID),
+		ShippingSetupName:      order.ShippingSetupName,
 		ShippingTransportType:   order.ShippingTransportType,
-		ShippingExpeditionName:  order.ShippingExpeditionName,
-		ShippingEstimatedDays:   order.ShippingEstimatedDays,
 		PreparationTimeSnapshot: preparationTimeSnapshot,
 		PreparationNoteSnapshot: order.PreparationNoteSnapshot,
 		ReadyToShipBy:           readyToShipBy,
@@ -1167,8 +1163,8 @@ func roleIsBuyer(order *entity.Order) bool {
 	return false
 }
 
-// getShippingOptionID safely dereferences a nullable UUID
-func getShippingOptionID(id *uuid.UUID) uuid.UUID {
+// getShippingSetupID safely dereferences a nullable UUID
+func getShippingSetupID(id *uuid.UUID) uuid.UUID {
 	if id == nil {
 		return uuid.Nil
 	}

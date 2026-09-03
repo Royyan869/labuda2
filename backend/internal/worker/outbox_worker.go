@@ -1114,29 +1114,14 @@ func (w *OutboxWorker) SetupOrderChatLinkHandler(
 	return w
 }
 
-// SetupBNRStrikeHandler registers the canonical BNR strike recorder.
-//
-// Consumes auction_bnr_detected events (emitted by AuctionSettlementWorker)
-// and inserts a row into buyer_bnr_strikes. Idempotent via UNIQUE(auction_id).
-//
-// SCOPE: recording only. No enforcement, no decay, no notification.
-func (w *OutboxWorker) SetupBNRStrikeHandler(db dbpkg.Transactor) *OutboxWorker {
-	handler := NewBNRStrikeHandler(db, w.log)
-	w.dispatcher.Register("auction_bnr_detected", handler)
-	w.log.Info("BNR strike handler registered (canonical strike recorder)")
-	return w
-}
-
-// SetupBNRHandlers registers the BNR strike recorder AND notification handler
-// as a fanout pair for auction_bnr_detected events.
-//
-// Order: strike recording runs first, then notifications.
-// Both handlers are idempotent (strike via UNIQUE(auction_id), notifications
-// via ON CONFLICT (recipient_id, actor_id, type, entity_id) DO NOTHING).
-func (w *OutboxWorker) SetupBNRHandlers(db dbpkg.Transactor, notifHandler *NotificationEventHandler) *OutboxWorker {
-	strikeHandler := NewBNRStrikeHandler(db, w.log)
-	w.dispatcher.RegisterFanout("auction_bnr_detected", strikeHandler, notifHandler)
-	w.log.Info("BNR handlers registered (strike recorder + notification fanout)")
+// SetupAuctionSettlementFailedHandler registers the notification consumer for
+// auction.settlement_failed events (emitted by AuctionSettlementWorker when a
+// settlement deadline passes and the auction returns to DRAFT). The canonical
+// violation + restriction are recorded inline in the worker's transaction;
+// this fanout only delivers notifications.
+func (w *OutboxWorker) SetupAuctionSettlementFailedHandler(notifHandler EventHandler) *OutboxWorker {
+	w.dispatcher.Register("auction.settlement_failed", notifHandler)
+	w.log.Info("Auction settlement-failed notification handler registered")
 	return w
 }
 

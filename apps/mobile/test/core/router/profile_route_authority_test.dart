@@ -72,7 +72,7 @@ AuthUser _authUser({required String id, required bool seller}) {
     hasMarketAuthority: seller,
     accountStatus: AccountStatus.active,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     lifecycle: ContentLifecycle.active,
   );
 }

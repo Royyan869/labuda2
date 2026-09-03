@@ -15,9 +15,9 @@ import (
 //   - No anti-sniping internals (extension windows, sniper-watch flags).
 //   - No moderation flags / hidden / shadow-banned indicators.
 //   - No admin reserve price or hidden minimum semantics.
-//   - No raw auction state machine values (waiting_settlement, expired_bnr,
-//     scheduled, …) — Lifecycle is always coarsened to {active, unavailable,
-//     removed} via entity.Status.PublicLifecycle().
+//   - No raw auction state machine values (waiting_settlement, scheduled, …)
+//     — Lifecycle is always coarsened to {active, unavailable, removed} via
+//     entity.Status.PublicLifecycle().
 //
 // Field nullability:
 //   - ID:           required.

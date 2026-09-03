@@ -92,7 +92,7 @@ func seedFPS002PendingOrder(t *testing.T, ctx context.Context, tdb *testdb.TestD
 			return err
 		}
 		listingID = listing.ID
-		order := orderentity.NewOrderFromSource(buyerID, sellerID, orderentity.OrderSourceForSale, listingID, nil, 1, money.New(50000), money.New(50000), money.New(0), 0, money.New(0), money.New(0), money.New(50000), nil, "", "", nil, nil, nil, "immediate", nil, nil, nil, nil, nil, "instant", time.Now())
+		order := orderentity.NewOrderFromSource(buyerID, sellerID, orderentity.OrderSourceForSale, listingID, nil, 1, money.New(50000), money.New(50000), money.New(0), 0, money.New(0), money.New(0), money.New(50000), nil, "", "", nil, "immediate", nil, nil, nil, nil, nil, "instant", time.Now())
 		if err := orderRepo.CreateOrderTx(ctx, tx, order); err != nil {
 			return err
 		}

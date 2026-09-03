@@ -795,7 +795,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       onClaim:
           ({
             required addressId,
-            required shippingOptionId,
+            required shippingSetupId,
             String? discountCode,
             bool useCoins = false,
           }) async {
@@ -804,7 +804,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
             final orderId = await notifier.claimAuction(
               auctionId: auction.id,
               addressId: addressId,
-              shippingOptionId: shippingOptionId,
+              shippingSetupId: shippingSetupId,
               discountCode: discountCode,
               useCoins: useCoins,
             );

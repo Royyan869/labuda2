@@ -41,16 +41,6 @@ func (r *PricingTokenRepositoryImpl) CreateTx(
 		discountValue = token.DiscountValue
 	}
 
-	var shippingExpeditionName *string
-	if token.ShippingExpeditionName != nil && *token.ShippingExpeditionName != "" {
-		shippingExpeditionName = token.ShippingExpeditionName
-	}
-
-	var shippingEstimatedDays *string
-	if token.ShippingEstimatedDays != nil && *token.ShippingEstimatedDays != "" {
-		shippingEstimatedDays = token.ShippingEstimatedDays
-	}
-
 	_, err := tx.Exec(ctx, `
 		INSERT INTO pricing_tokens (
 			id, token, user_id, product_id, source_type, source_id, quantity,
@@ -59,15 +49,14 @@ func (r *PricingTokenRepositoryImpl) CreateTx(
 			service_fee_amount, total_payable_amount,
 			discount_code, discount_type, discount_value, discount_amount,
 			shipping_option_id, shipping_option_name, shipping_transport_type,
-			shipping_expedition_name, shipping_estimated_days,
 			address_id, address_snapshot,
 			negotiation_id, auction_id,
 			coins_used, max_coins_allowed, order_value_for_coins,
 			is_used, used_at, order_id,
 			expires_at, created_at, updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
-		        $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
+		        $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35)
 	`,
 		token.ID,
 		token.Token,
@@ -88,11 +77,9 @@ func (r *PricingTokenRepositoryImpl) CreateTx(
 		discountType,
 		discountValue,
 		token.DiscountAmount.Int64(),
-		token.ShippingOptionID,
-		token.ShippingOptionName,
+		token.ShippingSetupID,
+		token.ShippingSetupName,
 		token.ShippingTransportType,
-		shippingExpeditionName,
-		shippingEstimatedDays,
 		token.AddressID,
 		token.AddressSnapshot,
 		token.NegotiationID,
@@ -121,7 +108,7 @@ func (r *PricingTokenRepositoryImpl) GetByToken(
 	tx db.Tx,
 	token uuid.UUID,
 ) (*entity.PricingToken, error) {
-	var id, tokenValue, userID, productID, shippingOptionID, addressID uuid.UUID
+	var id, tokenValue, userID, productID, shippingSetupID, addressID uuid.UUID
 	var quantity int
 	var unitPrice, subtotal, shippingTotal, commissionPercent, commissionAmount int64
 	var escrowAmount, serviceFeeAmount, totalPayableAmount, discountAmount int64
@@ -131,8 +118,7 @@ func (r *PricingTokenRepositoryImpl) GetByToken(
 	var discountCode *string
 	var discountTypeStr *string
 	var discountValueStr *string
-	var shippingOptionName, shippingTransportType string
-	var shippingExpeditionName, shippingEstimatedDays *string
+	var shippingSetupName, shippingTransportType string
 	var negotiationID, auctionID *uuid.UUID
 	var isUsed bool
 	var usedAt *time.Time
@@ -147,7 +133,6 @@ func (r *PricingTokenRepositoryImpl) GetByToken(
 		       service_fee_amount, total_payable_amount,
 		       discount_code, discount_type, discount_value, discount_amount,
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
-		       shipping_expedition_name, shipping_estimated_days,
 		       address_id, address_snapshot,
 		       negotiation_id, auction_id,
 		       coins_used, max_coins_allowed, order_value_for_coins,
@@ -161,8 +146,7 @@ func (r *PricingTokenRepositoryImpl) GetByToken(
 		&commissionPercent, &commissionAmount, &escrowAmount,
 		&serviceFeeAmount, &totalPayableAmount,
 		&discountCode, &discountTypeStr, &discountValueStr, &discountAmount,
-		&shippingOptionID, &shippingOptionName, &shippingTransportType,
-		&shippingExpeditionName, &shippingEstimatedDays,
+		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&addressID, &addressSnapshot,
 		&negotiationID, &auctionID,
 		&coinsUsed, &maxCoinsAllowed, &orderValueForCoins,
@@ -215,19 +199,17 @@ func (r *PricingTokenRepositoryImpl) GetByToken(
 		CoinsUsed:              coinsUsed,
 		MaxCoinsAllowed:        maxCoinsAllowed,
 		OrderValueForCoins:     orderValueForCoins,
-		ShippingOptionID:       shippingOptionID,
-		ShippingOptionName:     shippingOptionName,
-		ShippingTransportType:  shippingTransportType,
-		ShippingExpeditionName: shippingExpeditionName,
-		ShippingEstimatedDays:  shippingEstimatedDays,
-		AddressID:              addressID,
-		AddressSnapshot:        addressSnapshot,
-		IsUsed:                 isUsed,
-		UsedAt:                 usedAt,
-		OrderID:                orderID,
-		ExpiresAt:              expiresAt,
-		CreatedAt:              createdAt,
-		UpdatedAt:              updatedAt,
+		ShippingSetupID:      shippingSetupID,
+		ShippingSetupName:    shippingSetupName,
+		ShippingTransportType: shippingTransportType,
+		AddressID:             addressID,
+		AddressSnapshot:       addressSnapshot,
+		IsUsed:                isUsed,
+		UsedAt:                usedAt,
+		OrderID:               orderID,
+		ExpiresAt:             expiresAt,
+		CreatedAt:             createdAt,
+		UpdatedAt:             updatedAt,
 	}, nil
 }
 
@@ -237,7 +219,7 @@ func (r *PricingTokenRepositoryImpl) GetByTokenForUpdate(
 	tx db.Tx,
 	token uuid.UUID,
 ) (*entity.PricingToken, error) {
-	var id, tokenValue, userID, productID, shippingOptionID, addressID uuid.UUID
+	var id, tokenValue, userID, productID, shippingSetupID, addressID uuid.UUID
 	var quantity int
 	var unitPrice, subtotal, shippingTotal, commissionPercent, commissionAmount int64
 	var escrowAmount, serviceFeeAmount, totalPayableAmount, discountAmount int64
@@ -247,8 +229,7 @@ func (r *PricingTokenRepositoryImpl) GetByTokenForUpdate(
 	var discountCode *string
 	var discountTypeStr *string
 	var discountValueStr *string
-	var shippingOptionName, shippingTransportType string
-	var shippingExpeditionName, shippingEstimatedDays *string
+	var shippingSetupName, shippingTransportType string
 	var negotiationID, auctionID *uuid.UUID
 	var isUsed bool
 	var usedAt *time.Time
@@ -263,7 +244,6 @@ func (r *PricingTokenRepositoryImpl) GetByTokenForUpdate(
 		       service_fee_amount, total_payable_amount,
 		       discount_code, discount_type, discount_value, discount_amount,
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
-		       shipping_expedition_name, shipping_estimated_days,
 		       address_id, address_snapshot,
 		       negotiation_id, auction_id,
 		       coins_used, max_coins_allowed, order_value_for_coins,
@@ -278,8 +258,7 @@ func (r *PricingTokenRepositoryImpl) GetByTokenForUpdate(
 		&commissionPercent, &commissionAmount, &escrowAmount,
 		&serviceFeeAmount, &totalPayableAmount,
 		&discountCode, &discountTypeStr, &discountValueStr, &discountAmount,
-		&shippingOptionID, &shippingOptionName, &shippingTransportType,
-		&shippingExpeditionName, &shippingEstimatedDays,
+		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&addressID, &addressSnapshot,
 		&negotiationID, &auctionID,
 		&coinsUsed, &maxCoinsAllowed, &orderValueForCoins,
@@ -332,12 +311,10 @@ func (r *PricingTokenRepositoryImpl) GetByTokenForUpdate(
 		CoinsUsed:              coinsUsed,
 		MaxCoinsAllowed:        maxCoinsAllowed,
 		OrderValueForCoins:     orderValueForCoins,
-		ShippingOptionID:       shippingOptionID,
-		ShippingOptionName:     shippingOptionName,
-		ShippingTransportType:  shippingTransportType,
-		ShippingExpeditionName: shippingExpeditionName,
-		ShippingEstimatedDays:  shippingEstimatedDays,
-		AddressID:              addressID,
+		ShippingSetupID:      shippingSetupID,
+		ShippingSetupName:    shippingSetupName,
+		ShippingTransportType: shippingTransportType,
+		AddressID:             addressID,
 		AddressSnapshot:        addressSnapshot,
 		IsUsed:                 isUsed,
 		UsedAt:                 usedAt,

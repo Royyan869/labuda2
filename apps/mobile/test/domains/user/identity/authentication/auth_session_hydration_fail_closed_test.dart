@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/core.dart';
@@ -732,7 +732,7 @@ AuthUser _hydratedUser({required bool isEmailVerified}) {
     sellerSubscriptionStatus: 'active',
     hasMarketAuthority: true,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
   );
 }
 

@@ -7,27 +7,27 @@ import (
 	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
 )
 
-// PublicShippingOptionSummary is the buyer-facing shipping option shape.
+// PublicShippingSetupSummary is the buyer-facing shipping option shape.
 // It intentionally omits seller-only/internal fields.
-type PublicShippingOptionSummary struct {
+type PublicShippingSetupSummary struct {
 	ID            string `json:"id"`
 	Name          string `json:"name"`
 	TransportType string `json:"transport_type"`
 }
 
-// BuildPublicShippingOptionSummaries converts shipping option entities into a
+// BuildPublicShippingSetupSummaries converts shipping option entities into a
 // buyer-facing summary payload.
-func BuildPublicShippingOptionSummaries(options []*entity.ShippingOption) []PublicShippingOptionSummary {
+func BuildPublicShippingSetupSummaries(options []*entity.ShippingSetup) []PublicShippingSetupSummary {
 	if len(options) == 0 {
-		return []PublicShippingOptionSummary{}
+		return []PublicShippingSetupSummary{}
 	}
 
-	result := make([]PublicShippingOptionSummary, 0, len(options))
+	result := make([]PublicShippingSetupSummary, 0, len(options))
 	for _, option := range options {
 		if option == nil {
 			continue
 		}
-		result = append(result, PublicShippingOptionSummary{
+		result = append(result, PublicShippingSetupSummary{
 			ID:            option.ID.String(),
 			Name:          strings.TrimSpace(option.Name),
 			TransportType: strings.TrimSpace(string(option.TransportType)),

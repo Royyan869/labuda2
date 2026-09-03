@@ -63,7 +63,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get helpSupport => 'Bantuan & Dukungan';
 
   @override
-  String get aboutShona => 'About LABUDA';
+  String get aboutLabuda => 'About LABUDA';
 
   @override
   String get comingSoon => 'akan segera hadir';
@@ -931,7 +931,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get popular => 'POPULER';
 
   @override
-  String get whyBecomeShonaSeeller => 'Mengapa menjadi Penjual LABUDA?';
+  String get whyBecomeLabudaSeller => 'Mengapa menjadi Penjual LABUDA?';
 
   @override
   String get reach10kActiveKoiEnthusiasts =>

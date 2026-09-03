@@ -14,7 +14,7 @@ import (
 func TestAuctionSettlementWorker_Construction(t *testing.T) {
 	log := zaptest.NewLogger(t)
 
-	w := NewAuctionSettlementWorker(nil, nil, nil, log, DefaultAuctionSettlementWorkerConfig())
+	w := NewAuctionSettlementWorker(nil, nil, nil, nil, log, DefaultAuctionSettlementWorkerConfig())
 	if w == nil {
 		t.Fatal("NewAuctionSettlementWorker() returned nil")
 	}
@@ -27,7 +27,7 @@ func TestAuctionSettlementWorker_Construction(t *testing.T) {
 }
 
 func TestAuctionSettlementWorker_NilLogFallback(t *testing.T) {
-	w := NewAuctionSettlementWorker(nil, nil, nil, nil, DefaultAuctionSettlementWorkerConfig())
+	w := NewAuctionSettlementWorker(nil, nil, nil, nil, nil, DefaultAuctionSettlementWorkerConfig())
 	if w == nil {
 		t.Fatal("NewAuctionSettlementWorker with nil logger returned nil")
 	}
@@ -51,7 +51,7 @@ func TestAuctionSettlementWorker_DefaultConfig_Sane(t *testing.T) {
 func TestAuctionSettlementWorker_Lifecycle(t *testing.T) {
 	log := zaptest.NewLogger(t)
 
-	w := NewAuctionSettlementWorker(nil, nil, nil, log, AuctionSettlementWorkerConfig{
+	w := NewAuctionSettlementWorker(nil, nil, nil, nil, log, AuctionSettlementWorkerConfig{
 		PollInterval: 10 * time.Second, // long enough to never fire
 		BatchSize:    50,
 	})

@@ -135,13 +135,12 @@ class _RecordingApiClient implements ApiClient {
   bool isValidationError(DioException e) => false;
 }
 
-Map<String, dynamic> _shippingOptionJson({
+Map<String, dynamic> _shippingSetupJson({
   required String id,
   required String name,
   required bool isActive,
-  String? expeditionName,
 }) {
-  final json = {
+  return {
     'id': id,
     'name': name,
     'transport_type': 'train',
@@ -149,15 +148,11 @@ Map<String, dynamic> _shippingOptionJson({
     'created_at': '2026-01-01T00:00:00Z',
     'updated_at': '2026-01-01T00:00:00Z',
   };
-  if (expeditionName != null) {
-    json['expedition_name'] = expeditionName;
-  }
-  return json;
 }
 
 Map<String, dynamic> _coverageJson({
   required String id,
-  required String shippingOptionId,
+  required String shippingSetupId,
   required String provinceCode,
   required String provinceName,
   required int rate,
@@ -165,7 +160,7 @@ Map<String, dynamic> _coverageJson({
 }) {
   return {
     'id': id,
-    'shipping_option_id': shippingOptionId,
+    'shipping_setup_id': shippingSetupId,
     'province_code': provinceCode,
     'province_name': provinceName,
     'rate': rate,
@@ -177,17 +172,16 @@ Map<String, dynamic> _coverageJson({
 void main() {
   group('ShippingRemoteDatasource contract', () {
     test(
-      'listMyShippingOptions parses the wrapped shipping_options envelope',
+      'listMyShippingSetups parses the wrapped shipping_options envelope',
       () async {
         final client = _RecordingApiClient()
           ..getPayload = {
             'success': true,
             'data': {
               'shipping_options': [
-                _shippingOptionJson(
+                _shippingSetupJson(
                   id: 'so-1',
                   name: 'JNE Reguler',
-                  expeditionName: 'JNE',
                   isActive: true,
                 ),
               ],
@@ -197,7 +191,7 @@ void main() {
           };
         final ds = ShippingRemoteDatasource(client);
 
-        final options = await ds.listMyShippingOptions();
+        final options = await ds.listMyShippingSetups();
 
         expect(client.lastGetPath, '/seller/shipping/options');
         expect(client.lastGetQuery, {'include_inactive': true});
@@ -205,13 +199,12 @@ void main() {
         expect(options.first.id, 'so-1');
         expect(options.first.name, 'JNE Reguler');
         expect(options.first.type, 'train');
-        expect(options.first.expeditionName, 'JNE');
         expect(options.first.isActive, isTrue);
       },
     );
 
     test(
-      'listMyActiveShippingOptions flips include_inactive to false',
+      'listMyActiveShippingSetups flips include_inactive to false',
       () async {
         final client = _RecordingApiClient()
           ..getPayload = {
@@ -221,7 +214,7 @@ void main() {
           };
         final ds = ShippingRemoteDatasource(client);
 
-        final options = await ds.listMyActiveShippingOptions();
+        final options = await ds.listMyActiveShippingSetups();
 
         expect(client.lastGetQuery, {'include_inactive': false});
         expect(options, isEmpty);
@@ -229,16 +222,15 @@ void main() {
     );
 
     test(
-      'createShippingOption parses the nested shipping_option object',
+      'createShippingSetup parses the nested shipping_option object',
       () async {
         final client = _RecordingApiClient()
           ..postPayload = {
             'success': true,
             'data': {
-              'shipping_option': _shippingOptionJson(
+              'shipping_option':              _shippingSetupJson(
                 id: 'so-2',
                 name: 'J&T Express',
-                expeditionName: 'J&T',
                 isActive: true,
               ),
             },
@@ -246,16 +238,14 @@ void main() {
           };
         final ds = ShippingRemoteDatasource(client);
 
-        final option = await ds.createShippingOption({
+        final option = await ds.createShippingSetup({
           'name': 'J&T Express',
           'transport_type': 'train',
-          'expedition_name': 'J&T',
         });
 
         expect(client.lastPostPath, '/seller/shipping/options');
         expect(option.id, 'so-2');
         expect(option.name, 'J&T Express');
-        expect(option.expeditionName, 'J&T');
       },
     );
 
@@ -266,7 +256,7 @@ void main() {
           'data': {
             'coverage': _coverageJson(
               id: 'cov-1',
-              shippingOptionId: 'so-1',
+              shippingSetupId: 'so-1',
               provinceCode: '31',
               provinceName: 'DKI Jakarta',
               rate: 150000,
@@ -286,7 +276,7 @@ void main() {
 
       expect(client.lastPostPath, '/seller/shipping/options/so-1/coverages');
       expect(coverage.id, 'cov-1');
-      expect(coverage.shippingOptionId, 'so-1');
+      expect(coverage.shippingSetupId, 'so-1');
       expect(coverage.provinceCode, '31');
       expect(coverage.rate, 150000);
       expect(coverage.isAvailable, isTrue);
@@ -299,10 +289,9 @@ void main() {
           ..getPayload = {
             'success': true,
             'data': [
-              _shippingOptionJson(
+              _shippingSetupJson(
                 id: 'so-1',
                 name: 'JNE Reguler',
-                expeditionName: 'JNE',
                 isActive: true,
               ),
             ],
@@ -311,7 +300,7 @@ void main() {
         final ds = ShippingRemoteDatasource(client);
 
         expect(
-          () => ds.listMyShippingOptions(),
+          () => ds.listMyShippingSetups(),
           throwsA(isA<FormatException>()),
         );
       },

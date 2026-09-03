@@ -5,52 +5,52 @@ import 'package:labuda/domains/commerce/transaction/shipping/domain/domain.dart'
 // =====================================
 
 /// Base state for shipping options list
-abstract class ShippingOptionsListState {
-  const ShippingOptionsListState();
+abstract class ShippingSetupsListState {
+  const ShippingSetupsListState();
 }
 
-class ShippingOptionsListInitial extends ShippingOptionsListState {
-  const ShippingOptionsListInitial();
+class ShippingSetupsListInitial extends ShippingSetupsListState {
+  const ShippingSetupsListInitial();
 }
 
-class ShippingOptionsListLoading extends ShippingOptionsListState {
-  const ShippingOptionsListLoading();
+class ShippingSetupsListLoading extends ShippingSetupsListState {
+  const ShippingSetupsListLoading();
 }
 
-class ShippingOptionsListLoaded extends ShippingOptionsListState {
-  final List<ShippingOption> options;
-  const ShippingOptionsListLoaded(this.options);
+class ShippingSetupsListLoaded extends ShippingSetupsListState {
+  final List<ShippingSetup> options;
+  const ShippingSetupsListLoaded(this.options);
 }
 
-class ShippingOptionsListError extends ShippingOptionsListState {
+class ShippingSetupsListError extends ShippingSetupsListState {
   final String message;
-  const ShippingOptionsListError(this.message);
+  const ShippingSetupsListError(this.message);
 }
 
 // =====================================
 // Shipping Option Detail States
 // =====================================
 
-abstract class ShippingOptionDetailState {
-  const ShippingOptionDetailState();
+abstract class ShippingSetupDetailState {
+  const ShippingSetupDetailState();
 }
 
-class ShippingOptionDetailInitial extends ShippingOptionDetailState {
-  const ShippingOptionDetailInitial();
+class ShippingSetupDetailInitial extends ShippingSetupDetailState {
+  const ShippingSetupDetailInitial();
 }
 
-class ShippingOptionDetailLoading extends ShippingOptionDetailState {
-  const ShippingOptionDetailLoading();
+class ShippingSetupDetailLoading extends ShippingSetupDetailState {
+  const ShippingSetupDetailLoading();
 }
 
-class ShippingOptionDetailLoaded extends ShippingOptionDetailState {
-  final ShippingOption option;
-  const ShippingOptionDetailLoaded(this.option);
+class ShippingSetupDetailLoaded extends ShippingSetupDetailState {
+  final ShippingSetup option;
+  const ShippingSetupDetailLoaded(this.option);
 }
 
-class ShippingOptionDetailError extends ShippingOptionDetailState {
+class ShippingSetupDetailError extends ShippingSetupDetailState {
   final String message;
-  const ShippingOptionDetailError(this.message);
+  const ShippingSetupDetailError(this.message);
 }
 
 // Phase 3 cleanup: DeliveryCheckState* and ShippingProofState* families

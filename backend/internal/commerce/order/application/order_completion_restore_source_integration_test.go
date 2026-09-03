@@ -100,7 +100,7 @@ func TestStage5_RestoreListingStock_ResolvesSurfaceFromOrderSource(t *testing.T)
 		buyerID, sellerID, orderentity.OrderSourceForSale, fpsID, nil,
 		1, money.New(50000), money.New(50000), money.New(0),
 		0, money.New(0), money.New(0), money.New(50000),
-		nil, "", "", nil, nil, nil, "immediate", nil, nil, nil, nil, nil,
+		nil, "", "", nil, "immediate", nil, nil, nil, nil, nil,
 		"instant", time.Now(),
 	)
 	order.ID = uuid.New()
@@ -114,7 +114,7 @@ func TestStage5_RestoreListingStock_ResolvesSurfaceFromOrderSource(t *testing.T)
 
 	// --- PROOF: restore resolves the listing via order.source_id, not item.product_id ---
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		if err := svc.restoreListingStock(ctx, tx, order); err != nil {
+		if err := svc.restoreForSaleStock(ctx, tx, order); err != nil {
 			return err
 		}
 		listing, err := forSaleRepo.GetByID(ctx, tx, fpsID)
@@ -143,7 +143,7 @@ func TestStage5_RestoreListingStock_ResolvesSurfaceFromOrderSource(t *testing.T)
 		buyerID, sellerID, orderentity.OrderSourceAuction, uuid.Nil, nil,
 		1, money.New(40000), money.New(40000), money.New(0),
 		0, money.New(0), money.New(0), money.New(40000),
-		nil, "", "", nil, nil, nil, "immediate", nil, nil, nil, nil, nil,
+		nil, "", "", nil, "immediate", nil, nil, nil, nil, nil,
 		"instant", time.Now(),
 	)
 	auctionOrder.ID = uuid.New()
@@ -191,7 +191,7 @@ func TestStage5_RestoreListingStock_ResolvesSurfaceFromOrderSource(t *testing.T)
 		return auctionRepo.UpdateTx(ctx, tx, auction)
 	}))
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		if err := svc.restoreListingStock(ctx, tx, auctionOrder); err != nil {
+		if err := svc.restoreForSaleStock(ctx, tx, auctionOrder); err != nil {
 			return err
 		}
 		auction, err := auctionRepo.GetByID(ctx, tx, auctionID)

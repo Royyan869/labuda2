@@ -71,7 +71,7 @@ AuthUser _user({
     avatarUrl: avatarUrl,
     isEmailVerified: true,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
   );
 }
 

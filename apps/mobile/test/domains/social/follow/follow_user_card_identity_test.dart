@@ -144,7 +144,7 @@ AuthState _authenticatedState({
     username: username,
     isEmailVerified: true,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     lifecycle: ContentLifecycle.active,
   );
   return AuthState.authenticated(user, emailVerified: true);

@@ -166,7 +166,7 @@ void main() {
       await ds.claimAuction(
         'a1',
         addressId: 'addr1',
-        shippingOptionId: 'ship1',
+        shippingSetupId: 'ship1',
       );
       expect(client.lastPostPath, '/auctions/a1/claim');
     });

@@ -359,7 +359,6 @@ class ShippingQuoteAttachment extends Attachment {
   /// CANONICAL REFERENCE ke item terkait - gunakan untuk query ke backend
   final String linkedItemId;
   final String linkedItemType;
-  final String? auctionId;
 
   /// SHIPPING PREVIEW DATA - bisa stale, gunakan hanya untuk UI display
   final String linkedItemName;
@@ -369,9 +368,7 @@ class ShippingQuoteAttachment extends Attachment {
   final String shippingType;
   final String shippingTypeName;
   final String shippingTypeEmoji;
-  final String? expeditionName;
   final double rate;
-  final String? estimatedDays;
   final String? notes;
   final DateTime validUntil;
   final String status;
@@ -381,7 +378,6 @@ class ShippingQuoteAttachment extends Attachment {
     required this.offerId,
     required this.linkedItemId,
     required this.linkedItemType,
-    this.auctionId,
     required this.linkedItemName,
     String?
     linkedImage, // NOTE: Backwards compatibility alias - parameter name for API compatibility
@@ -390,9 +386,7 @@ class ShippingQuoteAttachment extends Attachment {
     required this.shippingType,
     required this.shippingTypeName,
     required this.shippingTypeEmoji,
-    this.expeditionName,
     required this.rate,
-    this.estimatedDays,
     this.notes,
     required this.validUntil,
     required this.status,
@@ -402,19 +396,13 @@ class ShippingQuoteAttachment extends Attachment {
   // Backwards compatibility: alias for linkedItemImage
   String? get linkedImage => linkedItemImage;
 
-  String get displayName {
-    if (expeditionName != null && expeditionName!.isNotEmpty) {
-      return '$shippingTypeEmoji $shippingTypeName - $expeditionName';
-    }
-    return '$shippingTypeEmoji $shippingTypeName';
-  }
+  String get displayName => '$shippingTypeEmoji $shippingTypeName';
 
   @override
   List<Object?> get props => [
     offerId,
     linkedItemId,
     linkedItemType,
-    auctionId,
     linkedItemName,
     linkedItemImage,
     linkedItemPrice,
@@ -422,9 +410,7 @@ class ShippingQuoteAttachment extends Attachment {
     shippingType,
     shippingTypeName,
     shippingTypeEmoji,
-    expeditionName,
     rate,
-    estimatedDays,
     notes,
     validUntil,
     status,

@@ -35,13 +35,12 @@ func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 	shippingQuoteID uuid.UUID,
 ) (*entity.Order, error) {
 	var id, buyerID, sellerID, sourceID uuid.UUID
-	var shippingOptionID *uuid.UUID // NULLABLE: nil when using shipping quote
+	var shippingSetupID *uuid.UUID // NULLABLE: nil when using shipping quote
 	var negotiationID *uuid.UUID
 	var quantity int
 	var unitPrice, subtotal, shippingTotal, commissionPercent, commissionAmount int64
 	var status, escrowStatus, sourceType string
-	var shippingOptionName, shippingTransportType sql.NullString // NULLABLE in DB
-	var shippingExpeditionName, shippingEstimatedDays *string
+	var shippingSetupName, shippingTransportType sql.NullString // NULLABLE in DB
 	var trackingNumber, shippingNote *string
 	var orderNum *string
 	var autoReleaseAt *time.Time
@@ -67,7 +66,6 @@ func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 		       commission_amount, status, escrow_status,
 		       auto_release_at, has_dispute, confirmation_extension_used, idempotency_key,
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
-		       shipping_expedition_name, shipping_estimated_days,
 		       tracking_number, shipping_note, order_number,
 		       preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by,
 		       shipping_destination,
@@ -85,8 +83,7 @@ func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 		&quantity, &unitPrice, &subtotal, &shippingTotal, &commissionPercent,
 		&commissionAmount, &status, &escrowStatus,
 		&autoReleaseAt, &hasDispute, &confirmationExtensionUsed, &idempotencyKeyPtr,
-		&shippingOptionID, &shippingOptionName, &shippingTransportType,
-		&shippingExpeditionName, &shippingEstimatedDays,
+		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&trackingNumber, &shippingNote,
 		&orderNum,
 		&preparationTimeSnapshot, &preparationNoteSnapshot, &readyToShipBy, &addressSnapshotJSON,
@@ -131,11 +128,9 @@ func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 		ShippingTotal:             money.New(shippingTotal),
 		CommissionPercent:         commissionPercent,
 		CommissionAmount:          money.New(commissionAmount),
-		ShippingOptionID:          shippingOptionID,
-		ShippingOptionName:        shippingOptionName.String,
+		ShippingSetupID:          shippingSetupID,
+		ShippingSetupName:        shippingSetupName.String,
 		ShippingTransportType:     shippingTransportType.String,
-		ShippingExpeditionName:    shippingExpeditionName,
-		ShippingEstimatedDays:     shippingEstimatedDays,
 		TrackingNumber:            trackingNumber,
 		ShippingNote:              nil,
 		OrderNumber:               orderNum,
@@ -183,12 +178,11 @@ func (r *OrderRepository) GetBySource(
 	sourceID uuid.UUID,
 ) (*entity.Order, error) {
 	var id, buyerID, sellerID uuid.UUID
-	var shippingOptionID *uuid.UUID
+	var shippingSetupID *uuid.UUID
 	var negotiationID *uuid.UUID
 	var quantity int
 	var unitPrice, subtotal, shippingTotal, commissionPercent, commissionAmount int64
-	var status, escrowStatus, shippingOptionName, shippingTransportType string
-	var shippingExpeditionName, shippingEstimatedDays *string
+	var status, escrowStatus, shippingSetupName, shippingTransportType string
 	var trackingNumber, shippingNote *string
 	var orderNum *string
 	var autoReleaseAt *time.Time
@@ -210,7 +204,6 @@ func (r *OrderRepository) GetBySource(
 		       status, escrow_status, auto_release_at, has_dispute,
 		       confirmation_extension_used, confirmation_extended_at, idempotency_key,
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
-		       shipping_expedition_name, shipping_estimated_days,
 		       tracking_number, shipping_note,
 		       order_number,
 		       preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by, address_snapshot,
@@ -223,8 +216,7 @@ func (r *OrderRepository) GetBySource(
 		&quantity, &unitPrice, &subtotal, &shippingTotal,
 		&commissionPercent, &commissionAmount,
 		&status, &escrowStatus, &autoReleaseAt, &hasDispute, &confirmationExtensionUsed, &confirmationExtendedAt, &idempotencyKey,
-		&shippingOptionID, &shippingOptionName, &shippingTransportType,
-		&shippingExpeditionName, &shippingEstimatedDays,
+		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&trackingNumber, &shippingNote,
 		&orderNum,
 		&preparationTimeSnapshot, &preparationNoteSnapshot, &readyToShipBy, &addressSnapshotJSON,
@@ -260,11 +252,9 @@ func (r *OrderRepository) GetBySource(
 		ShippingTotal:          money.New(shippingTotal),
 		CommissionPercent:      commissionPercent,
 		CommissionAmount:       money.New(commissionAmount),
-		ShippingOptionID:       shippingOptionID,
-		ShippingOptionName:     shippingOptionName,
+		ShippingSetupID:       shippingSetupID,
+		ShippingSetupName:     shippingSetupName,
 		ShippingTransportType:  shippingTransportType,
-		ShippingExpeditionName: shippingExpeditionName,
-		ShippingEstimatedDays:  shippingEstimatedDays,
 		// Shipping Confirmation (canonical fields)
 		TrackingNumber: trackingNumber,
 		ShippingNote:   shippingNote,

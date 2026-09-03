@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/identity/authentication/data/repositories/auth_core_repository.dart';
@@ -137,7 +137,7 @@ AuthUser _baseUser({
     username: 'seller-one',
     isEmailVerified: true,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     hasSellerProfile: hasSellerProfile,
     sellerSubscriptionStatus: hasMarketAuthority ? 'active' : 'expired',
     hasMarketAuthority: hasMarketAuthority,

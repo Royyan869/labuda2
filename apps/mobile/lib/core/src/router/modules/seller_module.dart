@@ -13,7 +13,7 @@ import 'package:labuda/domains/user/preference/seller/presentation/screens/selle
 import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_shipping_screen.dart'
     show SellerShippingScreen;
 import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_shipping_option_detail_screen.dart'
-    show SellerShippingOptionDetailScreen;
+    show SellerShippingSetupDetailScreen;
 import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/my_promotions_screen.dart'
     show MyPromotionsScreen;
 import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/promotion_detail_screen.dart'
@@ -95,11 +95,11 @@ class SellerModule extends BaseModule {
 
     // Phase 1: Per-option coverage (province-level rates) management
     GoRoute(
-      path: RoutePaths.sellerShippingOptionDetail,
-      name: 'sellerShippingOptionDetail',
+      path: RoutePaths.sellerShippingSetupDetail,
+      name: 'sellerShippingSetupDetail',
       builder: (context, state) {
         final optionId = state.pathParameters['optionId']!;
-        return SellerShippingOptionDetailScreen(optionId: optionId);
+        return SellerShippingSetupDetailScreen(optionId: optionId);
       },
     ),
 

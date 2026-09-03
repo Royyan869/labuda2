@@ -1,14 +1,14 @@
 part of '../screens/checkout_screen_impl.dart';
 
 /// Shipping Option Picker Section — selects standard shipping option for direct buy
-class _ShippingOptionPickerSection extends StatelessWidget {
+class _ShippingSetupPickerSection extends StatelessWidget {
   final List<DeliveryOption> deliveryOptions;
   final String? selectedOptionId;
   final bool isLoading;
   final bool hasAddress;
   final ValueChanged<String> onSelected;
 
-  const _ShippingOptionPickerSection({
+  const _ShippingSetupPickerSection({
     required this.deliveryOptions,
     required this.selectedOptionId,
     required this.isLoading,
@@ -53,13 +53,13 @@ class _ShippingOptionPickerSection extends StatelessWidget {
                 children: deliveryOptions
                     .map(
                       (option) => RadioListTile<String>(
-                        value: option.shippingOptionId,
+                        value: option.shippingSetupId,
                         title: Text(option.displayName),
                         subtitle: Text(
                           AppFormatters.formatCurrency(option.rate),
                         ),
                         activeColor: AppColors.primaryRed,
-                        selected: option.shippingOptionId == selectedOptionId,
+                        selected: option.shippingSetupId == selectedOptionId,
                         contentPadding: EdgeInsets.zero,
                       ),
                     )

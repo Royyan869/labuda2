@@ -148,7 +148,6 @@ class AttachmentMapper {
       offerId: data['offerId'] as String,
       linkedItemId: data['linkedItemId'] as String,
       linkedItemType: linkedItemType,
-      auctionId: data['auctionId'] as String?,
       linkedItemName: linkedItemName,
       linkedImage:
           data['linkedItemImage'] as String? ?? data['linkedImage'] as String?,
@@ -159,9 +158,7 @@ class AttachmentMapper {
       shippingType: data['shippingType'] as String,
       shippingTypeName: data['shippingTypeName'] as String,
       shippingTypeEmoji: data['shippingTypeEmoji'] as String,
-      expeditionName: data['expeditionName'] as String?,
       rate: (data['rate'] as num).toDouble(),
-      estimatedDays: data['estimatedDays'] as String?,
       notes: data['notes'] as String?,
       validUntil: _parseDateTimeRequired(data['validUntil']),
       status: data['status'] as String? ?? 'active',
@@ -256,7 +253,6 @@ class AttachmentMapper {
       'offerId': attachment.offerId,
       'linkedItemId': attachment.linkedItemId,
       'linkedItemType': attachment.linkedItemType,
-      if (attachment.auctionId != null) 'auctionId': attachment.auctionId,
       'linkedItemName': attachment.linkedItemName,
       'linkedItemImage': attachment
           .linkedImage, // NOTE: Field renamed to linkedItemImage, kept for API compatibility
@@ -265,9 +261,7 @@ class AttachmentMapper {
       'shippingType': attachment.shippingType,
       'shippingTypeName': attachment.shippingTypeName,
       'shippingTypeEmoji': attachment.shippingTypeEmoji,
-      'expeditionName': attachment.expeditionName,
       'rate': attachment.rate,
-      'estimatedDays': attachment.estimatedDays,
       'notes': attachment.notes,
       'validUntil': attachment.validUntil.toIso8601String(),
       'status': attachment.status,

@@ -3,14 +3,14 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 /// PASS_18E: locks the create-auction screen's shipping-option contract —
-/// backend requires `shipping_option_ids` with at least one entry, and
+/// backend requires `shipping_setup_ids` with at least one entry, and
 /// there was previously no UI path to collect it at all (PASS_18D finding),
 /// making mobile auction creation always fail with 400. Follows the same
 /// source-text contract convention as the sibling timing contract test
 /// (no existing widget-pump harness exists for this screen to extend).
 void main() {
   test(
-    'CreateAuctionScreen reuses SellerShippingOptionsSelector and validates a selection before submit',
+    'CreateAuctionScreen reuses SellerShippingSetupsSelector and validates a selection before submit',
     () {
       final source = File(
         'lib/domains/commerce/catalog/auction/presentation/screens/create_auction_screen.dart',
@@ -23,14 +23,14 @@ void main() {
           "import 'package:labuda/domains/commerce/transaction/shipping/presentation/widgets/seller_shipping_options_selector.dart';",
         ),
       );
-      expect(source, contains('SellerShippingOptionsSelector('));
-      expect(source, contains('_selectedShippingOptionIds'));
+      expect(source, contains('SellerShippingSetupsSelector('));
+      expect(source, contains('_selectedShippingSetupIds'));
 
       // Submit is blocked when nothing is selected.
-      expect(source, contains('_selectedShippingOptionIds.isEmpty'));
+      expect(source, contains('_selectedShippingSetupIds.isEmpty'));
 
       // Selected IDs actually reach the notifier call.
-      expect(source, contains('shippingOptionIds: _selectedShippingOptionIds'));
+      expect(source, contains('shippingSetupIds: _selectedShippingSetupIds'));
     },
   );
 

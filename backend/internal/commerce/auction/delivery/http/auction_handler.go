@@ -79,7 +79,7 @@ type CreateAuctionRequest struct {
 	Bloodline         *string  `json:"bloodline"`
 	Certificates      []string `json:"certificates"`
 	FarmAddressID     *string  `json:"farm_address_id"`
-	ShippingOptionIDs []string `json:"shipping_option_ids" binding:"required,min=1"`
+	ShippingSetupIDs []string `json:"shipping_option_ids" binding:"required,min=1"`
 	// Auction-specific fields
 	StartPrice   int64  `json:"start_price" binding:"required,min=0"`
 	BidIncrement int64  `json:"bid_increment" binding:"required,min=1"`
@@ -143,8 +143,9 @@ func (h *AuctionHandler) CreateAuction(c *gin.Context) {
 		response.BadRequest(c, "Invalid request")
 		return
 	}
-	if bytes.Contains(rawBody, []byte(`"for_sale_id"`)) || bytes.Contains(rawBody, []byte(`"forSaleId"`)) {
-		response.BadRequest(c, "auction cannot be created from a forSale; use product_id for Product reuse or inline product fields")
+	if bytes.Contains(rawBody, []byte(`"for_sale_id"`)) || bytes.Contains(rawBody, []byte(`"forSaleId"`)) ||
+		bytes.Contains(rawBody, []byte(`"listing_id"`)) || bytes.Contains(rawBody, []byte(`"listingId"`)) {
+		response.BadRequest(c, "auction cannot be created from a forSale/listing; use product_id for Product reuse or inline product fields")
 		return
 	}
 	c.Request.Body = io.NopCloser(bytes.NewBuffer(rawBody))
@@ -177,7 +178,7 @@ func (h *AuctionHandler) CreateAuction(c *gin.Context) {
 
 	// Parse optional farm_address_id
 	var farmAddressID *uuid.UUID
-	shippingOptionIDs := make([]uuid.UUID, 0, len(req.ShippingOptionIDs))
+	shippingSetupIDs := make([]uuid.UUID, 0, len(req.ShippingSetupIDs))
 	if req.FarmAddressID != nil {
 		fid, err := uuid.Parse(*req.FarmAddressID)
 		if err != nil {
@@ -186,13 +187,13 @@ func (h *AuctionHandler) CreateAuction(c *gin.Context) {
 		}
 		farmAddressID = &fid
 	}
-	for _, rawID := range req.ShippingOptionIDs {
+	for _, rawID := range req.ShippingSetupIDs {
 		optionID, err := uuid.Parse(rawID)
 		if err != nil {
 			response.BadRequest(c, "Invalid shipping_option_ids value")
 			return
 		}
-		shippingOptionIDs = append(shippingOptionIDs, optionID)
+		shippingSetupIDs = append(shippingSetupIDs, optionID)
 	}
 
 	// Parse optional product_id for Product identity reuse.
@@ -236,7 +237,7 @@ func (h *AuctionHandler) CreateAuction(c *gin.Context) {
 			Bloodline:         req.Bloodline,
 			Certificates:      req.Certificates,
 			FarmAddressID:     farmAddressID,
-			ShippingOptionIDs: shippingOptionIDs,
+			ShippingSetupIDs: shippingSetupIDs,
 			// Auction-specific fields
 			StartPrice:   req.StartPrice,
 			BidIncrement: req.BidIncrement,
@@ -605,20 +606,6 @@ func (h *AuctionHandler) PlaceBid(c *gin.Context) {
 	})
 
 	if err != nil {
-		// BNR auction restriction — structured 403 with details.
-		var bnrErr *entity.BNRAuctionRestrictedError
-		if errors.As(err, &bnrErr) {
-			details := map[string]interface{}{
-				"active_strikes": bnrErr.ActiveStrikes,
-				"permanent_ban":  bnrErr.PermanentBan,
-			}
-			if bnrErr.RestrictionUntil != nil {
-				details["restriction_until"] = bnrErr.RestrictionUntil.Format(time.RFC3339)
-			}
-			response.ErrorWithDetails(c, 403, "BNR_AUCTION_RESTRICTED", bnrErr.Error(), details)
-			return
-		}
-
 		if err == auth.ErrMarketAuthorityRequired {
 			response.Forbidden(c, "Seller does not have active market authority")
 			return
@@ -637,93 +624,27 @@ func (h *AuctionHandler) PlaceBid(c *gin.Context) {
 }
 
 // BuyNowRequest holds the request body for buy now.
-// ClaimAuctionWithTokenRequest holds the request body for claiming a won auction with pricing token.
-type ClaimAuctionWithTokenRequest struct {
-	AddressID        uuid.UUID `json:"address_id" binding:"required"`
-	ShippingOptionID uuid.UUID `json:"shipping_option_id" binding:"required"`
-	DiscountCode     *string   `json:"discount_code"`
-}
-
-// GeneratePricingTokenForClaim handles POST /api/v1/auctions/:id/claim-token
-//
-// Generates a pricing token for the winner to claim their won auction.
-// This is the NEW flow - returns pricing token instead of creating order directly.
-//
-// The winner will use this pricing token to create an order via the standard checkout flow.
-func (h *AuctionHandler) GeneratePricingTokenForClaim(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	auctionID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		response.BadRequest(c, "Invalid auction ID")
-		return
-	}
-
-	userIDVal, exists := c.Get("userID")
-	if !exists {
-		response.Unauthorized(c, "User not authenticated")
-		return
-	}
-	winnerID, ok := userIDVal.(uuid.UUID)
-	if !ok {
-		response.InternalServerError(c, "Invalid user ID in context")
-		return
-	}
-
-	var req ClaimAuctionWithTokenRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err.Error())
-		return
-	}
-
-	// Validate auction and get data for pricing token generation
-	var auction *entity.Auction
-	err = h.db.WithTx(ctx, func(tx db.Tx) error {
-		var err error
-		auction, err = h.auctionService.GeneratePricingTokenForAuctionClaim(ctx, tx, auctionApp.GeneratePricingTokenForAuctionInput{
-			AuctionID:        auctionID,
-			WinnerID:         winnerID,
-			AddressID:        req.AddressID,
-			ShippingOptionID: req.ShippingOptionID,
-		})
-		return err
-	})
-
-	if err != nil {
-		h.log.Error("Failed to generate pricing token for auction claim",
-			zap.String("auction_id", auctionID.String()),
-			zap.String("winner_id", winnerID.String()),
-			zap.Error(err),
-		)
-		response.InternalServerError(c, "Failed to generate pricing token")
-		return
-	}
-
-	// Return auction data for pricing token generation
-	// The client will use this to call the pricing token API
-	response.Success(c, gin.H{
-		"auction_id":  auction.ID.String(),
-		"product_id":  auction.ProductID.String(),
-		"winning_bid": auction.WinningBid(),
-		"message":     "Proceed with POST /api/v1/auctions/:id/claim to generate the pricing token and create the order atomically",
-	})
-}
-
-// ClaimAuctionRequest holds the request body for the one-shot claim endpoint.
+// ClaimAuctionRequest holds the request body for the canonical claim endpoint.
 type ClaimAuctionRequest struct {
 	AddressID        uuid.UUID `json:"address_id" binding:"required"`
-	ShippingOptionID uuid.UUID `json:"shipping_option_id" binding:"required"`
+	ShippingSetupID uuid.UUID `json:"shipping_option_id" binding:"required"`
 	DiscountCode     *string   `json:"discount_code"`
 	UseCoins         *bool     `json:"use_coins,omitempty"` // Optional: buyer coin-use intent; backend decides actual amount
 }
 
 // ClaimAuction handles POST /api/v1/auctions/:id/claim
 //
-// One-shot auction claim: validates winner, generates pricing token,
-// creates order, settles auction — all in a single atomic transaction.
-//
-// This is the canonical winner claim endpoint. The two-step /claim-token
-// flow remains available for future extensibility.
+// Canonical winner shipping-resolution + order-creation action. In a single
+// atomic transaction:
+//  1. Validate winner, shipping deadline (end_at + 24h), not-settled,
+//     not-already-resolved. Locks auction FOR UPDATE.
+//  2. Resolve shipping: set auction.shipping_resolved_at = now (first
+//     resolution wins).
+//  3. Generate + validate the pricing token, create the order, bind
+//     auction.OrderID = order.ID.
+//  4. The auction STAYS in waiting_settlement — it only transitions to ended
+//     when payment succeeds. On payment expiry the auction returns to DRAFT
+//     (settlement failure) rather than remaining terminal-ended.
 //
 // Request body:
 //   - address_id:        Buyer's shipping address (UUID, required)
@@ -758,15 +679,22 @@ func (h *AuctionHandler) ClaimAuction(c *gin.Context) {
 
 	var orderID uuid.UUID
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
-		// Step 1: Validate winner, deadline, not-settled. Locks auction FOR UPDATE.
+		// Step 1: Validate winner, deadline, not-settled, not-resolved.
+		// Locks auction FOR UPDATE.
 		auction, err := h.auctionService.GeneratePricingTokenForAuctionClaim(ctx, tx, auctionApp.GeneratePricingTokenForAuctionInput{
 			AuctionID:        auctionID,
 			WinnerID:         winnerID,
 			AddressID:        req.AddressID,
-			ShippingOptionID: req.ShippingOptionID,
+			ShippingSetupID: req.ShippingSetupID,
 		})
 		if err != nil {
 			return fmt.Errorf("claim validation failed: %w", err)
+		}
+
+		// Step 1b: Mark shipping resolved (first-resolution-wins). Anchors the
+		// payment deadline: shipping_resolved_at + 24h.
+		if err := auction.ResolveShipping(time.Now()); err != nil {
+			return fmt.Errorf("shipping resolution failed: %w", err)
 		}
 
 		// Step 2: Generate pricing token within the same transaction.
@@ -775,7 +703,7 @@ func (h *AuctionHandler) ClaimAuction(c *gin.Context) {
 			UserID:           winnerID,
 			AuctionID:        auctionID,
 			AddressID:        req.AddressID,
-			ShippingOptionID: req.ShippingOptionID,
+			ShippingSetupID: req.ShippingSetupID,
 			DiscountCode:     req.DiscountCode,
 			UseCoins:         useCoins,
 		})
@@ -793,7 +721,7 @@ func (h *AuctionHandler) ClaimAuction(c *gin.Context) {
 			auction.ID,
 			0, // Quantity from token
 			req.AddressID,
-			req.ShippingOptionID,
+			req.ShippingSetupID,
 		)
 		if err != nil {
 			return fmt.Errorf("pricing token validation failed: %w", err)
@@ -814,7 +742,7 @@ func (h *AuctionHandler) ClaimAuction(c *gin.Context) {
 			BuyerID:               winnerID,
 			WinningBid:            *auction.CurrentBid,
 			AddressID:             req.AddressID,
-			ShippingOptionID:      req.ShippingOptionID,
+			ShippingSetupID:      req.ShippingSetupID,
 			AuctionSettlementType: settlementType,
 			PricingSnapshot:       pricingSnapshot,
 			UseCoins:              useCoins,
@@ -828,11 +756,11 @@ func (h *AuctionHandler) ClaimAuction(c *gin.Context) {
 			return fmt.Errorf("pricing token consume failed: %w", err)
 		}
 
-		// Step 7: Settle auction — set OrderID and transition to ended.
+		// Step 7: Bind the order and persist shipping resolution + OrderID.
+		// The auction STAYS in waiting_settlement until payment succeeds
+		// (payment success settles it to ended; payment expiry returns it to
+		// draft with the order binding released).
 		auction.OrderID = &order.ID
-		if err := auction.Settle(); err != nil {
-			return fmt.Errorf("auction settle failed: %w", err)
-		}
 		if err := h.auctionService.PersistAuctionUpdate(ctx, tx, auction); err != nil {
 			return fmt.Errorf("auction persist failed: %w", err)
 		}
@@ -859,6 +787,8 @@ func (h *AuctionHandler) ClaimAuction(c *gin.Context) {
 			response.Conflict(c, "Auction has no winner")
 		case errors.Is(err, entity.ErrNotWinner):
 			response.Forbidden(c, "Caller is not the auction winner")
+		case errors.Is(err, entity.ErrShippingAlreadyResolved):
+			response.Conflict(c, "Auction shipping has already been resolved")
 		default:
 			response.InternalServerError(c, "Failed to claim auction")
 		}
@@ -905,11 +835,9 @@ func buildClaimPricingSnapshot(token *pricingtokenentity.PricingToken) *orderApp
 		MaxCoinsAllowed:        token.MaxCoinsAllowed,
 		CoinsUsed:              token.CoinsUsed,
 		OrderValueForCoins:     token.OrderValueForCoins,
-		ShippingOptionName:     token.ShippingOptionName,
-		ShippingTransportType:  token.ShippingTransportType,
-		ShippingExpeditionName: token.ShippingExpeditionName,
-		ShippingEstimatedDays:  token.ShippingEstimatedDays,
-		ShippingDestination:    addressSnapshot,
+		ShippingSetupName:    token.ShippingSetupName,
+		ShippingTransportType: token.ShippingTransportType,
+		ShippingDestination:   addressSnapshot,
 		ShippingSource:         shippingSource,
 		ShippingQuoteID:        token.ShippingQuoteID,
 		AuctionID:              token.AuctionID,

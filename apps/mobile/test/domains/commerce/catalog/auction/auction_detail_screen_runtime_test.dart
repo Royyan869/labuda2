@@ -473,7 +473,7 @@ Map<String, dynamic> _auctionPayload({
     'watchers_count': 2,
     'can_bid': true,
     'can_buy_now': true,
-    'shipping_option_ids': ['ship-1', 'ship-2'],
+    'shipping_setup_ids': ['ship-1', 'ship-2'],
     'viewer_capabilities': {
       'role': 'buyer',
       'can_manage': false,
@@ -541,7 +541,7 @@ AuthUser _authUser({required String id}) {
     username: id,
     isEmailVerified: true,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     lifecycle: ContentLifecycle.active,
   );
 }
@@ -591,19 +591,19 @@ Auction _auction({
     createdAt: now,
     updatedAt: now,
     origin: 'Blitar',
-    shippingOptions: const [
-      CommerceShippingOptionSummary(
+    shippingSetups: const [
+      CommerceShippingSetupSummary(
         id: 'ship-1',
         name: 'traveleo',
         transportType: 'travel',
       ),
-      CommerceShippingOptionSummary(
+      CommerceShippingSetupSummary(
         id: 'ship-2',
         name: 'bus',
         transportType: 'bus',
       ),
     ],
-    shippingOptionIds: const ['ship-1', 'ship-2'],
+    shippingSetupIds: const ['ship-1', 'ship-2'],
     productId: 'product-1',
     sellerIdentity: publicOriginLine == null
         ? null
@@ -1307,7 +1307,7 @@ void main() {
           preparationTime: null,
           preparationNote: null,
           origin: '',
-          shippingOptions: const [],
+          shippingSetups: const [],
           koiDetails:
               _auction(
                 id: 'auction-empty-shadow',
@@ -1726,13 +1726,13 @@ void main() {
                     'health',
                   ],
                 ),
-            shippingOptions: const [
-              CommerceShippingOptionSummary(
+            shippingSetups: const [
+              CommerceShippingSetupSummary(
                 id: 'ship-long-1',
                 name: 'Traveleo',
                 transportType: 'travel',
               ),
-              CommerceShippingOptionSummary(
+              CommerceShippingSetupSummary(
                 id: 'ship-long-2',
                 name: 'Bus Cepat Nusantara',
                 transportType: 'bus',

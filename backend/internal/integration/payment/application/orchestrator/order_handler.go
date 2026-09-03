@@ -62,27 +62,27 @@ func (s *systemRoleChecker) HasSellerProfile(ctx context.Context, userID uuid.UU
 }
 
 // Stub shipping repositories for orchestrator processing
-type stubShippingOptionRepository struct{}
+type stubShippingSetupRepository struct{}
 
-func (r *stubShippingOptionRepository) Create(ctx context.Context, tx db.Tx, option *shippingentity.ShippingOption) error {
+func (r *stubShippingSetupRepository) Create(ctx context.Context, tx db.Tx, option *shippingentity.ShippingSetup) error {
 	return nil
 }
-func (r *stubShippingOptionRepository) Update(ctx context.Context, tx db.Tx, option *shippingentity.ShippingOption) error {
+func (r *stubShippingSetupRepository) Update(ctx context.Context, tx db.Tx, option *shippingentity.ShippingSetup) error {
 	return nil
 }
-func (r *stubShippingOptionRepository) GetByID(ctx context.Context, tx db.Tx, id uuid.UUID) (*shippingentity.ShippingOption, error) {
+func (r *stubShippingSetupRepository) GetByID(ctx context.Context, tx db.Tx, id uuid.UUID) (*shippingentity.ShippingSetup, error) {
 	return nil, nil
 }
-func (r *stubShippingOptionRepository) GetForUpdate(ctx context.Context, tx db.Tx, id uuid.UUID) (*shippingentity.ShippingOption, error) {
+func (r *stubShippingSetupRepository) GetForUpdate(ctx context.Context, tx db.Tx, id uuid.UUID) (*shippingentity.ShippingSetup, error) {
 	return nil, nil
 }
-func (r *stubShippingOptionRepository) GetBySeller(ctx context.Context, tx db.Tx, sellerID uuid.UUID, onlyActive bool) ([]*shippingentity.ShippingOption, error) {
+func (r *stubShippingSetupRepository) GetBySeller(ctx context.Context, tx db.Tx, sellerID uuid.UUID, onlyActive bool) ([]*shippingentity.ShippingSetup, error) {
 	return nil, nil
 }
-func (r *stubShippingOptionRepository) GetByName(ctx context.Context, tx db.Tx, sellerID uuid.UUID, name string) (*shippingentity.ShippingOption, error) {
+func (r *stubShippingSetupRepository) GetByName(ctx context.Context, tx db.Tx, sellerID uuid.UUID, name string) (*shippingentity.ShippingSetup, error) {
 	return nil, nil
 }
-func (r *stubShippingOptionRepository) Delete(ctx context.Context, tx db.Tx, id uuid.UUID) error {
+func (r *stubShippingSetupRepository) Delete(ctx context.Context, tx db.Tx, id uuid.UUID) error {
 	return nil
 }
 
@@ -97,16 +97,16 @@ func (r *stubShippingCoverageRepository) Update(ctx context.Context, tx db.Tx, c
 func (r *stubShippingCoverageRepository) GetByID(ctx context.Context, tx db.Tx, id uuid.UUID) (*shippingentity.ShippingCoverage, error) {
 	return nil, nil
 }
-func (r *stubShippingCoverageRepository) GetByShippingOption(ctx context.Context, tx db.Tx, shippingOptionID uuid.UUID) ([]*shippingentity.ShippingCoverage, error) {
+func (r *stubShippingCoverageRepository) GetByShippingSetup(ctx context.Context, tx db.Tx, shippingSetupID uuid.UUID) ([]*shippingentity.ShippingCoverage, error) {
 	return nil, nil
 }
-func (r *stubShippingCoverageRepository) GetByOptionAndProvince(ctx context.Context, tx db.Tx, shippingOptionID uuid.UUID, provinceCode string) (*shippingentity.ShippingCoverage, error) {
+func (r *stubShippingCoverageRepository) GetByOptionAndProvince(ctx context.Context, tx db.Tx, shippingSetupID uuid.UUID, provinceCode string) (*shippingentity.ShippingCoverage, error) {
 	return nil, nil
 }
 func (r *stubShippingCoverageRepository) Delete(ctx context.Context, tx db.Tx, id uuid.UUID) error {
 	return nil
 }
-func (r *stubShippingCoverageRepository) DeleteByShippingOption(ctx context.Context, tx db.Tx, shippingOptionID uuid.UUID) error {
+func (r *stubShippingCoverageRepository) DeleteByShippingSetup(ctx context.Context, tx db.Tx, shippingSetupID uuid.UUID) error {
 	return nil
 }
 
@@ -134,40 +134,40 @@ func (r *stubCityOverrideRepository) DeleteByCoverage(ctx context.Context, tx db
 	return nil
 }
 
-type stubListingShippingOptionRepository struct{}
+type stubProductShippingSetupRepository struct{}
 
-func (r *stubListingShippingOptionRepository) Create(ctx context.Context, tx db.Tx, listingID uuid.UUID, shippingOptionID uuid.UUID, sortOrder int) error {
+func (r *stubProductShippingSetupRepository) Create(ctx context.Context, tx db.Tx, listingID uuid.UUID, shippingSetupID uuid.UUID, sortOrder int) error {
 	return nil
 }
-func (r *stubListingShippingOptionRepository) Delete(ctx context.Context, tx db.Tx, listingID uuid.UUID, shippingOptionID uuid.UUID) error {
+func (r *stubProductShippingSetupRepository) Delete(ctx context.Context, tx db.Tx, listingID uuid.UUID, shippingSetupID uuid.UUID) error {
 	return nil
 }
-func (r *stubListingShippingOptionRepository) GetByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) ([]*shippingentity.ShippingOption, error) {
+func (r *stubProductShippingSetupRepository) GetByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) ([]*shippingentity.ShippingSetup, error) {
 	return nil, nil
 }
-func (r *stubListingShippingOptionRepository) GetAvailableByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) ([]*shippingentity.ShippingOption, error) {
+func (r *stubProductShippingSetupRepository) GetAvailableByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) ([]*shippingentity.ShippingSetup, error) {
 	return nil, nil
 }
-func (r *stubListingShippingOptionRepository) DeleteByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) error {
+func (r *stubProductShippingSetupRepository) DeleteByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) error {
 	return nil
 }
-func (r *stubListingShippingOptionRepository) DeleteByShippingOption(ctx context.Context, tx db.Tx, shippingOptionID uuid.UUID) error {
+func (r *stubProductShippingSetupRepository) DeleteByShippingSetup(ctx context.Context, tx db.Tx, shippingSetupID uuid.UUID) error {
 	return nil
 }
-func (r *stubListingShippingOptionRepository) CreateBulk(ctx context.Context, tx db.Tx, productID uuid.UUID, shippingOptionIDs []uuid.UUID) error {
+func (r *stubProductShippingSetupRepository) CreateBulk(ctx context.Context, tx db.Tx, productID uuid.UUID, shippingSetupIDs []uuid.UUID) error {
 	return nil
 }
-func (r *stubListingShippingOptionRepository) CountByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) (int64, error) {
+func (r *stubProductShippingSetupRepository) CountByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) (int64, error) {
 	return 0, nil
 }
 
 // newStubShippingService creates a stub shipping service for orchestrator processing
 func newStubShippingService() *shippingapp.ShippingService {
 	return shippingapp.NewShippingService(
-		&stubShippingOptionRepository{},
+		&stubShippingSetupRepository{},
 		&stubShippingCoverageRepository{},
 		&stubCityOverrideRepository{},
-		&stubListingShippingOptionRepository{},
+		&stubProductShippingSetupRepository{},
 	)
 }
 
@@ -198,7 +198,7 @@ func NewOrderPaymentHandler(db *db.DB) *OrderPaymentHandler {
 		// shippingQuoteService=nil: Not available in payment integration context.
 		// Order expiry/refund will not reactivate shipping quotes (acceptable limitation for this integration layer).
 		// TODO: If handler is used in production, wire shippingQuoteService via SetShippingQuoteService().
-		orderService: application.NewOrderService(accountStatusChecker, shippingService, outboxRepository, configService, coinsService, roleChecker, nil, nil, &stubListingShippingOptionRepository{}, nil, nil),
+		orderService: application.NewOrderService(accountStatusChecker, shippingService, outboxRepository, configService, coinsService, roleChecker, nil, nil, &stubProductShippingSetupRepository{}, nil, nil),
 		db:           db,
 	}
 }

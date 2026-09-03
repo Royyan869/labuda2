@@ -162,7 +162,7 @@ class _FakeAuctionRepository implements AuctionRepository {
     required int durationHours,
     String? farmAddressId,
     AuctionLocation? location,
-    required List<String> shippingOptionIds,
+    required List<String> shippingSetupIds,
     String? preparationNote,
   }) async {
     throw UnimplementedError();
@@ -214,7 +214,7 @@ class _FakeAuctionRepository implements AuctionRepository {
   Future<RepositoryResult<String>> claimAuction({
     required String auctionId,
     required String addressId,
-    required String shippingOptionId,
+    required String shippingSetupId,
     String? discountCode,
     bool useCoins = false,
   }) async {

@@ -72,12 +72,9 @@ const (
 	// Winner can claim auction to create order.
 	StatusWaitingSettlement Status = "waiting_settlement"
 
-	// StatusExpiredBNR is when auction winner didn't claim within settlement deadline.
-	// Terminal state - no order can be created for this auction.
-	StatusExpiredBNR Status = "expired_bnr"
-
-	// StatusEnded is when auction completes normally (time expires or buy now).
-	// Terminal state - auction has been settled (order created).
+	// StatusEnded is when auction completes normally (time expires, buy now,
+	// or payment succeeds after settlement).
+	// Terminal state - auction has been settled (order created + paid).
 	StatusEnded Status = "ended"
 
 	// StatusCancelled is when auction is cancelled.
@@ -91,10 +88,9 @@ var transitionAllowed = map[Status][]Status{
 	StatusDraft:             {StatusScheduled, StatusCancelled},
 	StatusScheduled:         {StatusActive, StatusCancelled, StatusDraft}, // Can revert to draft
 	StatusActive:            {StatusWaitingSettlement, StatusEnded, StatusCancelled},
-	StatusWaitingSettlement: {StatusEnded, StatusExpiredBNR, StatusCancelled}, // After claim/order created OR settlement deadline expired OR moderation enforcement
-	StatusExpiredBNR:        {},                                               // Terminal state - winner didn't claim in time
-	StatusEnded:             {},                                               // Terminal state
-	StatusCancelled:         {},                                               // Terminal state
+	StatusWaitingSettlement: {StatusEnded, StatusDraft, StatusCancelled}, // After payment success OR settlement failure OR moderation enforcement
+	StatusEnded:             {},                                           // Terminal state
+	StatusCancelled:         {},                                           // Terminal state
 }
 
 // canTransition checks if a state transition is allowed.
@@ -115,7 +111,7 @@ func canTransition(from, to Status) bool {
 // are permitted.
 //
 // REPOST POLICY: Only scheduled and active auctions can be reposted.
-// Terminal states (ended, cancelled, expired_bnr, waiting_settlement) and
+// Terminal states (ended, cancelled, waiting_settlement) and
 // draft/unknown statuses are not repostable.
 //
 // waiting_settlement is excluded because the auction's outcome is decided
@@ -137,14 +133,14 @@ func (s Status) IsRepostable() bool {
 //	removed      — reserved for moderation/hard-delete; Status does not model
 //	               these today so this method never returns "removed".
 //
-// Internal enum values (waiting_settlement, expired_bnr, scheduled, …) MUST NOT
+// Internal enum values (waiting_settlement, scheduled, …) MUST NOT
 // cross the public boundary. Public surfaces should call this method and emit
 // the result instead of the raw enum text.
 func (s Status) PublicLifecycle() string {
 	switch s {
 	case StatusActive, StatusWaitingSettlement:
 		return "active"
-	case StatusDraft, StatusScheduled, StatusExpiredBNR, StatusEnded, StatusCancelled:
+	case StatusDraft, StatusScheduled, StatusEnded, StatusCancelled:
 		return "unavailable"
 	default:
 		return "unavailable"
@@ -158,8 +154,8 @@ func (s Status) String() string {
 
 // IsPublicDiscoverable returns true when this auction status is eligible to
 // appear in anonymous public discovery (browse/search). Only pre-sale and
-// live-sale surfaces qualify: draft (workspace), cancelled, waiting_settlement,
-// ended (settled/no-winner) and expired_bnr are non-public/historical states.
+// live-sale surfaces qualify: draft (workspace), cancelled, waiting_settlement
+// and ended (settled/no-winner) are non-public/historical states.
 func (s Status) IsPublicDiscoverable() bool {
 	switch s {
 	case StatusScheduled, StatusActive:
@@ -232,14 +228,15 @@ func (e *AuctionNotActiveError) Error() string {
 	return fmt.Sprintf("auction not active: id=%s, status=%s", e.AuctionID, e.Status)
 }
 
-// ErrAlreadySettled is returned when attempting to create an order for an auction
-// that already has an order_id set (prevents double settlement).
+// ErrAlreadySettled is returned when attempting to create an order for an
+// auction that already has an order_id set (prevents double settlement).
 var ErrAlreadySettled = fmt.Errorf("auction already settled")
 
 // ErrNotClaimable is returned when the auction status is not waiting_settlement.
 var ErrNotClaimable = fmt.Errorf("auction not claimable")
 
-// ErrSettlementDeadlinePassed is returned when the settlement deadline has expired.
+// ErrSettlementDeadlinePassed is returned when the settlement shipping
+// deadline (auction.end_at + 24h) has expired.
 var ErrSettlementDeadlinePassed = fmt.Errorf("auction settlement deadline has passed")
 
 // ErrNoWinner is returned when the auction has no winner set.
@@ -248,30 +245,10 @@ var ErrNoWinner = fmt.Errorf("auction has no winner")
 // ErrNotWinner is returned when the caller is not the auction winner.
 var ErrNotWinner = fmt.Errorf("caller is not the auction winner")
 
-// BNRAuctionRestrictedError is returned when a buyer is restricted from
-// bidding due to BNR (Bid No Response) strikes.
-type BNRAuctionRestrictedError struct {
-	ActiveStrikes    int
-	PermanentBan     bool
-	RestrictionUntil *time.Time // nil for permanent bans
-}
-
-func (e *BNRAuctionRestrictedError) Error() string {
-	if e.PermanentBan {
-		return "buyer permanently banned from auctions due to repeated BNR violations"
-	}
-	if e.RestrictionUntil != nil {
-		return fmt.Sprintf("buyer restricted from auctions until %s (%d BNR strikes)",
-			e.RestrictionUntil.Format(time.RFC3339), e.ActiveStrikes)
-	}
-	return fmt.Sprintf("buyer restricted from auctions (%d BNR strikes)", e.ActiveStrikes)
-}
-
-// IsBNRAuctionRestricted returns true if err is a *BNRAuctionRestrictedError.
-func IsBNRAuctionRestricted(err error) bool {
-	var target *BNRAuctionRestrictedError
-	return errors.As(err, &target)
-}
+// ErrShippingAlreadyResolved is returned when a shipping resolution is
+// attempted after shipping has already been resolved for this settlement.
+// First-resolution-wins: a settled auction's shipping facts are immutable.
+var ErrShippingAlreadyResolved = fmt.Errorf("auction shipping already resolved")
 
 // Auction represents an auction for a single product.
 // This is a Commerce Entry Layer - it creates orders but doesn't touch the ledger.
@@ -280,15 +257,20 @@ func IsBNRAuctionRestricted(err error) bool {
 // - Draft: Fully editable, can schedule or cancel
 // - Scheduled: Limited editing, can activate, revert to draft, or cancel
 // - Active: Immutable except bid updates, can end or cancel (if no bids)
-// - Ended: Terminal, order created if winner exists
+// - WaitingSettlement: winner determined; order created and bound but payment
+//   not yet settled; can settle to ended on payment success, or return to
+//   draft on settlement failure
+// - Ended: Terminal, order created + paid (or no-winner end / buy-now)
 // - Cancelled: Terminal, no order created
 //
 // SETTLEMENT SAFETY:
 // - OrderID is set atomically when order is created
 // - Once OrderID is set, no further order creation is possible
 // - This prevents double settlement (multiple orders for same auction)
+// - Settlement failure returns the auction to DRAFT with all settlement
+//   context (OrderID, ShippingResolvedAt, CurrentBid, CurrentWinnerID,
+//   seller flags) cleared; bid history in auction_bids remains intact.
 type Auction struct {
-	// Identity
 	ID uuid.UUID
 
 	// Relations
@@ -296,8 +278,22 @@ type Auction struct {
 	ProductID uuid.UUID
 
 	// Settlement
-	OrderID            *uuid.UUID // Set atomically when order is created, prevents double settlement
-	SettlementDeadline *time.Time // Set when entering WAITING_SETTLEMENT; deadline for winner to claim (24h)
+	OrderID *uuid.UUID // Set atomically when order is created; prevents double settlement
+
+	// ShippingResolvedAt marks the moment shipping was resolved for the current
+	// settlement (canonical payment-deadline anchor: shipping_resolved_at + 24h).
+	// Cleared when the auction returns to DRAFT on settlement failure.
+	ShippingResolvedAt *time.Time
+
+	// SellerActionRequired is set at auction end when the seller must provide a
+	// private shipping quote before the winner can resolve shipping (winner
+	// destination outside all selected shipping setups' coverage).
+	SellerActionRequired bool
+
+	// SellerQuoteProvided is set once the seller has supplied a valid private
+	// quote for the current settlement. Cleared on return to DRAFT so an old
+	// quote never becomes the authority for a relist.
+	SellerQuoteProvided bool
 
 	// Pricing (in minor unit, e.g., cents for IDR)
 	StartPrice   int64
@@ -392,34 +388,60 @@ func (a *Auction) End() error {
 }
 
 // TransitionToWaitingSettlement transitions the auction from active to waiting_settlement.
-// Used when auction ends with a winner but order not yet created.
-// Sets the settlement deadline to 24 hours from now.
+// Used when auction ends with a winner but settlement has not completed.
+//
+// Deadline authority is DERIVED (auction.end_at + 24h) — no deadline is stored
+// on the entity. The caller is responsible for setting SellerActionRequired
+// (from the winner-destination coverage check) before persisting.
 func (a *Auction) TransitionToWaitingSettlement() error {
 	if !canTransition(a.Status, StatusWaitingSettlement) {
 		return &InvalidTransitionError{CurrentStatus: a.Status, TargetStatus: StatusWaitingSettlement}
 	}
 	a.Status = StatusWaitingSettlement
-	// Set settlement deadline to 24 hours from now
-	deadline := time.Now().Add(24 * time.Hour)
-	a.SettlementDeadline = &deadline
 	a.UpdatedAt = time.Now()
 	return nil
 }
 
-// TransitionToExpiredBNR transitions the auction from waiting_settlement to expired_bnr.
-// Used when the winner fails to claim the auction within the settlement deadline.
-// The auction remains without an order (order_id remains NULL).
-func (a *Auction) TransitionToExpiredBNR() error {
-	if !canTransition(a.Status, StatusExpiredBNR) {
-		return &InvalidTransitionError{CurrentStatus: a.Status, TargetStatus: StatusExpiredBNR}
+// SettlementDeadline returns the canonical settlement shipping deadline:
+// auction.end_at + 24h. There is NO extension and NO second deadline authority.
+func (a *Auction) SettlementDeadline() time.Time {
+	return a.EndAt.Add(24 * time.Hour)
+}
+
+// TransitionToDraftOnSettlementFailure returns the auction from
+// waiting_settlement to draft after a settlement failure (buyer shipping
+// timeout, seller quote default, or payment expiry).
+//
+// Relist model: the same auction record is reused. All current settlement
+// context is cleared so no stale settlement state carries into the relist:
+//   - OrderID            = nil (old order stays historical/terminal; the next
+//     settlement must bind a NEW order — no order reuse)
+//   - ShippingResolvedAt = nil
+//   - SellerActionRequired = false
+//   - SellerQuoteProvided  = false (an old quote is historical only and must
+//     never become the current settlement authority for a relist)
+//   - CurrentWinnerID    = nil
+//   - CurrentBid         = nil (MinimumBid() returns StartPrice again)
+//
+// Historical auction_bids rows are intentionally preserved (never deleted).
+func (a *Auction) TransitionToDraftOnSettlementFailure() error {
+	if !canTransition(a.Status, StatusDraft) {
+		return &InvalidTransitionError{CurrentStatus: a.Status, TargetStatus: StatusDraft}
 	}
-	a.Status = StatusExpiredBNR
+	a.Status = StatusDraft
+	a.OrderID = nil
+	a.ShippingResolvedAt = nil
+	a.SellerActionRequired = false
+	a.SellerQuoteProvided = false
+	a.CurrentWinnerID = nil
+	a.CurrentBid = nil
 	a.UpdatedAt = time.Now()
 	return nil
 }
 
 // Settle transitions the auction from waiting_settlement to ended.
-// Used after order is created via claim flow.
+// Used when settlement completes successfully — the order is bound and
+// payment has succeeded (payment success settles the auction to ENDED).
 func (a *Auction) Settle() error {
 	if !canTransition(a.Status, StatusEnded) {
 		return &InvalidTransitionError{CurrentStatus: a.Status, TargetStatus: StatusEnded}
@@ -429,32 +451,36 @@ func (a *Auction) Settle() error {
 	return nil
 }
 
+// ResolveShipping marks shipping as resolved for the current settlement.
+// First-resolution-wins: once set, shipping_resolved_at is never overwritten
+// (ErrShippingAlreadyResolved on subsequent attempts).
+func (a *Auction) ResolveShipping(now time.Time) error {
+	if a.ShippingResolvedAt != nil {
+		return ErrShippingAlreadyResolved
+	}
+	a.ShippingResolvedAt = &now
+	a.UpdatedAt = now
+	return nil
+}
+
 // ErrOrderBindingMismatch is returned by ReleaseUnpaidOrder when the auction
 // is currently bound to a DIFFERENT order than the one being released.
 // Callers must never blindly clear another order's binding.
 var ErrOrderBindingMismatch = errors.New("auction: order binding mismatch")
 
 // ReleaseUnpaidOrder clears the auction's OrderID binding after its bound
-// order was cancelled or expired before payment succeeded (PASS_20B).
+// order was cancelled or expired before payment succeeded.
 //
-// Both settlement paths (buy-now via End(), bid-win via Settle()) transition
-// the auction to StatusEnded and set OrderID immediately at order-creation
-// time — before payment succeeds — mirroring how ForSale reserves
-// stock at order-creation via ReduceQuantity, not at payment success. If
-// that order is later cancelled/expired unpaid, this releases the binding
-// so the auction's own bookkeeping stays honest (no order is actually live
-// against it anymore).
+// Settlement path: a bid-win auction stays in waiting_settlement with OrderID
+// bound until payment succeeds (Settle → ended). A buy-now auction ends
+// immediately at order creation (End → ended). If the bound order is later
+// cancelled/expired unpaid, this releases the binding so the auction's own
+// bookkeeping stays honest (no order is actually live against it anymore).
 //
-// SCOPE: this does NOT reopen the auction for further bids/buy-now. Ended is
-// a deliberate terminal state with no valid outgoing transition (see
-// transitionAllowed) — by design, once an auction has been through
-// settlement, its lifecycle is over. A seller who wants to resell the same
-// physical item after an unpaid settlement must create a new listing or
-// auction. Making an Ended auction literally reopen for bidding would
-// require extending the state machine, which is a distinct product/design
-// decision left to a future pass if the business actually requires it —
-// releasing the binding (this method) is the safe, minimal, non-inventive
-// fix for "don't leave the order/auction pair silently stuck."
+// For bid-win auctions still in waiting_settlement, the caller (order expiry/
+// cancel rollback) is responsible for the full settlement-failure path:
+// release the binding, record the buyer violation, apply the restriction, and
+// call TransitionToDraftOnSettlementFailure() so the auction can relist.
 //
 // Idempotent: a no-op if OrderID is already nil (already released, e.g. a
 // retried worker call after a prior partial failure). Returns

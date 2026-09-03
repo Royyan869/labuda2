@@ -182,17 +182,6 @@ func TestValidateReference_Auction_WaitingSettlement_Fails(t *testing.T) {
 	require.ErrorIs(t, err, response.ErrResourceNotDisplayable)
 }
 
-func TestValidateReference_Auction_ExpiredBNR_Fails(t *testing.T) {
-	auctionID := uuid.New()
-	v := response.NewValidator(
-		&stubFPSGetter{},
-		&stubAuctionGetter{auctions: map[uuid.UUID]stubAuction{auctionID: {status: auctionEntity.StatusExpiredBNR}}},
-	)
-
-	err := v.ValidateReference(context.Background(), nil, response.ResourceTypeAuction, auctionID)
-	require.ErrorIs(t, err, response.ErrResourceNotDisplayable)
-}
-
 func TestValidateReference_Auction_NotFound_Fails(t *testing.T) {
 	v := response.NewValidator(
 		&stubFPSGetter{},

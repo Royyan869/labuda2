@@ -451,7 +451,7 @@ func (w *ProjectionWorker) handleOrderEvent(
 		&summary.DisputeStatus, &summary.DisputeReason, &summary.DisputeOpenedAt, &summary.DisputeResolvedAt,
 		&summary.Subtotal, &summary.ShippingTotal, &summary.CommissionAmount,
 		&summary.EscrowAmount, &summary.RefundedAmount,
-		&summary.ShippingOptionName, &summary.ShippingTransportType,
+		&summary.ShippingSetupName, &summary.ShippingTransportType,
 		&summary.AutoReleaseAt, &summary.CreatedAt, &summary.UpdatedAt,
 	)
 
@@ -529,7 +529,7 @@ func (w *ProjectionWorker) handleDisputeEvent(
 		&summary.DisputeStatus, &summary.DisputeReason, &summary.DisputeOpenedAt, &summary.DisputeResolvedAt,
 		&summary.Subtotal, &summary.ShippingTotal, &summary.CommissionAmount,
 		&summary.EscrowAmount, &summary.RefundedAmount,
-		&summary.ShippingOptionName, &summary.ShippingTransportType,
+		&summary.ShippingSetupName, &summary.ShippingTransportType,
 		&summary.AutoReleaseAt, &summary.CreatedAt, &summary.UpdatedAt,
 	)
 

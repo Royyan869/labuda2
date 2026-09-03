@@ -42,7 +42,7 @@ var knownProducedEvents = []string{
 	"auction.activated",
 	"auction.order.created",
 	"auction.extended",
-	"auction_bnr_detected",
+	"auction.settlement_failed",
 
 	// Fixed-price sale lifecycle
 	"for_sale.created",
@@ -250,8 +250,8 @@ var knownConsumedEvents = []string{
 	// SetupOrderChatLinkHandler
 	"order.chat_link_requested",
 
-	// SetupBNRHandlers (strike recorder + notification fanout)
-	"auction_bnr_detected",
+	// SetupAuctionSettlementFailedHandler (notification fanout)
+	"auction.settlement_failed",
 
 	// SetupUserBanHandler + SetupWSEvictionHandler
 	"user.banned",

@@ -100,7 +100,7 @@ AuthUser _authUser({required String id}) {
     username: id,
     isEmailVerified: true,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     lifecycle: ContentLifecycle.active,
   );
 }
@@ -144,19 +144,19 @@ ForSale _listing({
     origin: 'Bogor',
     preparationTime: PreparationTime.immediate,
     preparationNote: 'Packing aman sebelum kirim',
-    shippingOptions: const [
-      CommerceShippingOptionSummary(
+    shippingSetups: const [
+      CommerceShippingSetupSummary(
         id: 'ship-1',
         name: 'traveleo',
         transportType: 'travel',
       ),
-      CommerceShippingOptionSummary(
+      CommerceShippingSetupSummary(
         id: 'ship-2',
         name: 'bus',
         transportType: 'bus',
       ),
     ],
-    shippingOptionIds: const ['ship-1', 'ship-2'],
+    shippingSetupIds: const ['ship-1', 'ship-2'],
     sellerIdentity: publicOriginLine == null
         ? null
         : SellerIdentityData(
@@ -816,7 +816,7 @@ void main() {
           bloodline: '',
           certificates: const [],
           origin: '',
-          shippingOptions: const [],
+          shippingSetups: const [],
           preparationTime: PreparationTime.immediate,
           preparationNote: null,
           description: '',

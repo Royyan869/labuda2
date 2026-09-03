@@ -158,11 +158,9 @@ func TestDoubleCheckoutProtection(t *testing.T) {
 					money.New((forSale.PricePerUnit.Int64()*5)/100), // Commission amount: 5%
 					money.New(3000), // Buyer service fee
 					forSale.PricePerUnit.Add(money.New(20000)).Add(money.New((forSale.PricePerUnit.Int64()*5)/100)).Add(money.New(3000)),
-					nil, // shippingOptionID: nil for test
+					nil, // shippingSetupID: nil for test
 					"JNE",
 					"truck",
-					nil,         // shippingExpeditionName
-					nil,         // shippingEstimatedDays
 					nil,         // auctionSettlementType
 					"immediate", // preparationTimeSnapshot
 					nil,         // preparationNoteSnapshot
@@ -355,11 +353,9 @@ func TestStockRaceCondition(t *testing.T) {
 					money.New((forSale.PricePerUnit.Int64()*5)/100), // Commission amount: 5%
 					money.New(3000), // Buyer service fee
 					forSale.PricePerUnit.Add(money.New(15000)).Add(money.New((forSale.PricePerUnit.Int64()*5)/100)).Add(money.New(3000)),
-					nil, // shippingOptionID: nil for test
+					nil, // shippingSetupID: nil for test
 					"JNE",
 					"truck",
-					nil,         // shippingExpeditionName
-					nil,         // shippingEstimatedDays
 					nil,         // auctionSettlementType
 					"immediate", // preparationTimeSnapshot
 					nil,         // preparationNoteSnapshot
@@ -504,11 +500,9 @@ func TestOrderCreationIdempotency(t *testing.T) {
 			money.New((forSale.PricePerUnit.Int64()*5)/100), // Commission amount: 5%
 			money.New(3000), // Buyer service fee
 			forSale.PricePerUnit.Add(money.New(10000)).Add(money.New((forSale.PricePerUnit.Int64()*5)/100)).Add(money.New(3000)),
-			nil, // shippingOptionID: nil for test
+			nil, // shippingSetupID: nil for test
 			"JNE",
 			"truck",
-			nil,         // shippingExpeditionName
-			nil,         // shippingEstimatedDays
 			nil,         // auctionSettlementType
 			"immediate", // preparationTimeSnapshot
 			nil,         // preparationNoteSnapshot
@@ -644,18 +638,16 @@ func TestDifferentBuyersSameIdempotencyKey(t *testing.T) {
 			money.New((forSale.PricePerUnit.Int64()*5)/100), // Commission amount: 5%
 			money.New(3000), // Buyer service fee
 			forSale.PricePerUnit.Add(money.New(10000)).Add(money.New((forSale.PricePerUnit.Int64()*5)/100)).Add(money.New(3000)),
-			nil, // shippingOptionID: nil for test
+			nil, // shippingSetupID: nil for test
 			"JNE",
 			"truck",
-			nil,
-			nil,
-			nil,
-			"immediate",
-			nil,
-			nil, // Shipping source: nil for test
-			nil, // shippingQuoteID
-			nil, // shippingQuotePrice
-			nil, // pricingTokenID
+			nil,         // auctionSettlementType
+			"immediate", // preparationTimeSnapshot
+			nil,         // preparationNoteSnapshot
+			nil,         // shippingSource
+			nil,         // shippingQuoteID
+			nil,         // shippingQuotePrice
+			nil,         // pricingTokenID
 			"instant",
 			time.Now(),
 		)
@@ -699,18 +691,16 @@ func TestDifferentBuyersSameIdempotencyKey(t *testing.T) {
 			money.New((forSale.PricePerUnit.Int64()*5)/100), // Commission amount: 5%
 			money.New(3000), // Buyer service fee
 			forSale.PricePerUnit.Add(money.New(10000)).Add(money.New((forSale.PricePerUnit.Int64()*5)/100)).Add(money.New(3000)),
-			nil, // shippingOptionID: nil for test
+			nil, // shippingSetupID: nil for test
 			"JNE",
 			"truck",
-			nil,
-			nil,
-			nil,
-			"immediate",
-			nil,
-			nil, // Shipping source: nil for test
-			nil, // shippingQuoteID
-			nil, // shippingQuotePrice
-			nil, // pricingTokenID
+			nil,         // auctionSettlementType
+			"immediate", // preparationTimeSnapshot
+			nil,         // preparationNoteSnapshot
+			nil,         // shippingSource
+			nil,         // shippingQuoteID
+			nil,         // shippingQuotePrice
+			nil,         // pricingTokenID
 			"instant",
 			time.Now(),
 		)

@@ -14,6 +14,7 @@ import (
 	"github.com/labuda/backend/internal/commerce/order/entity"
 	orderRepoImpl "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
 	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
+	"github.com/labuda/backend/internal/commerce/governance/commercegov"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	shippingRepoImpl "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
 	walletApp "github.com/labuda/backend/internal/core/wallet/application"
@@ -56,7 +57,7 @@ func NewOrderService(
 	roleChecker auth.RoleChecker,
 	actorResolver capabilityEntity.ActorResolver, // SERVICE LAYER ENFORCEMENT
 	auditService *auditApp.AuditService, // OBSERVABILITY: Audit service
-	productShippingRepo shippingRepoImpl.ProductShippingOptionRepository, // DI: Product shipping options
+	productShippingRepo shippingRepoImpl.ProductShippingSetupRepository, // DI: Product shipping options
 	walletService *walletApp.WalletService, // WALLET PHASE 1: Escrow hold on order creation
 	shippingQuoteService ShippingQuoteService, // HARD FIX: Shipping quote reactivation
 ) *OrderService {
@@ -106,6 +107,12 @@ func (s *OrderService) GetCreationService() *OrderCreationService {
 // This allows the service to be wired up after OrderService creation to avoid circular dependencies.
 func (s *OrderService) SetShippingQuoteService(shippingQuoteService ShippingQuoteService) {
 	s.completionService.shippingQuoteService = shippingQuoteService
+}
+
+// SetCommerceViolationRepo wires the canonical commerce violation/restriction
+// repository into the completion path (auction settlement-failure rollback).
+func (s *OrderService) SetCommerceViolationRepo(repo commercegov.Repository) {
+	s.completionService.SetCommerceViolationRepo(repo)
 }
 
 // SetDisputeRepository sets the dispute repository for entry point guards.

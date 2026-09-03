@@ -396,21 +396,29 @@ func (h *NotificationEventHandler) handleAuctionWaitingSettlement(ctx context.Co
 	return winnerInfo, nil
 }
 
-// handleAuctionBNRDetected processes auction_bnr_detected events.
-// Notifies both seller (auction expired without settlement) and winner (BNR strike recorded).
-// Uses two distinct notification types so each role receives role-appropriate messaging.
+// handleAuctionSettlementFailed processes auction.settlement_failed events.
+// Notifies the affected party when an auction's settlement fails and the
+// auction returns to DRAFT:
+//   - seller violation (seller_shipping_default): notify the SELLER.
+//   - buyer violation (buyer_shipping_timeout / buyer_bnr): notify the WINNER
+//     (violating buyer) AND the seller that the auction is available to relist.
 //
-// Payload shape (from AuctionSettlementWorker.emitBNREvent):
+// Payload shape (from AuctionSettlementWorker.emitSettlementFailedEvent):
 //
-//	{ "auction_id": "...", "winner_id": "...", "seller_id": "...", "timestamp": "..." }
+//	{ "auction_id", "violated_user_id", "violation_type", "seller_id",
+//	  "winner_id", "violation_id", "restricted_until", "timestamp" }
 //
 // Idempotency: insertNotificationWithPolicy uses ON CONFLICT (recipient_id, actor_id, type, entity_id)
 // DO NOTHING, so replays are safe for each (recipient, type, auction) tuple.
-func (h *NotificationEventHandler) handleAuctionBNRDetected(ctx context.Context, payload []byte) (notificationInfo, error) {
+func (h *NotificationEventHandler) handleAuctionSettlementFailed(ctx context.Context, payload []byte) (notificationInfo, error) {
 	var p struct {
-		AuctionID string `json:"auction_id"`
-		WinnerID  string `json:"winner_id"`
-		SellerID  string `json:"seller_id"`
+		AuctionID       string `json:"auction_id"`
+		ViolatedUserID  string `json:"violated_user_id"`
+		ViolationType   string `json:"violation_type"`
+		SellerID        string `json:"seller_id"`
+		WinnerID        string `json:"winner_id"`
+		ViolationID     string `json:"violation_id"`
+		RestrictedUntil string `json:"restricted_until"`
 	}
 	if err := json.Unmarshal(payload, &p); err != nil {
 		return notificationInfo{}, fmt.Errorf("unmarshal payload failed: %w", err)
@@ -420,12 +428,10 @@ func (h *NotificationEventHandler) handleAuctionBNRDetected(ctx context.Context,
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("invalid auction_id: %w", err)
 	}
-
-	winnerID, err := uuid.Parse(p.WinnerID)
+	violatedUserID, err := uuid.Parse(p.ViolatedUserID)
 	if err != nil {
-		return notificationInfo{}, fmt.Errorf("invalid winner_id: %w", err)
+		return notificationInfo{}, fmt.Errorf("invalid violated_user_id: %w", err)
 	}
-
 	sellerID, err := uuid.Parse(p.SellerID)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("invalid seller_id: %w", err)
@@ -435,52 +441,65 @@ func (h *NotificationEventHandler) handleAuctionBNRDetected(ctx context.Context,
 		"auctionId": auctionID.String(),
 	}
 
-	// Notify SELLER — winner failed to settle; auction expired BNR
-	_, sErr := h.insertNotificationWithPolicy(
-		ctx,
-		sellerID, uuid.Nil, // system-initiated
-		"auction.bnr_seller",
-		auctionID,
-		data,
-	)
-	if sErr != nil {
-		h.log.Error("Failed to insert seller BNR notification",
-			zap.String("auction_id", auctionID.String()),
-			zap.Error(sErr),
+	// SELLER violation — the seller defaulted (failed to provide a required
+	// private quote). Notify the seller of the restriction.
+	if p.ViolationType == "seller_shipping_default" {
+		info, sErr := h.insertNotificationWithPolicy(
+			ctx,
+			sellerID, uuid.Nil, // system-initiated
+			"auction.settlement_failed.seller_default",
+			auctionID,
+			data,
 		)
-		// Continue to winner notification even if seller notification fails
+		if sErr != nil {
+			h.log.Error("Failed to insert seller settlement-failure notification",
+				zap.String("auction_id", auctionID.String()),
+				zap.Error(sErr),
+			)
+			return notificationInfo{}, fmt.Errorf("auction.settlement_failed: seller insert failed: %w", sErr)
+		}
+		return info, nil
 	}
 
-	// Notify WINNER — settlement deadline missed; BNR strike recorded
+	// BUYER violation — notify the violating winner (primary; returned for push).
 	winnerInfo, wErr := h.insertNotificationWithPolicy(
 		ctx,
-		winnerID, uuid.Nil, // system-initiated
-		"auction.bnr_winner",
+		violatedUserID, uuid.Nil, // system-initiated
+		"auction.settlement_failed.buyer",
 		auctionID,
 		data,
 	)
 	if wErr != nil {
-		h.log.Error("Failed to insert winner BNR notification",
+		h.log.Error("Failed to insert buyer settlement-failure notification",
 			zap.String("auction_id", auctionID.String()),
 			zap.Error(wErr),
 		)
+		return notificationInfo{}, fmt.Errorf("auction.settlement_failed: buyer insert failed: %w", wErr)
 	}
 
-	// Any obligated recipient insert failure must retry.
-	if sErr != nil || wErr != nil {
-		if sErr != nil && wErr != nil {
-			return notificationInfo{}, fmt.Errorf("auction_bnr_detected: seller insert failed: %v; winner insert failed: %w", sErr, wErr)
-		}
+	// Notify the SELLER that the auction is back in DRAFT and can be relisted.
+	if sellerID != violatedUserID {
+		sellerInfo, sErr := h.insertNotificationWithPolicy(
+			ctx,
+			sellerID, uuid.Nil, // system-initiated
+			"auction.settlement_failed.relistable",
+			auctionID,
+			data,
+		)
 		if sErr != nil {
-			return notificationInfo{}, fmt.Errorf("auction_bnr_detected: seller insert failed: %w", sErr)
+			h.log.Warn("Failed to insert seller relist notification after settlement failure",
+				zap.String("auction_id", auctionID.String()),
+				zap.Error(sErr),
+			)
+		} else if h.pushSender != nil && sellerInfo.inserted && sellerInfo.allowPush {
+			go h.sendPushAsync(context.Background(), sellerInfo)
 		}
-		return notificationInfo{}, fmt.Errorf("auction_bnr_detected: winner insert failed: %w", wErr)
 	}
 
-	h.log.Debug("Auction BNR notifications created",
+	h.log.Debug("Auction settlement-failure notifications created",
 		zap.String("auction_id", auctionID.String()),
-		zap.String("seller_id", sellerID.String()),
-		zap.String("winner_id", winnerID.String()),
+		zap.String("violated_user_id", violatedUserID.String()),
+		zap.String("violation_type", p.ViolationType),
 	)
 
 	return winnerInfo, nil

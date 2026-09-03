@@ -77,7 +77,7 @@ class _FakeAuctionRepository implements AuctionRepository {
     DateTime? scheduledStartAt,
     required int durationHours,
     AuctionLocation? location,
-    required List<String> shippingOptionIds,
+    required List<String> shippingSetupIds,
     String? preparationNote,
   }) async {
     throw UnimplementedError();
@@ -178,7 +178,7 @@ class _FakeAuctionRepository implements AuctionRepository {
   Future<RepositoryResult<String>> claimAuction({
     required String auctionId,
     required String addressId,
-    required String shippingOptionId,
+    required String shippingSetupId,
     String? discountCode,
     bool useCoins = false,
   }) async {
@@ -284,7 +284,7 @@ AuthUser _seller({
     sellerSubscriptionStatus: activeMarketAuthority ? 'active' : 'expired',
     hasMarketAuthority: activeMarketAuthority,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     lifecycle: ContentLifecycle.active,
   );
 }

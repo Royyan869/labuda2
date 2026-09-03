@@ -47,7 +47,7 @@ class CheckoutRequest extends Equatable {
   /// SHIPPING OPTION ID: Standard shipping option selected by buyer.
   /// Required when shippingQuoteId is not provided.
   /// Mutually exclusive with shippingQuoteId.
-  final String? shippingOptionId;
+  final String? shippingSetupId;
 
   const CheckoutRequest({
     this.productId,
@@ -60,7 +60,7 @@ class CheckoutRequest extends Equatable {
     this.auctionId,
     this.negotiationId,
     this.shippingQuoteId,
-    this.shippingOptionId,
+    this.shippingSetupId,
   });
 
   CheckoutRequest copyWith({
@@ -74,7 +74,7 @@ class CheckoutRequest extends Equatable {
     String? auctionId,
     String? negotiationId,
     String? shippingQuoteId,
-    String? shippingOptionId,
+    String? shippingSetupId,
   }) {
     return CheckoutRequest(
       productId: productId ?? this.productId,
@@ -87,7 +87,7 @@ class CheckoutRequest extends Equatable {
       auctionId: auctionId ?? this.auctionId,
       negotiationId: negotiationId ?? this.negotiationId,
       shippingQuoteId: shippingQuoteId ?? this.shippingQuoteId,
-      shippingOptionId: shippingOptionId ?? this.shippingOptionId,
+      shippingSetupId: shippingSetupId ?? this.shippingSetupId,
     );
   }
 
@@ -103,6 +103,6 @@ class CheckoutRequest extends Equatable {
     auctionId,
     negotiationId,
     shippingQuoteId,
-    shippingOptionId,
+    shippingSetupId,
   ];
 }

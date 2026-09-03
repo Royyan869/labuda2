@@ -6,7 +6,7 @@
 /// who need finer pricing can use the chat shipping-quote fallback that is
 /// already live end-to-end.
 ///
-/// Reuses [shippingOptionDetailNotifierProvider] which already implements
+/// Reuses [shippingSetupDetailNotifierProvider] which already implements
 /// load / addCoverage / updateCoverage / deleteCoverage end-to-end.
 library;
 
@@ -19,37 +19,37 @@ import 'package:labuda/domains/commerce/transaction/shipping/domain/domain.dart'
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/shipping_state.dart';
 
-class SellerShippingOptionDetailScreen extends ConsumerStatefulWidget {
+class SellerShippingSetupDetailScreen extends ConsumerStatefulWidget {
   final String optionId;
-  const SellerShippingOptionDetailScreen({super.key, required this.optionId});
+  const SellerShippingSetupDetailScreen({super.key, required this.optionId});
 
   @override
-  ConsumerState<SellerShippingOptionDetailScreen> createState() =>
-      _SellerShippingOptionDetailScreenState();
+  ConsumerState<SellerShippingSetupDetailScreen> createState() =>
+      _SellerShippingSetupDetailScreenState();
 }
 
-class _SellerShippingOptionDetailScreenState
-    extends ConsumerState<SellerShippingOptionDetailScreen> {
+class _SellerShippingSetupDetailScreenState
+    extends ConsumerState<SellerShippingSetupDetailScreen> {
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref
-          .read(shippingOptionDetailNotifierProvider.notifier)
+          .read(shippingSetupDetailNotifierProvider.notifier)
           .loadOption(widget.optionId);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(shippingOptionDetailNotifierProvider);
+    final state = ref.watch(shippingSetupDetailNotifierProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cakupan Pengiriman'),
         backgroundColor: AppColors.primaryRed,
         foregroundColor: Colors.white,
       ),
-      floatingActionButton: state is ShippingOptionDetailLoaded
+      floatingActionButton: state is ShippingSetupDetailLoaded
           ? FloatingActionButton.extended(
               onPressed: () => _openAddCoverageSheet(state.option),
               backgroundColor: AppColors.primaryRed,
@@ -60,7 +60,7 @@ class _SellerShippingOptionDetailScreenState
       body: RefreshIndicator(
         onRefresh: () async {
           await ref
-              .read(shippingOptionDetailNotifierProvider.notifier)
+              .read(shippingSetupDetailNotifierProvider.notifier)
               .loadOption(widget.optionId);
         },
         child: _buildBody(state),
@@ -68,12 +68,12 @@ class _SellerShippingOptionDetailScreenState
     );
   }
 
-  Widget _buildBody(ShippingOptionDetailState state) {
-    if (state is ShippingOptionDetailLoading ||
-        state is ShippingOptionDetailInitial) {
+  Widget _buildBody(ShippingSetupDetailState state) {
+    if (state is ShippingSetupDetailLoading ||
+        state is ShippingSetupDetailInitial) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (state is ShippingOptionDetailError) {
+    if (state is ShippingSetupDetailError) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(24),
@@ -95,14 +95,14 @@ class _SellerShippingOptionDetailScreenState
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: () => ref
-                .read(shippingOptionDetailNotifierProvider.notifier)
+                .read(shippingSetupDetailNotifierProvider.notifier)
                 .loadOption(widget.optionId),
             child: const Text('Coba Lagi'),
           ),
         ],
       );
     }
-    if (state is ShippingOptionDetailLoaded) {
+    if (state is ShippingSetupDetailLoaded) {
       final opt = state.option;
       final coverages = opt.coverageAreas
           .where((c) => c.provinceRate != null || c.cityOverrides.isNotEmpty)
@@ -134,7 +134,7 @@ class _SellerShippingOptionDetailScreenState
     return const SizedBox.shrink();
   }
 
-  Future<void> _openAddCoverageSheet(ShippingOption option) async {
+  Future<void> _openAddCoverageSheet(ShippingSetup option) async {
     final existingProvinceIds = option.coverageAreas
         .map((c) => c.provinceId)
         .toSet();
@@ -148,14 +148,13 @@ class _SellerShippingOptionDetailScreenState
     );
     if (result == null || !mounted) return;
     final ok = await ref
-        .read(shippingOptionDetailNotifierProvider.notifier)
+        .read(shippingSetupDetailNotifierProvider.notifier)
         .addCoverage(
           option.id,
           AddCoverageRequest(
             provinceCode: result.provinceCode,
             provinceName: result.provinceName,
             rate: result.rate,
-            estimatedDays: result.estimatedDays,
             isAvailable: true,
           ),
         );
@@ -163,8 +162,8 @@ class _SellerShippingOptionDetailScreenState
     if (ok) {
       AppSnackBar.showSuccess(context, 'Cakupan provinsi ditambahkan.');
     } else {
-      final s = ref.read(shippingOptionDetailNotifierProvider);
-      final msg = s is ShippingOptionDetailError
+      final s = ref.read(shippingSetupDetailNotifierProvider);
+      final msg = s is ShippingSetupDetailError
           ? s.message
           : 'Gagal menambah cakupan provinsi.';
       AppSnackBar.showError(context, msg);
@@ -172,7 +171,7 @@ class _SellerShippingOptionDetailScreenState
   }
 
   Future<void> _openEditCoverageSheet(
-    ShippingOption option,
+    ShippingSetup option,
     ShippingCoverage coverage,
   ) async {
     final result = await showModalBottomSheet<_CoverageFormResult>(
@@ -185,13 +184,12 @@ class _SellerShippingOptionDetailScreenState
     );
     if (result == null || !mounted) return;
     final ok = await ref
-        .read(shippingOptionDetailNotifierProvider.notifier)
+        .read(shippingSetupDetailNotifierProvider.notifier)
         .updateCoverage(
           coverage.provinceId,
           UpdateCoverageRequest(
             provinceName: result.provinceName,
             provinceRate: result.rate,
-            provinceEstimatedDays: result.estimatedDays,
             isAvailable: coverage.isAvailable,
           ),
         );
@@ -199,8 +197,8 @@ class _SellerShippingOptionDetailScreenState
     if (ok) {
       AppSnackBar.showSuccess(context, 'Cakupan provinsi diperbarui.');
     } else {
-      final s = ref.read(shippingOptionDetailNotifierProvider);
-      final msg = s is ShippingOptionDetailError
+      final s = ref.read(shippingSetupDetailNotifierProvider);
+      final msg = s is ShippingSetupDetailError
           ? s.message
           : 'Gagal memperbarui cakupan provinsi.';
       AppSnackBar.showError(context, msg);
@@ -234,14 +232,14 @@ class _SellerShippingOptionDetailScreenState
     );
     if (confirmed != true || !mounted) return;
     final ok = await ref
-        .read(shippingOptionDetailNotifierProvider.notifier)
+        .read(shippingSetupDetailNotifierProvider.notifier)
         .deleteCoverage(coverage.provinceId);
     if (!mounted) return;
     if (ok) {
       AppSnackBar.showSuccess(context, 'Cakupan provinsi dihapus.');
     } else {
-      final s = ref.read(shippingOptionDetailNotifierProvider);
-      final msg = s is ShippingOptionDetailError
+      final s = ref.read(shippingSetupDetailNotifierProvider);
+      final msg = s is ShippingSetupDetailError
           ? s.message
           : 'Gagal menghapus cakupan provinsi.';
       AppSnackBar.showError(context, msg);
@@ -254,7 +252,7 @@ class _SellerShippingOptionDetailScreenState
 // =============================================================================
 
 class _HeaderCard extends StatelessWidget {
-  final ShippingOption option;
+  final ShippingSetup option;
   const _HeaderCard({required this.option});
 
   @override
@@ -412,19 +410,12 @@ class _CoverageRow extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 2),
-            Text(
+            const SizedBox(height: 2),              Text(
               rate == null
                   ? 'Tarif belum ditetapkan'
                   : 'Tarif: Rp ${AppFormatters.formatCurrency(rate)}',
               style: TextStyle(fontSize: 13, color: AppColors.neutralGray700),
             ),
-            if (coverage.provinceEstimatedDays != null &&
-                coverage.provinceEstimatedDays!.isNotEmpty)
-              Text(
-                'Estimasi: ${coverage.provinceEstimatedDays} hari',
-                style: TextStyle(fontSize: 12, color: AppColors.neutralGray600),
-              ),
           ],
         ),
         trailing: PopupMenuButton<String>(
@@ -451,12 +442,10 @@ class _CoverageFormResult {
   final String provinceCode;
   final String provinceName;
   final double rate;
-  final String? estimatedDays;
   const _CoverageFormResult({
     required this.provinceCode,
     required this.provinceName,
     required this.rate,
-    this.estimatedDays,
   });
 }
 
@@ -475,7 +464,6 @@ class _CoverageFormSheet extends ConsumerStatefulWidget {
 class _CoverageFormSheetState extends ConsumerState<_CoverageFormSheet> {
   Province? _province;
   final _rateCtrl = TextEditingController();
-  final _daysCtrl = TextEditingController();
   bool _submitting = false;
   String? _validationMsg;
 
@@ -488,16 +476,12 @@ class _CoverageFormSheetState extends ConsumerState<_CoverageFormSheet> {
       if (init.provinceRate != null) {
         _rateCtrl.text = init.provinceRate!.toInt().toString();
       }
-      if (init.provinceEstimatedDays != null) {
-        _daysCtrl.text = init.provinceEstimatedDays!;
-      }
     }
   }
 
   @override
   void dispose() {
     _rateCtrl.dispose();
-    _daysCtrl.dispose();
     super.dispose();
   }
 
@@ -533,14 +517,12 @@ class _CoverageFormSheetState extends ConsumerState<_CoverageFormSheet> {
       setState(() => _validationMsg = 'Masukkan tarif yang valid (Rp).');
       return;
     }
-    final days = _daysCtrl.text.trim();
     setState(() => _submitting = true);
     Navigator.of(context).pop(
       _CoverageFormResult(
         provinceCode: province.id,
         provinceName: province.name,
         rate: rate,
-        estimatedDays: days.isEmpty ? null : days,
       ),
     );
   }
@@ -595,14 +577,6 @@ class _CoverageFormSheetState extends ConsumerState<_CoverageFormSheet> {
               ),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _daysCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Estimasi hari (opsional)',
-                hintText: 'Contoh: 2-3',
-                border: OutlineInputBorder(),
-              ),
-            ),
             if (_validationMsg != null) ...[
               const SizedBox(height: 12),
               Text(

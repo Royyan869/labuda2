@@ -138,8 +138,8 @@ var AcknowledgedNoHandlerEvents = map[string]NoHandlerEntry{
 		Class: NoHandlerAuditOnly,
 		Note:  "auction-sourced order creation audit trail; order.created drives side-effects",
 	},
-	// auction_bnr_detected — consumed by SetupBNRHandlers (strike recorder + notification fanout).
-	// Removed from allowlist.
+	// auction.settlement_failed — consumed by SetupAuctionSettlementFailedHandler
+	// (notification fanout). Removed from allowlist.
 
 	// =========================================================================
 	// ORDER LIFECYCLE — AUDIT ONLY

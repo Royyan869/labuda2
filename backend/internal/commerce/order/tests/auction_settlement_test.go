@@ -53,7 +53,7 @@ func newAuctionOrder(buyerID, sellerID, auctionID uuid.UUID, unitPrice int64, se
 		buyerID, sellerID, orderentity.OrderSourceAuction, auctionID, nil, 1,
 		price, price, money.New(15000), 5,
 		money.New(25000), money.New(3000), price.Add(money.New(15000)).Add(money.New(25000)).Add(money.New(3000)),
-		nil, "JNE", "truck", nil, nil,
+		nil, "JNE", "truck",
 		&settlementType,
 		"immediate", nil, nil, nil, nil, nil,
 		"instant", time.Now().Add(1*time.Hour),

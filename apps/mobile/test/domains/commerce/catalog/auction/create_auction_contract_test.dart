@@ -8,7 +8,7 @@ import 'package:labuda/domains/commerce/catalog/auction/domain/repositories/auct
 /// PASS_18E/PASS_21B: locks CreateAuctionDto's wire shape to the backend's
 /// `CreateAuctionRequest` contract (internal/commerce/auction/delivery/http)
 /// — this is a regression guard against the exact silent mismatch PASS_18D
-/// found (missing shipping_option_ids; wrong images/category keys), and
+/// found (missing shipping_setup_ids; wrong images/category keys), and
 /// against the rejected "auction created from listing" design (PASS_21B):
 /// the backend creates the Product inline from item fields, so there must
 /// never be a product_id/listing_id key on this request.
@@ -29,7 +29,7 @@ void main() {
           bloodline: 'Sakai',
           certificates: const ['cert-1'],
           farmAddressId: 'address-1',
-          shippingOptionIds: const ['option-1', 'option-2'],
+          shippingSetupIds: const ['option-1', 'option-2'],
           startPrice: 1000000,
           bidIncrement: 50000,
           buyNowPrice: 2500000,
@@ -50,7 +50,7 @@ void main() {
         expect(json['bloodline'], 'Sakai');
         expect(json['certificates'], const ['cert-1']);
         expect(json['farm_address_id'], 'address-1');
-        expect(json['shipping_option_ids'], const ['option-1', 'option-2']);
+        expect(json['shipping_setup_ids'], const ['option-1', 'option-2']);
         expect(json['start_price'], 1000000);
         expect(json['bid_increment'], 50000);
         expect(json['buy_now_price'], 2500000);
@@ -76,12 +76,12 @@ void main() {
     );
 
     test(
-      'CreateAuctionDto requires shipping_option_ids even when empty (backend rejects empty list too)',
+      'CreateAuctionDto requires shipping_setup_ids even when empty (backend rejects empty list too)',
       () {
         final dto = CreateAuctionDto(
           title: 'Showa Auction',
           mediaUrls: const [],
-          shippingOptionIds: const [],
+          shippingSetupIds: const [],
           startPrice: 1000000,
           startMode: 'now',
           durationHours: 24,
@@ -92,8 +92,8 @@ void main() {
         // test locks that the key is always present so an empty selection
         // fails loudly against the backend's `min=1` binding instead of the
         // field silently vanishing from the payload.
-        expect(dto.toJson()['shipping_option_ids'], const []);
-        expect(dto.toJson().containsKey('shipping_option_ids'), isTrue);
+        expect(dto.toJson()['shipping_setup_ids'], const []);
+        expect(dto.toJson().containsKey('shipping_setup_ids'), isTrue);
       },
     );
 
@@ -104,7 +104,7 @@ void main() {
           title: 'Showa Auction',
           description: 'Auction request payload',
           mediaUrls: const ['https://cdn.example.com/a.jpg'],
-          shippingOptionIds: const ['option-1'],
+          shippingSetupIds: const ['option-1'],
           startPrice: 1000000,
           startMode: 'scheduled',
           scheduledStartAt: DateTime.utc(2026, 1, 1, 0, 0),
@@ -120,7 +120,7 @@ void main() {
     );
 
     test(
-      'AuctionMapper.toCreateDto threads koiDetails and shippingOptionIds through to the DTO, with no product/listing ID',
+      'AuctionMapper.toCreateDto threads koiDetails and shippingSetupIds through to the DTO, with no product/listing ID',
       () {
         final params = CreateAuctionParams(
           sellerId: 'seller-1',
@@ -143,7 +143,7 @@ void main() {
           startMode: 'now',
           durationHours: 72,
           farmAddressId: 'address-1',
-          shippingOptionIds: const ['option-1', 'option-2'],
+          shippingSetupIds: const ['option-1', 'option-2'],
           preparationNote: 'Handle with care',
         );
 
@@ -158,7 +158,7 @@ void main() {
         expect(json['bloodline'], 'Sakai');
         expect(json['certificates'], const ['cert-1']);
         expect(json['farm_address_id'], 'address-1');
-        expect(json['shipping_option_ids'], const ['option-1', 'option-2']);
+        expect(json['shipping_setup_ids'], const ['option-1', 'option-2']);
         expect(json['media_urls'], const ['https://cdn.example.com/a.jpg']);
         expect(json['preparation_note'], 'Handle with care');
         expect(json.containsKey('product_id'), isFalse);
@@ -185,7 +185,7 @@ void main() {
           bidIncrement: 50000,
           startMode: 'now',
           durationHours: 24,
-          shippingOptionIds: const ['option-1'],
+          shippingSetupIds: const ['option-1'],
         );
 
         final dto = AuctionMapper.toCreateDto(params);

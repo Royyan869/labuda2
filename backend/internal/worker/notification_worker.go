@@ -430,8 +430,8 @@ func (h *NotificationEventHandler) Handle(ctx context.Context, event platformeve
 		info, err = h.handleAuctionWaitingSettlement(ctx, event.Payload)
 	case "auction.ended":
 		info, err = h.handleAuctionEndedNoWinner(ctx, event.Payload)
-	case "auction_bnr_detected":
-		info, err = h.handleAuctionBNRDetected(ctx, event.Payload)
+	case "auction.settlement_failed":
+		info, err = h.handleAuctionSettlementFailed(ctx, event.Payload)
 
 	// =============================================================================
 	// EXTERNAL PRODUCT REVIEW DECISION EVENTS — owner-facing review notifications

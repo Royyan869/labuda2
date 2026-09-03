@@ -41,7 +41,7 @@ class PreviewOrderParams {
 
   /// Standard shipping option ID selected by buyer from listing options.
   /// Mutually exclusive with shippingQuoteId — backend requires exactly one.
-  final String? shippingOptionId;
+  final String? shippingSetupId;
 
   const PreviewOrderParams({
     this.productId,
@@ -55,7 +55,7 @@ class PreviewOrderParams {
     this.sourceType,
     this.sourceId,
     this.shippingQuoteId,
-    this.shippingOptionId,
+    this.shippingSetupId,
   });
 
   Map<String, dynamic> toJson() {
@@ -69,7 +69,7 @@ class PreviewOrderParams {
       'auction_id': auctionId,
       'discount_code': discountCode,
       if (shippingQuoteId != null) 'shipping_quote_id': shippingQuoteId,
-      if (shippingOptionId != null) 'shipping_option_id': shippingOptionId,
+      if (shippingSetupId != null) 'shipping_setup_id': shippingSetupId,
     };
   }
 }
@@ -250,7 +250,7 @@ class CreateOrderParams {
         'longitude': shippingInfo.longitude,
         'method': shippingInfo.method.name,
         'courier_name': shippingInfo.courierName,
-        'shipping_option_id': shippingInfo.shippingOptionId,
+        'shipping_setup_id': shippingInfo.shippingSetupId,
       },
       'pricing_token': pricingToken,
       if (discountCode != null) 'discount_code': discountCode,

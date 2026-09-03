@@ -8,14 +8,14 @@ import (
 )
 
 // ShippingCoverage defines geographic coverage for a shipping option at province level.
-// Contains province-level rate and estimated delivery time.
+// Contains province-level rate and availability.
+// NOTE: estimated_days was dropped by migration 000014.
 type ShippingCoverage struct {
 	ID               uuid.UUID
-	ShippingOptionID uuid.UUID
+	ShippingSetupID uuid.UUID
 	ProvinceCode     string
 	ProvinceName     string
 	ProvinceRate     money.Money
-	EstimatedDays    *string // e.g., "1-2 hari", "3-5 hari" (nil = not specified)
 	IsAvailable      bool
 	CreatedAt        time.Time
 }
@@ -23,17 +23,16 @@ type ShippingCoverage struct {
 // NewShippingCoverage creates a new shipping coverage.
 // By default, coverage is available with zero rate.
 func NewShippingCoverage(
-	shippingOptionID uuid.UUID,
+	shippingSetupID uuid.UUID,
 	provinceCode string,
 	provinceName string,
 ) *ShippingCoverage {
 	return &ShippingCoverage{
 		ID:               uuid.New(),
-		ShippingOptionID: shippingOptionID,
+		ShippingSetupID: shippingSetupID,
 		ProvinceCode:     provinceCode,
 		ProvinceName:     provinceName,
 		ProvinceRate:     money.New(0),
-		EstimatedDays:    nil,
 		IsAvailable:      true,
 		CreatedAt:        time.Now(),
 	}
@@ -42,12 +41,6 @@ func NewShippingCoverage(
 // WithRate sets the province rate.
 func (sc *ShippingCoverage) WithRate(rate money.Money) *ShippingCoverage {
 	sc.ProvinceRate = rate
-	return sc
-}
-
-// WithEstimatedDays sets the estimated delivery time.
-func (sc *ShippingCoverage) WithEstimatedDays(days string) *ShippingCoverage {
-	sc.EstimatedDays = &days
 	return sc
 }
 
@@ -61,12 +54,6 @@ func (sc *ShippingCoverage) MarkAvailable() {
 	sc.IsAvailable = true
 }
 
-// GetEstimatedDays returns the estimated days or empty string if not set.
-func (sc *ShippingCoverage) GetEstimatedDays() string {
-	if sc.EstimatedDays == nil {
-		return ""
-	}
-	return *sc.EstimatedDays
-}
+
 
 

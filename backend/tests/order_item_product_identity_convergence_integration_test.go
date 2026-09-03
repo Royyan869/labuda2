@@ -84,21 +84,21 @@ func (stage5ActorResolver) ResolveActor(_ interface{}, userID uuid.UUID) (*capab
 // newStage5OrderService wires a real OrderCreationService: real repos for
 // order/forSale/product/shipping/outbox, stub gates only.
 func newStage5OrderService() *orderApp.OrderCreationService {
-	optionRepo := shippingrepo.NewShippingOptionRepository()
+	optionRepo := shippingrepo.NewShippingSetupRepository()
 	return orderApp.NewOrderCreationService(
 		stage5AccountChecker{},
 		shippingApp.NewShippingService(
 			optionRepo,
 			shippingrepo.NewShippingCoverageRepository(),
 			shippingrepo.NewCityOverrideRepository(),
-			shippingrepo.NewProductShippingOptionRepository(optionRepo),
+			shippingrepo.NewProductShippingSetupRepository(optionRepo),
 		),
 		outboxinfra.NewOutboxRepository(nil),
 		nil, // configService: unused by creation path
 		stage5RoleChecker{},
 		stage5ActorResolver{},
 		nil, // auditService
-		shippingrepo.NewProductShippingOptionRepository(optionRepo),
+		shippingrepo.NewProductShippingSetupRepository(optionRepo),
 		nil, // auctionStatusChecker (nil-safe guard; skips BNR lock)
 		nil, // walletService: unused by creation path
 	)
@@ -201,7 +201,7 @@ func stage5PricingToken(t *testing.T, ctx context.Context, tdb *testdb.TestDB, s
 			snapshot.TokenID, buyerID,
 			snapshot.UnitPrice.Int64(), snapshot.Subtotal.Int64(), snapshot.ShippingTotal.Int64(),
 			snapshot.CommissionPercent, snapshot.CommissionAmount.Int64(), snapshot.EscrowAmount.Int64(),
-			optionID, snapshot.ShippingOptionName, snapshot.ShippingTransportType,
+			optionID, snapshot.ShippingSetupName, snapshot.ShippingTransportType,
 			addressID, snapshot.MaxCoinsAllowed, snapshot.OrderValueForCoins,
 			snapshot.ServiceFeeAmount.Int64(), snapshot.TotalPayableAmount.Int64(),
 		)
@@ -224,7 +224,7 @@ func stage5Snapshot(tokenID uuid.UUID, unitPrice int64) *orderApp.PricingSnapsho
 		DiscountAmount:        money.New(0),
 		MaxCoinsAllowed:       10_000,
 		OrderValueForCoins:    unitPrice + shipping,
-		ShippingOptionName:    "JNE Reguler",
+		ShippingSetupName:    "JNE Reguler",
 		ShippingTransportType: "train",
 		TokenID:               tokenID,
 		PaymentMethod:         orderApp.PaymentMethodInstant,
@@ -318,7 +318,7 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 		BuyerID:          buyerID,
 		Quantity:         1,
 		AddressID:        buyerAddressID,
-		ShippingOptionID: option1,
+		ShippingSetupID: option1,
 		PricingSnapshot:  stage5Snapshot(uuid.New(), 100_000),
 	}
 	stage5PricingToken(t, ctx, tdb, orderInput1.PricingSnapshot, buyerID, buyerAddressID, option1)
@@ -358,20 +358,31 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 		return nil
 	}))
 
-	// --- 1b. a sold Product cannot receive a second ForSale ---
+	// --- 1b. a Product cannot receive a second ForSale even after the first
+	// is sold ---
+	// Canonical product identity: products.selling_surface is claimed once and
+	// permanently (ClaimSellingSurface). ForSaleStatusSold is seller-terminal;
+	// it never releases the product for a second ForSale row. The second
+	// attachment attempt is therefore rejected at surface creation, before any
+	// order-creation path can be reached.
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
 		_, err := tx.Exec(ctx, `UPDATE for_sales SET status = 'sold', sold_at = NOW(), quantity_available = 0 WHERE id = $1`, fps1ID)
 		return err
 	}))
-	fps2 := createActiveFPS(product1, 3)
+	forSale2, err := fpsentity.NewForSale(
+		sellerID, "Kohaku Premium 2", "desc", []byte(`["https://example.com/koi2.jpg"]`), "Kohaku",
+		nil, nil, nil, nil, nil, []string{},
+		fpsentity.ForSaleTypeFixedPrice, money.New(100_000), 3, false,
+		fpsentity.ForSaleVisibilityPublic,
+		fpsentity.ForSaleOriginDirectCreate,
+		&farmAddressID, fpsentity.PreparationTimeImmediate, nil,
+	)
+	require.NoError(t, err)
+	forSale2.ProductID = product1
+	require.NoError(t, forSale2.Publish())
 	require.Error(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		_, err := svc.CreateFromSaleSurface(ctx, tx, orderApp.CreateFromSaleSurfaceInput{
-			ProductID: product1, SourceType: orderentity.OrderSourceForSale, SourceID: fps2,
-			BuyerID: buyerID, Quantity: 1, AddressID: buyerAddressID, ShippingOptionID: option1,
-			PricingSnapshot: stage5Snapshot(uuid.New(), 100_000),
-		})
-		return err
-	}))
+		return fpsinfra.NewForSaleRepository().Create(ctx, tx, forSale2)
+	}), "second ForSale on a sold product must be rejected by the permanent selling-surface claim")
 
 	// --- 2. negotiation order (fresh product) ---
 	product2 := createProduct("P2")
@@ -389,7 +400,7 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 		BuyerID:          buyerID,
 		Quantity:         1,
 		AddressID:        buyerAddressID,
-		ShippingOptionID: option2,
+		ShippingSetupID: option2,
 		NegotiationID:    &sessionID,
 		PricingSnapshot:  negotiationSnapshot,
 	}
@@ -432,7 +443,7 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 			BuyerID:               buyerID,
 			WinningBid:            500_000,
 			AddressID:             buyerAddressID,
-			ShippingOptionID:      option3,
+			ShippingSetupID:      option3,
 			AuctionSettlementType: orderentity.AuctionSettlementBidWin,
 			PricingSnapshot:       auctionSnapshot3,
 		})
@@ -463,7 +474,7 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 			BuyerID:               buyerID,
 			WinningBid:            400_000,
 			AddressID:             buyerAddressID,
-			ShippingOptionID:      option4,
+			ShippingSetupID:      option4,
 			AuctionSettlementType: orderentity.AuctionSettlementBidWin,
 			PricingSnapshot:       reuseSnapshot,
 		})
@@ -706,7 +717,8 @@ func createLegacyOrderWithFPSNamespace(t *testing.T, ctx context.Context, tdb *t
 		1,
 		money.New(50000), money.New(50000), money.New(15000),
 		5, money.New(2500), money.New(3000), money.New(68000),
-		nil, "JNE", "train", nil, nil, nil, "immediate", nil, nil, nil, nil, nil,
+		nil, "JNE", "train",
+		nil, "immediate", nil, nil, nil, nil, nil,
 		"instant", time.Now(),
 	)
 	order.ID = uuid.New()

@@ -63,7 +63,6 @@ func (r *OrderRepository) CreateOrderTx(
 			status, escrow_status,
 			auto_release_at, has_dispute, idempotency_key,
 			shipping_option_id, shipping_option_name, shipping_transport_type,
-			shipping_expedition_name, shipping_estimated_days,
 			preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by, address_snapshot,
 			pricing_token_id,
 			payment_expires_at,
@@ -75,7 +74,7 @@ func (r *OrderRepository) CreateOrderTx(
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
 		        $15,
 		        $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29,
-		        $30, $31, $32, $33, $34, $35, $36, $37, $38, $39)
+		        $30, $31, $32, $33, $34, $35, $36, $37)
 	`,
 		order.ID,
 		order.BuyerID,
@@ -97,11 +96,9 @@ func (r *OrderRepository) CreateOrderTx(
 		order.AutoReleaseAt,
 		order.HasDispute,
 		order.IdempotencyKey,
-		order.ShippingOptionID,
-		order.ShippingOptionName,
+		order.ShippingSetupID,
+		order.ShippingSetupName,
 		order.ShippingTransportType,
-		order.ShippingExpeditionName,
-		order.ShippingEstimatedDays,
 		order.PreparationTimeSnapshot,
 		order.PreparationNoteSnapshot,
 		order.ReadyToShipBy,
@@ -143,16 +140,14 @@ func (r *OrderRepository) GetByID(
 	orderID uuid.UUID,
 ) (*entity.Order, error) {
 	var id, buyerID, sellerID, sourceID uuid.UUID
-	var shippingOptionID sql.NullString // NULLABLE: nil when using shipping quote
+	var shippingSetupID sql.NullString // NULLABLE: nil when using shipping quote
 	var negotiationID sql.NullString
 	var pricingTokenID sql.NullString // Pricing token ID (prevents double-ordering)
 	var quantity int
 	var unitPrice, subtotal, shippingTotal, commissionPercent, commissionAmount int64
 	var serviceFeeAmount, totalPayableAmount, totalBeforeCoinsAmount int64
 	var status, escrowStatus, sourceType string
-	var shippingOptionName, shippingTransportType sql.NullString // NULLABLE in DB
-	var shippingExpeditionName sql.NullString
-	var shippingEstimatedDays sql.NullString
+	var shippingSetupName, shippingTransportType sql.NullString // NULLABLE in DB
 	var trackingNumber sql.NullString
 	var proofType sql.NullString
 	var shippingProofMedia sql.NullString
@@ -183,8 +178,7 @@ func (r *OrderRepository) GetByID(
 		       status, escrow_status, auto_release_at, has_dispute,
 		       confirmation_extension_used, confirmation_extended_at, idempotency_key,
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
-		       shipping_expedition_name, shipping_estimated_days,
-		       tracking_number, proof_type, shipping_proof_media, shipping_note,
+	       tracking_number, proof_type, shipping_proof_media, shipping_note,
 		       order_number,
 		       preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by, address_snapshot,
 		       pricing_token_id,
@@ -200,8 +194,7 @@ func (r *OrderRepository) GetByID(
 		&quantity, &unitPrice, &subtotal, &shippingTotal,
 		&commissionPercent, &commissionAmount, &serviceFeeAmount, &totalPayableAmount, &totalBeforeCoinsAmount,
 		&status, &escrowStatus, &autoReleaseAt, &hasDispute, &confirmationExtensionUsed, &confirmationExtendedAt, &idempotencyKey,
-		&shippingOptionID, &shippingOptionName, &shippingTransportType,
-		&shippingExpeditionName, &shippingEstimatedDays,
+		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&trackingNumber, &proofType, &shippingProofMedia, &shippingNote,
 		&orderNum,
 		&preparationTimeSnapshot, &preparationNoteSnapshot, &readyToShipBy, &addressSnapshotJSON,
@@ -254,11 +247,9 @@ func (r *OrderRepository) GetByID(
 		ServiceFeeAmount:       money.New(serviceFeeAmount),
 		TotalPayableAmount:     money.New(totalPayableAmount),
 		TotalBeforeCoinsAmount: money.New(totalBeforeCoinsAmount),
-		ShippingOptionID:       db.ToUUIDPtr(shippingOptionID),
-		ShippingOptionName:     shippingOptionName.String,
+		ShippingSetupID:       db.ToUUIDPtr(shippingSetupID),
+		ShippingSetupName:     shippingSetupName.String,
 		ShippingTransportType:  shippingTransportType.String,
-		ShippingExpeditionName: db.ToStringPtr(shippingExpeditionName),
-		ShippingEstimatedDays:  db.ToStringPtr(shippingEstimatedDays),
 		// Shipping Proof fields
 		ProofType:          db.ToStringPtr(proofType),
 		TrackingNumber:     db.ToStringPtr(trackingNumber),
@@ -314,16 +305,14 @@ func (r *OrderRepository) GetForUpdate(
 	orderID uuid.UUID,
 ) (*entity.Order, error) {
 	var id, buyerID, sellerID, sourceID uuid.UUID
-	var shippingOptionID sql.NullString // NULLABLE: nil when using shipping quote
+	var shippingSetupID sql.NullString // NULLABLE: nil when using shipping quote
 	var negotiationID sql.NullString
 	var pricingTokenID sql.NullString // Pricing token ID (prevents double-ordering)
 	var quantity int
 	var unitPrice, subtotal, shippingTotal, commissionPercent, commissionAmount int64
 	var serviceFeeAmount, totalPayableAmount, totalBeforeCoinsAmount int64
 	var status, escrowStatus, sourceType string
-	var shippingOptionName, shippingTransportType sql.NullString // NULLABLE in DB
-	var shippingExpeditionName sql.NullString
-	var shippingEstimatedDays sql.NullString
+	var shippingSetupName, shippingTransportType sql.NullString // NULLABLE in DB
 	var trackingNumber sql.NullString
 	var proofType sql.NullString
 	var shippingProofMedia sql.NullString
@@ -354,8 +343,7 @@ func (r *OrderRepository) GetForUpdate(
 		       status, escrow_status, auto_release_at, has_dispute,
 		       confirmation_extension_used, confirmation_extended_at, idempotency_key,
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
-		       shipping_expedition_name, shipping_estimated_days,
-		       tracking_number, proof_type, shipping_proof_media, shipping_note,
+	       tracking_number, proof_type, shipping_proof_media, shipping_note,
 		       order_number,
 		       preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by, address_snapshot,
 		       pricing_token_id,
@@ -372,8 +360,7 @@ func (r *OrderRepository) GetForUpdate(
 		&quantity, &unitPrice, &subtotal, &shippingTotal,
 		&commissionPercent, &commissionAmount, &serviceFeeAmount, &totalPayableAmount, &totalBeforeCoinsAmount,
 		&status, &escrowStatus, &autoReleaseAt, &hasDispute, &confirmationExtensionUsed, &confirmationExtendedAt, &idempotencyKey,
-		&shippingOptionID, &shippingOptionName, &shippingTransportType,
-		&shippingExpeditionName, &shippingEstimatedDays,
+		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&trackingNumber, &proofType, &shippingProofMedia, &shippingNote,
 		&orderNum,
 		&preparationTimeSnapshot, &preparationNoteSnapshot, &readyToShipBy, &addressSnapshotJSON,
@@ -426,11 +413,9 @@ func (r *OrderRepository) GetForUpdate(
 		ServiceFeeAmount:       money.New(serviceFeeAmount),
 		TotalPayableAmount:     money.New(totalPayableAmount),
 		TotalBeforeCoinsAmount: money.New(totalBeforeCoinsAmount),
-		ShippingOptionID:       db.ToUUIDPtr(shippingOptionID),
-		ShippingOptionName:     shippingOptionName.String,
+		ShippingSetupID:       db.ToUUIDPtr(shippingSetupID),
+		ShippingSetupName:     shippingSetupName.String,
 		ShippingTransportType:  shippingTransportType.String,
-		ShippingExpeditionName: db.ToStringPtr(shippingExpeditionName),
-		ShippingEstimatedDays:  db.ToStringPtr(shippingEstimatedDays),
 		// Shipping Proof fields
 		ProofType:          db.ToStringPtr(proofType),
 		TrackingNumber:     db.ToStringPtr(trackingNumber),
@@ -517,14 +502,13 @@ func (r *OrderRepository) GetByShippingQuoteID(
 	shippingQuoteID uuid.UUID,
 ) (*entity.Order, error) {
 	var id, buyerID, sellerID, sourceID uuid.UUID
-	var shippingOptionID *uuid.UUID // NULLABLE: nil when using shipping quote
+	var shippingSetupID *uuid.UUID // NULLABLE: nil when using shipping quote
 	var negotiationID *uuid.UUID
 	var quantity int
 	var unitPrice, subtotal, shippingTotal, commissionPercent, commissionAmount int64
 	var serviceFeeAmount, totalPayableAmount int64
 	var status, escrowStatus, sourceType string
-	var shippingOptionName, shippingTransportType sql.NullString // NULLABLE in DB
-	var shippingExpeditionName, shippingEstimatedDays *string
+	var shippingSetupName, shippingTransportType sql.NullString // NULLABLE in DB
 	var trackingNumber, shippingNote *string
 	var orderNum *string
 	var autoReleaseAt *time.Time
@@ -550,8 +534,7 @@ func (r *OrderRepository) GetByShippingQuoteID(
 		       commission_amount, service_fee_amount, total_payable_amount, status, escrow_status,
 		       auto_release_at, has_dispute, confirmation_extension_used, idempotency_key,
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
-		       shipping_expedition_name, shipping_estimated_days,
-		       tracking_number, shipping_note, order_number,
+	       tracking_number, shipping_note, order_number,
 		       preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by,
 		       shipping_destination,
 		       shipping_source, shipping_origin_snapshot,
@@ -565,8 +548,7 @@ func (r *OrderRepository) GetByShippingQuoteID(
 		&quantity, &unitPrice, &subtotal, &shippingTotal, &commissionPercent,
 		&commissionAmount, &serviceFeeAmount, &totalPayableAmount, &status, &escrowStatus,
 		&autoReleaseAt, &hasDispute, &confirmationExtensionUsed, &idempotencyKeyPtr,
-		&shippingOptionID, &shippingOptionName, &shippingTransportType,
-		&shippingExpeditionName, &shippingEstimatedDays,
+		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&trackingNumber, &shippingNote,
 		&orderNum,
 		&preparationTimeSnapshot, &preparationNoteSnapshot, &readyToShipBy, &addressSnapshotJSON,
@@ -615,11 +597,9 @@ func (r *OrderRepository) GetByShippingQuoteID(
 		CommissionAmount:          money.New(commissionAmount),
 		ServiceFeeAmount:          money.New(serviceFeeAmount),
 		TotalPayableAmount:        money.New(totalPayableAmount),
-		ShippingOptionID:          shippingOptionID,
-		ShippingOptionName:        shippingOptionName.String,
+		ShippingSetupID:          shippingSetupID,
+		ShippingSetupName:        shippingSetupName.String,
 		ShippingTransportType:     shippingTransportType.String,
-		ShippingExpeditionName:    shippingExpeditionName,
-		ShippingEstimatedDays:     shippingEstimatedDays,
 		TrackingNumber:            trackingNumber,
 		ShippingNote:              nil,
 		OrderNumber:               orderNum,
@@ -688,16 +668,14 @@ func (r *OrderRepository) GetByPricingTokenID(
 	pricingTokenID uuid.UUID,
 ) (*entity.Order, error) {
 	var id, buyerID, sellerID, sourceID uuid.UUID
-	var shippingOptionID sql.NullString
+	var shippingSetupID sql.NullString
 	var negotiationID sql.NullString
 	var storedPricingTokenID sql.NullString
 	var quantity int
 	var unitPrice, subtotal, shippingTotal, commissionPercent, commissionAmount int64
 	var serviceFeeAmount, totalPayableAmount int64
 	var status, escrowStatus, sourceType string
-	var shippingOptionName, shippingTransportType sql.NullString // NULLABLE in DB
-	var shippingExpeditionName sql.NullString
-	var shippingEstimatedDays sql.NullString
+	var shippingSetupName, shippingTransportType sql.NullString // NULLABLE in DB
 	var trackingNumber sql.NullString
 	var proofType sql.NullString
 	var shippingProofMedia sql.NullString
@@ -728,8 +706,7 @@ func (r *OrderRepository) GetByPricingTokenID(
 		       status, escrow_status, auto_release_at, has_dispute,
 		       confirmation_extension_used, confirmation_extended_at, idempotency_key,
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
-		       shipping_expedition_name, shipping_estimated_days,
-		       tracking_number, proof_type, shipping_proof_media, shipping_note,
+	       tracking_number, proof_type, shipping_proof_media, shipping_note,
 		       order_number,
 		       preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by, address_snapshot,
 		       pricing_token_id,
@@ -744,8 +721,7 @@ func (r *OrderRepository) GetByPricingTokenID(
 		&quantity, &unitPrice, &subtotal, &shippingTotal,
 		&commissionPercent, &commissionAmount, &serviceFeeAmount, &totalPayableAmount,
 		&status, &escrowStatus, &autoReleaseAt, &hasDispute, &confirmationExtensionUsed, &confirmationExtendedAt, &idempotencyKey,
-		&shippingOptionID, &shippingOptionName, &shippingTransportType,
-		&shippingExpeditionName, &shippingEstimatedDays,
+		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&trackingNumber, &proofType, &shippingProofMedia, &shippingNote,
 		&orderNum,
 		&preparationTimeSnapshot, &preparationNoteSnapshot, &readyToShipBy, &addressSnapshotJSON,
@@ -794,11 +770,10 @@ func (r *OrderRepository) GetByPricingTokenID(
 		CommissionAmount:          money.New(commissionAmount),
 		ServiceFeeAmount:          money.New(serviceFeeAmount),
 		TotalPayableAmount:        money.New(totalPayableAmount),
-		ShippingOptionID:          db.ToUUIDPtr(shippingOptionID),
-		ShippingOptionName:        shippingOptionName.String,
+		ShippingSetupID:          db.ToUUIDPtr(shippingSetupID),
+		ShippingSetupName:        shippingSetupName.String,
 		ShippingTransportType:     shippingTransportType.String,
-		ShippingExpeditionName:    db.ToStringPtr(shippingExpeditionName),
-		ShippingEstimatedDays:     db.ToStringPtr(shippingEstimatedDays),
+
 		ProofType:                 db.ToStringPtr(proofType),
 		TrackingNumber:            db.ToStringPtr(trackingNumber),
 		ShippingProofMedia:        db.ToStringPtr(shippingProofMedia),
@@ -1140,14 +1115,13 @@ func (r *OrderRepository) GetByOrderNumber(
 	orderNumber string,
 ) (*entity.Order, error) {
 	var id, buyerID, sellerID, sourceID uuid.UUID
-	var shippingOptionID *uuid.UUID // NULLABLE: nil when using shipping quote
+	var shippingSetupID *uuid.UUID // NULLABLE: nil when using shipping quote
 	var negotiationID *uuid.UUID
 	var quantity int
 	var unitPrice, subtotal, shippingTotal, commissionPercent, commissionAmount int64
 	var serviceFeeAmount, totalPayableAmount int64
 	var status, escrowStatus, sourceType string
-	var shippingOptionName, shippingTransportType sql.NullString // NULLABLE in DB
-	var shippingExpeditionName, shippingEstimatedDays *string
+	var shippingSetupName, shippingTransportType sql.NullString // NULLABLE in DB
 	var trackingNumber, shippingNote *string
 	var orderNum *string
 	var autoReleaseAt *time.Time
@@ -1174,7 +1148,6 @@ func (r *OrderRepository) GetByOrderNumber(
 		       status, escrow_status, auto_release_at, has_dispute,
 		       confirmation_extension_used, confirmation_extended_at, idempotency_key,
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
-		       shipping_expedition_name, shipping_estimated_days,
 		       tracking_number, shipping_note,
 		       order_number,
 		       preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by, address_snapshot,
@@ -1189,8 +1162,7 @@ func (r *OrderRepository) GetByOrderNumber(
 		&quantity, &unitPrice, &subtotal, &shippingTotal,
 		&commissionPercent, &commissionAmount, &serviceFeeAmount, &totalPayableAmount,
 		&status, &escrowStatus, &autoReleaseAt, &hasDispute, &confirmationExtensionUsed, &confirmationExtendedAt, &idempotencyKey,
-		&shippingOptionID, &shippingOptionName, &shippingTransportType,
-		&shippingExpeditionName, &shippingEstimatedDays,
+		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&trackingNumber, &shippingNote,
 		&orderNum,
 		&preparationTimeSnapshot, &preparationNoteSnapshot, &readyToShipBy, &addressSnapshotJSON,
@@ -1239,11 +1211,9 @@ func (r *OrderRepository) GetByOrderNumber(
 		CommissionAmount:       money.New(commissionAmount),
 		ServiceFeeAmount:       money.New(serviceFeeAmount),
 		TotalPayableAmount:     money.New(totalPayableAmount),
-		ShippingOptionID:       shippingOptionID,
-		ShippingOptionName:     shippingOptionName.String,
+		ShippingSetupID:       shippingSetupID,
+		ShippingSetupName:     shippingSetupName.String,
 		ShippingTransportType:  shippingTransportType.String,
-		ShippingExpeditionName: shippingExpeditionName,
-		ShippingEstimatedDays:  shippingEstimatedDays,
 		// Shipping Confirmation (canonical fields)
 		TrackingNumber: trackingNumber,
 		ShippingNote:   shippingNote,

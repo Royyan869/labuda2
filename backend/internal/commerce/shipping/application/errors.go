@@ -14,15 +14,15 @@ import "errors"
 //   - ErrShippingNotConfigured: for_sale has zero linked options at PUBLISH
 //     time. Returned by ForSaleService.EnsureShippingConfigured /
 //     ForSaleService.Publish.
-//   - ErrNoShippingOptions: for_sale has zero linked options at ORDER
+//   - ErrNoShippingSetups: for_sale has zero linked options at ORDER
 //     CREATE time. Returned by OrderCreationService when the buyer is on
 //     the for_sale but the seller never linked any options.
-//   - ErrShippingOptionUnavailable: the buyer-selected option is not
+//   - ErrShippingSetupUnavailable: the buyer-selected option is not
 //     covered for the buyer's province/city, or coverage exists but is
 //     marked unavailable. Returned by OrderCreationService.
 var (
 	ErrShippingNotConfigured                  = errors.New("SHIPPING_NOT_CONFIGURED: no shipping options linked to for_sale")
-	ErrNoShippingOptions                      = errors.New("NO_SHIPPING_OPTIONS: for_sale has no shipping options configured")
-	ErrShippingOptionUnavailable              = errors.New("SHIPPING_OPTION_UNAVAILABLE: shipping option not available for buyer address")
+	ErrNoShippingSetups                      = errors.New("NO_SHIPPING_OPTIONS: for_sale has no shipping options configured")
+	ErrShippingSetupUnavailable              = errors.New("SHIPPING_OPTION_UNAVAILABLE: shipping option not available for buyer address")
 	ErrInvalidSellableCreateShippingSelection = errors.New("INVALID_SHIPPING_SELECTION: shipping option does not exist or does not belong to seller")
 )

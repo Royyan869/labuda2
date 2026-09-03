@@ -5,46 +5,46 @@ import '../../domain/domain.dart';
 
 /// Notifier untuk Shipping Options Management
 /// Menggunakan Riverpod Notifier (bukan StateNotifier untuk menghindari masalah compatibility)
-class ShippingNotifier extends Notifier<ShippingOptionsListState> {
+class ShippingNotifier extends Notifier<ShippingSetupsListState> {
   ShippingRepository get _repository => ref.read(shippingRepositoryProvider);
 
   @override
-  ShippingOptionsListState build() {
-    return const ShippingOptionsListInitial();
+  ShippingSetupsListState build() {
+    return const ShippingSetupsListInitial();
   }
 
   /// Load all shipping options for a seller
-  Future<void> loadShippingOptions() async {
-    state = const ShippingOptionsListLoading();
-    final result = await _repository.listMyShippingOptions();
+  Future<void> loadShippingSetups() async {
+    state = const ShippingSetupsListLoading();
+    final result = await _repository.listMyShippingSetups();
 
     final newState = result.isSuccess && result.data != null
-        ? ShippingOptionsListLoaded(result.data!)
-        : ShippingOptionsListError(result.error ?? 'Unknown error');
+        ? ShippingSetupsListLoaded(result.data!)
+        : ShippingSetupsListError(result.error ?? 'Unknown error');
     state = newState;
   }
 
   /// Load active shipping options only
-  Future<void> loadActiveShippingOptions() async {
-    state = const ShippingOptionsListLoading();
-    final result = await _repository.listMyActiveShippingOptions();
+  Future<void> loadActiveShippingSetups() async {
+    state = const ShippingSetupsListLoading();
+    final result = await _repository.listMyActiveShippingSetups();
 
     final newState = result.isSuccess && result.data != null
-        ? ShippingOptionsListLoaded(result.data!)
-        : ShippingOptionsListError(result.error ?? 'Unknown error');
+        ? ShippingSetupsListLoaded(result.data!)
+        : ShippingSetupsListError(result.error ?? 'Unknown error');
     state = newState;
   }
 
   /// Create new shipping option
-  Future<String?> createShippingOption(
-    CreateShippingOptionRequest request,
+  Future<String?> createShippingSetup(
+    CreateShippingSetupRequest request,
   ) async {
-    final result = await _repository.createShippingOption(request);
+    final result = await _repository.createShippingSetup(request);
 
     if (result.isSuccess && result.data != null) {
       return result.data!.id;
     } else {
-      final newState = ShippingOptionsListError(
+      final newState = ShippingSetupsListError(
         result.error ?? 'Unknown error',
       );
       state = newState;
@@ -53,16 +53,16 @@ class ShippingNotifier extends Notifier<ShippingOptionsListState> {
   }
 
   /// Update shipping option
-  Future<bool> updateShippingOption(
+  Future<bool> updateShippingSetup(
     String optionId,
-    UpdateShippingOptionRequest request,
+    UpdateShippingSetupRequest request,
   ) async {
-    final result = await _repository.updateShippingOption(optionId, request);
+    final result = await _repository.updateShippingSetup(optionId, request);
 
     if (result.isSuccess) {
       return true;
     } else {
-      final newState = ShippingOptionsListError(
+      final newState = ShippingSetupsListError(
         result.error ?? 'Unknown error',
       );
       state = newState;
@@ -71,18 +71,14 @@ class ShippingNotifier extends Notifier<ShippingOptionsListState> {
   }
 
   /// Delete shipping option
-  Future<bool> deleteShippingOption(String optionId) async {
-    final result = await _repository.deleteShippingOption(optionId);
+  Future<bool> deleteShippingSetup(String optionId) async {
+    final result = await _repository.deleteShippingSetup(optionId);
 
     if (result.isSuccess) {
       return true;
-    } else {
-      final newState = ShippingOptionsListError(
-        result.error ?? 'Unknown error',
-      );
-      state = newState;
-      return false;
     }
+    // Do NOT replace loaded state on delete failure — the list is still valid.
+    return false;
   }
 
   /// Toggle active status
@@ -91,33 +87,29 @@ class ShippingNotifier extends Notifier<ShippingOptionsListState> {
 
     if (result.isSuccess) {
       return true;
-    } else {
-      final newState = ShippingOptionsListError(
-        result.error ?? 'Unknown error',
-      );
-      state = newState;
-      return false;
     }
+    // Do NOT replace loaded state on toggle failure — the list is still valid.
+    return false;
   }
 }
 
 /// Notifier untuk Single Shipping Option Detail
-class ShippingOptionDetailNotifier extends Notifier<ShippingOptionDetailState> {
+class ShippingSetupDetailNotifier extends Notifier<ShippingSetupDetailState> {
   ShippingRepository get _repository => ref.read(shippingRepositoryProvider);
 
   @override
-  ShippingOptionDetailState build() {
-    return const ShippingOptionDetailInitial();
+  ShippingSetupDetailState build() {
+    return const ShippingSetupDetailInitial();
   }
 
   /// Load single shipping option by ID
   Future<void> loadOption(String optionId) async {
-    state = const ShippingOptionDetailLoading();
-    final result = await _repository.getShippingOptionById(optionId);
+    state = const ShippingSetupDetailLoading();
+    final result = await _repository.getShippingSetupById(optionId);
 
     final newState = result.isSuccess && result.data != null
-        ? ShippingOptionDetailLoaded(result.data!)
-        : ShippingOptionDetailError(result.error ?? 'Unknown error');
+        ? ShippingSetupDetailLoaded(result.data!)
+        : ShippingSetupDetailError(result.error ?? 'Unknown error');
     state = newState;
   }
 
@@ -129,7 +121,7 @@ class ShippingOptionDetailNotifier extends Notifier<ShippingOptionDetailState> {
       loadOption(optionId);
       return true;
     } else {
-      final newState = ShippingOptionDetailError(
+      final newState = ShippingSetupDetailError(
         result.error ?? 'Unknown error',
       );
       state = newState;
@@ -146,12 +138,12 @@ class ShippingOptionDetailNotifier extends Notifier<ShippingOptionDetailState> {
 
     if (result.isSuccess) {
       final currentState = state;
-      if (currentState is ShippingOptionDetailLoaded) {
+      if (currentState is ShippingSetupDetailLoaded) {
         loadOption(currentState.option.id);
       }
       return true;
     } else {
-      final newState = ShippingOptionDetailError(
+      final newState = ShippingSetupDetailError(
         result.error ?? 'Unknown error',
       );
       state = newState;
@@ -165,12 +157,12 @@ class ShippingOptionDetailNotifier extends Notifier<ShippingOptionDetailState> {
 
     if (result.isSuccess) {
       final currentState = state;
-      if (currentState is ShippingOptionDetailLoaded) {
+      if (currentState is ShippingSetupDetailLoaded) {
         loadOption(currentState.option.id);
       }
       return true;
     } else {
-      final newState = ShippingOptionDetailError(
+      final newState = ShippingSetupDetailError(
         result.error ?? 'Unknown error',
       );
       state = newState;

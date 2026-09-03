@@ -105,7 +105,7 @@ void main() {
         sellerSubscriptionStatus: 'none',
         hasMarketAuthority: false,
         roles: const [UserRole.user],
-        provider: ShonaAuthProvider.email,
+        provider: AuthProvider.email,
       );
       final outcome = SyncAuthenticated(userId: user.id, email: user.email, emailVerified: true);
       expect(outcome, isA<SyncOutcome>());

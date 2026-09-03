@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -386,7 +385,7 @@ type mockChatService struct {
 	msgError  error
 }
 
-func (m *mockChatService) CreateSupportTicketRoom(ctx context.Context, userID uuid.UUID, ticketID uuid.UUID, contextJSON json.RawMessage) (*chatEntity.ChatRoom, error) {
+func (m *mockChatService) CreateSupportTicketRoom(ctx context.Context, userID uuid.UUID) (*chatEntity.ChatRoom, error) {
 	if m.roomError != nil {
 		return nil, m.roomError
 	}
@@ -1531,5 +1530,3 @@ func TestResolveTicket_RepeatedCycles_UniqueIdempotencyKeys(t *testing.T) {
 	assert.NotEqual(t, keys[0], keys[1],
 		"idempotency keys must differ across resolve cycles (was: %s)", keys[0])
 }
-
-

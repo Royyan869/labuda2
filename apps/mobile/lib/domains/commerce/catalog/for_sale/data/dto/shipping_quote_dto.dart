@@ -19,7 +19,6 @@ class ShippingQuoteResponseDto extends Equatable {
   final String productId;
   final String sourceType;
   final String sourceId;
-  final String? auctionId;
   final String sellerId;
   final String buyerId;
   final int cost;
@@ -37,7 +36,6 @@ class ShippingQuoteResponseDto extends Equatable {
     required this.productId,
     required this.sourceType,
     required this.sourceId,
-    this.auctionId,
     required this.sellerId,
     required this.buyerId,
     required this.cost,
@@ -57,7 +55,6 @@ class ShippingQuoteResponseDto extends Equatable {
       productId: json['product_id'] as String,
       sourceType: json['source_type'] as String,
       sourceId: json['source_id'] as String,
-      auctionId: json['auction_id'] as String?,
       sellerId: json['seller_id'] as String,
       buyerId: json['buyer_id'] as String,
       cost: json['cost'] as int,
@@ -78,7 +75,6 @@ class ShippingQuoteResponseDto extends Equatable {
       'product_id': productId,
       'source_type': sourceType,
       'source_id': sourceId,
-      if (auctionId != null) 'auction_id': auctionId,
       'seller_id': sellerId,
       'buyer_id': buyerId,
       'cost': cost,
@@ -119,7 +115,6 @@ class ShippingQuoteResponseDto extends Equatable {
     productId,
     sourceType,
     sourceId,
-    auctionId,
     sellerId,
     buyerId,
     cost,
@@ -144,7 +139,6 @@ class CreateShippingQuoteRequestDto {
   final String productId;
   final String sourceType;
   final String sourceId;
-  final String? auctionId;
   final int cost;
   final String? note;
 
@@ -153,7 +147,6 @@ class CreateShippingQuoteRequestDto {
     required this.sourceType,
     required this.sourceId,
     required this.cost,
-    this.auctionId,
     this.note,
   });
 
@@ -164,9 +157,6 @@ class CreateShippingQuoteRequestDto {
       'source_id': sourceId,
       'cost': cost,
     };
-    if (auctionId != null) {
-      json['auction_id'] = auctionId;
-    }
     if (note != null) {
       json['note'] = note;
     }

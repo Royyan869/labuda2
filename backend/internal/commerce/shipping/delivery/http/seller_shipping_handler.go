@@ -37,51 +37,46 @@ func NewSellerShippingHandler(
 // Request/Response DTOs
 // ============================================================================
 
-// CreateShippingOptionRequest holds the request body for creating a shipping option.
-type CreateShippingOptionRequest struct {
-	Name           string `json:"name" binding:"required"`
-	TransportType  string `json:"transport_type" binding:"required,oneof=train bus travel plane custom"`
-	ExpeditionName string `json:"expedition_name"`
+// CreateShippingSetupRequest holds the request body for creating a shipping option.
+type CreateShippingSetupRequest struct {
+	Name          string `json:"name" binding:"required"`
+	TransportType string `json:"transport_type" binding:"required,oneof=train bus travel plane custom"`
 }
 
-// UpdateShippingOptionRequest holds the request body for updating a shipping option.
-type UpdateShippingOptionRequest struct {
-	Name           string `json:"name"`
-	TransportType  string `json:"transport_type" binding:"omitempty,oneof=train bus travel plane custom"`
-	ExpeditionName string `json:"expedition_name"`
-	IsActive       *bool  `json:"is_active"`
+// UpdateShippingSetupRequest holds the request body for updating a shipping option.
+type UpdateShippingSetupRequest struct {
+	Name          string `json:"name"`
+	TransportType string `json:"transport_type" binding:"omitempty,oneof=train bus travel plane custom"`
+	IsActive      *bool  `json:"is_active"`
 }
 
 // CreateCoverageRequest holds the request body for creating a shipping coverage.
 type CreateCoverageRequest struct {
-	ProvinceCode   string `json:"province_code" binding:"required"`
-	ProvinceName   string `json:"province_name" binding:"required"`
-	Rate           int64  `json:"rate" binding:"required"`
-	EstimatedDays  string `json:"estimated_days"`
-	IsAvailable    bool   `json:"is_available"`
+	ProvinceCode  string `json:"province_code" binding:"required"`
+	ProvinceName  string `json:"province_name" binding:"required"`
+	Rate          int64  `json:"rate" binding:"required"`
+	IsAvailable   bool   `json:"is_available"`
 }
 
 // UpdateCoverageRequest holds the request body for updating a shipping coverage.
 type UpdateCoverageRequest struct {
-	ProvinceName  string  `json:"province_name"`
-	Rate          *int64  `json:"rate"`
-	EstimatedDays *string `json:"estimated_days"`
-	IsAvailable   *bool   `json:"is_available"`
+	ProvinceName string  `json:"province_name"`
+	Rate         *int64  `json:"rate"`
+	IsAvailable  *bool   `json:"is_available"`
 }
 
 // ============================================================================
 // Shipping Option Handlers
 // ============================================================================
 
-// CreateShippingOption handles POST /api/v1/shipping/options
+// CreateShippingSetup handles POST /api/v1/shipping/options
 //
 // Creates a new shipping option for the authenticated seller.
 //
 // Request body:
 // - name: Display name for the shipping option (required)
 // - transport_type: Type of transport - train, bus, travel, plane, custom (required)
-// - expedition_name: Optional expedition/company name
-func (h *SellerShippingHandler) CreateShippingOption(c *gin.Context) {
+func (h *SellerShippingHandler) CreateShippingSetup(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get user ID from context (seller)
@@ -97,26 +92,25 @@ func (h *SellerShippingHandler) CreateShippingOption(c *gin.Context) {
 	}
 
 	// Parse request body
-	var req CreateShippingOptionRequest
+	var req CreateShippingSetupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
 	}
 
 	// Execute within transaction
-	var option *shippingEntity.ShippingOption
+	var option *shippingEntity.ShippingSetup
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
-		option, err = h.sellerShippingService.CreateShippingOption(
-			ctx,
-			tx,
-			sellerShippingApp.CreateShippingOptionInput{
-				SellerID:       sellerID,
-				Name:           req.Name,
-				TransportType:  shippingEntity.TransportType(req.TransportType),
-				ExpeditionName: req.ExpeditionName,
-			},
-		)
+		option, err = h.sellerShippingService.CreateShippingSetup(
+				ctx,
+				tx,
+				sellerShippingApp.CreateShippingSetupInput{
+					SellerID:      sellerID,
+					Name:          req.Name,
+					TransportType: shippingEntity.TransportType(req.TransportType),
+				},
+			)
 		return err
 	})
 
@@ -140,17 +134,17 @@ func (h *SellerShippingHandler) CreateShippingOption(c *gin.Context) {
 	}
 
 	response.Created(c, gin.H{
-		"shipping_option": shippingOptionToResponse(option),
+		"shipping_option": shippingSetupToResponse(option),
 	})
 }
 
-// ListShippingOptions handles GET /api/v1/shipping/options
+// ListShippingSetups handles GET /api/v1/shipping/options
 //
 // Lists all shipping options for the authenticated seller.
 //
 // Query parameters:
 // - include_inactive: Include inactive options (default: false)
-func (h *SellerShippingHandler) ListShippingOptions(c *gin.Context) {
+func (h *SellerShippingHandler) ListShippingSetups(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get user ID from context (seller)
@@ -169,10 +163,10 @@ func (h *SellerShippingHandler) ListShippingOptions(c *gin.Context) {
 	includeInactive := c.DefaultQuery("include_inactive", "false") == "true"
 
 	// Execute within transaction
-	var options []*shippingEntity.ShippingOption
+	var options []*shippingEntity.ShippingSetup
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
-		options, err = h.sellerShippingService.ListSellerShippingOptions(
+		options, err = h.sellerShippingService.ListSellerShippingSetups(
 			ctx,
 			tx,
 			sellerID,
@@ -193,7 +187,7 @@ func (h *SellerShippingHandler) ListShippingOptions(c *gin.Context) {
 	// Convert to response format
 	optionResponses := make([]map[string]interface{}, len(options))
 	for i, opt := range options {
-		optionResponses[i] = shippingOptionToResponse(opt)
+		optionResponses[i] = shippingSetupToResponse(opt)
 	}
 
 	response.Success(c, gin.H{
@@ -202,10 +196,10 @@ func (h *SellerShippingHandler) ListShippingOptions(c *gin.Context) {
 	})
 }
 
-// GetShippingOption handles GET /api/v1/shipping/options/:id
+// GetShippingSetup handles GET /api/v1/shipping/options/:id
 //
 // Retrieves a shipping option with its coverages by ID.
-func (h *SellerShippingHandler) GetShippingOption(c *gin.Context) {
+func (h *SellerShippingHandler) GetShippingSetup(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get user ID from context (seller)
@@ -221,20 +215,20 @@ func (h *SellerShippingHandler) GetShippingOption(c *gin.Context) {
 	}
 
 	// Parse shipping option ID
-	shippingOptionID, err := uuid.Parse(c.Param("id"))
+	shippingSetupID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		response.BadRequest(c, "Invalid shipping option ID")
 		return
 	}
 
 	// Execute within transaction
-	var result *sellerShippingApp.GetShippingOptionWithCoveragesResult
+	var result *sellerShippingApp.GetShippingSetupWithCoveragesResult
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
-		result, err = h.sellerShippingService.GetShippingOptionWithCoverages(
+		result, err = h.sellerShippingService.GetShippingSetupWithCoverages(
 			ctx,
 			tx,
-			shippingOptionID,
+			shippingSetupID,
 			sellerID,
 		)
 		return err
@@ -242,7 +236,7 @@ func (h *SellerShippingHandler) GetShippingOption(c *gin.Context) {
 
 	if err != nil {
 		h.log.Error("Failed to get shipping option",
-			zap.String("shipping_option_id", shippingOptionID.String()),
+			zap.String("shipping_option_id", shippingSetupID.String()),
 			zap.String("seller_id", sellerID.String()),
 			zap.Error(err),
 		)
@@ -267,22 +261,21 @@ func (h *SellerShippingHandler) GetShippingOption(c *gin.Context) {
 	}
 
 	response.Success(c, gin.H{
-		"shipping_option": shippingOptionToResponse(result.ShippingOption),
+		"shipping_option": shippingSetupToResponse(result.ShippingSetup),
 		"coverages":       coverages,
 		"coverage_count":  len(coverages),
 	})
 }
 
-// UpdateShippingOption handles PUT /api/v1/shipping/options/:id
+// UpdateShippingSetup handles PUT /api/v1/shipping/options/:id
 //
 // Updates an existing shipping option.
 //
 // Request body:
 // - name: New display name (optional)
 // - transport_type: New transport type (optional)
-// - expedition_name: New expedition name (optional)
 // - is_active: Active status (optional)
-func (h *SellerShippingHandler) UpdateShippingOption(c *gin.Context) {
+func (h *SellerShippingHandler) UpdateShippingSetup(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get user ID from context (seller)
@@ -298,40 +291,39 @@ func (h *SellerShippingHandler) UpdateShippingOption(c *gin.Context) {
 	}
 
 	// Parse shipping option ID
-	shippingOptionID, err := uuid.Parse(c.Param("id"))
+	shippingSetupID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		response.BadRequest(c, "Invalid shipping option ID")
 		return
 	}
 
 	// Parse request body
-	var req UpdateShippingOptionRequest
+	var req UpdateShippingSetupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
 	}
 
 	// Execute within transaction
-	var option *shippingEntity.ShippingOption
+	var option *shippingEntity.ShippingSetup
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
-		input := sellerShippingApp.UpdateShippingOptionInput{
-			ShippingOptionID: shippingOptionID,
+		input := sellerShippingApp.UpdateShippingSetupInput{
+			ShippingSetupID: shippingSetupID,
 			SellerID:         sellerID,
 			Name:             req.Name,
-			ExpeditionName:   req.ExpeditionName,
 			IsActive:         req.IsActive,
 		}
 		if req.TransportType != "" {
 			input.TransportType = shippingEntity.TransportType(req.TransportType)
 		}
-		option, err = h.sellerShippingService.UpdateShippingOption(ctx, tx, input)
+		option, err = h.sellerShippingService.UpdateShippingSetup(ctx, tx, input)
 		return err
 	})
 
 	if err != nil {
 		h.log.Error("Failed to update shipping option",
-			zap.String("shipping_option_id", shippingOptionID.String()),
+			zap.String("shipping_option_id", shippingSetupID.String()),
 			zap.String("seller_id", sellerID.String()),
 			zap.Error(err),
 		)
@@ -354,14 +346,14 @@ func (h *SellerShippingHandler) UpdateShippingOption(c *gin.Context) {
 	}
 
 	response.SuccessWithMessage(c, "Shipping option updated successfully", gin.H{
-		"shipping_option": shippingOptionToResponse(option),
+		"shipping_option": shippingSetupToResponse(option),
 	})
 }
 
-// DeleteShippingOption handles DELETE /api/v1/shipping/options/:id
+// DeleteShippingSetup handles DELETE /api/v1/shipping/options/:id
 //
 // Deletes a shipping option and its associated coverages.
-func (h *SellerShippingHandler) DeleteShippingOption(c *gin.Context) {
+func (h *SellerShippingHandler) DeleteShippingSetup(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get user ID from context (seller)
@@ -377,7 +369,7 @@ func (h *SellerShippingHandler) DeleteShippingOption(c *gin.Context) {
 	}
 
 	// Parse shipping option ID
-	shippingOptionID, err := uuid.Parse(c.Param("id"))
+	shippingSetupID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		response.BadRequest(c, "Invalid shipping option ID")
 		return
@@ -385,17 +377,17 @@ func (h *SellerShippingHandler) DeleteShippingOption(c *gin.Context) {
 
 	// Execute within transaction
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
-		return h.sellerShippingService.DeleteShippingOption(
+		return h.sellerShippingService.DeleteShippingSetup(
 			ctx,
 			tx,
-			shippingOptionID,
+			shippingSetupID,
 			sellerID,
 		)
 	})
 
 	if err != nil {
 		h.log.Error("Failed to delete shipping option",
-			zap.String("shipping_option_id", shippingOptionID.String()),
+			zap.String("shipping_option_id", shippingSetupID.String()),
 			zap.String("seller_id", sellerID.String()),
 			zap.Error(err),
 		)
@@ -414,7 +406,7 @@ func (h *SellerShippingHandler) DeleteShippingOption(c *gin.Context) {
 	}
 
 	response.SuccessWithMessage(c, "Shipping option deleted successfully", gin.H{
-		"shipping_option_id": shippingOptionID.String(),
+		"shipping_option_id": shippingSetupID.String(),
 	})
 }
 
@@ -430,7 +422,6 @@ func (h *SellerShippingHandler) DeleteShippingOption(c *gin.Context) {
 // - province_code: 2-digit BPS province code (required)
 // - province_name: Province name (required)
 // - rate: Shipping rate in smallest currency unit (required)
-// - estimated_days: Estimated delivery time (optional)
 // - is_available: Whether shipping is available (default: true)
 func (h *SellerShippingHandler) CreateCoverage(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -448,7 +439,7 @@ func (h *SellerShippingHandler) CreateCoverage(c *gin.Context) {
 	}
 
 	// Parse shipping option ID
-	shippingOptionID, err := uuid.Parse(c.Param("id"))
+	shippingSetupID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		response.BadRequest(c, "Invalid shipping option ID")
 		return
@@ -466,24 +457,23 @@ func (h *SellerShippingHandler) CreateCoverage(c *gin.Context) {
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
 		coverage, err = h.sellerShippingService.CreateCoverage(
-			ctx,
-			tx,
-			sellerShippingApp.CreateCoverageInput{
-				ShippingOptionID: shippingOptionID,
-				SellerID:         sellerID,
-				ProvinceCode:     req.ProvinceCode,
-				ProvinceName:     req.ProvinceName,
-				Rate:             req.Rate,
-				EstimatedDays:    req.EstimatedDays,
-				IsAvailable:      req.IsAvailable,
-			},
-		)
+				ctx,
+				tx,
+				sellerShippingApp.CreateCoverageInput{
+					ShippingSetupID: shippingSetupID,
+					SellerID:         sellerID,
+					ProvinceCode:     req.ProvinceCode,
+					ProvinceName:     req.ProvinceName,
+					Rate:             req.Rate,
+					IsAvailable:      req.IsAvailable,
+				},
+			)
 		return err
 	})
 
 	if err != nil {
 		h.log.Error("Failed to create coverage",
-			zap.String("shipping_option_id", shippingOptionID.String()),
+			zap.String("shipping_option_id", shippingSetupID.String()),
 			zap.String("seller_id", sellerID.String()),
 			zap.String("province_code", req.ProvinceCode),
 			zap.Error(err),
@@ -530,7 +520,7 @@ func (h *SellerShippingHandler) ListCoverages(c *gin.Context) {
 	}
 
 	// Parse shipping option ID
-	shippingOptionID, err := uuid.Parse(c.Param("id"))
+	shippingSetupID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		response.BadRequest(c, "Invalid shipping option ID")
 		return
@@ -543,7 +533,7 @@ func (h *SellerShippingHandler) ListCoverages(c *gin.Context) {
 		coverages, err = h.sellerShippingService.ListCoverages(
 			ctx,
 			tx,
-			shippingOptionID,
+			shippingSetupID,
 			sellerID,
 		)
 		return err
@@ -551,7 +541,7 @@ func (h *SellerShippingHandler) ListCoverages(c *gin.Context) {
 
 	if err != nil {
 		h.log.Error("Failed to list coverages",
-			zap.String("shipping_option_id", shippingOptionID.String()),
+			zap.String("shipping_option_id", shippingSetupID.String()),
 			zap.String("seller_id", sellerID.String()),
 			zap.Error(err),
 		)
@@ -588,7 +578,6 @@ func (h *SellerShippingHandler) ListCoverages(c *gin.Context) {
 // Request body:
 // - province_name: New province name (optional)
 // - rate: New shipping rate (optional)
-// - estimated_days: New estimated delivery time (optional)
 // - is_available: New availability status (optional)
 func (h *SellerShippingHandler) UpdateCoverage(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -628,11 +617,10 @@ func (h *SellerShippingHandler) UpdateCoverage(c *gin.Context) {
 			tx,
 			sellerShippingApp.UpdateCoverageInput{
 				CoverageID:     coverageID,
-				SellerID:       sellerID,
-				ProvinceName:   req.ProvinceName,
-				Rate:           req.Rate,
-				EstimatedDays:  req.EstimatedDays,
-				IsAvailable:    req.IsAvailable,
+				SellerID:     sellerID,
+				ProvinceName: req.ProvinceName,
+				Rate:         req.Rate,
+				IsAvailable:  req.IsAvailable,
 			},
 		)
 		return err
@@ -727,8 +715,8 @@ func (h *SellerShippingHandler) DeleteCoverage(c *gin.Context) {
 // Response Converters
 // ============================================================================
 
-// shippingOptionToResponse converts a ShippingOption entity to API response format.
-func shippingOptionToResponse(opt *shippingEntity.ShippingOption) map[string]interface{} {
+// shippingSetupToResponse converts a ShippingSetup entity to API response format.
+func shippingSetupToResponse(opt *shippingEntity.ShippingSetup) map[string]interface{} {
 	resp := map[string]interface{}{
 		"id":             opt.ID.String(),
 		"name":           opt.Name,
@@ -738,10 +726,6 @@ func shippingOptionToResponse(opt *shippingEntity.ShippingOption) map[string]int
 		"updated_at":     opt.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 
-	if opt.ExpeditionName != nil {
-		resp["expedition_name"] = *opt.ExpeditionName
-	}
-
 	return resp
 }
 
@@ -749,16 +733,12 @@ func shippingOptionToResponse(opt *shippingEntity.ShippingOption) map[string]int
 func coverageToResponse(cov *shippingEntity.ShippingCoverage) map[string]interface{} {
 	resp := map[string]interface{}{
 		"id":               cov.ID.String(),
-		"shipping_option_id": cov.ShippingOptionID.String(),
+		"shipping_option_id": cov.ShippingSetupID.String(),
 		"province_code":    cov.ProvinceCode,
 		"province_name":    cov.ProvinceName,
 		"rate":             cov.ProvinceRate.Int64(),
 		"is_available":     cov.IsAvailable,
 		"created_at":       cov.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-	}
-
-	if cov.EstimatedDays != nil {
-		resp["estimated_days"] = *cov.EstimatedDays
 	}
 
 	return resp

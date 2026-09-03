@@ -108,7 +108,6 @@ type CORSConfig struct {
 type AppConfig struct {
 	Name        string
 	Version     string
-	URL         string
 	FrontendURL string
 }
 
@@ -371,7 +370,6 @@ func Load() (*Config, error) {
 		App: AppConfig{
 			Name:        getEnv("APP_NAME", "Labuda Backend"),
 			Version:     getEnv("APP_VERSION", "0.1.0"),
-			URL:         getEnv("APP_URL", "http://localhost:8080"),
 			FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
 		},
 		Midtrans: MidtransConfig{

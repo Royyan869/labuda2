@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,10 +13,10 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap"
 
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	supportApp "github.com/labuda/backend/internal/governance/support/application"
 	supportEntity "github.com/labuda/backend/internal/governance/support/entity"
 	supportRepo "github.com/labuda/backend/internal/governance/support/repository"
+	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
@@ -149,7 +148,7 @@ func (m *ownershipMockRepo) FindDisputesForSLACheck(ctx context.Context, tx db.T
 
 type ownershipMockChatService struct{}
 
-func (m *ownershipMockChatService) CreateSupportTicketRoom(ctx context.Context, userID uuid.UUID, ticketID uuid.UUID, contextJSON json.RawMessage) (*chatEntity.ChatRoom, error) {
+func (m *ownershipMockChatService) CreateSupportTicketRoom(ctx context.Context, userID uuid.UUID) (*chatEntity.ChatRoom, error) {
 	return nil, nil
 }
 func (m *ownershipMockChatService) SendSystemMessage(ctx context.Context, roomID uuid.UUID, body string) error {
@@ -351,5 +350,3 @@ func TestHandler_ReopenTicket_OwnershipEnforcement(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
 }
-
-

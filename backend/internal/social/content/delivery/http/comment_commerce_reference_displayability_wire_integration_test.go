@@ -42,7 +42,7 @@ func testCommentDisplayabilityHandler(appDB *db.DB) *CommentHandler {
 		nil, // roleChecker
 		nil, // actorResolver
 		nil,
-		shippingrepo.NewProductShippingOptionRepository(nil),
+		shippingrepo.NewProductShippingSetupRepository(nil),
 		nil, // coverageRepo
 		nil, // shippingQuoteRepo
 		nil, // addressRepo

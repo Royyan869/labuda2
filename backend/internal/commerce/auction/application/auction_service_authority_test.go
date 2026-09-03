@@ -30,8 +30,8 @@ type auctionUpdateSpyRow struct {
 }
 
 func (r auctionUpdateSpyRow) Scan(dest ...any) error {
-	if len(dest) != 33 {
-		return fmt.Errorf("expected 33 scan destinations, got %d", len(dest))
+	if len(dest) != 35 {
+		return fmt.Errorf("expected 35 scan destinations, got %d", len(dest))
 	}
 
 	auction := r.auction
@@ -44,43 +44,45 @@ func (r auctionUpdateSpyRow) Scan(dest ...any) error {
 	*dest[1].(*uuid.UUID) = auction.SellerID
 	*dest[2].(*uuid.UUID) = auction.ProductID
 	*dest[3].(**uuid.UUID) = auction.OrderID
-	*dest[4].(**time.Time) = auction.SettlementDeadline
-	*dest[5].(*int64) = auction.StartPrice
-	*dest[6].(*int64) = auction.BidIncrement
-	*dest[7].(**int64) = auction.BuyNowPrice
-	*dest[8].(*time.Time) = auction.StartAt
-	*dest[9].(*time.Time) = auction.EndAt
-	*dest[10].(**int64) = auction.CurrentBid
-	*dest[11].(**uuid.UUID) = auction.CurrentWinnerID
-	*dest[12].(*string) = string(auction.Status)
-	*dest[13].(*time.Time) = auction.CreatedAt
-	*dest[14].(*time.Time) = auction.UpdatedAt
-	*dest[15].(*int64) = int64(auction.AntiSnipeExtensionTotal / time.Second)
-	*dest[16].(*uuid.UUID) = product.ID
-	*dest[17].(*uuid.UUID) = product.SellerID
-	*dest[18].(*string) = product.Title
-	*dest[19].(*string) = product.Description
+	*dest[4].(*int64) = auction.StartPrice
+	*dest[5].(*int64) = auction.BidIncrement
+	*dest[6].(**int64) = auction.BuyNowPrice
+	*dest[7].(*time.Time) = auction.StartAt
+	*dest[8].(*time.Time) = auction.EndAt
+	*dest[9].(**int64) = auction.CurrentBid
+	*dest[10].(**uuid.UUID) = auction.CurrentWinnerID
+	*dest[11].(**time.Time) = auction.ShippingResolvedAt
+	*dest[12].(*bool) = auction.SellerActionRequired
+	*dest[13].(*bool) = auction.SellerQuoteProvided
+	*dest[14].(*string) = string(auction.Status)
+	*dest[15].(*time.Time) = auction.CreatedAt
+	*dest[16].(*time.Time) = auction.UpdatedAt
+	*dest[17].(*int64) = int64(auction.AntiSnipeExtensionTotal / time.Second)
+	*dest[18].(*uuid.UUID) = product.ID
+	*dest[19].(*uuid.UUID) = product.SellerID
+	*dest[20].(*string) = product.Title
+	*dest[21].(*string) = product.Description
 	mediaJSON := json.RawMessage("[]")
 	if len(product.MediaURLs) > 0 {
 		mediaJSON, _ = json.Marshal(product.MediaURLs)
 	}
-	*dest[20].(*json.RawMessage) = mediaJSON
-	*dest[21].(*string) = product.Variety
-	*dest[22].(**int) = product.SizeCm
-	*dest[23].(**int) = product.AgeMonths
-	*dest[24].(**string) = product.Gender
-	*dest[25].(**string) = product.Breeder
-	*dest[26].(**string) = product.Bloodline
+	*dest[22].(*json.RawMessage) = mediaJSON
+	*dest[23].(*string) = product.Variety
+	*dest[24].(**int) = product.SizeCm
+	*dest[25].(**int) = product.AgeMonths
+	*dest[26].(**string) = product.Gender
+	*dest[27].(**string) = product.Breeder
+	*dest[28].(**string) = product.Bloodline
 	certs := product.Certificates
 	if certs == nil {
 		certs = []string{}
 	}
-	*dest[27].(*[]string) = certs
-	*dest[28].(**uuid.UUID) = product.FarmAddressID
-	*dest[29].(*string) = product.PreparationTime
-	*dest[30].(**string) = product.PreparationNote
-	*dest[31].(*time.Time) = product.CreatedAt
-	*dest[32].(*time.Time) = product.UpdatedAt
+	*dest[29].(*[]string) = certs
+	*dest[30].(**uuid.UUID) = product.FarmAddressID
+	*dest[31].(*string) = product.PreparationTime
+	*dest[32].(**string) = product.PreparationNote
+	*dest[33].(*time.Time) = product.CreatedAt
+	*dest[34].(*time.Time) = product.UpdatedAt
 	return nil
 }
 
@@ -185,9 +187,10 @@ func TestUpdateDraft_OwnerCanUpdateDraft_PersistsUpdatedRow(t *testing.T) {
 	assert.NotContains(t, tx.execSQL[0], "description")
 	assert.NotContains(t, tx.execSQL[0], "preparation")
 	require.Len(t, tx.execArgs, 1)
-	assert.Equal(t, int64(1_100_000), tx.execArgs[0][3])
-	assert.Equal(t, int64(150_000), tx.execArgs[0][4])
-	assert.Nil(t, tx.execArgs[0][5])
+	// UPDATE args: id=$1, order_id=$2, start_price=$3, bid_increment=$4, buy_now_price=$5
+	assert.Equal(t, int64(1_100_000), tx.execArgs[0][2])
+	assert.Equal(t, int64(150_000), tx.execArgs[0][3])
+	assert.Nil(t, tx.execArgs[0][4])
 }
 
 func TestUpdateDraft_NonOwnerRejected_DoesNotPersist(t *testing.T) {

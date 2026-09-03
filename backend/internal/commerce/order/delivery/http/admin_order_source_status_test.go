@@ -87,7 +87,6 @@ func TestOrderDetailResponse_SourceStatus(t *testing.T) {
 		{"auction", "scheduled"},
 		{"auction", "active"},
 		{"auction", "waiting_settlement"},
-		{"auction", "expired_bnr"},
 		{"auction", "ended"},
 		{"auction", "cancelled"},
 	}

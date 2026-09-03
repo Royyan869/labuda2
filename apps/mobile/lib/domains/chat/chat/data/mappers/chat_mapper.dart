@@ -23,8 +23,6 @@ class ChatMapper {
       participantIds: dto.participantIds,
       participantNames: dto.participantNames,
       participantAvatars: dto.participantAvatars,
-      context: _mapToShareReference(dto.context),
-      contextSetBy: dto.contextSetBy,
       lastMessage: dto.lastMessage != null
           ? _lastMessageToDomain(dto.lastMessage!)
           : null,
@@ -68,8 +66,6 @@ class ChatMapper {
       participantIds: entity.participantIds,
       participantNames: entity.participantNames,
       participantAvatars: entity.participantAvatars,
-      context: _shareReferenceToMap(entity.context),
-      contextSetBy: entity.contextSetBy,
       lastMessage: entity.lastMessage != null
           ? _messageToLastMessageDto(entity.lastMessage!)
           : null,
@@ -432,53 +428,6 @@ class ChatMapper {
   }
 
   // ========================================
-  // Chat Context Mapping (ShareReference)
-  // ========================================
-
-  /// **SOCIAL FIX 1.1:** Chat context now uses ShareReference for all object references.
-  /// This replaces the legacy _mapToAttachment() method that returned Attachment types.
-  static ShareReference? _mapToShareReference(Map<String, dynamic>? map) {
-    if (map == null) return null;
-
-    if (!(map.containsKey('target_type') && map.containsKey('target_id'))) {
-      return null;
-    }
-
-    try {
-      return ShareReferenceAttachmentDto.fromJson({
-        'type': 'reference',
-        'data': map,
-      }).toShareReference();
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// Convert ShareReference to Map for API requests
-  static Map<String, dynamic>? _shareReferenceToMap(ShareReference? reference) {
-    if (reference == null) return null;
-
-    final chatReference = reference.asChatReference();
-    if (chatReference == null) {
-      return null;
-    }
-
-    return {
-      'target_type': chatReference.wireTargetType,
-      'target_id': chatReference.targetId,
-      'preview': {
-        'title': chatReference.preview.title,
-        if (chatReference.preview.imageUrl != null)
-          'imageUrl': chatReference.preview.imageUrl,
-        'isAvailable': chatReference.preview.isAvailable,
-        'isSold': chatReference.preview.isSold,
-        'isClosed': chatReference.preview.isClosed,
-        'isDeleted': chatReference.preview.isDeleted,
-      },
-    };
-  }
-
-  // ========================================
   // Attachment Mapping (Message attachments only)
   // ========================================
 
@@ -528,16 +477,13 @@ class ChatMapper {
         map['offerId'] = dto.data['offer_id'];
         map['linkedItemId'] = dto.data['linked_item_id'];
         map['linkedItemType'] = dto.data['linked_item_type'];
-        map['auctionId'] = dto.data['auction_id'];
         map['linkedItemName'] = dto.data['linked_item_name'];
         map['linkedItemImage'] = dto.data['linked_item_image'];
         map['linkedItemPrice'] = dto.data['linked_item_price'];
         map['shippingType'] = dto.data['shipping_type'];
         map['shippingTypeName'] = dto.data['shipping_type_name'];
         map['shippingTypeEmoji'] = dto.data['shipping_type_emoji'];
-        map['expeditionName'] = dto.data['expedition_name'];
         map['rate'] = dto.data['rate'];
-        map['estimatedDays'] = dto.data['estimated_days'];
         map['notes'] = dto.data['notes'];
         map['validUntil'] = dto.data['valid_until'];
         map['status'] = dto.data['status'];
@@ -642,16 +588,13 @@ class ChatMapper {
         offerId: attachment.offerId,
         linkedItemId: attachment.linkedItemId,
         linkedItemType: attachment.linkedItemType,
-        auctionId: attachment.auctionId,
         linkedItemName: attachment.linkedItemName,
         linkedItemImage: attachment.linkedItemImage,
         linkedItemPrice: attachment.linkedItemPrice,
         shippingType: attachment.shippingType,
         shippingTypeName: attachment.shippingTypeName,
         shippingTypeEmoji: attachment.shippingTypeEmoji,
-        expeditionName: attachment.expeditionName,
         rate: attachment.rate,
-        estimatedDays: attachment.estimatedDays,
         notes: attachment.notes,
         validUntil: attachment.validUntil.toIso8601String(),
         status: attachment.status,

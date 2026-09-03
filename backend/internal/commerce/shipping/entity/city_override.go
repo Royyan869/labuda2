@@ -9,13 +9,13 @@ import (
 
 // CityOverride represents city-specific rate and availability overrides.
 // Nil values mean "use parent coverage default".
+// NOTE: estimated_days was dropped by migration 000014.
 type CityOverride struct {
 	ID                 uuid.UUID
 	ShippingCoverageID uuid.UUID
 	CityCode           string
 	CityName           string
 	Rate               *money.Money // nil = use province_rate
-	EstimatedDays      *string      // nil = use coverage default, value = override (e.g., "same day")
 	IsAvailable        *bool        // nil = use coverage default
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
@@ -34,7 +34,6 @@ func NewCityOverride(
 		CityCode:           cityCode,
 		CityName:           cityName,
 		Rate:               nil,
-		EstimatedDays:      nil,
 		IsAvailable:        nil,
 		CreatedAt:          now,
 		UpdatedAt:          now,
@@ -50,18 +49,6 @@ func (co *CityOverride) SetRate(rate money.Money) {
 // ClearRate removes rate override (uses province_rate).
 func (co *CityOverride) ClearRate() {
 	co.Rate = nil
-	co.UpdatedAt = time.Now()
-}
-
-// SetEstimatedDays sets estimated delivery time for this city.
-func (co *CityOverride) SetEstimatedDays(days string) {
-	co.EstimatedDays = &days
-	co.UpdatedAt = time.Now()
-}
-
-// ClearEstimatedDays removes estimated days override (uses coverage default).
-func (co *CityOverride) ClearEstimatedDays() {
-	co.EstimatedDays = nil
 	co.UpdatedAt = time.Now()
 }
 
@@ -83,14 +70,6 @@ func (co *CityOverride) GetEffectiveRate(provinceRate money.Money) money.Money {
 		return *co.Rate
 	}
 	return provinceRate
-}
-
-// GetEffectiveEstimatedDays returns the estimated days to use (override or default).
-func (co *CityOverride) GetEffectiveEstimatedDays(defaultDays string) string {
-	if co.EstimatedDays != nil {
-		return *co.EstimatedDays
-	}
-	return defaultDays
 }
 
 // GetEffectiveAvailability returns availability to use (override or default).

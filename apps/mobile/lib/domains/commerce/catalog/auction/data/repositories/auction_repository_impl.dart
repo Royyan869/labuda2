@@ -56,7 +56,7 @@ class AuctionRepositoryImpl implements AuctionRepository {
     required int durationHours,
     String? farmAddressId,
     AuctionLocation? location,
-    required List<String> shippingOptionIds,
+    required List<String> shippingSetupIds,
     String? preparationNote,
   }) async {
     try {
@@ -78,7 +78,7 @@ class AuctionRepositoryImpl implements AuctionRepository {
         durationHours: durationHours,
         farmAddressId: farmAddressId,
         location: location,
-        shippingOptionIds: shippingOptionIds,
+        shippingSetupIds: shippingSetupIds,
         preparationNote: preparationNote,
       );
 
@@ -276,7 +276,7 @@ class AuctionRepositoryImpl implements AuctionRepository {
   Future<RepositoryResult<String>> claimAuction({
     required String auctionId,
     required String addressId,
-    required String shippingOptionId,
+    required String shippingSetupId,
     String? discountCode,
     bool useCoins = false,
   }) async {
@@ -284,7 +284,7 @@ class AuctionRepositoryImpl implements AuctionRepository {
       final orderId = await _datasource.claimAuction(
         auctionId,
         addressId: addressId,
-        shippingOptionId: shippingOptionId,
+        shippingSetupId: shippingSetupId,
         discountCode: discountCode,
         useCoins: useCoins,
       );

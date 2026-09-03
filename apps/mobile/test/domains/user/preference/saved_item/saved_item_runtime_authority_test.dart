@@ -29,7 +29,7 @@ AuthUser _authUser({required String id}) {
     username: id,
     isEmailVerified: true,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     lifecycle: ContentLifecycle.active,
   );
 }

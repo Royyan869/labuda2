@@ -198,8 +198,6 @@ class ChatList extends _$ChatList {
       participantLifecycles: incoming.participantLifecycles.isNotEmpty
           ? incoming.participantLifecycles
           : existing.participantLifecycles,
-      context: incoming.context ?? existing.context,
-      contextSetBy: incoming.contextSetBy ?? existing.contextSetBy,
       lastMessage: mergedLastMessage,
       createdAt: existing.createdAt,
       updatedAt: incoming.updatedAt ?? existing.updatedAt,
@@ -267,8 +265,6 @@ class ChatList extends _$ChatList {
           if (event.otherUser!.lifecycle != null)
             'lifecycle': event.otherUser!.lifecycle,
         },
-      if (event.context != null) 'context': event.context,
-      if (event.contextSetBy != null) 'context_set_by': event.contextSetBy,
       if (event.linkedOrderId != null) 'linked_order_id': event.linkedOrderId,
       if (event.lastMessage != null)
         'last_message': <String, dynamic>{

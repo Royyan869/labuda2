@@ -12,7 +12,7 @@ AuthUser _user(String username) {
     username: username,
     isEmailVerified: true,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
   );
 }
 

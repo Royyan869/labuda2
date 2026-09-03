@@ -35,7 +35,7 @@ AuthUser _testUser({
     isIdVerified: isIdVerified,
     isFarmVerified: isFarmVerified,
     roles: roles,
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     hasSellerProfile: hasSellerProfile,
     sellerSubscriptionStatus: sellerSubscriptionStatus,
     hasMarketAuthority: hasMarketAuthority,
@@ -285,15 +285,15 @@ void main() {
         );
       });
 
-      test('active seller can access /create/listing', () {
+      test('active seller can access /create/for-sale', () {
         expect(
-          handleSellerRouteGuardForTest(_activeSeller(), '/create/listing'),
+          handleSellerRouteGuardForTest(_activeSeller(), '/create/for-sale'),
           isNull,
         );
       });
 
       test(
-        'active seller with no KYC and elite tier can still access /create/listing',
+        'active seller with no KYC and elite tier can still access /create/for-sale',
         () {
           final user = _testUser(
             roles: [UserRole.user],
@@ -306,10 +306,10 @@ void main() {
             sellerTier: SellerTier.sellerElite,
           );
           expect(
-            handleSellerRouteGuardForTest(user, '/create/listing'),
+            handleSellerRouteGuardForTest(user, '/create/for-sale'),
             isNull,
             reason:
-                'create listing must use only seller profile + market authority',
+                'create for-sale must use only seller profile + market authority',
           );
         },
       );
@@ -371,10 +371,10 @@ void main() {
           );
         });
 
-        test('user without profile redirected from /create/listing', () {
+        test('user without profile redirected from /create/for-sale', () {
           final user = _testUser(hasSellerProfile: false);
           expect(
-            handleSellerRouteGuardForTest(user, '/create/listing'),
+            handleSellerRouteGuardForTest(user, '/create/for-sale'),
             equals('/seller/upgrade'),
           );
         });
@@ -413,9 +413,9 @@ void main() {
         );
       });
 
-      test('null user redirected from /create/listing', () {
+      test('null user redirected from /create/for-sale', () {
         expect(
-          handleSellerRouteGuardForTest(null, '/create/listing'),
+          handleSellerRouteGuardForTest(null, '/create/for-sale'),
           equals('/seller/upgrade'),
         );
       });

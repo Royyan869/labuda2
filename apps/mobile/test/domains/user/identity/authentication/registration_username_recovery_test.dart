@@ -13,7 +13,7 @@
 // the authenticated exchange with a corrected username, reusing the mutex-guarded
 // _syncWithBackend path and never touching the Firebase account lifecycle.
 
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/core.dart';
@@ -237,7 +237,7 @@ AuthUser _principalUser(String id, {required String username}) {
     isEmailVerified: false,
     accountStatus: AccountStatus.active,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
   );
 }
 

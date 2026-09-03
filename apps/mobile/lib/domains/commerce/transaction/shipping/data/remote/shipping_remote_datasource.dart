@@ -13,7 +13,7 @@ class ShippingRemoteDatasource {
   // =====================================
 
   /// Create a shipping option
-  Future<ShippingOptionDto> createShippingOption(
+  Future<ShippingSetupDto> createShippingSetup(
     Map<String, dynamic> data,
   ) async {
     final response = await _apiClient.post(
@@ -21,18 +21,18 @@ class ShippingRemoteDatasource {
       data: data,
     );
     final envelope = _decodeEnvelope(response, 'create shipping option');
-    return _decodeShippingOptionEnvelope(envelope).shippingOption;
+    return _decodeShippingSetupEnvelope(envelope).shippingSetup;
   }
 
   /// Get shipping option by ID
-  Future<ShippingOptionDto> getShippingOption(String optionId) async {
+  Future<ShippingSetupDto> getShippingSetup(String optionId) async {
     final response = await _apiClient.get('/seller/shipping/options/$optionId');
     final envelope = _decodeEnvelope(response, 'get shipping option');
-    return _decodeShippingOptionEnvelope(envelope).shippingOption;
+    return _decodeShippingSetupEnvelope(envelope).shippingSetup;
   }
 
   /// Update shipping option
-  Future<ShippingOptionDto> updateShippingOption(
+  Future<ShippingSetupDto> updateShippingSetup(
     String optionId,
     Map<String, dynamic> data,
   ) async {
@@ -41,16 +41,16 @@ class ShippingRemoteDatasource {
       data: data,
     );
     final envelope = _decodeEnvelope(response, 'update shipping option');
-    return _decodeShippingOptionEnvelope(envelope).shippingOption;
+    return _decodeShippingSetupEnvelope(envelope).shippingSetup;
   }
 
   /// Delete shipping option
-  Future<void> deleteShippingOption(String optionId) async {
+  Future<void> deleteShippingSetup(String optionId) async {
     await _apiClient.delete('/seller/shipping/options/$optionId');
   }
 
   /// List my shipping options
-  Future<List<ShippingOptionDto>> listMyShippingOptions({
+  Future<List<ShippingSetupDto>> listMyShippingSetups({
     bool includeInactive = true,
   }) async {
     final response = await _apiClient.get(
@@ -58,16 +58,16 @@ class ShippingRemoteDatasource {
       queryParameters: {'include_inactive': includeInactive},
     );
     final envelope = _decodeEnvelope(response, 'list shipping options');
-    return _decodeShippingOptionsEnvelope(envelope).shippingOptions;
+    return _decodeShippingSetupsEnvelope(envelope).shippingSetups;
   }
 
   /// List my active shipping options only
-  Future<List<ShippingOptionDto>> listMyActiveShippingOptions() async {
-    return listMyShippingOptions(includeInactive: false);
+  Future<List<ShippingSetupDto>> listMyActiveShippingSetups() async {
+    return listMyShippingSetups(includeInactive: false);
   }
 
   /// Toggle shipping option active status via canonical PUT update
-  Future<void> toggleShippingOption(String optionId, bool isActive) async {
+  Future<void> toggleShippingSetup(String optionId, bool isActive) async {
     await _apiClient.put(
       '/seller/shipping/options/$optionId',
       data: {'is_active': isActive},
@@ -117,18 +117,18 @@ class ShippingRemoteDatasource {
   ///
   /// Overwrite semantics: the backend deletes existing rows in
   /// `product_shipping_options` and inserts a fresh set in a single tx
-  /// (see backend [ProductShippingService.SetProductShippingOptions]).
+  /// (see backend [ProductShippingService.SetProductShippingSetups]).
   /// An empty list clears all linked options.
   ///
   /// Backend rejects if any of the option IDs do not belong to the calling
   /// seller, or if the listing already has active orders.
-  Future<void> setProductShippingOptions(
+  Future<void> setProductShippingSetups(
     String productId,
-    List<String> shippingOptionIds,
+    List<String> shippingSetupIds,
   ) async {
     await _apiClient.put(
       '/products/$productId/shipping',
-      data: {'shipping_option_ids': shippingOptionIds},
+      data: {'shipping_setup_ids': shippingSetupIds},
     );
   }
 
@@ -205,11 +205,11 @@ Map<String, dynamic> _decodeEnvelope(dynamic response, String context) {
   return inner;
 }
 
-ShippingOptionEnvelopeDto _decodeShippingOptionEnvelope(
+ShippingSetupEnvelopeDto _decodeShippingSetupEnvelope(
   Map<String, dynamic> envelope,
 ) {
   final optionJson = _expectMap(envelope['shipping_option']);
-  final option = ShippingOptionDto.fromJson(optionJson);
+  final option = ShippingSetupDto.fromJson(optionJson);
 
   final coveragesRaw = envelope['coverages'];
   final coverages = coveragesRaw is List
@@ -218,12 +218,11 @@ ShippingOptionEnvelopeDto _decodeShippingOptionEnvelope(
             .toList(growable: false)
       : option.coverages;
 
-  return ShippingOptionEnvelopeDto(
-    shippingOption: ShippingOptionDto(
+  return ShippingSetupEnvelopeDto(
+    shippingSetup: ShippingSetupDto(
       id: option.id,
       name: option.name,
       type: option.type,
-      expeditionName: option.expeditionName,
       isActive: option.isActive,
       coverages: coverages,
       createdAt: option.createdAt,
@@ -232,10 +231,10 @@ ShippingOptionEnvelopeDto _decodeShippingOptionEnvelope(
   );
 }
 
-SellerShippingOptionsEnvelopeDto _decodeShippingOptionsEnvelope(
+SellerShippingSetupsEnvelopeDto _decodeShippingSetupsEnvelope(
   Map<String, dynamic> envelope,
 ) {
-  return SellerShippingOptionsEnvelopeDto.fromJson(envelope);
+  return SellerShippingSetupsEnvelopeDto.fromJson(envelope);
 }
 
 ShippingCoverageEnvelopeDto _decodeShippingCoverageEnvelope(
@@ -253,10 +252,10 @@ Map<String, dynamic> _expectMap(dynamic value) {
   return value;
 }
 
-class ShippingOptionEnvelopeDto {
-  final ShippingOptionDto shippingOption;
+class ShippingSetupEnvelopeDto {
+  final ShippingSetupDto shippingSetup;
 
-  const ShippingOptionEnvelopeDto({required this.shippingOption});
+  const ShippingSetupEnvelopeDto({required this.shippingSetup});
 }
 
 class ShippingCoverageEnvelopeDto {

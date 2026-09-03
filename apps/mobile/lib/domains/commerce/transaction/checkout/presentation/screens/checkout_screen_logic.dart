@@ -99,8 +99,8 @@ Future<void> _checkoutFetchPreview(
       sourceType: sourceType,
       sourceId: sourceId,
       shippingQuoteId: state.widget.shippingQuoteId,
-      shippingOptionId: state.widget.shippingQuoteId == null
-          ? state._selectedShippingOptionId
+      shippingSetupId: state.widget.shippingQuoteId == null
+          ? state._selectedShippingSetupId
           : null,
     );
 
@@ -272,8 +272,8 @@ Future<void> _checkoutHandleCreateOrder(_CheckoutScreenState state) async {
 
     // Validate shipping option selected (for standard checkout only)
     if (state.widget.shippingQuoteId == null &&
-        (state._selectedShippingOptionId == null ||
-            state._selectedShippingOptionId!.isEmpty)) {
+        (state._selectedShippingSetupId == null ||
+            state._selectedShippingSetupId!.isEmpty)) {
       AppSnackBar.showError(
         state.context,
         'Pilih opsi pengiriman terlebih dahulu',
@@ -295,8 +295,8 @@ Future<void> _checkoutHandleCreateOrder(_CheckoutScreenState state) async {
       auctionId: state.widget.auctionId,
       negotiationId: state.widget.negotiationId,
       shippingQuoteId: state.widget.shippingQuoteId,
-      shippingOptionId: state.widget.shippingQuoteId == null
-          ? state._selectedShippingOptionId
+      shippingSetupId: state.widget.shippingQuoteId == null
+          ? state._selectedShippingSetupId
           : null,
     );
 

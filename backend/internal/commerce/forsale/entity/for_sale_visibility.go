@@ -43,8 +43,11 @@ func (v ForSaleVisibility) String() string {
 // publish timestamp. Active for_sales become public only once published; every
 // other state remains private.
 func DeriveVisibility(status ForSaleStatus, publishedAt *time.Time) ForSaleVisibility {
-	if status == ForSaleStatusActive && publishedAt != nil {
-		return ForSaleVisibilityPublic
+	if publishedAt != nil {
+		switch status {
+		case ForSaleStatusActive, ForSaleStatusSold, ForSaleStatusWithdrawn:
+			return ForSaleVisibilityPublic
+		}
 	}
 	return ForSaleVisibilityPrivate
 }

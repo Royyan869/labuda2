@@ -25,7 +25,7 @@ import 'package:labuda/domains/finance/wallet/coins/coins.dart';
 typedef ClaimCallback =
     Future<String?> Function({
       required String addressId,
-      required String shippingOptionId,
+      required String shippingSetupId,
       String? discountCode,
       bool useCoins,
     });
@@ -251,11 +251,11 @@ class _AuctionClaimShippingModalState
     });
 
     try {
-      final shippingOptionId = _selectedDeliveryOption!.shippingOptionId;
+      final shippingSetupId = _selectedDeliveryOption!.shippingSetupId;
 
       final orderId = await widget.onClaim(
         addressId: _selectedAddress!.id,
-        shippingOptionId: shippingOptionId,
+        shippingSetupId: shippingSetupId,
         discountCode: _discountController.text.trim().isEmpty
             ? null
             : _discountController.text.trim(),
@@ -751,7 +751,7 @@ class _AuctionClaimShippingModalState
 
   Widget _buildDeliveryOptionCard(DeliveryOption option) {
     final isSelected =
-        _selectedDeliveryOption?.shippingOptionId == option.shippingOptionId;
+        _selectedDeliveryOption?.shippingSetupId == option.shippingSetupId;
 
     return GestureDetector(
       onTap: () => _onDeliveryOptionSelected(option),
@@ -802,14 +802,6 @@ class _AuctionClaimShippingModalState
                       color: AppColors.neutralGray900,
                     ),
                   ),
-                  if (option.estimatedDays != null)
-                    Text(
-                      'Estimasi: ${option.estimatedDays}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.neutralGray600,
-                      ),
-                    ),
                   if (option.notes != null)
                     Text(
                       option.notes!,

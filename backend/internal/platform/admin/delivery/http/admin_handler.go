@@ -24,13 +24,6 @@ type FailedDeliveryQuerier interface {
 	GetFailedDeliveriesPaginated(ctx context.Context, page, pageSize int, since time.Time) (*notifservice.FailedDeliveryResult, error)
 }
 
-// BNRResetter is the minimal interface for admin BNR strike reset.
-// Satisfied by *worker.BNRAdminResetter.
-type BNRResetter interface {
-	ResetAllForBuyer(ctx context.Context, buyerID, actorID uuid.UUID) (int64, error)
-	ResetStrike(ctx context.Context, strikeID, actorID uuid.UUID) (bool, error)
-}
-
 // AdminHandler handles HTTP requests for admin operations.
 //
 // This handler provides endpoints for:
@@ -47,7 +40,6 @@ type AdminHandler struct {
 	capabilityService *capabilityApp.CapabilityService
 	slaService        *application.SLAService
 	deliveryQuerier   FailedDeliveryQuerier // O4: notification delivery failure monitoring
-	bnrResetter       BNRResetter           // BNR admin strike reset
 }
 
 // NewAdminHandler creates a new AdminHandler.
@@ -68,11 +60,6 @@ func NewAdminHandler(
 // SetDeliveryQuerier sets the notification delivery querier for O4 admin endpoint.
 func (h *AdminHandler) SetDeliveryQuerier(q FailedDeliveryQuerier) {
 	h.deliveryQuerier = q
-}
-
-// SetBNRResetter sets the BNR admin resetter for strike reset endpoints.
-func (h *AdminHandler) SetBNRResetter(r BNRResetter) {
-	h.bnrResetter = r
 }
 
 // ============================================================================
@@ -961,92 +948,3 @@ func (h *AdminHandler) GetFailedDeliveries(c *gin.Context) {
 	})
 }
 
-// ============================================================================
-// BNR STRIKE ADMIN RESET
-// ============================================================================
-
-// ResetBNRStrikesForUser handles POST /api/v1/admin/users/:id/bnr-strikes/reset
-//
-// Sets admin_reset = TRUE on all active BNR strikes for the specified buyer.
-// Active = decayed_at IS NULL AND admin_reset = FALSE. Rows are kept for audit.
-func (h *AdminHandler) ResetBNRStrikesForUser(c *gin.Context) {
-	if h.bnrResetter == nil {
-		response.InternalServerError(c, "BNR reset not configured")
-		return
-	}
-
-	ctx := c.Request.Context()
-
-	actorID, ok := middleware.MustGetUserIDFromContext(c)
-	if !ok {
-		return
-	}
-
-	buyerID, err := middleware.GetUUIDParam(c, "id")
-	if err != nil {
-		response.BadRequest(c, "Invalid user ID")
-		return
-	}
-
-	count, err := h.bnrResetter.ResetAllForBuyer(ctx, buyerID, actorID)
-	if err != nil {
-		response.InternalServerError(c, "Failed to reset BNR strikes")
-		return
-	}
-
-	h.adminAuditLogger.LogSafe(ctx, actorID,
-		"admin_bnr_strikes_reset", "user", buyerID,
-		map[string]interface{}{
-			"strikes_reset": count,
-		},
-	)
-
-	response.Success(c, gin.H{
-		"buyer_id":      buyerID,
-		"strikes_reset": count,
-	})
-}
-
-// ResetBNRStrike handles POST /api/v1/admin/bnr-strikes/:strike_id/reset
-//
-// Sets admin_reset = TRUE on a single BNR strike by ID.
-func (h *AdminHandler) ResetBNRStrike(c *gin.Context) {
-	if h.bnrResetter == nil {
-		response.InternalServerError(c, "BNR reset not configured")
-		return
-	}
-
-	ctx := c.Request.Context()
-
-	actorID, ok := middleware.MustGetUserIDFromContext(c)
-	if !ok {
-		return
-	}
-
-	strikeID, err := middleware.GetUUIDParam(c, "strike_id")
-	if err != nil {
-		response.BadRequest(c, "Invalid strike ID")
-		return
-	}
-
-	updated, err := h.bnrResetter.ResetStrike(ctx, strikeID, actorID)
-	if err != nil {
-		response.InternalServerError(c, "Failed to reset BNR strike")
-		return
-	}
-
-	if !updated {
-		response.NotFound(c, "Strike not found or already reset/decayed")
-		return
-	}
-
-	h.adminAuditLogger.LogSafe(ctx, actorID,
-		"admin_bnr_strike_reset", "bnr_strike", strikeID,
-		nil,
-	)
-
-	response.Success(c, gin.H{
-		"strike_id": strikeID,
-		"reset":     true,
-	})
-}

@@ -81,10 +81,7 @@ class ChatCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   _buildLastMessage(context, currentUserId),
-                  if (chat.context != null) ...[
-                    const SizedBox(height: 4),
-                    _buildContextChip(context),
-                  ],
+
                 ],
               ),
             ),
@@ -311,28 +308,6 @@ class ChatCard extends ConsumerWidget {
     }
   }
 
-  Widget _buildContextChip(BuildContext context) {
-    if (chat.context == null) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(_getContextIcon(), size: 14, color: Colors.blue[700]),
-          const SizedBox(width: 4),
-          Text(
-            _getContextLabel(),
-            style: TextStyle(fontSize: 12, color: Colors.blue[700]),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildSupportCategoryChip(BuildContext context) {
     if (chat.supportCategory == null) return const SizedBox.shrink();
@@ -397,21 +372,6 @@ class ChatCard extends ConsumerWidget {
     );
   }
 
-  IconData _getContextIcon() {
-    if (chat.context == null) return Icons.attachment;
-
-    switch (chat.context.runtimeType) {
-      default:
-        return Icons.attachment;
-    }
-  }
-
-  String _getContextLabel() {
-    if (chat.context == null) return 'Attachment';
-
-    // TODO: Get proper label based on attachment type
-    return 'Shared item';
-  }
 
   Color _getSupportCategoryColor() {
     switch (chat.supportCategory) {

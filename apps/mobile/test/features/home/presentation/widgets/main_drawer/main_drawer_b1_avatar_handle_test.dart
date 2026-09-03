@@ -78,7 +78,7 @@ AuthUser _user({
     storeName: storeName,
     storeImageUrl: storeImageUrl,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
   );
 }
 

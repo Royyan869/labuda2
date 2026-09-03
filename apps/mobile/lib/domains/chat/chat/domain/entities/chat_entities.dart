@@ -128,37 +128,16 @@ extension MessageTypeExtension on MessageType {
 ///
 /// **DOMAIN BOUNDARY:**
 /// - Chat is a COMMUNICATION LAYER - not a transaction system
-/// - Chat carries context via ShareReference (for object references) or Attachment (for workflow payloads)
+/// - Chat carries object references via Message.attachment (per-message)
 /// - Chat does NOT own commerce state - it only displays it
 /// - Commerce actions (nego, quote, checkout) trigger domain operations
 /// - Commerce results flow back through attachments in messages
 ///
-/// **REFERENCE TRUTH ALIGNMENT V1:**
-/// Chat memiliki DUA LEVEL reference yang TERPISAH secara tegas:
-///
-/// 1. ROOM CONTEXT REFERENCE (Chat.context):
-///    - Room-level relation: "chat ini tentang apa"
-///    - Ditetapkan saat room dibuat atau di-update kemudian
-///    - Bersifat semi-permanen untuk lifecycle room
-///    - Dipakai untuk: menampilkan header chat, navigation back to source
-///    - TIDAK terpengaruh oleh pesan-pesan individual
-///
-/// 2. MESSAGE EMBEDDED REFERENCE (Message.attachment):
-///    - Message-level payload: "pesan ini mengirim apa"
-///    - Setiap pesan bisa membawa attachment berbeda
-///    - Bersifat ephemeral per pesan
-///    - Dipakai untuk: menampilkan object yang dikirim di pesan tertentu
-///    - BISA berbeda dari room context (user bisa kirim object lain dalam chat)
-///
-/// **KEY PRINCIPLE:**
-/// Room context TIDAK boleh di-overwrite oleh message attachment.
-/// Room context = persistent topic untuk seluruh conversation.
-/// Message attachment = specific object dalam pesan tersebut.
-///
 /// **ROOM CONTEXT:**
-/// - `context` attachment defines what the chat is about (listing, auction, etc)
+/// - Room-level context (context_json / context_set_by) was removed from
+///   the backend. Object references are now per-message via attachment.
 /// - `linkedOrderId` connects chat to an order after checkout
-/// - Chat type (private/group/channel/support) defines mention behavior
+/// - Chat type (private/support) defines mention behavior
 class Chat extends Equatable {
   final String id;
   final ChatType type;
@@ -184,19 +163,6 @@ class Chat extends Equatable {
   /// E4.3 render gate: ChatCard reads this map via getOtherParticipantLifecycle.
   final Map<String, ContentLifecycle> participantLifecycles;
 
-  /// ROOM CONTEXT REFERENCE (room-level)
-  ///
-  /// **SOCIAL FIX 1.1:** Uses ShareReference for all object references.
-  /// Chat context is ALWAYS a ShareReference (listing, auction, content, profile).
-  /// Workflow payloads (negotiation, shipping) are carried in Message.attachment only.
-  ///
-  /// Defines what this chat is about - set at room creation or updated later
-  /// This is DIFFERENT from Message.attachment (message-level reference)
-  /// Room context is persistent for the conversation lifecycle
-  final ShareReference? context;
-
-  /// User who set the room context (for audit trail)
-  final String? contextSetBy;
   final Message? lastMessage;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -223,8 +189,6 @@ class Chat extends Equatable {
     required this.participantIds,
     required this.participantNames,
     required this.participantAvatars,
-    this.context,
-    this.contextSetBy,
     this.lastMessage,
     required this.createdAt,
     this.updatedAt,
@@ -303,8 +267,6 @@ class Chat extends Equatable {
     participantIds,
     participantNames,
     participantAvatars,
-    context,
-    contextSetBy,
     lastMessage,
     createdAt,
     updatedAt,
@@ -331,8 +293,6 @@ class Chat extends Equatable {
     List<String>? participantIds,
     Map<String, String>? participantNames,
     Map<String, String?>? participantAvatars,
-    ShareReference? context,
-    String? contextSetBy,
     Message? lastMessage,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -358,8 +318,6 @@ class Chat extends Equatable {
       participantIds: participantIds ?? this.participantIds,
       participantNames: participantNames ?? this.participantNames,
       participantAvatars: participantAvatars ?? this.participantAvatars,
-      context: context ?? this.context,
-      contextSetBy: contextSetBy ?? this.contextSetBy,
       lastMessage: lastMessage ?? this.lastMessage,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

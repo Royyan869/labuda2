@@ -1,6 +1,6 @@
 # Labuda Admin Dashboard
 
-React 18 + Vite SPA for internal platform operations. Connects to the Labuda Go backend API via Firebase-authenticated requests.
+React 19 + Vite SPA for internal platform operations. Connects to the Labuda Go backend API via Firebase-authenticated requests.
 
 ---
 
@@ -8,13 +8,10 @@ React 18 + Vite SPA for internal platform operations. Connects to the Labuda Go 
 
 | Layer | Technology |
 |---|---|
-| Framework | React 18 + Vite |
+| Framework | React 19 + Vite |
 | Language | TypeScript |
 | Styling | Tailwind CSS 3 |
 | Routing | React Router v7 |
-| Forms | React Hook Form + Zod |
-| Tables | TanStack Table v8 |
-| Charts | Recharts |
 | Icons | Lucide React |
 | Auth | Firebase Authentication (Google/Email) |
 | API | Labuda Go backend — HTTP REST, Firebase ID token as Bearer |
@@ -119,11 +116,9 @@ apps/admin/src/
 All API calls go through `src/lib/api/client.ts` which:
 1. Reads `VITE_API_BASE_URL` (defaults to `http://localhost:8080`)
 2. Attaches the Firebase ID token as `Authorization: Bearer <token>`
-3. Refreshes the token automatically via `onIdTokenChanged`
 
 Per-domain API modules:
 - `src/lib/api/finance.ts` — withdrawals, ledger, refunds
-- `src/lib/api/moderation.ts` — moderation cases, warnings, appeals
 - `src/lib/api/disputes.ts` — dispute workspace
 - `src/lib/api/users.ts` — user management
 - `src/lib/api/orders.ts` — order operations

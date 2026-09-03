@@ -22,7 +22,7 @@ AuthUser _testUser({AccountStatus? status}) {
     sellerSubscriptionStatus: 'none',
     hasMarketAuthority: false,
     roles: [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     accountStatus: status,
   );
 }
@@ -211,7 +211,7 @@ void main() {
         hasMarketAuthority: false,
         accountStatus: AccountStatus.active,
         roles: [UserRole.admin],
-        provider: ShonaAuthProvider.email,
+        provider: AuthProvider.email,
       );
 
       // Gate check: active is NOT restricted

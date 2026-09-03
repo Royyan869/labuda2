@@ -854,7 +854,7 @@ type CreateOrderRequest struct {
 	// Common fields (required)
 	Quantity         int     `json:"quantity" binding:"required,min=1"`
 	AddressID        string  `json:"address_id" binding:"required"`
-	ShippingOptionID *string `json:"shipping_option_id,omitempty"` // Optional: when using shipping_quote_id
+	ShippingSetupID *string `json:"shipping_option_id,omitempty"` // Optional: when using shipping_quote_id
 	ShippingQuoteID  *string `json:"shipping_quote_id,omitempty"`  // Optional: when using manual quote
 	ProvinceCode     string  `json:"province_code"`                // Deprecated
 	CityCode         string  `json:"city_code"`                    // Deprecated
@@ -989,9 +989,9 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	}
 
 	// Parse shipping option ID (optional - can use shipping quote instead)
-	shippingOptionID := uuid.Nil
-	if req.ShippingOptionID != nil && *req.ShippingOptionID != "" {
-		shippingOptionID, err = uuid.Parse(*req.ShippingOptionID)
+	shippingSetupID := uuid.Nil
+	if req.ShippingSetupID != nil && *req.ShippingSetupID != "" {
+		shippingSetupID, err = uuid.Parse(*req.ShippingSetupID)
 		if err != nil {
 			response.BadRequest(c, "Invalid shipping option ID")
 			return
@@ -1000,11 +1000,11 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 
 	// Validate: either shipping_option_id or shipping_quote_id must be provided
 	hasShippingQuote := req.ShippingQuoteID != nil && *req.ShippingQuoteID != ""
-	if shippingOptionID == uuid.Nil && !hasShippingQuote {
+	if shippingSetupID == uuid.Nil && !hasShippingQuote {
 		response.BadRequest(c, "Either shipping_option_id or shipping_quote_id must be provided")
 		return
 	}
-	if shippingOptionID != uuid.Nil && hasShippingQuote {
+	if shippingSetupID != uuid.Nil && hasShippingQuote {
 		response.BadRequest(c, "Cannot provide both shipping_option_id and shipping_quote_id")
 		return
 	}
@@ -1034,7 +1034,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			sourceID,
 			0, // Quantity from token, not request
 			addressID,
-			shippingOptionID,
+			shippingSetupID,
 		)
 		if err != nil {
 			return fmt.Errorf("pricing token validation failed: %w", err)
@@ -1057,7 +1057,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 				BuyerID:          userID,
 				Quantity:         validatedToken.Quantity, // From token, not request
 				AddressID:        addressID,
-				ShippingOptionID: shippingOptionID,
+				ShippingSetupID: shippingSetupID,
 				ProvinceCode:     req.ProvinceCode,
 				CityCode:         req.CityCode,
 				IdempotencyKey:   &idempotencyKey,
@@ -1094,7 +1094,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 				BuyerID:               userID,
 				WinningBid:            validatedToken.UnitPrice.Int64(),
 				AddressID:             addressID,
-				ShippingOptionID:      shippingOptionID,
+				ShippingSetupID:      shippingSetupID,
 				ProvinceCode:          req.ProvinceCode,
 				CityCode:              req.CityCode,
 				DiscountCode:          nil,
@@ -1193,12 +1193,12 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		// Phase 0 honesty: surface typed shipping gate errors as machine-readable
 		// codes so mobile can branch into the canonical uncovered-area UX instead
 		// of falling back to substring matching on opaque sentences.
-		if errors.Is(err, shippingApp.ErrNoShippingOptions) {
+		if errors.Is(err, shippingApp.ErrNoShippingSetups) {
 			response.Error(c, 400, "NO_SHIPPING_OPTIONS",
 				"Penjual belum mengatur pengiriman untuk produk ini.")
 			return
 		}
-		if errors.Is(err, shippingApp.ErrShippingOptionUnavailable) {
+		if errors.Is(err, shippingApp.ErrShippingSetupUnavailable) {
 			response.Error(c, 400, "SHIPPING_OPTION_UNAVAILABLE",
 				"Produk ini di luar area pengiriman untuk alamat Anda.")
 			return
@@ -1617,11 +1617,9 @@ func buildPricingSnapshotFromToken(token *pricingtokenentity.PricingToken) *orde
 		MaxCoinsAllowed:        token.MaxCoinsAllowed,
 		CoinsUsed:              token.CoinsUsed,
 		OrderValueForCoins:     token.OrderValueForCoins,
-		ShippingOptionName:     token.ShippingOptionName,
-		ShippingTransportType:  token.ShippingTransportType,
-		ShippingExpeditionName: token.ShippingExpeditionName,
-		ShippingEstimatedDays:  token.ShippingEstimatedDays,
-		ShippingDestination:    addressSnapshot,
+		ShippingSetupName:    token.ShippingSetupName,
+		ShippingTransportType: token.ShippingTransportType,
+		ShippingDestination:   addressSnapshot,
 		ShippingSource:         shippingSource,
 		ShippingQuoteID:        token.ShippingQuoteID,
 		ChatID:                 nil, // Set during chat checkout if needed

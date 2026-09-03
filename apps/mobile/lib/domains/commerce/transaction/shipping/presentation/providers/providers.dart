@@ -40,14 +40,14 @@ final shippingProofRepositoryProvider = Provider<ShippingProofRepository>((
 
 /// Provider for ShippingNotifier
 final shippingNotifierProvider =
-    NotifierProvider<ShippingNotifier, ShippingOptionsListState>(
+    NotifierProvider<ShippingNotifier, ShippingSetupsListState>(
       ShippingNotifier.new,
     );
 
-/// Provider for ShippingOptionDetailNotifier
-final shippingOptionDetailNotifierProvider =
-    NotifierProvider<ShippingOptionDetailNotifier, ShippingOptionDetailState>(
-      ShippingOptionDetailNotifier.new,
+/// Provider for ShippingSetupDetailNotifier
+final shippingSetupDetailNotifierProvider =
+    NotifierProvider<ShippingSetupDetailNotifier, ShippingSetupDetailState>(
+      ShippingSetupDetailNotifier.new,
     );
 
 // Phase 3 cleanup: deliveryCheckNotifierProvider and shippingProofNotifierProvider

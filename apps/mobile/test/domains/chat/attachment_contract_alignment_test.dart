@@ -244,7 +244,6 @@ void main() {
           offerId: 'offer-2',
           linkedItemId: 'auction-1',
           linkedItemType: 'auction',
-          auctionId: 'auction-1',
           linkedItemName: 'Auction title',
           linkedItemPrice: 1200,
           shippingType: 'manual',
@@ -255,7 +254,7 @@ void main() {
           sellerId: 'seller-1',
         );
         final auctionData = auctionDto.toJson()['data'] as Map<String, dynamic>;
-        expect(auctionData['auction_id'], 'auction-1');
+        expect(auctionData.containsKey('auction_id'), isFalse);
         expect(auctionData['linked_item_id'], 'auction-1');
         expect(auctionData['linked_item_type'], 'auction');
         expect(auctionData.containsKey('listing_id'), isFalse);

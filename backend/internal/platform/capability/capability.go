@@ -106,10 +106,6 @@ const (
 	// CapGovernanceAuditRead - Can view audit logs
 	CapGovernanceAuditRead Capability = "governance.audit.read"
 
-	// CapGovernanceBNRReset - Can reset BNR (Bid No Response) strikes for buyers.
-	// Clears active bidding restrictions; audit trail is preserved.
-	CapGovernanceBNRReset Capability = "governance.bnr.reset"
-
 	// CapGovernanceAuctionCancel - Can emergency-cancel any seller's auction
 	// under governance authority (unreachable/abusive seller, trust-and-safety
 	// stop). Separate from seller-facing auction cancel; does not grant any
@@ -281,7 +277,6 @@ func IsValid(cap string) bool {
 		CapSupportAdminAssign,
 		CapSupportAdminRead,
 		CapSupportTicketEscalate,
-		CapGovernanceBNRReset,
 		CapGovernanceAuctionCancel:
 		return true
 	default:
@@ -334,7 +329,6 @@ func AllCapabilities() []Capability {
 		CapSupportAdminAssign,
 		CapSupportAdminRead,
 		CapSupportTicketEscalate,
-		CapGovernanceBNRReset,
 		CapGovernanceAuctionCancel,
 	}
 }

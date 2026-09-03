@@ -157,11 +157,9 @@ func (s *BiddingService) GetUserBidding(
 //	  ELSE:
 //	    status = "lost"
 //
-//	IF auction.status == "expired_bnr":
-//	  IF user_id == auction.current_winner_id:
-//	    status = "lost"
-//	  ELSE:
-//	    status = "lost"
+//	Settlement failure returns the auction to DRAFT (bid history preserved);
+//	the previous winner is no longer the current winner, so every participant
+//	derives "lost" from the default branch.
 func (s *BiddingService) deriveStatus(userID uuid.UUID, auction *entity.Auction) string {
 	isWinner := auction.CurrentWinnerID != nil && *auction.CurrentWinnerID == userID
 
@@ -184,10 +182,6 @@ func (s *BiddingService) deriveStatus(userID uuid.UUID, auction *entity.Auction)
 		}
 		return "lost"
 
-	case entity.StatusExpiredBNR:
-		// Everyone loses when settlement deadline expires
-		return "lost"
-
 	default:
 		// For draft, scheduled, cancelled - treat as lost
 		return "lost"
@@ -196,7 +190,7 @@ func (s *BiddingService) deriveStatus(userID uuid.UUID, auction *entity.Auction)
 
 // sortBiddingItems sorts bidding items by status priority:
 // 1. ACTIVE (active + waiting_settlement) -> sort by EndAt ASC
-// 2. ENDED (ended + expired_bnr) -> sort by EndAt DESC
+// 2. ENDED (ended) -> sort by EndAt DESC
 func (s *BiddingService) sortBiddingItems(items []BiddingItem) {
 	sort.SliceStable(items, func(i, j int) bool {
 		iActive := isActiveStatus(items[i].Status)

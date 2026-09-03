@@ -38,7 +38,7 @@ func TestRoomCreatedProducer_EmitsForNewRooms(t *testing.T) {
 				ParticipantB: directB,
 			},
 			call: func(s *Service) (*chatEntity.ChatRoom, error) {
-				return s.GetOrCreateDirectRoom(ctx, directA, directB, nil, directA)
+				return s.GetOrCreateDirectRoom(ctx, directA, directB)
 			},
 			getDirectRoomErr: chatRepo.ErrRoomNotFound,
 			wantRecipients:   []uuid.UUID{directA, directB},
@@ -142,7 +142,7 @@ func TestGetOrCreateDirectRoom_ExistingRoomDoesNotEmitChatRoomCreated(t *testing
 		log:         zap.NewNop(),
 	}
 
-	room, err := service.GetOrCreateDirectRoom(context.Background(), senderID, recipientID, nil, senderID)
+	room, err := service.GetOrCreateDirectRoom(context.Background(), senderID, recipientID)
 	if err != nil {
 		t.Fatalf("GetOrCreateDirectRoom failed: %v", err)
 	}
@@ -180,7 +180,7 @@ func TestGetOrCreateDirectRoom_FailedCreationDoesNotEmitChatRoomCreated(t *testi
 		log:         zap.NewNop(),
 	}
 
-	_, err := service.GetOrCreateDirectRoom(context.Background(), senderID, recipientID, nil, senderID)
+	_, err := service.GetOrCreateDirectRoom(context.Background(), senderID, recipientID)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -214,7 +214,7 @@ func TestGetOrCreateDirectRoom_BlockedCreationDoesNotEmitChatRoomCreated(t *test
 		log:         zap.NewNop(),
 	}
 
-	_, err := service.GetOrCreateDirectRoom(context.Background(), senderID, recipientID, nil, senderID)
+	_, err := service.GetOrCreateDirectRoom(context.Background(), senderID, recipientID)
 	if !errors.Is(err, chatRepo.ErrUserBlocked) {
 		t.Fatalf("err=%v want ErrUserBlocked", err)
 	}

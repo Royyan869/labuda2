@@ -63,7 +63,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get helpSupport => 'Help & Support';
 
   @override
-  String get aboutShona => 'About LABUDA';
+  String get aboutLabuda => 'About LABUDA';
 
   @override
   String get comingSoon => 'coming soon';
@@ -925,7 +925,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get popular => 'POPULAR';
 
   @override
-  String get whyBecomeShonaSeeller => 'Why become a LABUDA Seller?';
+  String get whyBecomeLabudaSeller => 'Why become a LABUDA Seller?';
 
   @override
   String get reach10kActiveKoiEnthusiasts =>

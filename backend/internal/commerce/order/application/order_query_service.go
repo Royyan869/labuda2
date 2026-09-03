@@ -92,7 +92,7 @@ type OrderListItem struct {
 	CommissionAmount   int64      `json:"commission_amount"`
 	ServiceFeeAmount   int64      `json:"service_fee_amount"`
 	TotalPayableAmount int64      `json:"total_payable_amount"`
-	ShippingOptionName string     `json:"shipping_option_name"`
+	ShippingSetupName string     `json:"shipping_option_name"`
 	AutoReleaseAt      *int64     `json:"auto_release_at,omitempty"`
 	PaymentID          *uuid.UUID `json:"payment_id,omitempty"` // V1.1 Payment Contract Refactor
 	// PaymentStatus is the status of the active/latest payment for this order.
@@ -325,7 +325,7 @@ func (s *OrderQueryService) convertToListItem(
 		CommissionAmount:   summary.CommissionAmount,
 		ServiceFeeAmount:   summary.ServiceFeeAmount,
 		TotalPayableAmount: summary.TotalPayableAmount,
-		ShippingOptionName: summary.ShippingOptionName,
+		ShippingSetupName: summary.ShippingSetupName,
 		CreatedAt:          summary.CreatedAt.Unix(),
 		UpdatedAt:          summary.UpdatedAt.Unix(),
 		DisputeReason:      summary.DisputeReason,
@@ -532,7 +532,7 @@ type AdminOrderSummary struct {
 	ServiceFeeAmount   int64      `json:"service_fee_amount"`
 	TotalPayableAmount int64      `json:"total_payable_amount"`
 	RefundedAmount     int64      `json:"refunded_amount"`
-	ShippingOption     *string    `json:"shipping_option,omitempty"`
+	ShippingSetup     *string    `json:"shipping_option,omitempty"`
 	AutoReleaseAt      *time.Time `json:"auto_release_at,omitempty"`
 	CreatedAt          time.Time  `json:"created_at"`
 	UpdatedAt          time.Time  `json:"updated_at"`
@@ -609,10 +609,10 @@ func (s *OrderQueryService) ListAllOrdersForAdmin(
 			sourceID = *s.SourceID
 		}
 
-		// Handle nullable ShippingOptionName
-		var shippingOption *string
-		if s.ShippingOptionName != "" {
-			shippingOption = &s.ShippingOptionName
+		// Handle nullable ShippingSetupName
+		var shippingSetup *string
+		if s.ShippingSetupName != "" {
+			shippingSetup = &s.ShippingSetupName
 		}
 
 		orderNum := ""
@@ -636,7 +636,7 @@ func (s *OrderQueryService) ListAllOrdersForAdmin(
 			CommissionAmount:   s.CommissionAmount,
 			ServiceFeeAmount:   s.ServiceFeeAmount,
 			TotalPayableAmount: s.TotalPayableAmount,
-			ShippingOption:     shippingOption,
+			ShippingSetup:     shippingSetup,
 			AutoReleaseAt:      s.AutoReleaseAt,
 			CreatedAt:          s.CreatedAt,
 			UpdatedAt:          s.UpdatedAt,
@@ -1030,7 +1030,7 @@ func scanWriteModelOrders(rows interface {
 			&s.ID, &s.BuyerID, &s.SellerID, &s.SourceType, &sourceID,
 			&s.Status, &s.EscrowStatus, &s.HasDispute,
 			&s.Subtotal, &s.ShippingTotal, &s.CommissionAmount, &s.ServiceFeeAmount, &s.TotalPayableAmount,
-			&s.ShippingOptionName, &s.ShippingTransportType,
+			&s.ShippingSetupName, &s.ShippingTransportType,
 			&s.AutoReleaseAt, &s.CreatedAt, &s.UpdatedAt,
 			&s.OrderNumber,
 		); err != nil {

@@ -34,7 +34,7 @@ class _FakeAuthController extends AuthController {
       sellerSubscriptionStatus: 'none',
       hasMarketAuthority: false,
       roles: [UserRole.user],
-      provider: ShonaAuthProvider.email,
+      provider: AuthProvider.email,
       lifecycle: ContentLifecycle.active,
     );
 

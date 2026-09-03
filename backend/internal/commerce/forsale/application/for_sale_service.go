@@ -47,7 +47,7 @@ type ForSaleService struct {
 	outboxRepo          *outboxRepo.OutboxRepository
 	roleChecker         auth.RoleChecker
 	actorResolver       capabilityEntity.ActorResolver
-	productShippingRepo shippingRepo.ProductShippingOptionRepository
+	productShippingRepo shippingRepo.ProductShippingSetupRepository
 	coverageRepo        shippingRepo.ShippingCoverageRepository
 	shippingQuoteRepo   shippingquoteRepo.ShippingQuoteRepository
 	addressRepo         addressRepoInterface.AddressRepository
@@ -67,7 +67,7 @@ func NewForSaleService(args ...any) *ForSaleService {
 			svc.roleChecker = v
 		case capabilityEntity.ActorResolver:
 			svc.actorResolver = v
-		case shippingRepo.ProductShippingOptionRepository:
+		case shippingRepo.ProductShippingSetupRepository:
 			svc.productShippingRepo = v
 		case shippingRepo.ShippingCoverageRepository:
 			svc.coverageRepo = v
@@ -456,7 +456,7 @@ func (s *ForSaleService) EnsureShippingConfigured(
 		return fmt.Errorf("failed to load shipping options for coverage check: %w", err)
 	}
 	for _, opt := range options {
-		coverages, err := s.coverageRepo.GetByShippingOption(ctx, tx, opt.ID)
+		coverages, err := s.coverageRepo.GetByShippingSetup(ctx, tx, opt.ID)
 		if err != nil {
 			return fmt.Errorf("failed to load coverage for option %s: %w", opt.ID, err)
 		}

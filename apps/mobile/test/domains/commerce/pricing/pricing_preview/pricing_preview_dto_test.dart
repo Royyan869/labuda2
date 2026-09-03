@@ -61,7 +61,7 @@ void main() {
       );
       final json = dto.toJson();
 
-      expect(json.containsKey('shipping_option_id'), isFalse);
+      expect(json.containsKey('shipping_setup_id'), isFalse);
       expect(json.containsKey('shipping_quote_id'), isFalse);
       expect(json.containsKey('discount_code'), isFalse);
     });
@@ -73,12 +73,12 @@ void main() {
         sourceId: _fixedPriceSaleId,
         quantity: 1,
         addressId: _addressId,
-        shippingOptionId: 'opt-123',
+        shippingSetupId: 'opt-123',
         discountCode: 'PROMO10',
       );
       final json = dto.toJson();
 
-      expect(json['shipping_option_id'], equals('opt-123'));
+      expect(json['shipping_setup_id'], equals('opt-123'));
       expect(json['discount_code'], equals('PROMO10'));
     });
   });

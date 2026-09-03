@@ -20,7 +20,7 @@ import 'package:labuda/core/core.dart' hide ConnectionState;
 import 'package:labuda/domains/commerce/transaction/shipping/domain/domain.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
 
-class SellerShippingOptionsSelector extends ConsumerStatefulWidget {
+class SellerShippingSetupsSelector extends ConsumerStatefulWidget {
   /// Initial selection (used by edit flow when the screen knows the prior IDs;
   /// the create flow passes `const []`).
   final List<String> initialSelectedIds;
@@ -32,7 +32,7 @@ class SellerShippingOptionsSelector extends ConsumerStatefulWidget {
   /// Optional hint text rendered under the section title.
   final String? helperText;
 
-  const SellerShippingOptionsSelector({
+  const SellerShippingSetupsSelector({
     super.key,
     this.initialSelectedIds = const [],
     required this.onSelectionChanged,
@@ -40,14 +40,14 @@ class SellerShippingOptionsSelector extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<SellerShippingOptionsSelector> createState() =>
-      _SellerShippingOptionsSelectorState();
+  ConsumerState<SellerShippingSetupsSelector> createState() =>
+      _SellerShippingSetupsSelectorState();
 }
 
-class _SellerShippingOptionsSelectorState
-    extends ConsumerState<SellerShippingOptionsSelector> {
+class _SellerShippingSetupsSelectorState
+    extends ConsumerState<SellerShippingSetupsSelector> {
   late Set<String> _selected;
-  late Future<List<ShippingOption>> _future;
+  late Future<List<ShippingSetup>> _future;
 
   @override
   void initState() {
@@ -56,13 +56,13 @@ class _SellerShippingOptionsSelectorState
     _future = _loadOptions();
   }
 
-  Future<List<ShippingOption>> _loadOptions() async {
+  Future<List<ShippingSetup>> _loadOptions() async {
     final authState = ref.read(authControllerProvider);
     if (authState is! AuthStateAuthenticated) {
       return const [];
     }
     final repo = ref.read(shippingRepositoryProvider);
-    final result = await repo.listMyActiveShippingOptions();
+    final result = await repo.listMyActiveShippingSetups();
     if (result.isError) {
       throw Exception(result.error ?? 'Failed to load shipping options');
     }
@@ -82,7 +82,7 @@ class _SellerShippingOptionsSelectorState
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<ShippingOption>>(
+    return FutureBuilder<List<ShippingSetup>>(
       future: _future,
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
@@ -105,7 +105,7 @@ class _SellerShippingOptionsSelectorState
     );
   }
 
-  Widget _populated(List<ShippingOption> options) {
+  Widget _populated(List<ShippingSetup> options) {
     final hasSelection = _selected.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

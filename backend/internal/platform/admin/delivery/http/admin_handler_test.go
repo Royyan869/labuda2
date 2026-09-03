@@ -1,4 +1,4 @@
-package http
+﻿package http
 
 import (
 	"context"
@@ -141,7 +141,7 @@ func TestO4_GetFailedDeliveries_NonAdminRejected(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest("GET", "/api/v1/admin/notifications/failed-deliveries", nil)
-	// No user_id set → MustGetUserIDFromContext returns false
+	// No user_id set â†’ MustGetUserIDFromContext returns false
 
 	handler.GetFailedDeliveries(c)
 
@@ -241,7 +241,7 @@ func TestO4_GetFailedDeliveries_QuerierError(t *testing.T) {
 
 func TestO4_GetFailedDeliveries_NilQuerier(t *testing.T) {
 	handler := NewAdminHandler(nil, &mockAuditLogger{}, nil, nil)
-	// No SetDeliveryQuerier called → deliveryQuerier is nil
+	// No SetDeliveryQuerier called â†’ deliveryQuerier is nil
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -268,232 +268,5 @@ func (c *capturingDeliveryQuerier) GetFailedDeliveriesPaginated(ctx context.Cont
 	return c.inner.GetFailedDeliveriesPaginated(ctx, page, pageSize, since)
 }
 
-// ============================================================================
-// BNR ADMIN RESET ENDPOINT TESTS
-// ============================================================================
-
-// mockBNRResetter implements BNRResetter for testing.
-type mockBNRResetter struct {
-	resetAllCount int64
-	resetAllErr   error
-	resetOneOK    bool
-	resetOneErr   error
-
-	// Capture args
-	lastBuyerID  uuid.UUID
-	lastStrikeID uuid.UUID
-}
-
-func (m *mockBNRResetter) ResetAllForBuyer(_ context.Context, buyerID, _ uuid.UUID) (int64, error) {
-	m.lastBuyerID = buyerID
-	return m.resetAllCount, m.resetAllErr
-}
-
-func (m *mockBNRResetter) ResetStrike(_ context.Context, strikeID, _ uuid.UUID) (bool, error) {
-	m.lastStrikeID = strikeID
-	return m.resetOneOK, m.resetOneErr
-}
-
-// TestBNRReset_AllForBuyer_Success verifies admin can reset all active
-// strikes for a buyer and receives the count.
-func TestBNRReset_AllForBuyer_Success(t *testing.T) {
-	resetter := &mockBNRResetter{resetAllCount: 3}
-	handler := NewAdminHandler(nil, &mockAuditLogger{}, nil, nil)
-	handler.SetBNRResetter(resetter)
-
-	buyerID := uuid.New()
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = httptest.NewRequest("POST", "/api/v1/admin/users/"+buyerID.String()+"/bnr-strikes/reset", nil)
-	c.Params = gin.Params{{Key: "id", Value: buyerID.String()}}
-	setAdminContext(c, uuid.New())
-
-	handler.ResetBNRStrikesForUser(c)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("status=%d want 200, body=%s", w.Code, w.Body.String())
-	}
-
-	var resp map[string]interface{}
-	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-	data := resp["data"].(map[string]interface{})
-	if data["strikes_reset"] != float64(3) {
-		t.Errorf("strikes_reset=%v want 3", data["strikes_reset"])
-	}
-	if data["buyer_id"] != buyerID.String() {
-		t.Errorf("buyer_id=%v want %s", data["buyer_id"], buyerID)
-	}
-
-	// Verify correct buyer was passed
-	if resetter.lastBuyerID != buyerID {
-		t.Errorf("resetter.lastBuyerID=%v want %v", resetter.lastBuyerID, buyerID)
-	}
-}
-
-// TestBNRReset_AllForBuyer_DecayedNotAffected verifies that when only
-// decayed strikes exist (0 active), the response reflects 0 reset.
-func TestBNRReset_AllForBuyer_DecayedNotAffected(t *testing.T) {
-	resetter := &mockBNRResetter{resetAllCount: 0}
-	handler := NewAdminHandler(nil, &mockAuditLogger{}, nil, nil)
-	handler.SetBNRResetter(resetter)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	buyerID := uuid.New()
-	c.Request = httptest.NewRequest("POST", "/api/v1/admin/users/"+buyerID.String()+"/bnr-strikes/reset", nil)
-	c.Params = gin.Params{{Key: "id", Value: buyerID.String()}}
-	setAdminContext(c, uuid.New())
-
-	handler.ResetBNRStrikesForUser(c)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("status=%d want 200", w.Code)
-	}
-
-	var resp map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &resp)
-	data := resp["data"].(map[string]interface{})
-	if data["strikes_reset"] != float64(0) {
-		t.Errorf("strikes_reset=%v want 0 (decayed strikes excluded)", data["strikes_reset"])
-	}
-}
-
-// TestBNRReset_AllForBuyer_AlreadyResetNotCounted verifies idempotency:
-// resetting when all strikes are already reset returns 0.
-func TestBNRReset_AllForBuyer_AlreadyResetNotCounted(t *testing.T) {
-	resetter := &mockBNRResetter{resetAllCount: 0}
-	handler := NewAdminHandler(nil, &mockAuditLogger{}, nil, nil)
-	handler.SetBNRResetter(resetter)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	buyerID := uuid.New()
-	c.Request = httptest.NewRequest("POST", "/api/v1/admin/users/"+buyerID.String()+"/bnr-strikes/reset", nil)
-	c.Params = gin.Params{{Key: "id", Value: buyerID.String()}}
-	setAdminContext(c, uuid.New())
-
-	handler.ResetBNRStrikesForUser(c)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("status=%d want 200", w.Code)
-	}
-	var resp map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &resp)
-	if resp["data"].(map[string]interface{})["strikes_reset"] != float64(0) {
-		t.Error("already-reset strikes should not be counted")
-	}
-}
-
-// TestBNRReset_AllForBuyer_NonAdminBlocked verifies that without user_id
-// in context, the handler returns 401.
-func TestBNRReset_AllForBuyer_NonAdminBlocked(t *testing.T) {
-	resetter := &mockBNRResetter{resetAllCount: 1}
-	handler := NewAdminHandler(nil, &mockAuditLogger{}, nil, nil)
-	handler.SetBNRResetter(resetter)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = httptest.NewRequest("POST", "/api/v1/admin/users/"+uuid.New().String()+"/bnr-strikes/reset", nil)
-	c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
-	// No setAdminContext → MustGetUserIDFromContext returns false
-
-	handler.ResetBNRStrikesForUser(c)
-
-	if w.Code != http.StatusUnauthorized {
-		t.Fatalf("status=%d want 401", w.Code)
-	}
-}
-
-// TestBNRReset_SingleStrike_Success verifies single strike reset returns 200.
-func TestBNRReset_SingleStrike_Success(t *testing.T) {
-	resetter := &mockBNRResetter{resetOneOK: true}
-	handler := NewAdminHandler(nil, &mockAuditLogger{}, nil, nil)
-	handler.SetBNRResetter(resetter)
-
-	strikeID := uuid.New()
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = httptest.NewRequest("POST", "/api/v1/admin/bnr-strikes/"+strikeID.String()+"/reset", nil)
-	c.Params = gin.Params{{Key: "strike_id", Value: strikeID.String()}}
-	setAdminContext(c, uuid.New())
-
-	handler.ResetBNRStrike(c)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("status=%d want 200, body=%s", w.Code, w.Body.String())
-	}
-
-	var resp map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &resp)
-	data := resp["data"].(map[string]interface{})
-	if data["reset"] != true {
-		t.Error("expected reset=true")
-	}
-	if resetter.lastStrikeID != strikeID {
-		t.Errorf("resetter.lastStrikeID=%v want %v", resetter.lastStrikeID, strikeID)
-	}
-}
-
-// TestBNRReset_SingleStrike_NotFound verifies 404 when strike doesn't exist
-// or is already reset/decayed.
-func TestBNRReset_SingleStrike_NotFound(t *testing.T) {
-	resetter := &mockBNRResetter{resetOneOK: false}
-	handler := NewAdminHandler(nil, &mockAuditLogger{}, nil, nil)
-	handler.SetBNRResetter(resetter)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = httptest.NewRequest("POST", "/api/v1/admin/bnr-strikes/"+uuid.New().String()+"/reset", nil)
-	c.Params = gin.Params{{Key: "strike_id", Value: uuid.New().String()}}
-	setAdminContext(c, uuid.New())
-
-	handler.ResetBNRStrike(c)
-
-	if w.Code != http.StatusNotFound {
-		t.Fatalf("status=%d want 404", w.Code)
-	}
-}
-
-// TestBNRReset_NilResetter verifies 500 when resetter is not wired.
-func TestBNRReset_NilResetter(t *testing.T) {
-	handler := NewAdminHandler(nil, &mockAuditLogger{}, nil, nil)
-	// No SetBNRResetter → nil
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = httptest.NewRequest("POST", "/api/v1/admin/users/"+uuid.New().String()+"/bnr-strikes/reset", nil)
-	c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
-	setAdminContext(c, uuid.New())
-
-	handler.ResetBNRStrikesForUser(c)
-
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("status=%d want 500", w.Code)
-	}
-}
-
-// TestBNRReset_DBError verifies 500 on DB failure.
-func TestBNRReset_DBError(t *testing.T) {
-	resetter := &mockBNRResetter{resetAllErr: errors.New("db down")}
-	handler := NewAdminHandler(nil, &mockAuditLogger{}, nil, nil)
-	handler.SetBNRResetter(resetter)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	buyerID := uuid.New()
-	c.Request = httptest.NewRequest("POST", "/api/v1/admin/users/"+buyerID.String()+"/bnr-strikes/reset", nil)
-	c.Params = gin.Params{{Key: "id", Value: buyerID.String()}}
-	setAdminContext(c, uuid.New())
-
-	handler.ResetBNRStrikesForUser(c)
-
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("status=%d want 500", w.Code)
-	}
-}
 
 

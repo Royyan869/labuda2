@@ -16,7 +16,7 @@ import (
 // ============================================================================
 
 type stubProductShippingRepo struct {
-	options []*shippingEntity.ShippingOption
+	options []*shippingEntity.ShippingSetup
 	count   int64
 	err     error
 }
@@ -28,14 +28,14 @@ func (r *stubProductShippingRepo) CountByProduct(_ context.Context, _ db.Tx, _ u
 	return r.count, nil
 }
 
-func (r *stubProductShippingRepo) GetByProduct(_ context.Context, _ db.Tx, _ uuid.UUID) ([]*shippingEntity.ShippingOption, error) {
+func (r *stubProductShippingRepo) GetByProduct(_ context.Context, _ db.Tx, _ uuid.UUID) ([]*shippingEntity.ShippingSetup, error) {
 	if r.err != nil {
 		return nil, r.err
 	}
 	return r.options, nil
 }
 
-func (r *stubProductShippingRepo) GetAvailableByProduct(_ context.Context, _ db.Tx, _ uuid.UUID) ([]*shippingEntity.ShippingOption, error) {
+func (r *stubProductShippingRepo) GetAvailableByProduct(_ context.Context, _ db.Tx, _ uuid.UUID) ([]*shippingEntity.ShippingSetup, error) {
 	return nil, nil
 }
 
@@ -51,7 +51,7 @@ func (r *stubProductShippingRepo) DeleteByProduct(_ context.Context, _ db.Tx, _ 
 	return nil
 }
 
-func (r *stubProductShippingRepo) DeleteByShippingOption(_ context.Context, _ db.Tx, _ uuid.UUID) error {
+func (r *stubProductShippingRepo) DeleteByShippingSetup(_ context.Context, _ db.Tx, _ uuid.UUID) error {
 	return nil
 }
 
@@ -68,7 +68,7 @@ type stubFPSCoverageRepo struct {
 	err               error
 }
 
-func (r *stubFPSCoverageRepo) GetByShippingOption(_ context.Context, _ db.Tx, optionID uuid.UUID) ([]*shippingEntity.ShippingCoverage, error) {
+func (r *stubFPSCoverageRepo) GetByShippingSetup(_ context.Context, _ db.Tx, optionID uuid.UUID) ([]*shippingEntity.ShippingCoverage, error) {
 	if r.err != nil {
 		return nil, r.err
 	}
@@ -88,7 +88,7 @@ func (r *stubFPSCoverageRepo) GetByOptionAndProvince(_ context.Context, _ db.Tx,
 	return nil, nil
 }
 func (r *stubFPSCoverageRepo) Delete(_ context.Context, _ db.Tx, _ uuid.UUID) error { return nil }
-func (r *stubFPSCoverageRepo) DeleteByShippingOption(_ context.Context, _ db.Tx, _ uuid.UUID) error {
+func (r *stubFPSCoverageRepo) DeleteByShippingSetup(_ context.Context, _ db.Tx, _ uuid.UUID) error {
 	return nil
 }
 
@@ -120,7 +120,7 @@ func TestEnsureShippingConfigured_OptionWithZeroCoverages_Errors(t *testing.T) {
 	svc := &ForSaleService{
 		productShippingRepo: &stubProductShippingRepo{
 			count:   1,
-			options: []*shippingEntity.ShippingOption{{ID: optID}},
+			options: []*shippingEntity.ShippingSetup{{ID: optID}},
 		},
 		coverageRepo: &stubFPSCoverageRepo{
 			coveragesByOption: map[uuid.UUID][]*shippingEntity.ShippingCoverage{
@@ -145,13 +145,13 @@ func TestEnsureShippingConfigured_AllCoveragesInactive_Errors(t *testing.T) {
 	svc := &ForSaleService{
 		productShippingRepo: &stubProductShippingRepo{
 			count:   1,
-			options: []*shippingEntity.ShippingOption{{ID: optID}},
+			options: []*shippingEntity.ShippingSetup{{ID: optID}},
 		},
 		coverageRepo: &stubFPSCoverageRepo{
 			coveragesByOption: map[uuid.UUID][]*shippingEntity.ShippingCoverage{
 				optID: {
-					{ID: uuid.New(), ShippingOptionID: optID, IsAvailable: false},
-					{ID: uuid.New(), ShippingOptionID: optID, IsAvailable: false},
+					{ID: uuid.New(), ShippingSetupID: optID, IsAvailable: false},
+					{ID: uuid.New(), ShippingSetupID: optID, IsAvailable: false},
 				},
 			},
 		},
@@ -173,13 +173,13 @@ func TestEnsureShippingConfigured_HasActiveCoverage_Passes(t *testing.T) {
 	svc := &ForSaleService{
 		productShippingRepo: &stubProductShippingRepo{
 			count:   1,
-			options: []*shippingEntity.ShippingOption{{ID: optID}},
+			options: []*shippingEntity.ShippingSetup{{ID: optID}},
 		},
 		coverageRepo: &stubFPSCoverageRepo{
 			coveragesByOption: map[uuid.UUID][]*shippingEntity.ShippingCoverage{
 				optID: {
-					{ID: uuid.New(), ShippingOptionID: optID, IsAvailable: false},
-					{ID: uuid.New(), ShippingOptionID: optID, IsAvailable: true}, // one active
+					{ID: uuid.New(), ShippingSetupID: optID, IsAvailable: false},
+					{ID: uuid.New(), ShippingSetupID: optID, IsAvailable: true}, // one active
 				},
 			},
 		},
@@ -199,14 +199,14 @@ func TestEnsureShippingConfigured_MultipleOptions_FirstWithActiveCoverage_Passes
 	svc := &ForSaleService{
 		productShippingRepo: &stubProductShippingRepo{
 			count: 2,
-			options: []*shippingEntity.ShippingOption{
+			options: []*shippingEntity.ShippingSetup{
 				{ID: opt1},
 				{ID: opt2},
 			},
 		},
 		coverageRepo: &stubFPSCoverageRepo{
 			coveragesByOption: map[uuid.UUID][]*shippingEntity.ShippingCoverage{
-				opt1: {{ID: uuid.New(), ShippingOptionID: opt1, IsAvailable: true}},
+				opt1: {{ID: uuid.New(), ShippingSetupID: opt1, IsAvailable: true}},
 				opt2: {}, // second has none — first already passes
 			},
 		},

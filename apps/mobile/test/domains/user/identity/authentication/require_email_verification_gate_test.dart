@@ -11,7 +11,7 @@
 /// - Operation is current → idempotent when already in RequiresEmailVerification
 library;
 
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
@@ -169,7 +169,7 @@ void main() {
         sellerSubscriptionStatus: 'none',
         hasMarketAuthority: false,
         roles: const [UserRole.user],
-        provider: ShonaAuthProvider.email,
+        provider: AuthProvider.email,
       );
       final authedState = AuthState.authenticated(
         user,

@@ -60,6 +60,7 @@ func newChatProjectionHTTPFixture(t *testing.T) *chatProjectionHTTPFixture {
 		base.traced,
 		zap.NewNop(),
 	)
+	handler.SetResourceProjectionResolver(base.resolver)
 
 	return &chatProjectionHTTPFixture{
 		aggregateQueryProofFixture: base,
@@ -117,7 +118,11 @@ func (f *chatProjectionHTTPFixture) seedMessage(
 
 	messageID := uuid.New()
 	idempotencyKey := uuid.NewString()
-	fingerprint := uuid.NewString()
+	var parsedAttachment map[string]interface{}
+	if attachmentJSON != nil {
+		_ = json.Unmarshal(attachmentJSON, &parsedAttachment)
+	}
+	fingerprint := chatEntity.ComputeCommandFingerprint(senderID, chatEntity.MessageTypeText, body, parsedAttachment)
 	_, err := f.appDB.Pool().Exec(context.Background(), `
 		INSERT INTO chat_messages (
 			id, room_id, sender_id, message_type, body, attachment_json,

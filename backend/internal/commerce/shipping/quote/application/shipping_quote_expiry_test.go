@@ -73,7 +73,6 @@ func TestCreateShippingQuote_AuctionPath_DefaultsToTwentyFourHourExpiry(t *testi
 		SourceType:     "auction",
 		SourceID:       auction.ID,
 		SellerID:       sellerID,
-		AuctionID:      &auction.ID,
 		Cost:           money.New(15000),
 		ExpiresInHours: nil,
 	})
@@ -234,7 +233,7 @@ func TestCreateShippingQuote_NeverLeavesExpiresAtNil(t *testing.T) {
 		svc := newAuctionQuoteService(&shippingQuoteRepoStub{}, chatRoom, &forSaleQuoteRepoStub{sellerID: sellerID}, &auctionQuoteRepoStub{auction: auction}, &auctionQuoteSender{})
 		quote, err := svc.CreateShippingQuote(context.Background(), CreateShippingQuoteInput{
 			ChatID: chatRoom.ID, ProductID: auction.ProductID, SourceType: "auction",
-			SourceID: auction.ID, SellerID: sellerID, AuctionID: &auction.ID, Cost: money.New(15000),
+			SourceID: auction.ID, SellerID: sellerID, Cost: money.New(15000),
 		})
 		require.NoError(t, err)
 		require.NotNil(t, quote.ExpiresAt)

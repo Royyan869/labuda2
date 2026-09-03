@@ -21,7 +21,7 @@ import (
 // - Address is soft-deleted (is_available_for_checkout = false)
 // - Only one primary address per user is allowed
 type AddressService struct {
-	repo *addressRepo.AddressRepositoryImpl
+	repo addressRepoInterface.AddressRepository
 	log  *zap.Logger
 }
 

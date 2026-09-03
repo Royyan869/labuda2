@@ -27,7 +27,7 @@ type sellerShippingListResponse struct {
 }
 
 type sellerShippingListResponseData struct {
-	ShippingOptions []map[string]any `json:"shipping_options"`
+	ShippingSetups []map[string]any `json:"shipping_options"`
 	Count           int              `json:"count"`
 }
 
@@ -45,10 +45,10 @@ func setupSellerShippingHandlerTest(t *testing.T) (*testdb.TestDB, *SellerShippi
 	require.NoError(t, err)
 	t.Cleanup(func() { appDB.Close() })
 
-	optionRepo := shippingrepo.NewShippingOptionRepository()
+	optionRepo := shippingrepo.NewShippingSetupRepository()
 	coverageRepo := shippingrepo.NewShippingCoverageRepository()
 	cityOverrideRepo := shippingrepo.NewCityOverrideRepository()
-	productShippingRepo := shippingrepo.NewProductShippingOptionRepository(optionRepo)
+	productShippingRepo := shippingrepo.NewProductShippingSetupRepository(optionRepo)
 	service := shippingApp.NewSellerShippingService(
 		optionRepo,
 		coverageRepo,
@@ -60,7 +60,7 @@ func setupSellerShippingHandlerTest(t *testing.T) (*testdb.TestDB, *SellerShippi
 	return tdb, handler, cleanup
 }
 
-func seedSellerShippingOptions(t *testing.T, pool *pgxpool.Pool) uuid.UUID {
+func seedSellerShippingSetups(t *testing.T, pool *pgxpool.Pool) uuid.UUID {
 	t.Helper()
 
 	ctx := context.Background()
@@ -77,22 +77,22 @@ func seedSellerShippingOptions(t *testing.T, pool *pgxpool.Pool) uuid.UUID {
 	inactiveID := uuid.New()
 	_, err = pool.Exec(
 		ctx,
-		`INSERT INTO shipping_options (id, seller_id, name, transport_type, expedition_name, is_active, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, true, NOW(), NOW()),
-		        ($6, $2, $7, $8, $9, false, NOW(), NOW())`,
-		activeID, sellerID, "JNE Reguler", "train", "JNE",
-		inactiveID, "Kirim Kustom", "custom", nil,
+		`INSERT INTO shipping_options (id, seller_id, name, transport_type, is_active, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, true, NOW(), NOW()),
+		        ($6, $2, $7, $8, false, NOW(), NOW())`,
+		activeID, sellerID, "Bus ke Jateng", "bus",
+		inactiveID, "Kirim Kustom", "custom",
 	)
 	require.NoError(t, err)
 
 	return sellerID
 }
 
-func TestSellerShippingHandler_ListShippingOptions_ReturnsWrappedObject(t *testing.T) {
+func TestSellerShippingHandler_ListShippingSetups_ReturnsWrappedObject(t *testing.T) {
 	tdb, handler, cleanup := setupSellerShippingHandlerTest(t)
 	defer cleanup()
 
-	sellerID := seedSellerShippingOptions(t, tdb.Pool())
+	sellerID := seedSellerShippingSetups(t, tdb.Pool())
 
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
@@ -100,7 +100,7 @@ func TestSellerShippingHandler_ListShippingOptions_ReturnsWrappedObject(t *testi
 	c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/seller/shipping/options?include_inactive=true", nil)
 	c.Set("userID", sellerID)
 
-	handler.ListShippingOptions(c)
+	handler.ListShippingSetups(c)
 
 	require.Equal(t, http.StatusOK, w.Code)
 
@@ -108,14 +108,13 @@ func TestSellerShippingHandler_ListShippingOptions_ReturnsWrappedObject(t *testi
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	require.True(t, resp.Success)
 	require.Equal(t, 2, resp.Data.Count)
-	require.Len(t, resp.Data.ShippingOptions, 2)
+	require.Len(t, resp.Data.ShippingSetups, 2)
 
-	first := resp.Data.ShippingOptions[0]
+	first := resp.Data.ShippingSetups[0]
 	require.Contains(t, first, "id")
 	require.Contains(t, first, "name")
 	require.Contains(t, first, "transport_type")
 	require.Contains(t, first, "is_active")
-	require.Contains(t, first, "expedition_name")
 	require.Contains(t, first, "created_at")
 	require.Contains(t, first, "updated_at")
 	require.NotContains(t, first, "seller_id")
@@ -123,7 +122,7 @@ func TestSellerShippingHandler_ListShippingOptions_ReturnsWrappedObject(t *testi
 	require.NotContains(t, first, "province_code")
 }
 
-func TestSellerShippingHandler_ListShippingOptions_RequiresUserID(t *testing.T) {
+func TestSellerShippingHandler_ListShippingSetups_RequiresUserID(t *testing.T) {
 	tdb, handler, cleanup := setupSellerShippingHandlerTest(t)
 	_ = tdb
 	defer cleanup()
@@ -133,7 +132,7 @@ func TestSellerShippingHandler_ListShippingOptions_RequiresUserID(t *testing.T) 
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/seller/shipping/options", nil)
 
-	handler.ListShippingOptions(c)
+	handler.ListShippingSetups(c)
 
 	require.Equal(t, http.StatusUnauthorized, w.Code)
 }

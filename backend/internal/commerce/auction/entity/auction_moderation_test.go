@@ -2,7 +2,6 @@ package entity
 
 import (
 	"testing"
-	"time"
 )
 
 // ============================================================================
@@ -17,8 +16,6 @@ import (
 func TestCancel_FromWaitingSettlement_Succeeds(t *testing.T) {
 	auction := createTestDraftAuction()
 	auction.Status = StatusWaitingSettlement
-	deadline := time.Now().Add(24 * time.Hour)
-	auction.SettlementDeadline = &deadline
 
 	err := auction.Cancel()
 	if err != nil {
@@ -44,18 +41,22 @@ func TestCancel_FromEnded_Fails(t *testing.T) {
 	}
 }
 
-// TestCancel_FromExpiredBNR_Fails proves expired_bnr is a terminal state (unchanged).
-func TestCancel_FromExpiredBNR_Fails(t *testing.T) {
+// TestCancel_FromDraftReturnedSettlementFailure_Succeeds proves an auction
+// that returned to DRAFT after a settlement failure can be cancelled (the
+// relist is under the seller's control).
+func TestCancel_FromDraftReturnedSettlementFailure_Succeeds(t *testing.T) {
 	auction := createTestDraftAuction()
-	auction.Status = StatusExpiredBNR
+	auction.Status = StatusWaitingSettlement
+	if err := auction.TransitionToDraftOnSettlementFailure(); err != nil {
+		t.Fatalf("TransitionToDraftOnSettlementFailure() failed: %v", err)
+	}
 
 	err := auction.Cancel()
-	if err == nil {
-		t.Error("Cancel() from expired_bnr returned nil, want InvalidTransitionError")
+	if err != nil {
+		t.Errorf("Cancel() from draft failed: %v — want nil", err)
 	}
-	var ite *InvalidTransitionError
-	if ok := isInvalidTransition(err, &ite); !ok {
-		t.Errorf("Cancel() from expired_bnr: error type = %T, want *InvalidTransitionError", err)
+	if auction.Status != StatusCancelled {
+		t.Errorf("Status = %s, want %s", auction.Status, StatusCancelled)
 	}
 }
 

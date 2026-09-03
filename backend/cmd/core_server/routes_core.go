@@ -279,7 +279,6 @@ func SetupRoutes(
 
 		// Authenticated buyer endpoints
 		auctionRoutes.POST("/:id/bid", middleware.RequireActiveAccount(db.Pgx()), deps.AuctionHandler.PlaceBid)
-		auctionRoutes.POST("/:id/claim-token", middleware.RequireActiveAccount(db.Pgx()), deps.AuctionHandler.GeneratePricingTokenForClaim)
 		auctionRoutes.POST("/:id/claim", middleware.RequireActiveAccount(db.Pgx()), deps.AuctionHandler.ClaimAuction)
 
 		// Saved Items endpoints (unified shortlist + auction watch)
@@ -340,7 +339,7 @@ func SetupRoutes(
 			productSellerRoutes.PUT("/:id/shipping",
 				middleware.RequireActiveAccount(db.Pgx()),
 				middleware.RequireSellerMiddleware(deps.RoleChecker),
-				deps.ProductShippingHandler.SetProductShippingOptions,
+				deps.ProductShippingHandler.SetProductShippingSetups,
 			)
 		}
 
@@ -507,11 +506,11 @@ func SetupRoutes(
 			// - GET /api/v1/seller/shipping/options/:id/coverages - List coverages
 			// - PUT /api/v1/seller/shipping/coverages/:id - Update coverage
 			// - DELETE /api/v1/seller/shipping/coverages/:id - Delete coverage
-			sellerRoutes.POST("/shipping/options", deps.SellerShippingHandler.CreateShippingOption)
-			sellerRoutes.GET("/shipping/options", deps.SellerShippingHandler.ListShippingOptions)
-			sellerRoutes.GET("/shipping/options/:id", deps.SellerShippingHandler.GetShippingOption)
-			sellerRoutes.PUT("/shipping/options/:id", deps.SellerShippingHandler.UpdateShippingOption)
-			sellerRoutes.DELETE("/shipping/options/:id", deps.SellerShippingHandler.DeleteShippingOption)
+			sellerRoutes.POST("/shipping/options", deps.SellerShippingHandler.CreateShippingSetup)
+			sellerRoutes.GET("/shipping/options", deps.SellerShippingHandler.ListShippingSetups)
+			sellerRoutes.GET("/shipping/options/:id", deps.SellerShippingHandler.GetShippingSetup)
+			sellerRoutes.PUT("/shipping/options/:id", deps.SellerShippingHandler.UpdateShippingSetup)
+			sellerRoutes.DELETE("/shipping/options/:id", deps.SellerShippingHandler.DeleteShippingSetup)
 
 			// Coverage management routes
 			sellerRoutes.POST("/shipping/options/:id/coverages", deps.SellerShippingHandler.CreateCoverage)
@@ -876,12 +875,6 @@ func SetupRoutes(
 			adminRoutes.POST("/users/:id/unban",
 				middleware.RequireCapability("governance.user.unban"),
 				deps.AdminHandler.UnbanUser) // Unban user (explicit ban reversal)
-			adminRoutes.POST("/users/:id/bnr-strikes/reset",
-				middleware.RequireCapability("governance.bnr.reset"),
-				deps.AdminHandler.ResetBNRStrikesForUser) // Reset all active BNR strikes for buyer
-			adminRoutes.POST("/bnr-strikes/:strike_id/reset",
-				middleware.RequireCapability("governance.bnr.reset"),
-				deps.AdminHandler.ResetBNRStrike) // Reset single BNR strike
 			adminRoutes.GET("/audit-logs",
 				middleware.RequireCapability("governance.audit.read"),
 				deps.AdminHandler.GetAuditLogs) // Audit logs

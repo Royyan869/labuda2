@@ -32,7 +32,7 @@ class _FakeAuthController extends AuthController {
       sellerSubscriptionStatus: 'none',
       hasMarketAuthority: false,
       roles: const [UserRole.user],
-      provider: ShonaAuthProvider.email,
+      provider: AuthProvider.email,
       lifecycle: ContentLifecycle.active,
     );
     return AuthState.authenticated(user, emailVerified: true);

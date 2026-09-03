@@ -102,7 +102,6 @@ func TestApplyAdminCancel_TerminalStates_ReturnConflict(t *testing.T) {
 		status entity.Status
 	}{
 		{"ended", entity.StatusEnded},
-		{"expired_bnr", entity.StatusExpiredBNR},
 		{"already_cancelled", entity.StatusCancelled},
 	}
 

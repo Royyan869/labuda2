@@ -85,7 +85,7 @@ type OrderSummary struct {
 	RefundedAmount int64
 
 	// Shipping snapshot
-	ShippingOptionName    string
+	ShippingSetupName    string
 	ShippingTransportType string
 
 	// Timestamps
@@ -152,7 +152,7 @@ func (r *Repository) UpsertOrderSummary(
 		summary.Subtotal, summary.ShippingTotal, summary.CommissionAmount,
 		summary.ServiceFeeAmount, summary.TotalPayableAmount,
 		summary.EscrowAmount, summary.RefundedAmount,
-		summary.ShippingOptionName, summary.ShippingTransportType,
+		summary.ShippingSetupName, summary.ShippingTransportType,
 		summary.AutoReleaseAt, summary.CreatedAt, summary.UpdatedAt,
 	)
 
@@ -188,7 +188,7 @@ func (r *Repository) GetOrderSummary(
 		&summary.DisputeStatus, &summary.DisputeReason, &summary.DisputeOpenedAt, &summary.DisputeResolvedAt,
 		&summary.Subtotal, &summary.ShippingTotal, &summary.CommissionAmount, &summary.ServiceFeeAmount, &summary.TotalPayableAmount,
 		&summary.EscrowAmount, &summary.RefundedAmount,
-		&summary.ShippingOptionName, &summary.ShippingTransportType,
+		&summary.ShippingSetupName, &summary.ShippingTransportType,
 		&summary.AutoReleaseAt, &summary.CreatedAt, &summary.UpdatedAt,
 	)
 
@@ -401,7 +401,7 @@ func (r *Repository) ListOrderSummariesByBuyer(
 			&s.DisputeStatus, &s.DisputeReason, &s.DisputeOpenedAt, &s.DisputeResolvedAt,
 			&s.Subtotal, &s.ShippingTotal, &s.CommissionAmount,
 			&s.EscrowAmount, &s.RefundedAmount,
-			&s.ShippingOptionName, &s.ShippingTransportType,
+			&s.ShippingSetupName, &s.ShippingTransportType,
 			&s.AutoReleaseAt, &s.CreatedAt, &s.UpdatedAt,
 		)
 		return &s, err
@@ -480,7 +480,7 @@ func (r *Repository) ListOrderSummariesBySeller(
 			&s.DisputeStatus, &s.DisputeReason, &s.DisputeOpenedAt, &s.DisputeResolvedAt,
 			&s.Subtotal, &s.ShippingTotal, &s.CommissionAmount,
 			&s.EscrowAmount, &s.RefundedAmount,
-			&s.ShippingOptionName, &s.ShippingTransportType,
+			&s.ShippingSetupName, &s.ShippingTransportType,
 			&s.AutoReleaseAt, &s.CreatedAt, &s.UpdatedAt,
 		)
 		return &s, err
@@ -708,7 +708,7 @@ func (r *Repository) ListOrderSummariesForAdmin(
 			&s.DisputeStatus, &s.DisputeReason, &s.DisputeOpenedAt, &s.DisputeResolvedAt,
 			&s.Subtotal, &s.ShippingTotal, &s.CommissionAmount,
 			&s.EscrowAmount, &s.RefundedAmount,
-			&s.ShippingOptionName, &s.ShippingTransportType,
+			&s.ShippingSetupName, &s.ShippingTransportType,
 			&s.AutoReleaseAt, &s.CreatedAt, &s.UpdatedAt,
 		)
 		return &s, err

@@ -62,6 +62,10 @@ func (m *auctionQuoteRepoStub) GetByID(_ context.Context, _ db.Tx, _ uuid.UUID) 
 	return m.auction, m.err
 }
 
+func (m *auctionQuoteRepoStub) MarkSellerQuoteProvided(_ context.Context, _ db.Tx, _ uuid.UUID) error {
+	return nil
+}
+
 type forSaleQuoteRepoStub struct {
 	called   bool
 	sellerID uuid.UUID
@@ -182,7 +186,6 @@ func TestCreateShippingQuote_AuctionWaitingSettlement_WinnerAllowed(t *testing.T
 		SourceType:     "auction",
 		SourceID:       auction.ID,
 		SellerID:       sellerID,
-		AuctionID:      &auction.ID,
 		Cost:           money.New(15000),
 		ExpiresInHours: nil,
 	})
@@ -215,7 +218,6 @@ func TestCreateShippingQuote_AuctionMissingRejected(t *testing.T) {
 		SourceType:     "auction",
 		SourceID:       auctionID,
 		SellerID:       sellerID,
-		AuctionID:      &auctionID,
 		Cost:           money.New(15000),
 		ExpiresInHours: nil,
 	})
@@ -249,7 +251,6 @@ func TestCreateShippingQuote_AuctionWrongSellerRejected(t *testing.T) {
 		SourceType:     "auction",
 		SourceID:       auction.ID,
 		SellerID:       sellerID,
-		AuctionID:      &auction.ID,
 		Cost:           money.New(15000),
 		ExpiresInHours: nil,
 	})
@@ -274,7 +275,6 @@ func TestCreateShippingQuote_AuctionInvalidStatusesRejected(t *testing.T) {
 		auctionEntity.StatusScheduled,
 		auctionEntity.StatusActive,
 		auctionEntity.StatusEnded,
-		auctionEntity.StatusExpiredBNR,
 		auctionEntity.StatusCancelled,
 	}
 
@@ -302,7 +302,6 @@ func TestCreateShippingQuote_AuctionInvalidStatusesRejected(t *testing.T) {
 				SourceType:     "auction",
 				SourceID:       auction.ID,
 				SellerID:       sellerID,
-				AuctionID:      &auction.ID,
 				Cost:           money.New(15000),
 				ExpiresInHours: nil,
 			})
@@ -339,7 +338,6 @@ func TestCreateShippingQuote_AuctionRecipientMismatchRejected(t *testing.T) {
 		SourceType:     "auction",
 		SourceID:       auction.ID,
 		SellerID:       sellerID,
-		AuctionID:      &auction.ID,
 		Cost:           money.New(15000),
 		ExpiresInHours: nil,
 	})

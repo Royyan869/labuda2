@@ -936,18 +936,6 @@ class AttachmentWidget extends ConsumerWidget {
                   ],
                 ),
 
-                // Estimated Days
-                if (shipping.estimatedDays != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'Estimasi: ${shipping.estimatedDays}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: AppColors.neutralGray500,
-                    ),
-                  ),
-                ],
-
                 // Notes
                 if (shipping.notes != null && shipping.notes!.isNotEmpty) ...[
                   const SizedBox(height: 8),

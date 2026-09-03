@@ -26,8 +26,6 @@ func TestNewPricingToken_BindsProductAndSource(t *testing.T) {
 		uuid.New(),
 		"JNE",
 		"courier",
-		nil,
-		nil,
 		uuid.New(),
 		[]byte(`{}`),
 		nil,
@@ -51,11 +49,11 @@ func TestNewPricingToken_BindsProductAndSource(t *testing.T) {
 		t.Fatalf("expected source_id %s, got %s", sourceID, token.SourceID)
 	}
 
-	if err := token.ValidateForOrder(userID, productID, "for_sale", sourceID, 2, token.AddressID, token.ShippingOptionID); err != nil {
+	if err := token.ValidateForOrder(userID, productID, "for_sale", sourceID, 2, token.AddressID, token.ShippingSetupID); err != nil {
 		t.Fatalf("expected validation to pass, got error: %v", err)
 	}
 
-	if err := token.ValidateForOrder(userID, uuid.New(), "for_sale", sourceID, 2, token.AddressID, token.ShippingOptionID); err == nil {
+	if err := token.ValidateForOrder(userID, uuid.New(), "for_sale", sourceID, 2, token.AddressID, token.ShippingSetupID); err == nil {
 		t.Fatal("expected product mismatch to fail")
 	}
 }
@@ -78,8 +76,6 @@ func TestNewPricingTokenFromAuction_BindsAuctionAndProduct(t *testing.T) {
 		uuid.New(),
 		"JNE",
 		"courier",
-		nil,
-		nil,
 		uuid.New(),
 		[]byte(`{}`),
 		nil,

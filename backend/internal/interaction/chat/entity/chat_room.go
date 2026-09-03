@@ -4,7 +4,6 @@
 package entity
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,33 +12,25 @@ import (
 // ChatRoom represents a conversation space between two participants.
 //
 // STRICT RULES:
-// - Participants are immutable after creation
-// - participant_a < participant_b is enforced
-// - One room per participant pair per room_type
-// - No financial state in this entity
-// - No coupling to negotiation/trade/financial domains
-// - Context is optional commerce metadata (forSale, auction, etc.)
-// - LinkedOrderId is the order ID for commerce continuity (order ↔ chat alignment)
+//   - Participants are immutable after creation
+//   - participant_a < participant_b is enforced
+//   - One room per participant pair per room_type
+//   - No financial state in this entity
+//   - No coupling to negotiation/trade/financial domains
+//   - Room-level commerce context is NOT stored here: commerce/resource
+//     references in chat are carried at the message level (attachment_json +
+//     chat_message_resource_occurrences). The room carries only identity and the
+//     linked_order_id for order ↔ chat continuity.
+//   - LinkedOrderId is the order ID for commerce continuity (order ↔ chat alignment)
 type ChatRoom struct {
-	ID           uuid.UUID
-	RoomType     RoomType
-	ParticipantA uuid.UUID
-	ParticipantB uuid.UUID
-	// ContextJSON is optional commerce context for UI display only.
-	// UI HINT ONLY - DO NOT USE FOR BUSINESS LOGIC.
-	// This field is for rendering context hints in the chat UI (forSale preview, auction info, etc.).
-	// All pricing, validation, and business logic MUST use authoritative domain entities.
-	ContextJSON   json.RawMessage `db:"context_json"`
-	ContextSetBy  *uuid.UUID      `db:"context_set_by"`  // User who set the context, nil when not applicable
-	LinkedOrderID *uuid.UUID      `db:"linked_order_id"` // Order linked to this chat for commerce continuity
+	ID            uuid.UUID
+	RoomType      RoomType
+	ParticipantA  uuid.UUID
+	ParticipantB  uuid.UUID
+	LinkedOrderID *uuid.UUID `db:"linked_order_id"` // Order linked to this chat for commerce continuity
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	LastMessageAt time.Time
-}
-
-// HasContext returns true if the room has a context set.
-func (r *ChatRoom) HasContext() bool {
-	return len(r.ContextJSON) > 0
 }
 
 // NewChatRoom creates a new chat room with sorted participants.
@@ -75,44 +66,6 @@ func NewChatRoom(roomType RoomType, userA, userB uuid.UUID) *ChatRoom {
 	}
 }
 
-// NewChatRoomWithContext creates a new chat room with commerce context.
-//
-// Context is used to associate the room with a forSale, auction, or other
-// commerce entity for features like seller quotes, negotiations, etc.
-//
-// Parameters:
-// - roomType: Type of room (direct, negotiation, support)
-// - userA, userB: The two participants (will be sorted deterministically)
-// - contextJSON: Commerce context as JSON (forSale attachment, etc.)
-// - contextSetBy: User ID who is setting the context
-func NewChatRoomWithContext(
-	roomType RoomType,
-	userA, userB uuid.UUID,
-	contextJSON json.RawMessage,
-	contextSetBy uuid.UUID,
-) *ChatRoom {
-	room := NewChatRoom(roomType, userA, userB)
-	room.ContextJSON = contextJSON
-	if contextSetBy != uuid.Nil {
-		room.ContextSetBy = &contextSetBy
-	}
-	return room
-}
-
-// SetContext updates the room's context.
-//
-// This allows adding context to an existing room, for example when a user
-// opens a chat from a forSale after the room was already created.
-func (r *ChatRoom) SetContext(contextJSON json.RawMessage, contextSetBy uuid.UUID) {
-	r.ContextJSON = contextJSON
-	if contextSetBy == uuid.Nil {
-		r.ContextSetBy = nil
-	} else {
-		r.ContextSetBy = &contextSetBy
-	}
-	r.UpdatedAt = time.Now()
-}
-
 // HasParticipant checks if the given user is a participant in this room.
 func (r *ChatRoom) HasParticipant(userID uuid.UUID) bool {
 	return r.ParticipantA == userID || r.ParticipantB == userID
@@ -146,7 +99,7 @@ func (r *ChatRoom) HasLinkedOrder() bool {
 // HasOrderContext returns true if the room has a linked order.
 // This is the explicit commerce continuity carve-out for block enforcement:
 // parties to an existing order may communicate even if a block exists between them.
-// Distinct from HasContext() (which checks ContextJSON UI hints — not a block bypass).
+// This is the only room-level commerce signal (the room carries no context JSON).
 func (r *ChatRoom) HasOrderContext() bool {
 	return r.LinkedOrderID != nil
 }
@@ -164,5 +117,3 @@ func (r *ChatRoom) UnlinkOrder() {
 	r.LinkedOrderID = nil
 	r.UpdatedAt = time.Now()
 }
-
-

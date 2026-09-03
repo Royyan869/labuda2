@@ -51,11 +51,11 @@ func newAuctionServiceForCreateTiming() *AuctionService {
 		roleChecker:   noopRoleChecker{},
 		ownership:     auth.NewOwnershipValidator(),
 		productShippingRepo: &scheduleStubProductShippingRepo{
-			options: []*shippingEntity.ShippingOption{{ID: optID}},
+			options: []*shippingEntity.ShippingSetup{{ID: optID}},
 		},
 		shippingCoverageRepo: &scheduleStubCoverageRepo{
 			coveragesByOption: map[uuid.UUID][]*shippingEntity.ShippingCoverage{
-				optID: {{ID: uuid.New(), ShippingOptionID: optID, IsAvailable: true}},
+				optID: {{ID: uuid.New(), ShippingSetupID: optID, IsAvailable: true}},
 			},
 		},
 		productRepo: fakeProductCreator{},

@@ -28,7 +28,7 @@ class _NoOpAvatarCacheService extends AvatarCacheService {
 }
 class _FakeAuthController extends AuthController { _FakeAuthController(this._st); final AuthState _st; @override AuthState build()=>_st; }
 AuthUser _au(String id) => AuthUser(id:id, createdAt:DateTime(2025), updatedAt:DateTime(2025),
-  email:'$id@t.com', username:id, isEmailVerified:true, roles:const[UserRole.user], provider:ShonaAuthProvider.email);
+  email:'$id@t.com', username:id, isEmailVerified:true, roles:const[UserRole.user], provider:AuthProvider.email);
 
 /// Canonical mentionable username regex — mirrors production _isMentionableUsername.
 bool _isMentionable(String u) => RegExp(r'^[a-z0-9_]+$').hasMatch(u);

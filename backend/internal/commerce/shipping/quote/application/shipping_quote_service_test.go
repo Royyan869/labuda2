@@ -77,11 +77,11 @@ func TestBuildShippingQuoteAttachmentJSON_Canonical(t *testing.T) {
 func TestBuildShippingQuoteAttachmentJSON_Auction(t *testing.T) {
 	auctionID := uuid.New()
 	productID := uuid.New()
-	quote := shippingQuoteEntity.NewAuctionShippingQuote(
+	sourceType := "auction"
+	quote := shippingQuoteEntity.NewShippingQuote(
 		uuid.New(),
 		productID,
-		auctionID,
-		"auction",
+		sourceType,
 		auctionID,
 		uuid.New(),
 		uuid.New(),
@@ -117,8 +117,9 @@ func TestBuildShippingQuoteAttachmentJSON_Auction(t *testing.T) {
 	if got := data["linked_item_id"]; got != auctionID.String() {
 		t.Fatalf("expected linked_item_id %s, got %#v", auctionID, got)
 	}
-	if got := data["auction_id"]; got != auctionID.String() {
-		t.Fatalf("expected auction_id %s, got %#v", auctionID, got)
+	// auction_id is no longer emitted; canonical identity is source_id
+	if _, ok := data["auction_id"]; ok {
+		t.Fatal("auction_id must not be emitted in attachment data")
 	}
 	if _, ok := data["product_id"]; ok {
 		t.Fatal("auction quote must not emit product_id in linked data")

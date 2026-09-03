@@ -609,7 +609,7 @@ func (r *SearchRepositoryImpl) SearchUsers(ctx context.Context, tx db.Tx, filter
 //
 // AUCTION SEARCH ELIGIBILITY (Stage 6B): only searches auctions in public
 // discovery states — scheduled or active. Draft, cancelled, waiting_settlement,
-// ended (settled/no-winner) and expired_bnr surfaces are non-public/historical
+// ended (settled/no-winner) surfaces are non-public/historical
 // and must not surface in anonymous discovery.
 //
 // Matches: title, description (ILIKE on prod.title / prod.description; seller

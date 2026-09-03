@@ -123,7 +123,7 @@ class AppTypography {
     height: 1.25,
   );
 
-  // Custom styles for Shona
+  // Custom styles
   static const TextStyle price = TextStyle(
     fontFamily: fontFamily,
     fontSize: 18,

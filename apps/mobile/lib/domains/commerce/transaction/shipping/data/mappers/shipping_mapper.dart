@@ -2,14 +2,13 @@ import 'package:labuda/domains/commerce/transaction/shipping/data/dto/shipping_d
 import 'package:labuda/domains/commerce/transaction/shipping/domain/domain.dart';
 
 /// Mapper untuk Shipping Option Entity ↔ DTO
-class ShippingOptionMapper {
+class ShippingSetupMapper {
   /// Convert DTO to Entity
-  static ShippingOption toEntity(ShippingOptionDto dto) {
-    return ShippingOption(
+  static ShippingSetup toEntity(ShippingSetupDto dto) {
+    return ShippingSetup(
       id: dto.id,
       name: dto.name,
       type: ShippingType.fromString(dto.type) ?? ShippingType.custom,
-      expeditionName: dto.expeditionName,
       coverageAreas:
           dto.coverages
               ?.map((c) => ShippingCoverageMapper.toEntity(c))
@@ -23,25 +22,23 @@ class ShippingOptionMapper {
 
   /// Convert Entity to DTO (for create/update requests)
   static Map<String, dynamic> toCreateJson(
-    CreateShippingOptionRequest request,
+    CreateShippingSetupRequest request,
   ) {
     return {
       'name': request.name,
       'transport_type': request.type.name,
-      if (request.expeditionName != null)
-        'expedition_name': request.expeditionName,
     };
   }
 
   /// Convert Entity to DTO (for update requests)
   static Map<String, dynamic> toUpdateJson(
-    UpdateShippingOptionRequest request,
+    UpdateShippingSetupRequest request,
   ) {
     return request.toJson();
   }
 
   /// Convert list of DTOs to Entities
-  static List<ShippingOption> toEntityList(List<ShippingOptionDto> dtos) {
+  static List<ShippingSetup> toEntityList(List<ShippingSetupDto> dtos) {
     return dtos.map((dto) => toEntity(dto)).toList();
   }
 }
@@ -54,7 +51,6 @@ class ShippingCoverageMapper {
       provinceId: dto.provinceCode,
       provinceName: dto.provinceName,
       provinceRate: dto.rate,
-      provinceEstimatedDays: dto.estimatedDays,
       isAvailable: dto.isAvailable,
     );
   }
@@ -82,11 +78,10 @@ class DeliveryOptionMapper {
   /// Convert DTO to Entity
   static DeliveryOption toEntity(DeliveryOptionDto dto) {
     return DeliveryOption(
-      shippingOptionId: dto.shippingOptionId,
+      shippingSetupId: dto.shippingSetupId,
       displayName: dto.displayName,
       type: dto.type,
       rate: dto.rate,
-      estimatedDays: dto.estimatedDays,
       notes: dto.notes,
       source: dto.source,
     );

@@ -40,7 +40,7 @@ import 'package:equatable/equatable.dart';
 ///
 /// CONTRACT PARITY (PASS_18E/PASS_21B): field names and shape match the
 /// backend's `CreateAuctionRequest` exactly
-/// (`internal/commerce/auction/delivery/http`). `shippingOptionIds` is
+/// (`internal/commerce/auction/delivery/http`). `shippingSetupIds` is
 /// REQUIRED — backend rejects creation with `min=1` binding, and auction is
 /// still a physical fish that must ship. No stale `images`/`category`/
 /// `condition`/`product_id`/`listing_id` keys are kept.
@@ -58,7 +58,7 @@ class CreateAuctionDto {
   final String? farmAddressId;
 
   /// Required — backend rejects creation without at least one option.
-  final List<String> shippingOptionIds;
+  final List<String> shippingSetupIds;
 
   final double startPrice;
   final double? bidIncrement;
@@ -87,7 +87,7 @@ class CreateAuctionDto {
     this.bloodline,
     this.certificates,
     this.farmAddressId,
-    required this.shippingOptionIds,
+    required this.shippingSetupIds,
     required this.startPrice,
     this.bidIncrement,
     this.buyNowPrice,
@@ -109,7 +109,7 @@ class CreateAuctionDto {
     if (bloodline != null) 'bloodline': bloodline,
     if (certificates != null) 'certificates': certificates,
     if (farmAddressId != null) 'farm_address_id': farmAddressId,
-    'shipping_option_ids': shippingOptionIds,
+    'shipping_setup_ids': shippingSetupIds,
     'start_price': startPrice,
     if (bidIncrement != null) 'bid_increment': bidIncrement,
     if (buyNowPrice != null) 'buy_now_price': buyNowPrice,

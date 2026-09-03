@@ -27,7 +27,7 @@ AuthUser _user() {
     username: 'testuser',
     isEmailVerified: true,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
   );
 }
 

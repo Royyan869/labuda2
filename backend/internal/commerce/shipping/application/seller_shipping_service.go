@@ -14,29 +14,29 @@ import (
 // SellerShippingService handles seller shipping option management.
 // This service provides CRUD operations for sellers to manage their shipping options.
 type SellerShippingService struct {
-	shippingOptionRepo  shippingRepo.ShippingOptionRepository
+	shippingSetupRepo  shippingRepo.ShippingSetupRepository
 	coverageRepo        shippingRepo.ShippingCoverageRepository
 	cityOverrideRepo    shippingRepo.CityOverrideRepository
-	productShippingRepo shippingRepo.ProductShippingOptionRepository
+	productShippingRepo shippingRepo.ProductShippingSetupRepository
 }
 
 // NewSellerShippingService creates a new SellerShippingService.
 func NewSellerShippingService(
-	shippingOptionRepo shippingRepo.ShippingOptionRepository,
+	shippingSetupRepo shippingRepo.ShippingSetupRepository,
 	coverageRepo shippingRepo.ShippingCoverageRepository,
 	cityOverrideRepo shippingRepo.CityOverrideRepository,
-	productShippingRepo shippingRepo.ProductShippingOptionRepository,
+	productShippingRepo shippingRepo.ProductShippingSetupRepository,
 ) *SellerShippingService {
 	return &SellerShippingService{
-		shippingOptionRepo:  shippingOptionRepo,
+		shippingSetupRepo:  shippingSetupRepo,
 		coverageRepo:        coverageRepo,
 		cityOverrideRepo:    cityOverrideRepo,
 		productShippingRepo: productShippingRepo,
 	}
 }
 
-// CreateShippingOptionInput contains parameters for creating a shipping option.
-type CreateShippingOptionInput struct {
+// CreateShippingSetupInput contains parameters for creating a shipping option.
+type CreateShippingSetupInput struct {
 	// SellerID is the seller creating this shipping option
 	SellerID uuid.UUID
 
@@ -45,17 +45,14 @@ type CreateShippingOptionInput struct {
 
 	// TransportType is the category of transport (train, bus, travel, plane, custom)
 	TransportType shippingEntity.TransportType
-
-	// ExpeditionName is the optional expedition/company name
-	ExpeditionName string
 }
 
-// CreateShippingOption creates a new shipping option for a seller.
-func (s *SellerShippingService) CreateShippingOption(
+// CreateShippingSetup creates a new shipping option for a seller.
+func (s *SellerShippingService) CreateShippingSetup(
 	ctx context.Context,
 	tx db.Tx,
-	input CreateShippingOptionInput,
-) (*shippingEntity.ShippingOption, error) {
+	input CreateShippingSetupInput,
+) (*shippingEntity.ShippingSetup, error) {
 	// Validate name is not empty
 	if input.Name == "" {
 		return nil, fmt.Errorf("name is required")
@@ -67,30 +64,29 @@ func (s *SellerShippingService) CreateShippingOption(
 	}
 
 	// Check for duplicate name
-	existing, err := s.shippingOptionRepo.GetByName(ctx, tx, input.SellerID, input.Name)
+	existing, err := s.shippingSetupRepo.GetByName(ctx, tx, input.SellerID, input.Name)
 	if err == nil && existing != nil {
 		return nil, fmt.Errorf("shipping option with name '%s' already exists", input.Name)
 	}
 
 	// Create shipping option
-	option := shippingEntity.NewShippingOption(
+	option := shippingEntity.NewShippingSetup(
 		input.SellerID,
 		input.Name,
 		input.TransportType,
-		input.ExpeditionName,
 	)
 
-	if err := s.shippingOptionRepo.Create(ctx, tx, option); err != nil {
+	if err := s.shippingSetupRepo.Create(ctx, tx, option); err != nil {
 		return nil, fmt.Errorf("failed to create shipping option: %w", err)
 	}
 
 	return option, nil
 }
 
-// UpdateShippingOptionInput contains parameters for updating a shipping option.
-type UpdateShippingOptionInput struct {
-	// ShippingOptionID is the ID of the shipping option to update
-	ShippingOptionID uuid.UUID
+// UpdateShippingSetupInput contains parameters for updating a shipping option.
+type UpdateShippingSetupInput struct {
+	// ShippingSetupID is the ID of the shipping option to update
+	ShippingSetupID uuid.UUID
 
 	// SellerID is the authenticated seller ID (for ownership check)
 	SellerID uuid.UUID
@@ -101,21 +97,18 @@ type UpdateShippingOptionInput struct {
 	// TransportType is the new transport type (optional)
 	TransportType shippingEntity.TransportType
 
-	// ExpeditionName is the new expedition name (optional, empty string to clear)
-	ExpeditionName string
-
 	// IsActive indicates whether the option should be active
 	IsActive *bool
 }
 
-// UpdateShippingOption updates an existing shipping option.
-func (s *SellerShippingService) UpdateShippingOption(
+// UpdateShippingSetup updates an existing shipping option.
+func (s *SellerShippingService) UpdateShippingSetup(
 	ctx context.Context,
 	tx db.Tx,
-	input UpdateShippingOptionInput,
-) (*shippingEntity.ShippingOption, error) {
+	input UpdateShippingSetupInput,
+) (*shippingEntity.ShippingSetup, error) {
 	// Get the shipping option with lock
-	option, err := s.shippingOptionRepo.GetForUpdate(ctx, tx, input.ShippingOptionID)
+	option, err := s.shippingSetupRepo.GetForUpdate(ctx, tx, input.ShippingSetupID)
 	if err != nil {
 		return nil, fmt.Errorf("shipping option not found: %w", err)
 	}
@@ -130,7 +123,7 @@ func (s *SellerShippingService) UpdateShippingOption(
 
 	if input.Name != "" && input.Name != option.Name {
 		// Check for duplicate name
-		existing, err := s.shippingOptionRepo.GetByName(ctx, tx, input.SellerID, input.Name)
+		existing, err := s.shippingSetupRepo.GetByName(ctx, tx, input.SellerID, input.Name)
 		if err == nil && existing != nil && existing.ID != option.ID {
 			return nil, fmt.Errorf("shipping option with name '%s' already exists", input.Name)
 		}
@@ -146,11 +139,6 @@ func (s *SellerShippingService) UpdateShippingOption(
 		updated = true
 	}
 
-	if input.ExpeditionName != option.GetExpeditionName() {
-		option.SetExpeditionName(input.ExpeditionName)
-		updated = true
-	}
-
 	if input.IsActive != nil && *input.IsActive != option.IsActive {
 		if *input.IsActive {
 			option.Activate()
@@ -161,7 +149,7 @@ func (s *SellerShippingService) UpdateShippingOption(
 	}
 
 	if updated {
-		if err := s.shippingOptionRepo.Update(ctx, tx, option); err != nil {
+		if err := s.shippingSetupRepo.Update(ctx, tx, option); err != nil {
 			return nil, fmt.Errorf("failed to update shipping option: %w", err)
 		}
 	}
@@ -169,15 +157,15 @@ func (s *SellerShippingService) UpdateShippingOption(
 	return option, nil
 }
 
-// DeleteShippingOption deletes a shipping option and its associated coverages.
-func (s *SellerShippingService) DeleteShippingOption(
+// DeleteShippingSetup deletes a shipping option and its associated coverages.
+func (s *SellerShippingService) DeleteShippingSetup(
 	ctx context.Context,
 	tx db.Tx,
-	shippingOptionID uuid.UUID,
+	shippingSetupID uuid.UUID,
 	sellerID uuid.UUID,
 ) error {
 	// Verify ownership
-	option, err := s.shippingOptionRepo.GetByID(ctx, tx, shippingOptionID)
+	option, err := s.shippingSetupRepo.GetByID(ctx, tx, shippingSetupID)
 	if err != nil {
 		return fmt.Errorf("shipping option not found: %w", err)
 	}
@@ -187,7 +175,7 @@ func (s *SellerShippingService) DeleteShippingOption(
 	}
 
 	// Delete city overrides for all coverages (cascade through coverages)
-	coverages, err := s.coverageRepo.GetByShippingOption(ctx, tx, shippingOptionID)
+	coverages, err := s.coverageRepo.GetByShippingSetup(ctx, tx, shippingSetupID)
 	if err == nil {
 		for _, coverage := range coverages {
 			_ = s.cityOverrideRepo.DeleteByCoverage(ctx, tx, coverage.ID)
@@ -195,43 +183,43 @@ func (s *SellerShippingService) DeleteShippingOption(
 	}
 
 	// Delete all coverages
-	_ = s.coverageRepo.DeleteByShippingOption(ctx, tx, shippingOptionID)
+	_ = s.coverageRepo.DeleteByShippingSetup(ctx, tx, shippingSetupID)
 
 	// Delete product-shipping links
-	_ = s.productShippingRepo.DeleteByShippingOption(ctx, tx, shippingOptionID)
+	_ = s.productShippingRepo.DeleteByShippingSetup(ctx, tx, shippingSetupID)
 
 	// Delete the shipping option
-	if err := s.shippingOptionRepo.Delete(ctx, tx, shippingOptionID); err != nil {
+	if err := s.shippingSetupRepo.Delete(ctx, tx, shippingSetupID); err != nil {
 		return fmt.Errorf("failed to delete shipping option: %w", err)
 	}
 
 	return nil
 }
 
-// ListSellerShippingOptions retrieves all shipping options for a seller.
-func (s *SellerShippingService) ListSellerShippingOptions(
+// ListSellerShippingSetups retrieves all shipping options for a seller.
+func (s *SellerShippingService) ListSellerShippingSetups(
 	ctx context.Context,
 	tx db.Tx,
 	sellerID uuid.UUID,
 	includeInactive bool,
-) ([]*shippingEntity.ShippingOption, error) {
-	return s.shippingOptionRepo.GetBySeller(ctx, tx, sellerID, !includeInactive)
+) ([]*shippingEntity.ShippingSetup, error) {
+	return s.shippingSetupRepo.GetBySeller(ctx, tx, sellerID, !includeInactive)
 }
 
-// GetShippingOptionWithCoverages retrieves a shipping option with its coverages.
-type GetShippingOptionWithCoveragesResult struct {
-	ShippingOption *shippingEntity.ShippingOption
+// GetShippingSetupWithCoverages retrieves a shipping option with its coverages.
+type GetShippingSetupWithCoveragesResult struct {
+	ShippingSetup *shippingEntity.ShippingSetup
 	Coverages      []*shippingEntity.ShippingCoverage
 }
 
-func (s *SellerShippingService) GetShippingOptionWithCoverages(
+func (s *SellerShippingService) GetShippingSetupWithCoverages(
 	ctx context.Context,
 	tx db.Tx,
-	shippingOptionID uuid.UUID,
+	shippingSetupID uuid.UUID,
 	sellerID uuid.UUID,
-) (*GetShippingOptionWithCoveragesResult, error) {
+) (*GetShippingSetupWithCoveragesResult, error) {
 	// Get shipping option
-	option, err := s.shippingOptionRepo.GetByID(ctx, tx, shippingOptionID)
+	option, err := s.shippingSetupRepo.GetByID(ctx, tx, shippingSetupID)
 	if err != nil {
 		return nil, fmt.Errorf("shipping option not found: %w", err)
 	}
@@ -242,21 +230,21 @@ func (s *SellerShippingService) GetShippingOptionWithCoverages(
 	}
 
 	// Get coverages
-	coverages, err := s.coverageRepo.GetByShippingOption(ctx, tx, shippingOptionID)
+	coverages, err := s.coverageRepo.GetByShippingSetup(ctx, tx, shippingSetupID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get coverages: %w", err)
 	}
 
-	return &GetShippingOptionWithCoveragesResult{
-		ShippingOption: option,
+	return &GetShippingSetupWithCoveragesResult{
+		ShippingSetup: option,
 		Coverages:      coverages,
 	}, nil
 }
 
 // CreateCoverageInput contains parameters for creating a shipping coverage.
 type CreateCoverageInput struct {
-	// ShippingOptionID is the shipping option to add coverage for
-	ShippingOptionID uuid.UUID
+	// ShippingSetupID is the shipping option to add coverage for
+	ShippingSetupID uuid.UUID
 
 	// SellerID is the authenticated seller ID (for ownership check)
 	SellerID uuid.UUID
@@ -269,9 +257,6 @@ type CreateCoverageInput struct {
 
 	// Rate is the shipping rate for this province
 	Rate int64
-
-	// EstimatedDays is the estimated delivery time (e.g., "1-2 hari")
-	EstimatedDays string
 
 	// IsAvailable indicates whether shipping is available to this province
 	IsAvailable bool
@@ -292,7 +277,7 @@ func (s *SellerShippingService) CreateCoverage(
 	}
 
 	// Verify ownership of shipping option
-	option, err := s.shippingOptionRepo.GetByID(ctx, tx, input.ShippingOptionID)
+	option, err := s.shippingSetupRepo.GetByID(ctx, tx, input.ShippingSetupID)
 	if err != nil {
 		return nil, fmt.Errorf("shipping option not found: %w", err)
 	}
@@ -301,21 +286,17 @@ func (s *SellerShippingService) CreateCoverage(
 	}
 
 	// Check for existing coverage
-	existing, err := s.coverageRepo.GetByOptionAndProvince(ctx, tx, input.ShippingOptionID, input.ProvinceCode)
+	existing, err := s.coverageRepo.GetByOptionAndProvince(ctx, tx, input.ShippingSetupID, input.ProvinceCode)
 	if err == nil && existing != nil {
 		return nil, fmt.Errorf("coverage for province '%s' already exists", input.ProvinceCode)
 	}
 
 	// Create coverage
 	coverage := shippingEntity.NewShippingCoverage(
-		input.ShippingOptionID,
+		input.ShippingSetupID,
 		input.ProvinceCode,
 		input.ProvinceName,
 	).WithRate(money.New(input.Rate))
-
-	if input.EstimatedDays != "" {
-		coverage.WithEstimatedDays(input.EstimatedDays)
-	}
 
 	if !input.IsAvailable {
 		coverage.MarkUnavailable()
@@ -342,9 +323,6 @@ type UpdateCoverageInput struct {
 	// Rate is the new shipping rate (optional)
 	Rate *int64
 
-	// EstimatedDays is the new estimated delivery time (optional)
-	EstimatedDays *string
-
 	// IsAvailable indicates whether shipping is available (optional)
 	IsAvailable *bool
 }
@@ -362,7 +340,7 @@ func (s *SellerShippingService) UpdateCoverage(
 	}
 
 	// Verify ownership through shipping option
-	option, err := s.shippingOptionRepo.GetByID(ctx, tx, coverage.ShippingOptionID)
+	option, err := s.shippingSetupRepo.GetByID(ctx, tx, coverage.ShippingSetupID)
 	if err != nil {
 		return nil, fmt.Errorf("shipping option not found: %w", err)
 	}
@@ -380,11 +358,6 @@ func (s *SellerShippingService) UpdateCoverage(
 
 	if input.Rate != nil {
 		coverage.ProvinceRate = money.New(*input.Rate)
-		updated = true
-	}
-
-	if input.EstimatedDays != nil {
-		coverage.EstimatedDays = input.EstimatedDays
 		updated = true
 	}
 
@@ -420,7 +393,7 @@ func (s *SellerShippingService) DeleteCoverage(
 	}
 
 	// Verify ownership through shipping option
-	option, err := s.shippingOptionRepo.GetByID(ctx, tx, coverage.ShippingOptionID)
+	option, err := s.shippingSetupRepo.GetByID(ctx, tx, coverage.ShippingSetupID)
 	if err != nil {
 		return fmt.Errorf("shipping option not found: %w", err)
 	}
@@ -443,11 +416,11 @@ func (s *SellerShippingService) DeleteCoverage(
 func (s *SellerShippingService) ListCoverages(
 	ctx context.Context,
 	tx db.Tx,
-	shippingOptionID uuid.UUID,
+	shippingSetupID uuid.UUID,
 	sellerID uuid.UUID,
 ) ([]*shippingEntity.ShippingCoverage, error) {
 	// Verify ownership
-	option, err := s.shippingOptionRepo.GetByID(ctx, tx, shippingOptionID)
+	option, err := s.shippingSetupRepo.GetByID(ctx, tx, shippingSetupID)
 	if err != nil {
 		return nil, fmt.Errorf("shipping option not found: %w", err)
 	}
@@ -455,7 +428,7 @@ func (s *SellerShippingService) ListCoverages(
 		return nil, fmt.Errorf("forbidden: shipping option does not belong to seller")
 	}
 
-	return s.coverageRepo.GetByShippingOption(ctx, tx, shippingOptionID)
+	return s.coverageRepo.GetByShippingSetup(ctx, tx, shippingSetupID)
 }
 
 // isValidTransportType checks if the transport type is valid.

@@ -1,7 +1,6 @@
 package application
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -56,17 +55,6 @@ func buildChatRoomSummaryOutboxPayload(
 		"last_message_at": room.LastMessageAt.UTC().Format(time.RFC3339),
 	}
 
-	if room.HasContext() {
-		var contextData any
-		if err := json.Unmarshal(room.ContextJSON, &contextData); err == nil {
-			payload["context"] = contextData
-		}
-	}
-
-	if room.HasContext() && room.ContextSetBy != nil {
-		payload["context_set_by"] = room.ContextSetBy.String()
-	}
-
 	if room.HasLinkedOrder() && room.LinkedOrderID != nil {
 		payload["linked_order_id"] = room.LinkedOrderID.String()
 	}
@@ -97,5 +85,3 @@ func buildChatRoomLastMessagePayload(msg *chatEntity.ChatMessage) map[string]any
 
 	return payload
 }
-
-

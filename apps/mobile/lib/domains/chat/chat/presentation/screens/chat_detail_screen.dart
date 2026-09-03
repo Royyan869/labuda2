@@ -14,7 +14,6 @@ import 'package:labuda/domains/chat/chat/presentation/utils/chat_identity_displa
 import 'package:labuda/domains/chat/chat/presentation/widgets/chat_input_area.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/message_bubble.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/typing_indicator.dart';
-import 'package:labuda/domains/chat/chat/presentation/widgets/shipping_quote_creation_modal.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/chat/chat_order_status_banner.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_lifecycle_redaction.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
@@ -60,8 +59,8 @@ Future<ShippingQuoteCheckoutTarget?> resolveShippingQuoteCheckoutTarget({
 }) async {
   final linkedItemType = shippingQuote.linkedItemType.toLowerCase();
   if (linkedItemType == 'auction') {
-    final auctionId = (shippingQuote.auctionId ?? shippingQuote.linkedItemId)
-        .trim();
+    // Canonical identity: source_id = auction.id
+    final auctionId = shippingQuote.linkedItemId.trim();
     if (auctionId.isEmpty) return null;
 
     // resolveAuctionProductId returns the physical product ID (auction.productId),
@@ -144,7 +143,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   bool _isLoadingData = false;
   bool _isLoadingMore = false;
   bool _isSendingMessage = false;
-  bool _isCreatingShippingQuote = false;
 
   @override
   void initState() {
@@ -304,8 +302,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         children: [
           // Order Status Banner (shows when chat has linkedOrderId)
           _buildOrderStatusBanner(context, chat?.linkedOrderId),
-          // For Sale Context Banner (shows when chat has for-sale context)
-          _buildForSaleContextBanner(context, chat),
+
           // Blocked User Banner (shows when user is blocked)
           if (isUserBlocked) _buildBlockedUserBanner(context, otherUserId),
           Expanded(child: _buildMessagesList(context, chatDetailState)),
@@ -431,123 +428,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   /// Shows the active listing context at the top of the chat.
   /// This helps users understand what listing the chat is about.
   /// Only displays when context is a ShareReference with targetType.listing.
-  ///
-  /// **CV3:** Updated to emphasize purchase continuity - changed label from
-  /// "Terkait Listing" to "Diskusi Pembelian" to make it clear this chat
-  /// is part of the purchase flow, not just a generic conversation.
-  ///
-  /// **FINAL CLEANUP:** Updated to handle ShareReference (extends Attachment).
-  Widget _buildForSaleContextBanner(BuildContext context, Chat? chat) {
-    // Only show for ShareReference context with for-sale targetType
-    final contextRef = chat?.context;
-    if (contextRef == null ||
-        contextRef.targetType != ShareTargetType.forSale) {
-      return const SizedBox.shrink();
-    }
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.primaryRed.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.primaryRed.withValues(alpha: 0.25),
-          width: 1,
-        ),
-      ),
-      child: InkWell(
-        onTap: () => _navigateToForSaleDetail(contextRef),
-        borderRadius: BorderRadius.circular(12),
-        child: Row(
-          children: [
-            // Thumbnail
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child:
-                  contextRef.preview.imageUrl != null &&
-                      contextRef.preview.imageUrl!.isNotEmpty
-                  ? Image.network(
-                      contextRef.preview.imageUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.storefront,
-                          size: 24,
-                          color: AppColors.neutralGray500,
-                        );
-                      },
-                    )
-                  : const Icon(
-                      Icons.storefront,
-                      size: 24,
-                      color: AppColors.neutralGray500,
-                    ),
-            ),
-            const SizedBox(width: 12),
-            // Listing info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.shopping_bag_outlined,
-                        size: 14,
-                        color: AppColors.primaryRed,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        // **CV3:** Changed from "Terkait Listing" to "Diskusi Pembelian"
-                        // to emphasize this is a purchase-related conversation
-                        'Diskusi Pembelian',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.primaryRed,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    contextRef.preview.title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.neutralGray900,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  // ShareReference only contains preview data (title, image), not price
-                  // Price would need to be fetched from backend for display
-                  Text(
-                    'Lihat Detail',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.primaryRed,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // View listing icon
-            Icon(Icons.chevron_right, color: AppColors.neutralGray400),
-          ],
-        ),
-      ),
-    );
-  }
-
   /// Order Status Banner
   ///
   /// Shows order status for linked orders in chat.
@@ -652,169 +532,11 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   }
 
   Widget _buildInputArea(BuildContext context) {
-    final chat = ref.read(chatDetailProvider(widget.chatId)).chat;
-    final hasForSaleContext =
-        chat?.context?.targetType == ShareTargetType.forSale;
-
-    // Check if current user is the seller (has market authority)
-    final authState = ref.read(authControllerProvider);
-    final isSeller =
-        authState is AuthStateAuthenticated &&
-        authState.user.hasMarketAuthority == true;
-
     return ChatInputArea(
       chatId: widget.chatId,
       messageController: _messageController,
       onSendMessage: _handleSendMessage,
       onAttachmentTap: _handleAttachmentTap,
-      onStartNegotiation: hasForSaleContext
-          ? () => _handleNegotiateFromInput()
-          : null,
-      // Direct checkout callback
-      onBuyNow: hasForSaleContext ? () => _navigateToCheckoutFromInput() : null,
-      // Shipping quote callback (only for sellers)
-      onSendQuote: (hasForSaleContext && isSeller)
-          ? () => _handleCreateShippingQuote(context)
-          : null,
-    );
-  }
-
-  /// Navigate to checkout from input area
-  ///
-  /// **SOCIAL FIX 1.1:** Now uses ShareReference instead of ListingAttachment.
-  /// Provides direct checkout path from the commerce action bar.
-  /// Preserves chat context for seamless return.
-  void _navigateToCheckoutFromInput() {
-    final chat = ref.read(chatDetailProvider(widget.chatId)).chat;
-    if (chat?.context?.targetType != ShareTargetType.forSale) return;
-
-    final forSaleId = chat?.context?.targetId;
-    if (forSaleId != null) {
-      _navigateToCheckout(forSaleId, returnToChat: true);
-    }
-  }
-
-  /// **SOCIAL FIX 1.1:** Negotiation now uses ShareReference.
-  void _handleNegotiateFromInput() {
-    final chat = ref.read(chatDetailProvider(widget.chatId)).chat;
-    if (chat?.context?.targetType == ShareTargetType.forSale) {
-      _showNegotiationDialogForShareReference(context, chat!.context!);
-    }
-  }
-
-  /// Handle create shipping quote action
-  ///
-  /// Shows modal for seller to input shipping cost and note,
-  /// then calls API to create shipping quote.
-  Future<void> _handleCreateShippingQuote(BuildContext context) async {
-    // Guard against concurrent calls
-    if (_isCreatingShippingQuote) return;
-
-    final chat = ref.read(chatDetailProvider(widget.chatId)).chat;
-    if (chat?.context?.targetType != ShareTargetType.forSale) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tidak ada listing yang terkait dengan chat ini'),
-          ),
-        );
-      }
-      return;
-    }
-
-    final forSaleId = chat?.context?.targetId;
-    if (forSaleId == null) return;
-
-    // **VALIDATION:** Check for existing active shipping quotes for this item
-    final chatState = ref.read(chatDetailProvider(widget.chatId));
-    final hasActiveQuote = chatState.messages.any(
-      (msg) =>
-          msg.shippingQuote != null &&
-          msg.shippingQuote!.linkedItemId == forSaleId &&
-          msg.shippingQuote!.status.toLowerCase() == 'active',
-    );
-
-    if (hasActiveQuote) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Anda sudah memiliki ongkir aktif untuk listing ini. Batalkan quote yang ada terlebih dahulu.',
-            ),
-            backgroundColor: AppColors.statusError,
-          ),
-        );
-      }
-      return;
-    }
-
-    // Show shipping quote creation modal
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => Container(
-        padding: MediaQuery.of(sheetContext).viewInsets,
-        child: ShippingQuoteCreationModal(
-          listingName: chat?.context?.preview.title ?? 'For Sale',
-          onCreate: (cost, note) async {
-            final messenger = ScaffoldMessenger.of(context);
-            // Guard against concurrent calls
-            if (_isCreatingShippingQuote) return;
-
-            try {
-              _isCreatingShippingQuote = true;
-
-              // Create shipping quote via API
-              final listing = await ref.read(
-                forSaleDetailProvider(forSaleId).future,
-              );
-              final productId = listing?.productId?.trim();
-              if (productId == null || productId.isEmpty) {
-                throw StateError('Missing productId for forSaleId $forSaleId');
-              }
-
-              final request = buildForSaleShippingQuoteRequest(
-                productId: productId,
-                forSaleId: forSaleId,
-                cost: cost,
-                note: note,
-              );
-
-              // Call API through chat notifier
-              final notifier = ref.read(
-                chatDetailProvider(widget.chatId).notifier,
-              );
-              await notifier.createShippingQuote(request);
-
-              // Refresh messages to show the new shipping quote message
-              final userId = ref.read(currentUserIdProvider);
-              await notifier.loadMessages(userId);
-
-              if (mounted) {
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('Ongkir berhasil dikirim'),
-                    backgroundColor: AppColors.successGreen,
-                  ),
-                );
-              }
-            } catch (e) {
-              if (mounted) {
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: const Text('Gagal mengirim ongkir. Coba lagi.'),
-                    backgroundColor: AppColors.statusError,
-                  ),
-                );
-              }
-              rethrow;
-            } finally {
-              _isCreatingShippingQuote = false;
-            }
-          },
-        ),
-      ),
     );
   }
 
@@ -960,11 +682,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     await ForSalePickerBottomSheet.show(
       context,
       intent: ForSalePickerIntent.forSaleAttachment,
-      selectedForSaleId: ref
-          .read(chatDetailProvider(widget.chatId))
-          .chat
-          ?.context
-          ?.targetId,
+      selectedForSaleId: null,
       onForSaleSelected: (selection) {
         _sendForSaleAttachment(selection.forSaleId);
       },

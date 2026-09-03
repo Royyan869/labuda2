@@ -40,18 +40,17 @@ func (r *ShippingQuoteRepositoryImpl) Create(
 	}
 	_, err := tx.Exec(ctx, `
 		INSERT INTO shipping_quotes (
-			id, chat_id, product_id, source_type, source_id, auction_id, seller_id, buyer_id,
+			id, chat_id, product_id, source_type, source_id, seller_id, buyer_id,
 			cost, note, status, destination_city_id, destination_province_id,
 			created_at, expires_at, reactivation_count, max_reuse
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 	`,
 		quote.ID,
 		quote.ChatID,
 		quote.ProductID,
 		quote.SourceType,
 		quote.SourceID,
-		quote.AuctionID,
 		quote.SellerID,
 		quote.BuyerID,
 		quote.Cost.Int64(),
@@ -79,7 +78,6 @@ func scanShippingQuote(
 	var status string
 	var sourceType *string
 	var sourceID *uuid.UUID
-	var auctionID *uuid.UUID
 	var supersededAt *time.Time
 	var supersededByID *uuid.UUID
 	var destCityID, destProvinceID *string
@@ -92,7 +90,6 @@ func scanShippingQuote(
 		&quote.ProductID,
 		&sourceType,
 		&sourceID,
-		&auctionID,
 		&quote.SellerID,
 		&quote.BuyerID,
 		&cost,
@@ -116,7 +113,6 @@ func scanShippingQuote(
 	quote.Status = entity.QuoteStatus(status)
 	quote.SourceType = sourceType
 	quote.SourceID = sourceID
-	quote.AuctionID = auctionID
 	quote.SupersededAt = supersededAt
 	quote.SupersededByID = supersededByID
 	quote.DestinationCityID = destCityID
@@ -134,10 +130,10 @@ func scanShippingQuote(
 }
 
 const shippingQuoteSelectColumns = `
-		SELECT id, chat_id, product_id, source_type, source_id, auction_id, seller_id, buyer_id,
-		       cost, note, status, superseded_at, superseded_by_id,
-		       destination_city_id, destination_province_id,
-		       used_at, expires_at, created_at, reactivation_count, max_reuse
+		SELECT id, chat_id, product_id, source_type, source_id, seller_id, buyer_id,
+	       cost, note, status, superseded_at, superseded_by_id,
+	       destination_city_id, destination_province_id,
+	       used_at, expires_at, created_at, reactivation_count, max_reuse
 `
 
 // GetLatestByChatAndSource retrieves the current ACTIVE unsuperseded quote

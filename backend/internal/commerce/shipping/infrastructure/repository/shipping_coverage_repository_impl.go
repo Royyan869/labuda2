@@ -29,16 +29,15 @@ func (r *ShippingCoverageRepositoryImpl) Create(
 	_, err := tx.Exec(ctx, `
 		INSERT INTO shipping_coverages (
 			id, shipping_option_id, province_code, province_name,
-			province_rate, estimated_days, is_available, created_at
+			province_rate, is_available, created_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`,
 		coverage.ID,
-		coverage.ShippingOptionID,
+		coverage.ShippingSetupID,
 		coverage.ProvinceCode,
 		coverage.ProvinceName,
 		coverage.ProvinceRate.Int64(),
-		coverage.EstimatedDays,
 		coverage.IsAvailable,
 		coverage.CreatedAt,
 	)
@@ -58,14 +57,13 @@ func (r *ShippingCoverageRepositoryImpl) Update(
 ) error {
 	_, err := tx.Exec(ctx, `
 		UPDATE shipping_coverages
-		SET province_name = $2, province_rate = $3, estimated_days = $4,
-		    is_available = $5
+		SET province_name = $2, province_rate = $3,
+		    is_available = $4
 		WHERE id = $1
 	`,
 		coverage.ID,
 		coverage.ProvinceName,
 		coverage.ProvinceRate.Int64(),
-		coverage.EstimatedDays,
 		coverage.IsAvailable,
 	)
 
@@ -82,22 +80,21 @@ func (r *ShippingCoverageRepositoryImpl) GetByID(
 	tx db.Tx,
 	id uuid.UUID,
 ) (*entity.ShippingCoverage, error) {
-	var shippingOptionID uuid.UUID
+	var shippingSetupID uuid.UUID
 	var provinceCode string
 	var provinceName string
 	var provinceRate int64
-	var estimatedDays *string
 	var isAvailable bool
 	var createdAt time.Time
 
 	err := tx.QueryRow(ctx, `
 		SELECT id, shipping_option_id, province_code, province_name,
-		       province_rate, estimated_days, is_available, created_at
+		       province_rate, is_available, created_at
 		FROM shipping_coverages
 		WHERE id = $1
 	`, id).Scan(
-		&id, &shippingOptionID, &provinceCode, &provinceName,
-		&provinceRate, &estimatedDays, &isAvailable, &createdAt,
+		&id, &shippingSetupID, &provinceCode, &provinceName,
+		&provinceRate, &isAvailable, &createdAt,
 	)
 
 	if err != nil {
@@ -109,29 +106,28 @@ func (r *ShippingCoverageRepositoryImpl) GetByID(
 
 	return &entity.ShippingCoverage{
 		ID:               id,
-		ShippingOptionID: shippingOptionID,
+		ShippingSetupID: shippingSetupID,
 		ProvinceCode:     provinceCode,
 		ProvinceName:     provinceName,
 		ProvinceRate:     money.New(provinceRate),
-		EstimatedDays:    estimatedDays,
 		IsAvailable:      isAvailable,
 		CreatedAt:        createdAt,
 	}, nil
 }
 
-// GetByShippingOption retrieves all coverages for a shipping option.
-func (r *ShippingCoverageRepositoryImpl) GetByShippingOption(
+// GetByShippingSetup retrieves all coverages for a shipping option.
+func (r *ShippingCoverageRepositoryImpl) GetByShippingSetup(
 	ctx context.Context,
 	tx db.Tx,
-	shippingOptionID uuid.UUID,
+	shippingSetupID uuid.UUID,
 ) ([]*entity.ShippingCoverage, error) {
 	rows, err := tx.Query(ctx, `
 		SELECT id, shipping_option_id, province_code, province_name,
-		       province_rate, estimated_days, is_available, created_at
+		       province_rate, is_available, created_at
 		FROM shipping_coverages
 		WHERE shipping_option_id = $1
 		ORDER BY province_code
-	`, shippingOptionID)
+	`, shippingSetupID)
 	if err != nil {
 		return nil, fmt.Errorf("get coverages by shipping option failed: %w", err)
 	}
@@ -139,17 +135,16 @@ func (r *ShippingCoverageRepositoryImpl) GetByShippingOption(
 
 	var coverages []*entity.ShippingCoverage
 	for rows.Next() {
-		var id, shippingOptionID uuid.UUID
+		var id, shippingSetupID uuid.UUID
 		var provinceCode string
 		var provinceName string
 		var provinceRate int64
-		var estimatedDays *string
 		var isAvailable bool
 		var createdAt time.Time
 
 		err := rows.Scan(
-			&id, &shippingOptionID, &provinceCode, &provinceName,
-			&provinceRate, &estimatedDays, &isAvailable, &createdAt,
+			&id, &shippingSetupID, &provinceCode, &provinceName,
+			&provinceRate, &isAvailable, &createdAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("scan shipping coverage failed: %w", err)
@@ -157,11 +152,10 @@ func (r *ShippingCoverageRepositoryImpl) GetByShippingOption(
 
 		coverages = append(coverages, &entity.ShippingCoverage{
 			ID:               id,
-			ShippingOptionID: shippingOptionID,
+			ShippingSetupID: shippingSetupID,
 			ProvinceCode:     provinceCode,
 			ProvinceName:     provinceName,
 			ProvinceRate:     money.New(provinceRate),
-			EstimatedDays:    estimatedDays,
 			IsAvailable:      isAvailable,
 			CreatedAt:        createdAt,
 		})
@@ -174,7 +168,7 @@ func (r *ShippingCoverageRepositoryImpl) GetByShippingOption(
 func (r *ShippingCoverageRepositoryImpl) GetByOptionAndProvince(
 	ctx context.Context,
 	tx db.Tx,
-	shippingOptionID uuid.UUID,
+	shippingSetupID uuid.UUID,
 	provinceCode string,
 ) (*entity.ShippingCoverage, error) {
 	var id uuid.UUID
@@ -188,8 +182,8 @@ func (r *ShippingCoverageRepositoryImpl) GetByOptionAndProvince(
 		       province_rate, is_available, created_at
 		FROM shipping_coverages
 		WHERE shipping_option_id = $1 AND province_code = $2
-	`, shippingOptionID, provinceCode).Scan(
-		&id, &shippingOptionID, &provinceCode, &provinceName,
+	`, shippingSetupID, provinceCode).Scan(
+		&id, &shippingSetupID, &provinceCode, &provinceName,
 		&provinceRate, &isAvailable, &createdAt,
 	)
 
@@ -202,11 +196,10 @@ func (r *ShippingCoverageRepositoryImpl) GetByOptionAndProvince(
 
 	return &entity.ShippingCoverage{
 		ID:               id,
-		ShippingOptionID: shippingOptionID,
+		ShippingSetupID: shippingSetupID,
 		ProvinceCode:     provinceCode,
 		ProvinceName:     provinceName,
 		ProvinceRate:     money.New(provinceRate),
-		EstimatedDays:    nil, // estimated_days removed (migration 000014)
 		IsAvailable:      isAvailable,
 		CreatedAt:        createdAt,
 	}, nil
@@ -225,13 +218,13 @@ func (r *ShippingCoverageRepositoryImpl) Delete(
 	return nil
 }
 
-// DeleteByShippingOption removes all coverages for a shipping option.
-func (r *ShippingCoverageRepositoryImpl) DeleteByShippingOption(
+// DeleteByShippingSetup removes all coverages for a shipping option.
+func (r *ShippingCoverageRepositoryImpl) DeleteByShippingSetup(
 	ctx context.Context,
 	tx db.Tx,
-	shippingOptionID uuid.UUID,
+	shippingSetupID uuid.UUID,
 ) error {
-	_, err := tx.Exec(ctx, `DELETE FROM shipping_coverages WHERE shipping_option_id = $1`, shippingOptionID)
+	_, err := tx.Exec(ctx, `DELETE FROM shipping_coverages WHERE shipping_option_id = $1`, shippingSetupID)
 	if err != nil {
 		return fmt.Errorf("delete coverages by shipping option failed: %w", err)
 	}

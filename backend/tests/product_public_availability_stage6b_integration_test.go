@@ -297,7 +297,10 @@ func TestStage6B_AuctionBrowse_DefaultOnlyPublicStates(t *testing.T) {
 	waiting := seedStage6BAuction(t, ctx, tdb, seller, "waiting_settlement")
 	ended := seedStage6BAuction(t, ctx, tdb, seller, "ended")
 	cancelled := seedStage6BAuction(t, ctx, tdb, seller, "cancelled")
-	expired := seedStage6BAuction(t, ctx, tdb, seller, "expired_bnr")
+	// Settlement failure returns the auction to DRAFT (no expired_bnr state);
+	// a DRAFT surface is a non-public owner-only state and must not surface in
+	// anonymous browse.
+	draftAfterFailure := seedStage6BAuction(t, ctx, tdb, seller, "draft")
 
 	repo := auctioninfra.NewAuctionRepository()
 
@@ -312,7 +315,7 @@ func TestStage6B_AuctionBrowse_DefaultOnlyPublicStates(t *testing.T) {
 		require.NotContains(t, ids, waiting)
 		require.NotContains(t, ids, ended)
 		require.NotContains(t, ids, cancelled)
-		require.NotContains(t, ids, expired)
+		require.NotContains(t, ids, draftAfterFailure)
 		return nil
 	}))
 
@@ -381,7 +384,7 @@ func TestStage6B_AuctionBrowse_AnonymousRestricted_OwnerStatusScoped(t *testing.
 	auctionActive := seedStage6BAuction(t, ctx, tdb, seller, "active")
 
 	handler := auctionhttp.NewAuctionHandler(
-		auctionApp.NewAuctionService(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil),
+		auctionApp.NewAuctionService(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, zap.NewNop()),
 		nil,
 		nil,
 		db.NewFromPool(tdb.Pool()),

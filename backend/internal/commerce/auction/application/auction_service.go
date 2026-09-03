@@ -20,6 +20,8 @@ import (
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	shippingRepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
 	"github.com/labuda/backend/internal/identity/auth"
+	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
+	addressRepo "github.com/labuda/backend/internal/identity/address/repository"
 	platformconfigApp "github.com/labuda/backend/internal/platform/config/application"
 	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
@@ -57,17 +59,17 @@ type AuctionService struct {
 	orderRepo            *orderRepo.OrderRepository
 	orderService         *orderApp.OrderService
 	shippingSvc          *shippingApp.ShippingService
-	shippingOptionRepo   shippingRepo.ShippingOptionRepository
+	shippingSetupRepo   shippingRepo.ShippingSetupRepository
 	shippingCoverageRepo shippingRepo.ShippingCoverageRepository
-	productShippingRepo  shippingRepo.ProductShippingOptionRepository
+	productShippingRepo  shippingRepo.ProductShippingSetupRepository
+	addressRepo          addressRepo.AddressRepository
 	outboxRepo           *outboxRepo.OutboxRepository
 	ownership            *auth.OwnershipValidator
 	accountStatus        auth.AccountStatusChecker
 	roleChecker          auth.RoleChecker
-	configService        *platformconfigApp.ConfigService
-	productRepo          ProductCreator
-	bnrStrikeChecker     *BNRStrikeChecker
-	log                  *zap.Logger
+	configService  *platformconfigApp.ConfigService
+	productRepo    ProductCreator
+	log            *zap.Logger
 }
 
 // NewAuctionService creates a new AuctionService.
@@ -75,13 +77,14 @@ type AuctionService struct {
 func NewAuctionService(
 	accountStatus auth.AccountStatusChecker,
 	shippingService *shippingApp.ShippingService,
-	shippingOptionRepo shippingRepo.ShippingOptionRepository,
+	shippingSetupRepo shippingRepo.ShippingSetupRepository,
 	shippingCoverageRepo shippingRepo.ShippingCoverageRepository,
-	productShippingRepo shippingRepo.ProductShippingOptionRepository,
+	productShippingRepo shippingRepo.ProductShippingSetupRepository,
 	outboxRepo *outboxRepo.OutboxRepository,
 	configService *platformconfigApp.ConfigService,
 	orderService *orderApp.OrderService,
 	roleChecker auth.RoleChecker,
+	addressRepository addressRepo.AddressRepository,
 	log *zap.Logger,
 ) *AuctionService {
 	if log == nil {
@@ -94,15 +97,16 @@ func NewAuctionService(
 		orderRepo:            orderRepo.NewOrderRepository(),
 		orderService:         orderService,
 		shippingSvc:          shippingService,
-		shippingOptionRepo:   shippingOptionRepo,
+		shippingSetupRepo:   shippingSetupRepo,
 		shippingCoverageRepo: shippingCoverageRepo,
 		productShippingRepo:  productShippingRepo,
+		addressRepo:          addressRepository,
 		outboxRepo:           outboxRepo,
 		ownership:            auth.NewOwnershipValidator(),
 		accountStatus:        accountStatus,
 		roleChecker:          roleChecker,
-		configService:        configService,
-		log:                  log,
+		configService:  configService,
+		log:            log,
 	}
 }
 
@@ -110,13 +114,6 @@ func NewAuctionService(
 // during CreateDraft. Must be called before any CreateDraft invocation.
 func (s *AuctionService) SetProductRepo(repo ProductCreator) {
 	s.productRepo = repo
-}
-
-// SetBNRStrikeChecker attaches the BNR restriction checker. When set,
-// PlaceBid gates on the buyer's active BNR strike count before proceeding.
-// Safe to call before any PlaceBid invocation. Nil disables the check.
-func (s *AuctionService) SetBNRStrikeChecker(checker *BNRStrikeChecker) {
-	s.bnrStrikeChecker = checker
 }
 
 // buildAuctionPayload creates a JSON payload for auction events.
@@ -204,7 +201,7 @@ type CreateDraftInput struct {
 	Bloodline         *string
 	Certificates      []string
 	FarmAddressID     *uuid.UUID
-	ShippingOptionIDs []uuid.UUID
+	ShippingSetupIDs []uuid.UUID
 	// Auction-specific fields
 	StartPrice   int64
 	BidIncrement int64
@@ -251,13 +248,13 @@ func (s *AuctionService) CreateDraft(
 		return nil, fmt.Errorf("buy_now_price must be >= start_price + bid_increment")
 	}
 
-	shippingOptionIDs, err := shippingApp.ValidateSellableCreateShippingSelection(
+	shippingSetupIDs, err := shippingApp.ValidateSellableCreateShippingSelection(
 		ctx,
 		tx,
-		s.shippingOptionRepo,
+		s.shippingSetupRepo,
 		s.shippingCoverageRepo,
 		input.SellerID,
-		input.ShippingOptionIDs,
+		input.ShippingSetupIDs,
 	)
 	if err != nil {
 		return nil, err
@@ -333,7 +330,7 @@ func (s *AuctionService) CreateDraft(
 		tx,
 		s.productShippingRepo,
 		productID,
-		shippingOptionIDs,
+		shippingSetupIDs,
 	); err != nil {
 		return nil, err
 	}
@@ -501,7 +498,7 @@ func (s *AuctionService) ensureShippingCoverage(
 		return fmt.Errorf("failed to load shipping options: %w", err)
 	}
 	for _, opt := range options {
-		coverages, err := s.shippingCoverageRepo.GetByShippingOption(ctx, tx, opt.ID)
+		coverages, err := s.shippingCoverageRepo.GetByShippingSetup(ctx, tx, opt.ID)
 		if err != nil {
 			return fmt.Errorf("failed to load coverage for option %s: %w", opt.ID, err)
 		}
@@ -703,25 +700,6 @@ func (s *AuctionService) PlaceBid(
 		return nil, fmt.Errorf("bidder account not active: %w", err)
 	}
 
-	// BNR auction restriction gate — check before any DB work.
-	// Fail-open when checker is nil (not wired) or on query error.
-	if s.bnrStrikeChecker != nil {
-		result, err := s.bnrStrikeChecker.Check(ctx, tx, input.BidderID)
-		if err != nil {
-			s.log.Warn("bnr_restriction: check failed, allowing bid (fail-open)",
-				zap.String("bidder_id", input.BidderID.String()),
-				zap.Error(err),
-			)
-			RecordBNRCheckFailOpen()
-		} else if !result.Allowed {
-			return nil, &entity.BNRAuctionRestrictedError{
-				ActiveStrikes:    result.ActiveStrikes,
-				PermanentBan:     result.PermanentBan,
-				RestrictionUntil: result.RestrictionUntil,
-			}
-		}
-	}
-
 	// Check for existing bid with same idempotency key scoped to this bidder.
 	// Scoping to bidder prevents cross-actor collision: two different bidders
 	// using the same key string on the same auction are independent.
@@ -845,7 +823,7 @@ type CreateOrderFromAuctionInput struct {
 	BuyerID               uuid.UUID
 	WinningBid            int64
 	AddressID             uuid.UUID // Buyer's shipping address ID
-	ShippingOptionID      uuid.UUID
+	ShippingSetupID      uuid.UUID
 	ProvinceCode          string                            // Deprecated: Use AddressID instead
 	CityCode              string                            // Deprecated: Use AddressID instead
 	DiscountCode          *string                           // Optional discount code
@@ -902,13 +880,14 @@ func (s *AuctionService) CreateOrderFromAuction(
 		BuyerID:               input.BuyerID,
 		WinningBid:            input.WinningBid,
 		AddressID:             input.AddressID,
-		ShippingOptionID:      input.ShippingOptionID,
+		ShippingSetupID:      input.ShippingSetupID,
 		ProvinceCode:          input.ProvinceCode,
 		CityCode:              input.CityCode,
 		DiscountCode:          input.DiscountCode,
 		AuctionSettlementType: input.AuctionSettlementType,
 		PricingSnapshot:       input.PricingSnapshot,
 		IdempotencyKey:        input.IdempotencyKey,
+		ShippingResolvedAt:     auctionShippingResolvedAt(input.Auction),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create order from auction: %w", err)
@@ -924,11 +903,80 @@ func (s *AuctionService) CreateOrderFromAuction(
 	return order, nil
 }
 
+// auctionShippingResolvedAt returns the auction's shipping resolution time.
+// Order creation requires shipping to be resolved first; if the field is
+// unexpectedly nil the caller is about to create an order without a resolution
+// anchor — fail closed by returning the zero time (the order layer then treats
+// payment expiry conservatively from now).
+func auctionShippingResolvedAt(auction *entity.Auction) time.Time {
+	if auction.ShippingResolvedAt != nil {
+		return *auction.ShippingResolvedAt
+	}
+	return time.Time{}
+}
+
+// sellerQuoteRequiredForWinner determines whether the seller must provide a
+// private shipping quote before the winner can resolve shipping (Case A).
+//
+// The winner's PRIMARY shipping address (purpose='shipping',
+// is_available_for_checkout=true) is resolved; when no shipping setup linked
+// to the auctioned product covers that destination, a private quote is
+// required. Returns false when the winner has no usable primary address yet
+// (the buyer resolves shipping — and provides an address — at claim time).
+func (s *AuctionService) sellerQuoteRequiredForWinner(
+	ctx context.Context,
+	tx db.Tx,
+	auction *entity.Auction,
+) (bool, error) {
+	if auction.WinnerID() == nil {
+		return false, nil
+	}
+	winnerID := *auction.WinnerID()
+
+	primary, err := s.addressRepo.GetPrimaryByUserIDFiltered(ctx, tx, winnerID, string(addressEntity.AddressPurposeShipping))
+	if err != nil {
+		return false, err
+	}
+	if primary == nil || !primary.IsAvailableForCheckout {
+		// Winner has no usable primary address yet. Fail-open to Case B — the
+		// winner supplies an address when resolving shipping at claim time.
+		return false, nil
+	}
+
+	// A shipping setup covers the winner's destination when at least one
+	// delivery option is available for the winner's province/city. No usable
+	// option means the seller must provide a private quote.
+	options, err := s.shippingSvc.CheckDeliveryAvailabilityForProduct(ctx, tx, auction.ProductID, primary.ProvinceID, primary.CityID)
+	if err != nil {
+		return false, err
+	}
+	return len(options) == 0, nil
+}
+
+// ReturnToDraftOnSettlementFailure atomically returns a waiting_settlement
+// auction to DRAFT after a settlement failure. Callers must already hold the
+// auction FOR UPDATE. The auction's settlement context (order binding,
+// shipping resolution, seller flags, current bid/winner) is cleared on the
+// entity; persist via auctionRepo.UpdateTx within the same transaction.
+func (s *AuctionService) ReturnToDraftOnSettlementFailure(
+	ctx context.Context,
+	tx db.Tx,
+	auction *entity.Auction,
+) error {
+	if err := auction.TransitionToDraftOnSettlementFailure(); err != nil {
+		return err
+	}
+	if err := s.auctionRepo.UpdateTx(ctx, tx, auction); err != nil {
+		return fmt.Errorf("failed to persist auction return to draft: %w", err)
+	}
+	return nil
+}
+
 // EndAuctionInput contains parameters for ending an auction internally.
 // Used by the auction end worker.
 type EndAuctionInput struct {
 	AuctionID        uuid.UUID
-	ShippingOptionID uuid.UUID
+	ShippingSetupID uuid.UUID
 	ProvinceCode     string
 	CityCode         string
 }
@@ -939,10 +987,14 @@ type EndAuctionInput struct {
 // For auctions with no bids: simply ends the auction (no order_id set).
 // For auctions with bids:
 //   - Transitions to waiting_settlement status
-//   - Winner must claim via pricing token flow to create order
+//   - SellerActionRequired is classified from the winner's primary-address
+//     coverage (seller must provide a private quote when no shipping setup
+//     covers the winner's destination)
+//   - Winner must resolve shipping (claim) to create the order within the
+//     canonical shipping deadline: end_at + 24h
 //
 // CRITICAL CHANGE: Worker NO LONGER creates orders directly.
-// ALL auction orders must be created by the winner using pricing tokens.
+// ALL auction orders must be created by the winner via the claim flow.
 //
 // LOCK DISCIPLINE:
 // - Lock Auction (FOR UPDATE)
@@ -974,15 +1026,35 @@ func (s *AuctionService) EndAuctionInternal(
 	// Winner must use pricing token flow to create order
 
 	if auction.HasWinner() {
-		// Winner exists - transition to waiting_settlement
-		// Winner will claim via pricing token flow
+		// Winner exists - transition to waiting_settlement.
+		// Winner will resolve shipping (claim) to create the order.
 		if err := auction.TransitionToWaitingSettlement(); err != nil {
 			return err
 		}
+
+		// Canonical Case A/B classification: determine whether the seller must
+		// provide a private shipping quote before the winner can resolve
+		// shipping. The winner's primary shipping address is resolved and
+		// checked against the product's shipping coverage. When no selected
+		// shipping setup covers the winner's destination, the seller must act
+		// (seller_action_required = true). Fail-open (false) if the winner has
+		// no primary address yet or coverage cannot be determined — the
+		// buyer-side deadline then applies, and the winner resolves shipping
+		// at claim time.
+		requiresSellerQuote, err := s.sellerQuoteRequiredForWinner(ctx, tx, auction)
+		if err != nil {
+			s.log.Warn("seller_action_required determination failed, defaulting false",
+				zap.String("auction_id", auction.ID.String()),
+				zap.Error(err),
+			)
+		}
+		auction.SellerActionRequired = requiresSellerQuote
+
 		s.log.Info("Auction entered waiting_settlement state",
 			zap.String("auction_id", auction.ID.String()),
 			zap.String("winner_id", auction.WinnerID().String()),
 			zap.Int64("winning_bid", *auction.WinningBid()),
+			zap.Bool("seller_action_required", auction.SellerActionRequired),
 		)
 	} else {
 		// No winner - transition to ended
@@ -1117,7 +1189,7 @@ type GeneratePricingTokenForAuctionInput struct {
 	AuctionID        uuid.UUID
 	WinnerID         uuid.UUID
 	AddressID        uuid.UUID
-	ShippingOptionID uuid.UUID
+	ShippingSetupID uuid.UUID
 }
 
 // GeneratePricingTokenForAuctionClaim generates a pricing token for auction claim.
@@ -1157,10 +1229,18 @@ func (s *AuctionService) GeneratePricingTokenForAuctionClaim(
 		return nil, fmt.Errorf("%w: status=%s (expected waiting_settlement)", entity.ErrNotClaimable, auction.Status)
 	}
 
-	// Validate settlement deadline has not passed
+	// Validate the canonical shipping deadline (auction.end_at + 24h) has not
+	// passed. Deadline authority is DERIVED — never stored, never extended.
 	now := time.Now()
-	if auction.SettlementDeadline != nil && now.After(*auction.SettlementDeadline) {
-		return nil, fmt.Errorf("%w: deadline=%s", entity.ErrSettlementDeadlinePassed, auction.SettlementDeadline.Format(time.RFC3339))
+	if now.After(auction.SettlementDeadline()) {
+		return nil, fmt.Errorf("%w: deadline=%s", entity.ErrSettlementDeadlinePassed, auction.SettlementDeadline().Format(time.RFC3339))
+	}
+
+	// Shipping resolution guard: shipping must be resolved before an order can
+	// be created. First-resolution-wins — a claim cannot proceed after shipping
+	// has already been resolved by another path.
+	if auction.ShippingResolvedAt != nil {
+		return nil, entity.ErrShippingAlreadyResolved
 	}
 
 	// Validate caller is the winner
@@ -1282,7 +1362,7 @@ func (s *AuctionService) ActivateScheduledAuction(
 // seller-facing API handlers.
 //
 // Handles all non-terminal states: draft, scheduled, active, waiting_settlement.
-// Terminal states (ended, expired_bnr, cancelled) return InvalidTransitionError;
+// Terminal states (ended, cancelled) return InvalidTransitionError;
 // callers must treat that as idempotent success.
 //
 // Emits auction.cancelled outbox event for downstream audit trail.
@@ -1400,16 +1480,16 @@ func applyAdminCancel(auction *entity.Auction) error {
 // auction.current_bid; no ledger/order side effect exists until an order is
 // actually created via claim/buy-now):
 //   - draft, scheduled, active (with or without bids), waiting_settlement
-//     (winner determined but not yet claimed — no order exists yet).
+//     (winner determined; safe only while no order is bound — the non-nil
+//     OrderID conflict guard below covers the claimed-but-unpaid case).
 //
 // CONFLICT STATES (fail closed, return ErrAuctionCancelConflict):
-//   - ended, expired_bnr, cancelled (already terminal)
+//   - ended, cancelled (already terminal)
 //   - any auction with a non-nil OrderID (defense-in-depth: an order
 //     already exists — go through the order/dispute/refund domain instead;
-//     in practice this is unreachable because OrderID is only ever set in
-//     the same transaction that transitions status to the terminal `ended`
-//     state, but this guard is cheap insurance against that invariant ever
-//     drifting).
+//     in practice this is unreachable because a bid-win auction keeps its
+//     OrderID bound in waiting_settlement until payment, but this guard is
+//     cheap insurance against that invariant ever drifting).
 //
 // Does NOT delete bids, does NOT delete the auction/product, does NOT touch
 // the ledger, does NOT create or cancel an order, does NOT issue a refund.

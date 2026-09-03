@@ -38,7 +38,6 @@ class CityShippingRate extends Equatable {
   final String cityId;
   final String cityName;
   final double rate;
-  final String? estimatedDays;
   final String? notes;
   final bool? excluded;
 
@@ -46,7 +45,6 @@ class CityShippingRate extends Equatable {
     required this.cityId,
     required this.cityName,
     required this.rate,
-    this.estimatedDays,
     this.notes,
     this.excluded,
   });
@@ -55,7 +53,6 @@ class CityShippingRate extends Equatable {
     String? cityId,
     String? cityName,
     double? rate,
-    String? estimatedDays,
     String? notes,
     bool? excluded,
   }) {
@@ -63,7 +60,6 @@ class CityShippingRate extends Equatable {
       cityId: cityId ?? this.cityId,
       cityName: cityName ?? this.cityName,
       rate: rate ?? this.rate,
-      estimatedDays: estimatedDays ?? this.estimatedDays,
       notes: notes ?? this.notes,
       excluded: excluded ?? this.excluded,
     );
@@ -74,7 +70,6 @@ class CityShippingRate extends Equatable {
     cityId,
     cityName,
     rate,
-    estimatedDays,
     notes,
     excluded,
   ];
@@ -83,13 +78,11 @@ class CityShippingRate extends Equatable {
 /// Result dari query rate untuk kota tertentu
 class ShippingRateResult {
   final double rate;
-  final String? estimatedDays;
   final String? notes;
   final String source; // 'province' atau 'city'
 
   const ShippingRateResult({
     required this.rate,
-    this.estimatedDays,
     this.notes,
     required this.source,
   });
@@ -99,13 +92,12 @@ class ShippingRateResult {
     if (identical(this, other)) return true;
     return other is ShippingRateResult &&
         other.rate == rate &&
-        other.estimatedDays == estimatedDays &&
         other.notes == notes &&
         other.source == source;
   }
 
   @override
-  int get hashCode => Object.hash(rate, estimatedDays, notes, source);
+  int get hashCode => Object.hash(rate, notes, source);
 }
 
 // =====================================
@@ -119,7 +111,6 @@ class ShippingCoverage extends Equatable {
 
   /// Rate untuk seluruh provinsi (nullable - jika null berarti provinsi ini tidak dilayani)
   final double? provinceRate;
-  final String? provinceEstimatedDays;
   final String? provinceNotes;
   final bool isAvailable;
 
@@ -130,7 +121,6 @@ class ShippingCoverage extends Equatable {
     required this.provinceId,
     required this.provinceName,
     this.provinceRate,
-    this.provinceEstimatedDays,
     this.provinceNotes,
     this.isAvailable = true,
     this.cityOverrides = const [],
@@ -147,7 +137,6 @@ class ShippingCoverage extends Equatable {
     if (cityOverride != null) {
       return ShippingRateResult(
         rate: cityOverride.rate,
-        estimatedDays: cityOverride.estimatedDays,
         notes: cityOverride.notes,
         source: 'city',
       );
@@ -157,7 +146,6 @@ class ShippingCoverage extends Equatable {
     if (provinceRate != null) {
       return ShippingRateResult(
         rate: provinceRate!,
-        estimatedDays: provinceEstimatedDays,
         notes: provinceNotes,
         source: 'province',
       );
@@ -179,7 +167,6 @@ class ShippingCoverage extends Equatable {
     String? provinceId,
     String? provinceName,
     double? provinceRate,
-    String? provinceEstimatedDays,
     String? provinceNotes,
     bool? isAvailable,
     List<CityShippingRate>? cityOverrides,
@@ -188,8 +175,6 @@ class ShippingCoverage extends Equatable {
       provinceId: provinceId ?? this.provinceId,
       provinceName: provinceName ?? this.provinceName,
       provinceRate: provinceRate ?? this.provinceRate,
-      provinceEstimatedDays:
-          provinceEstimatedDays ?? this.provinceEstimatedDays,
       provinceNotes: provinceNotes ?? this.provinceNotes,
       isAvailable: isAvailable ?? this.isAvailable,
       cityOverrides: cityOverrides ?? this.cityOverrides,
@@ -201,7 +186,6 @@ class ShippingCoverage extends Equatable {
     provinceId,
     provinceName,
     provinceRate,
-    provinceEstimatedDays,
     provinceNotes,
     isAvailable,
     cityOverrides,
@@ -210,14 +194,11 @@ class ShippingCoverage extends Equatable {
 
 /// Main entity untuk Shipping Option
 /// Satu seller bisa punya banyak shipping options (kereta, travel, pesawat, custom)
-class ShippingOption extends Equatable {
+class ShippingSetup extends Equatable {
   final String id;
   final String name;
   final String? sellerId;
   final ShippingType type;
-
-  /// Nama ekspedisi (opsional - jika null gunakan type.label)
-  final String? expeditionName;
 
   /// ID dari farm address (untuk referensi lokasi asal)
   final String? farmAddressId;
@@ -234,12 +215,11 @@ class ShippingOption extends Equatable {
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  const ShippingOption({
+  const ShippingSetup({
     required this.id,
     required this.name,
     this.sellerId,
     required this.type,
-    this.expeditionName,
     this.farmAddressId,
     required this.coverageAreas,
     this.isActive = true,
@@ -254,9 +234,7 @@ class ShippingOption extends Equatable {
   }
 
   /// Get short name (untuk tampilan compact)
-  String get shortName {
-    return expeditionName?.isNotEmpty == true ? expeditionName! : name;
-  }
+  String get shortName => name;
 
   /// Get emoji icon
   String get emoji => type.emoji;
@@ -292,12 +270,11 @@ class ShippingOption extends Equatable {
     return coverage.getRateForCity(cityId, cityName);
   }
 
-  ShippingOption copyWith({
+  ShippingSetup copyWith({
     String? id,
     String? name,
     String? sellerId,
     ShippingType? type,
-    String? expeditionName,
     String? farmAddressId,
     List<ShippingCoverage>? coverageAreas,
     bool? isActive,
@@ -305,12 +282,11 @@ class ShippingOption extends Equatable {
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
-    return ShippingOption(
+    return ShippingSetup(
       id: id ?? this.id,
       name: name ?? this.name,
       sellerId: sellerId ?? this.sellerId,
       type: type ?? this.type,
-      expeditionName: expeditionName ?? this.expeditionName,
       farmAddressId: farmAddressId ?? this.farmAddressId,
       coverageAreas: coverageAreas ?? this.coverageAreas,
       isActive: isActive ?? this.isActive,
@@ -326,7 +302,6 @@ class ShippingOption extends Equatable {
     name,
     sellerId,
     type,
-    expeditionName,
     farmAddressId,
     coverageAreas,
     isActive,
@@ -341,54 +316,57 @@ class ShippingOption extends Equatable {
 // =====================================
 
 /// Request untuk membuat shipping option baru
-class CreateShippingOptionRequest {
+class CreateShippingSetupRequest {
   final String name;
   final ShippingType type;
-  final String? expeditionName;
   final String? internalNote;
-  final List<dynamic>? coverages;
+  final List<CreateShippingCoverageRequest>? coverages;
 
-  const CreateShippingOptionRequest({
+  const CreateShippingSetupRequest({
     required this.name,
     required this.type,
-    this.expeditionName,
     this.internalNote,
     this.coverages,
   });
 
-  CreateShippingOptionRequest copyWith({
+  CreateShippingSetupRequest copyWith({
     String? name,
     ShippingType? type,
-    String? expeditionName,
     String? internalNote,
-    List<dynamic>? coverages,
+    List<CreateShippingCoverageRequest>? coverages,
   }) {
-    return CreateShippingOptionRequest(
+    return CreateShippingSetupRequest(
       name: name ?? this.name,
       type: type ?? this.type,
-      expeditionName: expeditionName ?? this.expeditionName,
       internalNote: internalNote ?? this.internalNote,
       coverages: coverages ?? this.coverages,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'transport_type': type.name,
+      if (internalNote != null) 'internal_note': internalNote,
+      if (coverages != null)
+        'coverages': coverages!.map((c) => c.toJson()).toList(),
+    };
+  }
 }
 
 /// Request untuk update shipping option
-class UpdateShippingOptionRequest {
+class UpdateShippingSetupRequest {
   final String? name;
-  final String? expeditionName;
   final bool? isActive;
 
-  const UpdateShippingOptionRequest({
+  const UpdateShippingSetupRequest({
     this.name,
-    this.expeditionName,
     this.isActive,
   });
 
   Map<String, dynamic> toJson() {
     return {
       if (name != null) 'name': name,
-      if (expeditionName != null) 'expedition_name': expeditionName,
       if (isActive != null) 'is_active': isActive,
     };
   }
@@ -399,14 +377,12 @@ class AddCoverageRequest {
   final String provinceCode;
   final String provinceName;
   final double rate;
-  final String? estimatedDays;
   final bool isAvailable;
 
   const AddCoverageRequest({
     required this.provinceCode,
     required this.provinceName,
     required this.rate,
-    this.estimatedDays,
     this.isAvailable = true,
   });
 
@@ -414,8 +390,7 @@ class AddCoverageRequest {
     return {
       'province_code': provinceCode,
       'province_name': provinceName,
-      'rate': rate,
-      if (estimatedDays != null) 'estimated_days': estimatedDays,
+      'rate': rate.toInt(),
       'is_available': isAvailable,
     };
   }
@@ -425,22 +400,18 @@ class AddCoverageRequest {
 class UpdateCoverageRequest {
   final String? provinceName;
   final double? provinceRate;
-  final String? provinceEstimatedDays;
   final bool? isAvailable;
 
   const UpdateCoverageRequest({
     this.provinceName,
     this.provinceRate,
-    this.provinceEstimatedDays,
     this.isAvailable,
   });
 
   Map<String, dynamic> toJson() {
     return {
       if (provinceName != null) 'province_name': provinceName,
-      if (provinceRate != null) 'rate': provinceRate,
-      if (provinceEstimatedDays != null)
-        'estimated_days': provinceEstimatedDays,
+      if (provinceRate != null) 'rate': provinceRate!.toInt(),
       if (isAvailable != null) 'is_available': isAvailable,
     };
   }
@@ -463,20 +434,18 @@ class CheckDeliveryRequest {
 
 /// Response untuk check delivery availability
 class DeliveryOption {
-  final String shippingOptionId;
+  final String shippingSetupId;
   final String displayName;
   final String type;
   final double rate;
-  final String? estimatedDays;
   final String? notes;
   final String source;
 
   const DeliveryOption({
-    required this.shippingOptionId,
+    required this.shippingSetupId,
     required this.displayName,
     required this.type,
     required this.rate,
-    this.estimatedDays,
     this.notes,
     required this.source,
   });
@@ -485,18 +454,17 @@ class DeliveryOption {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is DeliveryOption &&
-        other.shippingOptionId == shippingOptionId &&
+        other.shippingSetupId == shippingSetupId &&
         other.displayName == displayName &&
         other.type == type &&
         other.rate == rate &&
-        other.estimatedDays == estimatedDays &&
         other.notes == notes &&
         other.source == source;
   }
 
   @override
   int get hashCode =>
-      Object.hash(shippingOptionId, displayName, type, rate, source);
+      Object.hash(shippingSetupId, displayName, type, rate, source);
 }
 
 // =====================================
@@ -515,6 +483,15 @@ class CreateShippingCityRuleRequest {
     this.overrideTariff,
     required this.excluded,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'city_id': cityId,
+      'city_name': cityName,
+      if (overrideTariff != null) 'override_tariff': overrideTariff,
+      'excluded': excluded,
+    };
+  }
 }
 
 class UpdateShippingCoverageRequest {
@@ -535,23 +512,32 @@ class CreateShippingCoverageRequest {
   final String provinceId;
   final String provinceName;
   final int tariff;
-  final List<dynamic> cityRules;
+  final List<CreateShippingCityRuleRequest> cityRules;
 
   const CreateShippingCoverageRequest({
     required this.provinceId,
     required this.provinceName,
     required this.tariff,
-    required this.cityRules,
+    this.cityRules = const [],
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'province_id': provinceId,
+      'province_name': provinceName,
+      'tariff': tariff,
+      'city_rules': cityRules.map((r) => r.toJson()).toList(),
+    };
+  }
 }
 
-class UpdateShippingOptionFullRequest {
+class UpdateShippingSetupFullRequest {
   final String name;
   final ShippingType transportType;
   final String? internalNote;
   final List<dynamic>? coverages;
 
-  const UpdateShippingOptionFullRequest({
+  const UpdateShippingSetupFullRequest({
     required this.name,
     required this.transportType,
     this.internalNote,

@@ -37,13 +37,13 @@ func toTx(tx interface{}) db.Tx {
 // CreateRoom creates a new chat room.
 func (r *ChatRepositoryImpl) CreateRoom(ctx context.Context, tx interface{}, room *entity.ChatRoom) error {
 	query := `
-		INSERT INTO chat_rooms (id, room_type, participant_a, participant_b, context_json, context_set_by, linked_order_id, created_at, updated_at, last_message_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		INSERT INTO chat_rooms (id, room_type, participant_a, participant_b, linked_order_id, created_at, updated_at, last_message_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 
 	_, err := toTx(tx).Exec(ctx, query,
 		room.ID, room.RoomType, room.ParticipantA, room.ParticipantB,
-		room.ContextJSON, room.ContextSetBy, room.LinkedOrderID,
+		room.LinkedOrderID,
 		room.CreatedAt, room.UpdatedAt, room.LastMessageAt,
 	)
 
@@ -60,7 +60,7 @@ func (r *ChatRepositoryImpl) CreateRoom(ctx context.Context, tx interface{}, roo
 // GetRoomByID retrieves a room by ID.
 func (r *ChatRepositoryImpl) GetRoomByID(ctx context.Context, tx interface{}, roomID uuid.UUID) (*entity.ChatRoom, error) {
 	query := `
-		SELECT id, room_type, participant_a, participant_b, context_json, context_set_by, linked_order_id, created_at, updated_at, last_message_at
+		SELECT id, room_type, participant_a, participant_b, linked_order_id, created_at, updated_at, last_message_at
 		FROM chat_rooms
 		WHERE id = $1
 	`
@@ -68,7 +68,7 @@ func (r *ChatRepositoryImpl) GetRoomByID(ctx context.Context, tx interface{}, ro
 	var room entity.ChatRoom
 	err := toTx(tx).QueryRow(ctx, query, roomID).Scan(
 		&room.ID, &room.RoomType, &room.ParticipantA, &room.ParticipantB,
-		&room.ContextJSON, &room.ContextSetBy, &room.LinkedOrderID,
+		&room.LinkedOrderID,
 		&room.CreatedAt, &room.UpdatedAt, &room.LastMessageAt,
 	)
 
@@ -86,7 +86,7 @@ func (r *ChatRepositoryImpl) GetRoomByID(ctx context.Context, tx interface{}, ro
 // duration of the transaction.
 func (r *ChatRepositoryImpl) GetRoomByIDForUpdate(ctx context.Context, tx interface{}, roomID uuid.UUID) (*entity.ChatRoom, error) {
 	query := `
-		SELECT id, room_type, participant_a, participant_b, context_json, context_set_by, linked_order_id, created_at, updated_at, last_message_at
+		SELECT id, room_type, participant_a, participant_b, linked_order_id, created_at, updated_at, last_message_at
 		FROM chat_rooms
 		WHERE id = $1
 		FOR UPDATE
@@ -95,7 +95,7 @@ func (r *ChatRepositoryImpl) GetRoomByIDForUpdate(ctx context.Context, tx interf
 	var room entity.ChatRoom
 	err := toTx(tx).QueryRow(ctx, query, roomID).Scan(
 		&room.ID, &room.RoomType, &room.ParticipantA, &room.ParticipantB,
-		&room.ContextJSON, &room.ContextSetBy, &room.LinkedOrderID,
+		&room.LinkedOrderID,
 		&room.CreatedAt, &room.UpdatedAt, &room.LastMessageAt,
 	)
 
@@ -122,7 +122,7 @@ func (r *ChatRepositoryImpl) GetDirectRoom(ctx context.Context, tx interface{}, 
 	}
 
 	query := `
-		SELECT id, room_type, participant_a, participant_b, context_json, context_set_by, linked_order_id, created_at, updated_at, last_message_at
+		SELECT id, room_type, participant_a, participant_b, linked_order_id, created_at, updated_at, last_message_at
 		FROM chat_rooms
 		WHERE participant_a = $1 AND participant_b = $2 AND room_type = 'direct'
 	`
@@ -130,7 +130,7 @@ func (r *ChatRepositoryImpl) GetDirectRoom(ctx context.Context, tx interface{}, 
 	var room entity.ChatRoom
 	err := toTx(tx).QueryRow(ctx, query, participantA, participantB).Scan(
 		&room.ID, &room.RoomType, &room.ParticipantA, &room.ParticipantB,
-		&room.ContextJSON, &room.ContextSetBy, &room.LinkedOrderID,
+		&room.LinkedOrderID,
 		&room.CreatedAt, &room.UpdatedAt, &room.LastMessageAt,
 	)
 
@@ -164,7 +164,7 @@ func (r *ChatRepositoryImpl) GetSupportRoom(ctx context.Context, tx interface{},
 	}
 
 	query := `
-		SELECT id, room_type, participant_a, participant_b, context_json, context_set_by, linked_order_id, created_at, updated_at, last_message_at
+		SELECT id, room_type, participant_a, participant_b, linked_order_id, created_at, updated_at, last_message_at
 		FROM chat_rooms
 		WHERE participant_a = $1 AND participant_b = $2 AND room_type = 'support'
 	`
@@ -172,7 +172,7 @@ func (r *ChatRepositoryImpl) GetSupportRoom(ctx context.Context, tx interface{},
 	var room entity.ChatRoom
 	err := toTx(tx).QueryRow(ctx, query, participantA, participantB).Scan(
 		&room.ID, &room.RoomType, &room.ParticipantA, &room.ParticipantB,
-		&room.ContextJSON, &room.ContextSetBy, &room.LinkedOrderID,
+		&room.LinkedOrderID,
 		&room.CreatedAt, &room.UpdatedAt, &room.LastMessageAt,
 	)
 
@@ -199,7 +199,7 @@ func (r *ChatRepositoryImpl) ListRoomsByUser(
 	// Query rooms where user is either participant_a or participant_b
 	// Ordered by last_message_at DESC, id DESC for cursor pagination
 	baseQuery := `
-		SELECT id, room_type, participant_a, participant_b, context_json, context_set_by, linked_order_id, created_at, updated_at, last_message_at
+		SELECT id, room_type, participant_a, participant_b, linked_order_id, created_at, updated_at, last_message_at
 		FROM chat_rooms
 		WHERE participant_a = $1 OR participant_b = $1
 	`
@@ -229,7 +229,7 @@ func (r *ChatRepositoryImpl) ListRoomsByUser(
 		var room entity.ChatRoom
 		err := rows.Scan(
 			&room.ID, &room.RoomType, &room.ParticipantA, &room.ParticipantB,
-			&room.ContextJSON, &room.ContextSetBy, &room.LinkedOrderID,
+			&room.LinkedOrderID,
 			&room.CreatedAt, &room.UpdatedAt, &room.LastMessageAt,
 		)
 		if err != nil {
@@ -248,7 +248,7 @@ func (r *ChatRepositoryImpl) ListRoomsByUser(
 // GetRoomByOrderID retrieves a room by linked order ID.
 func (r *ChatRepositoryImpl) GetRoomByOrderID(ctx context.Context, tx interface{}, orderID uuid.UUID) (*entity.ChatRoom, error) {
 	query := `
-		SELECT id, room_type, participant_a, participant_b, context_json, context_set_by, linked_order_id, created_at, updated_at, last_message_at
+		SELECT id, room_type, participant_a, participant_b, linked_order_id, created_at, updated_at, last_message_at
 		FROM chat_rooms
 		WHERE linked_order_id = $1
 	`
@@ -256,7 +256,7 @@ func (r *ChatRepositoryImpl) GetRoomByOrderID(ctx context.Context, tx interface{
 	var room entity.ChatRoom
 	err := toTx(tx).QueryRow(ctx, query, orderID).Scan(
 		&room.ID, &room.RoomType, &room.ParticipantA, &room.ParticipantB,
-		&room.ContextJSON, &room.ContextSetBy, &room.LinkedOrderID,
+		&room.LinkedOrderID,
 		&room.CreatedAt, &room.UpdatedAt, &room.LastMessageAt,
 	)
 
@@ -281,41 +281,6 @@ func (r *ChatRepositoryImpl) UpdateRoomLastMessageAt(ctx context.Context, tx int
 	result, err := toTx(tx).Exec(ctx, query, timestamp, timestamp, roomID)
 	if err != nil {
 		return fmt.Errorf("update room last_message_at failed: %w", err)
-	}
-
-	if result.RowsAffected() == 0 {
-		return chatRepo.ErrRoomNotFound
-	}
-
-	return nil
-}
-
-// UpdateRoomContext updates the room's context.
-//
-// This is used when a user opens a chat from a forSale after the room
-// was already created without context, or when the context needs to be updated.
-func (r *ChatRepositoryImpl) UpdateRoomContext(
-	ctx context.Context,
-	tx interface{},
-	roomID uuid.UUID,
-	contextJSON json.RawMessage,
-	contextSetBy uuid.UUID,
-) error {
-	query := `
-		UPDATE chat_rooms
-		SET context_json = $1, context_set_by = $2, updated_at = $3
-		WHERE id = $4
-	`
-
-	now := time.Now()
-	var contextSetter *uuid.UUID
-	if contextSetBy != uuid.Nil {
-		contextSetter = &contextSetBy
-	}
-
-	result, err := toTx(tx).Exec(ctx, query, contextJSON, contextSetter, now, roomID)
-	if err != nil {
-		return fmt.Errorf("update room context failed: %w", err)
 	}
 
 	if result.RowsAffected() == 0 {
@@ -371,13 +336,13 @@ func (r *ChatRepositoryImpl) CreateMessage(ctx context.Context, tx interface{}, 
 	}
 
 	query := `
-		INSERT INTO chat_messages (id, room_id, sender_id, message_type, body, attachment_json, idempotency_key, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO chat_messages (id, room_id, sender_id, message_type, body, attachment_json, idempotency_key, command_fingerprint, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
 
 	_, err := toTx(tx).Exec(ctx, query,
 		message.ID, message.RoomID, message.SenderID, message.MessageType,
-		message.Body, attachmentJSONBytes, message.IdempotencyKey, message.CreatedAt,
+		message.Body, attachmentJSONBytes, message.IdempotencyKey, message.CommandFingerprint, message.CreatedAt,
 	)
 
 	if err != nil {
@@ -393,8 +358,8 @@ func (r *ChatRepositoryImpl) CreateMessage(ctx context.Context, tx interface{}, 
 // GetMessageByID retrieves a message by ID.
 func (r *ChatRepositoryImpl) GetMessageByID(ctx context.Context, tx interface{}, messageID uuid.UUID) (*entity.ChatMessage, error) {
 	query := `
-		SELECT id, room_id, sender_id, message_type, body, attachment_json, idempotency_key, created_at,
-		       deleted_at, deleted_by, deletion_reason
+		SELECT id, room_id, sender_id, message_type, body, attachment_json, idempotency_key, command_fingerprint, created_at,
+	       deleted_at, deleted_by, deletion_reason
 		FROM chat_messages
 		WHERE id = $1
 	`
@@ -404,7 +369,7 @@ func (r *ChatRepositoryImpl) GetMessageByID(ctx context.Context, tx interface{},
 
 	err := toTx(tx).QueryRow(ctx, query, messageID).Scan(
 		&message.ID, &message.RoomID, &message.SenderID, &message.MessageType,
-		&message.Body, &attachmentJSONBytes, &message.IdempotencyKey, &message.CreatedAt,
+		&message.Body, &attachmentJSONBytes, &message.IdempotencyKey, &message.CommandFingerprint, &message.CreatedAt,
 		&message.DeletedAt, &message.DeletedBy, &message.DeletionReason,
 	)
 
@@ -436,8 +401,8 @@ func (r *ChatRepositoryImpl) ListMessagesByRoom(
 	limit int,
 ) ([]*entity.ChatMessage, error) {
 	baseQuery := `
-		SELECT id, room_id, sender_id, message_type, body, attachment_json, idempotency_key, created_at,
-		       deleted_at, deleted_by, deletion_reason
+		SELECT id, room_id, sender_id, message_type, body, attachment_json, idempotency_key, command_fingerprint, created_at,
+	       deleted_at, deleted_by, deletion_reason
 		FROM chat_messages
 		WHERE room_id = $1
 	`
@@ -469,7 +434,7 @@ func (r *ChatRepositoryImpl) ListMessagesByRoom(
 
 		err := rows.Scan(
 			&message.ID, &message.RoomID, &message.SenderID, &message.MessageType,
-			&message.Body, &attachmentJSONBytes, &message.IdempotencyKey, &message.CreatedAt,
+			&message.Body, &attachmentJSONBytes, &message.IdempotencyKey, &message.CommandFingerprint, &message.CreatedAt,
 			&message.DeletedAt, &message.DeletedBy, &message.DeletionReason,
 		)
 		if err != nil {
@@ -496,8 +461,8 @@ func (r *ChatRepositoryImpl) ListMessagesByRoom(
 // GetMessageByIdempotencyKey retrieves a message by idempotency key.
 func (r *ChatRepositoryImpl) GetMessageByIdempotencyKey(ctx context.Context, tx interface{}, idempotencyKey string) (*entity.ChatMessage, error) {
 	query := `
-		SELECT id, room_id, sender_id, message_type, body, attachment_json, idempotency_key, created_at,
-		       deleted_at, deleted_by, deletion_reason
+		SELECT id, room_id, sender_id, message_type, body, attachment_json, idempotency_key, command_fingerprint, created_at,
+	       deleted_at, deleted_by, deletion_reason
 		FROM chat_messages
 		WHERE idempotency_key = $1
 	`
@@ -507,7 +472,7 @@ func (r *ChatRepositoryImpl) GetMessageByIdempotencyKey(ctx context.Context, tx 
 
 	err := toTx(tx).QueryRow(ctx, query, idempotencyKey).Scan(
 		&message.ID, &message.RoomID, &message.SenderID, &message.MessageType,
-		&message.Body, &attachmentJSONBytes, &message.IdempotencyKey, &message.CreatedAt,
+		&message.Body, &attachmentJSONBytes, &message.IdempotencyKey, &message.CommandFingerprint, &message.CreatedAt,
 		&message.DeletedAt, &message.DeletedBy, &message.DeletionReason,
 	)
 

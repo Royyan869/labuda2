@@ -102,8 +102,8 @@ class CheckoutRepositoryImpl implements CheckoutRepository {
             'negotiation_id': request.negotiationId,
           if (request.shippingQuoteId != null)
             'shipping_quote_id': request.shippingQuoteId,
-          if (request.shippingOptionId != null)
-            'shipping_option_id': request.shippingOptionId,
+          if (request.shippingSetupId != null)
+            'shipping_setup_id': request.shippingSetupId,
         },
         options: headers != null ? Options(headers: headers) : null,
       );

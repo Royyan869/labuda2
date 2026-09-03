@@ -2,17 +2,16 @@ package application
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	"github.com/labuda/backend/internal/governance/support/entity"
 	infraRepo "github.com/labuda/backend/internal/governance/support/infrastructure/repository"
 	supportRepo "github.com/labuda/backend/internal/governance/support/repository"
+	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	"github.com/labuda/backend/pkg/db"
 )
 
@@ -49,7 +48,11 @@ type Service struct {
 type ChatService interface {
 	// CreateSupportTicketRoom creates a NEW unique chat room for each support ticket
 	// CRITICAL: Each ticket gets its own room to prevent thread mixing
-	CreateSupportTicketRoom(ctx context.Context, userID uuid.UUID, ticketID uuid.UUID, contextJSON json.RawMessage) (*chatEntity.ChatRoom, error)
+	//
+	// Room-level commerce context is NOT stored on chat rooms (removed schema);
+	// ticket linkage is carried by support_tickets.chat_room_id and the
+	// ticket's linked_order_id.
+	CreateSupportTicketRoom(ctx context.Context, userID uuid.UUID) (*chatEntity.ChatRoom, error)
 
 	SendSystemMessage(ctx context.Context, roomID uuid.UUID, body string) error
 }
@@ -189,25 +192,10 @@ func (s *Service) CreateTicket(ctx context.Context, req *CreateTicketRequest) (*
 	var ticket *entity.Ticket
 
 	err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		// Step 1: Prepare chat room context with linked order ID
-		var contextJSON json.RawMessage
-		if req.LinkedOrderID != nil {
-			contextData := map[string]interface{}{
-				"linked_order_id": req.LinkedOrderID.String(),
-				"type":            "support_ticket",
-			}
-			var err error
-			contextJSON, err = json.Marshal(contextData)
-			if err != nil {
-				return fmt.Errorf("failed to marshal chat context: %w", err)
-			}
-		}
-
-		// Step 2: Create NEW support chat room for this ticket
-		// CRITICAL: Each ticket gets its own unique chat room to prevent thread mixing
-		// We generate a temporary ticket ID here just for room creation
-		tempTicketID := uuid.New()
-		chatRoom, err := s.chatService.CreateSupportTicketRoom(ctx, req.UserID, tempTicketID, contextJSON)
+		// Step 1: Create NEW support chat room for this ticket.
+		// CRITICAL: Each ticket gets its own unique chat room to prevent thread mixing.
+		// Room-level context is not stored; order linkage is carried on the ticket.
+		chatRoom, err := s.chatService.CreateSupportTicketRoom(ctx, req.UserID)
 		if err != nil {
 			return fmt.Errorf("create support ticket room failed: %w", err)
 		}
@@ -299,9 +287,9 @@ func (s *Service) CreateTicket(ctx context.Context, req *CreateTicketRequest) (*
 
 // TicketEnriched contains enriched ticket information with order and dispute details.
 type TicketEnriched struct {
-	Ticket       *entity.Ticket
-	OrderInfo    *OrderInfo
-	DisputeInfo  *DisputeInfo
+	Ticket      *entity.Ticket
+	OrderInfo   *OrderInfo
+	DisputeInfo *DisputeInfo
 }
 
 // OrderInfo contains order information for support ticket context.
@@ -729,11 +717,11 @@ func (s *Service) ReopenTicket(ctx context.Context, req *ReopenTicketRequest) (*
 
 // EscalateToDisputeRequest contains the parameters for escalating a ticket to a dispute.
 type EscalateToDisputeRequest struct {
-	TicketID     uuid.UUID
-	AdminID      uuid.UUID
-	Reason       string
-	Description  *string
-	ReasonCode   string
+	TicketID    uuid.UUID
+	AdminID     uuid.UUID
+	Reason      string
+	Description *string
+	ReasonCode  string
 }
 
 // EscalateToDispute escalates a support ticket to a formal dispute.
@@ -1083,5 +1071,3 @@ func (s *Service) ListEvents(ctx context.Context, ticketID uuid.UUID, limit int)
 	})
 	return events, err
 }
-
-

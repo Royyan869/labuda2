@@ -66,11 +66,11 @@ class _UnverifiedSellerVerificationNotifier
 
 class _ReadyShippingNotifier extends ShippingNotifier {
   @override
-  ShippingOptionsListState build() =>
-      ShippingOptionsListLoaded([_activeShippingOption()]);
+  ShippingSetupsListState build() =>
+      ShippingSetupsListLoaded([_activeShippingSetup()]);
 
   @override
-  Future<void> loadActiveShippingOptions() async {}
+  Future<void> loadActiveShippingSetups() async {}
 }
 
 class _FailingSellerRepository implements SellerRepository {
@@ -184,7 +184,7 @@ AuthUser _sellerUser() {
     username: 'seller01',
     isEmailVerified: true,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     hasSellerProfile: true,
     sellerSubscriptionStatus: 'active',
     hasMarketAuthority: true,
@@ -255,9 +255,9 @@ AddressEntity _senderAddress() {
   );
 }
 
-ShippingOption _activeShippingOption() {
+ShippingSetup _activeShippingSetup() {
   final now = DateTime.utc(2026, 8, 1);
-  return ShippingOption(
+  return ShippingSetup(
     id: 'shipping-001',
     name: 'Bus Kencana',
     type: ShippingType.bus,

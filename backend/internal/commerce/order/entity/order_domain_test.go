@@ -293,11 +293,9 @@ func TestOrderSourceTypes(t *testing.T) {
 				money.New(5000),   // Commission amount: (100000 * 5) / 100 = 5000
 				money.New(3000),   // Buyer service fee
 				money.New(108000), // Total payable
-				nil,               // shippingOptionID: nil for test
-				"JNE",             // shippingOptionName
+				nil,               // shippingSetupID: nil for test
+				"JNE",             // shippingSetupName
 				"truck",           // shippingTransportType
-				nil,               // shippingExpeditionName
-				nil,               // shippingEstimatedDays
 				nil,               // auctionSettlementType
 				"immediate",       // preparationTimeSnapshot
 				nil,               // preparationNoteSnapshot
@@ -360,11 +358,9 @@ func TestNoVATInOrder(t *testing.T) {
 		money.New(5000),   // Commission amount: (100000 * 5) / 100 = 5000
 		money.New(3000),   // Buyer service fee
 		money.New(113000), // Total payable = canonical buyer base (P−D)+S + fee = 100000+10000+3000
-		nil,               // shippingOptionID: nil for test
-		"JNE",             // shippingOptionName
+		nil,               // shippingSetupID: nil for test
+		"JNE",             // shippingSetupName
 		"truck",           // shippingTransportType
-		nil,               // shippingExpeditionName
-		nil,               // shippingEstimatedDays
 		nil,               // auctionSettlementType
 		"immediate",       // preparationTimeSnapshot
 		nil,               // preparationNoteSnapshot
@@ -424,11 +420,9 @@ func TestOrderEntityFields(t *testing.T) {
 		money.New(25000),  // Commission amount: (500000 * 5) / 100 = 25000
 		money.New(3000),   // Buyer service fee
 		money.New(548000), // Total payable
-		&overrideID,       // shippingOptionID
-		"JNE",             // shippingOptionName
+		&overrideID,       // shippingSetupID
+		"JNE",             // shippingSetupName
 		"truck",           // shippingTransportType
-		nil,               // shippingExpeditionName
-		nil,               // shippingEstimatedDays
 		nil,               // auctionSettlementType
 		"immediate",       // preparationTimeSnapshot
 		nil,               // preparationNoteSnapshot
@@ -491,11 +485,9 @@ func TestShippingQuoteFieldsPersistence(t *testing.T) {
 		money.New(5000),   // Commission amount
 		money.New(3000),   // Buyer service fee
 		money.New(133000), // Total payable
-		nil,               // shippingOptionID: nil when using quote
-		"Custom",          // shippingOptionName
+		nil,               // shippingSetupID: nil when using quote
+		"Custom",          // shippingSetupName
 		"truck",           // shippingTransportType
-		nil,               // shippingExpeditionName
-		nil,               // shippingEstimatedDays
 		nil,               // auctionSettlementType
 		"immediate",       // preparationTimeSnapshot
 		nil,               // preparationNoteSnapshot
@@ -534,11 +526,9 @@ func TestShippingQuoteFieldsNilWhenNotUsed(t *testing.T) {
 		money.New(5000),   // Commission amount
 		money.New(3000),   // Buyer service fee
 		money.New(118000), // Total payable
-		&optionID,         // shippingOptionID: set for standard option
-		"JNE REG",         // shippingOptionName
+		&optionID,         // shippingSetupID: set for standard option
+		"JNE REG",         // shippingSetupName
 		"truck",           // shippingTransportType
-		nil,               // shippingExpeditionName
-		nil,               // shippingEstimatedDays
 		nil,               // auctionSettlementType
 		"immediate",       // preparationTimeSnapshot
 		nil,               // preparationNoteSnapshot
@@ -576,11 +566,9 @@ func TestShippingQuoteFieldsOnAuctionOrder(t *testing.T) {
 		money.New(10000),  // Commission amount
 		money.New(3000),   // Buyer service fee
 		money.New(248000), // Total payable
-		nil,               // shippingOptionID: nil when using quote
-		"Custom",          // shippingOptionName
+		nil,               // shippingSetupID: nil when using quote
+		"Custom",          // shippingSetupName
 		"truck",           // shippingTransportType
-		nil,               // shippingExpeditionName
-		nil,               // shippingEstimatedDays
 		&settlementType,   // auctionSettlementType
 		"immediate",       // preparationTimeSnapshot
 		nil,               // preparationNoteSnapshot
@@ -758,10 +746,10 @@ func createTestOrderWithPrep(status orderentity.Status, prepTime string) *ordere
 		money.New(5000),   // Commission
 		money.New(3000),   // Buyer service fee
 		money.New(108000), // Total payable
-		nil,               // shippingOptionID
+		nil,               // shippingSetupID
 		"JNE",
 		"truck",
-		nil, nil, nil,
+		nil,
 		prepTime, // preparationTimeSnapshot
 		nil,      // preparationNoteSnapshot
 		nil, nil, nil, nil,
@@ -788,11 +776,9 @@ func createTestOrder(status orderentity.Status, escrowStatus orderentity.EscrowS
 		money.New(5000),   // Commission amount: (100000 * 5) / 100 = 5000
 		money.New(3000),   // Buyer service fee
 		money.New(108000), // Total payable
-		nil,               // shippingOptionID: nil for test
-		"JNE",             // shippingOptionName
+		nil,               // shippingSetupID: nil for test
+		"JNE",             // shippingSetupName
 		"truck",           // shippingTransportType
-		nil,               // shippingExpeditionName
-		nil,               // shippingEstimatedDays
 		nil,               // auctionSettlementType
 		"immediate",       // preparationTimeSnapshot
 		nil,               // preparationNoteSnapshot

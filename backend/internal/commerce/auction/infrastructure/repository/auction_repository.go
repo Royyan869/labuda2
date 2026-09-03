@@ -30,18 +30,18 @@ func (r *AuctionRepository) CreateTx(
 ) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO auctions (
-			id, seller_id, product_id, order_id, settlement_deadline,
+			id, seller_id, product_id, order_id,
 			start_price, bid_increment, buy_now_price,
 			start_at, end_at, current_bid, current_winner_id,
+			shipping_resolved_at, seller_action_required, seller_quote_provided,
 			status, created_at, updated_at, anti_snipe_extension_seconds
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
 	`,
 		auction.ID,
 		auction.SellerID,
 		auction.ProductID,
 		auction.OrderID,
-		auction.SettlementDeadline,
 		auction.StartPrice,
 		auction.BidIncrement,
 		auction.BuyNowPrice,
@@ -49,6 +49,9 @@ func (r *AuctionRepository) CreateTx(
 		auction.EndAt,
 		auction.CurrentBid,
 		auction.CurrentWinnerID,
+		auction.ShippingResolvedAt,
+		auction.SellerActionRequired,
+		auction.SellerQuoteProvided,
 		string(auction.Status),
 		auction.CreatedAt,
 		auction.UpdatedAt,
@@ -65,9 +68,10 @@ func (r *AuctionRepository) CreateTx(
 // joinedAuctionColumns selects auction columns plus the joined Product columns.
 // Product is the canonical authority for title, description, media, koi
 // attributes, preparation and farm address — auction reads it read-only.
-const joinedAuctionColumns = `a.id, a.seller_id, a.product_id, a.order_id, a.settlement_deadline,
+const joinedAuctionColumns = `a.id, a.seller_id, a.product_id, a.order_id,
 	a.start_price, a.bid_increment, a.buy_now_price,
 	a.start_at, a.end_at, a.current_bid, a.current_winner_id,
+	a.shipping_resolved_at, a.seller_action_required, a.seller_quote_provided,
 	a.status, a.created_at, a.updated_at, a.anti_snipe_extension_seconds,
 	p.id, p.seller_id, p.title, p.description, p.media_urls,
 	p.variety, p.size_cm, p.age_months, p.gender, p.breeder, p.bloodline, p.certificates,
@@ -82,8 +86,8 @@ func scanJoinedAuction(row interface {
 	var a entity.Auction
 	var p productEntity.Product
 	var orderID *uuid.UUID
-	var settlementDeadline *time.Time
 	var currentWinnerID *uuid.UUID
+	var shippingResolvedAt *time.Time
 	var startPrice, bidIncrement int64
 	var buyNowPrice, currentBid *int64
 	var status string
@@ -97,9 +101,10 @@ func scanJoinedAuction(row interface {
 	var productCreatedAt, productUpdatedAt time.Time
 
 	err := row.Scan(
-		&a.ID, &a.SellerID, &a.ProductID, &orderID, &settlementDeadline,
+		&a.ID, &a.SellerID, &a.ProductID, &orderID,
 		&startPrice, &bidIncrement, &buyNowPrice,
 		&startAt, &endAt, &currentBid, &currentWinnerID,
+		&shippingResolvedAt, &a.SellerActionRequired, &a.SellerQuoteProvided,
 		&status, &createdAt, &updatedAt, &antiSnipeExtensionSeconds,
 		&p.ID, &p.SellerID, &p.Title, &p.Description, &mediaURLsRaw,
 		&p.Variety, &sizeCM, &ageMonths, &gender, &breeder, &bloodline, &certificates,
@@ -118,7 +123,7 @@ func scanJoinedAuction(row interface {
 	}
 
 	a.OrderID = orderID
-	a.SettlementDeadline = settlementDeadline
+	a.ShippingResolvedAt = shippingResolvedAt
 	a.StartPrice = startPrice
 	a.BidIncrement = bidIncrement
 	a.BuyNowPrice = buyNowPrice
@@ -206,16 +211,17 @@ func (r *AuctionRepository) UpdateTx(
 ) error {
 	_, err := tx.Exec(ctx, `
 		UPDATE auctions
-		SET order_id = $2, settlement_deadline = $3,
-		    start_price = $4, bid_increment = $5, buy_now_price = $6,
-		    start_at = $7, end_at = $8,
-		    current_bid = $9, current_winner_id = $10,
-		    status = $11, updated_at = $12, anti_snipe_extension_seconds = $13
+		SET order_id = $2,
+		    start_price = $3, bid_increment = $4, buy_now_price = $5,
+		    start_at = $6, end_at = $7,
+		    current_bid = $8, current_winner_id = $9,
+		    shipping_resolved_at = $10, seller_action_required = $11,
+		    seller_quote_provided = $12,
+		    status = $13, updated_at = $14, anti_snipe_extension_seconds = $15
 		WHERE id = $1
 	`,
 		auction.ID,
 		auction.OrderID,
-		auction.SettlementDeadline,
 		auction.StartPrice,
 		auction.BidIncrement,
 		auction.BuyNowPrice,
@@ -223,6 +229,9 @@ func (r *AuctionRepository) UpdateTx(
 		auction.EndAt,
 		auction.CurrentBid,
 		auction.CurrentWinnerID,
+		auction.ShippingResolvedAt,
+		auction.SellerActionRequired,
+		auction.SellerQuoteProvided,
 		string(auction.Status),
 		auction.UpdatedAt,
 		int64(auction.AntiSnipeExtensionTotal/time.Second),
@@ -232,6 +241,32 @@ func (r *AuctionRepository) UpdateTx(
 		return fmt.Errorf("update auction failed: %w", err)
 	}
 
+	return nil
+}
+
+// MarkSellerQuoteProvided flips auctions.seller_quote_provided = true for the
+// auction's current settlement. Called atomically when the seller creates a
+// private shipping quote for a waiting_settlement auction.
+func (r *AuctionRepository) MarkSellerQuoteProvided(
+	ctx context.Context,
+	tx db.Tx,
+	auctionID uuid.UUID,
+) error {
+	tag, err := tx.Exec(ctx, `
+		UPDATE auctions
+		SET seller_quote_provided = TRUE, updated_at = NOW()
+		WHERE id = $1
+		  AND status = 'waiting_settlement'
+	`, auctionID)
+	if err != nil {
+		return fmt.Errorf("mark auction seller quote provided failed: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		// Auction not in waiting_settlement — quote no longer relevant (or
+		// auction missing). Not an error: the seller may create quotes for a
+		// surface whose settlement already ended. Idempotent no-op.
+		return nil
+	}
 	return nil
 }
 
@@ -337,9 +372,9 @@ func (r *AuctionRepository) List(
 		argIdx++
 	} else {
 		// Default browse (no explicit status filter) is public discovery:
-		// only pre-sale/live-sale states. Draft, cancelled, waiting_settlement,
-		// ended (settled/no-winner) and expired_bnr are owned/historical
-		// surfaces and must not surface in anonymous public browse.
+		// only pre-sale/live-sale states. Draft, cancelled, waiting_settlement
+		// and ended (settled/no-winner) are owned/historical surfaces and must
+		// not surface in anonymous public browse.
 		conditions = append(conditions, "a.status IN ('scheduled', 'active')")
 	}
 

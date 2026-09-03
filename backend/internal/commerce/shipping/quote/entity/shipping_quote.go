@@ -55,7 +55,6 @@ type ShippingQuote struct {
 	ProductID             uuid.UUID
 	SourceType            *string
 	SourceID              *uuid.UUID
-	AuctionID             *uuid.UUID // Optional auction reference (TASK A)
 	SellerID              uuid.UUID
 	BuyerID               uuid.UUID
 	Cost                  money.Money
@@ -101,37 +100,6 @@ func NewShippingQuote(
 	}
 }
 
-// NewAuctionShippingQuote creates a new ShippingQuote entity for an auction.
-func NewAuctionShippingQuote(
-	chatID uuid.UUID,
-	productID uuid.UUID,
-	auctionID uuid.UUID,
-	sourceType string,
-	sourceID uuid.UUID,
-	sellerID, buyerID uuid.UUID,
-	cost money.Money,
-	note *string,
-	destinationCityID, destinationProvinceID *string,
-	expiresAt time.Time,
-) *ShippingQuote {
-	return &ShippingQuote{
-		ID:                    uuid.New(),
-		ChatID:                chatID,
-		ProductID:             productID,
-		SourceType:            &sourceType,
-		SourceID:              &sourceID,
-		AuctionID:             &auctionID,
-		SellerID:              sellerID,
-		BuyerID:               buyerID,
-		Cost:                  cost,
-		Note:                  note,
-		Status:                QuoteStatusActive,
-		ExpiresAt:             &expiresAt,
-		DestinationCityID:     destinationCityID,
-		DestinationProvinceID: destinationProvinceID,
-		CreatedAt:             time.Now(),
-	}
-}
 
 // IsActive returns true if the quote is in ACTIVE status.
 func (q *ShippingQuote) IsActive() bool {
@@ -267,9 +235,6 @@ func (q *ShippingQuote) ValidateDestinationAddress(provinceID, cityID string) er
 func (q *ShippingQuote) GetItemReference() (uuid.UUID, bool) {
 	if q.SourceType != nil && q.SourceID != nil && *q.SourceID != uuid.Nil {
 		return *q.SourceID, *q.SourceType == "auction"
-	}
-	if q.AuctionID != nil && *q.AuctionID != uuid.Nil {
-		return *q.AuctionID, true
 	}
 	return uuid.Nil, false
 }

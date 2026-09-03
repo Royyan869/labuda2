@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:fake_async/fake_async.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/api/api.dart';
@@ -752,7 +752,7 @@ _ContainerHarness _createHarness({
       sellerSubscriptionStatus: null,
       hasMarketAuthority: false,
       roles: const [UserRole.user],
-      provider: ShonaAuthProvider.email,
+      provider: AuthProvider.email,
       createdAt: DateTime(2026, 6, 1),
       updatedAt: DateTime(2026, 6, 2),
     ),
@@ -798,7 +798,7 @@ AuthUser _testUser(String id) {
     sellerSubscriptionStatus: 'active',
     hasMarketAuthority: true,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     createdAt: DateTime(2026, 6, 1),
     updatedAt: DateTime(2026, 6, 2),
   );

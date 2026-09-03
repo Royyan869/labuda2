@@ -175,7 +175,7 @@ type OrderDetailResponse struct {
 	ServiceFeeAmount   int64      `json:"service_fee_amount"`
 	TotalPayableAmount int64      `json:"total_payable_amount"`
 	RefundedAmount     int64      `json:"refunded_amount"`
-	ShippingOption     *string    `json:"shipping_option,omitempty"`
+	ShippingSetup     *string    `json:"shipping_option,omitempty"`
 	TrackingNumber     *string    `json:"tracking_number,omitempty"`
 	AutoReleaseAt      *time.Time `json:"auto_release_at,omitempty"`
 	CreatedAt          time.Time  `json:"created_at"`
@@ -327,7 +327,7 @@ func (h *AdminOrderHandler) GetOrderDetail(c *gin.Context) {
 		var hasDispute bool
 		var disputeStatus *string
 		var subtotal, shippingTotal, commissionAmount, serviceFeeAmount, totalPayableAmount, refundedAmount int64
-		var shippingOptionName, shippingReference *string
+		var shippingSetupName, shippingReference *string
 		var shippingSource *string
 		var originSnapshotJSON []byte
 		var autoReleaseAt *time.Time
@@ -349,7 +349,7 @@ func (h *AdminOrderHandler) GetOrderDetail(c *gin.Context) {
 			&status, &escrowStatus, &hasDispute, &disputeStatus,
 			&subtotal, &shippingTotal, &commissionAmount, &serviceFeeAmount, &totalPayableAmount,
 			&refundedAmount,
-			&shippingOptionName, &shippingReference,
+			&shippingSetupName, &shippingReference,
 			&shippingSource, &originSnapshotJSON,
 			&autoReleaseAt, &createdAt, &updatedAt,
 			&orderNumber,
@@ -408,7 +408,7 @@ func (h *AdminOrderHandler) GetOrderDetail(c *gin.Context) {
 			ServiceFeeAmount:   serviceFeeAmount,
 			TotalPayableAmount: totalPayableAmount,
 			RefundedAmount:     refundedAmount,
-			ShippingOption:     shippingOptionName,
+			ShippingSetup:     shippingSetupName,
 			TrackingNumber:     shippingReference,
 			ShippingSource:     shippingSource,
 			ShippingOrigin:     shippingOriginDetail,

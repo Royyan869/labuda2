@@ -178,9 +178,9 @@ void main() {
         );
         expect(
           logicSource,
-          contains('shippingOptionId: state.widget.shippingQuoteId == null'),
+          contains('shippingSetupId: state.widget.shippingQuoteId == null'),
         );
-        expect(logicSource, contains('? state._selectedShippingOptionId'));
+        expect(logicSource, contains('? state._selectedShippingSetupId'));
         expect(logicSource, contains(': null,'));
         expect(screenSource, contains('didPopNext()'));
         expect(screenSource, contains('_schedulePreview();'));

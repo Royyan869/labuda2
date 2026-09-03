@@ -348,16 +348,13 @@ class ShippingQuoteAttachmentDto extends AttachmentDto {
     required String offerId,
     required String linkedItemId,
     required String linkedItemType,
-    String? auctionId,
     String? linkedItemName,
     String? linkedItemImage,
     double? linkedItemPrice,
     required String shippingType,
     required String shippingTypeName,
     required String shippingTypeEmoji,
-    String? expeditionName,
     required double rate,
-    String? estimatedDays,
     String? notes,
     String? validUntil,
     required String status,
@@ -368,16 +365,13 @@ class ShippingQuoteAttachmentDto extends AttachmentDto {
            'offer_id': offerId,
            'linked_item_id': linkedItemId,
            'linked_item_type': linkedItemType,
-           ...?_singleEntryMap('auction_id', auctionId),
            ...?_singleEntryMap('linked_item_name', linkedItemName),
            ...?_singleEntryMap('linked_item_image', linkedItemImage),
            ...?_singleEntryMap('linked_item_price', linkedItemPrice),
            'shipping_type': shippingType,
            'shipping_type_name': shippingTypeName,
            'shipping_type_emoji': shippingTypeEmoji,
-           ...?_singleEntryMap('expedition_name', expeditionName),
            'rate': rate,
-           ...?_singleEntryMap('estimated_days', estimatedDays),
            ...?_singleEntryMap('notes', notes),
            ...?_singleEntryMap('valid_until', validUntil),
            'status': status,
@@ -391,7 +385,6 @@ class ShippingQuoteAttachmentDto extends AttachmentDto {
       offerId: data['offer_id'] as String,
       linkedItemId: data['linked_item_id'] as String,
       linkedItemType: data['linked_item_type'] as String,
-      auctionId: data['auction_id'] as String?,
       linkedItemName: data['linked_item_name'] as String?,
       linkedItemImage: data['linked_item_image'] as String?,
       linkedItemPrice: (data['linked_item_price'] as num?)?.toDouble(),
@@ -399,9 +392,7 @@ class ShippingQuoteAttachmentDto extends AttachmentDto {
       shippingTypeName:
           data['shipping_type_name'] as String? ?? 'Ongkir Manual',
       shippingTypeEmoji: data['shipping_type_emoji'] as String? ?? '🚚',
-      expeditionName: data['expedition_name'] as String?,
       rate: (data['rate'] as num).toDouble(),
-      estimatedDays: data['estimated_days'] as String?,
       notes: data['notes'] as String?,
       validUntil: data['valid_until'] as String?,
       status: data['status'] as String? ?? 'ACTIVE',
@@ -412,16 +403,13 @@ class ShippingQuoteAttachmentDto extends AttachmentDto {
   String get offerId => data['offer_id'] as String;
   String get linkedItemId => data['linked_item_id'] as String;
   String get linkedItemType => data['linked_item_type'] as String;
-  String? get auctionId => data['auction_id'] as String?;
   String? get linkedItemName => data['linked_item_name'] as String?;
   String? get linkedItemImage => data['linked_item_image'] as String?;
   double? get linkedItemPrice => data['linked_item_price'] as double?;
   String get shippingType => data['shipping_type'] as String;
   String get shippingTypeName => data['shipping_type_name'] as String;
   String get shippingTypeEmoji => data['shipping_type_emoji'] as String;
-  String? get expeditionName => data['expedition_name'] as String?;
   double get rate => data['rate'] as double;
-  String? get estimatedDays => data['estimated_days'] as String?;
   String? get notes => data['notes'] as String?;
   String? get validUntil => data['valid_until'] as String?;
   String get status => data['status'] as String? ?? 'ACTIVE';

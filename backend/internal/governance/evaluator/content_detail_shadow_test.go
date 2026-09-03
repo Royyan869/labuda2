@@ -317,17 +317,14 @@ func TestEvaluateContentDetail_PrecedenceTable(t *testing.T) {
 			wantReason:   UnknownReasonNone,
 		},
 
-		// === 11. Fulfilled content ===
-		// Doctrine §3.3: fulfilled coarsens to "unavailable" but stays
-		// ALLOW (visible). Only "deleted" is a deny trigger on status.
-		{
-			name:          "fulfilled content normal viewer => ALLOW",
-			viewer:        cdViewerOpts{lifecycleHydrated: true, relationshipHydrated: true},
-			target:        cdTargetOpts{ownerHydrated: true, moderationHydrated: true},
-			contentStatus: contententity.StatusFulfilled,
-			wantDecision:  ShadowDecisionAllow,
-			wantReason:    UnknownReasonNone,
-		},
+		// === 11. (removed) Fulfilled content ===
+		// The "fulfilled" content status was deliberately removed from the
+		// canonical content model (CONTRACT ALIGNMENT V1 — content is a
+		// social object with active/deleted only; see
+		// social/content/entity/content_status.go). The behavior that case
+		// pinned — only "deleted" is a status deny-trigger, every other
+		// status stays ALLOW — is already covered by the happy-path case
+		// (active → ALLOW) and the deleted case (deleted → DENY) above.
 
 		// === 12. Missing overlays ===
 		{

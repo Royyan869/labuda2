@@ -3,10 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/domain/entities/negotiation.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
-import 'package:labuda/shared/shared.dart';
 
 /// Chat Input Area Widget
 ///
@@ -94,30 +92,8 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
     final chat = chatDetailState.chat;
     final canSend = chat?.status == ChatStatus.active;
 
-    // **SOCIAL FIX 1.1:** Check if chat has fixed-price sale context using ShareReference
-    final hasForSaleContext =
-        chat?.context?.targetType == ShareTargetType.forSale;
-
-    // Determine if current user is the seller of this specific for-sale item.
-    // Fetches sale detail and compares sellerId with currentUserId.
-    // Fail-safe: hides seller CTA on loading / error / null / non-sale context.
-    final String? forSaleId = hasForSaleContext
-        ? chat?.context?.targetId
-        : null;
-    final bool isSellerOfForSale;
-    if (forSaleId != null && forSaleId.isNotEmpty) {
-      final currentUserId = ref.watch(currentUserIdProvider);
-      final listingAsync = ref.watch(forSaleDetailProvider(forSaleId));
-      isSellerOfForSale = listingAsync.maybeWhen(
-        data: (listing) =>
-            listing != null &&
-            currentUserId.isNotEmpty &&
-            listing.sellerId == currentUserId,
-        orElse: () => false,
-      );
-    } else {
-      isSellerOfForSale = false;
-    }
+    // Room-level context was removed from the backend.
+    // Commerce actions that depended on chat.context are now message-level.
 
     // Watch negotiation state for pending deals
     // Negotiation state is now managed by NegotiationNotifier (domain entry point)
@@ -144,17 +120,10 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
               _buildPendingDealIndicator(
                 context,
                 negotiationState.currentNegotiation!,
-                isSeller: isSellerOfForSale,
+                isSeller: false,
               ),
-            // Commerce Actions with enhanced CTA clarity
-            if (hasForSaleContext && chat?.context != null)
-              _buildCommerceActions(
-                context,
-                chat!.context!,
-                isSellerOfForSale,
-                hasActiveNegotiation:
-                    negotiationState.currentNegotiation != null,
-              ),
+            // Commerce actions gated by room-level context were removed;
+            // per-message resource projections are the canonical source.
             if (_replyToMessageId != null) _buildReplyPreview(context),
             Row(
               children: [
@@ -338,194 +307,6 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
   ///
   /// Shows fixed-price sale context with improved CTA clarity:
   /// - Visual prioritization of actions
-  /// - Clear next-step hints
-  /// - Reduced decision paralysis
-  Widget _buildCommerceActions(
-    BuildContext context,
-    ShareReference shareRef,
-    bool isSeller, {
-    bool hasActiveNegotiation = false,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.primaryRed.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.primaryRed.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Listing header with preview data
-          Row(
-            children: [
-              Icon(
-                Icons.storefront_outlined,
-                size: 16,
-                color: AppColors.primaryRed,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  shareRef.preview.title,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primaryRed,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              // **NOTE:** Price would need to be fetched from ObjectPreview
-              // For now, just show "Lihat Detail" instead of price
-              Text(
-                'Lihat Detail',
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.primaryRed,
-                ),
-              ),
-            ],
-          ),
-          // UX Honesty warning about availability
-          Padding(
-            padding: const EdgeInsets.only(top: 6, bottom: 6),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.info_outline,
-                  size: 10,
-                  color: AppColors.neutralGray500,
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    hasActiveNegotiation
-                        ? 'Negosiasi aktif • Barang belum dikunci'
-                        : 'Barang tetap tersedia untuk pembeli lain sampai pesanan dibuat',
-                    style: TextStyle(
-                      fontSize: 9,
-                      color: hasActiveNegotiation
-                          ? AppColors.coinPrimary
-                          : AppColors.neutralGray500,
-                      fontStyle: FontStyle.italic,
-                      fontWeight: hasActiveNegotiation
-                          ? FontWeight.w500
-                          : FontWeight.normal,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Action buttons with clear prioritization
-          Wrap(
-            spacing: 8,
-            children: [
-              if (isSeller) ...[
-                // Seller actions - prioritized
-                _buildCommerceActionButton(
-                  context,
-                  icon: Icons.monetization_on,
-                  label: 'Kirim Tawaran',
-                  color: AppColors.coinPrimary,
-                  isPrimary: true,
-                  onTap: widget.onSendQuote,
-                ),
-              ] else ...[
-                // Buyer actions - Beli Sekarang is prioritized
-                _buildCommerceActionButton(
-                  context,
-                  icon: Icons.shopping_cart,
-                  label: 'Beli Sekarang',
-                  color: AppColors.successGreen,
-                  isPrimary: true,
-                  onTap: widget.onBuyNow,
-                ),
-                // **NOTE:** Negotiation button shown if callback is provided
-                // isNegotiable check would need ObjectPreview data
-                if (widget.onStartNegotiation != null)
-                  _buildCommerceActionButton(
-                    context,
-                    icon: Icons.handshake,
-                    label: 'Nego Harga',
-                    color: AppColors.primaryRed,
-                    isPrimary: false,
-                    onTap: widget.onStartNegotiation,
-                  ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Enhanced Commerce Action Button
-  ///
-  /// Supports visual prioritization to reduce decision paralysis:
-  /// - Primary actions get stronger visual weight
-  /// - Secondary actions are visually subdued
-  Widget _buildCommerceActionButton(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required Color color,
-    required bool isPrimary,
-    VoidCallback? onTap,
-  }) {
-    // Visual hierarchy - primary actions are more prominent
-    final backgroundColor = isPrimary
-        ? color.withValues(alpha: 0.2)
-        : color.withValues(alpha: 0.1);
-    final borderColor = isPrimary
-        ? color.withValues(alpha: 0.6)
-        : color.withValues(alpha: 0.4);
-    final iconSize = isPrimary ? 15.0 : 13.0;
-    final fontSize = isPrimary ? 13.0 : 11.0;
-    final fontWeight = isPrimary ? FontWeight.w700 : FontWeight.w500;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: isPrimary ? 14 : 10,
-            vertical: isPrimary ? 7 : 5,
-          ),
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: borderColor, width: isPrimary ? 1.5 : 1),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: iconSize, color: color),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: fontSize,
-                  fontWeight: fontWeight,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildAttachmentButton(BuildContext context) {
     return IconButton(
       icon: Icon(

@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -60,10 +59,6 @@ type Repository interface {
 
 	// UpdateRoomLastMessageAt updates the last_message_at timestamp.
 	UpdateRoomLastMessageAt(ctx context.Context, tx interface{}, roomID uuid.UUID, timestamp time.Time) error
-
-	// UpdateRoomContext updates the room's commerce context.
-	// This allows adding or updating context on an existing room.
-	UpdateRoomContext(ctx context.Context, tx interface{}, roomID uuid.UUID, contextJSON json.RawMessage, contextSetBy uuid.UUID) error
 
 	// UpdateRoomLinkedOrderId updates the room's linked order ID for commerce continuity.
 	// This links an order to a chat, enabling order↔chat alignment.
@@ -214,9 +209,9 @@ var (
 
 	// Resource-authority sentinels are shared across chat adapters and the
 	// application layer for resource-occurrence authorization decisions.
-	ErrResourceNotFound        = errorString("resource not found")
-	ErrResourceNotAccessible   = errorString("resource not accessible")
-	ErrResourceNotPromotable   = errorString("resource not promotable")
+	ErrResourceNotFound      = errorString("resource not found")
+	ErrResourceNotAccessible = errorString("resource not accessible")
+	ErrResourceNotPromotable = errorString("resource not promotable")
 )
 
 // errorString is a string type that implements error.

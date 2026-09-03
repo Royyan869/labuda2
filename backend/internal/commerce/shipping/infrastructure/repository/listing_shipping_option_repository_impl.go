@@ -10,32 +10,32 @@ import (
 	"github.com/labuda/backend/pkg/db"
 )
 
-// ProductShippingOptionRepositoryImpl handles product-shipping link persistence using pgx-based DB layer.
-type ProductShippingOptionRepositoryImpl struct {
-	optionRepo ShippingOptionRepository
+// ProductShippingSetupRepositoryImpl handles product-shipping link persistence using pgx-based DB layer.
+type ProductShippingSetupRepositoryImpl struct {
+	optionRepo ShippingSetupRepository
 }
 
-// NewProductShippingOptionRepository creates a new ProductShippingOptionRepository.
-func NewProductShippingOptionRepository(
-	optionRepo ShippingOptionRepository,
-) ProductShippingOptionRepository {
-	return &ProductShippingOptionRepositoryImpl{
+// NewProductShippingSetupRepository creates a new ProductShippingSetupRepository.
+func NewProductShippingSetupRepository(
+	optionRepo ShippingSetupRepository,
+) ProductShippingSetupRepository {
+	return &ProductShippingSetupRepositoryImpl{
 		optionRepo: optionRepo,
 	}
 }
 
 // Create persists a new product-shipping link within a transaction.
-func (r *ProductShippingOptionRepositoryImpl) Create(
+func (r *ProductShippingSetupRepositoryImpl) Create(
 	ctx context.Context,
 	tx db.Tx,
 	productID uuid.UUID,
-	shippingOptionID uuid.UUID,
+	shippingSetupID uuid.UUID,
 	sortOrder int,
 ) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO product_shipping_options (product_id, shipping_option_id, sort_order, created_at)
 		VALUES ($1, $2, $3, NOW())
-	`, productID, shippingOptionID, sortOrder)
+	`, productID, shippingSetupID, sortOrder)
 
 	if err != nil {
 		return fmt.Errorf("create product shipping option failed: %w", err)
@@ -45,16 +45,16 @@ func (r *ProductShippingOptionRepositoryImpl) Create(
 }
 
 // Delete removes a product-shipping link within a transaction.
-func (r *ProductShippingOptionRepositoryImpl) Delete(
+func (r *ProductShippingSetupRepositoryImpl) Delete(
 	ctx context.Context,
 	tx db.Tx,
 	productID uuid.UUID,
-	shippingOptionID uuid.UUID,
+	shippingSetupID uuid.UUID,
 ) error {
 	_, err := tx.Exec(ctx, `
 		DELETE FROM product_shipping_options
 		WHERE product_id = $1 AND shipping_option_id = $2
-	`, productID, shippingOptionID)
+	`, productID, shippingSetupID)
 
 	if err != nil {
 		return fmt.Errorf("delete product shipping option failed: %w", err)
@@ -69,11 +69,11 @@ func (r *ProductShippingOptionRepositoryImpl) Delete(
 // (shipping_authority_hard_purge) but remained in this SELECT/scan, making the
 // query fail with column-not-found on every FPS/auction checkout shipping
 // check. Fixed in Stage 5 (order-item identity convergence groundwork).
-func (r *ProductShippingOptionRepositoryImpl) GetByProduct(
+func (r *ProductShippingSetupRepositoryImpl) GetByProduct(
 	ctx context.Context,
 	tx db.Tx,
 	productID uuid.UUID,
-) ([]*entity.ShippingOption, error) {
+) ([]*entity.ShippingSetup, error) {
 	rows, err := tx.Query(ctx, `
 		SELECT so.id, so.seller_id, so.name, so.transport_type,
 		       so.is_active, so.created_at, so.updated_at
@@ -87,7 +87,7 @@ func (r *ProductShippingOptionRepositoryImpl) GetByProduct(
 	}
 	defer rows.Close()
 
-	var options []*entity.ShippingOption
+	var options []*entity.ShippingSetup
 	for rows.Next() {
 		var id, sellerID uuid.UUID
 		var name string
@@ -103,15 +103,14 @@ func (r *ProductShippingOptionRepositoryImpl) GetByProduct(
 			return nil, fmt.Errorf("scan shipping option failed: %w", err)
 		}
 
-		options = append(options, &entity.ShippingOption{
-			ID:             id,
-			SellerID:       sellerID,
-			Name:           name,
-			TransportType:  entity.TransportType(transportType),
-			ExpeditionName: nil, // expedition_name removed (migration 000014)
-			IsActive:       isActive,
-			CreatedAt:      createdAt,
-			UpdatedAt:      updatedAt,
+		options = append(options, &entity.ShippingSetup{
+			ID:            id,
+			SellerID:      sellerID,
+			Name:          name,
+			TransportType: entity.TransportType(transportType),
+			IsActive:      isActive,
+			CreatedAt:     createdAt,
+			UpdatedAt:     updatedAt,
 		})
 	}
 
@@ -119,12 +118,11 @@ func (r *ProductShippingOptionRepositoryImpl) GetByProduct(
 }
 
 // GetAvailableByProduct retrieves all available shipping options for a product, sorted by sort_order.
-// (expedition_name dropped by migration 000014 — same fix as GetByProduct.)
-func (r *ProductShippingOptionRepositoryImpl) GetAvailableByProduct(
+func (r *ProductShippingSetupRepositoryImpl) GetAvailableByProduct(
 	ctx context.Context,
 	tx db.Tx,
 	productID uuid.UUID,
-) ([]*entity.ShippingOption, error) {
+) ([]*entity.ShippingSetup, error) {
 	rows, err := tx.Query(ctx, `
 		SELECT so.id, so.seller_id, so.name, so.transport_type,
 		       so.is_active, so.created_at, so.updated_at
@@ -138,7 +136,7 @@ func (r *ProductShippingOptionRepositoryImpl) GetAvailableByProduct(
 	}
 	defer rows.Close()
 
-	var options []*entity.ShippingOption
+	var options []*entity.ShippingSetup
 	for rows.Next() {
 		var id, sellerID uuid.UUID
 		var name string
@@ -154,15 +152,14 @@ func (r *ProductShippingOptionRepositoryImpl) GetAvailableByProduct(
 			return nil, fmt.Errorf("scan shipping option failed: %w", err)
 		}
 
-		options = append(options, &entity.ShippingOption{
-			ID:             id,
-			SellerID:       sellerID,
-			Name:           name,
-			TransportType:  entity.TransportType(transportType),
-			ExpeditionName: nil, // expedition_name removed (migration 000014)
-			IsActive:       isActive,
-			CreatedAt:      createdAt,
-			UpdatedAt:      updatedAt,
+		options = append(options, &entity.ShippingSetup{
+			ID:            id,
+			SellerID:      sellerID,
+			Name:          name,
+			TransportType: entity.TransportType(transportType),
+			IsActive:      isActive,
+			CreatedAt:     createdAt,
+			UpdatedAt:     updatedAt,
 		})
 	}
 
@@ -170,7 +167,7 @@ func (r *ProductShippingOptionRepositoryImpl) GetAvailableByProduct(
 }
 
 // DeleteByProduct removes all shipping links for a product.
-func (r *ProductShippingOptionRepositoryImpl) DeleteByProduct(
+func (r *ProductShippingSetupRepositoryImpl) DeleteByProduct(
 	ctx context.Context,
 	tx db.Tx,
 	productID uuid.UUID,
@@ -182,13 +179,13 @@ func (r *ProductShippingOptionRepositoryImpl) DeleteByProduct(
 	return nil
 }
 
-// DeleteByShippingOption removes all product links for a shipping option.
-func (r *ProductShippingOptionRepositoryImpl) DeleteByShippingOption(
+// DeleteByShippingSetup removes all product links for a shipping option.
+func (r *ProductShippingSetupRepositoryImpl) DeleteByShippingSetup(
 	ctx context.Context,
 	tx db.Tx,
-	shippingOptionID uuid.UUID,
+	shippingSetupID uuid.UUID,
 ) error {
-	_, err := tx.Exec(ctx, `DELETE FROM product_shipping_options WHERE shipping_option_id = $1`, shippingOptionID)
+	_, err := tx.Exec(ctx, `DELETE FROM product_shipping_options WHERE shipping_option_id = $1`, shippingSetupID)
 	if err != nil {
 		return fmt.Errorf("delete product shipping options by shipping option failed: %w", err)
 	}
@@ -196,18 +193,18 @@ func (r *ProductShippingOptionRepositoryImpl) DeleteByShippingOption(
 }
 
 // CreateBulk creates multiple product-shipping links within a transaction.
-func (r *ProductShippingOptionRepositoryImpl) CreateBulk(
+func (r *ProductShippingSetupRepositoryImpl) CreateBulk(
 	ctx context.Context,
 	tx db.Tx,
 	productID uuid.UUID,
-	shippingOptionIDs []uuid.UUID,
+	shippingSetupIDs []uuid.UUID,
 ) error {
-	if len(shippingOptionIDs) == 0 {
+	if len(shippingSetupIDs) == 0 {
 		return nil
 	}
 
 	// Build bulk insert query
-	for i, optionID := range shippingOptionIDs {
+	for i, optionID := range shippingSetupIDs {
 		_, err := tx.Exec(ctx, `
 			INSERT INTO product_shipping_options (product_id, shipping_option_id, sort_order, created_at)
 			VALUES ($1, $2, $3, NOW())
@@ -221,7 +218,7 @@ func (r *ProductShippingOptionRepositoryImpl) CreateBulk(
 }
 
 // CountByProduct counts the number of shipping options linked to a product.
-func (r *ProductShippingOptionRepositoryImpl) CountByProduct(
+func (r *ProductShippingSetupRepositoryImpl) CountByProduct(
 	ctx context.Context,
 	tx db.Tx,
 	productID uuid.UUID,

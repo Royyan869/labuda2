@@ -7,15 +7,6 @@ class AppConstants {
   static const String appDescription =
       'Social Commerce Platform untuk Komunitas Koi Indonesia';
 
-  // Firebase Collections
-  static const String usersCollection = 'users';
-  static const String postsCollection = 'posts';
-  static const String chatMessagesCollection = 'chat_messages';
-  static const String chatThreadsCollection = 'chat_threads';
-  static const String transactionsCollection = 'transactions';
-  static const String reportsCollection = 'reports';
-  static const String notificationsCollection = 'notifications';
-
   // User Roles
   static const String roleBuyer = 'buyer';
   static const String roleBasicSeller = 'basic_seller';

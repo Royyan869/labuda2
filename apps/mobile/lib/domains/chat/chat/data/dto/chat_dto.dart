@@ -7,8 +7,6 @@ class ChatDto extends Equatable {
   final List<String> participantIds;
   final Map<String, String> participantNames;
   final Map<String, String?> participantAvatars;
-  final Map<String, dynamic>? context;
-  final String? contextSetBy;
   final LastMessageDto? lastMessage;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -62,8 +60,6 @@ class ChatDto extends Equatable {
     required this.participantIds,
     required this.participantNames,
     required this.participantAvatars,
-    this.context,
-    this.contextSetBy,
     this.lastMessage,
     required this.createdAt,
     this.updatedAt,
@@ -108,8 +104,6 @@ class ChatDto extends Equatable {
         participantIds: otherUserId != null ? [otherUserId] : [],
         participantNames: participantNamesOut,
         participantAvatars: participantAvatarsOut,
-        context: json['context'] as Map<String, dynamic>?,
-        contextSetBy: json['context_set_by'] as String?,
         lastMessage: json['last_message'] != null
             ? LastMessageDto.fromJson(
                 json['last_message'] as Map<String, dynamic>,
@@ -154,8 +148,6 @@ class ChatDto extends Equatable {
       participantIds: List<String>.from(json['participant_ids'] ?? []),
       participantNames: participantNamesMap,
       participantAvatars: participantAvatarsMap,
-      context: json['context'] as Map<String, dynamic>?,
-      contextSetBy: json['context_set_by'] as String?,
       lastMessage: json['last_message'] != null
           ? LastMessageDto.fromJson(
               json['last_message'] as Map<String, dynamic>,
@@ -211,8 +203,6 @@ class ChatDto extends Equatable {
     'participant_ids': participantIds,
     'participant_names': participantNames,
     'participant_avatars': participantAvatars,
-    if (context != null) 'context': context,
-    if (contextSetBy != null) 'context_set_by': contextSetBy,
     if (lastMessage != null) 'last_message': lastMessage!.toJson(),
     'created_at': createdAt.toIso8601String(),
     if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
@@ -367,13 +357,11 @@ class LastMessageDto extends Equatable {
 /// Create Chat Request DTO
 class CreateChatDto {
   final List<String> participantIds;
-  final Map<String, dynamic>? context;
 
-  const CreateChatDto({required this.participantIds, this.context});
+  const CreateChatDto({required this.participantIds});
 
   Map<String, dynamic> toJson() => {
     'participant_ids': participantIds,
-    if (context != null) 'context': context,
   };
 }
 

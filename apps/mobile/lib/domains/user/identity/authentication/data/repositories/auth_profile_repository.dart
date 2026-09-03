@@ -455,9 +455,9 @@ class AuthProfileRepository {
 
     // Parse provider
     final providerStr = data['provider'] as String? ?? 'email';
-    final provider = ShonaAuthProvider.values.firstWhere(
+    final provider = domain.AuthProvider.values.firstWhere(
       (p) => p.name == providerStr,
-      orElse: () => ShonaAuthProvider.email,
+      orElse: () => domain.AuthProvider.email,
     );
 
     // Parse timestamps - API returns ISO strings, Firestore returns Timestamp

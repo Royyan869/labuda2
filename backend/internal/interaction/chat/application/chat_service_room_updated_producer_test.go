@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -232,19 +231,6 @@ func (r *roomUpdatedMockRepo) UpdateRoomLastMessageAt(context.Context, interface
 	return nil
 }
 
-func (r *roomUpdatedMockRepo) UpdateRoomContext(_ context.Context, _ interface{}, _ uuid.UUID, contextJSON json.RawMessage, contextSetBy uuid.UUID) error {
-	if r.room != nil {
-		r.room.ContextJSON = contextJSON
-		if contextSetBy == uuid.Nil {
-			r.room.ContextSetBy = nil
-		} else {
-			r.room.ContextSetBy = &contextSetBy
-		}
-		r.room.UpdatedAt = time.Now()
-	}
-	return nil
-}
-
 func (r *roomUpdatedMockRepo) UpdateRoomLinkedOrderId(_ context.Context, _ interface{}, _ uuid.UUID, linkedOrderID *uuid.UUID) error {
 	r.updateLinkedOrderIDCalls++
 	if r.room != nil {
@@ -395,13 +381,10 @@ func TestSendMessage_EmitsRoomUpdatedOutboxEvents(t *testing.T) {
 		RoomType:      chatEntity.RoomTypeDirect,
 		ParticipantA:  senderID,
 		ParticipantB:  recipientID,
-		ContextJSON:   json.RawMessage(`{"kind":"for_sale","id":"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"}`),
 		UpdatedAt:     time.Unix(1000, 0).UTC(),
 		CreatedAt:     time.Unix(900, 0).UTC(),
 		LastMessageAt: time.Unix(900, 0).UTC(),
 	}
-	contextSetter := uuid.MustParse("33333333-3333-3333-3333-333333333333")
-	room.ContextSetBy = &contextSetter
 	linkedOrderID := uuid.MustParse("44444444-4444-4444-4444-444444444444")
 	room.LinkedOrderID = &linkedOrderID
 
@@ -486,7 +469,6 @@ func TestSendMessage_EmitsRoomUpdatedOutboxEvents(t *testing.T) {
 	requireOutboxFieldMap(t, recipientUpdate.payload, "last_message")
 	requireOutboxFieldString(t, senderUpdate.payload, "created_at", "1970-01-01T00:15:00Z")
 	requireOutboxFieldString(t, recipientUpdate.payload, "created_at", "1970-01-01T00:15:00Z")
-	requireOutboxFieldString(t, senderUpdate.payload, "context_set_by", contextSetter.String())
 	requireOutboxFieldString(t, recipientUpdate.payload, "linked_order_id", linkedOrderID.String())
 	requireOutboxFieldString(t, senderUpdate.payload, "updated_at", messageCreatedAt)
 	requireOutboxFieldString(t, senderUpdate.payload, "last_message_at", messageCreatedAt)

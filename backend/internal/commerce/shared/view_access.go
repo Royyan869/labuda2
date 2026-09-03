@@ -20,7 +20,6 @@ const (
 	auctionStatusWaitingSettlement = "waiting_settlement"
 	auctionStatusEnded             = "ended"
 	auctionStatusCancelled         = "cancelled"
-	auctionStatusExpiredBNR        = "expired_bnr"
 )
 
 // SellerAccessSnapshot carries the raw seller identity/trust inputs used by
@@ -91,7 +90,7 @@ func EvaluateAuctionViewAccess(input AuctionViewAccessInput) bool {
 	switch input.Status {
 	case auctionStatusDraft:
 		return input.ViewerID == input.SellerID
-	case auctionStatusScheduled, auctionStatusActive, auctionStatusWaitingSettlement, auctionStatusEnded, auctionStatusCancelled, auctionStatusExpiredBNR:
+	case auctionStatusScheduled, auctionStatusActive, auctionStatusWaitingSettlement, auctionStatusEnded, auctionStatusCancelled:
 		return true
 	default:
 		return false

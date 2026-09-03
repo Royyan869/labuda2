@@ -92,8 +92,7 @@ apps/mobile/coverage/
 serviceAccount.json
 firebase-adminsdk-*.json
 aws-lambda/**/*.zip
-.firebaserc
-.firebase/
+
 
 # Firebase API key scratch files (backend/configs/)
 backend/configs/firebase_api_key.txt
@@ -121,8 +120,7 @@ backend/migrations/snapshots/COMPLETE_SCHEMA.sql
 node_modules/
 apps/admin/node_modules/
 apps/admin/dist/
-infra/firebase/functions/node_modules/
-infra/firebase/functions/lib/
+
 
 # Symbolication related
 app.*.symbols
@@ -206,7 +204,7 @@ tests/reports/
 tests/coverage/
 
 # Docker volumes & data
-infra/docker/data/
+
 
 # Old git folder (corrupt)
 .git_old/

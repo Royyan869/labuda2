@@ -49,8 +49,8 @@ class OrderRepositoryImpl implements OrderRepository {
         'source_id': params.sourceId ?? '',
         'quantity': params.quantity,
         if (params.addressId != null) 'address_id': params.addressId,
-        if (params.shippingOptionId != null)
-          'shipping_option_id': params.shippingOptionId,
+        if (params.shippingSetupId != null)
+          'shipping_setup_id': params.shippingSetupId,
         if (params.shippingQuoteId != null)
           'shipping_quote_id': params.shippingQuoteId,
         if (params.negotiationId != null)

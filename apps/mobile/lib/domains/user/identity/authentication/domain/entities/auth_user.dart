@@ -66,7 +66,7 @@ class AuthUser extends BaseEntity {
 
   // === Legacy Fields ===
   final List<UserRole> roles;
-  final ShonaAuthProvider provider;
+  final AuthProvider provider;
 
   // === Public Lifecycle (BACKEND AUTHORITY) ===
   //
@@ -177,7 +177,7 @@ class AuthUser extends BaseEntity {
     DateTime? idVerifiedAt,
     DateTime? farmVerifiedAt,
     List<UserRole>? roles,
-    ShonaAuthProvider? provider,
+    AuthProvider? provider,
     ContentLifecycle? lifecycle,
   }) {
     return AuthUser(
@@ -268,4 +268,4 @@ extension AuthUserRoleExtension on AuthUser {
 }
 
 /// Authentication provider yang digunakan
-enum ShonaAuthProvider { email, google, apple, phone }
+enum AuthProvider { email, google, apple, phone }

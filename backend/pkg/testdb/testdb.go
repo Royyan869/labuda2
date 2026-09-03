@@ -55,14 +55,20 @@ type TestDB struct {
 // Setup creates and initializes a test database connection.
 //
 // It:
-// 1. Connects to the test database (labuda_test by default)
-// 2. Runs migrations if not already run (cached per test run)
-// 3. Returns a cleanup function that truncates all tables
+//  1. Connects to the test database (labuda_test by default)
+//  2. Runs migrations if not already run (cached per test run)
+//  3. Returns a cleanup function that truncates all tables
 //
 // The cleanup function ensures tests don't leave data behind.
 //
 // IMPORTANT: This will NEVER connect to the development database.
 // If test database cannot be used, it will fail the test immediately.
+//
+// LIFECYCLE LOCK: Setup acquires a PostgreSQL advisory lock that is held for
+// the entire lifetime of the test binary (migration + tests + cleanup).
+// This prevents a concurrent test binary from dropping the public schema
+// while this binary's tests are actively using it. The lock is released
+// during cleanup, after TruncateAll completes.
 func Setup(t *testing.T, cfg *config.Config) (*TestDB, func()) {
 	t.Helper()
 
@@ -76,8 +82,17 @@ func Setup(t *testing.T, cfg *config.Config) (*TestDB, func()) {
 	// Parse test DSN
 	dsn := cfg.Database.GetTestDSN()
 
+	// Acquire the lifecycle advisory lock BEFORE migrations.
+	// This lock is held through migration, test execution, and cleanup,
+	// preventing concurrent test binaries from dropping the public schema
+	// while this binary's tests are active.
+	if err := acquireLifecycleLock(dsn); err != nil {
+		t.Fatalf("Failed to acquire lifecycle advisory lock: %v", err)
+	}
+
 	poolConfig, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
+		releaseLifecycleLock()
 		t.Fatalf("Failed to parse test DSN: %v\nDSN: %s", err, redactPassword(dsn))
 	}
 
@@ -87,9 +102,10 @@ func Setup(t *testing.T, cfg *config.Config) (*TestDB, func()) {
 
 	// Run migrations (once per test run)
 	migrateOnce.Do(func() {
-		migrateErr = runMigrations(cfg, t)
+		migrateErr = runMigrationsRaw(cfg, t.Logf)
 	})
 	if migrateErr != nil {
+		releaseLifecycleLock()
 		t.Fatalf("Failed to run test database migrations: %v", migrateErr)
 	}
 
@@ -98,6 +114,7 @@ func Setup(t *testing.T, cfg *config.Config) (*TestDB, func()) {
 
 	pool, err := pgxpool.NewWithConfig(poolCtx, poolConfig)
 	if err != nil {
+		releaseLifecycleLock()
 		t.Fatalf("Failed to connect to test database '%s': %v\n\nHINT: Ensure test database exists:\n  createdb -U %s -h %s -p %s %s\n  Or use docker exec:\n  docker exec -it labuda-postgres createdb -U labuda labuda_test",
 			testDBName, err, cfg.Database.User, cfg.Database.Host, cfg.Database.Port, testDBName)
 	}
@@ -106,14 +123,15 @@ func Setup(t *testing.T, cfg *config.Config) (*TestDB, func()) {
 	var currentDB string
 	err = pool.QueryRow(poolCtx, "SELECT current_database()").Scan(&currentDB)
 	if err != nil {
+		releaseLifecycleLock()
 		pool.Close()
 		t.Fatalf("Failed to verify test database: %v", err)
 	}
 
 	if currentDB != testDBName {
+		releaseLifecycleLock()
 		pool.Close()
-		t.Fatalf("TEST DB SAFETY FAIL: Connected to '%s' but expected '%s'. This indicates a configuration error.",
-			currentDB, testDBName)
+		t.Fatalf("TEST DB SAFETY FAIL: Connected to '%s' but expected '%s'. This indicates a configuration error.", currentDB, testDBName)
 	}
 
 	tdb := &TestDB{
@@ -135,9 +153,13 @@ func Setup(t *testing.T, cfg *config.Config) (*TestDB, func()) {
 			if err := tdb.TruncateAll(cleanupCtx); err != nil {
 				t.Logf("Warning: Failed to truncate test tables: %v", err)
 			}
+			// Release the lifecycle advisory lock after cleanup.
+			// This allows a waiting concurrent test binary to proceed.
+			releaseLifecycleLock()
 			return
 		}
 		pool.Close()
+		releaseLifecycleLock()
 	}
 
 	return tdb, cleanup
@@ -146,11 +168,11 @@ func Setup(t *testing.T, cfg *config.Config) (*TestDB, func()) {
 // SetupDB is a convenience wrapper that loads config and calls Setup.
 //
 // It walks up the directory tree from the test binary's working directory to
-// find the backend .env file. When running tests from a nested package such as
-// internal/identity/auth/delivery/http, the working directory is that package's
-// directory, not backend/. Without this walk the godotenv.Load() inside
-// config.Load() silently skips the file, causing DB_NAME to be unset and
-// config.Load() to fail with "DB_NAME is required but not set".
+// find the backend .env file. When running tests from a nested package such
+// as internal/identity/auth/delivery/http, the working directory is that
+// package's directory, not backend/. Without this walk the godotenv.Load()
+// inside config.Load() silently skips the file, causing DB_NAME to be unset
+// and config.Load() to fail with "DB_NAME is required but not set".
 func SetupDB(t *testing.T) (*TestDB, func()) {
 	t.Helper()
 
@@ -188,7 +210,7 @@ func loadDotEnvFromParents(t *testing.T) {
 	for i := 0; i < 8; i++ {
 		candidate := filepath.Join(dir, ".env")
 		if _, statErr := os.Stat(candidate); statErr == nil {
-			if loadErr := godotenv.Load(candidate); loadErr == nil {
+			if loadErr := godotenv.Load(candidate); loadErr != nil {
 				t.Logf("testdb: loaded .env from %s", candidate)
 			}
 			return
@@ -369,7 +391,80 @@ func runMigrations(cfg *config.Config, t *testing.T) error {
 	return runMigrationsWithLogger(cfg, t.Logf)
 }
 
+// runMigrationsWithLogger resets the test database schema and applies all
+// pending migrations. It acquires its own advisory lock to serialize
+// concurrent callers across test binaries that share labuda_test.
+//
+// NOTE: This function is also called directly by
+// TestConcurrentBootstrapSerialization, so it must retain its own lock
+// acquisition. For the normal Setup path, the lifecycle lock in Setup
+// provides broader protection (see runMigrationsRaw).
 func runMigrationsWithLogger(cfg *config.Config, logf func(string, ...any)) error {
+	// Acquire a per-call advisory lock so concurrent callers serialize.
+	resetPool, err := pgxpool.New(context.Background(), cfg.Database.GetTestDSN())
+	if err != nil {
+		return fmt.Errorf("open migration lock pool: %w", err)
+	}
+	defer resetPool.Close()
+
+	lockConn, err := resetPool.Acquire(context.Background())
+	if err != nil {
+		return fmt.Errorf("acquire migration lock connection: %w", err)
+	}
+	defer lockConn.Release()
+
+	if _, err := lockConn.Exec(context.Background(), `SELECT pg_advisory_lock(hashtextextended($1, 0))`, testDBMigrationLockKey); err != nil {
+		return fmt.Errorf("acquire migration bootstrap lock: %w", err)
+	}
+	defer func() {
+		_, _ = lockConn.Exec(context.Background(), `SELECT pg_advisory_unlock(hashtextextended($1, 0))`, testDBMigrationLockKey)
+	}()
+
+	return runMigrationsRaw(cfg, logf)
+}
+
+// lifecycleLockConn holds the advisory lock connection for the entire
+// test binary lifecycle (migration + test execution + cleanup).
+var lifecycleLockConn *pgxpool.Conn
+
+// acquireLifecycleLock acquires the advisory lock that spans the entire
+// test binary lifecycle (migration + test execution + cleanup).
+// This prevents a concurrent test binary from dropping the public schema
+// while this binary's tests are actively using it.
+func acquireLifecycleLock(dsn string) error {
+	pool, err := pgxpool.New(context.Background(), dsn)
+	if err != nil {
+		return fmt.Errorf("open lifecycle lock connection: %w", err)
+	}
+	conn, err := pool.Acquire(context.Background())
+	if err != nil {
+		pool.Close()
+		return fmt.Errorf("acquire lifecycle lock connection: %w", err)
+	}
+	pool.Close() // Release the pool; we only need the single acquired connection.
+
+	if _, err := conn.Exec(context.Background(), `SELECT pg_advisory_lock(hashtextextended($1, 0))`, testDBMigrationLockKey); err != nil {
+		conn.Release()
+		return fmt.Errorf("acquire lifecycle advisory lock: %w", err)
+	}
+	lifecycleLockConn = conn
+	return nil
+}
+
+// releaseLifecycleLock releases the advisory lock acquired by
+// acquireLifecycleLock. It is safe to call even if no lock is held.
+func releaseLifecycleLock() {
+	if lifecycleLockConn != nil {
+		_, _ = lifecycleLockConn.Exec(context.Background(), `SELECT pg_advisory_unlock(hashtextextended($1, 0))`, testDBMigrationLockKey)
+		lifecycleLockConn.Release()
+		lifecycleLockConn = nil
+	}
+}
+
+// runMigrationsRaw resets the test database schema and applies all pending
+// migrations. It does NOT manage advisory locks — the caller is
+// responsible for serialization.
+func runMigrationsRaw(cfg *config.Config, logf func(string, ...any)) error {
 	// Try progressively deeper parent directories to locate the migrations dir.
 	candidates := []string{
 		"migrations",
@@ -410,13 +505,6 @@ func runMigrationsWithLogger(cfg *config.Config, logf func(string, ...any)) erro
 		return fmt.Errorf("acquire migration cleanup connection: %w", err)
 	}
 	defer conn.Release()
-
-	if _, err := conn.Exec(context.Background(), `SELECT pg_advisory_lock(hashtextextended($1, 0))`, testDBMigrationLockKey); err != nil {
-		return fmt.Errorf("acquire migration bootstrap lock: %w", err)
-	}
-	defer func() {
-		_, _ = conn.Exec(context.Background(), `SELECT pg_advisory_unlock(hashtextextended($1, 0))`, testDBMigrationLockKey)
-	}()
 
 	if testDBBootstrapBeforeReset != nil {
 		testDBBootstrapBeforeReset()

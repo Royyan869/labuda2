@@ -70,9 +70,15 @@ type ForSaleRepository interface {
 	GetByID(ctx context.Context, tx db.Tx, id uuid.UUID) (*forsaleEntity.ForSale, error)
 }
 
-// AuctionQuoteReader defines the narrow auction lookup needed for shipping quote validation.
+// AuctionQuoteReader defines the narrow auction lookup needed for shipping
+// quote validation plus the settlement flag flip when a seller provides an
+// auction quote during waiting_settlement.
 type AuctionQuoteReader interface {
 	GetByID(ctx context.Context, tx db.Tx, auctionID uuid.UUID) (*auctionEntity.Auction, error)
+	// MarkSellerQuoteProvided records that the seller has supplied a private
+	// shipping quote for the auction's current settlement, so the deadline
+	// worker does not classify the seller as defaulting.
+	MarkSellerQuoteProvided(ctx context.Context, tx db.Tx, auctionID uuid.UUID) error
 }
 
 // ChatMessageSender defines the narrow chat message capability needed by shipping quote creation.
@@ -122,7 +128,6 @@ type CreateShippingQuoteInput struct {
 	ProductID             uuid.UUID
 	SourceType            string
 	SourceID              uuid.UUID
-	AuctionID             *uuid.UUID // Optional auction reference (TASK A)
 	SellerID              uuid.UUID
 	Cost                  money.Money
 	Note                  *string
@@ -175,8 +180,8 @@ func (s *Service) CreateShippingQuote(ctx context.Context, input CreateShippingQ
 	}
 	expiresAt := time.Now().Add(time.Duration(expiryHours) * time.Hour)
 
-	// Determine if this is an auction quote
-	isAuction := input.AuctionID != nil && *input.AuctionID != uuid.Nil
+	// Determine if this is an auction quote from canonical source_type
+	isAuction := input.SourceType == "auction"
 
 	var createdQuote *shippingQuoteEntity.ShippingQuote
 
@@ -202,7 +207,7 @@ func (s *Service) CreateShippingQuote(ctx context.Context, input CreateShippingQ
 		var auction *auctionEntity.Auction
 		if isAuction {
 			var err error
-			auction, err = s.validateAuctionForQuote(ctx, tx, *input.AuctionID, input.SellerID, buyerID)
+			auction, err = s.validateAuctionForQuote(ctx, tx, input.SourceID, input.SellerID, buyerID)
 			if err != nil {
 				return err
 			}
@@ -224,36 +229,19 @@ func (s *Service) CreateShippingQuote(ctx context.Context, input CreateShippingQ
 
 		// 3. Generate the new quote ID before superseding prior rows.
 		var quote *shippingQuoteEntity.ShippingQuote
-		if isAuction {
-			quote = shippingQuoteEntity.NewAuctionShippingQuote(
-				input.ChatID,
-				input.ProductID,
-				*input.AuctionID,
-				input.SourceType,
-				input.SourceID,
-				input.SellerID,
-				buyerID,
-				input.Cost,
-				input.Note,
-				input.DestinationCityID,
-				input.DestinationProvinceID,
-				expiresAt,
-			)
-		} else {
-			quote = shippingQuoteEntity.NewShippingQuote(
+		// Auction quotes use the same constructor; source_type=source_id provides canonical identity.
+		quote = shippingQuoteEntity.NewShippingQuote(
 				input.ChatID,
 				input.ProductID,
 				input.SourceType,
 				input.SourceID,
 				input.SellerID,
-				buyerID,
-				input.Cost,
-				input.Note,
-				input.DestinationCityID,
-				input.DestinationProvinceID,
-				expiresAt,
-			)
-		}
+				buyerID,			input.Cost,
+			input.Note,
+			input.DestinationCityID,
+			input.DestinationProvinceID,
+			expiresAt,
+		)
 
 		// 4. Supersede any prior unsuperseded quotes for this canonical context.
 		if _, err := s.quoteRepo.SupersedeCurrentQuotes(ctx, tx, input.ChatID, input.ProductID, input.SourceType, input.SourceID, input.SellerID, buyerID, quote.ID); err != nil {
@@ -263,6 +251,16 @@ func (s *Service) CreateShippingQuote(ctx context.Context, input CreateShippingQ
 		// 5. Persist shipping quote
 		if err := s.quoteRepo.Create(ctx, tx, quote); err != nil {
 			return fmt.Errorf("failed to create shipping quote: %w", err)
+		}
+
+		// 5b. Auction settlement flag: a seller-provided quote fulfils the
+		// seller's settlement obligation (Case A). Flip seller_quote_provided
+		// so the deadline worker never classifies this seller as defaulting.
+		// The auction row is updated in the same transaction.
+		if isAuction {
+			if err := s.auctionRepo.MarkSellerQuoteProvided(ctx, tx, input.SourceID); err != nil {
+				return fmt.Errorf("failed to mark auction seller quote provided: %w", err)
+			}
 		}
 
 		// 6. Send chat message with shipping_quote type
@@ -296,21 +294,15 @@ func (s *Service) CreateShippingQuote(ctx context.Context, input CreateShippingQ
 	}
 
 	s.log.Info("shipping quote created",
-		zap.String("quote_id", createdQuote.ID.String()),
-		zap.String("chat_id", createdQuote.ChatID.String()),
-		zap.String("product_id", createdQuote.ProductID.String()),
-		zap.String("source_type", derefString(createdQuote.SourceType)),
-		zap.String("source_id", derefUUID(createdQuote.SourceID)),
-		zap.String("auction_id", func() string {
-			if createdQuote.AuctionID != nil {
-				return createdQuote.AuctionID.String()
-			}
-			return ""
-		}()),
-		zap.String("seller_id", createdQuote.SellerID.String()),
-		zap.Int64("cost", createdQuote.Cost.Int64()),
-		zap.String("status", string(createdQuote.Status)),
-	)
+			zap.String("quote_id", createdQuote.ID.String()),
+			zap.String("chat_id", createdQuote.ChatID.String()),
+			zap.String("product_id", createdQuote.ProductID.String()),
+			zap.String("source_type", derefString(createdQuote.SourceType)),
+			zap.String("source_id", derefUUID(createdQuote.SourceID)),
+			zap.String("seller_id", createdQuote.SellerID.String()),
+			zap.Int64("cost", createdQuote.Cost.Int64()),
+			zap.String("status", string(createdQuote.Status)),
+		)
 
 	return createdQuote, nil
 }
@@ -431,13 +423,11 @@ func buildShippingQuoteAttachmentJSONV2(
 		"shipping_type":       "manual",
 		"shipping_type_name":  "Ongkir Manual",
 		"shipping_type_emoji": "ðŸšš",
-		"estimated_days":      nil,
 	}
 
 	if quote.SourceType != nil && *quote.SourceType == "auction" {
 		data["linked_item_type"] = "auction"
 		data["linked_item_id"] = quote.SourceID.String()
-		data["auction_id"] = quote.SourceID.String()
 
 		if auction != nil {
 			linkedItemName := ""

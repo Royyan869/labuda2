@@ -18,42 +18,42 @@ import 'package:labuda/shared/models/wilayah_models.dart';
 import 'package:labuda/shared/providers/wilayah_provider_simple.dart';
 
 class _ShippingRepo implements ShippingRepository {
-  _ShippingRepo({List<ShippingOption>? options}) : _options = options ?? [];
+  _ShippingRepo({List<ShippingSetup>? options}) : _options = options ?? [];
 
-  final List<ShippingOption> _options;
+  final List<ShippingSetup> _options;
 
   @override
-  Future<Result<List<ShippingOption>>> listMyShippingOptions() async {
+  Future<Result<List<ShippingSetup>>> listMyShippingSetups() async {
     return Result.success(_options);
   }
 
   @override
-  Future<Result<List<ShippingOption>>> listMyActiveShippingOptions() async {
+  Future<Result<List<ShippingSetup>>> listMyActiveShippingSetups() async {
     return Result.success(_options.where((o) => o.isActive).toList());
   }
 
   @override
-  Future<Result<ShippingOption>> getShippingOptionById(String optionId) async {
+  Future<Result<ShippingSetup>> getShippingSetupById(String optionId) async {
     return Result.error('not used');
   }
 
   @override
-  Future<Result<ShippingOption>> createShippingOption(
-    CreateShippingOptionRequest request,
+  Future<Result<ShippingSetup>> createShippingSetup(
+    CreateShippingSetupRequest request,
   ) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<Result<ShippingOption>> updateShippingOptionFull(
+  Future<Result<ShippingSetup>> updateShippingSetupFull(
     String optionId,
-    UpdateShippingOptionFullRequest request,
+    UpdateShippingSetupFullRequest request,
   ) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<Result<void>> deleteShippingOption(String optionId) async {
+  Future<Result<void>> deleteShippingSetup(String optionId) async {
     throw UnimplementedError();
   }
 
@@ -87,7 +87,7 @@ class _ShippingRepo implements ShippingRepository {
   }
 
   @override
-  Future<Result<void>> setProductShippingOptions(
+  Future<Result<void>> setProductShippingSetups(
     String productId,
     List<String> ids,
   ) async {
@@ -209,7 +209,7 @@ class _FakeAuthController extends AuthController {
       sellerSubscriptionStatus: 'active',
       hasMarketAuthority: true,
       roles: const [UserRole.user],
-      provider: ShonaAuthProvider.email,
+      provider: AuthProvider.email,
       lifecycle: ContentLifecycle.active,
     );
     return AuthState.authenticated(user, emailVerified: true);
@@ -221,8 +221,8 @@ class _FakePresenceManager extends PresenceManager {
   PresenceAuthorityState build() => const PresenceAuthorityState.empty();
 }
 
-ShippingOption _shippingOption() {
-  return ShippingOption(
+ShippingSetup _shippingSetup() {
+  return ShippingSetup(
     id: 'ship-1',
     name: 'Bus Kencana',
     type: ShippingType.bus,
@@ -299,7 +299,7 @@ Widget _wrap({
 void main() {
   group('SellerShippingScreen sender address section', () {
     testWidgets('complete address renders summary and Ubah', (tester) async {
-      final shippingRepo = _ShippingRepo(options: [_shippingOption()]);
+      final shippingRepo = _ShippingRepo(options: [_shippingSetup()]);
       final addressRepo = _AddressRepo(
         Result.success(_completeSenderAddress()),
       );
@@ -323,7 +323,7 @@ void main() {
     testWidgets('missing address renders warning and Atur Alamat', (
       tester,
     ) async {
-      final shippingRepo = _ShippingRepo(options: [_shippingOption()]);
+      final shippingRepo = _ShippingRepo(options: [_shippingSetup()]);
       final addressRepo = _AddressRepo(Result.success(null));
 
       await tester.pumpWidget(
@@ -337,7 +337,7 @@ void main() {
     });
 
     testWidgets('incomplete address is treated as not ready', (tester) async {
-      final shippingRepo = _ShippingRepo(options: [_shippingOption()]);
+      final shippingRepo = _ShippingRepo(options: [_shippingSetup()]);
       final addressRepo = _AddressRepo(
         Result.success(_incompleteSenderAddress()),
       );
@@ -353,7 +353,7 @@ void main() {
     });
 
     testWidgets('CTA opens the canonical address editor', (tester) async {
-      final shippingRepo = _ShippingRepo(options: [_shippingOption()]);
+      final shippingRepo = _ShippingRepo(options: [_shippingSetup()]);
       final addressRepo = _AddressRepo(Result.success(null));
       AddressEntity? launchedWith;
       var launchCount = 0;
@@ -384,7 +384,7 @@ void main() {
     });
 
     testWidgets('save returns and refreshes the section', (tester) async {
-      final shippingRepo = _ShippingRepo(options: [_shippingOption()]);
+      final shippingRepo = _ShippingRepo(options: [_shippingSetup()]);
       final addressRepo = _AddressRepo(Result.success(null));
       var launchCount = 0;
 
@@ -422,7 +422,7 @@ void main() {
     testWidgets(
       'address-load failure does not replace the shipping-options list with a global load error',
       (tester) async {
-        final shippingRepo = _ShippingRepo(options: [_shippingOption()]);
+        final shippingRepo = _ShippingRepo(options: [_shippingSetup()]);
         final addressRepo = _AddressRepo(
           Result.error('sender address fetch failed'),
         );

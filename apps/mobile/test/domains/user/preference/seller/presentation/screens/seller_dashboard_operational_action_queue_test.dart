@@ -50,13 +50,13 @@ class _StaticSellerVerificationNotifier extends SellerVerificationV2Notifier {
 class _StaticShippingNotifier extends ShippingNotifier {
   _StaticShippingNotifier(this._state);
 
-  final ShippingOptionsListState _state;
+  final ShippingSetupsListState _state;
 
   @override
-  ShippingOptionsListState build() => _state;
+  ShippingSetupsListState build() => _state;
 
   @override
-  Future<void> loadActiveShippingOptions() async {}
+  Future<void> loadActiveShippingSetups() async {}
 }
 
 AuthUser _sellerUser({
@@ -72,7 +72,7 @@ AuthUser _sellerUser({
     username: 'seller-queue',
     isEmailVerified: true,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     hasSellerProfile: true,
     sellerSubscriptionStatus: sellerSubscriptionStatus,
     hasMarketAuthority: hasMarketAuthority,
@@ -144,9 +144,9 @@ AddressEntity _senderAddress() {
   );
 }
 
-ShippingOption _activeShippingOption() {
+ShippingSetup _activeShippingSetup() {
   final now = DateTime.now();
-  return ShippingOption(
+  return ShippingSetup(
     id: 'shipping-1',
     name: 'Bus Kencana',
     type: ShippingType.bus,
@@ -207,7 +207,7 @@ dynamic _dashboardOverrides({
   required List<Order> paidOrders,
   required SellerVerificationV2State verificationState,
   required Result<AddressEntity?> senderAddressResult,
-  required ShippingOptionsListState shippingState,
+  required ShippingSetupsListState shippingState,
   required SellerSubscription subscription,
   required SellerUpgradeConfigEntity upgradeConfig,
 }) {
@@ -386,7 +386,7 @@ void main() {
             status: SellerVerificationStatus.needsResubmission,
           ),
           senderAddressResult: Result.success(null),
-          shippingState: const ShippingOptionsListLoaded([]),
+          shippingState: const ShippingSetupsListLoaded([]),
           subscription: _subscription(expiresIn: const Duration(days: -1)),
           upgradeConfig: _upgradeConfig(),
         ),
@@ -420,7 +420,7 @@ void main() {
             status: SellerVerificationStatus.needsResubmission,
           ),
           senderAddressResult: Result.success(null),
-          shippingState: const ShippingOptionsListLoaded([]),
+          shippingState: const ShippingSetupsListLoaded([]),
           subscription: _subscription(expiresIn: const Duration(days: -1)),
           upgradeConfig: _upgradeConfig(),
         ),
@@ -439,7 +439,7 @@ void main() {
             status: SellerVerificationStatus.needsResubmission,
           ),
           senderAddressResult: Result.success(null),
-          shippingState: const ShippingOptionsListLoaded([]),
+          shippingState: const ShippingSetupsListLoaded([]),
           subscription: _subscription(expiresIn: const Duration(days: -1)),
           upgradeConfig: _upgradeConfig(),
         ),
@@ -465,7 +465,7 @@ void main() {
             status: SellerVerificationStatus.needsResubmission,
           ),
           senderAddressResult: Result.success(null),
-          shippingState: const ShippingOptionsListLoaded([]),
+          shippingState: const ShippingSetupsListLoaded([]),
           subscription: _subscription(expiresIn: const Duration(days: -1)),
           upgradeConfig: _upgradeConfig(),
         ),
@@ -484,7 +484,7 @@ void main() {
             status: SellerVerificationStatus.needsResubmission,
           ),
           senderAddressResult: Result.success(null),
-          shippingState: const ShippingOptionsListLoaded([]),
+          shippingState: const ShippingSetupsListLoaded([]),
           subscription: _subscription(expiresIn: const Duration(days: -1)),
           upgradeConfig: _upgradeConfig(),
         ),
@@ -505,7 +505,7 @@ void main() {
             status: SellerVerificationStatus.needsResubmission,
           ),
           senderAddressResult: Result.success(null),
-          shippingState: const ShippingOptionsListLoaded([]),
+          shippingState: const ShippingSetupsListLoaded([]),
           subscription: _subscription(expiresIn: const Duration(days: -1)),
           upgradeConfig: _upgradeConfig(),
         ),
@@ -526,7 +526,7 @@ void main() {
             status: SellerVerificationStatus.needsResubmission,
           ),
           senderAddressResult: Result.success(null),
-          shippingState: const ShippingOptionsListLoaded([]),
+          shippingState: const ShippingSetupsListLoaded([]),
           subscription: _subscription(expiresIn: const Duration(days: -1)),
           upgradeConfig: _upgradeConfig(),
         ),
@@ -547,7 +547,7 @@ void main() {
             status: SellerVerificationStatus.needsResubmission,
           ),
           senderAddressResult: Result.success(null),
-          shippingState: const ShippingOptionsListLoaded([]),
+          shippingState: const ShippingSetupsListLoaded([]),
           subscription: _subscription(expiresIn: const Duration(days: -1)),
           upgradeConfig: _upgradeConfig(),
         ),
@@ -571,7 +571,7 @@ void main() {
           status: SellerVerificationStatus.needsResubmission,
         ),
         senderAddressResult: Result.success(null),
-        shippingState: const ShippingOptionsListLoaded([]),
+        shippingState: const ShippingSetupsListLoaded([]),
         subscription: _subscription(expiresIn: const Duration(days: -1)),
         upgradeConfig: _upgradeConfig(),
       );
@@ -607,7 +607,7 @@ void main() {
             status: SellerVerificationStatus.approved,
           ),
           senderAddressResult: Result.success(_senderAddress()),
-          shippingState: ShippingOptionsListLoaded([_activeShippingOption()]),
+          shippingState: ShippingSetupsListLoaded([_activeShippingSetup()]),
           subscription: _subscription(expiresIn: const Duration(days: 5)),
           upgradeConfig: _upgradeConfig(renewalReminderDays: 7),
         ),
@@ -637,7 +637,7 @@ void main() {
             status: SellerVerificationStatus.approved,
           ),
           senderAddressResult: Result.success(_senderAddress()),
-          shippingState: ShippingOptionsListLoaded([_activeShippingOption()]),
+          shippingState: ShippingSetupsListLoaded([_activeShippingSetup()]),
           subscription: _subscription(expiresIn: const Duration(days: 60)),
           upgradeConfig: _upgradeConfig(),
         ),

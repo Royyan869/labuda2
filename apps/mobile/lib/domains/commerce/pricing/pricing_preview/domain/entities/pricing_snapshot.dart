@@ -21,7 +21,7 @@ class PricingSnapshot extends Equatable {
   final String? discountType;
   final String? discountValue;
   final int escrowAmount;
-  final ShippingOptionInfo? shippingOption;
+  final ShippingSetupInfo? shippingSetup;
   final String addressId;
   final int coinsAmount;
   final int? originalPrice;
@@ -50,7 +50,7 @@ class PricingSnapshot extends Equatable {
     this.discountType,
     this.discountValue,
     required this.escrowAmount,
-    this.shippingOption,
+    this.shippingSetup,
     required this.addressId,
     this.coinsAmount = 0,
     this.originalPrice,
@@ -72,7 +72,7 @@ class PricingSnapshot extends Equatable {
     discountType,
     discountValue,
     escrowAmount,
-    shippingOption,
+    shippingSetup,
     addressId,
     coinsAmount,
     originalPrice,
@@ -93,7 +93,7 @@ class PricingSnapshot extends Equatable {
     String? discountType,
     String? discountValue,
     int? escrowAmount,
-    ShippingOptionInfo? shippingOption,
+    ShippingSetupInfo? shippingSetup,
     String? addressId,
     int? coinsAmount,
     int? originalPrice,
@@ -113,7 +113,7 @@ class PricingSnapshot extends Equatable {
       discountType: discountType ?? this.discountType,
       discountValue: discountValue ?? this.discountValue,
       escrowAmount: escrowAmount ?? this.escrowAmount,
-      shippingOption: shippingOption ?? this.shippingOption,
+      shippingSetup: shippingSetup ?? this.shippingSetup,
       addressId: addressId ?? this.addressId,
       coinsAmount: coinsAmount ?? this.coinsAmount,
       originalPrice: originalPrice ?? this.originalPrice,
@@ -122,19 +122,15 @@ class PricingSnapshot extends Equatable {
   }
 }
 
-class ShippingOptionInfo extends Equatable {
+class ShippingSetupInfo extends Equatable {
   final String id;
   final String name;
   final String transportType;
-  final String expeditionName;
-  final int estimatedDays;
 
-  const ShippingOptionInfo({
+  const ShippingSetupInfo({
     required this.id,
     required this.name,
     required this.transportType,
-    required this.expeditionName,
-    required this.estimatedDays,
   });
 
   @override
@@ -142,7 +138,5 @@ class ShippingOptionInfo extends Equatable {
     id,
     name,
     transportType,
-    expeditionName,
-    estimatedDays,
   ];
 }

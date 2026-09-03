@@ -60,17 +60,17 @@ void main() {
     );
 
     expect(dto.origin, 'Kecamatan, Kota, Provinsi');
-    expect(dto.shippingOptions, hasLength(1));
-    expect(dto.shippingOptions.first.id, 'ship-1');
-    expect(dto.shippingOptions.first.name, 'JNE');
-    expect(dto.shippingOptions.first.transportType, 'express');
-    expect(dto.shippingOptionIds, ['ship-1']);
+    expect(dto.shippingSetups, hasLength(1));
+    expect(dto.shippingSetups.first.id, 'ship-1');
+    expect(dto.shippingSetups.first.name, 'JNE');
+    expect(dto.shippingSetups.first.transportType, 'express');
+    expect(dto.shippingSetupIds, ['ship-1']);
 
     final entity = AuctionMapper.toEntity(dto);
     expect(entity.origin, 'Kecamatan, Kota, Provinsi');
-    expect(entity.shippingOptions, hasLength(1));
-    expect(entity.shippingOptions.first.id, 'ship-1');
-    expect(entity.shippingOptions.first.name, 'JNE');
-    expect(entity.shippingOptions.first.transportType, 'express');
+    expect(entity.shippingSetups, hasLength(1));
+    expect(entity.shippingSetups.first.id, 'ship-1');
+    expect(entity.shippingSetups.first.name, 'JNE');
+    expect(entity.shippingSetups.first.transportType, 'express');
   });
 }

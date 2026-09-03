@@ -61,7 +61,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
 
   // Phase 2: shipping option IDs the seller selects to apply to this listing.
   // Drives the post-create PUT /listings/:id/shipping call.
-  List<String> _selectedShippingOptionIds = const [];
+  List<String> _selectedShippingSetupIds = const [];
 
   bool _isSubmitting = false;
   String? _errorMessage;
@@ -146,7 +146,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
         // listing. We only call PUT when the seller actually picked something;
         // an empty selection is permitted for draft, but the publish gate
         // (SHIPPING_NOT_CONFIGURED) will fire later if the seller never links.
-        if (_selectedShippingOptionIds.isNotEmpty) {
+        if (_selectedShippingSetupIds.isNotEmpty) {
           final productId = listing.productId;
           if (productId == null || productId.isEmpty) {
             setState(() {
@@ -157,7 +157,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
           }
           final linkResult = await ref
               .read(shippingRepositoryProvider)
-              .setProductShippingOptions(productId, _selectedShippingOptionIds);
+              .setProductShippingSetups(productId, _selectedShippingSetupIds);
           if (!mounted) return;
           if (linkResult.isError) {
             // Listing exists (as draft) but shipping linking failed — be
@@ -175,9 +175,9 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              _selectedShippingOptionIds.isEmpty
+              _selectedShippingSetupIds.isEmpty
                   ? 'Draft listing tersimpan. Pilih opsi pengiriman sebelum publish.'
-                  : 'Draft listing tersimpan dengan ${_selectedShippingOptionIds.length} opsi pengiriman.',
+                  : 'Draft listing tersimpan dengan ${_selectedShippingSetupIds.length} opsi pengiriman.',
             ),
             backgroundColor: AppColors.successGreen,
             duration: const Duration(seconds: 3),
@@ -462,13 +462,13 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
             // Phase 2: Listing-level shipping option subset
             const _SectionTitle('Opsi Pengiriman untuk Listing Ini'),
             const SizedBox(height: 8),
-            SellerShippingOptionsSelector(
+            SellerShippingSetupsSelector(
               helperText:
                   'Pilih opsi pengiriman dari katalog Anda yang berlaku untuk '
                   'listing ini. Pembeli hanya bisa memilih dari opsi terpilih. '
                   'Untuk kasus khusus, gunakan kirim quote di chat.',
               onSelectionChanged: (ids) =>
-                  setState(() => _selectedShippingOptionIds = ids),
+                  setState(() => _selectedShippingSetupIds = ids),
             ),
 
             const SizedBox(height: 32),

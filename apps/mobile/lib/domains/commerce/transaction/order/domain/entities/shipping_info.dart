@@ -38,7 +38,7 @@ class ShippingInfo extends Equatable {
 
   final double shippingCost;
   final String? notes;
-  final String? shippingOptionId;
+  final String? shippingSetupId;
 
   const ShippingInfo({
     required this.recipientName,
@@ -62,7 +62,7 @@ class ShippingInfo extends Equatable {
     this.shippingNote,
     required this.shippingCost,
     this.notes,
-    this.shippingOptionId,
+    this.shippingSetupId,
   });
 
   bool get hasCoordinates => latitude != null && longitude != null;
@@ -103,6 +103,6 @@ class ShippingInfo extends Equatable {
     shippingNote,
     shippingCost,
     notes,
-    shippingOptionId,
+    shippingSetupId,
   ];
 }

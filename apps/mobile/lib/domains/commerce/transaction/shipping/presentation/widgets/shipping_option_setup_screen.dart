@@ -12,30 +12,30 @@ import 'package:labuda/shared/providers/wilayah_provider_simple.dart';
 import 'package:labuda/shared/utils/app_formatters.dart';
 import 'package:labuda/shared/widgets/wilayah/city_dropdown.dart';
 
-class ShippingOptionSetupScreen extends ConsumerStatefulWidget {
+class ShippingSetupScreen extends ConsumerStatefulWidget {
   /// When non-null the screen operates in edit mode: form fields are
   /// pre-filled from this option and coverages are shown read-only.
-  final ShippingOption? editOption;
+  final ShippingSetup? editOption;
 
   /// When non-null the screen fetches the canonical detail by this ID
   /// and then hydrates the form. Takes precedence over [editOption].
   final String? editOptionId;
 
-  const ShippingOptionSetupScreen({super.key, this.editOption, this.editOptionId});
+  const ShippingSetupScreen({super.key, this.editOption, this.editOptionId});
 
   /// Opens the setup page in create mode.
-  static Future<ShippingOption?> open(BuildContext context) {
-    return context.push<ShippingOption>(RoutePaths.sellerShippingSetup);
+  static Future<ShippingSetup?> open(BuildContext context) {
+    return context.push<ShippingSetup>(RoutePaths.sellerShippingSetup);
   }
 
   /// Opens the setup page in edit mode for the given option.
   /// Prefer [openEditById] to ensure the editor is hydrated from the
   /// canonical detail endpoint.
-  static Future<ShippingOption?> openEdit(
+  static Future<ShippingSetup?> openEdit(
     BuildContext context,
-    ShippingOption option,
+    ShippingSetup option,
   ) {
-    return context.push<ShippingOption>(
+    return context.push<ShippingSetup>(
       RoutePaths.sellerShippingSetup,
       extra: option,
     );
@@ -44,11 +44,11 @@ class ShippingOptionSetupScreen extends ConsumerStatefulWidget {
   /// Opens the setup page in edit mode by fetching the canonical detail
   /// for [optionId]. This is the recommended path — it guarantees the
   /// form is hydrated with full coverages and city rules.
-  static Future<ShippingOption?> openEditById(
+  static Future<ShippingSetup?> openEditById(
     BuildContext context,
     String optionId,
   ) {
-    return context.push<ShippingOption>(
+    return context.push<ShippingSetup>(
       RoutePaths.sellerShippingSetup,
       extra: optionId,
     );
@@ -57,8 +57,8 @@ class ShippingOptionSetupScreen extends ConsumerStatefulWidget {
   bool get isEditMode => editOption != null || editOptionId != null;
 
   @override
-  ConsumerState<ShippingOptionSetupScreen> createState() =>
-      _ShippingOptionSetupScreenState();
+  ConsumerState<ShippingSetupScreen> createState() =>
+      _ShippingSetupScreenState();
 }
 
 class ShippingCityRulesRouteArgs {
@@ -93,8 +93,8 @@ class ShippingCityRulesScreen extends ConsumerStatefulWidget {
       _ShippingCityRulesScreenState();
 }
 
-class _ShippingOptionSetupScreenState
-    extends ConsumerState<ShippingOptionSetupScreen> {
+class _ShippingSetupScreenState
+    extends ConsumerState<ShippingSetupScreen> {
   final _nameController = TextEditingController();
   final _internalNoteController = TextEditingController();
   final List<_CoverageDraft> _coverages = [_CoverageDraft()];
@@ -122,7 +122,7 @@ class _ShippingOptionSetupScreenState
     }
   }
 
-  void _hydrateFromOption(ShippingOption option) {
+  void _hydrateFromOption(ShippingSetup option) {
     _type = option.type;
     _nameController.text = option.name;
     _internalNoteController.text = option.internalNote ?? '';
@@ -154,7 +154,7 @@ class _ShippingOptionSetupScreenState
     final optionId = widget.editOptionId!;
     final result = await ref
         .read(shippingRepositoryProvider)
-        .getShippingOptionById(optionId);
+        .getShippingSetupById(optionId);
 
     if (!mounted) return;
 
@@ -376,7 +376,7 @@ class _ShippingOptionSetupScreenState
     final repo = ref.read(shippingRepositoryProvider);
 
     if (_isEditMode) {
-      final fullRequest = UpdateShippingOptionFullRequest(
+      final fullRequest = UpdateShippingSetupFullRequest(
         name: _nameController.text.trim(),
         transportType: _type!,
         internalNote: _internalNoteController.text.trim().isEmpty
@@ -408,7 +408,7 @@ class _ShippingOptionSetupScreenState
 
       final result = await ref
           .read(shippingRepositoryProvider)
-          .updateShippingOptionFull(
+          .updateShippingSetupFull(
             widget.editOption!.id,
             fullRequest,
           );
@@ -427,7 +427,7 @@ class _ShippingOptionSetupScreenState
     }
 
     // Create mode — full atomic request with coverages
-    final request = CreateShippingOptionRequest(
+    final request = CreateShippingSetupRequest(
       name: _nameController.text.trim(),
       type: _type!,
       internalNote: _internalNoteController.text.trim().isEmpty
@@ -456,7 +456,7 @@ class _ShippingOptionSetupScreenState
           .toList(growable: false),
     );
 
-    final result = await repo.createShippingOption(request);
+    final result = await repo.createShippingSetup(request);
 
     if (!mounted) return;
 

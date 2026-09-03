@@ -5,33 +5,30 @@ import 'package:equatable/equatable.dart';
 // =====================================
 
 /// Shipping Option API DTO
-class ShippingOptionDto extends Equatable {
+class ShippingSetupDto extends Equatable {
   final String id;
   final String name;
   final String type;
-  final String? expeditionName;
   final bool isActive;
   final List<ShippingCoverageDto>? coverages;
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  const ShippingOptionDto({
+  const ShippingSetupDto({
     required this.id,
     required this.name,
     required this.type,
-    this.expeditionName,
     required this.isActive,
     this.coverages,
     required this.createdAt,
     required this.updatedAt,
   });
 
-  factory ShippingOptionDto.fromJson(Map<String, dynamic> json) {
-    return ShippingOptionDto(
+  factory ShippingSetupDto.fromJson(Map<String, dynamic> json) {
+    return ShippingSetupDto(
       id: json['id'] as String,
       name: json['name'] as String,
       type: json['transport_type'] as String,
-      expeditionName: json['expedition_name'] as String?,
       isActive: json['is_active'] as bool,
       coverages: (json['coverages'] as List<dynamic>?)
           ?.map((e) => ShippingCoverageDto.fromJson(e as Map<String, dynamic>))
@@ -45,7 +42,6 @@ class ShippingOptionDto extends Equatable {
     'id': id,
     'name': name,
     'transport_type': type,
-    if (expeditionName != null) 'expedition_name': expeditionName,
     'is_active': isActive,
     if (coverages != null)
       'coverages': coverages!.map((e) => e.toJson()).toList(),
@@ -58,7 +54,6 @@ class ShippingOptionDto extends Equatable {
     id,
     name,
     type,
-    expeditionName,
     isActive,
     createdAt,
     updatedAt,
@@ -68,21 +63,19 @@ class ShippingOptionDto extends Equatable {
 /// Shipping Coverage API DTO
 class ShippingCoverageDto extends Equatable {
   final String id;
-  final String shippingOptionId;
+  final String shippingSetupId;
   final String provinceCode;
   final String provinceName;
   final double rate;
-  final String? estimatedDays;
   final bool isAvailable;
   final DateTime createdAt;
 
   const ShippingCoverageDto({
     required this.id,
-    required this.shippingOptionId,
+    required this.shippingSetupId,
     required this.provinceCode,
     required this.provinceName,
     required this.rate,
-    this.estimatedDays,
     required this.isAvailable,
     required this.createdAt,
   });
@@ -90,11 +83,10 @@ class ShippingCoverageDto extends Equatable {
   factory ShippingCoverageDto.fromJson(Map<String, dynamic> json) {
     return ShippingCoverageDto(
       id: json['id'] as String,
-      shippingOptionId: json['shipping_option_id'] as String,
+      shippingSetupId: json['shipping_setup_id'] as String,
       provinceCode: json['province_code'] as String,
       provinceName: json['province_name'] as String,
       rate: (json['rate'] as num).toDouble(),
-      estimatedDays: json['estimated_days'] as String?,
       isAvailable: json['is_available'] as bool? ?? true,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
@@ -102,11 +94,10 @@ class ShippingCoverageDto extends Equatable {
 
   Map<String, dynamic> toJson() => {
     'id': id,
-    'shipping_option_id': shippingOptionId,
+    'shipping_setup_id': shippingSetupId,
     'province_code': provinceCode,
     'province_name': provinceName,
     'rate': rate,
-    if (estimatedDays != null) 'estimated_days': estimatedDays,
     'is_available': isAvailable,
     'created_at': createdAt.toIso8601String(),
   };
@@ -114,11 +105,10 @@ class ShippingCoverageDto extends Equatable {
   @override
   List<Object?> get props => [
     id,
-    shippingOptionId,
+    shippingSetupId,
     provinceCode,
     provinceName,
     rate,
-    estimatedDays,
     isAvailable,
     createdAt,
   ];
@@ -130,7 +120,6 @@ class CityRateDto extends Equatable {
   final String cityId;
   final String cityName;
   final double rate;
-  final String? estimatedDays;
   final String? notes;
 
   const CityRateDto({
@@ -138,7 +127,6 @@ class CityRateDto extends Equatable {
     required this.cityId,
     required this.cityName,
     required this.rate,
-    this.estimatedDays,
     this.notes,
   });
 
@@ -148,7 +136,6 @@ class CityRateDto extends Equatable {
       cityId: json['city_id'] as String,
       cityName: json['city_name'] as String,
       rate: (json['rate'] as num).toDouble(),
-      estimatedDays: json['estimated_days'] as String?,
       notes: json['notes'] as String?,
     );
   }
@@ -158,7 +145,6 @@ class CityRateDto extends Equatable {
     'city_id': cityId,
     'city_name': cityName,
     'rate': rate,
-    if (estimatedDays != null) 'estimated_days': estimatedDays,
     if (notes != null) 'notes': notes,
   };
 
@@ -167,16 +153,16 @@ class CityRateDto extends Equatable {
 }
 
 /// Seller shipping options list envelope.
-class SellerShippingOptionsEnvelopeDto extends Equatable {
-  final List<ShippingOptionDto> shippingOptions;
+class SellerShippingSetupsEnvelopeDto extends Equatable {
+  final List<ShippingSetupDto> shippingSetups;
   final int count;
 
-  const SellerShippingOptionsEnvelopeDto({
-    required this.shippingOptions,
+  const SellerShippingSetupsEnvelopeDto({
+    required this.shippingSetups,
     required this.count,
   });
 
-  factory SellerShippingOptionsEnvelopeDto.fromJson(Map<String, dynamic> json) {
+  factory SellerShippingSetupsEnvelopeDto.fromJson(Map<String, dynamic> json) {
     final rawOptions = json['shipping_options'];
     if (rawOptions is! List) {
       throw FormatException(
@@ -184,16 +170,16 @@ class SellerShippingOptionsEnvelopeDto extends Equatable {
       );
     }
 
-    return SellerShippingOptionsEnvelopeDto(
-      shippingOptions: rawOptions
-          .map((e) => ShippingOptionDto.fromJson(e as Map<String, dynamic>))
+    return SellerShippingSetupsEnvelopeDto(
+      shippingSetups: rawOptions
+          .map((e) => ShippingSetupDto.fromJson(e as Map<String, dynamic>))
           .toList(growable: false),
       count: (json['count'] as num?)?.toInt() ?? rawOptions.length,
     );
   }
 
   @override
-  List<Object?> get props => [shippingOptions, count];
+  List<Object?> get props => [shippingSetups, count];
 }
 
 // =====================================
@@ -230,48 +216,44 @@ class CheckDeliveryResponseDto extends Equatable {
 
 /// Delivery Option API DTO
 class DeliveryOptionDto extends Equatable {
-  final String shippingOptionId;
+  final String shippingSetupId;
   final String displayName;
   final String type;
   final double rate;
-  final String? estimatedDays;
   final String? notes;
   final String source;
 
   const DeliveryOptionDto({
-    required this.shippingOptionId,
+    required this.shippingSetupId,
     required this.displayName,
     required this.type,
     required this.rate,
-    this.estimatedDays,
     this.notes,
     required this.source,
   });
 
   factory DeliveryOptionDto.fromJson(Map<String, dynamic> json) {
     return DeliveryOptionDto(
-      shippingOptionId: json['shipping_option_id'] as String,
+      shippingSetupId: json['shipping_setup_id'] as String,
       displayName: json['display_name'] as String,
       type: json['type'] as String,
       rate: (json['rate'] as num).toDouble(),
-      estimatedDays: json['estimated_days'] as String?,
       notes: json['notes'] as String?,
       source: json['source'] as String,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'shipping_option_id': shippingOptionId,
+    'shipping_setup_id': shippingSetupId,
     'display_name': displayName,
     'type': type,
     'rate': rate,
-    if (estimatedDays != null) 'estimated_days': estimatedDays,
     if (notes != null) 'notes': notes,
     'source': source,
   };
 
   @override
-  List<Object?> get props => [shippingOptionId, type, rate, source];
+  List<Object?> get props => [shippingSetupId, type, rate, source];
 }
 
 // =====================================

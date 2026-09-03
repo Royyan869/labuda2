@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -47,8 +46,6 @@ type ChatMetrics interface {
 	RecordChatRateLimited()
 }
 
-
-
 // OrderOwnershipReader is the minimal order-domain contract needed to
 // validate order/room ownership before a manual order-link mutation
 // (LinkOrderToChat). Kept narrow — buyer/seller IDs only — to preserve the
@@ -67,16 +64,16 @@ type OrderOwnershipReader interface {
 // - Idempotent message sending
 // - Cursor-based pagination only (NO OFFSET)
 type Service struct {
-	db                    Transactor
-	repo                  chatRepo.Repository
-	socialRepo            socialRepo.SocialRepository
-	outboxRepo            OutboxInserter
-	rateLimiter           *rate.RateLimiter
-	metrics               ChatMetrics           // Optional metrics collector
-	statusChecker         AccountStatusChecker  // Account status enforcement (service-layer authority)
-	orderReader           OrderOwnershipReader  // Order buyer/seller lookup for LinkOrderToChat authorization
-	log                   *zap.Logger           // Optional logger for warnings
-	commerceRefValidator   commerceResponse.Validator // Validates commerce resource references for display
+	db                   Transactor
+	repo                 chatRepo.Repository
+	socialRepo           socialRepo.SocialRepository
+	outboxRepo           OutboxInserter
+	rateLimiter          *rate.RateLimiter
+	metrics              ChatMetrics                // Optional metrics collector
+	statusChecker        AccountStatusChecker       // Account status enforcement (service-layer authority)
+	orderReader          OrderOwnershipReader       // Order buyer/seller lookup for LinkOrderToChat authorization
+	log                  *zap.Logger                // Optional logger for warnings
+	commerceRefValidator commerceResponse.Validator // Validates commerce resource references for display
 }
 
 // OutboxInserter defines the interface for inserting outbox events.
@@ -153,21 +150,20 @@ func NewServiceWithDefaults(
 // Transaction flow:
 // 1. BEGIN
 // 2. Try to get existing direct room
-// 3. If not found, create new room with context if provided
-// 4. If found and context provided, update context if room has no context
-// 5. COMMIT
+// 3. If not found, create new room
+// 4. COMMIT
 //
 // Business rules:
-// - Users must be different (no self-chat)
-// - One room per user pair for direct type
-// - Participants are stored in sorted order
-// - Context is optional commerce metadata (fixed-price sale, auction, etc.)
-// - BLOCK ENFORCEMENT: If creating room WITHOUT commerce context and target user has blocked requester, return error
+//   - Users must be different (no self-chat)
+//   - One room per user pair for direct type
+//   - Participants are stored in sorted order
+//   - Room-level commerce context is NOT stored (commerce/resource references
+//     live at the message level); order ↔ chat continuity is carried by
+//     linked_order_id only.
+//   - BLOCK ENFORCEMENT: If creating room and target user has blocked requester, return error
 func (s *Service) GetOrCreateDirectRoom(
 	ctx context.Context,
 	userA, userB uuid.UUID,
-	contextJSON json.RawMessage,
-	contextSetBy uuid.UUID,
 ) (*chatEntity.ChatRoom, error) {
 	if userA == userB {
 		return nil, chatRepo.ErrSelfChat
@@ -207,7 +203,7 @@ func (s *Service) GetOrCreateDirectRoom(
 	err := s.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
 		var created bool
-		room, created, err = s.getOrCreateDirectRoomTx(ctx, tx, userA, userB, contextJSON, contextSetBy)
+		room, created, err = s.getOrCreateDirectRoomTx(ctx, tx, userA, userB)
 		if err != nil {
 			return err
 		}
@@ -231,33 +227,14 @@ func (s *Service) GetOrCreateDirectRoom(
 //
 // IMPORTANT: This method does NOT manage its own transaction.
 // The caller must provide a valid tx from an ongoing transaction.
-//
-// CONTEXT SEMANTICS:
-// - New room: Creates with provided context
-// - Existing room without context: Updates with provided context
-// - Existing room with context: Keeps existing context (NOT overwritten)
 func (s *Service) getOrCreateDirectRoomTx(
 	ctx context.Context,
 	tx db.Tx,
 	userA, userB uuid.UUID,
-	contextJSON json.RawMessage,
-	contextSetBy uuid.UUID,
 ) (*chatEntity.ChatRoom, bool, error) {
 	// Try to get existing room first
 	existingRoom, err := s.repo.GetDirectRoom(ctx, tx, userA, userB)
 	if err == nil {
-		// Room exists - update context if room has no context and context was provided
-		if len(contextJSON) > 0 && !existingRoom.HasContext() {
-			if err := s.repo.UpdateRoomContext(ctx, tx, existingRoom.ID, contextJSON, contextSetBy); err != nil {
-				return nil, false, fmt.Errorf("failed to update room context: %w", err)
-			}
-			// Reload room to get updated context
-			updatedRoom, err := s.repo.GetDirectRoom(ctx, tx, userA, userB)
-			if err != nil {
-				return nil, false, fmt.Errorf("failed to reload room: %w", err)
-			}
-			return updatedRoom, false, nil
-		}
 		return existingRoom, false, nil
 	}
 	if err != chatRepo.ErrRoomNotFound {
@@ -265,17 +242,7 @@ func (s *Service) getOrCreateDirectRoomTx(
 	}
 
 	// Room doesn't exist, create new one
-	var newRoom *chatEntity.ChatRoom
-	if len(contextJSON) > 0 && contextSetBy != uuid.Nil {
-		newRoom = chatEntity.NewChatRoomWithContext(
-			chatEntity.RoomTypeDirect,
-			userA, userB,
-			contextJSON,
-			contextSetBy,
-		)
-	} else {
-		newRoom = chatEntity.NewChatRoom(chatEntity.RoomTypeDirect, userA, userB)
-	}
+	newRoom := chatEntity.NewChatRoom(chatEntity.RoomTypeDirect, userA, userB)
 
 	if err := s.repo.CreateRoom(ctx, tx, newRoom); err != nil {
 		// CRITICAL: Handle race condition - if unique violation occurred,
@@ -284,18 +251,6 @@ func (s *Service) getOrCreateDirectRoomTx(
 			existingRoom, fetchErr := s.repo.GetDirectRoom(ctx, tx, userA, userB)
 			if fetchErr != nil {
 				return nil, false, fmt.Errorf("room created by another request but fetch failed: %w", fetchErr)
-			}
-			// Update context if room has no context and context was provided
-			if len(contextJSON) > 0 && !existingRoom.HasContext() {
-				if updErr := s.repo.UpdateRoomContext(ctx, tx, existingRoom.ID, contextJSON, contextSetBy); updErr != nil {
-					return nil, false, fmt.Errorf("failed to update room context: %w", updErr)
-				}
-				// Reload room to get updated context
-				updatedRoom, reloadErr := s.repo.GetDirectRoom(ctx, tx, userA, userB)
-				if reloadErr != nil {
-					return nil, false, fmt.Errorf("failed to reload room: %w", reloadErr)
-				}
-				return updatedRoom, false, nil
 			}
 			return existingRoom, false, nil
 		}
@@ -323,53 +278,17 @@ func (s *Service) getOrCreateDirectRoomTx(
 // 4. COMMIT
 //
 // Business rules:
-// - One support room per user
-// - participant_a = user, participant_b = system UUID (Nil)
-// - room_type = 'support'
+//   - One support room per user
+//   - participant_a = user, participant_b = system UUID (Nil)
+//   - room_type = 'support'
+//   - Room-level commerce context is NOT stored; support ticket linkage is
+//     carried by support_tickets.chat_room_id / linked_order_id on the ticket.
 func (s *Service) GetOrCreateSupportRoom(ctx context.Context, userID uuid.UUID) (*chatEntity.ChatRoom, error) {
 	var room *chatEntity.ChatRoom
 	err := s.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
 		var created bool
-		room, created, err = s.getOrCreateSupportRoomTx(ctx, tx, userID, nil)
-		if err != nil {
-			return err
-		}
-		if created {
-			if err := s.emitChatRoomCreatedEvents(ctx, tx, room); err != nil {
-				return err
-			}
-		}
-		return err
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return room, nil
-}
-
-// GetOrCreateSupportRoomWithContext gets or creates a support room for a user with context.
-//
-// Transaction flow:
-// 1. BEGIN
-// 2. Try to get existing support room
-// 3. If not found, create new room with context
-// 4. If found and no context, update with provided context
-// 5. COMMIT
-//
-// Business rules:
-// - One support room per user
-// - participant_a = user, participant_b = system UUID (Nil)
-// - room_type = 'support'
-// - Context is optional (e.g., linked_order_id for support tickets)
-func (s *Service) GetOrCreateSupportRoomWithContext(ctx context.Context, userID uuid.UUID, contextJSON json.RawMessage) (*chatEntity.ChatRoom, error) {
-	var room *chatEntity.ChatRoom
-	err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		var err error
-		var created bool
-		room, created, err = s.getOrCreateSupportRoomTx(ctx, tx, userID, contextJSON)
+		room, created, err = s.getOrCreateSupportRoomTx(ctx, tx, userID)
 		if err != nil {
 			return err
 		}
@@ -392,32 +311,14 @@ func (s *Service) GetOrCreateSupportRoomWithContext(ctx context.Context, userID 
 //
 // IMPORTANT: This method does NOT manage its own transaction.
 // The caller must provide a valid tx from an ongoing transaction.
-//
-// CONTEXT SEMANTICS:
-// - New room: Creates with provided context
-// - Existing room without context: Updates with provided context
-// - Existing room with context: Keeps existing context (NOT overwritten)
 func (s *Service) getOrCreateSupportRoomTx(
 	ctx context.Context,
 	tx db.Tx,
 	userID uuid.UUID,
-	contextJSON json.RawMessage,
 ) (*chatEntity.ChatRoom, bool, error) {
 	// Try to get existing support room first
 	existingRoom, err := s.repo.GetSupportRoom(ctx, tx, userID)
 	if err == nil {
-		// Room exists - update context if room has no context and context was provided
-		if len(contextJSON) > 0 && !existingRoom.HasContext() {
-			if err := s.repo.UpdateRoomContext(ctx, tx, existingRoom.ID, contextJSON, uuid.Nil); err != nil {
-				return nil, false, fmt.Errorf("failed to update room context: %w", err)
-			}
-			// Reload room to get updated context
-			updatedRoom, err := s.repo.GetSupportRoom(ctx, tx, userID)
-			if err != nil {
-				return nil, false, fmt.Errorf("failed to reload room: %w", err)
-			}
-			return updatedRoom, false, nil
-		}
 		return existingRoom, false, nil
 	}
 	if err != chatRepo.ErrRoomNotFound {
@@ -425,23 +326,11 @@ func (s *Service) getOrCreateSupportRoomTx(
 	}
 
 	// Room doesn't exist, create new one
-	var newRoom *chatEntity.ChatRoom
-	if len(contextJSON) > 0 {
-		// Create with context (context_set_by = system/Nil for support rooms)
-		newRoom = chatEntity.NewChatRoomWithContext(
-			chatEntity.RoomTypeSupport,
-			userID,
-			uuid.Nil, // System UUID as participant_b
-			contextJSON,
-			uuid.Nil, // Context set by system
-		)
-	} else {
-		newRoom = chatEntity.NewChatRoom(
-			chatEntity.RoomTypeSupport,
-			userID,
-			uuid.Nil, // System UUID as participant_b
-		)
-	}
+	newRoom := chatEntity.NewChatRoom(
+		chatEntity.RoomTypeSupport,
+		userID,
+		uuid.Nil, // System UUID as participant_b
+	)
 
 	if err := s.repo.CreateRoom(ctx, tx, newRoom); err != nil {
 		// CRITICAL: Handle race condition - if unique violation occurred,
@@ -450,18 +339,6 @@ func (s *Service) getOrCreateSupportRoomTx(
 			existingRoom, fetchErr := s.repo.GetSupportRoom(ctx, tx, userID)
 			if fetchErr != nil {
 				return nil, false, fmt.Errorf("room created by another request but fetch failed: %w", fetchErr)
-			}
-			// Update context if room has no context and context was provided
-			if len(contextJSON) > 0 && !existingRoom.HasContext() {
-				if updErr := s.repo.UpdateRoomContext(ctx, tx, existingRoom.ID, contextJSON, uuid.Nil); updErr != nil {
-					return nil, false, fmt.Errorf("failed to update room context: %w", updErr)
-				}
-				// Reload room to get updated context
-				updatedRoom, reloadErr := s.repo.GetSupportRoom(ctx, tx, userID)
-				if reloadErr != nil {
-					return nil, false, fmt.Errorf("failed to reload room: %w", reloadErr)
-				}
-				return updatedRoom, false, nil
 			}
 			return existingRoom, false, nil
 		}
@@ -605,10 +482,9 @@ func (s *Service) AutoLinkOrderToDirectRoom(
 
 	var room *chatEntity.ChatRoom
 	err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		// Step 1: Ensure the canonical direct room exists. We pass no context
-		// here — context is set by the chat surface that opened the room, not
-		// by an asynchronous auto-link consumer.
-		ensured, created, err := s.getOrCreateDirectRoomTx(ctx, tx, buyerID, sellerID, nil, uuid.Nil)
+		// Step 1: Ensure the canonical direct room exists. Room-level commerce
+		// context is not stored; the room carries only linked_order_id.
+		ensured, created, err := s.getOrCreateDirectRoomTx(ctx, tx, buyerID, sellerID)
 		if err != nil {
 			return fmt.Errorf("ensure direct room: %w", err)
 		}
@@ -658,24 +534,24 @@ func (s *Service) emitChatRoomCreatedEvents(ctx context.Context, tx db.Tx, room 
 // LinkOrderToChat links an order to a chat room for commerce continuity.
 //
 // Transaction flow:
-// 1. BEGIN
-// 2. Verify room exists and requesting user is a participant
-// 3. Verify order exists and requesting user is its buyer or seller
-// 4. Verify the room's two participants exactly match the order's buyer/seller
-//    (rejects linking an unrelated order into an unrelated room)
-// 5. Verify the order isn't already linked to a different room
-// 6. Update room's linked_order_id
-// 7. COMMIT
+//  1. BEGIN
+//  2. Verify room exists and requesting user is a participant
+//  3. Verify order exists and requesting user is its buyer or seller
+//  4. Verify the room's two participants exactly match the order's buyer/seller
+//     (rejects linking an unrelated order into an unrelated room)
+//  5. Verify the order isn't already linked to a different room
+//  6. Update room's linked_order_id
+//  7. COMMIT
 //
 // Business rules:
-// - Order must belong to a room participant AND the room's counterparty must
-//   be the order's other party — the room and order must describe the same
-//   buyer/seller pair. This is the authorization boundary for this mutation;
-//   see PASS_6A / F1.
-// - Supports linking orders created from chat or navigating from order detail
-// - LATEST ACTIVE ORDER RULE: a room's linked_order_id may be replaced by a
-//   newer order between the same pair over time, but at any instant an order
-//   is linked to at most one room.
+//   - Order must belong to a room participant AND the room's counterparty must
+//     be the order's other party — the room and order must describe the same
+//     buyer/seller pair. This is the authorization boundary for this mutation;
+//     see PASS_6A / F1.
+//   - Supports linking orders created from chat or navigating from order detail
+//   - LATEST ACTIVE ORDER RULE: a room's linked_order_id may be replaced by a
+//     newer order between the same pair over time, but at any instant an order
+//     is linked to at most one room.
 func (s *Service) LinkOrderToChat(
 	ctx context.Context,
 	roomID, orderID, requestingUserID uuid.UUID,
@@ -754,10 +630,11 @@ func (s *Service) LinkOrderToChat(
 // 8. COMMIT
 //
 // Business rules:
-// - Idempotency key is required
-// - Sender must be a room participant
-// - Returns existing message if duplicate (idempotent)
-// - BLOCK ENFORCEMENT: Direct rooms WITHOUT context are subject to recipient block check
+//   - Idempotency key is required
+//   - Sender must be a room participant
+//   - Returns existing message if duplicate (idempotent)
+//   - BLOCK ENFORCEMENT: Direct rooms are subject to recipient block check
+//     unless order-linked (linked_order_id); support rooms are always exempt.
 func (s *Service) SendMessage(
 	ctx context.Context,
 	roomID, senderID uuid.UUID,
@@ -830,7 +707,7 @@ func (s *Service) SendMessage(
 
 		// Block enforcement: direct and negotiation rooms are blocked unless
 		// order-linked (commerce continuity). Support rooms are always exempt.
-		// HasOrderContext() is the explicit carve-out; HasContext() (UI hint) is NOT a bypass.
+		// HasOrderContext() (linked_order_id) is the explicit commerce carve-out.
 		if room.RoomType != chatEntity.RoomTypeSupport && !room.HasOrderContext() {
 			recipientID := room.OtherParticipant(senderID)
 			blocked, err := s.socialRepo.ExistsBlock(ctx, tx, senderID, recipientID)
@@ -1199,27 +1076,27 @@ func (s *Service) SoftHideForModeration(
 // RestoreFromModeration restores a soft-hidden chat message and emits
 // room-list updates.
 func (s *Service) RestoreFromModeration(
-   ctx context.Context,
-   tx db.Tx,
-   messageID uuid.UUID,
-   moderationKey string,
+	ctx context.Context,
+	tx db.Tx,
+	messageID uuid.UUID,
+	moderationKey string,
 ) error {
-   message, err := s.repo.GetMessageByID(ctx, tx, messageID)
-   if err != nil {
-           return err
-   }
+	message, err := s.repo.GetMessageByID(ctx, tx, messageID)
+	if err != nil {
+		return err
+	}
 
-   // Restore is only meaningful for moderation-hidden messages. If the
-   // message is already visible, treat this as a deterministic no-op so the
-   // caller cannot broaden state through a restore retry.
-   if message.DeletedAt == nil {
-           return nil
-   }
+	// Restore is only meaningful for moderation-hidden messages. If the
+	// message is already visible, treat this as a deterministic no-op so the
+	// caller cannot broaden state through a restore retry.
+	if message.DeletedAt == nil {
+		return nil
+	}
 
-   room, err := s.repo.GetRoomByID(ctx, tx, message.RoomID)
-   if err != nil {
-           return err
-   }
+	room, err := s.repo.GetRoomByID(ctx, tx, message.RoomID)
+	if err != nil {
+		return err
+	}
 
 	if err := s.repo.RestoreFromModeration(ctx, tx, messageID); err != nil {
 		return err

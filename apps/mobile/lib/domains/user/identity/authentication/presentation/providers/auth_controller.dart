@@ -16,9 +16,7 @@ import '../providers/auth_sign_up_service.dart';
 import '../providers/auth_profile_service.dart';
 import 'package:labuda/domains/system/notification/data/notification_providers.dart'
     show fcmServiceProvider;
-// OLD: import 'package:labuda/domains/crashlytics/crashlytics.dart';
-// NEW: Using core CrashReporter instead (exported via core.dart)
-import 'package:labuda/core/observability/firebase_crashlytics_impl.dart';
+
 
 /// PASS 2A / F1 â€” structured classification of a failed backend auth-sync
 /// call (POST /api/v1/auth/firebase/exchange, GET /users/me).
@@ -212,8 +210,6 @@ class AuthController extends Notifier<AuthState> {
   late final AuthSignUpService _signUpService;
   late final AuthProfileService _profileService;
   late final ILocalStorageService _localStorage;
-  CrashReporter?
-  _crashReporter; // Core infra replacement for SetUserIdentifierUseCase
   UserSyncService? _userSyncService; // Backend sync service for roles
 
   // ðŸ”’ SECURITY FIX: Periodic session validation timer
@@ -363,13 +359,6 @@ class AuthController extends Notifier<AuthState> {
 
     // R4.3: Use core provider instead of GetIt
     _analytics = ref.read(coreAnalyticsRepositoryProvider);
-
-    // Try to get CrashReporter from core infra (optional, may not be initialized yet)
-    try {
-      _crashReporter = FirebaseCrashlyticsImpl.instance();
-    } catch (e) {
-      // Crashlytics not initialized yet, skip
-    }
 
     // R4.3: Use provider instead of GetIt for UserSyncService
     try {
@@ -898,7 +887,6 @@ class AuthController extends Notifier<AuthState> {
         userId: backendUser.id,
       );
 
-      await _crashReporter?.setUserIdentifier(backendUser.id);
     } catch (e, stackTrace) {
       final errorStr = e.toString();
       _logger.error(
@@ -1500,8 +1488,7 @@ class AuthController extends Notifier<AuthState> {
         userId: currentState.user.id,
       );
 
-      // Clear user ID from Crashlytics
-      await _crashReporter?.clearUserIdentifier();
+
     }
 
     // 4. Reset sync locks - critical for deterministic flow on next login
@@ -1705,7 +1692,7 @@ class AuthController extends Notifier<AuthState> {
         },
         userId: completedUser.id,
       );
-      await _crashReporter?.setUserIdentifier(completedUser.id);
+
       return true;
     }
 

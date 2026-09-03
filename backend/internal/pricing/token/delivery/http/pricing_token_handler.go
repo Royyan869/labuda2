@@ -56,7 +56,7 @@ type GeneratePreviewRequest struct {
 	SourceID         uuid.UUID  `json:"source_id" binding:"required"`
 	NegotiationID    *uuid.UUID `json:"negotiation_id,omitempty"`
 	Quantity         int        `json:"quantity" binding:"required,min=1"`
-	ShippingOptionID *uuid.UUID `json:"shipping_option_id,omitempty"` // Optional: when using shipping_quote_id
+	ShippingSetupID *uuid.UUID `json:"shipping_option_id,omitempty"` // Optional: when using shipping_quote_id
 	ShippingQuoteID  *uuid.UUID `json:"shipping_quote_id,omitempty"`  // Optional: when using manual quote
 	AddressID        uuid.UUID  `json:"address_id" binding:"required"`
 	DiscountCode     *string    `json:"discount_code,omitempty"`
@@ -111,7 +111,7 @@ func (h *PricingTokenHandler) GeneratePreview(c *gin.Context) {
 	switch req.SourceType {
 	case "auction":
 		// Auction buy-now or bid-win preview via GenerateForAuction
-		if req.ShippingOptionID == nil {
+		if req.ShippingSetupID == nil {
 			response.BadRequest(c, "shipping_option_id is required for auction pricing preview")
 			return
 		}
@@ -119,7 +119,7 @@ func (h *PricingTokenHandler) GeneratePreview(c *gin.Context) {
 			UserID:           userID,
 			AuctionID:        req.SourceID,
 			AddressID:        req.AddressID,
-			ShippingOptionID: *req.ShippingOptionID,
+			ShippingSetupID: *req.ShippingSetupID,
 			DiscountCode:     req.DiscountCode,
 		}
 		var auctionResult *pricingtokenapp.GenerateForAuctionResponse
@@ -145,7 +145,7 @@ func (h *PricingTokenHandler) GeneratePreview(c *gin.Context) {
 		})
 	case "for_sale":
 		if req.NegotiationID != nil {
-			if req.ShippingOptionID == nil {
+			if req.ShippingSetupID == nil {
 				response.BadRequest(c, "shipping_option_id is required for negotiation pricing preview")
 				return
 			}
@@ -153,7 +153,7 @@ func (h *PricingTokenHandler) GeneratePreview(c *gin.Context) {
 				UserID:           userID,
 				NegotiationID:    *req.NegotiationID,
 				AddressID:        req.AddressID,
-				ShippingOptionID: *req.ShippingOptionID,
+				ShippingSetupID: *req.ShippingSetupID,
 				DiscountCode:     req.DiscountCode,
 			}
 			var negotiationResult *pricingtokenapp.GenerateForNegotiationResponse
@@ -186,7 +186,7 @@ func (h *PricingTokenHandler) GeneratePreview(c *gin.Context) {
 			SourceType:       req.SourceType,
 			SourceID:         req.SourceID,
 			Quantity:         req.Quantity,
-			ShippingOptionID: req.ShippingOptionID,
+			ShippingSetupID: req.ShippingSetupID,
 			ShippingQuoteID:  req.ShippingQuoteID,
 			AddressID:        req.AddressID,
 			DiscountCode:     req.DiscountCode,
@@ -224,7 +224,7 @@ type ValidateTokenRequest struct {
 	SourceType       string     `json:"source_type" binding:"required"`
 	SourceID         uuid.UUID  `json:"source_id" binding:"required"`
 	Quantity         int        `json:"quantity" binding:"required,min=1"`
-	ShippingOptionID *uuid.UUID `json:"shipping_option_id,omitempty"`
+	ShippingSetupID *uuid.UUID `json:"shipping_option_id,omitempty"`
 	AddressID        uuid.UUID  `json:"address_id" binding:"required"`
 }
 
@@ -276,7 +276,7 @@ func (h *PricingTokenHandler) ValidateToken(c *gin.Context) {
 		SourceID:         req.SourceID,
 		Quantity:         req.Quantity,
 		AddressID:        req.AddressID,
-		ShippingOptionID: req.ShippingOptionID,
+		ShippingSetupID: req.ShippingSetupID,
 	}
 
 	// Validate token within transaction
@@ -388,11 +388,9 @@ func pricingSnapshotFromEntity(token *pricingtokenentity.PricingToken) gin.H {
 		"discount_value":       discountValue,
 		"escrow_amount":        token.EscrowAmount.Int64(),
 		"shipping_option": gin.H{
-			"id":              token.ShippingOptionID,
-			"name":            token.ShippingOptionName,
-			"transport_type":  token.ShippingTransportType,
-			"expedition_name": token.ShippingExpeditionName,
-			"estimated_days":  token.ShippingEstimatedDays,
+			"id":              token.ShippingSetupID,
+			"name":           token.ShippingSetupName,
+			"transport_type": token.ShippingTransportType,
 		},
 		"product_id":  token.ProductID,
 		"source_type": token.SourceType,

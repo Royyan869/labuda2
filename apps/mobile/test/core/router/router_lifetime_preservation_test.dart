@@ -1,7 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 // ignore: depend_on_referenced_packages
 import 'package:firebase_core_platform_interface/test.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -70,7 +70,7 @@ AuthUser _buildUser({
     roles: hasSellerProfile == true
         ? const [UserRole.user]
         : const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     lifecycle: ContentLifecycle.active,
   );
 }

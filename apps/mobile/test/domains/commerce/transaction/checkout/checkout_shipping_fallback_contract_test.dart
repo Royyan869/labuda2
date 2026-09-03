@@ -128,7 +128,7 @@ void main() {
         () async {
       const productId = '11111111-1111-1111-1111-111111111111';
       const fixedPriceSaleId = '22222222-2222-2222-2222-222222222222';
-      const shippingOptionId = 'ship-1';
+      const shippingSetupId = 'ship-1';
 
       final apiClient = _RecordingApiClient();
       final repository = CheckoutRepositoryImpl(apiClient);
@@ -137,7 +137,7 @@ void main() {
         fixedPriceSaleId: fixedPriceSaleId,
         addressId: '33333333-3333-3333-3333-333333333333',
         pricingToken: '44444444-4444-4444-4444-444444444444',
-        shippingOptionId: shippingOptionId,
+        shippingSetupId: shippingSetupId,
       );
 
       await repository.createOrder(request);
@@ -147,7 +147,7 @@ void main() {
       expect(payload['product_id'], productId);
       expect(payload['source_type'], 'fixed_price_sale');
       expect(payload['source_id'], fixedPriceSaleId);
-      expect(payload['shipping_option_id'], shippingOptionId);
+      expect(payload['shipping_setup_id'], shippingSetupId);
       expect(payload['shipping_quote_id'], isNull);
     });
 
@@ -177,7 +177,7 @@ void main() {
       expect(payload['source_type'], 'auction');
       expect(payload['source_id'], auctionId);
       expect(payload['shipping_quote_id'], shippingQuoteId);
-      expect(payload['shipping_option_id'], isNull);
+      expect(payload['shipping_setup_id'], isNull);
     });
 
     test('missing product id is rejected before order creation', () async {

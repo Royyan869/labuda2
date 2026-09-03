@@ -40,7 +40,7 @@ class _ErrorListingDatasource extends ForSaleRemoteDatasource {
       'Pilih minimal 1 opsi pengiriman',
       code: 'SHIPPING_OPTION_REQUIRED',
       statusCode: 400,
-      details: <String, dynamic>{'field': 'shipping_option_ids'},
+      details: <String, dynamic>{'field': 'shipping_setup_ids'},
     );
   }
 }

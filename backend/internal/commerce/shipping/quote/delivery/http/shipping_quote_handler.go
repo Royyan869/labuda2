@@ -54,7 +54,6 @@ type CreateShippingQuoteRequest struct {
 	ProductID             string `json:"product_id" binding:"required"`
 	SourceType            string `json:"source_type" binding:"required"`
 	SourceID              string `json:"source_id" binding:"required"`
-	AuctionID             string `json:"auction_id,omitempty"` // Optional, retained for auction lookup convenience
 	Cost                  int64  `json:"cost" binding:"required,min=0"`
 	Note                  string `json:"note"`
 	DestinationCityID     string `json:"destination_city_id,omitempty"`     // Optional address lock (TASK D)
@@ -157,16 +156,6 @@ func (h *Handler) CreateShippingQuote(c *gin.Context) {
 		input.Note = &req.Note
 	}
 
-	// Determine if auction quote (TASK A)
-	if req.AuctionID != "" {
-		auctionID, err := uuid.Parse(req.AuctionID)
-		if err != nil {
-			response.BadRequest(c, "Invalid auction ID")
-			return
-		}
-		input.AuctionID = &auctionID
-	}
-
 	// Create shipping quote
 	quote, err := h.quoteService.CreateShippingQuote(ctx, input)
 	if err != nil {
@@ -240,15 +229,14 @@ func (h *Handler) GetShippingQuoteByID(c *gin.Context) {
 // ShippingQuoteResponse represents a shipping quote response.
 // TASK A-C: Enhanced with status, destination lock, expiration
 type ShippingQuoteResponse struct {
-	ID                    string  `json:"id"`
-	ChatID                string  `json:"chat_id"`
-	ProductID             string  `json:"product_id"`
-	SourceType            string  `json:"source_type"`
-	SourceID              string  `json:"source_id"`
-	AuctionID             *string `json:"auction_id,omitempty"` // Present for auction quotes (TASK A)
-	SellerID              string  `json:"seller_id"`
-	BuyerID               string  `json:"buyer_id"`
-	Cost                  int64   `json:"cost"`
+	ID                    string `json:"id"`
+	ChatID                string `json:"chat_id"`
+	ProductID             string `json:"product_id"`
+	SourceType            string `json:"source_type"`
+	SourceID              string `json:"source_id"`
+	SellerID              string `json:"seller_id"`
+	BuyerID               string `json:"buyer_id"`
+	Cost                  int64  `json:"cost"`
 	Note                  *string `json:"note,omitempty"`
 	Status                string  `json:"status"`                            // TASK C: Quote status
 	DestinationCityID     *string `json:"destination_city_id,omitempty"`     // TASK D
@@ -272,12 +260,6 @@ func (h *Handler) quoteToResponse(quote *shippingQuoteEntity.ShippingQuote) Ship
 		Note:       quote.Note,
 		Status:     string(quote.Status), // TASK C: Include status
 		CreatedAt:  quote.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-	}
-
-	// Handle auction_id (TASK A)
-	if quote.AuctionID != nil && *quote.AuctionID != uuid.Nil {
-		auctionID := quote.AuctionID.String()
-		resp.AuctionID = &auctionID
 	}
 
 	// Handle destination lock (TASK D)

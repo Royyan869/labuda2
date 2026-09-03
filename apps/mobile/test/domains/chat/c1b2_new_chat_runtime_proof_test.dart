@@ -236,7 +236,7 @@ AuthUser _authUser(String id, {bool emailVerified = true}) {
     username: id,
     isEmailVerified: emailVerified,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
   );
 }
 

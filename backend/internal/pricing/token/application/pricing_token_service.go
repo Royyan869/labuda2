@@ -90,7 +90,7 @@ import (
 type PricingTokenService struct {
 	tokenRepo       pricingtokenrepo.PricingTokenRepository
 	forSaleRepo     forSalerepo.ForSaleRepository
-	shippingRepo    shippingrepo.ShippingOptionRepository
+	shippingRepo    shippingrepo.ShippingSetupRepository
 	coverageRepo    shippingrepo.ShippingCoverageRepository
 	addressRepo     addressrepo.AddressRepository
 	configService   *platformconfigApp.ConfigService
@@ -109,7 +109,7 @@ func NewPricingTokenService(
 	return &PricingTokenService{
 		tokenRepo:         pricingtokenrepoimpl.NewPricingTokenRepository(),
 		forSaleRepo:       forSaleRepoImpl.NewForSaleRepository(),
-		shippingRepo:      shippingRepoImpl.NewShippingOptionRepository(),
+		shippingRepo:      shippingRepoImpl.NewShippingSetupRepository(),
 		coverageRepo:      shippingRepoImpl.NewShippingCoverageRepository(),
 		addressRepo:       addressRepoImpl.NewAddressRepository(),
 		configService:     configService,
@@ -123,9 +123,9 @@ func NewPricingTokenService(
 // GenerateForForSaleRequest contains the parameters for generating a pricing token.
 //
 // SHIPPING SOURCE (REPLACE MODE):
-// - Exactly one of ShippingQuoteID or ShippingOptionID must be provided
+// - Exactly one of ShippingQuoteID or ShippingSetupID must be provided
 // - If ShippingQuoteID is set, shipping cost comes from the manual quote
-// - If ShippingOptionID is set, shipping cost comes from forSale shipping options
+// - If ShippingSetupID is set, shipping cost comes from forSale shipping options
 // - Providing both or neither is a validation error
 type GenerateForForSaleRequest struct {
 	UserID           uuid.UUID
@@ -133,7 +133,7 @@ type GenerateForForSaleRequest struct {
 	SourceType       string
 	SourceID         uuid.UUID
 	Quantity         int
-	ShippingOptionID *uuid.UUID // Optional: Pointer to allow nil when using ShippingQuote
+	ShippingSetupID *uuid.UUID // Optional: Pointer to allow nil when using ShippingQuote
 	ShippingQuoteID  *uuid.UUID // Optional: When set, uses manual shipping quote
 	AddressID        uuid.UUID
 	DiscountCode     *string
@@ -204,9 +204,9 @@ type CoinsPreview struct {
 // It calculates the complete pricing snapshot and stores it for later validation.
 //
 // SHIPPING SOURCE (REPLACE MODE):
-// - Exactly one of ShippingQuoteID or ShippingOptionID must be provided
+// - Exactly one of ShippingQuoteID or ShippingSetupID must be provided
 // - If ShippingQuoteID is set, shipping cost comes from the manual quote
-// - If ShippingOptionID is set, shipping cost comes from forSale shipping options
+// - If ShippingSetupID is set, shipping cost comes from forSale shipping options
 // - Providing both or neither is a validation error
 func (s *PricingTokenService) GenerateForForSale(
 	ctx context.Context,
@@ -217,12 +217,12 @@ func (s *PricingTokenService) GenerateForForSale(
 	// STEP 0: VALIDATE SHIPPING SOURCE (EXACTLY ONE REQUIRED)
 	// ============================================================================
 	hasShippingQuote := req.ShippingQuoteID != nil && *req.ShippingQuoteID != uuid.Nil
-	hasShippingOption := req.ShippingOptionID != nil && *req.ShippingOptionID != uuid.Nil
+	hasShippingSetup := req.ShippingSetupID != nil && *req.ShippingSetupID != uuid.Nil
 
-	if hasShippingQuote && hasShippingOption {
+	if hasShippingQuote && hasShippingSetup {
 		return nil, fmt.Errorf("invalid shipping source: both shipping_quote_id and shipping_option_id cannot be provided")
 	}
-	if !hasShippingQuote && !hasShippingOption {
+	if !hasShippingQuote && !hasShippingSetup {
 		return nil, fmt.Errorf("invalid shipping source: either shipping_quote_id or shipping_option_id must be provided")
 	}
 
@@ -256,11 +256,9 @@ func (s *PricingTokenService) GenerateForForSale(
 	// STEP 1: DETERMINE SHIPPING COST AND DETAILS
 	// ============================================================================
 	var shippingTotal money.Money
-	var shippingOptionID uuid.UUID
-	var shippingOptionName string
+	var shippingSetupID uuid.UUID
+	var shippingSetupName string
 	var shippingTransportType string
-	var shippingExpeditionName *string
-	var estimatedDays *string
 
 	if hasShippingQuote {
 		// ========================================================================
@@ -300,17 +298,15 @@ func (s *PricingTokenService) GenerateForForSale(
 
 		// For shipping quotes, use empty/placeholder values for shipping option details
 		// The actual shipping method will be determined by seller during fulfillment
-		shippingOptionID = uuid.Nil
-		shippingOptionName = "Manual Quote"
+		shippingSetupID = uuid.Nil
+		shippingSetupName = "Manual Quote"
 		shippingTransportType = "manual"
-		shippingExpeditionName = quote.Note // Store quote note as expedition name for reference
-		estimatedDays = nil                 // No ETA for manual quotes
 	} else {
 		// ========================================================================
 		// SHIPPING OPTION MODE: Use forSale shipping options
 		// ========================================================================
 		// Fetch shipping option
-		shippingOption, err := s.shippingRepo.GetByID(ctx, tx, *req.ShippingOptionID)
+		shippingSetup, err := s.shippingRepo.GetByID(ctx, tx, *req.ShippingSetupID)
 		if err != nil {
 			return nil, fmt.Errorf("shipping option not found: %w", err)
 		}
@@ -321,17 +317,16 @@ func (s *PricingTokenService) GenerateForForSale(
 			return nil, fmt.Errorf("failed to get buyer province: %w", err)
 		}
 
-		// Get province-based shipping cost and ETA from ShippingCoverage
-		shippingTotal, estimatedDays, err = s.getShippingCostAndETA(ctx, tx, *req.ShippingOptionID, provinceCode)
+		// Get province-based shipping cost from ShippingCoverage
+		shippingTotal, err = s.getShippingCostAndETA(ctx, tx, *req.ShippingSetupID, provinceCode)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get shipping cost for province %s: %w", provinceCode, err)
 		}
 
 		// Store shipping option details
-		shippingOptionID = shippingOption.ID
-		shippingOptionName = shippingOption.Name
-		shippingTransportType = string(shippingOption.TransportType)
-		shippingExpeditionName = shippingOption.ExpeditionName
+		shippingSetupID = shippingSetup.ID
+		shippingSetupName = shippingSetup.Name
+		shippingTransportType = string(shippingSetup.TransportType)
 	}
 
 	// Calculate base pricing
@@ -402,11 +397,9 @@ func (s *PricingTokenService) GenerateForForSale(
 		postDiscount.CommissionAmount,
 		postDiscount.EscrowAmount,
 		money.Zero(),
-		shippingOptionID,
-		shippingOptionName,
+		shippingSetupID,
+		shippingSetupName,
 		shippingTransportType,
-		shippingExpeditionName,
-		estimatedDays,
 		req.AddressID,
 		addressSnapshot,
 		discountID, // Added for atomic discount usage recording
@@ -498,7 +491,7 @@ func (s *PricingTokenService) ValidateForOrderLocked(
 	sourceID uuid.UUID,
 	quantity int,
 	addressID uuid.UUID,
-	shippingOptionID uuid.UUID,
+	shippingSetupID uuid.UUID,
 ) (*pricingtokenentity.PricingToken, error) {
 	// Fetch token with FOR UPDATE lock to prevent concurrent use
 	pricingToken, err := s.tokenRepo.GetByTokenForUpdate(ctx, tx, token)
@@ -525,7 +518,7 @@ func (s *PricingTokenService) ValidateForOrderLocked(
 		sourceID,
 		quantityToValidate,
 		addressID,
-		shippingOptionID,
+		shippingSetupID,
 	); err != nil {
 		return nil, err
 	}
@@ -589,7 +582,7 @@ func (s *PricingTokenService) ValidateAndConsume(
 	sourceID uuid.UUID,
 	quantity int,
 	addressID uuid.UUID,
-	shippingOptionID uuid.UUID,
+	shippingSetupID uuid.UUID,
 	orderID uuid.UUID,
 ) (*pricingtokenentity.PricingToken, error) {
 	pricingToken, err := s.ValidateForOrderLocked(
@@ -602,7 +595,7 @@ func (s *PricingTokenService) ValidateAndConsume(
 		sourceID,
 		quantity,
 		addressID,
-		shippingOptionID,
+		shippingSetupID,
 	)
 	if err != nil {
 		return nil, err
@@ -764,25 +757,25 @@ func (s *PricingTokenService) getAddressWithProvince(
 func (s *PricingTokenService) getShippingCostAndETA(
 	ctx context.Context,
 	tx db.Tx,
-	shippingOptionID uuid.UUID,
+	shippingSetupID uuid.UUID,
 	provinceCode string,
-) (shippingCost money.Money, estimatedDays *string, err error) {
-	coverage, err := s.coverageRepo.GetByOptionAndProvince(ctx, tx, shippingOptionID, provinceCode)
+) (shippingCost money.Money, err error) {
+	coverage, err := s.coverageRepo.GetByOptionAndProvince(ctx, tx, shippingSetupID, provinceCode)
 	if err != nil {
-		return money.Zero(), nil, fmt.Errorf("shipping coverage not found for province %s: %w", provinceCode, err)
+		return money.Zero(), fmt.Errorf("shipping coverage not found for province %s: %w", provinceCode, err)
 	}
 	if !coverage.IsAvailable {
-		return money.Zero(), nil, fmt.Errorf("shipping not available for province %s", provinceCode)
+		return money.Zero(), fmt.Errorf("shipping not available for province %s", provinceCode)
 	}
-	return coverage.ProvinceRate, coverage.EstimatedDays, nil
+	return coverage.ProvinceRate, nil
 }
 
 // ValidateForOrderRequest represents the validation request parameters.
 //
 // SHIPPING SOURCE (REPLACE MODE):
-// - Exactly one of ShippingQuoteID or ShippingOptionID must be provided
+// - Exactly one of ShippingQuoteID or ShippingSetupID must be provided
 // - If ShippingQuoteID is set, shipping comes from manual quote
-// - If ShippingOptionID is set, shipping comes from forSale options
+// - If ShippingSetupID is set, shipping comes from forSale options
 type ValidateForOrderRequest struct {
 	Token            uuid.UUID
 	RequesterID      uuid.UUID
@@ -791,7 +784,7 @@ type ValidateForOrderRequest struct {
 	SourceID         uuid.UUID
 	Quantity         int
 	AddressID        uuid.UUID
-	ShippingOptionID *uuid.UUID // Optional: Pointer to allow nil when using ShippingQuote
+	ShippingSetupID *uuid.UUID // Optional: Pointer to allow nil when using ShippingQuote
 	ShippingQuoteID  *uuid.UUID // Optional: When set, uses manual shipping quote
 }
 
@@ -816,9 +809,9 @@ func (s *PricingTokenService) ValidateForOrder(
 
 	// Determine shipping option ID for validation
 	// If token has ShippingQuoteID, pass uuid.Nil for shipping option validation
-	shippingOptionID := uuid.Nil
-	if req.ShippingOptionID != nil {
-		shippingOptionID = *req.ShippingOptionID
+	shippingSetupID := uuid.Nil
+	if req.ShippingSetupID != nil {
+		shippingSetupID = *req.ShippingSetupID
 	}
 
 	// Validate token for order creation
@@ -829,7 +822,7 @@ func (s *PricingTokenService) ValidateForOrder(
 		req.SourceID,
 		req.Quantity,
 		req.AddressID,
-		shippingOptionID,
+		shippingSetupID,
 	); err != nil {
 		return nil, err
 	}
@@ -846,7 +839,7 @@ type GenerateForNegotiationRequest struct {
 	UserID           uuid.UUID
 	NegotiationID    uuid.UUID
 	AddressID        uuid.UUID
-	ShippingOptionID uuid.UUID
+	ShippingSetupID uuid.UUID
 	DiscountCode     *string
 }
 
@@ -947,7 +940,7 @@ func (s *PricingTokenService) GenerateForNegotiation(
 	// ============================================================
 	// STEP 4: VALIDATE SHIPPING OPTION AND GET PROVINCE-BASED PRICING
 	// ============================================================
-	shippingOption, err := s.shippingRepo.GetByID(ctx, tx, req.ShippingOptionID)
+	shippingSetup, err := s.shippingRepo.GetByID(ctx, tx, req.ShippingSetupID)
 	if err != nil {
 		return nil, fmt.Errorf("shipping option not found: %w", err)
 	}
@@ -958,8 +951,8 @@ func (s *PricingTokenService) GenerateForNegotiation(
 		return nil, fmt.Errorf("failed to get buyer province: %w", err)
 	}
 
-	// Get province-based shipping cost and ETA from ShippingCoverage
-	shippingTotal, estimatedDays, err := s.getShippingCostAndETA(ctx, tx, req.ShippingOptionID, provinceCode)
+	// Get province-based shipping cost from ShippingCoverage
+	shippingTotal, err := s.getShippingCostAndETA(ctx, tx, req.ShippingSetupID, provinceCode)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get shipping cost for province %s: %w", provinceCode, err)
 	}
@@ -1035,11 +1028,9 @@ func (s *PricingTokenService) GenerateForNegotiation(
 		postDiscount.CommissionAmount,
 		postDiscount.EscrowAmount,
 		money.Zero(),
-		req.ShippingOptionID,
-		shippingOption.Name,
-		string(shippingOption.TransportType),
-		shippingOption.ExpeditionName,
-		estimatedDays,
+		req.ShippingSetupID,
+		shippingSetup.Name,
+		string(shippingSetup.TransportType),
 		req.AddressID,
 		addressSnapshot,
 		discountID, // Discount may be applied for negotiation checkout
@@ -1103,7 +1094,7 @@ type GenerateForAuctionRequest struct {
 	UserID           uuid.UUID
 	AuctionID        uuid.UUID
 	AddressID        uuid.UUID
-	ShippingOptionID uuid.UUID
+	ShippingSetupID uuid.UUID
 	DiscountCode     *string
 	UseCoins         bool // Whether buyer wants to apply coins (backend decides actual amount)
 }
@@ -1211,7 +1202,7 @@ func (s *PricingTokenService) GenerateForAuction(
 	// ============================================================
 	// STEP 5: VALIDATE SHIPPING OPTION AND GET PROVINCE-BASED PRICING
 	// ============================================================
-	shippingOption, err := s.shippingRepo.GetByID(ctx, tx, req.ShippingOptionID)
+	shippingSetup, err := s.shippingRepo.GetByID(ctx, tx, req.ShippingSetupID)
 	if err != nil {
 		return nil, fmt.Errorf("shipping option not found: %w", err)
 	}
@@ -1222,8 +1213,8 @@ func (s *PricingTokenService) GenerateForAuction(
 		return nil, fmt.Errorf("failed to get buyer province: %w", err)
 	}
 
-	// Get province-based shipping cost and ETA from ShippingCoverage
-	shippingTotal, estimatedDays, err := s.getShippingCostAndETA(ctx, tx, req.ShippingOptionID, provinceCode)
+	// Get province-based shipping cost from ShippingCoverage
+	shippingTotal, err := s.getShippingCostAndETA(ctx, tx, req.ShippingSetupID, provinceCode)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get shipping cost for province %s: %w", provinceCode, err)
 	}
@@ -1297,11 +1288,9 @@ func (s *PricingTokenService) GenerateForAuction(
 		postDiscount.CommissionAmount,
 		postDiscount.EscrowAmount,
 		money.Zero(),
-		req.ShippingOptionID,
-		shippingOption.Name,
-		string(shippingOption.TransportType),
-		shippingOption.ExpeditionName,
-		estimatedDays,
+		req.ShippingSetupID,
+		shippingSetup.Name,
+		string(shippingSetup.TransportType),
 		req.AddressID,
 		addressSnapshot,
 		discountID, // Added for atomic discount usage recording

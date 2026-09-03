@@ -60,9 +60,6 @@ func (r *negotiationFakeChatRepo) GetRoomByOrderID(context.Context, interface{},
 func (r *negotiationFakeChatRepo) UpdateRoomLastMessageAt(context.Context, interface{}, uuid.UUID, time.Time) error {
 	return nil
 }
-func (r *negotiationFakeChatRepo) UpdateRoomContext(context.Context, interface{}, uuid.UUID, json.RawMessage, uuid.UUID) error {
-	return nil
-}
 func (r *negotiationFakeChatRepo) UpdateRoomLinkedOrderId(context.Context, interface{}, uuid.UUID, *uuid.UUID) error {
 	return nil
 }

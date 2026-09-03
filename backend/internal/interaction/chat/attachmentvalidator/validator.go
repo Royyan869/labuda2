@@ -245,7 +245,7 @@ func validateShippingQuoteAttachmentV2(data map[string]interface{}) []Validation
 		"offer_id": true, "linked_item_id": true, "linked_item_type": true, "linked_item_name": true,
 		"linked_item_image": true, "linked_item_price": true, "linked_item_buy_now_price": true,
 		"for_sale_id": true, "auction_id": true, "shipping_type": true, "shipping_type_name": true,
-		"shipping_type_emoji": true, "expedition_name": true, "rate": true, "estimated_days": true,
+		"shipping_type_emoji": true, "rate": true,
 		"notes": true, "valid_until": true, "status": true, "seller_id": true,
 	}
 	for key := range data {

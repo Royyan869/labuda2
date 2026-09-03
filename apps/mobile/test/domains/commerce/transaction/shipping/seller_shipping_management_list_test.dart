@@ -17,36 +17,36 @@ import 'package:labuda/shared/providers/wilayah_provider_simple.dart';
 // =============================================================================
 
 class _MutationTestRepo implements ShippingRepository {
-  List<ShippingOption> _options;
+  List<ShippingSetup> _options;
   bool failToggle = false;
   bool failDelete = false;
   bool deleteConflict = false;
-  CreateShippingOptionRequest? lastCreateRequest;
-  UpdateShippingOptionFullRequest? lastFullUpdate;
+  CreateShippingSetupRequest? lastCreateRequest;
+  UpdateShippingSetupFullRequest? lastFullUpdate;
   String? lastToggledId;
   bool? lastToggleValue;
 
-  _MutationTestRepo({List<ShippingOption>? options})
+  _MutationTestRepo({List<ShippingSetup>? options})
       : _options = options ?? [];
 
   @override
-  Future<Result<List<ShippingOption>>> listMyShippingOptions() async =>
+  Future<Result<List<ShippingSetup>>> listMyShippingSetups() async =>
       Result.success(_options);
 
   @override
-  Future<Result<List<ShippingOption>>> listMyActiveShippingOptions() async =>
+  Future<Result<List<ShippingSetup>>> listMyActiveShippingSetups() async =>
       Result.success(_options.where((o) => o.isActive).toList());
 
   @override
-  Future<Result<ShippingOption>> getShippingOptionById(
+  Future<Result<ShippingSetup>> getShippingSetupById(
       String optionId) async =>
       Result.error('not used');
 
   @override
-  Future<Result<ShippingOption>> createShippingOption(
-      CreateShippingOptionRequest request) async {
+  Future<Result<ShippingSetup>> createShippingSetup(
+      CreateShippingSetupRequest request) async {
     lastCreateRequest = request;
-    final created = ShippingOption(
+    final created = ShippingSetup(
       id: 'new-opt',
       name: request.name,
       type: request.type,
@@ -61,8 +61,19 @@ class _MutationTestRepo implements ShippingRepository {
   }
 
   @override
-  Future<Result<ShippingOption>> updateShippingOptionFull(
-      String optionId, UpdateShippingOptionFullRequest request) async {
+  Future<Result<ShippingSetup>> updateShippingSetup(
+      String optionId, UpdateShippingSetupRequest request) async {
+    final idx = _options.indexWhere((o) => o.id == optionId);
+    if (idx >= 0) {
+      _options[idx] = _options[idx].copyWith(name: request.name);
+      return Result.success(_options[idx]);
+    }
+    return Result.error('not found');
+  }
+
+  @override
+  Future<Result<ShippingSetup>> updateShippingSetupFull(
+      String optionId, UpdateShippingSetupFullRequest request) async {
     lastFullUpdate = request;
     final idx = _options.indexWhere((o) => o.id == optionId);
     if (idx >= 0) {
@@ -73,7 +84,7 @@ class _MutationTestRepo implements ShippingRepository {
   }
 
   @override
-  Future<Result<void>> deleteShippingOption(String optionId) async {
+  Future<Result<void>> deleteShippingSetup(String optionId) async {
     if (failDelete) return Result.error('delete failed');
     if (deleteConflict) {
       return Result.error(
@@ -111,11 +122,11 @@ class _MutationTestRepo implements ShippingRepository {
   Future<Result<void>> deleteCoverage(String coverageId) async =>
       Result.error('not used');
   @override
-  Future<Result<void>> setProductShippingOptions(
+  Future<Result<void>> setProductShippingSetups(
           String productId, List<String> ids) async =>
       Result.error('not used');
   @override
-  Future<Result<DeliveryAvailabilityResult>> checkDeliveryAvailability(
+  Future<Result<List<DeliveryOption>>> checkDeliveryAvailability(
           CheckDeliveryRequest request) async =>
       Result.error('not used');
 }
@@ -134,7 +145,7 @@ class _FakeAuthController extends AuthController {
       isEmailVerified: true, accountStatus: AccountStatus.active,
       hasSellerProfile: true, sellerSubscriptionStatus: 'active',
       hasMarketAuthority: true, roles: const [UserRole.user],
-      provider: ShonaAuthProvider.email, lifecycle: ContentLifecycle.active,
+      provider: AuthProvider.email, lifecycle: ContentLifecycle.active,
     );
     return AuthState.authenticated(user, emailVerified: true);
   }
@@ -142,7 +153,7 @@ class _FakeAuthController extends AuthController {
 
 class _FakePresenceManager extends PresenceManager {
   @override
-  PresenceAuthorityState build() => const PresenceAuthorityState.empty();
+  PresenceState build() => const PresenceState();
 }
 
 Widget _wrap({
@@ -160,7 +171,7 @@ Widget _wrap({
       ),
       GoRoute(
         path: RoutePaths.sellerShippingSetup,
-        builder: (_, __) => const ShippingOptionSetupScreen(),
+        builder: (_, __) => const ShippingSetupScreen(),
       ),
     ],
   );
@@ -186,7 +197,7 @@ void main() {
     testWidgets('toggle sends lifecycle-only request and updates card',
         (tester) async {
       final repo = _MutationTestRepo(options: [
-        ShippingOption(
+        ShippingSetup(
           id: 'ship-1', name: 'Bus Kencana', type: ShippingType.bus,
           coverageAreas: const [], isActive: true,
           createdAt: DateTime.utc(2026, 7, 25),
@@ -217,7 +228,7 @@ void main() {
     testWidgets('toggle failure preserves cards and shows safe error',
         (tester) async {
       final repo = _MutationTestRepo(options: [
-        ShippingOption(
+        ShippingSetup(
           id: 'ship-1', name: 'Bus Kencana', type: ShippingType.bus,
           coverageAreas: const [], isActive: true,
           createdAt: DateTime.utc(2026, 7, 25),
@@ -244,7 +255,7 @@ void main() {
     testWidgets('delete unused option removes card after backend success',
         (tester) async {
       final repo = _MutationTestRepo(options: [
-        ShippingOption(
+        ShippingSetup(
           id: 'ship-1', name: 'Bus Kencana', type: ShippingType.bus,
           coverageAreas: const [], isActive: true,
           createdAt: DateTime.utc(2026, 7, 25),
@@ -276,7 +287,7 @@ void main() {
     testWidgets('delete 409 preserves card with localized message',
         (tester) async {
       final repo = _MutationTestRepo(options: [
-        ShippingOption(
+        ShippingSetup(
           id: 'ship-1', name: 'Bus Kencana', type: ShippingType.bus,
           coverageAreas: const [], isActive: true,
           createdAt: DateTime.utc(2026, 7, 25),
@@ -306,7 +317,7 @@ void main() {
     testWidgets('delete failure preserves list data not replaced by load error',
         (tester) async {
       final repo = _MutationTestRepo(options: [
-        ShippingOption(
+        ShippingSetup(
           id: 'ship-1', name: 'Bus Kencana', type: ShippingType.bus,
           coverageAreas: const [], isActive: true,
           createdAt: DateTime.utc(2026, 7, 25),
@@ -337,7 +348,7 @@ void main() {
     testWidgets('mutation error does not become list-load failure', (
         tester) async {
       final repo = _MutationTestRepo(options: [
-        ShippingOption(
+        ShippingSetup(
           id: 'ship-1', name: 'Bus Kencana', type: ShippingType.bus,
           coverageAreas: const [], isActive: true,
           createdAt: DateTime.utc(2026, 7, 25),
@@ -362,7 +373,7 @@ void main() {
       expect(find.text('Bus Kencana'), findsOneWidget);
     });
 
-    testWidgets('add returns from setup and refreshes with new option', (
+    testWidgets('add opens create bottom sheet', (
         tester) async {
       final repo = _MutationTestRepo();
 
@@ -379,8 +390,8 @@ void main() {
       await tester.tap(find.text('Tambah Opsi Pengiriman'));
       await tester.pumpAndSettle();
 
-      // Setup page opened
-      expect(find.byType(ShippingOptionSetupScreen), findsOneWidget);
+      // Bottom sheet form opened with name input
+      expect(find.text('Nama opsi *'), findsOneWidget);
     });
   });
 }

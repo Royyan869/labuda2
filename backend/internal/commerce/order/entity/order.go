@@ -92,11 +92,9 @@ type Order struct {
 	CoinsUsed int64 `json:"coins_used"` // Number of coins used (DISPLAY ONLY - see usage rules above)
 
 	// Shipping option snapshot (no FK - immutable snapshot at order creation)
-	ShippingOptionID       *uuid.UUID `json:"shipping_option_id,omitempty"`       // Snapshot of shipping option ID (NULL when using shipping quote)
-	ShippingOptionName     string     `json:"shipping_option_name"`               // Snapshot of shipping option name
-	ShippingTransportType  string     `json:"shipping_transport_type"`            // Snapshot of transport type (train, bus, travel, plane, custom, manual)
-	ShippingExpeditionName *string    `json:"shipping_expedition_name,omitempty"` // Snapshot of expedition/company name (nullable)
-	ShippingEstimatedDays  *string    `json:"shipping_estimated_days,omitempty"`  // Snapshot of estimated delivery days (e.g., "1-2 hari")
+	ShippingSetupID      *uuid.UUID `json:"shipping_option_id,omitempty"`       // Snapshot of shipping option ID (NULL when using shipping quote)
+	ShippingSetupName    string     `json:"shipping_option_name"`               // Snapshot of shipping option name
+	ShippingTransportType string     `json:"shipping_transport_type"`            // Snapshot of transport type (train, bus, travel, plane, custom, manual)
 
 	// Shipping source indicates where the shipping cost originated
 	// - "for_sale": Shipping cost from the for-sale surface shipping options (default)
@@ -1040,11 +1038,9 @@ func NewOrderFromSource(
 	commissionAmount money.Money, // Commission amount from pricing snapshot
 	serviceFeeAmount money.Money, // Flat buyer checkout service fee snapshot
 	totalPayableAmount money.Money, // Buyer gross payable snapshot
-	shippingOptionID *uuid.UUID, // NULLABLE: nil when using shipping quote
-	shippingOptionName string,
+	shippingSetupID *uuid.UUID, // NULLABLE: nil when using shipping quote
+	shippingSetupName string,
 	shippingTransportType string,
-	shippingExpeditionName *string,
-	shippingEstimatedDays *string,
 	auctionSettlementType *AuctionSettlementType,
 	preparationTimeSnapshot string,
 	preparationNoteSnapshot *string,
@@ -1102,11 +1098,9 @@ func NewOrderFromSource(
 		TotalPayableAmount:        totalPayableAmount,
 		TotalBeforeCoinsAmount:    totalPayableAmount,
 		CoinsUsed:                 0, // No coins used by default
-		ShippingOptionID:          shippingOptionID,
-		ShippingOptionName:        shippingOptionName,
+		ShippingSetupID:          shippingSetupID,
+		ShippingSetupName:        shippingSetupName,
 		ShippingTransportType:     shippingTransportType,
-		ShippingExpeditionName:    shippingExpeditionName,
-		ShippingEstimatedDays:     shippingEstimatedDays,
 		ShippingSource:            shippingSource,
 		ShippingQuoteID:           shippingQuoteID,    // TASK F: Store quote ID
 		ShippingQuotePrice:        shippingQuotePrice, // TASK F: Store quote price

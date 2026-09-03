@@ -44,7 +44,7 @@ class UserApiMapper {
       roles: _mapBackendRoles(
         response.roles,
       ), // Roles from PostgreSQL (Single Source of Truth)
-      provider: ShonaAuthProvider.email, // Default, could be enhanced
+      provider: AuthProvider.email, // Default, could be enhanced
     );
   }
 

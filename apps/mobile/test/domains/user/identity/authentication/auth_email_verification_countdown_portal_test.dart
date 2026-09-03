@@ -81,7 +81,7 @@ AuthUser _testUser({
     sellerSubscriptionStatus: 'none',
     hasMarketAuthority: false,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
   );
 }
 

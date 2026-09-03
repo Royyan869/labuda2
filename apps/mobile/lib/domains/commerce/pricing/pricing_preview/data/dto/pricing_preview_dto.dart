@@ -33,15 +33,13 @@ class PricingPreviewResponseDto {
     final snapshot = pricingSnapshot;
 
     // Parse shipping option if available
-    ShippingOptionInfo? shippingOption;
+    ShippingSetupInfo? shippingSetup;
     if (snapshot['shipping_option'] != null) {
       final shipping = snapshot['shipping_option'] as Map<String, dynamic>;
-      shippingOption = ShippingOptionInfo(
+      shippingSetup = ShippingSetupInfo(
         id: shipping['id']?.toString() ?? '',
         name: shipping['name']?.toString() ?? '',
         transportType: shipping['transport_type']?.toString() ?? '',
-        expeditionName: shipping['expedition_name']?.toString() ?? '',
-        estimatedDays: shipping['estimated_days'] as int? ?? 0,
       );
     }
 
@@ -60,7 +58,7 @@ class PricingPreviewResponseDto {
       discountType: snapshot['discount_type']?.toString(),
       discountValue: snapshot['discount_value']?.toString(),
       escrowAmount: snapshot['escrow_amount'] as int? ?? 0,
-      shippingOption: shippingOption,
+      shippingSetup: shippingSetup,
       addressId: snapshot['address_id']?.toString() ?? '',
       coinsAmount: snapshot['coins_amount'] as int? ?? 0,
       originalPrice: snapshot['original_price'] as int?,
@@ -81,7 +79,7 @@ class PricingPreviewRequestDto {
   final String sourceType;
   final String sourceId;
   final int quantity;
-  final String? shippingOptionId;
+  final String? shippingSetupId;
   final String? shippingQuoteId;
   final String addressId;
   final String? discountCode;
@@ -91,7 +89,7 @@ class PricingPreviewRequestDto {
     required this.sourceType,
     required this.sourceId,
     required this.quantity,
-    this.shippingOptionId,
+    this.shippingSetupId,
     this.shippingQuoteId,
     required this.addressId,
     this.discountCode,
@@ -103,7 +101,7 @@ class PricingPreviewRequestDto {
       'source_type': sourceType,
       'source_id': sourceId,
       'quantity': quantity,
-      if (shippingOptionId != null) 'shipping_option_id': shippingOptionId,
+      if (shippingSetupId != null) 'shipping_setup_id': shippingSetupId,
       if (shippingQuoteId != null) 'shipping_quote_id': shippingQuoteId,
       'address_id': addressId,
       if (discountCode != null) 'discount_code': discountCode,
@@ -118,13 +116,13 @@ class PricingPreviewRequestDto {
 /// accepted negotiation record — no product_id or source_type needed.
 class NegotiationPricingPreviewRequestDto {
   final String negotiationId;
-  final String? shippingOptionId;
+  final String? shippingSetupId;
   final String? shippingQuoteId;
   final String addressId;
 
   NegotiationPricingPreviewRequestDto({
     required this.negotiationId,
-    this.shippingOptionId,
+    this.shippingSetupId,
     this.shippingQuoteId,
     required this.addressId,
   });
@@ -132,7 +130,7 @@ class NegotiationPricingPreviewRequestDto {
   Map<String, dynamic> toJson() {
     return {
       'negotiation_id': negotiationId,
-      if (shippingOptionId != null) 'shipping_option_id': shippingOptionId,
+      if (shippingSetupId != null) 'shipping_setup_id': shippingSetupId,
       if (shippingQuoteId != null) 'shipping_quote_id': shippingQuoteId,
       'address_id': addressId,
     };

@@ -38,7 +38,7 @@ func claimErrorMapping() []struct {
 			expectedBody: "CONFLICT",
 		},
 		{
-			err:          fmt.Errorf("%w: status=expired_bnr (expected waiting_settlement)", entity.ErrNotClaimable),
+			err:          fmt.Errorf("%w: status=ended (expected waiting_settlement)", entity.ErrNotClaimable),
 			wrapMsg:      "claim validation failed",
 			expectedCode: http.StatusConflict,
 			expectedBody: "CONFLICT",
@@ -138,7 +138,7 @@ func TestClaimErrorMapping_WrappedErrorsUnwrap(t *testing.T) {
 	}{
 		{
 			name:   "ErrNotClaimable wrapped with status detail",
-			err:    fmt.Errorf("claim validation failed: %w", fmt.Errorf("%w: status=expired_bnr (expected waiting_settlement)", entity.ErrNotClaimable)),
+			err:    fmt.Errorf("claim validation failed: %w", fmt.Errorf("%w: status=ended (expected waiting_settlement)", entity.ErrNotClaimable)),
 			target: entity.ErrNotClaimable,
 		},
 		{

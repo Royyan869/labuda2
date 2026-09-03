@@ -43,14 +43,15 @@ type handlerAccountStatusChecker interface {
 
 // Handler handles HTTP requests for chat operations.
 type Handler struct {
-	chatService         *chatApp.Service
-	orderService        *orderApp.OrderService
-	negotiationRepo     negotiationRepo.Repository
-	negotiationService  *negotiationApp.NegotiationService
-	pricingTokenService *pricingtokenapp.PricingTokenService
-	statusChecker       handlerAccountStatusChecker // Account status enforcement
-	db                  *db.DB
-	log                 *zap.Logger
+	chatService                *chatApp.Service
+	orderService               *orderApp.OrderService
+	negotiationRepo            negotiationRepo.Repository
+	negotiationService         *negotiationApp.NegotiationService
+	pricingTokenService        *pricingtokenapp.PricingTokenService
+	statusChecker              handlerAccountStatusChecker // Account status enforcement
+	db                         *db.DB
+	log                        *zap.Logger
+	resourceProjectionResolver chatApp.ResourceProjectionResolver
 }
 
 // NewHandler creates a new chat handler.
@@ -78,6 +79,14 @@ func NewHandler(
 	}
 }
 
+// SetResourceProjectionResolver injects the canonical resource projection
+// resolver used by ListMessages (and eventually SendMessage) to hydrate
+// resource_projection blocks on messages that carry a resource occurrence.
+// Call once during handler wiring; nil means no projection hydration.
+func (h *Handler) SetResourceProjectionResolver(r chatApp.ResourceProjectionResolver) {
+	h.resourceProjectionResolver = r
+}
+
 // ========================================================================
 // REQUEST DTOs
 // ========================================================================
@@ -95,20 +104,14 @@ type MarkAsReadRequest struct {
 	Timestamp string `json:"timestamp" binding:"required"`
 }
 
-// CreateDirectRoomRequest holds the request body for creating a direct room.
-type CreateDirectRoomRequest struct {
-	// Context is optional commerce context (fixed-price sale attachment, etc.)
-	Context map[string]interface{} `json:"context"`
-}
-
 // CreateOrderFromChatRequest holds the request body for creating an order from a chat room.
 type CreateOrderFromChatRequest struct {
 	// Shipping destination (required)
 	AddressID string `json:"address_id" binding:"required,uuid"`
 
 	// Shipping method (one of these is required)
-	ShippingQuoteID  *string `json:"shipping_quote_id,omitempty"`
-	ShippingOptionID *string `json:"shipping_option_id,omitempty"`
+	ShippingQuoteID *string `json:"shipping_quote_id,omitempty"`
+	ShippingSetupID *string `json:"shipping_option_id,omitempty"`
 
 	// Pricing token (required for anti-tamper)
 	// CRITICAL: All pricing data comes from the validated token
@@ -254,9 +257,6 @@ func (h *Handler) ListRooms(c *gin.Context) {
 // GetOrCreateDirectRoom handles POST /api/v1/chat/direct/:user_id
 //
 // Gets or creates a direct chat room with another user.
-//
-// Request body (optional):
-//   - context: Commerce context (fixed-price sale attachment, etc.)
 func (h *Handler) GetOrCreateDirectRoom(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -278,23 +278,8 @@ func (h *Handler) GetOrCreateDirectRoom(c *gin.Context) {
 		return
 	}
 
-	// Parse optional request body for context
-	var req CreateDirectRoomRequest
-	var contextJSON json.RawMessage
-	if err := c.ShouldBindJSON(&req); err == nil {
-		// Request body provided, parse context
-		if req.Context != nil {
-			contextBytes, err := json.Marshal(req.Context)
-			if err != nil {
-				response.BadRequest(c, "Invalid context format")
-				return
-			}
-			contextJSON = contextBytes
-		}
-	}
-
 	// Get or create room
-	room, err := h.chatService.GetOrCreateDirectRoom(ctx, userID, otherUserID, contextJSON, userID)
+	room, err := h.chatService.GetOrCreateDirectRoom(ctx, userID, otherUserID)
 	if err != nil {
 		if err == chatRepo.ErrSelfChat {
 			response.BadRequest(c, "Cannot create chat with yourself")
@@ -577,9 +562,9 @@ func (h *Handler) CreateOrderFromChat(c *gin.Context) {
 		return
 	}
 
-	var shippingOptionID uuid.UUID
-	if req.ShippingOptionID != nil && *req.ShippingOptionID != "" {
-		shippingOptionID, err = uuid.Parse(*req.ShippingOptionID)
+	var shippingSetupID uuid.UUID
+	if req.ShippingSetupID != nil && *req.ShippingSetupID != "" {
+		shippingSetupID, err = uuid.Parse(*req.ShippingSetupID)
 		if err != nil {
 			response.BadRequest(c, "Invalid shipping option ID")
 			return
@@ -675,7 +660,7 @@ func (h *Handler) CreateOrderFromChat(c *gin.Context) {
 			forSale.ID,
 			0, // Quantity from token, not request
 			addressID,
-			shippingOptionID,
+			shippingSetupID,
 		)
 		if err != nil {
 			return fmt.Errorf("pricing token validation failed: %w", err)
@@ -691,7 +676,7 @@ func (h *Handler) CreateOrderFromChat(c *gin.Context) {
 			forSale,
 			userID,
 			addressID,
-			shippingOptionID,
+			shippingSetupID,
 			pricingSnapshot,
 			&tokenID,
 			validatedToken.Quantity,
@@ -857,12 +842,12 @@ func (h *Handler) CreateOrderFromChat(c *gin.Context) {
 		default:
 			// Phase 0 honesty: surface typed shipping gate errors from the
 			// chat-driven order creation path with machine-readable codes.
-			if errors.Is(err, shippingApp.ErrNoShippingOptions) {
+			if errors.Is(err, shippingApp.ErrNoShippingSetups) {
 				response.Error(c, 400, "NO_SHIPPING_OPTIONS",
 					"Penjual belum mengatur pengiriman untuk produk ini.")
 				return
 			}
-			if errors.Is(err, shippingApp.ErrShippingOptionUnavailable) {
+			if errors.Is(err, shippingApp.ErrShippingSetupUnavailable) {
 				response.Error(c, 400, "SHIPPING_OPTION_UNAVAILABLE",
 					"Produk ini di luar area pengiriman untuk alamat Anda.")
 				return
@@ -1030,6 +1015,41 @@ func (h *Handler) ListMessages(c *gin.Context) {
 	data := make([]map[string]interface{}, len(messages))
 	for i, msg := range messages {
 		data[i] = messageToResponse(msg, senderCards, sellerLifecycles)
+	}
+
+	// Resource projection hydration: batch-fetch occurrences, resolve
+	// via the canonical aggregate resolver, and attach the projection
+	// envelope to each message response.
+	if len(messages) > 0 {
+		occurrences, err := h.getResourceOccurrencesByMessageIDs(ctx, messages)
+		if err != nil {
+			h.log.Error("Failed to fetch resource occurrences",
+				zap.String("room_id", roomID.String()),
+				zap.Error(err),
+			)
+			response.InternalServerError(c, "Failed to resolve resource projections")
+			return
+		}
+		if len(occurrences) > 0 {
+			if h.resourceProjectionResolver == nil {
+				response.InternalServerError(c, "Resource projection resolver not configured")
+				return
+			}
+			projections, err := h.resourceProjectionResolver.ResolveResourceProjections(ctx, userID, occurrences)
+			if err != nil {
+				h.log.Error("Failed to resolve resource projections",
+					zap.String("room_id", roomID.String()),
+					zap.Error(err),
+				)
+				response.InternalServerError(c, "Failed to resolve resource projections")
+				return
+			}
+			for i, msg := range messages {
+				if proj, ok := projections[msg.ID]; ok {
+					data[i]["resource_projection"] = proj
+				}
+			}
+		}
 	}
 
 	response.Success(c, gin.H{
@@ -1321,19 +1341,6 @@ func roomToResponse(
 		}
 	}
 
-	// Include context if present
-	if room.HasContext() {
-		var contextData interface{}
-		if err := json.Unmarshal(room.ContextJSON, &contextData); err == nil {
-			resp["context"] = contextData
-		}
-	}
-
-	// Include context_set_by if context exists
-	if room.HasContext() && room.ContextSetBy != nil {
-		resp["context_set_by"] = room.ContextSetBy.String()
-	}
-
 	// Include linked_order_id if present (order↔chat commerce continuity)
 	if room.HasLinkedOrder() && room.LinkedOrderID != nil {
 		resp["linked_order_id"] = room.LinkedOrderID.String()
@@ -1539,6 +1546,54 @@ func messageToResponse(
 	}
 
 	return resp
+}
+
+// getResourceOccurrencesByMessageIDs batch-fetches resource occurrences for
+// the given messages from chat_message_resource_occurrences. Returns a map
+// of messageID → occurrence. An empty (non-nil) map means no messages in
+// the page have occurrences.
+func (h *Handler) getResourceOccurrencesByMessageIDs(
+	ctx context.Context,
+	messages []*chatEntity.ChatMessage,
+) (map[uuid.UUID]*chatEntity.ChatMessageResourceOccurrence, error) {
+	out := make(map[uuid.UUID]*chatEntity.ChatMessageResourceOccurrence)
+	if len(messages) == 0 {
+		return out, nil
+	}
+	ids := make([]uuid.UUID, len(messages))
+	for i, msg := range messages {
+		ids[i] = msg.ID
+	}
+	rows, err := h.db.Pool().Query(ctx, `
+		SELECT message_id, operation, profile_source_id, content_source_id,
+		       for_sale_source_id, auction_source_id, fallback_snapshot, created_at
+		FROM chat_message_resource_occurrences
+		WHERE message_id = ANY($1)
+	`, ids)
+	if err != nil {
+		return nil, fmt.Errorf("query resource occurrences: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var occ chatEntity.ChatMessageResourceOccurrence
+		var fallbackSnapshot []byte
+		if err := rows.Scan(
+			&occ.MessageID, &occ.Operation,
+			&occ.ProfileSourceID, &occ.ContentSourceID,
+			&occ.ForSaleSourceID, &occ.AuctionSourceID,
+			&fallbackSnapshot, &occ.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan resource occurrence: %w", err)
+		}
+		if fallbackSnapshot != nil {
+			occ.FallbackSnapshot = json.RawMessage(fallbackSnapshot)
+		}
+		out[occ.MessageID] = &occ
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate resource occurrences: %w", err)
+	}
+	return out, nil
 }
 
 // hydrateRoomParticipants batch-loads ChatParticipantCards for the other
@@ -2005,29 +2060,27 @@ func buildPricingSnapshotFromToken(token *pricingtokenentity.PricingToken) *orde
 	}
 
 	return &orderApp.PricingSnapshot{
-		UnitPrice:              token.UnitPrice,
-		Subtotal:               token.Subtotal,
-		ShippingTotal:          token.ShippingTotal,
-		CommissionPercent:      token.CommissionPercent,
-		CommissionAmount:       token.CommissionAmount,
-		EscrowAmount:           token.EscrowAmount,
-		ServiceFeeAmount:       token.ServiceFeeAmount,
-		TotalPayableAmount:     token.TotalPayableAmount,
-		DiscountAmount:         token.DiscountAmount,
-		MaxCoinsAllowed:        token.MaxCoinsAllowed,
-		CoinsUsed:              token.CoinsUsed,
-		OrderValueForCoins:     token.OrderValueForCoins,
-		ShippingOptionName:     token.ShippingOptionName,
-		ShippingTransportType:  token.ShippingTransportType,
-		ShippingExpeditionName: token.ShippingExpeditionName,
-		ShippingEstimatedDays:  token.ShippingEstimatedDays,
-		ShippingDestination:    addressSnapshot,
-		ShippingSource:         shippingSource,
-		ShippingQuoteID:        token.ShippingQuoteID,
-		ChatID:                 nil, // Set during chat checkout if needed
-		AuctionID:              token.AuctionID,
-		PaymentMethod:          "default",   // TODO: Add payment method to token
-		TokenID:                token.Token, // Store token ID to prevent double-ordering
+		UnitPrice:             token.UnitPrice,
+		Subtotal:              token.Subtotal,
+		ShippingTotal:         token.ShippingTotal,
+		CommissionPercent:     token.CommissionPercent,
+		CommissionAmount:      token.CommissionAmount,
+		EscrowAmount:          token.EscrowAmount,
+		ServiceFeeAmount:      token.ServiceFeeAmount,
+		TotalPayableAmount:    token.TotalPayableAmount,
+		DiscountAmount:        token.DiscountAmount,
+		MaxCoinsAllowed:       token.MaxCoinsAllowed,
+		CoinsUsed:             token.CoinsUsed,
+		OrderValueForCoins:    token.OrderValueForCoins,
+		ShippingSetupName:     token.ShippingSetupName,
+		ShippingTransportType: token.ShippingTransportType,
+		ShippingDestination:   addressSnapshot,
+		ShippingSource:        shippingSource,
+		ShippingQuoteID:       token.ShippingQuoteID,
+		ChatID:                nil, // Set during chat checkout if needed
+		AuctionID:             token.AuctionID,
+		PaymentMethod:         "default",   // TODO: Add payment method to token
+		TokenID:               token.Token, // Store token ID to prevent double-ordering
 	}
 }
 
@@ -2098,22 +2151,22 @@ func buildNegotiationCheckoutInput(
 	forSale *forsaleEntity.ForSale,
 	buyerID uuid.UUID,
 	addressID uuid.UUID,
-	shippingOptionID uuid.UUID,
+	shippingSetupID uuid.UUID,
 	pricingSnapshot *orderApp.PricingSnapshot,
 	pricingTokenID *uuid.UUID,
 	quantity int,
 ) orderApp.CreateFromSaleSurfaceInput {
 	return orderApp.CreateFromSaleSurfaceInput{
-		ProductID:        forSale.ProductID,
-		SourceType:       orderentity.OrderSourceForSale,
-		SourceID:         forSale.ID,
-		BuyerID:          buyerID,
-		Quantity:         quantity,
-		AddressID:        addressID,
-		ShippingOptionID: shippingOptionID,
-		NegotiationID:    &negotiation.ID,
-		PricingSnapshot:  pricingSnapshot,
-		PricingTokenID:   pricingTokenID,
+		ProductID:       forSale.ProductID,
+		SourceType:      orderentity.OrderSourceForSale,
+		SourceID:        forSale.ID,
+		BuyerID:         buyerID,
+		Quantity:        quantity,
+		AddressID:       addressID,
+		ShippingSetupID: shippingSetupID,
+		NegotiationID:   &negotiation.ID,
+		PricingSnapshot: pricingSnapshot,
+		PricingTokenID:  pricingTokenID,
 	}
 }
 

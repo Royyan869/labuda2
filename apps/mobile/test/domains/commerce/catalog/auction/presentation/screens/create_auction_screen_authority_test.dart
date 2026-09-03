@@ -69,7 +69,7 @@ class _FakeAuctionNotifier extends AuctionNotifier {
     DateTime? scheduledStartAt,
     required int durationHours,
     AuctionLocation? location,
-    required List<String> shippingOptionIds,
+    required List<String> shippingSetupIds,
     String? preparationNote,
   }) async {
     createCalls += 1;
@@ -140,11 +140,11 @@ class _RecordingNavigatorObserver extends NavigatorObserver {
 }
 
 class _FakeShippingRepository implements ShippingRepository {
-  final List<ShippingOption> _options;
+  final List<ShippingSetup> _options;
 
   _FakeShippingRepository()
     : _options = [
-        ShippingOption(
+        ShippingSetup(
           id: 'ship-1',
           name: 'JNE',
           type: ShippingType.custom,
@@ -155,30 +155,30 @@ class _FakeShippingRepository implements ShippingRepository {
       ];
 
   @override
-  Future<Result<List<ShippingOption>>> listMyShippingOptions() async =>
+  Future<Result<List<ShippingSetup>>> listMyShippingSetups() async =>
       Result.success(_options);
 
   @override
-  Future<Result<List<ShippingOption>>> listMyActiveShippingOptions() async =>
+  Future<Result<List<ShippingSetup>>> listMyActiveShippingSetups() async =>
       Result.success(_options);
 
   @override
-  Future<Result<ShippingOption>> getShippingOptionById(String optionId) async =>
+  Future<Result<ShippingSetup>> getShippingSetupById(String optionId) async =>
       Result.error('not used');
 
   @override
-  Future<Result<ShippingOption>> createShippingOption(
-    CreateShippingOptionRequest request,
+  Future<Result<ShippingSetup>> createShippingSetup(
+    CreateShippingSetupRequest request,
   ) async => Result.error('not used');
 
   @override
-  Future<Result<ShippingOption>> updateShippingOptionFull(
+  Future<Result<ShippingSetup>> updateShippingSetupFull(
     String optionId,
-    UpdateShippingOptionFullRequest request,
+    UpdateShippingSetupFullRequest request,
   ) async => Result.error('not used');
 
   @override
-  Future<Result<void>> deleteShippingOption(String optionId) async =>
+  Future<Result<void>> deleteShippingSetup(String optionId) async =>
       Result.error('not used');
 
   @override
@@ -204,9 +204,9 @@ class _FakeShippingRepository implements ShippingRepository {
       Result.error('not used');
 
   @override
-  Future<Result<void>> setProductShippingOptions(
+  Future<Result<void>> setProductShippingSetups(
     String productId,
-    List<String> shippingOptionIds,
+    List<String> shippingSetupIds,
   ) async => Result.error('not used');
 
   @override
@@ -334,7 +334,7 @@ AuthUser _seller({
     isEmailVerified: true,
     accountStatus: AccountStatus.active,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     hasSellerProfile: hasSellerProfile,
     sellerSubscriptionStatus: hasMarketAuthority ? 'active' : 'expired',
     hasMarketAuthority: hasMarketAuthority,

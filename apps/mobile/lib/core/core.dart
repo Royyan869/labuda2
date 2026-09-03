@@ -35,7 +35,6 @@ export 'src/utils/extensions/string_extensions.dart';
 export 'src/utils/extensions/context_extensions.dart';
 
 // Constants exports
-export 'constants/firestore_collections.dart';
 export 'constants/koi_varieties.dart';
 export 'src/enums/koi_gender.dart';
 
@@ -88,14 +87,7 @@ export 'providers/core_providers.dart' hide navigationHandlerProvider;
 // Legacy bridge - TODO: Remove after migration complete
 export '../../shared/providers/core_providers.dart';
 
-// Core Infra exports (Observability, Experiment, Messaging)
-// Firebase SDK isolated - use these interfaces instead
-export 'observability/crash_reporter.dart';
-export 'observability/performance_monitor.dart';
-export 'observability/global_error_handler.dart';
-export 'observability/performance_route_observer.dart';
-export 'experiment/feature_flag.dart';
-export 'experiment/experiment_service.dart';
+// Core Infra exports (Messaging)
 export 'messaging/notification_service.dart';
 export 'observability/providers.dart';
 

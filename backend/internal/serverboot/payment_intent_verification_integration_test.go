@@ -531,8 +531,6 @@ func seedPaymentIntentPricingToken(
 		uuid.New(),
 		"JNE Reguler",
 		"reguler",
-		nil,
-		nil,
 		uuid.New(),
 		[]byte(`{}`),
 		nil,
@@ -584,15 +582,13 @@ func createPaymentIntentOrderWithToken(
 		nil,
 		"JNE Reguler",
 		"reguler",
-		nil,
-		nil,
-		nil,
-		"immediate",
-		nil,
-		nil,
-		nil,
-		nil,
-		&tokenID,
+		nil,         // auctionSettlementType
+		"immediate", // preparationTimeSnapshot
+		nil,         // preparationNoteSnapshot
+		nil,         // shippingSource
+		nil,         // shippingQuoteID
+		nil,         // shippingQuotePrice
+		&tokenID,    // pricingTokenID
 		"default",
 		time.Now().Add(1*time.Hour),
 	)

@@ -48,12 +48,13 @@ func GetCategory(notifyType string) NotificationCategory {
 		strings.HasPrefix(notifyType, "refund."), // D1A
 		strings.HasPrefix(notifyType, "negotiation."),
 		strings.HasPrefix(notifyType, "external_product.review."), // review decision — owner must not miss approval/rejection
-		notifyType == "auction.bid.placed",              // seller must always receive bid notifications
-		notifyType == "auction.waiting_settlement",      // winner must always receive claim notification
-		notifyType == "auction.seller_has_winner",       // seller must know their auction has a winner pending claim
-		notifyType == "auction.ended_no_winner",         // seller must know their auction closed without a winner
-		notifyType == "auction.bnr_seller",              // seller must know settlement expired
-		notifyType == "auction.bnr_winner",              // winner must know BNR strike recorded
+		notifyType == "auction.bid.placed",                    // seller must always receive bid notifications
+		notifyType == "auction.waiting_settlement",            // winner must always receive claim notification
+		notifyType == "auction.seller_has_winner",             // seller must know their auction has a winner pending claim
+		notifyType == "auction.ended_no_winner",               // seller must know their auction closed without a winner
+		notifyType == "auction.settlement_failed.buyer",       // buyer must know their settlement failed (violation/restriction)
+		notifyType == "auction.settlement_failed.seller_default", // seller must know their quote default caused DRAFT
+		notifyType == "auction.settlement_failed.relistable",  // seller must know the auction is back in DRAFT and relistable
 		notifyType == "support.ticket.created",    // admin must see all tickets regardless of submitter status
 		notifyType == "support.ticket.resolved",
 		notifyType == "support.ticket.closed",
@@ -213,8 +214,9 @@ func RequiresPushByType(notifyType string) bool {
 		return true
 	}
 
-	// Priority: Auction BNR — settlement expired, both parties must know.
-	if notifyType == "auction.bnr_seller" || notifyType == "auction.bnr_winner" {
+	// Priority: Auction settlement failure — buyer/seller must know the outcome
+	// (violation/restriction applied, auction returned to DRAFT).
+	if strings.HasPrefix(notifyType, "auction.settlement_failed") {
 		return true
 	}
 

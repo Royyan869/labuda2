@@ -39,8 +39,8 @@ type PricingToken struct {
 	NegotiationID *uuid.UUID // Set when token is generated from an accepted negotiation
 	AuctionID     *uuid.UUID // Set when token is generated from an auction (buy-now or winner claim)
 
-	// Shipping context (optional, mutually exclusive with ShippingOptionID)
-	// When set, shipping cost comes from ShippingQuote instead of ShippingOption
+	// Shipping context (optional, mutually exclusive with ShippingSetupID)
+	// When set, shipping cost comes from ShippingQuote instead of ShippingSetup
 	ShippingQuoteID *uuid.UUID // Set when using manual shipping quote from seller
 
 	// Pricing snapshot (immutable, calculated at token creation)
@@ -70,11 +70,9 @@ type PricingToken struct {
 	OrderValueForCoins int64 // Pre-calculated for coins service: discounted product value (PD)
 
 	// Shipping option snapshot
-	ShippingOptionID       uuid.UUID
-	ShippingOptionName     string
-	ShippingTransportType  string
-	ShippingExpeditionName *string
-	ShippingEstimatedDays  *string
+	ShippingSetupID      uuid.UUID
+	ShippingSetupName    string
+	ShippingTransportType string
 
 	// Address snapshot
 	AddressID       uuid.UUID
@@ -118,8 +116,8 @@ var (
 	// ErrTokenAddressMismatch is returned when the token's address_id doesn't match the request.
 	ErrTokenAddressMismatch = errors.New("pricing token address_id mismatch")
 
-	// ErrTokenShippingOptionMismatch is returned when the token's shipping_option_id doesn't match.
-	ErrTokenShippingOptionMismatch = errors.New("pricing token shipping_option_id mismatch")
+	// ErrTokenShippingSetupMismatch is returned when the token's shipping_option_id doesn't match.
+	ErrTokenShippingSetupMismatch = errors.New("pricing token shipping_option_id mismatch")
 )
 
 // ValidationErrorCode represents a specific validation error.
@@ -179,9 +177,9 @@ func NewTokenAlreadyUsedValidationError(usedAt *time.Time, orderID *uuid.UUID) *
 // The token is initialized as unused (is_used=false) and expires after DefaultTokenExpiration.
 //
 // SHIPPING SOURCE (REPLACE MODE):
-// - Exactly one of shippingQuoteID or shippingOptionID must be provided
+// - Exactly one of shippingQuoteID or shippingSetupID must be provided
 // - If shippingQuoteID is set, shipping cost comes from the manual quote
-// - If shippingOptionID is set, shipping cost comes from for_sale shipping options
+// - If shippingSetupID is set, shipping cost comes from for_sale shipping options
 //
 // COINS SNAPSHOT:
 // - coinsUsed should be 0 for new tokens (set at order confirmation time)
@@ -198,11 +196,9 @@ func NewPricingToken(
 	commissionAmount money.Money,
 	escrowAmount money.Money,
 	serviceFeeAmount money.Money,
-	shippingOptionID uuid.UUID,
-	shippingOptionName string,
+	shippingSetupID uuid.UUID,
+	shippingSetupName string,
 	shippingTransportType string,
-	shippingExpeditionName *string,
-	shippingEstimatedDays *string,
 	addressID uuid.UUID,
 	addressSnapshot []byte,
 	discountID *uuid.UUID, // Added for atomic discount usage recording
@@ -233,11 +229,9 @@ func NewPricingToken(
 		EscrowAmount:           escrowAmount,
 		ServiceFeeAmount:       serviceFeeAmount,
 		TotalPayableAmount:     escrowAmount.Add(serviceFeeAmount),
-		ShippingOptionID:       shippingOptionID,
-		ShippingOptionName:     shippingOptionName,
+		ShippingSetupID:       shippingSetupID,
+		ShippingSetupName:     shippingSetupName,
 		ShippingTransportType:  shippingTransportType,
-		ShippingExpeditionName: shippingExpeditionName,
-		ShippingEstimatedDays:  shippingEstimatedDays,
 		AddressID:              addressID,
 		AddressSnapshot:        addressSnapshot,
 		DiscountID:             discountID,
@@ -280,11 +274,9 @@ func NewPricingTokenFromNegotiation(
 	commissionAmount money.Money,
 	escrowAmount money.Money,
 	serviceFeeAmount money.Money,
-	shippingOptionID uuid.UUID,
-	shippingOptionName string,
+	shippingSetupID uuid.UUID,
+	shippingSetupName string,
 	shippingTransportType string,
-	shippingExpeditionName *string,
-	shippingEstimatedDays *string,
 	addressID uuid.UUID,
 	addressSnapshot []byte,
 	discountID *uuid.UUID, // Added for atomic discount usage recording
@@ -316,11 +308,9 @@ func NewPricingTokenFromNegotiation(
 		EscrowAmount:           escrowAmount,
 		ServiceFeeAmount:       serviceFeeAmount,
 		TotalPayableAmount:     escrowAmount.Add(serviceFeeAmount),
-		ShippingOptionID:       shippingOptionID,
-		ShippingOptionName:     shippingOptionName,
+		ShippingSetupID:       shippingSetupID,
+		ShippingSetupName:     shippingSetupName,
 		ShippingTransportType:  shippingTransportType,
-		ShippingExpeditionName: shippingExpeditionName,
-		ShippingEstimatedDays:  shippingEstimatedDays,
 		AddressID:              addressID,
 		AddressSnapshot:        addressSnapshot,
 		DiscountID:             discountID,
@@ -371,11 +361,9 @@ func NewPricingTokenFromAuction(
 	commissionAmount money.Money,
 	escrowAmount money.Money,
 	serviceFeeAmount money.Money,
-	shippingOptionID uuid.UUID,
-	shippingOptionName string,
+	shippingSetupID uuid.UUID,
+	shippingSetupName string,
 	shippingTransportType string,
-	shippingExpeditionName *string,
-	shippingEstimatedDays *string,
 	addressID uuid.UUID,
 	addressSnapshot []byte,
 	discountID *uuid.UUID, // Added for atomic discount usage recording
@@ -407,11 +395,9 @@ func NewPricingTokenFromAuction(
 		EscrowAmount:           escrowAmount,
 		ServiceFeeAmount:       serviceFeeAmount,
 		TotalPayableAmount:     escrowAmount.Add(serviceFeeAmount),
-		ShippingOptionID:       shippingOptionID,
-		ShippingOptionName:     shippingOptionName,
+		ShippingSetupID:       shippingSetupID,
+		ShippingSetupName:     shippingSetupName,
 		ShippingTransportType:  shippingTransportType,
-		ShippingExpeditionName: shippingExpeditionName,
-		ShippingEstimatedDays:  shippingEstimatedDays,
 		AddressID:              addressID,
 		AddressSnapshot:        addressSnapshot,
 		DiscountID:             discountID,
@@ -436,7 +422,7 @@ func NewPricingTokenFromAuction(
 //
 // SHIPPING SOURCE VALIDATION:
 // - If ShippingQuoteID is set, validates that the provided shippingQuoteID matches
-// - If ShippingQuoteID is NOT set, validates that shippingOptionID matches
+// - If ShippingQuoteID is NOT set, validates that shippingSetupID matches
 func (t *PricingToken) ValidateForOrder(
 	requesterID uuid.UUID,
 	productID uuid.UUID,
@@ -444,7 +430,7 @@ func (t *PricingToken) ValidateForOrder(
 	sourceID uuid.UUID,
 	quantity int,
 	addressID uuid.UUID,
-	shippingOptionID uuid.UUID,
+	shippingSetupID uuid.UUID,
 ) error {
 	now := time.Now()
 
@@ -510,14 +496,14 @@ func (t *PricingToken) ValidateForOrder(
 	// SHIPPING SOURCE VALIDATION (REPLACE MODE)
 	// ============================================================================
 	// If ShippingQuoteID is set, we're using manual shipping quote
-	// - shippingOptionID should be uuid.Nil (not used)
+	// - shippingSetupID should be uuid.Nil (not used)
 	// - No shipping option validation needed
 	//
-	// If ShippingQuoteID is NOT set, validate shippingOptionID matches
+	// If ShippingQuoteID is NOT set, validate shippingSetupID matches
 	// - This is the normal for_sale checkout flow
 	if t.ShippingQuoteID != nil {
-		// Shipping quote mode: shippingOptionID should be nil/empty
-		if shippingOptionID != uuid.Nil {
+		// Shipping quote mode: shippingSetupID should be nil/empty
+		if shippingSetupID != uuid.Nil {
 			return &ValidationError{
 				Code:    CodeShippingMismatch,
 				Message: "shipping_option_id must be empty when using shipping_quote",
@@ -525,11 +511,11 @@ func (t *PricingToken) ValidateForOrder(
 		}
 	} else {
 		// Normal mode: validate shipping option ID match
-		if t.ShippingOptionID != shippingOptionID {
+		if t.ShippingSetupID != shippingSetupID {
 			return &ValidationError{
 				Code: CodeShippingMismatch,
 				Message: fmt.Sprintf("pricing token shipping_option_id mismatch: token=%s, request=%s",
-					t.ShippingOptionID, shippingOptionID),
+					t.ShippingSetupID, shippingSetupID),
 			}
 		}
 	}

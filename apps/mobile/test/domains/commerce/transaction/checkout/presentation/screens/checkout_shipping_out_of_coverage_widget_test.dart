@@ -157,30 +157,30 @@ class _FakeShippingRepository implements ShippingRepository {
   ) async => Result.error('unused');
 
   @override
-  Future<Result<ShippingOption>> createShippingOption(
-    CreateShippingOptionRequest request,
+  Future<Result<ShippingSetup>> createShippingSetup(
+    CreateShippingSetupRequest request,
   ) async => Result.error('unused');
 
   @override
-  Future<Result<ShippingOption>> getShippingOptionById(String optionId) async =>
+  Future<Result<ShippingSetup>> getShippingSetupById(String optionId) async =>
       Result.error('unused');
 
   @override
-  Future<Result<List<ShippingOption>>> listMyActiveShippingOptions() async =>
+  Future<Result<List<ShippingSetup>>> listMyActiveShippingSetups() async =>
       Result.error('unused');
 
   @override
-  Future<Result<List<ShippingOption>>> listMyShippingOptions() async =>
+  Future<Result<List<ShippingSetup>>> listMyShippingSetups() async =>
       Result.error('unused');
 
   @override
-  Future<Result<void>> deleteShippingOption(String optionId) async =>
+  Future<Result<void>> deleteShippingSetup(String optionId) async =>
       Result.error('unused');
 
   @override
-  Future<Result<void>> setProductShippingOptions(
+  Future<Result<void>> setProductShippingSetups(
     String productId,
-    List<String> shippingOptionIds,
+    List<String> shippingSetupIds,
   ) async => Result.error('unused');
 
   @override
@@ -190,9 +190,9 @@ class _FakeShippingRepository implements ShippingRepository {
   ) async => Result.error('unused');
 
   @override
-  Future<Result<ShippingOption>> updateShippingOptionFull(
+  Future<Result<ShippingSetup>> updateShippingSetupFull(
     String optionId,
-    UpdateShippingOptionFullRequest request,
+    UpdateShippingSetupFullRequest request,
   ) async => Result.error('unused');
 
   @override
@@ -211,7 +211,7 @@ AuthUser _buyer() {
     username: 'buyer',
     isEmailVerified: true,
     roles: const [],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     storeName: '',
   );
 }
@@ -414,14 +414,14 @@ void main() {
             productConfigured: true,
             options: const [
               DeliveryOption(
-                shippingOptionId: 'ship-1',
+                shippingSetupId: 'ship-1',
                 displayName: 'JNE Reguler',
                 type: 'courier',
                 rate: 15000,
                 source: 'backend',
               ),
               DeliveryOption(
-                shippingOptionId: 'ship-2',
+                shippingSetupId: 'ship-2',
                 displayName: 'SiCepat',
                 type: 'courier',
                 rate: 18000,

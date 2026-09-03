@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/domain/domain.dart';
 
 void main() {
-  group('ShippingOption request integer serialization', () {
+  group('ShippingSetup request integer serialization', () {
     test('province tariff serializes as JSON integer', () {
       final req = CreateShippingCoverageRequest(
         provinceId: '11',
@@ -40,7 +40,7 @@ void main() {
     });
 
     test('multi-province request serializes every tariff as integer', () {
-      final req = CreateShippingOptionRequest(
+      final req = CreateShippingSetupRequest(
         name: 'KRT',
         type: ShippingType.custom,
         coverages: [
@@ -98,8 +98,8 @@ void main() {
       expect(json['rate'], isA<int>());
     });
 
-    test('coverages empty by default in CreateShippingOptionRequest', () {
-      final req = CreateShippingOptionRequest(
+    test('coverages empty by default in CreateShippingSetupRequest', () {
+      final req = CreateShippingSetupRequest(
         name: 'Test',
         type: ShippingType.custom,
         coverages: const [],
@@ -109,7 +109,7 @@ void main() {
     });
 
     test('internal note is omitted from JSON when null', () {
-      final req = CreateShippingOptionRequest(
+      final req = CreateShippingSetupRequest(
         name: 'Test',
         type: ShippingType.bus,
         coverages: const [],

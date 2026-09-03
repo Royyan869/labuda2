@@ -111,7 +111,7 @@ func TestPricingTokenHandler_GeneratePreview_RoutesForSaleDirect(t *testing.T) {
 
 	productID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	forSaleID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
-	shippingOptionID := uuid.MustParse("44444444-4444-4444-4444-444444444444")
+	shippingSetupID := uuid.MustParse("44444444-4444-4444-4444-444444444444")
 	addressID := uuid.MustParse("55555555-5555-5555-5555-555555555555")
 	userID := uuid.MustParse("66666666-6666-6666-6666-666666666666")
 
@@ -137,7 +137,7 @@ func TestPricingTokenHandler_GeneratePreview_RoutesForSaleDirect(t *testing.T) {
 		SourceType:       "for_sale",
 		SourceID:         forSaleID,
 		Quantity:         1,
-		ShippingOptionID: &shippingOptionID,
+		ShippingSetupID: &shippingSetupID,
 		AddressID:        addressID,
 	})
 
@@ -162,8 +162,8 @@ func TestPricingTokenHandler_GeneratePreview_RoutesForSaleDirect(t *testing.T) {
 	if service.fixedReq.SourceID != forSaleID {
 		t.Fatalf("SourceID = %s, want %s", service.fixedReq.SourceID, forSaleID)
 	}
-	if service.fixedReq.ShippingOptionID == nil || *service.fixedReq.ShippingOptionID != shippingOptionID {
-		t.Fatalf("ShippingOptionID = %v, want %s", service.fixedReq.ShippingOptionID, shippingOptionID)
+	if service.fixedReq.ShippingSetupID == nil || *service.fixedReq.ShippingSetupID != shippingSetupID {
+		t.Fatalf("ShippingSetupID = %v, want %s", service.fixedReq.ShippingSetupID, shippingSetupID)
 	}
 	if got := decodePreviewResponse(t, resp.Body.Bytes()); got.Data.Token != service.fixedResp.Token.String() {
 		t.Fatalf("token = %s, want %s", got.Data.Token, service.fixedResp.Token)
@@ -175,7 +175,7 @@ func TestPricingTokenHandler_GeneratePreview_RoutesAuction(t *testing.T) {
 
 	productID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	auctionID := uuid.MustParse("33333333-3333-3333-3333-333333333333")
-	shippingOptionID := uuid.MustParse("44444444-4444-4444-4444-444444444444")
+	shippingSetupID := uuid.MustParse("44444444-4444-4444-4444-444444444444")
 	addressID := uuid.MustParse("55555555-5555-5555-5555-555555555555")
 	userID := uuid.MustParse("66666666-6666-6666-6666-666666666666")
 
@@ -202,7 +202,7 @@ func TestPricingTokenHandler_GeneratePreview_RoutesAuction(t *testing.T) {
 		SourceType:       "auction",
 		SourceID:         auctionID,
 		Quantity:         1,
-		ShippingOptionID: &shippingOptionID,
+		ShippingSetupID: &shippingSetupID,
 		AddressID:        addressID,
 	})
 
@@ -221,8 +221,8 @@ func TestPricingTokenHandler_GeneratePreview_RoutesAuction(t *testing.T) {
 	if service.auctionReq.AuctionID != auctionID {
 		t.Fatalf("AuctionID = %s, want %s", service.auctionReq.AuctionID, auctionID)
 	}
-	if service.auctionReq.ShippingOptionID != shippingOptionID {
-		t.Fatalf("ShippingOptionID = %s, want %s", service.auctionReq.ShippingOptionID, shippingOptionID)
+	if service.auctionReq.ShippingSetupID != shippingSetupID {
+		t.Fatalf("ShippingSetupID = %s, want %s", service.auctionReq.ShippingSetupID, shippingSetupID)
 	}
 	if got := decodePreviewResponse(t, resp.Body.Bytes()); got.Data.Token != service.auctionResp.Token.String() {
 		t.Fatalf("token = %s, want %s", got.Data.Token, service.auctionResp.Token)
@@ -238,7 +238,7 @@ func TestPricingTokenHandler_GeneratePreview_RoutesNegotiation(t *testing.T) {
 	productID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	forSaleID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 	negotiationID := uuid.MustParse("33333333-3333-3333-3333-333333333333")
-	shippingOptionID := uuid.MustParse("44444444-4444-4444-4444-444444444444")
+	shippingSetupID := uuid.MustParse("44444444-4444-4444-4444-444444444444")
 	addressID := uuid.MustParse("55555555-5555-5555-5555-555555555555")
 	userID := uuid.MustParse("66666666-6666-6666-6666-666666666666")
 
@@ -265,7 +265,7 @@ func TestPricingTokenHandler_GeneratePreview_RoutesNegotiation(t *testing.T) {
 		SourceID:         forSaleID,
 		NegotiationID:    &negotiationID,
 		Quantity:         1,
-		ShippingOptionID: &shippingOptionID,
+		ShippingSetupID: &shippingSetupID,
 		AddressID:        addressID,
 	})
 
@@ -287,8 +287,8 @@ func TestPricingTokenHandler_GeneratePreview_RoutesNegotiation(t *testing.T) {
 	if service.negotiationReq.NegotiationID != negotiationID {
 		t.Fatalf("NegotiationID = %s, want %s", service.negotiationReq.NegotiationID, negotiationID)
 	}
-	if service.negotiationReq.ShippingOptionID != shippingOptionID {
-		t.Fatalf("ShippingOptionID = %s, want %s", service.negotiationReq.ShippingOptionID, shippingOptionID)
+	if service.negotiationReq.ShippingSetupID != shippingSetupID {
+		t.Fatalf("ShippingSetupID = %s, want %s", service.negotiationReq.ShippingSetupID, shippingSetupID)
 	}
 	if service.negotiationReq.AddressID != addressID {
 		t.Fatalf("AddressID = %s, want %s", service.negotiationReq.AddressID, addressID)

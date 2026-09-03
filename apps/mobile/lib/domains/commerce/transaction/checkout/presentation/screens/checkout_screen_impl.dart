@@ -139,7 +139,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   AddressEntity? _selectedAddress;
 
   // Shipping option state Ã¢â‚¬â€ for standard checkout (not seller quote)
-  String? _selectedShippingOptionId;
+  String? _selectedShippingSetupId;
   List<DeliveryOption> _deliveryOptions = [];
   bool _isLoadingDeliveryOptions = false;
 
@@ -372,12 +372,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
               // Shipping Option Picker Ã¢â‚¬â€ only for standard checkout (not seller quote)
               if (widget.shippingQuoteId == null)
-                _ShippingOptionPickerSection(
+                _ShippingSetupPickerSection(
                   deliveryOptions: _deliveryOptions,
-                  selectedOptionId: _selectedShippingOptionId,
+                  selectedOptionId: _selectedShippingSetupId,
                   isLoading: _isLoadingDeliveryOptions,
                   hasAddress: _selectedAddressId != null,
-                  onSelected: _onShippingOptionSelected,
+                  onSelected: _onShippingSetupSelected,
                 ),
               if (widget.shippingQuoteId == null) const SizedBox(height: 24),
 
@@ -446,8 +446,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     // For standard checkout, also require shipping option selection
     if (widget.shippingQuoteId == null &&
-        (_selectedShippingOptionId == null ||
-            _selectedShippingOptionId!.isEmpty)) {
+        (_selectedShippingSetupId == null ||
+            _selectedShippingSetupId!.isEmpty)) {
       return;
     }
 
@@ -462,7 +462,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     setState(() {
       _selectedAddress = address;
       _selectedAddressId = address.id;
-      _selectedShippingOptionId = null;
+      _selectedShippingSetupId = null;
       _deliveryOptions = [];
     });
     if (widget.shippingQuoteId == null) {
@@ -524,7 +524,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         _deliveryOptions = result.data ?? [];
         _isLoadingDeliveryOptions = false;
         if (_deliveryOptions.length == 1) {
-          _selectedShippingOptionId = _deliveryOptions.first.shippingOptionId;
+          _selectedShippingSetupId = _deliveryOptions.first.shippingSetupId;
           _schedulePreview();
         }
       });
@@ -536,9 +536,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
   }
 
-  void _onShippingOptionSelected(String shippingOptionId) {
+  void _onShippingSetupSelected(String shippingSetupId) {
     setState(() {
-      _selectedShippingOptionId = shippingOptionId;
+      _selectedShippingSetupId = shippingSetupId;
     });
     _schedulePreview();
   }

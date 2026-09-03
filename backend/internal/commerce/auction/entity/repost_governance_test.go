@@ -20,7 +20,6 @@ func TestAuctionStatus_IsRepostable(t *testing.T) {
 		// Terminal states — all must return false.
 		{StatusEnded, false},
 		{StatusCancelled, false},
-		{StatusExpiredBNR, false},
 		{StatusWaitingSettlement, false},
 		{StatusDraft, false},
 		// The old "closed" string — must also be false (never existed).

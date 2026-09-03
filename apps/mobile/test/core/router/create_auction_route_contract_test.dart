@@ -18,7 +18,7 @@ AuthUser _seller({
     isEmailVerified: true,
     accountStatus: AccountStatus.active,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
     hasSellerProfile: hasSellerProfile,
     sellerSubscriptionStatus: hasMarketAuthority ? 'active' : 'expired',
     hasMarketAuthority: hasMarketAuthority,

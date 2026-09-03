@@ -51,7 +51,7 @@ func bindCreateAuctionRequest(body string) (captured *CreateAuctionRequest, stat
 	return captured, w.Code, w.Body.String()
 }
 
-func TestCreateAuctionRequest_MissingShippingOptionIDs_Returns400(t *testing.T) {
+func TestCreateAuctionRequest_MissingShippingSetupIDs_Returns400(t *testing.T) {
 	body := `{
 		"title": "Showa Auction",
 		"description": "A test auction",
@@ -65,10 +65,10 @@ func TestCreateAuctionRequest_MissingShippingOptionIDs_Returns400(t *testing.T) 
 
 	assert.Nil(t, captured, "binding must fail before the handler ever sees a populated request")
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Contains(t, respBody, "ShippingOptionIDs")
+	assert.Contains(t, respBody, "ShippingSetupIDs")
 }
 
-func TestCreateAuctionRequest_EmptyShippingOptionIDs_Returns400(t *testing.T) {
+func TestCreateAuctionRequest_EmptyShippingSetupIDs_Returns400(t *testing.T) {
 	body := `{
 		"title": "Showa Auction",
 		"description": "A test auction",
@@ -83,7 +83,7 @@ func TestCreateAuctionRequest_EmptyShippingOptionIDs_Returns400(t *testing.T) {
 
 	assert.Nil(t, captured)
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Contains(t, respBody, "ShippingOptionIDs")
+	assert.Contains(t, respBody, "ShippingSetupIDs")
 }
 
 func TestCreateAuctionRequest_ValidPayload_BindsShippingMediaAndVariety(t *testing.T) {
@@ -106,7 +106,7 @@ func TestCreateAuctionRequest_ValidPayload_BindsShippingMediaAndVariety(t *testi
 
 	require.NotNil(t, captured, "valid payload must pass the binding boundary")
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, []string{"11111111-1111-1111-1111-111111111111"}, captured.ShippingOptionIDs)
+	assert.Equal(t, []string{"11111111-1111-1111-1111-111111111111"}, captured.ShippingSetupIDs)
 	assert.Equal(t, []string{"https://cdn.example.com/a.jpg"}, captured.MediaURLs)
 	assert.Equal(t, "showa", captured.Variety)
 	require.NotNil(t, captured.SizeCM)

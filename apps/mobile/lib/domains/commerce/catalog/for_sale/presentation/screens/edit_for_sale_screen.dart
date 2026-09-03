@@ -90,7 +90,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
   // scratch; on save, an empty selection means "no change requested" (we
   // skip the PUT call) and a non-empty selection means "overwrite the
   // server-side subset with this list".
-  List<String> _selectedShippingOptionIds = const [];
+  List<String> _selectedShippingSetupIds = const [];
   bool _shippingSelectionDirty = false;
 
   @override
@@ -211,7 +211,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
         }
         final linkResult = await ref
             .read(shippingRepositoryProvider)
-            .setProductShippingOptions(productId, _selectedShippingOptionIds);
+            .setProductShippingSetups(productId, _selectedShippingSetupIds);
         if (!mounted) return;
         if (linkResult.isError) {
           // Backend rejects when there are active orders (or when option
@@ -401,13 +401,13 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
             // Phase 2: listing-level shipping subset re-selector.
             const _SectionTitle('Opsi Pengiriman untuk Listing Ini'),
             const SizedBox(height: 8),
-            SellerShippingOptionsSelector(
+            SellerShippingSetupsSelector(
               helperText:
                   'Pilih ulang opsi pengiriman yang berlaku untuk listing ini. '
                   'Selama tidak diubah, opsi pengiriman saat ini tetap aktif. '
                   'Backend menolak perubahan jika listing memiliki pesanan aktif.',
               onSelectionChanged: (ids) => setState(() {
-                _selectedShippingOptionIds = ids;
+                _selectedShippingSetupIds = ids;
                 _shippingSelectionDirty = true;
               }),
             ),

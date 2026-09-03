@@ -230,7 +230,48 @@ func makeAddress(
 	}
 }
 
-func TestCreateAddress_FirstAddressBecomesPrimary(t *testing.T) {
+// TestCreateAddress_WithIsPrimaryTrue_PersistsAsPrimary verifies the current
+// service contract: when CreateAddress is called with IsPrimary=true the new
+// address is stored as primary (and existing primaries are unset).
+func TestCreateAddress_WithIsPrimaryTrue_PersistsAsPrimary(t *testing.T) {
+	userID := uuid.New()
+	repo := newFakeAddressRepository()
+	svc := &AddressService{repo: repo, log: zap.NewNop()}
+
+	input := validAddressInput()
+	input.UserID = userID
+	input.IsPrimary = true
+
+	address, err := svc.CreateAddress(context.Background(), addressServiceTx{}, CreateAddressInput{
+		UserID:        input.UserID,
+		Purpose:       input.Purpose,
+		Nickname:      input.Nickname,
+		RecipientName: input.RecipientName,
+		Phone:         input.Phone,
+		ProvinceID:    input.ProvinceID,
+		ProvinceName:  input.ProvinceName,
+		CityID:        input.CityID,
+		CityName:      input.CityName,
+		DistrictID:    input.DistrictID,
+		DistrictName:  input.DistrictName,
+		VillageID:     input.VillageID,
+		VillageName:   input.VillageName,
+		StreetAddress: input.StreetAddress,
+		PostalCode:    input.PostalCode,
+		Notes:         input.Notes,
+		IsPrimary:     input.IsPrimary,
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, address)
+	require.True(t, address.IsPrimary)
+	require.True(t, repo.addresses[address.ID].IsPrimary)
+}
+
+// TestCreateAddress_WithIsPrimaryFalse_PersistsAsNonPrimary verifies the
+// current service contract: CreateAddress stores exactly the IsPrimary flag
+// the caller supplied — there is no implicit auto-promotion.
+func TestCreateAddress_WithIsPrimaryFalse_PersistsAsNonPrimary(t *testing.T) {
 	userID := uuid.New()
 	repo := newFakeAddressRepository()
 	svc := &AddressService{repo: repo, log: zap.NewNop()}
@@ -261,19 +302,22 @@ func TestCreateAddress_FirstAddressBecomesPrimary(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, address)
-	require.True(t, address.IsPrimary)
-	require.True(t, repo.addresses[address.ID].IsPrimary)
+	require.False(t, address.IsPrimary)
+	require.False(t, repo.addresses[address.ID].IsPrimary)
 }
 
-func TestCreateAddress_RepairsMissingPrimaryToOldestActiveAddress(t *testing.T) {
+// TestCreateAddress_WithIsPrimaryTrue_UnsetsExistingPrimary verifies the
+// current service contract: creating a new primary unsets the user's existing
+// primary before persisting.
+func TestCreateAddress_WithIsPrimaryTrue_UnsetsExistingPrimary(t *testing.T) {
 	userID := uuid.New()
-	oldest := makeAddress(userID, uuid.New(), addressEntity.AddressPurposeSender, time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), false, true)
-	newer := makeAddress(userID, uuid.New(), addressEntity.AddressPurposeSender, time.Date(2026, 7, 2, 10, 0, 0, 0, time.UTC), false, true)
-	repo := newFakeAddressRepository(oldest, newer)
+	existing := makeAddress(userID, uuid.New(), addressEntity.AddressPurposeSender, time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), true, true)
+	repo := newFakeAddressRepository(existing)
 	svc := &AddressService{repo: repo, log: zap.NewNop()}
 
 	input := validAddressInput()
 	input.UserID = userID
+	input.IsPrimary = true
 
 	address, err := svc.CreateAddress(context.Background(), addressServiceTx{}, CreateAddressInput{
 		UserID:        input.UserID,
@@ -296,13 +340,15 @@ func TestCreateAddress_RepairsMissingPrimaryToOldestActiveAddress(t *testing.T) 
 	})
 
 	require.NoError(t, err)
-	require.NotNil(t, address)
-	require.True(t, repo.addresses[oldest.ID].IsPrimary)
-	require.False(t, repo.addresses[newer.ID].IsPrimary)
-	require.False(t, repo.addresses[address.ID].IsPrimary)
+	require.True(t, address.IsPrimary)
+	require.False(t, repo.addresses[existing.ID].IsPrimary, "previous primary must be unset")
+	require.True(t, repo.addresses[address.ID].IsPrimary)
 }
 
-func TestDeleteAddress_PromotesOldestRemainingActiveAddress(t *testing.T) {
+// TestDeleteAddress_SoftDeletesWithoutAutoPromotion verifies the current
+// service contract: DeleteAddress soft-deletes (is_available_for_checkout
+// = false) and does NOT implicitly promote any remaining address.
+func TestDeleteAddress_SoftDeletesWithoutAutoPromotion(t *testing.T) {
 	userID := uuid.New()
 	primary := makeAddress(userID, uuid.New(), addressEntity.AddressPurposeSender, time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), true, true)
 	oldestRemaining := makeAddress(userID, uuid.New(), addressEntity.AddressPurposeSender, time.Date(2026, 7, 2, 10, 0, 0, 0, time.UTC), false, true)
@@ -314,7 +360,7 @@ func TestDeleteAddress_PromotesOldestRemainingActiveAddress(t *testing.T) {
 
 	require.NoError(t, err)
 	require.False(t, repo.addresses[primary.ID].IsAvailableForCheckout)
-	require.True(t, repo.addresses[oldestRemaining.ID].IsPrimary)
+	require.False(t, repo.addresses[oldestRemaining.ID].IsPrimary, "delete must not auto-promote")
 	require.False(t, repo.addresses[newestRemaining.ID].IsPrimary)
 }
 

@@ -15,11 +15,11 @@ import (
 // ============================================================================
 
 type stubOptionRepoByID struct {
-	options map[uuid.UUID]*entity.ShippingOption
+	options map[uuid.UUID]*entity.ShippingSetup
 	err     error
 }
 
-func (r *stubOptionRepoByID) GetByID(_ context.Context, _ db.Tx, id uuid.UUID) (*entity.ShippingOption, error) {
+func (r *stubOptionRepoByID) GetByID(_ context.Context, _ db.Tx, id uuid.UUID) (*entity.ShippingSetup, error) {
 	if r.err != nil {
 		return nil, r.err
 	}
@@ -30,11 +30,11 @@ func (r *stubOptionRepoByID) GetByID(_ context.Context, _ db.Tx, id uuid.UUID) (
 	return opt, nil
 }
 
-func (r *stubOptionRepoByID) Create(_ context.Context, _ db.Tx, _ *entity.ShippingOption) error { return nil }
-func (r *stubOptionRepoByID) Update(_ context.Context, _ db.Tx, _ *entity.ShippingOption) error { return nil }
-func (r *stubOptionRepoByID) GetForUpdate(_ context.Context, _ db.Tx, _ uuid.UUID) (*entity.ShippingOption, error) { return nil, nil }
-func (r *stubOptionRepoByID) GetBySeller(_ context.Context, _ db.Tx, _ uuid.UUID, _ bool) ([]*entity.ShippingOption, error) { return nil, nil }
-func (r *stubOptionRepoByID) GetByName(_ context.Context, _ db.Tx, _ uuid.UUID, _ string) (*entity.ShippingOption, error) { return nil, nil }
+func (r *stubOptionRepoByID) Create(_ context.Context, _ db.Tx, _ *entity.ShippingSetup) error { return nil }
+func (r *stubOptionRepoByID) Update(_ context.Context, _ db.Tx, _ *entity.ShippingSetup) error { return nil }
+func (r *stubOptionRepoByID) GetForUpdate(_ context.Context, _ db.Tx, _ uuid.UUID) (*entity.ShippingSetup, error) { return nil, nil }
+func (r *stubOptionRepoByID) GetBySeller(_ context.Context, _ db.Tx, _ uuid.UUID, _ bool) ([]*entity.ShippingSetup, error) { return nil, nil }
+func (r *stubOptionRepoByID) GetByName(_ context.Context, _ db.Tx, _ uuid.UUID, _ string) (*entity.ShippingSetup, error) { return nil, nil }
 func (r *stubOptionRepoByID) Delete(_ context.Context, _ db.Tx, _ uuid.UUID) error { return nil }
 
 // ============================================================================
@@ -46,7 +46,7 @@ type stubCoverageRepoByOption struct {
 	err               error
 }
 
-func (r *stubCoverageRepoByOption) GetByShippingOption(_ context.Context, _ db.Tx, optionID uuid.UUID) ([]*entity.ShippingCoverage, error) {
+func (r *stubCoverageRepoByOption) GetByShippingSetup(_ context.Context, _ db.Tx, optionID uuid.UUID) ([]*entity.ShippingCoverage, error) {
 	if r.err != nil {
 		return nil, r.err
 	}
@@ -58,7 +58,7 @@ func (r *stubCoverageRepoByOption) Update(_ context.Context, _ db.Tx, _ *entity.
 func (r *stubCoverageRepoByOption) GetByID(_ context.Context, _ db.Tx, _ uuid.UUID) (*entity.ShippingCoverage, error) { return nil, nil }
 func (r *stubCoverageRepoByOption) GetByOptionAndProvince(_ context.Context, _ db.Tx, _ uuid.UUID, _ string) (*entity.ShippingCoverage, error) { return nil, nil }
 func (r *stubCoverageRepoByOption) Delete(_ context.Context, _ db.Tx, _ uuid.UUID) error { return nil }
-func (r *stubCoverageRepoByOption) DeleteByShippingOption(_ context.Context, _ db.Tx, _ uuid.UUID) error { return nil }
+func (r *stubCoverageRepoByOption) DeleteByShippingSetup(_ context.Context, _ db.Tx, _ uuid.UUID) error { return nil }
 
 // ============================================================================
 // Tests
@@ -69,7 +69,7 @@ func TestValidateSellableCreateShippingSelection_EmptyIDs_Passes(t *testing.T) {
 
 	_, err := ValidateSellableCreateShippingSelection(
 		context.Background(), nil,
-		&stubOptionRepoByID{options: map[uuid.UUID]*entity.ShippingOption{}},
+		&stubOptionRepoByID{options: map[uuid.UUID]*entity.ShippingSetup{}},
 		&stubCoverageRepoByOption{},
 		uuid.New(),
 		nil, // empty list — no options to validate
@@ -87,7 +87,7 @@ func TestValidateSellableCreateShippingSelection_OptionNotFound_Errors(t *testin
 
 	_, err := ValidateSellableCreateShippingSelection(
 		context.Background(), nil,
-		&stubOptionRepoByID{options: map[uuid.UUID]*entity.ShippingOption{}}, // not found
+		&stubOptionRepoByID{options: map[uuid.UUID]*entity.ShippingSetup{}}, // not found
 		&stubCoverageRepoByOption{},
 		sellerID,
 		[]uuid.UUID{optionID},
@@ -109,7 +109,7 @@ func TestValidateSellableCreateShippingSelection_WrongSeller_Errors(t *testing.T
 
 	_, err := ValidateSellableCreateShippingSelection(
 		context.Background(), nil,
-		&stubOptionRepoByID{options: map[uuid.UUID]*entity.ShippingOption{
+		&stubOptionRepoByID{options: map[uuid.UUID]*entity.ShippingSetup{
 			optionID: {ID: optionID, SellerID: otherSellerID}, // belongs to another seller
 		}},
 		&stubCoverageRepoByOption{},
@@ -132,7 +132,7 @@ func TestValidateSellableCreateShippingSelection_ZeroCoverages_Errors(t *testing
 
 	_, err := ValidateSellableCreateShippingSelection(
 		context.Background(), nil,
-		&stubOptionRepoByID{options: map[uuid.UUID]*entity.ShippingOption{
+		&stubOptionRepoByID{options: map[uuid.UUID]*entity.ShippingSetup{
 			optionID: {ID: optionID, SellerID: sellerID},
 		}},
 		&stubCoverageRepoByOption{
@@ -159,14 +159,14 @@ func TestValidateSellableCreateShippingSelection_AllCoveragesInactive_Errors(t *
 
 	_, err := ValidateSellableCreateShippingSelection(
 		context.Background(), nil,
-		&stubOptionRepoByID{options: map[uuid.UUID]*entity.ShippingOption{
+		&stubOptionRepoByID{options: map[uuid.UUID]*entity.ShippingSetup{
 			optionID: {ID: optionID, SellerID: sellerID},
 		}},
 		&stubCoverageRepoByOption{
 			coveragesByOption: map[uuid.UUID][]*entity.ShippingCoverage{
 				optionID: {
-					{ID: uuid.New(), ShippingOptionID: optionID, IsAvailable: false},
-					{ID: uuid.New(), ShippingOptionID: optionID, IsAvailable: false},
+					{ID: uuid.New(), ShippingSetupID: optionID, IsAvailable: false},
+					{ID: uuid.New(), ShippingSetupID: optionID, IsAvailable: false},
 				},
 			},
 		},
@@ -189,14 +189,14 @@ func TestValidateSellableCreateShippingSelection_HasActiveCoverage_Passes(t *tes
 
 	ids, err := ValidateSellableCreateShippingSelection(
 		context.Background(), nil,
-		&stubOptionRepoByID{options: map[uuid.UUID]*entity.ShippingOption{
+		&stubOptionRepoByID{options: map[uuid.UUID]*entity.ShippingSetup{
 			optionID: {ID: optionID, SellerID: sellerID},
 		}},
 		&stubCoverageRepoByOption{
 			coveragesByOption: map[uuid.UUID][]*entity.ShippingCoverage{
 				optionID: {
-					{ID: uuid.New(), ShippingOptionID: optionID, IsAvailable: false},
-					{ID: uuid.New(), ShippingOptionID: optionID, IsAvailable: true}, // one active
+					{ID: uuid.New(), ShippingSetupID: optionID, IsAvailable: false},
+					{ID: uuid.New(), ShippingSetupID: optionID, IsAvailable: true}, // one active
 				},
 			},
 		},
@@ -221,13 +221,13 @@ func TestValidateSellableCreateShippingSelection_MultipleOptions_AllNeedActiveCo
 	// opt1 has active coverage, opt2 does not
 	_, err := ValidateSellableCreateShippingSelection(
 		context.Background(), nil,
-		&stubOptionRepoByID{options: map[uuid.UUID]*entity.ShippingOption{
+		&stubOptionRepoByID{options: map[uuid.UUID]*entity.ShippingSetup{
 			opt1: {ID: opt1, SellerID: sellerID},
 			opt2: {ID: opt2, SellerID: sellerID},
 		}},
 		&stubCoverageRepoByOption{
 			coveragesByOption: map[uuid.UUID][]*entity.ShippingCoverage{
-				opt1: {{ID: uuid.New(), ShippingOptionID: opt1, IsAvailable: true}},
+				opt1: {{ID: uuid.New(), ShippingSetupID: opt1, IsAvailable: true}},
 				opt2: {}, // zero coverages — should fail
 			},
 		},

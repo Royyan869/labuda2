@@ -188,13 +188,13 @@ func (f *auctionProjectionFixture) seedAuction(
 	endAt := now.Add(1 * time.Hour)
 	_, err := f.appDB.Pool().Exec(context.Background(), `
 		INSERT INTO auctions (
-			id, seller_id, order_id, settlement_deadline,
+			id, seller_id, order_id,
 			start_price, bid_increment, buy_now_price,
 			start_at, end_at, current_bid, current_winner_id, status, created_at, updated_at,
 			product_id, anti_snipe_extension_seconds
 		)
 		VALUES (
-			$1, $2, NULL, NULL,
+			$1, $2, NULL,
 			$3, $4, $5,
 			$6, $7, NULL, NULL, $8, $9, $9,
 			$10, 0

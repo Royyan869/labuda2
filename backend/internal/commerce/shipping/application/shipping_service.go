@@ -12,8 +12,8 @@ import (
 // DeliveryOption represents a delivery option available for a product to a specific location.
 // This is a read-only DTO returned by CheckDeliveryAvailability.
 type DeliveryOption struct {
-	// ShippingOptionID identifies the seller's shipping option
-	ShippingOptionID uuid.UUID
+	// ShippingSetupID identifies the seller's shipping option
+	ShippingSetupID uuid.UUID
 
 	// Name is the display name of the shipping option
 	Name string
@@ -21,15 +21,8 @@ type DeliveryOption struct {
 	// TransportType is the general transport category (train, bus, travel, plane, custom)
 	TransportType entity.TransportType
 
-	// ExpeditionName is the optional expedition/company name (nil if not set)
-	ExpeditionName *string
-
 	// Rate is the final shipping rate for this location (province rate or city override)
 	Rate int64
-
-	// EstimatedDays is the estimated delivery time (e.g., "1-2 hari", "same day")
-	// nil if not specified
-	EstimatedDays *string
 
 	// IsAvailable indicates whether delivery is available to the specified location
 	IsAvailable bool
@@ -51,21 +44,21 @@ type CheckDeliveryAvailabilityInput struct {
 // ShippingService provides delivery availability checking functionality.
 // This is a read-only service - no mutations are performed.
 type ShippingService struct {
-	shippingOptionRepo  repository.ShippingOptionRepository
+	shippingSetupRepo  repository.ShippingSetupRepository
 	coverageRepo        repository.ShippingCoverageRepository
 	cityOverrideRepo    repository.CityOverrideRepository
-	productShippingRepo repository.ProductShippingOptionRepository
+	productShippingRepo repository.ProductShippingSetupRepository
 }
 
 // NewShippingService creates a new ShippingService with the provided repositories.
 func NewShippingService(
-	shippingOptionRepo repository.ShippingOptionRepository,
+	shippingSetupRepo repository.ShippingSetupRepository,
 	coverageRepo repository.ShippingCoverageRepository,
 	cityOverrideRepo repository.CityOverrideRepository,
-	productShippingRepo repository.ProductShippingOptionRepository,
+	productShippingRepo repository.ProductShippingSetupRepository,
 ) *ShippingService {
 	return &ShippingService{
-		shippingOptionRepo:  shippingOptionRepo,
+		shippingSetupRepo:  shippingSetupRepo,
 		coverageRepo:        coverageRepo,
 		cityOverrideRepo:    cityOverrideRepo,
 		productShippingRepo: productShippingRepo,
@@ -84,9 +77,8 @@ func NewShippingService(
 //     e. If cityCode is provided:
 //     - Check for city_override
 //     - If override.rate exists: use override rate instead of province_rate
-//     - If override.estimated_days exists: use override estimated days
 //     - If override.is_available exists: use override availability
-//     f. Build DeliveryOption with final rate and estimated days
+//     f. Build DeliveryOption with final rate
 //  3. Return slice of DeliveryOption (empty if no options available)
 //
 // This is a read-only operation - no mutations occur, no DB locks are used.
@@ -96,20 +88,20 @@ func (s *ShippingService) CheckDeliveryAvailability(
 	input CheckDeliveryAvailabilityInput,
 ) ([]DeliveryOption, error) {
 	// Step 1: Load shipping options linked to this product
-	shippingOptions, err := s.productShippingRepo.GetByProduct(ctx, tx, input.ProductID)
+	shippingSetups, err := s.productShippingRepo.GetByProduct(ctx, tx, input.ProductID)
 	if err != nil {
 		return nil, err
 	}
 
 	// If no shipping options linked to product, return empty slice (not an error)
-	if len(shippingOptions) == 0 {
+	if len(shippingSetups) == 0 {
 		return []DeliveryOption{}, nil
 	}
 
 	var results []DeliveryOption
 
 	// Step 2: For each shipping option, check coverage and build delivery option
-	for _, opt := range shippingOptions {
+	for _, opt := range shippingSetups {
 		// 2a. Skip inactive options
 		if !opt.IsActive {
 			continue
@@ -129,7 +121,6 @@ func (s *ShippingService) CheckDeliveryAvailability(
 
 		// 2d. Use province_rate as base rate
 		rate := coverage.ProvinceRate.Int64()
-		estimatedDays := coverage.EstimatedDays
 		isAvailable := true
 
 		// 2e. Check city override if cityCode is provided
@@ -141,11 +132,6 @@ func (s *ShippingService) CheckDeliveryAvailability(
 				// Use override rate if set
 				if cityOverride.Rate != nil {
 					rate = cityOverride.Rate.Int64()
-				}
-
-				// Use override estimated days if set
-				if cityOverride.EstimatedDays != nil {
-					estimatedDays = cityOverride.EstimatedDays
 				}
 
 				// Use override availability if set
@@ -163,12 +149,10 @@ func (s *ShippingService) CheckDeliveryAvailability(
 
 		// 2f. Build delivery option
 		results = append(results, DeliveryOption{
-			ShippingOptionID: opt.ID,
+			ShippingSetupID: opt.ID,
 			Name:             opt.Name,
 			TransportType:    opt.TransportType,
-			ExpeditionName:   opt.ExpeditionName,
 			Rate:             rate,
-			EstimatedDays:    estimatedDays,
 			IsAvailable:      true,
 		})
 	}
@@ -193,11 +177,11 @@ func (s *ShippingService) CheckDeliveryAvailabilityForProduct(
 	})
 }
 
-// HasAnyShippingOptionsForProduct reports whether a product has at least one
+// HasAnyShippingSetupsForProduct reports whether a product has at least one
 // shipping option linked. The buyer-facing HTTP handler uses this to expose
 // `product_configured` so the UI can distinguish "no product shipping link
 // exists yet" from "the buyer's address is outside coverage".
-func (s *ShippingService) HasAnyShippingOptionsForProduct(
+func (s *ShippingService) HasAnyShippingSetupsForProduct(
 	ctx context.Context,
 	tx db.Tx,
 	productID uuid.UUID,

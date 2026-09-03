@@ -47,11 +47,11 @@ func TestNewAuctionShippingQuote_BindsProductAndSource(t *testing.T) {
 	productID := uuid.New()
 	auctionID := uuid.New()
 	expiresAt := time.Date(2026, 7, 19, 0, 0, 0, 0, time.UTC)
-	quote := NewAuctionShippingQuote(
+	sourceType := "auction"
+	quote := NewShippingQuote(
 		uuid.New(),
 		productID,
-		auctionID,
-		"auction",
+		sourceType,
 		auctionID,
 		uuid.New(),
 		uuid.New(),

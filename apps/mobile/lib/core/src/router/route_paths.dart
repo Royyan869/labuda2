@@ -83,7 +83,7 @@ class RoutePaths {
   static const String sellerVerification = '/verification/seller';
   static const String sellerEarnings = '/seller/earnings';
   static const String sellerShipping = '/seller/shipping';
-  static const String sellerShippingOptionDetail = '/seller/shipping/:optionId';
+  static const String sellerShippingSetupDetail = '/seller/shipping/:optionId';
   static const String sellerShippingSetup = '/seller/shipping/setup';
   static const String sellerShippingSetupCityRules =
       '/seller/shipping/setup/city-rules';

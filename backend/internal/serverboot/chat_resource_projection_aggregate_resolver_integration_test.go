@@ -213,12 +213,12 @@ func (f *aggregateQueryProofFixture) seedAuction(
 	auctionID := uuid.New()
 	_, err = f.appDB.Pool().Exec(context.Background(), `
 		INSERT INTO auctions (
-			id, seller_id, product_id, order_id, settlement_deadline,
+			id, seller_id, product_id, order_id,
 			start_price, bid_increment, buy_now_price, start_at, end_at, current_bid,
 			current_winner_id, status, created_at,
 			updated_at, anti_snipe_extension_seconds
 		)
-		VALUES ($1, $2, $3, NULL, NULL, 100000, 5000, $4, $5, $6, NULL, NULL, $7, $8, $8, 0)
+		VALUES ($1, $2, $3, NULL, 100000, 5000, $4, $5, $6, NULL, NULL, $7, $8, $8, 0)
 	`, auctionID, sellerID, productID, buyNow, startAt, endAt, string(auctionEntity.StatusActive), now)
 	require.NoError(t, err)
 

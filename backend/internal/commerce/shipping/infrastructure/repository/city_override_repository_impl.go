@@ -35,16 +35,15 @@ func (r *CityOverrideRepositoryImpl) Create(
 	_, err := tx.Exec(ctx, `
 		INSERT INTO shipping_city_overrides (
 			id, shipping_coverage_id, city_code, city_name,
-			rate, estimated_days, is_available, created_at, updated_at
+			rate, is_available, created_at, updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`,
 		override.ID,
 		override.ShippingCoverageID,
 		override.CityCode,
 		override.CityName,
 		ratePtr,
-		override.EstimatedDays,
 		override.IsAvailable,
 		override.CreatedAt,
 		override.UpdatedAt,
@@ -71,14 +70,13 @@ func (r *CityOverrideRepositoryImpl) Update(
 
 	_, err := tx.Exec(ctx, `
 		UPDATE shipping_city_overrides
-		SET city_name = $2, rate = $3, estimated_days = $4,
-		    is_available = $5, updated_at = $6
+		SET city_name = $2, rate = $3,
+		    is_available = $4, updated_at = $5
 		WHERE id = $1
 	`,
 		override.ID,
 		override.CityName,
 		ratePtr,
-		override.EstimatedDays,
 		override.IsAvailable,
 		override.UpdatedAt,
 	)
@@ -100,18 +98,17 @@ func (r *CityOverrideRepositoryImpl) GetByID(
 	var cityCode string
 	var cityName string
 	var ratePtr *int64
-	var estimatedDays *string
 	var isAvailable *bool
 	var createdAt, updatedAt time.Time
 
 	err := tx.QueryRow(ctx, `
 		SELECT id, shipping_coverage_id, city_code, city_name,
-		       rate, estimated_days, is_available, created_at, updated_at
+		       rate, is_available, created_at, updated_at
 		FROM shipping_city_overrides
 		WHERE id = $1
 	`, id).Scan(
 		&id, &shippingCoverageID, &cityCode, &cityName,
-		&ratePtr, &estimatedDays, &isAvailable, &createdAt, &updatedAt,
+		&ratePtr, &isAvailable, &createdAt, &updatedAt,
 	)
 
 	if err != nil {
@@ -133,7 +130,6 @@ func (r *CityOverrideRepositoryImpl) GetByID(
 		CityCode:           cityCode,
 		CityName:           cityName,
 		Rate:               rate,
-		EstimatedDays:      estimatedDays,
 		IsAvailable:        isAvailable,
 		CreatedAt:          createdAt,
 		UpdatedAt:          updatedAt,
@@ -148,7 +144,7 @@ func (r *CityOverrideRepositoryImpl) GetByCoverage(
 ) ([]*entity.CityOverride, error) {
 	rows, err := tx.Query(ctx, `
 		SELECT id, shipping_coverage_id, city_code, city_name,
-		       rate, estimated_days, is_available, created_at, updated_at
+		       rate, is_available, created_at, updated_at
 		FROM shipping_city_overrides
 		WHERE shipping_coverage_id = $1
 		ORDER BY city_code
@@ -164,13 +160,12 @@ func (r *CityOverrideRepositoryImpl) GetByCoverage(
 		var cityCode string
 		var cityName string
 		var ratePtr *int64
-		var estimatedDays *string
 		var isAvailable *bool
 		var createdAt, updatedAt time.Time
 
 		err := rows.Scan(
 			&id, &shippingCoverageID, &cityCode, &cityName,
-			&ratePtr, &estimatedDays, &isAvailable, &createdAt, &updatedAt,
+			&ratePtr, &isAvailable, &createdAt, &updatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("scan city override failed: %w", err)
@@ -188,7 +183,6 @@ func (r *CityOverrideRepositoryImpl) GetByCoverage(
 			CityCode:           cityCode,
 			CityName:           cityName,
 			Rate:               rate,
-			EstimatedDays:      estimatedDays,
 			IsAvailable:        isAvailable,
 			CreatedAt:          createdAt,
 			UpdatedAt:          updatedAt,
@@ -208,18 +202,17 @@ func (r *CityOverrideRepositoryImpl) GetByCoverageAndCity(
 	var id uuid.UUID
 	var cityName string
 	var ratePtr *int64
-	var estimatedDays *string
 	var isAvailable *bool
 	var createdAt, updatedAt time.Time
 
 	err := tx.QueryRow(ctx, `
 		SELECT id, shipping_coverage_id, city_code, city_name,
-		       rate, estimated_days, is_available, created_at, updated_at
+		       rate, is_available, created_at, updated_at
 		FROM shipping_city_overrides
 		WHERE shipping_coverage_id = $1 AND city_code = $2
 	`, shippingCoverageID, cityCode).Scan(
 		&id, &shippingCoverageID, &cityCode, &cityName,
-		&ratePtr, &estimatedDays, &isAvailable, &createdAt, &updatedAt,
+		&ratePtr, &isAvailable, &createdAt, &updatedAt,
 	)
 
 	if err != nil {
@@ -241,7 +234,6 @@ func (r *CityOverrideRepositoryImpl) GetByCoverageAndCity(
 		CityCode:           cityCode,
 		CityName:           cityName,
 		Rate:               rate,
-		EstimatedDays:      estimatedDays,
 		IsAvailable:        isAvailable,
 		CreatedAt:          createdAt,
 		UpdatedAt:          updatedAt,

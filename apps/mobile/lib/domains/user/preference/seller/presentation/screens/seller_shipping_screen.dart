@@ -41,7 +41,7 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
   void _reload() {
     final authState = ref.read(authControllerProvider);
     if (authState is! AuthStateAuthenticated) return;
-    ref.read(shippingNotifierProvider.notifier).loadShippingOptions();
+    ref.read(shippingNotifierProvider.notifier).loadShippingSetups();
   }
 
   @override
@@ -67,15 +67,15 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
     );
   }
 
-  Widget _buildBody(ShippingOptionsListState state) {
-    if (state is ShippingOptionsListLoading ||
-        state is ShippingOptionsListInitial) {
+  Widget _buildBody(ShippingSetupsListState state) {
+    if (state is ShippingSetupsListLoading ||
+        state is ShippingSetupsListInitial) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (state is ShippingOptionsListError) {
+    if (state is ShippingSetupsListError) {
       return _ErrorView(message: state.message, onRetry: _reload);
     }
-    if (state is ShippingOptionsListLoaded) {
+    if (state is ShippingSetupsListLoaded) {
       if (state.options.isEmpty) {
         return _EmptyView(onCreate: _openCreateOptionSheet);
       }
@@ -109,11 +109,10 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
     if (result == null || !mounted) return;
     final created = await ref
         .read(shippingNotifierProvider.notifier)
-        .createShippingOption(
-          CreateShippingOptionRequest(
+        .createShippingSetup(
+          CreateShippingSetupRequest(
             name: result.name,
             type: result.type,
-            expeditionName: result.expeditionName,
           ),
         );
     if (!mounted) return;
@@ -122,14 +121,14 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
       _reload();
     } else {
       final s = ref.read(shippingNotifierProvider);
-      final msg = s is ShippingOptionsListError
+      final msg = s is ShippingSetupsListError
           ? s.message
           : 'Gagal menambah opsi pengiriman.';
       AppSnackBar.showError(context, msg);
     }
   }
 
-  Future<void> _openEditOptionSheet(ShippingOption opt) async {
+  Future<void> _openEditOptionSheet(ShippingSetup opt) async {
     final result = await showModalBottomSheet<_OptionFormResult>(
       context: context,
       isScrollControlled: true,
@@ -138,11 +137,10 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
     if (result == null || !mounted) return;
     final ok = await ref
         .read(shippingNotifierProvider.notifier)
-        .updateShippingOption(
+        .updateShippingSetup(
           opt.id,
-          UpdateShippingOptionRequest(
+          UpdateShippingSetupRequest(
             name: result.name,
-            expeditionName: result.expeditionName,
           ),
         );
     if (!mounted) return;
@@ -151,14 +149,14 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
       _reload();
     } else {
       final s = ref.read(shippingNotifierProvider);
-      final msg = s is ShippingOptionsListError
+      final msg = s is ShippingSetupsListError
           ? s.message
           : 'Gagal memperbarui opsi pengiriman.';
       AppSnackBar.showError(context, msg);
     }
   }
 
-  Future<void> _toggleActive(ShippingOption opt, bool isActive) async {
+  Future<void> _toggleActive(ShippingSetup opt, bool isActive) async {
     final ok = await ref
         .read(shippingNotifierProvider.notifier)
         .toggleActiveStatus(opt.id, isActive);
@@ -167,14 +165,14 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
       _reload();
     } else {
       final s = ref.read(shippingNotifierProvider);
-      final msg = s is ShippingOptionsListError
+      final msg = s is ShippingSetupsListError
           ? s.message
           : 'Gagal mengubah status opsi pengiriman.';
       AppSnackBar.showError(context, msg);
     }
   }
 
-  Future<void> _confirmDelete(ShippingOption opt) async {
+  Future<void> _confirmDelete(ShippingSetup opt) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
@@ -202,21 +200,21 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
     if (confirmed != true || !mounted) return;
     final ok = await ref
         .read(shippingNotifierProvider.notifier)
-        .deleteShippingOption(opt.id);
+        .deleteShippingSetup(opt.id);
     if (!mounted) return;
     if (ok) {
       AppSnackBar.showSuccess(context, 'Opsi pengiriman dihapus.');
       _reload();
     } else {
       final s = ref.read(shippingNotifierProvider);
-      final msg = s is ShippingOptionsListError
+      final msg = s is ShippingSetupsListError
           ? s.message
           : 'Gagal menghapus opsi pengiriman.';
       AppSnackBar.showError(context, msg);
     }
   }
 
-  void _openOptionDetail(ShippingOption opt) {
+  void _openOptionDetail(ShippingSetup opt) {
     context.push('/seller/shipping/${opt.id}');
   }
 }
@@ -363,7 +361,7 @@ class _ErrorView extends StatelessWidget {
 // =============================================================================
 
 class _OptionRow extends StatelessWidget {
-  final ShippingOption option;
+  final ShippingSetup option;
   final VoidCallback onTap;
   final ValueChanged<bool> onToggle;
   final VoidCallback onEdit;
@@ -414,7 +412,7 @@ class _OptionRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${option.type.label}${option.expeditionName?.isNotEmpty == true ? ' • ${option.expeditionName}' : ''}',
+                      option.type.label,
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.neutralGray600,
@@ -453,16 +451,14 @@ class _OptionRow extends StatelessWidget {
 class _OptionFormResult {
   final String name;
   final ShippingType type;
-  final String? expeditionName;
   const _OptionFormResult({
     required this.name,
     required this.type,
-    this.expeditionName,
   });
 }
 
 class _OptionFormSheet extends StatefulWidget {
-  final ShippingOption? initial;
+  final ShippingSetup? initial;
   const _OptionFormSheet({required this.initial});
 
   @override
@@ -472,22 +468,17 @@ class _OptionFormSheet extends StatefulWidget {
 class _OptionFormSheetState extends State<_OptionFormSheet> {
   late ShippingType _type;
   late TextEditingController _nameCtrl;
-  late TextEditingController _expeditionCtrl;
 
   @override
   void initState() {
     super.initState();
     _type = widget.initial?.type ?? ShippingType.custom;
     _nameCtrl = TextEditingController(text: widget.initial?.name ?? '');
-    _expeditionCtrl = TextEditingController(
-      text: widget.initial?.expeditionName ?? '',
-    );
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _expeditionCtrl.dispose();
     super.dispose();
   }
 
@@ -540,15 +531,6 @@ class _OptionFormSheetState extends State<_OptionFormSheet> {
             ),
             const SizedBox(height: 16),
           ],
-          TextField(
-            controller: _expeditionCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Nama ekspedisi (opsional)',
-              hintText: 'Contoh: JNE, J&T, kereta pribadi',
-              border: OutlineInputBorder(),
-            ),
-            textInputAction: TextInputAction.done,
-          ),
           const SizedBox(height: 20),
           Row(
             children: [
@@ -573,14 +555,10 @@ class _OptionFormSheetState extends State<_OptionFormSheet> {
                       );
                       return;
                     }
-                    final expeditionName = _expeditionCtrl.text.trim();
                     Navigator.of(context).pop(
                       _OptionFormResult(
                         name: optionName,
                         type: _type,
-                        expeditionName: expeditionName.isEmpty
-                            ? null
-                            : expeditionName,
                       ),
                     );
                   },

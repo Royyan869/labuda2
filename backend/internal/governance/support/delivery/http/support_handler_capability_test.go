@@ -4,7 +4,6 @@ package http
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -17,12 +16,12 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap"
 
-	"github.com/labuda/backend/internal/platform/capability"
-	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	supportApp "github.com/labuda/backend/internal/governance/support/application"
 	supportEntity "github.com/labuda/backend/internal/governance/support/entity"
 	supportRepo "github.com/labuda/backend/internal/governance/support/repository"
+	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
+	"github.com/labuda/backend/internal/platform/capability"
+	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
 	"github.com/labuda/backend/internal/platform/response"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/stretchr/testify/assert"
@@ -119,9 +118,9 @@ var _ db.Tx = (*mockTx)(nil)
 
 // mockCapabilityRepository is a mock support repository for capability testing.
 type mockCapabilityRepository struct {
-	ticket      *supportEntity.Ticket
-	resolveErr  error
-	closeErr    error
+	ticket     *supportEntity.Ticket
+	resolveErr error
+	closeErr   error
 }
 
 func (m *mockCapabilityRepository) CreateTicket(ctx context.Context, tx interface{}, ticket *supportEntity.Ticket) error {
@@ -244,7 +243,7 @@ func (m *mockCapabilityRepository) CountActiveTicketsByOrderID(ctx context.Conte
 // mockChatService is a mock chat service for testing.
 type mockChatService struct{}
 
-func (m *mockChatService) CreateSupportTicketRoom(ctx context.Context, userID uuid.UUID, ticketID uuid.UUID, contextJSON json.RawMessage) (*chatEntity.ChatRoom, error) {
+func (m *mockChatService) CreateSupportTicketRoom(ctx context.Context, userID uuid.UUID) (*chatEntity.ChatRoom, error) {
 	return nil, nil
 }
 
@@ -261,7 +260,6 @@ func (m *mockOutboxInserter) InsertTx(ctx context.Context, tx db.Tx, eventType s
 
 // mockOrderEscrowService is a mock order escrow service for testing.
 type mockOrderEscrowService struct{}
-
 
 func (m *mockOrderEscrowService) GetOrderForValidation(ctx context.Context, orderID uuid.UUID) (buyerID, sellerID uuid.UUID, err error) {
 	return uuid.Nil, uuid.Nil, nil
@@ -712,5 +710,3 @@ func TestHandler_SendMessage_CapabilityProtection(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
 }
-
-

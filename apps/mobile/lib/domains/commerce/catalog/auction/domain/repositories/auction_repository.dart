@@ -38,7 +38,7 @@ abstract class AuctionRepository {
 
     /// Required — backend rejects creation without at least one option
     /// (auction is still a physical fish that must ship).
-    required List<String> shippingOptionIds,
+    required List<String> shippingSetupIds,
     String? preparationNote,
   });
 
@@ -126,7 +126,7 @@ abstract class AuctionRepository {
   Future<RepositoryResult<String>> claimAuction({
     required String auctionId,
     required String addressId,
-    required String shippingOptionId,
+    required String shippingSetupId,
     String? discountCode,
     bool useCoins = false,
   });
@@ -172,7 +172,7 @@ class CreateAuctionParams {
   final AuctionLocation? location;
 
   /// Required — backend rejects creation without at least one option.
-  final List<String> shippingOptionIds;
+  final List<String> shippingSetupIds;
   final String? preparationNote;
 
   const CreateAuctionParams({
@@ -193,7 +193,7 @@ class CreateAuctionParams {
     required this.durationHours,
     this.farmAddressId,
     this.location,
-    required this.shippingOptionIds,
+    required this.shippingSetupIds,
     this.preparationNote,
   });
 
@@ -228,7 +228,7 @@ class CreateAuctionParams {
         'provinceId': location!.provinceId,
         'provinceName': location!.provinceName,
       },
-    'shippingOptionIds': shippingOptionIds,
+    'shippingSetupIds': shippingSetupIds,
     if (preparationNote != null) 'preparationNote': preparationNote,
   };
 }

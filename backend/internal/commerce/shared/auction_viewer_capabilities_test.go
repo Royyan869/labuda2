@@ -122,11 +122,11 @@ func TestEvaluateAuctionViewerCapabilities_StateMatrix(t *testing.T) {
 			},
 		},
 		{
-			name: "A6 expired BNR non-owner",
+			name: "A6 waiting_settlement non-owner",
 			in: AuctionViewerCapabilitiesInput{
 				ViewerID:          otherID,
 				SellerID:          sellerID,
-				Status:            auctionStatusExpiredBNR,
+				Status:            auctionStatusWaitingSettlement,
 				SellerTrustActive: true,
 				BuyNowPrice:       &buyNow,
 			},
@@ -425,11 +425,11 @@ func TestEvaluateAuctionViewerCapabilities_StateMatrix_A12ToA30(t *testing.T) {
 			want: buyerQuiet,
 		},
 		{
-			name: "A19 non-owner trust inactive expired bnr",
+			name: "A19 non-owner trust inactive waiting_settlement",
 			in: AuctionViewerCapabilitiesInput{
 				ViewerID:          otherID,
 				SellerID:          sellerID,
-				Status:            auctionStatusExpiredBNR,
+				Status:            auctionStatusWaitingSettlement,
 				SellerTrustActive: false,
 				BuyNowPrice:       &activeBuyNow,
 			},
@@ -513,11 +513,11 @@ func TestEvaluateAuctionViewerCapabilities_StateMatrix_A12ToA30(t *testing.T) {
 			want: buyerChat,
 		},
 		{
-			name: "A27 expired bnr non-owner trust active",
+			name: "A27 waiting_settlement non-owner trust active",
 			in: AuctionViewerCapabilitiesInput{
 				ViewerID:          otherID,
 				SellerID:          sellerID,
-				Status:            auctionStatusExpiredBNR,
+				Status:            auctionStatusWaitingSettlement,
 				SellerTrustActive: true,
 				BuyNowPrice:       &activeBuyNow,
 			},

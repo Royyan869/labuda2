@@ -143,9 +143,9 @@ class AuctionMapper {
   /// CONTRACT PARITY (PASS_18E): every field the screen collects into
   /// [CreateAuctionParams] is now threaded through to the DTO with the exact
   /// backend key names (media_urls, variety, size_cm, age_months, ...).
-  /// Previously `koiDetails` and `shippingOptionIds` were silently dropped
+  /// Previously `koiDetails` and `shippingSetupIds` were silently dropped
   /// here, so mobile auction creation either 400'd (missing required
-  /// shipping_option_ids) or created a product with no photos/variety.
+  /// shipping_setup_ids) or created a product with no photos/variety.
   static CreateAuctionDto toCreateDto(CreateAuctionParams params) {
     final koi = params.koiDetails;
     return CreateAuctionDto(
@@ -160,7 +160,7 @@ class AuctionMapper {
       bloodline: koi.bloodline,
       certificates: koi.certificates.isEmpty ? null : koi.certificates,
       farmAddressId: params.farmAddressId,
-      shippingOptionIds: params.shippingOptionIds,
+      shippingSetupIds: params.shippingSetupIds,
       startPrice: params.openingBid,
       bidIncrement: params.bidIncrement,
       buyNowPrice: params.buyNowPrice,

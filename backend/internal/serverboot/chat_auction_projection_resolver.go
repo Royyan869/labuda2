@@ -32,7 +32,6 @@ type auctionProjectionSourceRow struct {
 	sellerID           uuid.UUID
 	productID          uuid.UUID
 	orderID            *uuid.UUID
-	settlementDeadline *time.Time
 	startPrice         int64
 	bidIncrement       int64
 	buyNowPrice        *int64
@@ -135,7 +134,6 @@ func (r *auctionProjectionBatchResolver) ResolveAuctions(
 				a.seller_id,
 				a.product_id,
 				a.order_id,
-				a.settlement_deadline,
 				a.start_price,
 				a.bid_increment,
 				a.buy_now_price,
@@ -175,7 +173,6 @@ func (r *auctionProjectionBatchResolver) ResolveAuctions(
 				&row.sellerID,
 				&row.productID,
 				&row.orderID,
-				&row.settlementDeadline,
 				&row.startPrice,
 				&row.bidIncrement,
 				&row.buyNowPrice,

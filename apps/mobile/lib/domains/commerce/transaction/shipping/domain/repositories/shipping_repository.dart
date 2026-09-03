@@ -9,34 +9,34 @@ abstract class ShippingRepository {
   // =====================================
 
   /// Get all shipping options for the authenticated seller.
-  Future<Result<List<ShippingOption>>> listMyShippingOptions();
+  Future<Result<List<ShippingSetup>>> listMyShippingSetups();
 
   /// Get active shipping options for the authenticated seller.
-  Future<Result<List<ShippingOption>>> listMyActiveShippingOptions();
+  Future<Result<List<ShippingSetup>>> listMyActiveShippingSetups();
 
   /// Get shipping option by ID
-  Future<Result<ShippingOption>> getShippingOptionById(String optionId);
+  Future<Result<ShippingSetup>> getShippingSetupById(String optionId);
 
   /// Create new shipping option
-  Future<Result<ShippingOption>> createShippingOption(
-    CreateShippingOptionRequest request,
+  Future<Result<ShippingSetup>> createShippingSetup(
+    CreateShippingSetupRequest request,
   );
 
   /// Update shipping option
-  Future<Result<ShippingOption>> updateShippingOption(
+  Future<Result<ShippingSetup>> updateShippingSetup(
     String optionId,
-    UpdateShippingOptionRequest request,
+    UpdateShippingSetupRequest request,
   );
 
   /// Update a shipping option together with its coverages in a single
   /// atomic request.
-  Future<Result<ShippingOption>> updateShippingOptionFull(
+  Future<Result<ShippingSetup>> updateShippingSetupFull(
     String optionId,
-    UpdateShippingOptionFullRequest request,
+    UpdateShippingSetupFullRequest request,
   );
 
   /// Delete shipping option
-  Future<Result<void>> deleteShippingOption(String optionId);
+  Future<Result<void>> deleteShippingSetup(String optionId);
 
   /// Toggle active status
   Future<Result<void>> toggleActiveStatus(String optionId, bool isActive);
@@ -67,12 +67,12 @@ abstract class ShippingRepository {
   /// Set the shipping-option subset that applies to a single product.
   ///
   /// Overwrite semantics: the backend replaces the current
-  /// `product_shipping_options` rows for [productId] with [shippingOptionIds].
+  /// `product_shipping_options` rows for [productId] with [shippingSetupIds].
   /// Empty list is allowed and clears all links (but a publish gate will
   /// then reject the listing for SHIPPING_NOT_CONFIGURED on next activation).
-  Future<Result<void>> setProductShippingOptions(
+  Future<Result<void>> setProductShippingSetups(
     String productId,
-    List<String> shippingOptionIds,
+    List<String> shippingSetupIds,
   );
 
   // =====================================

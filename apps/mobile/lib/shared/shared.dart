@@ -168,5 +168,4 @@ export 'services/location_service.dart'; // GPS location service with accuracy t
 // ✅ REMOVED (R2.3): user_search_api_service.dart
 //    -> Migrated to domains/user/profile/data/services/user_lookup_service.dart
 //
-// ✅ REMOVED: firebase_storage_service.dart
-//    -> Migrated to Go backend - use upload via API
+

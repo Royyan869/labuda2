@@ -6,6 +6,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -161,15 +162,19 @@ func TestAuctionBidPlaced_AuctionNotFound(t *testing.T) {
 	}
 }
 
-func TestAuctionBNRDetected_SellerFail_WinnerSuccess_ReturnsError(t *testing.T) {
+func TestAuctionSettlementFailed_BuyerViolation_ReturnsErrorOnBuyerInsertFail(t *testing.T) {
 	auctionID := uuid.New()
 	winnerID := uuid.New()
 	sellerID := uuid.New()
 
 	payload, _ := json.Marshal(map[string]interface{}{
-		"auction_id": auctionID.String(),
-		"winner_id":  winnerID.String(),
-		"seller_id":  sellerID.String(),
+		"auction_id":       auctionID.String(),
+		"violated_user_id": winnerID.String(),
+		"violation_type":   "buyer_shipping_timeout",
+		"seller_id":        sellerID.String(),
+		"winner_id":        winnerID.String(),
+		"violation_id":     uuid.New().String(),
+		"restricted_until": time.Now().Add(7 * 24 * time.Hour).Format(time.RFC3339),
 	})
 
 	call := 0
@@ -179,7 +184,7 @@ func TestAuctionBNRDetected_SellerFail_WinnerSuccess_ReturnsError(t *testing.T) 
 				QueryRowFunc: func(_ context.Context, _ string, _ ...any) pgx.Row {
 					call++
 					if call == 1 {
-						return &mockRowForNotification{err: errors.New("seller insert failed")}
+						return &mockRowForNotification{err: errors.New("buyer insert failed")}
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -189,13 +194,68 @@ func TestAuctionBNRDetected_SellerFail_WinnerSuccess_ReturnsError(t *testing.T) 
 
 	h := buildSocialGovernanceHandler(t, mockDB, &mockAccountStatusControlled{}, &mockBlockCheckerControlled{}, nil)
 	err := h.Handle(context.Background(), platformevent.OutboxEvent{
-		ID: uuid.New(), EventType: "auction_bnr_detected", Payload: payload,
+		ID: uuid.New(), EventType: "auction.settlement_failed", Payload: payload,
 	})
 	if err == nil {
-		t.Fatal("expected error for seller insert failure, got nil")
+		t.Fatal("expected error for buyer insert failure, got nil")
 	}
-	if !strings.Contains(err.Error(), "seller insert failed") {
-		t.Errorf("error = %v, want seller insert failure", err)
+	if !strings.Contains(err.Error(), "buyer insert failed") {
+		t.Errorf("error = %v, want buyer insert failure", err)
+	}
+}
+
+func TestAuctionSettlementFailed_BuyerViolation_NotifiesWinnerAndSeller(t *testing.T) {
+	auctionID := uuid.New()
+	winnerID := uuid.New()
+	sellerID := uuid.New()
+
+	payload, _ := json.Marshal(map[string]interface{}{
+		"auction_id":       auctionID.String(),
+		"violated_user_id": winnerID.String(),
+		"violation_type":   "buyer_shipping_timeout",
+		"seller_id":        sellerID.String(),
+		"winner_id":        winnerID.String(),
+		"violation_id":     uuid.New().String(),
+		"restricted_until": time.Now().Add(7 * 24 * time.Hour).Format(time.RFC3339),
+	})
+
+	type captured struct {
+		recipient uuid.UUID
+		nType     string
+	}
+	var inserts []captured
+
+	mockDB := &mockDBForNotification{
+		WithTxFunc: func(ctx context.Context, fn func(dbpkg.Tx) error) error {
+			return fn(&mockTxForNotification{
+				QueryRowFunc: func(_ context.Context, _ string, args ...any) pgx.Row {
+					if len(args) >= 4 {
+						inserts = append(inserts, captured{
+							recipient: args[1].(uuid.UUID),
+							nType:     args[3].(string),
+						})
+					}
+					return &mockRowForNotification{scanValue: uuid.New()}
+				},
+			})
+		},
+	}
+
+	h := buildSocialGovernanceHandler(t, mockDB, &mockAccountStatusControlled{}, &mockBlockCheckerControlled{}, nil)
+	err := h.Handle(context.Background(), platformevent.OutboxEvent{
+		ID: uuid.New(), EventType: "auction.settlement_failed", Payload: payload,
+	})
+	if err != nil {
+		t.Fatalf("Handle() error = %v", err)
+	}
+	if len(inserts) != 2 {
+		t.Fatalf("expected 2 notifications (winner + seller), got %d", len(inserts))
+	}
+	if inserts[0].recipient != winnerID || inserts[0].nType != "auction.settlement_failed.buyer" {
+		t.Errorf("insert[0] = %+v, want buyer notification to winner", inserts[0])
+	}
+	if inserts[1].recipient != sellerID || inserts[1].nType != "auction.settlement_failed.relistable" {
+		t.Errorf("insert[1] = %+v, want relistable notification to seller", inserts[1])
 	}
 }
 

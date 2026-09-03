@@ -620,7 +620,7 @@ func (h *ModerationEventHandler) handleForSaleRemoved(
 // CANONICAL ENFORCEMENT LIFECYCLE: MarkProcessing → CancelForModeration → MarkSucceeded
 // All within one transaction for atomicity.
 //
-// IDEMPOTENT: Terminal states (ended, expired_bnr, cancelled) return
+// IDEMPOTENT: Terminal states (ended, cancelled) return
 // InvalidTransitionError which is handled INSIDE enforceLifecycle so that
 // the lifecycle always passes through processing → succeeded.
 func (h *ModerationEventHandler) handleAuctionRemoved(
@@ -649,7 +649,7 @@ func (h *ModerationEventHandler) handleAuctionRemoved(
 		return h.enforceLifecycle(ctx, tx, enforcementID, func() error {
 			cancelErr := h.auctionService.CancelForModeration(ctx, tx, auctionID)
 			if cancelErr != nil {
-				// IDEMPOTENCY: Terminal states (ended, expired_bnr, cancelled) cannot
+				// IDEMPOTENCY: Terminal states (ended, cancelled) cannot
 				// transition to cancelled. Auction is no longer active.
 				var ite *auctionEntity.InvalidTransitionError
 				if errors.As(cancelErr, &ite) {

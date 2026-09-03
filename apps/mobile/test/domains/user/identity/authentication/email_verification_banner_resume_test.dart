@@ -5,7 +5,7 @@
 // their email is not yet verified — this lets a user who verified their
 // email in a browser/email client see the banner disappear the moment they
 // return to the app, without polling or a full auth sync.
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -64,7 +64,7 @@ AuthUser _testUser() {
     sellerSubscriptionStatus: 'none',
     hasMarketAuthority: false,
     roles: const [UserRole.user],
-    provider: ShonaAuthProvider.email,
+    provider: AuthProvider.email,
   );
 }
 

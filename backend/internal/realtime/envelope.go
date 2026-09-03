@@ -31,8 +31,6 @@ type ChatRoomSummaryPayload struct {
 	RoomType      string `json:"room_type"`
 	OtherUserID   string `json:"other_user_id,omitempty"`
 	OtherUser     any    `json:"other_user,omitempty"`
-	Context       any    `json:"context,omitempty"`
-	ContextSetBy  string `json:"context_set_by,omitempty"`
 	LinkedOrderID string `json:"linked_order_id,omitempty"`
 	LastMessage   any    `json:"last_message,omitempty"`
 	UnreadCount   int    `json:"unread_count"`
@@ -74,12 +72,6 @@ func (p ChatRoomSummaryPayload) toMap() map[string]any {
 	}
 	if p.OtherUser != nil {
 		data["other_user"] = p.OtherUser
-	}
-	if p.Context != nil {
-		data["context"] = p.Context
-	}
-	if p.ContextSetBy != "" {
-		data["context_set_by"] = p.ContextSetBy
 	}
 	if p.LinkedOrderID != "" {
 		data["linked_order_id"] = p.LinkedOrderID
@@ -172,5 +164,3 @@ func marshalWSPong(messageID string) []byte {
 func marshalWSHeartbeat() []byte {
 	return marshalWSEnvelope("heartbeat", map[string]any{})
 }
-
-

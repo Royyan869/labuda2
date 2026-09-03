@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/testdb"
 	"github.com/stretchr/testify/require"
@@ -26,11 +27,12 @@ func TestMigration000034_RealPostgresProofs(t *testing.T) {
 
 	insertMsg := func(t *testing.T) uuid.UUID {
 		t.Helper()
+		body := "test"
 		id := uuid.New()
 		_, err := pool.Exec(ctx, `
 			INSERT INTO chat_messages (id, room_id, sender_id, message_type, body, idempotency_key, command_fingerprint, created_at)
 			VALUES ($1,$2,$3,'text','test',$4,$5,NOW())
-		`, id, room, sender, uuid.NewString(), uuid.NewString())
+		`, id, room, sender, uuid.NewString(), chatEntity.ComputeCommandFingerprint(sender, chatEntity.MessageTypeText, &body, nil))
 		require.NoError(t, err)
 		return id
 	}

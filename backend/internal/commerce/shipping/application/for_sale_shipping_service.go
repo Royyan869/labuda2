@@ -16,8 +16,8 @@ import (
 // This is a write-only service for setting shipping options on products.
 type ProductShippingService struct {
 	productRepo         ForSaleRepository
-	shippingOptionRepo  shippingRepo.ShippingOptionRepository
-	productShippingRepo shippingRepo.ProductShippingOptionRepository
+	shippingSetupRepo  shippingRepo.ShippingSetupRepository
+	productShippingRepo shippingRepo.ProductShippingSetupRepository
 	orderRepo           orderRepo.OrderRepository
 }
 
@@ -29,43 +29,43 @@ type ForSaleRepository interface {
 // NewProductShippingService creates a new ProductShippingService.
 func NewProductShippingService(
 	productRepo ForSaleRepository,
-	shippingOptionRepo shippingRepo.ShippingOptionRepository,
-	productShippingRepo shippingRepo.ProductShippingOptionRepository,
+	shippingSetupRepo shippingRepo.ShippingSetupRepository,
+	productShippingRepo shippingRepo.ProductShippingSetupRepository,
 	orderRepo orderRepo.OrderRepository,
 ) *ProductShippingService {
 	return &ProductShippingService{
 		productRepo:         productRepo,
-		shippingOptionRepo:  shippingOptionRepo,
+		shippingSetupRepo:  shippingSetupRepo,
 		productShippingRepo: productShippingRepo,
 		orderRepo:           orderRepo,
 	}
 }
 
-// SetProductShippingOptionsInput contains the parameters for setting shipping options.
-type SetProductShippingOptionsInput struct {
+// SetProductShippingSetupsInput contains the parameters for setting shipping options.
+type SetProductShippingSetupsInput struct {
 	// ProductID is the product to set shipping options for
 	ProductID uuid.UUID
 
-	// ShippingOptionIDs are the shipping option IDs to link (empty = clear all)
-	ShippingOptionIDs []uuid.UUID
+	// ShippingSetupIDs are the shipping option IDs to link (empty = clear all)
+	ShippingSetupIDs []uuid.UUID
 
 	// SellerID is the authenticated seller ID (for ownership check)
 	SellerID uuid.UUID
 }
 
-// SetProductShippingOptions sets shipping options for a product.
+// SetProductShippingSetups sets shipping options for a product.
 //
 // Behavior:
 // 1. Validate product exists and belongs to seller
-// 2. Validate all shippingOptionIDs exist
+// 2. Validate all shippingSetupIDs exist
 // 3. Delete existing rows from product_shipping_options where product_id = productID
 // 4. Insert new rows (product_id, shipping_option_id) with sort_order
 //
 // This is an overwrite model - all existing options are replaced.
-func (s *ProductShippingService) SetProductShippingOptions(
+func (s *ProductShippingService) SetProductShippingSetups(
 	ctx context.Context,
 	tx db.Tx,
-	input SetProductShippingOptionsInput,
+	input SetProductShippingSetupsInput,
 ) error {
 	// Step 1: Validate product exists
 	product, err := s.productRepo.GetByID(ctx, tx, input.ProductID)
@@ -89,9 +89,9 @@ func (s *ProductShippingService) SetProductShippingOptions(
 	}
 
 	// Step 4: Validate all shipping option IDs exist (if provided)
-	if len(input.ShippingOptionIDs) > 0 {
-		for _, optionID := range input.ShippingOptionIDs {
-			option, err := s.shippingOptionRepo.GetByID(ctx, tx, optionID)
+	if len(input.ShippingSetupIDs) > 0 {
+		for _, optionID := range input.ShippingSetupIDs {
+			option, err := s.shippingSetupRepo.GetByID(ctx, tx, optionID)
 			if err != nil {
 				return fmt.Errorf("shipping option %s not found: %w", optionID, err)
 			}
@@ -108,8 +108,8 @@ func (s *ProductShippingService) SetProductShippingOptions(
 	}
 
 	// Step 6: Insert new options (if any)
-	if len(input.ShippingOptionIDs) > 0 {
-		if err := s.productShippingRepo.CreateBulk(ctx, tx, input.ProductID, input.ShippingOptionIDs); err != nil {
+	if len(input.ShippingSetupIDs) > 0 {
+		if err := s.productShippingRepo.CreateBulk(ctx, tx, input.ProductID, input.ShippingSetupIDs); err != nil {
 			return fmt.Errorf("failed to create shipping options: %w", err)
 		}
 	}
@@ -117,12 +117,12 @@ func (s *ProductShippingService) SetProductShippingOptions(
 	return nil
 }
 
-// GetProductShippingOptions retrieves all shipping options for a product.
-func (s *ProductShippingService) GetProductShippingOptions(
+// GetProductShippingSetups retrieves all shipping options for a product.
+func (s *ProductShippingService) GetProductShippingSetups(
 	ctx context.Context,
 	tx db.Tx,
 	productID uuid.UUID,
-) ([]*shippingEntity.ShippingOption, error) {
+) ([]*shippingEntity.ShippingSetup, error) {
 	return s.productShippingRepo.GetByProduct(ctx, tx, productID)
 }
 
@@ -138,12 +138,12 @@ func (s *ProductShippingService) GetProductShippingOptions(
 func ValidateSellableCreateShippingSelection(
 	ctx context.Context,
 	tx db.Tx,
-	optionRepo shippingRepo.ShippingOptionRepository,
+	optionRepo shippingRepo.ShippingSetupRepository,
 	coverageRepo shippingRepo.ShippingCoverageRepository,
 	sellerID uuid.UUID,
-	shippingOptionIDs []uuid.UUID,
+	shippingSetupIDs []uuid.UUID,
 ) ([]uuid.UUID, error) {
-	for _, optionID := range shippingOptionIDs {
+	for _, optionID := range shippingSetupIDs {
 		option, err := optionRepo.GetByID(ctx, tx, optionID)
 		if err != nil {
 			return nil, fmt.Errorf("%w: option %s lookup failed: %v", ErrInvalidSellableCreateShippingSelection, optionID, err)
@@ -152,7 +152,7 @@ func ValidateSellableCreateShippingSelection(
 			return nil, fmt.Errorf("%w: option %s does not belong to seller", ErrInvalidSellableCreateShippingSelection, optionID)
 		}
 		// Require at least one active coverage so the option can serve buyers.
-		coverages, err := coverageRepo.GetByShippingOption(ctx, tx, optionID)
+		coverages, err := coverageRepo.GetByShippingSetup(ctx, tx, optionID)
 		if err != nil {
 			return nil, fmt.Errorf("%w: option %s coverage lookup failed: %v", ErrInvalidSellableCreateShippingSelection, optionID, err)
 		}
@@ -167,7 +167,7 @@ func ValidateSellableCreateShippingSelection(
 			return nil, fmt.Errorf("%w: option %s has no active coverage configured", ErrInvalidSellableCreateShippingSelection, optionID)
 		}
 	}
-	return shippingOptionIDs, nil
+	return shippingSetupIDs, nil
 }
 
 // LinkSellableCreateShippingSelection persists product-shipping-option links
@@ -176,12 +176,12 @@ func ValidateSellableCreateShippingSelection(
 func LinkSellableCreateShippingSelection(
 	ctx context.Context,
 	tx db.Tx,
-	productShippingRepo shippingRepo.ProductShippingOptionRepository,
+	productShippingRepo shippingRepo.ProductShippingSetupRepository,
 	productID uuid.UUID,
-	shippingOptionIDs []uuid.UUID,
+	shippingSetupIDs []uuid.UUID,
 ) error {
-	if len(shippingOptionIDs) == 0 {
+	if len(shippingSetupIDs) == 0 {
 		return nil
 	}
-	return productShippingRepo.CreateBulk(ctx, tx, productID, shippingOptionIDs)
+	return productShippingRepo.CreateBulk(ctx, tx, productID, shippingSetupIDs)
 }

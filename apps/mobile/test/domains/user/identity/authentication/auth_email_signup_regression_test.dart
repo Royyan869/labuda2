@@ -268,7 +268,7 @@ void main() {
           username: 'newuser',
           isEmailVerified: false,
           roles: const [UserRole.user],
-          provider: ShonaAuthProvider.email,
+          provider: AuthProvider.email,
           createdAt: DateTime(2026),
           updatedAt: DateTime(2026),
         ),

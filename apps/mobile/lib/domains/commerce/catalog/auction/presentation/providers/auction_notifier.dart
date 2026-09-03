@@ -260,7 +260,7 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
   Future<String?> claimAuction({
     required String auctionId,
     required String addressId,
-    required String shippingOptionId,
+    required String shippingSetupId,
     String? discountCode,
     bool useCoins = false,
   }) async {
@@ -275,7 +275,7 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
       final result = await _auctionRepository.claimAuction(
         auctionId: auctionId,
         addressId: addressId,
-        shippingOptionId: shippingOptionId,
+        shippingSetupId: shippingSetupId,
         discountCode: discountCode,
         useCoins: useCoins,
       );
@@ -326,7 +326,7 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
     required int durationHours,
     String? farmAddressId,
     AuctionLocation? location,
-    required List<String> shippingOptionIds,
+    required List<String> shippingSetupIds,
     String? preparationNote,
   }) async {
     state = state.copyWith(isCreating: true, clearError: true);
@@ -349,7 +349,7 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
       durationHours: durationHours,
       farmAddressId: farmAddressId,
       location: location,
-      shippingOptionIds: shippingOptionIds,
+      shippingSetupIds: shippingSetupIds,
       preparationNote: preparationNote,
     );
 

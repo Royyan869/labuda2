@@ -117,8 +117,6 @@ func TestMarshalChatMessageRestored_CanonicalEnvelope(t *testing.T) {
 func TestMarshalChatRoomCreated_CanonicalEnvelope(t *testing.T) {
 	roomID := uuid.NewString()
 	otherUserID := uuid.NewString()
-	contextID := uuid.NewString()
-	contextSetBy := uuid.NewString()
 	linkedOrderID := uuid.NewString()
 	lastMessageID := uuid.NewString()
 	env := decodeEnvelope(t, marshalChatRoomCreated(ChatRoomSummaryPayload{
@@ -126,8 +124,6 @@ func TestMarshalChatRoomCreated_CanonicalEnvelope(t *testing.T) {
 		RoomType:      "direct",
 		OtherUserID:   otherUserID,
 		OtherUser:     map[string]any{"id": uuid.NewString(), "display_name": "Dana"},
-		Context:       map[string]any{"kind": "for_sale", "id": contextID},
-		ContextSetBy:  contextSetBy,
 		LinkedOrderID: linkedOrderID,
 		LastMessage:   map[string]any{"id": lastMessageID, "body": "hello"},
 		UnreadCount:   3,
@@ -146,13 +142,9 @@ func TestMarshalChatRoomCreated_CanonicalEnvelope(t *testing.T) {
 	requireStringField(t, env.Data, "created_at", "2026-06-14T00:00:00Z")
 	requireStringField(t, env.Data, "updated_at", "2026-06-14T00:01:00Z")
 	requireStringField(t, env.Data, "last_message_at", "2026-06-14T00:01:00Z")
-	requireStringField(t, env.Data, "context_set_by", contextSetBy)
 	requireStringField(t, env.Data, "linked_order_id", linkedOrderID)
 	if env.Data["other_user"] == nil {
 		t.Fatal("other_user must be present")
-	}
-	if env.Data["context"] == nil {
-		t.Fatal("context must be present")
 	}
 	if env.Data["last_message"] == nil {
 		t.Fatal("last_message must be present")

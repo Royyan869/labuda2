@@ -111,7 +111,7 @@ type OrderCreationService struct {
 	forSaleRepo          forSalerepo.ForSaleRepository
 	productRepo          productRepo.ProductRepository
 	negotiationRepo      negotiationRepo.Repository
-	productShippingRepo  shippingRepoImpl.ProductShippingOptionRepository
+	productShippingRepo  shippingRepoImpl.ProductShippingSetupRepository
 	shippingQuoteRepo    shippingquoteRepo.ShippingQuoteRepository // PHASE 3: Shipping quote validation
 	shippingService      *shippingApp.ShippingService
 	addressService       CheckoutAddressResolver       // See CheckoutAddressResolver doc for why this is an interface
@@ -137,7 +137,7 @@ func NewOrderCreationService(
 	roleChecker auth.RoleChecker,
 	actorResolver capabilityEntity.ActorResolver, // SERVICE LAYER ENFORCEMENT
 	auditService *auditApp.AuditService, // OBSERVABILITY: Audit service
-	productShippingRepo shippingRepoImpl.ProductShippingOptionRepository, // DI: Product shipping options
+	productShippingRepo shippingRepoImpl.ProductShippingSetupRepository, // DI: Product shipping options
 	auctionStatusChecker AuctionStatusChecker, // BNR: Auction status checker (optional)
 	walletService *walletApp.WalletService, // WALLET PHASE 1: Escrow hold on order creation
 ) *OrderCreationService {
@@ -657,13 +657,43 @@ type CreateFromAuctionInput struct {
 	BuyerID               uuid.UUID
 	WinningBid            int64
 	AddressID             uuid.UUID // Buyer's shipping address ID
-	ShippingOptionID      uuid.UUID
+	ShippingSetupID      uuid.UUID
 	ProvinceCode          string                            // Deprecated: Use AddressID instead
 	CityCode              string                            // Deprecated: Use AddressID instead
 	DiscountCode          *string                           // Optional discount code for checkout pricing
 	AuctionSettlementType orderentity.AuctionSettlementType // buy_now vs bid_win
 	PricingSnapshot       *PricingSnapshot                  // Pricing snapshot from validated pricing token (pricing authority)
 	IdempotencyKey        *string                           // Optional: HTTP idempotency key for safe retries
+	// ShippingResolvedAt is the canonical payment-deadline anchor for auction
+	// orders: payment_expires_at = shipping_resolved_at + 24h (NOT the
+	// method-based expiry used by fixed-price orders).
+	ShippingResolvedAt time.Time
+}
+
+// calculateAuctionPaymentExpiry returns the payment deadline for an
+// auction-sourced order: shipping_resolved_at + 24h. There is no extension
+// and no second payment-deadline authority for auctions. A zero anchor (order
+// creation racing a missing shipping-resolution marker) falls back to now so
+// the buyer still gets the full 24h window.
+func calculateAuctionPaymentExpiry(shippingResolvedAt time.Time) time.Time {
+	anchor := shippingResolvedAt
+	if anchor.IsZero() {
+		anchor = time.Now()
+	}
+	return anchor.Add(24 * time.Hour)
+}
+
+// auctionOrderPaymentExpiry computes the payment deadline for an auction
+// order:
+//   - bid-win (claim flow): shipping_resolved_at + 24h (canonical settlement
+//     payment deadline).
+//   - buy-now: method-based expiry (the auction ends immediately at buy-now
+//     order creation; there is no shipping-resolution phase).
+func auctionOrderPaymentExpiry(input CreateFromAuctionInput, snapshot *PricingSnapshot) time.Time {
+	if input.AuctionSettlementType == orderentity.AuctionSettlementBuyNow {
+		return calculatePaymentExpiry(snapshot.PaymentMethod, time.Now())
+	}
+	return calculateAuctionPaymentExpiry(input.ShippingResolvedAt)
 }
 
 // CreateFromAuction creates an order from an ended auction.
@@ -785,14 +815,14 @@ func (s *OrderCreationService) CreateFromAuction(
 	}
 
 	// Step 2.5: SHIPPING GUARD - Verify sale surface has shipping options configured.
-	// Returns shippingApp.ErrNoShippingOptions wrapped with %w so the handler
+	// Returns shippingApp.ErrNoShippingSetups wrapped with %w so the handler
 	// can surface the NO_SHIPPING_OPTIONS error code via errors.Is.
-	shippingOptions, err := s.productShippingRepo.GetByProduct(ctx, tx, product.ID)
+	shippingSetups, err := s.productShippingRepo.GetByProduct(ctx, tx, product.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check sale surface shipping options: %w", err)
 	}
-	if len(shippingOptions) == 0 {
-		return nil, fmt.Errorf("sale surface %s: %w", product.ID, shippingApp.ErrNoShippingOptions)
+	if len(shippingSetups) == 0 {
+		return nil, fmt.Errorf("sale surface %s: %w", product.ID, shippingApp.ErrNoShippingSetups)
 	}
 
 	// Step 3: VALIDATE SALE-SURFACE STATE (UNIFIED)
@@ -819,19 +849,19 @@ func (s *OrderCreationService) CreateFromAuction(
 
 		// Step 6: Find the selected shipping option from available options
 		for i := range deliveryOptions {
-			if deliveryOptions[i].ShippingOptionID == input.ShippingOptionID {
+			if deliveryOptions[i].ShippingSetupID == input.ShippingSetupID {
 				selectedOption = &deliveryOptions[i]
 				break
 			}
 		}
 
 		// Step 7: Validate that the selected shipping option is available.
-		// Wraps shippingApp.ErrShippingOptionUnavailable with %w so the handler
+		// Wraps shippingApp.ErrShippingSetupUnavailable with %w so the handler
 		// can surface the SHIPPING_OPTION_UNAVAILABLE error code via errors.Is.
 		if selectedOption == nil || !selectedOption.IsAvailable {
 			return nil, fmt.Errorf("option_id=%s province_id=%s city_id=%s: %w",
-				input.ShippingOptionID, addressSnapshot.ProvinceID, addressSnapshot.CityID,
-				shippingApp.ErrShippingOptionUnavailable)
+				input.ShippingSetupID, addressSnapshot.ProvinceID, addressSnapshot.CityID,
+				shippingApp.ErrShippingSetupUnavailable)
 		}
 	}
 
@@ -902,10 +932,10 @@ func (s *OrderCreationService) CreateFromAuction(
 	}
 
 	// NULLABLE: nil when using a manual shipping quote (PHASE 2: parity with
-	// CreateFromSaleSurface's nil-safe shippingOptionID handling).
-	var shippingOptionID *uuid.UUID
+	// CreateFromSaleSurface's nil-safe shippingSetupID handling).
+	var shippingSetupID *uuid.UUID
 	if selectedOption != nil {
-		shippingOptionID = &selectedOption.ShippingOptionID
+		shippingSetupID = &selectedOption.ShippingSetupID
 	}
 
 	order := orderentity.NewOrderFromSource(
@@ -922,11 +952,9 @@ func (s *OrderCreationService) CreateFromAuction(
 		snapshot.CommissionAmount,      // Commission amount from pricing snapshot
 		snapshot.ServiceFeeAmount,      // Buyer service fee from pricing snapshot
 		snapshot.TotalPayableAmount,    // Buyer gross payable from pricing snapshot
-		shippingOptionID,               // NULLABLE: pointer to shipping option ID
-		snapshot.ShippingOptionName,    // Option name from pricing snapshot
+		shippingSetupID,               // NULLABLE: pointer to shipping option ID
+		snapshot.ShippingSetupName,    // Option name from pricing snapshot
 		snapshot.ShippingTransportType, // Transport type from pricing snapshot
-		snapshot.ShippingExpeditionName,
-		snapshot.ShippingEstimatedDays,
 		&input.AuctionSettlementType, // Settlement type marker
 		product.PreparationTime,      // SNAPSHOT: Freeze preparation time from canonical product
 		product.PreparationNote,      // SNAPSHOT: Freeze preparation note from canonical product
@@ -935,7 +963,7 @@ func (s *OrderCreationService) CreateFromAuction(
 		shippingQuotePrice,           // TASK F: Quote price snapshot
 		&snapshot.TokenID,            // Store pricing token ID (prevents double-ordering)
 		snapshot.PaymentMethod,       // PHASE 2: Payment method from pricing snapshot
-		calculatePaymentExpiry(snapshot.PaymentMethod, time.Now()), // PHASE 2: Calculate expiry based on payment method
+		auctionOrderPaymentExpiry(input, snapshot), // Canonical auction payment deadline
 	)
 
 	// Apply shipping destination snapshot
@@ -1033,7 +1061,7 @@ type CreateFromSaleSurfaceInput struct {
 	BuyerID          uuid.UUID
 	Quantity         int
 	AddressID        uuid.UUID // Buyer's shipping address ID
-	ShippingOptionID uuid.UUID
+	ShippingSetupID uuid.UUID
 	ProvinceCode     string           // Deprecated: Use AddressID instead
 	CityCode         string           // Deprecated: Use AddressID instead
 	DiscountCode     *string          // Optional discount code for checkout pricing
@@ -1099,11 +1127,9 @@ type PricingSnapshot struct {
 	MaxCoinsAllowed        int64       // Maximum coins allowed (from pricing token, pre-calculated)
 	CoinsUsed              int64       // Coins requested for settlement; persisted later by payment settlement
 	OrderValueForCoins     int64       // Pre-calculated for coins service: subtotal + shipping - discount
-	ShippingOptionName     string
-	ShippingTransportType  string
-	ShippingExpeditionName *string
-	ShippingEstimatedDays  *string
-	ShippingDestination    *addressentity.AddressSnapshot // Shipping address snapshot
+	ShippingSetupName    string
+	ShippingTransportType string
+	ShippingDestination   *addressentity.AddressSnapshot // Shipping address snapshot
 	ShippingSource         *string                        // "for_sale" or "shipping_quote"
 	ShippingQuoteID        *uuid.UUID                     // TASK A-G: Set when using shipping quote
 	ChatID                 *uuid.UUID                     // TASK A-G: Chat context for validation
@@ -1352,16 +1378,16 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 
 	// ============================================================
 	// STEP 2.5: SHIPPING GUARD - Verify sale surface has shipping options configured.
-	// Returns shippingApp.ErrNoShippingOptions wrapped with %w so the handler
+	// Returns shippingApp.ErrNoShippingSetups wrapped with %w so the handler
 	// surfaces NO_SHIPPING_OPTIONS via errors.Is.
 	// ============================================================
 	if !usesShippingQuote {
-		shippingOptions, err := s.productShippingRepo.GetByProduct(ctx, tx, forSale.ProductID)
+		shippingSetups, err := s.productShippingRepo.GetByProduct(ctx, tx, forSale.ProductID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check sale surface shipping options: %w", err)
 		}
-		if len(shippingOptions) == 0 {
-			return nil, fmt.Errorf("sale surface %s: %w", forSale.ID, shippingApp.ErrNoShippingOptions)
+		if len(shippingSetups) == 0 {
+			return nil, fmt.Errorf("sale surface %s: %w", forSale.ID, shippingApp.ErrNoShippingSetups)
 		}
 	}
 
@@ -1468,19 +1494,19 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 
 		// Find the selected shipping option from available options
 		for i := range deliveryOptions {
-			if deliveryOptions[i].ShippingOptionID == input.ShippingOptionID {
+			if deliveryOptions[i].ShippingSetupID == input.ShippingSetupID {
 				selectedOption = &deliveryOptions[i]
 				break
 			}
 		}
 
 		// Validate shipping option is available for this address location.
-		// Wraps shippingApp.ErrShippingOptionUnavailable with %w so the handler
+		// Wraps shippingApp.ErrShippingSetupUnavailable with %w so the handler
 		// surfaces SHIPPING_OPTION_UNAVAILABLE via errors.Is.
 		if selectedOption == nil || !selectedOption.IsAvailable {
 			return nil, fmt.Errorf("option_id=%s province_id=%s city_id=%s: %w",
-				input.ShippingOptionID, addressSnapshot.ProvinceID, addressSnapshot.CityID,
-				shippingApp.ErrShippingOptionUnavailable)
+				input.ShippingSetupID, addressSnapshot.ProvinceID, addressSnapshot.CityID,
+				shippingApp.ErrShippingSetupUnavailable)
 		}
 	}
 
@@ -1589,9 +1615,9 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 	}
 
 	// Create order with pricing snapshot values (NO local calculation)
-	var shippingOptionID *uuid.UUID
+	var shippingSetupID *uuid.UUID
 	if selectedOption != nil {
-		shippingOptionID = &selectedOption.ShippingOptionID
+		shippingSetupID = &selectedOption.ShippingSetupID
 	}
 
 	order := orderentity.NewOrderFromSource(
@@ -1608,11 +1634,9 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 		snapshot.CommissionAmount,      // Commission amount from pricing snapshot
 		snapshot.ServiceFeeAmount,      // Buyer service fee from pricing snapshot
 		snapshot.TotalPayableAmount,    // Buyer gross payable from pricing snapshot
-		shippingOptionID,               // NULLABLE: nil when using a manual shipping quote
-		snapshot.ShippingOptionName,    // Option name from pricing snapshot
+		shippingSetupID,               // NULLABLE: nil when using a manual shipping quote
+		snapshot.ShippingSetupName,    // Option name from pricing snapshot
 		snapshot.ShippingTransportType, // Transport type from pricing snapshot
-		snapshot.ShippingExpeditionName,
-		snapshot.ShippingEstimatedDays,
 		nil,                             // Not an auction order
 		string(forSale.PreparationTime), // SNAPSHOT: Freeze preparation time from sale surface
 		forSale.PreparationNote,         // SNAPSHOT: Freeze preparation note from sale surface

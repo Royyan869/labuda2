@@ -10,7 +10,6 @@ package serverboot
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -24,6 +23,7 @@ import (
 	auctionApp "github.com/labuda/backend/internal/commerce/auction/application"
 	auctionHTTP "github.com/labuda/backend/internal/commerce/auction/delivery/http"
 	auctionRepo "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
+	commercegovRepo "github.com/labuda/backend/internal/commerce/governance/commercegov/infrastructure/repository"
 	commerceResponse "github.com/labuda/backend/internal/commerce/response"
 	"github.com/labuda/backend/internal/config"
 	bankaccountApp "github.com/labuda/backend/internal/finance/bankaccount/application"
@@ -111,8 +111,8 @@ import (
 	platformconfigRepo "github.com/labuda/backend/internal/platform/config/infrastructure/repository"
 	idempotencyRepoPkg "github.com/labuda/backend/internal/platform/idempotency/repository"
 	"github.com/labuda/backend/internal/platform/logger"
-	mediauploadHTTP "github.com/labuda/backend/internal/platform/mediaupload"
 	"github.com/labuda/backend/internal/platform/mediaresolve"
+	mediauploadHTTP "github.com/labuda/backend/internal/platform/mediaupload"
 	ogHTTP "github.com/labuda/backend/internal/platform/og/delivery/http"
 	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
 	"github.com/labuda/backend/internal/platform/response"
@@ -222,7 +222,7 @@ type Dependencies struct {
 	AdminAuctionHandler    *auctionHTTP.AdminAuctionHandler // PASS_5B: admin emergency auction cancel/override
 	SavedItemHandler       *savedItemHTTP.SavedItemHandler
 	BiddingHandler         *biddingHTTP.BiddingHandler
-	ForSaleHandler  *forSaleHTTP.ForSaleHandler
+	ForSaleHandler         *forSaleHTTP.ForSaleHandler
 	PricingTokenHandler    *pricingtokenHTTP.PricingTokenHandler
 	ChatHandler            *chatHTTP.Handler
 	DiscountHandler        *discountHTTP.DiscountHandler
@@ -237,17 +237,17 @@ type Dependencies struct {
 	LikeHandler            *likeHTTP.LikeHandler
 	NotificationHandler    *notificationHTTP.NotificationHandler
 	FCMTokenHandler        *notificationHTTP.FCMTokenHandler
-	ReportHandler          *moderationHTTP.ReportHandler      // SLICE 2: canonical Report intake
+	ReportHandler          *moderationHTTP.ReportHandler          // SLICE 2: canonical Report intake
 	GovernanceAdminHandler *moderationHTTP.GovernanceAdminHandler // SLICE 6: admin governance workflow
-	FollowHandler          *socialhttp.FollowHandler          // SOCIAL domain: follow/block/mute
-	ShippingQuoteHandler   *shippingQuoteHTTP.Handler         // Shipping quote feature (chat-based manual quotes)
-	RatingHandler          *ratingHTTP.RatingHandler          // RATING DOMAIN: buyer→seller order ratings
-	PromotionHandler       *promotionHTTP.PromotionHandler    // PROMOTION PHASE 4: Discovery endpoints
-	SearchHandler          *searchHTTP.SearchHandler          // FEDERATED SEARCH: content, users, forSales
-	AdminOrderHandler      *orderHTTP.AdminOrderHandler       // ADMIN ORDER: read-only order management
-	AdminRefundHandler     *refundHTTP.AdminRefundHandler     // TASK 34 / Phase 2a: admin-only gateway refund trigger (feature-flagged)
-	SellerRefundHandler    *refundHTTP.SellerRefundHandler    // H2-A: seller approve/reject refund endpoints
-	BuyerEscalationHandler *refundHTTP.BuyerEscalationHandler // H2-B: buyer escalate rejected refund
+	FollowHandler          *socialhttp.FollowHandler              // SOCIAL domain: follow/block/mute
+	ShippingQuoteHandler   *shippingQuoteHTTP.Handler             // Shipping quote feature (chat-based manual quotes)
+	RatingHandler          *ratingHTTP.RatingHandler              // RATING DOMAIN: buyer→seller order ratings
+	PromotionHandler       *promotionHTTP.PromotionHandler        // PROMOTION PHASE 4: Discovery endpoints
+	SearchHandler          *searchHTTP.SearchHandler              // FEDERATED SEARCH: content, users, forSales
+	AdminOrderHandler      *orderHTTP.AdminOrderHandler           // ADMIN ORDER: read-only order management
+	AdminRefundHandler     *refundHTTP.AdminRefundHandler         // TASK 34 / Phase 2a: admin-only gateway refund trigger (feature-flagged)
+	SellerRefundHandler    *refundHTTP.SellerRefundHandler        // H2-A: seller approve/reject refund endpoints
+	BuyerEscalationHandler *refundHTTP.BuyerEscalationHandler     // H2-B: buyer escalate rejected refund
 
 	// VERIFICATION (Phase 2 operationalization)
 	VerificationHandler      *verificationHTTP.VerificationHandler      // Seller-facing: submit identity/business, status
@@ -317,7 +317,6 @@ type Dependencies struct {
 	OrderOverdueCancelWorker         Worker // ORDER FULFILLMENT - auto-cancels paid orders past shipment deadline
 	SubscriptionReconciliationWorker Worker // SUBSCRIPTION HARDENING - recovers orphaned subscription payments
 	WithdrawalMonitoringWorker       Worker // PAYOUT MONITORING - read-only alert on stuck withdrawals
-	BNRDecayWorker                   Worker // BNR FORGIVENESS - daily decay of oldest strike per buyer after 180d inactivity
 	PushRetryWorker                  Worker // Z6: PUSH RELIABILITY - retries failed FCM pushes with exponential backoff
 	NotificationCleanupWorker        Worker // Z6: PUSH HYGIENE - deletes old delivery logs + expired retry entries
 	EscrowIntegrityWorker            Worker // ESCROW RECONCILIATION - shadow-rollout periodic escrow vs wallet check
@@ -533,13 +532,13 @@ func InitServices(
 
 	// ===== SHIPPING MODULE =====
 	// Wire real shipping repositories
-	shippingOptionRepo := shippingRepo.NewShippingOptionRepository()
+	shippingSetupRepo := shippingRepo.NewShippingSetupRepository()
 	coverageRepo := shippingRepo.NewShippingCoverageRepository()
 	cityOverrideRepo := shippingRepo.NewCityOverrideRepository()
-	productShippingRepo := shippingRepo.NewProductShippingOptionRepository(shippingOptionRepo)
+	productShippingRepo := shippingRepo.NewProductShippingSetupRepository(shippingSetupRepo)
 
 	shippingService := shippingApp.NewShippingService(
-		shippingOptionRepo,
+		shippingSetupRepo,
 		coverageRepo,
 		cityOverrideRepo,
 		productShippingRepo,
@@ -550,7 +549,7 @@ func InitServices(
 	forSaleRepository := forSaleRepo.NewForSaleRepository()
 	productShippingService := shippingApp.NewProductShippingService(
 		forSaleRepository,
-		shippingOptionRepo,
+		shippingSetupRepo,
 		productShippingRepo,
 		orderRepository,
 	)
@@ -571,7 +570,7 @@ func InitServices(
 	// ===== SHIPPING MODULE (Seller-facing) =====
 	// Initialize seller shipping handler for managing shipping options
 	sellerShippingService := shippingApp.NewSellerShippingService(
-		shippingOptionRepo,
+		shippingSetupRepo,
 		coverageRepo,
 		cityOverrideRepo,
 		productShippingRepo,
@@ -830,19 +829,24 @@ func InitServices(
 
 	// ===== AUCTION MODULE =====
 	auctionRepository := auctionRepo.NewAuctionRepository()
+	// The auction service needs the address repository to resolve the winner's
+	// primary shipping address for Case A/B seller-quote classification at
+	// auction end. Declared here (before the listing module) so both can share
+	// the same instance.
+	addressRepository := addressRepoImpl.NewAddressRepository()
 	auctionService := auctionApp.NewAuctionService(
 		accountStatusChecker,
 		shippingService,
-		shippingOptionRepo,
+		shippingSetupRepo,
 		coverageRepo,
 		productShippingRepo,
 		outboxRepository,
 		configService,
 		orderService,
 		roleChecker,
+		addressRepository,
 		log.Logger,
 	)
-	auctionService.SetBNRStrikeChecker(auctionApp.NewBNRStrikeChecker())
 	auctionService.SetProductRepo(productRepoImpl.NewProductRepository())
 	auctionHandler := auctionHTTP.NewAuctionHandler(auctionService, productRepoImpl.NewProductRepository(), pricingTokenService, db.Pgx(), log.Logger)
 	// PASS_5B: admin emergency auction cancel/override (governance authority,
@@ -873,7 +877,6 @@ func InitServices(
 	shippingQuoteRepository := shippingQuoteRepo.NewShippingQuoteRepository()
 
 	// ===== LISTING MODULE =====
-	addressRepository := addressRepoImpl.NewAddressRepository()
 	forSaleService := forSaleApp.NewForSaleService(
 		outboxRepository,
 		roleChecker,
@@ -1614,14 +1617,15 @@ func InitServices(
 		})
 	}
 
-	// 7b. Auction Settlement Worker - BNR timeout enforcement
-	// Detects waiting_settlement auctions past settlement_deadline, transitions
-	// to expired_bnr, emits auction_bnr_detected outbox event. No money, no
-	// order, no inventory — pure status flip + trust event.
-	// RUNTIME_PROVEN B81 2026-05-26. Default ON.
+	// 7b. Auction Settlement Worker - canonical deadline enforcement.
+	// Detects waiting_settlement auctions past end_at + 24h with shipping
+	// unresolved; records the canonical commerce violation + restriction and
+	// returns the auction to DRAFT. Default ON.
+	commercegovRepository := commercegovRepo.NewRepository()
 	auctionSettlementWorker := worker.NewAuctionSettlementWorker(
 		db.Pgx(),
 		auctionService,
+		commercegovRepository,
 		outboxRepository,
 		log.Logger,
 		worker.DefaultAuctionSettlementWorkerConfig(),
@@ -1630,18 +1634,6 @@ func InitServices(
 		workerStartups = append(workerStartups, func() {
 			auctionSettlementWorker.Start()
 			log.Info("AuctionSettlementWorker started")
-		})
-	}
-
-	// 7c. BNR Decay Worker - daily forgiveness layer for buyer BNR strikes.
-	// If a buyer's most-recent active strike is older than 180 days, decays
-	// the oldest active strike (sets decayed_at). One decay per buyer per run.
-	// No money mutation, no order changes — pure trust-signal housekeeping.
-	// Disable: DISABLE_BNR_DECAY_WORKER=true
-	bnrDecayWorker := worker.NewBNRDecayWorker(db.Pgx(), log.Logger)
-	if workerEnabled("BNR_DECAY_WORKER", true, log.Logger) {
-		workerStartups = append(workerStartups, func() {
-			bnrDecayWorker.Start()
 		})
 	}
 
@@ -2277,8 +2269,8 @@ func InitServices(
 		contentRepo, // E3.3 — wired (previously nil, causing AddComment panic)
 		commentRepo,
 		forSaleService,
-		nil,              // auctionValidator — not wired on this path
-		nil,              // visibilityChecker — falls back to contentRepo in AddCommerceReferenceComment
+		nil, // auctionValidator — not wired on this path
+		nil, // visibilityChecker — falls back to contentRepo in AddCommerceReferenceComment
 		outboxRepository,
 		idempotencyCommentRepo,
 		blockChecker,
@@ -2290,8 +2282,8 @@ func InitServices(
 	// for ForSale/Auction existence + state validation. Displayability only.
 	// Consumed by Create Content, Comment, and Chat.
 	commerceRefValidator := commerceResponse.NewValidator(
-		forSaleRepository,   // ForSaleGetter — already constructed in LISTING MODULE
-		auctionRepository,   // AuctionGetter — already constructed in AUCTION MODULE
+		forSaleRepository, // ForSaleGetter — already constructed in LISTING MODULE
+		auctionRepository, // AuctionGetter — already constructed in AUCTION MODULE
 	)
 	contentService.SetCommerceReferenceValidator(commerceRefValidator)
 	commentService.SetCommerceReferenceValidator(commerceRefValidator)
@@ -2330,14 +2322,14 @@ func InitServices(
 	if workerEnabled("MODERATION_EVENT_HANDLER", true, log.Logger) {
 		outboxWorker.SetupModerationHandlers(
 			db.Pgx(),
-			contentService,    // SoftDeleteForModeration / RestoreFromModeration
-			commentService,    // SoftDeleteForModeration / RestoreFromModeration
-			forSaleService,    // Withdraw (idempotent on terminal state)
-			auctionService,    // CancelForModeration (governance bypass)
-			userRepository,    // Update account_status (suspended / active)
-			chatService,       // Chat moderation service: hide/restore + room.updated projection
+			contentService,        // SoftDeleteForModeration / RestoreFromModeration
+			commentService,        // SoftDeleteForModeration / RestoreFromModeration
+			forSaleService,        // Withdraw (idempotent on terminal state)
+			auctionService,        // CancelForModeration (governance bypass)
+			userRepository,        // Update account_status (suspended / active)
+			chatService,           // Chat moderation service: hide/restore + room.updated projection
 			enforcementRepository, // SLICE 5: enforcement write-back
-			notifEventHandler, // fanout: notification fires AFTER enforcement
+			notifEventHandler,     // fanout: notification fires AFTER enforcement
 		)
 		log.Info("Moderation event handlers registered with outbox worker (enforcement + notification fanout)")
 
@@ -2387,7 +2379,6 @@ func InitServices(
 		auditService,
 		log.Logger,
 	)
-
 
 	// ===== SOCIAL MODULE =====
 	// Initialize social service for follow/block/mute operations
@@ -2568,6 +2559,11 @@ func InitServices(
 	// wiring is a soft-required best-effort hookup, not a financial dependency.
 	orderService.SetCoinsService(coinsService)
 
+	// Canonical commerce violation/restriction repository for auction
+	// settlement-failure rollback (order expiry/cancel returns the auction to
+	// DRAFT + records buyer_bnr violation).
+	orderService.SetCommerceViolationRepo(commercegovRepository)
+
 	// CANONICAL COIN CONSUME+SPEND WIRING: the finalization service was built
 	// before coinsService existed; inject the consume+spend surface now so a
 	// settling payment with K>0 completes RESERVE → CONSUME atomically with
@@ -2605,8 +2601,7 @@ func InitServices(
 	// Create SLA service for metrics aggregation
 	slaSvc := adminApp.NewSLAService(db.Pgx(), disputeRepository, supportInfraRepo.NewSupportRepository())
 	adminHandler := adminHTTP.NewAdminHandler(adminSvc, adminAuditLogger, capabilitySvc, slaSvc)
-	adminHandler.SetDeliveryQuerier(deliveryLogger)                               // O4: notification delivery failure monitoring
-	adminHandler.SetBNRResetter(worker.NewBNRAdminResetter(db.Pgx(), log.Logger)) // BNR admin strike reset
+	adminHandler.SetDeliveryQuerier(deliveryLogger) // O4: notification delivery failure monitoring
 
 	// 2. Appeal Handler - Appeals system for moderation decisions
 	appealRepository := appealInfraRepo.NewAppealRepository()
@@ -2700,10 +2695,9 @@ func InitServices(
 		outboxWorker.SetupPresenceLastSeenHandler(presenceService)
 	}
 
-	// BNR HANDLERS: auction_bnr_detected → strike recording + notifications.
-	// Fanout: BNRStrikeHandler (idempotent INSERT) runs first, then
-	// NotificationEventHandler sends seller + winner notifications.
-	outboxWorker.SetupBNRHandlers(db.Pgx(), notifEventHandler)
+	// AUCTION SETTLEMENT-FAILED NOTIFICATION: auction.settlement_failed →
+	// NotificationEventHandler (winner/seller settlement-failure notifications).
+	outboxWorker.SetupAuctionSettlementFailedHandler(notifEventHandler)
 
 	// Initialize admin alert handler
 	adminAlertHandler := alertHTTP.NewAdminAlertHandler(alertService, db.Pgx(), log.Logger, adminAuditLogger)
@@ -2983,7 +2977,7 @@ func InitServices(
 		BiddingHandler:           biddingHandler,
 		// CollectionHandler:     collectionHandler, // DISABLED: Collection domain being isolated for removal
 		// OfferHandler:          offerHandler,      // DISABLED: Offer domain being isolated for removal
-		ForSaleHandler:  forSaleHandler,
+		ForSaleHandler:         forSaleHandler,
 		PricingTokenHandler:    pricingTokenHandler,
 		ChatHandler:            chatHandler,
 		DiscountHandler:        discountHandler,
@@ -2998,9 +2992,9 @@ func InitServices(
 		LikeHandler:            likeHandler,
 		NotificationHandler:    notificationHandler,
 		FCMTokenHandler:        fcmTokenHandler,
-		ReportHandler:          reportHandler,             // SLICE 2: canonical Report intake
-		GovernanceAdminHandler: governanceAdminHandler,   // SLICE 6: admin governance workflow
-		FollowHandler:          followHandler,             // SOCIAL domain: follow/block/mute
+		ReportHandler:          reportHandler,          // SLICE 2: canonical Report intake
+		GovernanceAdminHandler: governanceAdminHandler, // SLICE 6: admin governance workflow
+		FollowHandler:          followHandler,          // SOCIAL domain: follow/block/mute
 		ShippingQuoteHandler:   shippingQuoteHandler,   // Shipping quote feature (chat-based manual quotes)
 		RatingHandler:          ratingHandler,          // RATING DOMAIN: buyer→seller order ratings
 		PromotionHandler:       promotionHandler,       // PROMOTION PHASE 4: Discovery endpoints
@@ -3070,7 +3064,6 @@ func InitServices(
 		NotificationCleanupWorker:        notificationCleanupWorker,        // Z6-2: PUSH HYGIENE
 		EscrowIntegrityWorker:            escrowIntegrityWorker,            // ESCROW RECONCILIATION (shadow default)
 		TotalMoneyInvariantWorker:        totalMoneyInvariantWorker,        // TOTAL MONEY INVARIANT (shadow default)
-		BNRDecayWorker:                   bnrDecayWorker,                   // BNR FORGIVENESS - daily 180d decay
 		SellerMetricsWorker:              sellerMetricsWorker,              // SELLER MEASUREMENT - daily fulfillment snapshot
 		SellerReputationRecomputeWorker:  sellerReputationRecomputeWorker,  // REPUTATION AUTHORITY - nightly 90-day rolling recompute
 
@@ -4423,13 +4416,13 @@ func (h *CoreUserHandler) logError(c *gin.Context, msg string, err error) {
 type stubShippingService struct{}
 
 func newStubShippingServiceWithRepos() *shippingApp.ShippingService {
-	shippingOptionRepo := &stubShippingOptionRepository{}
+	shippingSetupRepo := &stubShippingSetupRepository{}
 	coverageRepo := &stubShippingCoverageRepository{}
 	cityOverrideRepo := &stubCityOverrideRepository{}
-	productShippingRepo := &stubProductShippingOptionRepository{}
+	productShippingRepo := &stubProductShippingSetupRepository{}
 
 	return shippingApp.NewShippingService(
-		shippingOptionRepo,
+		shippingSetupRepo,
 		coverageRepo,
 		cityOverrideRepo,
 		productShippingRepo,
@@ -4444,27 +4437,27 @@ func (s *stubShippingService) CheckDeliveryAvailability(
 	return []shippingApp.DeliveryOption{}, nil
 }
 
-type stubShippingOptionRepository struct{}
+type stubShippingSetupRepository struct{}
 
-func (r *stubShippingOptionRepository) Create(ctx context.Context, tx db.Tx, option *shippingEntity.ShippingOption) error {
+func (r *stubShippingSetupRepository) Create(ctx context.Context, tx db.Tx, option *shippingEntity.ShippingSetup) error {
 	return nil
 }
-func (r *stubShippingOptionRepository) Update(ctx context.Context, tx db.Tx, option *shippingEntity.ShippingOption) error {
+func (r *stubShippingSetupRepository) Update(ctx context.Context, tx db.Tx, option *shippingEntity.ShippingSetup) error {
 	return nil
 }
-func (r *stubShippingOptionRepository) GetByID(ctx context.Context, tx db.Tx, id uuid.UUID) (*shippingEntity.ShippingOption, error) {
+func (r *stubShippingSetupRepository) GetByID(ctx context.Context, tx db.Tx, id uuid.UUID) (*shippingEntity.ShippingSetup, error) {
 	return nil, nil
 }
-func (r *stubShippingOptionRepository) GetForUpdate(ctx context.Context, tx db.Tx, id uuid.UUID) (*shippingEntity.ShippingOption, error) {
+func (r *stubShippingSetupRepository) GetForUpdate(ctx context.Context, tx db.Tx, id uuid.UUID) (*shippingEntity.ShippingSetup, error) {
 	return nil, nil
 }
-func (r *stubShippingOptionRepository) GetBySeller(ctx context.Context, tx db.Tx, sellerID uuid.UUID, onlyActive bool) ([]*shippingEntity.ShippingOption, error) {
+func (r *stubShippingSetupRepository) GetBySeller(ctx context.Context, tx db.Tx, sellerID uuid.UUID, onlyActive bool) ([]*shippingEntity.ShippingSetup, error) {
 	return nil, nil
 }
-func (r *stubShippingOptionRepository) GetByName(ctx context.Context, tx db.Tx, sellerID uuid.UUID, name string) (*shippingEntity.ShippingOption, error) {
+func (r *stubShippingSetupRepository) GetByName(ctx context.Context, tx db.Tx, sellerID uuid.UUID, name string) (*shippingEntity.ShippingSetup, error) {
 	return nil, nil
 }
-func (r *stubShippingOptionRepository) Delete(ctx context.Context, tx db.Tx, id uuid.UUID) error {
+func (r *stubShippingSetupRepository) Delete(ctx context.Context, tx db.Tx, id uuid.UUID) error {
 	return nil
 }
 
@@ -4479,16 +4472,16 @@ func (r *stubShippingCoverageRepository) Update(ctx context.Context, tx db.Tx, c
 func (r *stubShippingCoverageRepository) GetByID(ctx context.Context, tx db.Tx, id uuid.UUID) (*shippingEntity.ShippingCoverage, error) {
 	return nil, nil
 }
-func (r *stubShippingCoverageRepository) GetByShippingOption(ctx context.Context, tx db.Tx, shippingOptionID uuid.UUID) ([]*shippingEntity.ShippingCoverage, error) {
+func (r *stubShippingCoverageRepository) GetByShippingSetup(ctx context.Context, tx db.Tx, shippingSetupID uuid.UUID) ([]*shippingEntity.ShippingCoverage, error) {
 	return nil, nil
 }
-func (r *stubShippingCoverageRepository) GetByOptionAndProvince(ctx context.Context, tx db.Tx, shippingOptionID uuid.UUID, provinceCode string) (*shippingEntity.ShippingCoverage, error) {
+func (r *stubShippingCoverageRepository) GetByOptionAndProvince(ctx context.Context, tx db.Tx, shippingSetupID uuid.UUID, provinceCode string) (*shippingEntity.ShippingCoverage, error) {
 	return nil, nil
 }
 func (r *stubShippingCoverageRepository) Delete(ctx context.Context, tx db.Tx, id uuid.UUID) error {
 	return nil
 }
-func (r *stubShippingCoverageRepository) DeleteByShippingOption(ctx context.Context, tx db.Tx, shippingOptionID uuid.UUID) error {
+func (r *stubShippingCoverageRepository) DeleteByShippingSetup(ctx context.Context, tx db.Tx, shippingSetupID uuid.UUID) error {
 	return nil
 }
 
@@ -4516,30 +4509,30 @@ func (r *stubCityOverrideRepository) DeleteByCoverage(ctx context.Context, tx db
 	return nil
 }
 
-type stubProductShippingOptionRepository struct{}
+type stubProductShippingSetupRepository struct{}
 
-func (r *stubProductShippingOptionRepository) Create(ctx context.Context, tx db.Tx, productID uuid.UUID, shippingOptionID uuid.UUID, sortOrder int) error {
+func (r *stubProductShippingSetupRepository) Create(ctx context.Context, tx db.Tx, productID uuid.UUID, shippingSetupID uuid.UUID, sortOrder int) error {
 	return nil
 }
-func (r *stubProductShippingOptionRepository) Delete(ctx context.Context, tx db.Tx, productID uuid.UUID, shippingOptionID uuid.UUID) error {
+func (r *stubProductShippingSetupRepository) Delete(ctx context.Context, tx db.Tx, productID uuid.UUID, shippingSetupID uuid.UUID) error {
 	return nil
 }
-func (r *stubProductShippingOptionRepository) GetByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) ([]*shippingEntity.ShippingOption, error) {
+func (r *stubProductShippingSetupRepository) GetByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) ([]*shippingEntity.ShippingSetup, error) {
 	return nil, nil
 }
-func (r *stubProductShippingOptionRepository) GetAvailableByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) ([]*shippingEntity.ShippingOption, error) {
+func (r *stubProductShippingSetupRepository) GetAvailableByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) ([]*shippingEntity.ShippingSetup, error) {
 	return nil, nil
 }
-func (r *stubProductShippingOptionRepository) DeleteByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) error {
+func (r *stubProductShippingSetupRepository) DeleteByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) error {
 	return nil
 }
-func (r *stubProductShippingOptionRepository) DeleteByShippingOption(ctx context.Context, tx db.Tx, shippingOptionID uuid.UUID) error {
+func (r *stubProductShippingSetupRepository) DeleteByShippingSetup(ctx context.Context, tx db.Tx, shippingSetupID uuid.UUID) error {
 	return nil
 }
-func (r *stubProductShippingOptionRepository) CreateBulk(ctx context.Context, tx db.Tx, productID uuid.UUID, shippingOptionIDs []uuid.UUID) error {
+func (r *stubProductShippingSetupRepository) CreateBulk(ctx context.Context, tx db.Tx, productID uuid.UUID, shippingSetupIDs []uuid.UUID) error {
 	return nil
 }
-func (r *stubProductShippingOptionRepository) CountByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) (int64, error) {
+func (r *stubProductShippingSetupRepository) CountByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) (int64, error) {
 	return 0, nil
 }
 
@@ -4608,36 +4601,13 @@ func (a *supportChatServiceAdapter) GetOrCreateSupportRoom(ctx context.Context, 
 	return a.chatService.GetOrCreateSupportRoom(ctx, userID)
 }
 
-// GetOrCreateSupportRoomWithContext creates or retrieves a support chat room with context.
-// ORDER ↔ CHAT CONTINUITY: Stores linked_order_id in chat room context for mobile retrieval.
-// DEPRECATED: Use CreateSupportTicketRoom for new tickets.
-func (a *supportChatServiceAdapter) GetOrCreateSupportRoomWithContext(ctx context.Context, userID uuid.UUID, contextJSON json.RawMessage) (*chatEntity.ChatRoom, error) {
-	return a.chatService.GetOrCreateSupportRoomWithContext(ctx, userID, contextJSON)
-}
-
 // CreateSupportTicketRoom creates or retrieves a support chat room for a ticket.
 // Per UNIQUE(participant_a, participant_b, room_type), one support room per user.
-// Context semantics: new room gets context; existing room keeps its context.
 // Room type is RoomTypeSupport — enables block exemption and support.user_replied emission.
-func (a *supportChatServiceAdapter) CreateSupportTicketRoom(ctx context.Context, userID uuid.UUID, ticketID uuid.UUID, contextJSON json.RawMessage) (*chatEntity.ChatRoom, error) {
-	ticketContext := map[string]interface{}{
-		"ticket_id": ticketID.String(),
-		"type":      "support_ticket",
-	}
-
-	// Merge with provided context (e.g., linked_order_id)
-	if len(contextJSON) > 0 {
-		var providedContext map[string]interface{}
-		if err := json.Unmarshal(contextJSON, &providedContext); err == nil {
-			for k, v := range providedContext {
-				ticketContext[k] = v
-			}
-		}
-	}
-
-	mergedContext, _ := json.Marshal(ticketContext)
-
-	return a.chatService.GetOrCreateSupportRoomWithContext(ctx, userID, mergedContext)
+// Room-level commerce context is not stored; ticket → room linkage is carried by
+// support_tickets.chat_room_id and the ticket's linked_order_id.
+func (a *supportChatServiceAdapter) CreateSupportTicketRoom(ctx context.Context, userID uuid.UUID) (*chatEntity.ChatRoom, error) {
+	return a.chatService.GetOrCreateSupportRoom(ctx, userID)
 }
 
 // SendSystemMessage sends a system message to a support chat room.
