@@ -138,19 +138,23 @@ class UserSyncService {
       'User synced successfully: ${result.data?.userId}, created: ${result.data?.created}, profileComplete: ${!(result.data?.requiresProfileCompletion ?? false)}',
     );
 
-    // Persist platform tokens (fire-and-forget; Firebase token remains authoritative for API calls).
+    // Persist platform tokens via canonical credential store (fire-and-forget;
+    // Firebase token remains authoritative for API calls until request migration).
     if (result.isSuccess) {
       final response = result.data!;
       final storage = _localStorage;
       if (storage != null) {
         if (response.accessToken.isNotEmpty) {
-          await storage.setAuthToken(response.accessToken);
-        }
-        if (response.refreshToken != null &&
-            response.refreshToken!.isNotEmpty) {
-          await storage.setRefreshToken(response.refreshToken!);
-        } else {
-          await storage.clearRefreshToken();
+          if (response.refreshToken != null &&
+              response.refreshToken!.isNotEmpty) {
+            await storage.saveLabudaCredential(
+              response.accessToken,
+              response.refreshToken!,
+            );
+          } else {
+            // Access token only (incomplete profile) — store as restricted credential
+            await storage.setRestrictedToken(response.accessToken);
+          }
         }
       }
     }
@@ -441,7 +445,6 @@ class UserSyncService {
     final storage = _localStorage;
     if (storage == null) return;
 
-    await storage.clearAuthToken();
-    await storage.clearRefreshToken();
+    await storage.clearLabudaCredential();
   }
 }

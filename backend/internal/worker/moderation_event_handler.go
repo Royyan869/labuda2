@@ -26,13 +26,6 @@ type auctionCanceller interface {
 	CancelForModeration(ctx context.Context, tx db.Tx, auctionID uuid.UUID) error
 }
 
-// ChatMessageModerationService is the chat boundary for moderation-driven
-// hide/restore mutations plus room-list projection emission.
-type ChatMessageModerationService interface {
-	SoftHideForModeration(ctx context.Context, tx db.Tx, messageID uuid.UUID, deletedBy uuid.UUID, reason, moderationKey string) error
-	RestoreFromModeration(ctx context.Context, tx db.Tx, messageID uuid.UUID, moderationKey string) error
-}
-
 // ModerationEventHandler handles moderation removal and restoration events.
 //
 // STRICT BOUNDARY RULES:
@@ -42,24 +35,21 @@ type ChatMessageModerationService interface {
 // - NO verification/rating changes
 //
 // Event types handled:
-// - moderation.content.removed       -> soft delete content via ContentService
-// - moderation.comment.removed       -> soft delete comment via CommentService
-// - moderation.for_sale.removed -> mark fixed-price sale withdrawn via ForSaleService
-// - moderation.auction.removed       -> cancel auction via AuctionService.CancelForModeration (governance bypass)
-// - moderation.user.suspended        -> suspend user account via UserRepository
-// - moderation.chat_message.hidden   -> soft-hide chat message via chat boundary
-// - moderation.{type}.restored       -> restore resource via respective service (appeal approved)
-// - moderation.chat_message.restored -> restore soft-hidden chat message via chat boundary
+// - moderation.content.removed  -> soft delete content via ContentService
+// - moderation.comment.removed  -> soft delete comment via CommentService
+// - moderation.for_sale.removed -> mark for_sale withdrawn via ForSaleService
+// - moderation.auction.removed  -> cancel auction via AuctionService.CancelForModeration
+// - moderation.user.suspended   -> suspend user account via UserRepository
+// - moderation.{type}.restored  -> restore resource via respective service (appeal approved)
 type ModerationEventHandler struct {
-	db               Transactor // *db.DB satisfies this; interface enables test injection
-	contentService   *contentApp.ContentService
-	commentService   *contentApp.CommentService
+	db             Transactor // *db.DB satisfies this; interface enables test injection
+	contentService *contentApp.ContentService
+	commentService *contentApp.CommentService
 	forSaleService *forSaleApp.ForSaleService
-	auctionService   auctionCanceller // interface: *auctionApp.AuctionService satisfies this
-	userRepo         userRepositoryPkg.UserRepository
-	chatMessageStore ChatMessageModerationService
-	enfRepo          moderationRepo.EnforcementRepository
-	log              *zap.Logger
+	auctionService auctionCanceller // interface: *auctionApp.AuctionService satisfies this
+	userRepo       userRepositoryPkg.UserRepository
+	enfRepo        moderationRepo.EnforcementRepository
+	log            *zap.Logger
 }
 
 // NewModerationEventHandler creates a new moderation event handler.
@@ -76,7 +66,6 @@ func NewModerationEventHandler(
 	forSaleService interface{},
 	auctionService interface{},
 	userRepo interface{},
-	chatMessageStore ChatMessageModerationService,
 	enfRepo moderationRepo.EnforcementRepository,
 	log *zap.Logger,
 ) *ModerationEventHandler {
@@ -96,7 +85,7 @@ func NewModerationEventHandler(
 	// Type assertion to ensure we have the correct type for forSaleService
 	fps, ok := forSaleService.(*forSaleApp.ForSaleService)
 	if !ok && forSaleService != nil {
-		log.Warn("forSaleService is not *forSaleApp.ForSaleService, fixed-price sale moderation events will not be processed")
+		log.Warn("forSaleService is not *forSaleApp.ForSaleService, for_sale moderation events will not be processed")
 	}
 	// Type assertion to auctionCanceller interface (satisfied by *auctionApp.AuctionService)
 	var as auctionCanceller
@@ -112,19 +101,15 @@ func NewModerationEventHandler(
 	if !ok && userRepo != nil {
 		log.Warn("userRepo is not userRepositoryPkg.UserRepository, user moderation events will not be processed")
 	}
-	if chatMessageStore == nil {
-		panic("NewModerationEventHandler: chatMessageStore must not be nil")
-	}
 	return &ModerationEventHandler{
-		db:               db,
-		contentService:   cs,
-		commentService:   cms,
+		db:             db,
+		contentService: cs,
+		commentService: cms,
 		forSaleService: fps,
-		auctionService:   as,
-		userRepo:         ur,
-		chatMessageStore: chatMessageStore,
-		enfRepo:          enfRepo,
-		log:              log,
+		auctionService: as,
+		userRepo:       ur,
+		enfRepo:        enfRepo,
+		log:            log,
 	}
 }
 
@@ -216,9 +201,6 @@ func (h *ModerationEventHandler) Handle(ctx context.Context, event platformevent
 	case "user":
 		return h.handleUserAction(ctx, resourceID, payload)
 
-	case "chat_message":
-		return h.handleChatMessageHidden(ctx, resourceID, payload)
-
 	default:
 		h.log.Warn("Unknown resource type in moderation event",
 			zap.String("resource_type", payload.ResourceType),
@@ -269,9 +251,6 @@ func (h *ModerationEventHandler) handleRestoration(ctx context.Context, event pl
 
 	case "user":
 		return h.handleUserRestored(ctx, resourceID, payload)
-
-	case "chat_message":
-		return h.handleChatMessageRestored(ctx, resourceID, payload)
 
 	default:
 		h.log.Warn("Unknown resource type in moderation restoration event",
@@ -934,85 +913,6 @@ func (h *ModerationEventHandler) handleUserRestored(
 
 	h.log.Info("Successfully restored user for approved appeal",
 		zap.String("user_id", userID.String()),
-		zap.String("case_id", payload.CaseID),
-		zap.String("appeal_id", payload.AppealID),
-	)
-
-	return nil
-}
-
-// handleChatMessageHidden soft-hides a chat message via chat boundary.
-//
-// CANONICAL ENFORCEMENT LIFECYCLE: MarkProcessing → hide → MarkSucceeded
-// All within one transaction for atomicity.
-//
-// IDEMPOTENT: repository operation is guarded by deleted_at IS NULL.
-func (h *ModerationEventHandler) handleChatMessageHidden(
-	ctx context.Context,
-	messageID uuid.UUID,
-	payload moderationRemovedPayload,
-) error {
-	h.log.Info("Soft-hiding chat message due to moderation enforcement",
-		zap.String("message_id", messageID.String()),
-		zap.String("case_id", payload.CaseID),
-	)
-
-	enforcementID := parseEnforcementID(payload)
-	reason := fmt.Sprintf("Moderation: hidden by admin (case %s)", payload.CaseID)
-
-	err := h.db.WithTx(ctx, func(tx db.Tx) error {
-		return h.enforceLifecycle(ctx, tx, enforcementID, func() error {
-			return h.chatMessageStore.SoftHideForModeration(ctx, tx, messageID, uuid.Nil, reason, payload.CaseID)
-		})
-	})
-
-	if err != nil {
-		h.log.Error("Failed to soft-hide chat message for moderation",
-			zap.String("message_id", messageID.String()),
-			zap.String("case_id", payload.CaseID),
-			zap.Error(err),
-		)
-		return fmt.Errorf("soft-hide chat message failed: %w", err)
-	}
-
-	h.log.Info("Successfully soft-hid chat message for moderation",
-		zap.String("message_id", messageID.String()),
-		zap.String("case_id", payload.CaseID),
-	)
-
-	return nil
-}
-
-// handleChatMessageRestored restores a soft-hidden chat message via chat boundary.
-//
-// IDEMPOTENT: repository operation is guarded by deleted_at IS NOT NULL.
-func (h *ModerationEventHandler) handleChatMessageRestored(
-	ctx context.Context,
-	messageID uuid.UUID,
-	payload moderationRestoredPayload,
-) error {
-	h.log.Info("Restoring chat message due to approved appeal",
-		zap.String("message_id", messageID.String()),
-		zap.String("case_id", payload.CaseID),
-		zap.String("appeal_id", payload.AppealID),
-	)
-
-	err := h.db.WithTx(ctx, func(tx db.Tx) error {
-		return h.chatMessageStore.RestoreFromModeration(ctx, tx, messageID, payload.AppealID)
-	})
-
-	if err != nil {
-		h.log.Error("Failed to restore chat message for approved appeal",
-			zap.String("message_id", messageID.String()),
-			zap.String("case_id", payload.CaseID),
-			zap.String("appeal_id", payload.AppealID),
-			zap.Error(err),
-		)
-		return fmt.Errorf("restore chat message failed: %w", err)
-	}
-
-	h.log.Info("Successfully restored chat message for approved appeal",
-		zap.String("message_id", messageID.String()),
 		zap.String("case_id", payload.CaseID),
 		zap.String("appeal_id", payload.AppealID),
 	)

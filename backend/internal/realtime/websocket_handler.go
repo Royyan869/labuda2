@@ -115,33 +115,6 @@ func (h *Handler) GetStats(c *gin.Context) {
 }
 
 // =============================================================================
-// MIDDLEWARE: OPTIONAL AUTH FOR WEBSOCKET
-// =============================================================================
-
-// WebSocketAuthConfig holds configuration for optional WebSocket auth middleware.
-type WebSocketAuthConfig struct {
-	SkipAuth bool
-}
-
-// WebSocketAuthMiddleware extracts user ID from context for WebSocket connections.
-func WebSocketAuthMiddleware(skipAuth bool) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		userIDVal, exists := c.Get("userID")
-		if !exists {
-			if !skipAuth {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
-				c.Abort()
-				return
-			}
-		}
-
-		userID, _ := userIDVal.(uuid.UUID)
-		c.Set("ws_user_id", userID)
-		c.Next()
-	}
-}
-
-// =============================================================================
 // ERROR RESPONSES
 // =============================================================================
 

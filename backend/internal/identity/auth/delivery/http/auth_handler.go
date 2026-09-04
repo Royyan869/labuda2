@@ -712,8 +712,16 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 				zap.String("family_id", claimsFamilyID.String()),
 				zap.String("jti", claimsJTI.String()),
 			)
-			_ = h.refreshSessionRepo.MarkReusedAndRevokeFamily(ctx, tx, claimsFamilyID, claimsJTI)
-			_ = tx.Commit(ctx)
+			if revokeErr := h.refreshSessionRepo.MarkReusedAndRevokeFamily(ctx, tx, claimsFamilyID, claimsJTI); revokeErr != nil {
+				h.log.Error("Failed to revoke reused refresh token family", zap.Error(revokeErr))
+				response.InternalServerError(c, "Database error")
+				return
+			}
+			if commitErr := tx.Commit(ctx); commitErr != nil {
+				h.log.Error("Failed to commit refresh token reuse transaction", zap.Error(commitErr))
+				response.InternalServerError(c, "Database error")
+				return
+			}
 			response.Error(c, http.StatusUnauthorized, "TOKEN_REUSE", "Refresh token already used — all sessions revoked")
 			return
 		}
@@ -725,7 +733,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 
 	// Step 3: verify user is still active.
 	var accountStatus, dbRole string
-	dbErr := h.pool.QueryRow(ctx, `
+	dbErr := tx.QueryRow(ctx, `
 		SELECT account_status, role
 		FROM users
 		WHERE id = $1 AND deleted_at IS NULL
@@ -911,27 +919,14 @@ func (h *AuthHandler) CompleteProfile(c *gin.Context) {
 		response.InternalServerError(c, "Failed to complete profile")
 		return
 	}
-	if err := tx.Commit(ctx); err != nil {
-		h.log.Error("Failed to commit profile completion", zap.Error(err))
-		response.InternalServerError(c, "Failed to complete profile")
-		return
-	}
-
 	roles := []string{updatedUser.Role}
 	tokenPair, err := h.tokenService.GenerateTokenPair(updatedUser.ID, roles, nil)
+
 	if err != nil {
 		h.log.Error("Failed to generate full session for completion", zap.Error(err))
 		response.InternalServerError(c, "Failed to generate tokens")
 		return
 	}
-
-	sessionTx, sessionTxErr := h.pool.Begin(ctx)
-	if sessionTxErr != nil {
-		h.log.Error("Failed to begin session tx", zap.Error(sessionTxErr))
-		response.InternalServerError(c, "Database error")
-		return
-	}
-	defer sessionTx.Rollback(ctx) //nolint:errcheck
 
 	tokenHash := authrepo.HashRefreshToken(tokenPair.RefreshToken)
 	session, sessionErr := authentity.NewRefreshSession(
@@ -946,14 +941,14 @@ func (h *AuthHandler) CompleteProfile(c *gin.Context) {
 		response.InternalServerError(c, "Failed to create session")
 		return
 	}
-	if createErr := h.refreshSessionRepo.Create(ctx, sessionTx, session); createErr != nil {
+	if createErr := h.refreshSessionRepo.Create(ctx, tx, session); createErr != nil {
 		h.log.Error("Failed to persist refresh session", zap.Error(createErr))
 		response.InternalServerError(c, "Failed to create session")
 		return
 	}
-	if commitErr := sessionTx.Commit(ctx); commitErr != nil {
-		h.log.Error("Failed to commit session tx", zap.Error(commitErr))
-		response.InternalServerError(c, "Failed to create session")
+	if commitErr := tx.Commit(ctx); commitErr != nil {
+		h.log.Error("Failed to commit profile completion tx", zap.Error(commitErr))
+		response.InternalServerError(c, "Failed to complete profile")
 		return
 	}
 

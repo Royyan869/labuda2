@@ -87,6 +87,13 @@ class AuctionRepositoryImpl implements AuctionRepository {
       final entity = AuctionMapper.toEntity(result);
 
       return RepositoryResult.success(entity);
+    } on StructuredApiException catch (e) {
+      _logger.error('Failed to create auction: ${e.message}');
+      return RepositoryResult.error(
+        e.message,
+        code: e.code,
+        details: e.details,
+      );
     } catch (e) {
       _logger.error('Failed to create auction: $e');
       return RepositoryResult.error(e.toString());
@@ -289,6 +296,13 @@ class AuctionRepositoryImpl implements AuctionRepository {
         useCoins: useCoins,
       );
       return RepositoryResult.success(orderId);
+    } on StructuredApiException catch (e) {
+      _logger.error('Failed to claim auction: ${e.message}');
+      return RepositoryResult.error(
+        e.message,
+        code: e.code,
+        details: e.details,
+      );
     } catch (e) {
       _logger.error('Failed to claim auction: $e');
       return RepositoryResult.error(e.toString());

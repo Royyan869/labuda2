@@ -9,29 +9,6 @@ sealed class SyncOutcome {
   const SyncOutcome();
 }
 
-/// Sync succeeded but email verification is required.
-///
-/// This outcome occurs when:
-/// - Backend exchange succeeds
-/// - Firebase user is a password provider
-/// - emailVerified is false
-///
-/// The auth controller should publish AuthStateRequiresEmailVerification
-/// instead of AuthStateAuthenticated.
-class SyncRequiresEmailVerification extends SyncOutcome {
-  final String firebaseUid;
-  final int principalEpoch;
-  final String backendUserId;
-  final String email;
-
-  const SyncRequiresEmailVerification({
-    required this.firebaseUid,
-    required this.principalEpoch,
-    required this.backendUserId,
-    required this.email,
-  });
-}
-
 /// Sync failed with an error.
 ///
 /// This outcome occurs when:

@@ -47,31 +47,19 @@ class MentionNotificationService {
 
     if (usersToNotify.isEmpty) return;
 
-    // Build notification data based on content type
+    // Build notification data — canonical backend contract:
+    // { targetId, targetType }
     final data = <String, dynamic>{
-      'contentType': contentType,
-      'contentId': contentId,
+      'targetId': contentId,
+      'targetType': contentType,
       'authorId': authorId,
       'authorName': authorName,
     };
 
-    // Add specific navigation params based on content type
-    switch (contentType) {
-      case 'chat':
-        data['screen'] = '/chat/$chatId';
-        data['chatId'] = chatId;
-        break;
-      case 'comment':
-      case 'content':
-        data['screen'] = '/content/$contentId';
-        data['contentId'] = contentId;
-        break;
-    }
-
     // Send batch notification
     await notificationTrigger.sendNotificationBatch(
       userIds: usersToNotify,
-      type: NotificationType.mention,
+      type: NotificationType.contentMentioned,
       title: _buildTitle(authorName, contentType),
       body: _buildBody(contentPreview),
       data: data,

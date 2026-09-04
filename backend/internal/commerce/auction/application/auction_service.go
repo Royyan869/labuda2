@@ -13,6 +13,7 @@ import (
 	"github.com/labuda/backend/internal/commerce/auction/entity"
 	auctionRepo "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
 	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
+	"github.com/labuda/backend/internal/commerce/governance/commercegov"
 	orderApp "github.com/labuda/backend/internal/commerce/order/application"
 	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
 	orderRepo "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
@@ -69,6 +70,7 @@ type AuctionService struct {
 	roleChecker          auth.RoleChecker
 	configService  *platformconfigApp.ConfigService
 	productRepo    ProductCreator
+	commerceGovRepo commercegov.Repository // COMMERCE RESTRICTION: canonical restriction checker
 	log            *zap.Logger
 }
 
@@ -114,6 +116,47 @@ func NewAuctionService(
 // during CreateDraft. Must be called before any CreateDraft invocation.
 func (s *AuctionService) SetProductRepo(repo ProductCreator) {
 	s.productRepo = repo
+}
+
+// SetCommerceGovRepository wires the canonical commerce restriction repository
+// into the auction service so seller/bidder restrictions are enforced inside the
+// same transaction as the mutation (TOCTOU prevention).
+func (s *AuctionService) SetCommerceGovRepository(repo commercegov.Repository) {
+	s.commerceGovRepo = repo
+}
+
+// requireSellerNotRestricted checks whether the given seller has an active
+// commerce restriction. Must be called inside the same transaction as the
+// commerce mutation. Returns auth.ErrCommerceRestricted when restricted.
+func (s *AuctionService) requireSellerNotRestricted(ctx context.Context, tx db.Tx, sellerID uuid.UUID) error {
+	if s.commerceGovRepo == nil {
+		return nil // repo not wired — fail-open for backward compat
+	}
+	restricted, _, err := commercegov.IsUserRestricted(ctx, tx, s.commerceGovRepo, sellerID)
+	if err != nil {
+		return fmt.Errorf("commerce restriction check failed: %w", err)
+	}
+	if restricted {
+		return auth.ErrCommerceRestricted
+	}
+	return nil
+}
+
+// requireUserNotRestricted checks whether the given user has an active
+// commerce restriction. Used for bidder/buyer restriction checks.
+// Must be called inside the same transaction as the commerce mutation.
+func (s *AuctionService) requireUserNotRestricted(ctx context.Context, tx db.Tx, userID uuid.UUID) error {
+	if s.commerceGovRepo == nil {
+		return nil // repo not wired — fail-open for backward compat
+	}
+	restricted, _, err := commercegov.IsUserRestricted(ctx, tx, s.commerceGovRepo, userID)
+	if err != nil {
+		return fmt.Errorf("commerce restriction check failed: %w", err)
+	}
+	if restricted {
+		return auth.ErrCommerceRestricted
+	}
+	return nil
 }
 
 // buildAuctionPayload creates a JSON payload for auction events.
@@ -233,6 +276,13 @@ func (s *AuctionService) CreateDraft(
 	// Validate seller account status
 	if err := s.accountStatus.EnsureActive(ctx, input.SellerID); err != nil {
 		return nil, fmt.Errorf("seller account not active: %w", err)
+	}
+
+	// COMMERCE RESTRICTION: Reject restricted seller before any auction creation.
+	// Checked at the creation boundary; scheduleAuctionInternal re-checks inside
+	// the same transaction for activation paths.
+	if err := s.requireSellerNotRestricted(ctx, tx, input.SellerID); err != nil {
+		return nil, err
 	}
 
 	// Resolve and validate start_at/end_at from the seller's chosen start
@@ -459,6 +509,12 @@ func (s *AuctionService) scheduleAuctionInternal(
 	// Validate ownership
 	if !s.ownership.IsSeller(callerID, auction.SellerID) {
 		return auth.ErrSellerRequired
+	}
+
+	// COMMERCE RESTRICTION: Reject restricted seller before schedule/activation.
+	// Checked inside the same transaction as the state mutation (TOCTOU prevention).
+	if err := s.requireSellerNotRestricted(ctx, tx, callerID); err != nil {
+		return err
 	}
 
 	// MARKET AUTHORITY CHECK: Scheduling requires active seller subscription
@@ -698,6 +754,12 @@ func (s *AuctionService) PlaceBid(
 	// Validate bidder account status
 	if err := s.accountStatus.EnsureActive(ctx, input.BidderID); err != nil {
 		return nil, fmt.Errorf("bidder account not active: %w", err)
+	}
+
+	// COMMERCE RESTRICTION: Reject restricted bidder before any bid mutation.
+	// Checked inside the same transaction as the bid to prevent TOCTOU bypass.
+	if err := s.requireUserNotRestricted(ctx, tx, input.BidderID); err != nil {
+		return nil, err
 	}
 
 	// Check for existing bid with same idempotency key scoped to this bidder.
@@ -1251,6 +1313,12 @@ func (s *AuctionService) GeneratePricingTokenForAuctionClaim(
 		return nil, entity.ErrNotWinner
 	}
 
+	// COMMERCE RESTRICTION: Reject restricted winner at the claim/payment boundary.
+	// Checked inside the same transaction as the auction claim to prevent TOCTOU bypass.
+	if err := s.requireUserNotRestricted(ctx, tx, input.WinnerID); err != nil {
+		return nil, err
+	}
+
 	// Return auction for pricing token generation
 	// The pricing token service will use this to generate the token
 	return auction, nil
@@ -1290,6 +1358,12 @@ func (s *AuctionService) ActivateScheduledAuction(
 	// Double-check status is still scheduled (idempotent)
 	if auction.Status != entity.StatusScheduled {
 		return nil // Already processed
+	}
+
+	// COMMERCE RESTRICTION: Reject restricted seller at activation boundary.
+	// Checked inside the same transaction as the state mutation.
+	if err := s.requireSellerNotRestricted(ctx, tx, auction.SellerID); err != nil {
+		return err
 	}
 
 	// MARKET AUTHORITY CHECK: Re-verify seller has active subscription

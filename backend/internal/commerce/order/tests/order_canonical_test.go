@@ -93,7 +93,7 @@ func TestDoubleCheckoutProtection(t *testing.T) {
 			1,                 // CRITICAL: Only 1 item available
 			false,
 			forsaleEntity.ForSaleVisibilityPublic,
-			forsaleEntity.ForSaleOriginDirectCreate,
+			
 			nil, // farmAddressID
 			forsaleEntity.PreparationTimeImmediate,
 			nil, // preparationNote
@@ -287,7 +287,7 @@ func TestStockRaceCondition(t *testing.T) {
 			initialStock, // Limited stock
 			false,
 			forsaleEntity.ForSaleVisibilityPublic,
-			forsaleEntity.ForSaleOriginDirectCreate,
+			
 			nil, // farmAddressID
 			forsaleEntity.PreparationTimeImmediate,
 			nil, // preparationNote
@@ -452,7 +452,7 @@ func TestOrderCreationIdempotency(t *testing.T) {
 			3,
 			false,
 			forsaleEntity.ForSaleVisibilityPublic,
-			forsaleEntity.ForSaleOriginDirectCreate,
+			
 			nil, // farmAddressID
 			forsaleEntity.PreparationTimeImmediate,
 			nil, // preparationNote
@@ -592,7 +592,7 @@ func TestDifferentBuyersSameIdempotencyKey(t *testing.T) {
 			2,
 			false,
 			forsaleEntity.ForSaleVisibilityPublic,
-			forsaleEntity.ForSaleOriginDirectCreate,
+			
 			nil, // farmAddressID
 			forsaleEntity.PreparationTimeImmediate,
 			nil, // preparationNote

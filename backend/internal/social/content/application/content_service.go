@@ -9,11 +9,17 @@ import (
 	"github.com/google/uuid"
 	commerceResponse "github.com/labuda/backend/internal/commerce/response"
 	"github.com/labuda/backend/internal/identity/auth"
+	"github.com/labuda/backend/internal/platform/events"
 	"github.com/labuda/backend/internal/social/content/entity"
 	contentrepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
 	likedomain "github.com/labuda/backend/internal/social/like"
 	"github.com/labuda/backend/pkg/db"
 )
+
+// ContentOutboxInserter inserts outbox events for content lifecycle (mention etc.) within the same Tx.
+type ContentOutboxInserter interface {
+	InsertTx(ctx context.Context, tx db.Tx, eventType string, payload any, idempotencyKey string) error
+}
 
 // ContentService handles content business logic and state transitions.
 type ContentService struct {
@@ -25,6 +31,7 @@ type ContentService struct {
 	invariantLogger        InvariantLogger // Logs invariant violations for monitoring
 	internalShareAuthority internalShareAuthority
 	commerceRefValidator   commerceResponse.Validator // Validates commerce resource references for display
+	outboxRepo             ContentOutboxInserter
 }
 
 type contentResourceOccurrenceWriter interface {
@@ -61,6 +68,11 @@ func NewContentService(
 // requests that reference ForSale or Auction resources.
 func (s *ContentService) SetCommerceReferenceValidator(v commerceResponse.Validator) {
 	s.commerceRefValidator = v
+}
+
+// SetOutboxInserter injects the outbox inserter for content lifecycle events (mention).
+func (s *ContentService) SetOutboxInserter(o ContentOutboxInserter) {
+	s.outboxRepo = o
 }
 
 // CreateContent creates a new active content.
@@ -144,6 +156,29 @@ func (s *ContentService) CreateContent(
 		if len(validIDs) > 0 {
 			if err := s.contentRepo.InsertMentionedUsers(ctx, tx, content.ID, validIDs); err != nil {
 				return nil, fmt.Errorf("mention persistence failed: %w", err)
+			}
+			// Emit mention events per valid recipient (dedup, skip self-mention).
+			if s.outboxRepo != nil && tx != nil {
+				seen := map[uuid.UUID]struct{}{}
+				for _, mid := range validIDs {
+					if mid == callerID {
+						continue
+					}
+					if _, dup := seen[mid]; dup {
+						continue
+					}
+					seen[mid] = struct{}{}
+					payload := map[string]any{
+						"content_id":       content.ID.String(),
+						"author_id":        callerID.String(),
+						"mentioned_user_id": mid.String(),
+						"created_at":       content.CreatedAt.UTC().Format(time.RFC3339Nano),
+					}
+					key := fmt.Sprintf("content.mentioned.%s.%s", content.ID.String(), mid.String())
+					if err := s.outboxRepo.InsertTx(ctx, tx, events.EventContentMentioned, payload, key); err != nil {
+						return nil, fmt.Errorf("insert mention outbox event failed: %w", err)
+					}
+				}
 			}
 		}
 	}
@@ -247,6 +282,14 @@ func (s *ContentService) CreateContentWithResourceOccurrence(
 	content.IsHidden = visibility == entity.VisibilityPrivate
 	content.City = city
 	content.Province = province
+	// Repost attribution: share_to_feed of content must carry original_author_id for feed governance.
+	if occurrence != nil && occurrence.Operation == entity.ContentResourceOccurrenceOperationShareToFeed && occurrence.ResourceType == entity.ContentResourceOccurrenceResourceTypeContent {
+		orig, err := s.contentRepo.GetByID(ctx, tx, occurrence.ResourceID)
+		if err == nil && orig != nil {
+			oa := orig.AuthorID
+			content.OriginalAuthorID = &oa
+		}
+	}
 
 	if err := s.contentRepo.Create(ctx, tx, content); err != nil {
 		return nil, fmt.Errorf("create content failed: %w", err)
@@ -288,6 +331,28 @@ func (s *ContentService) CreateContentWithResourceOccurrence(
 		if len(validIDs) > 0 {
 			if err := s.contentRepo.InsertMentionedUsers(ctx, tx, content.ID, validIDs); err != nil {
 				return nil, fmt.Errorf("mention persistence failed: %w", err)
+			}
+			if s.outboxRepo != nil && tx != nil {
+				seen := map[uuid.UUID]struct{}{}
+				for _, mid := range validIDs {
+					if mid == callerID {
+						continue
+					}
+					if _, dup := seen[mid]; dup {
+						continue
+					}
+					seen[mid] = struct{}{}
+					payload := map[string]any{
+						"content_id":        content.ID.String(),
+						"author_id":         callerID.String(),
+						"mentioned_user_id": mid.String(),
+						"created_at":        content.CreatedAt.UTC().Format(time.RFC3339Nano),
+					}
+					key := fmt.Sprintf("content.mentioned.%s.%s", content.ID.String(), mid.String())
+					if err := s.outboxRepo.InsertTx(ctx, tx, events.EventContentMentioned, payload, key); err != nil {
+						return nil, fmt.Errorf("insert mention outbox event failed: %w", err)
+					}
+				}
 			}
 		}
 	}
@@ -603,6 +668,38 @@ func (s *ContentService) ensurePublicAuthorActive(ctx context.Context, tx db.Tx,
 	}
 
 	return nil
+}
+
+// GetContentVisibleToViewer retrieves content for viewer-aware comment gating (V-VISIBILITY).
+// Owner sees all (public/followers_only/private already filtered by GetContentPublic for public, but private ownership bypasses follower check).
+// Followers see public+followers_only, strangers see public only. Private is owner-only.
+// Deleted/hidden/banned handled by GetContentPublic (fail-closed to "not found").
+func (s *ContentService) GetContentVisibleToViewer(
+	ctx context.Context,
+	tx db.Tx,
+	viewerID uuid.UUID,
+	contentID uuid.UUID,
+) (*entity.Content, error) {
+	content, err := s.GetContentPublic(ctx, tx, contentID)
+	if err != nil {
+		return nil, err
+	}
+	if content.AuthorID == viewerID {
+		return content, nil
+	}
+	if content.Visibility == entity.VisibilityPublic {
+		return content, nil
+	}
+	if content.Visibility == entity.VisibilityFollowersOnly && viewerID != uuid.Nil {
+		var isFollower bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = $2)`, viewerID, content.AuthorID).Scan(&isFollower); err != nil {
+			return nil, fmt.Errorf("visibility follower check failed: %w", err)
+		}
+		if isFollower {
+			return content, nil
+		}
+	}
+	return nil, fmt.Errorf("content not found")
 }
 
 // ListByAuthor retrieves content by author ID with cursor-based pagination.

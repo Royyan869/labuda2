@@ -15,7 +15,6 @@ library;
 /// - GET /api/v1/warnings
 /// - GET /api/v1/users/:id/warnings
 /// - GET /api/v1/users/:id/warnings/active
-/// - POST /api/v1/warnings
 class UserWarningDto {
   final String id;
   final String userId;
@@ -85,40 +84,4 @@ class UserWarningDto {
     if (revokedBy != null) 'revoked_by': revokedBy,
     'issued_by': issuedBy,
   };
-}
-
-/// Request to issue a warning
-///
-/// Matches backend CreateWarningRequest:
-/// - user_id (required, uuid)
-/// - level (required, one of: info, warning, severe)
-/// - reason (required, string 1-500 chars)
-/// - expires_at (optional, Unix timestamp)
-class IssueWarningRequestDto {
-  final String userId;
-  final String level; // 'info', 'warning', or 'severe'
-  final String reason;
-  final int? expiresAt; // Unix timestamp, optional
-
-  const IssueWarningRequestDto({
-    required this.userId,
-    required this.level,
-    required this.reason,
-    this.expiresAt,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'user_id': userId,
-    'level': level,
-    'reason': reason,
-    if (expiresAt != null) 'expires_at': expiresAt,
-  };
-
-  /// Validate request against backend requirements
-  bool get isValid {
-    if (userId.isEmpty) return false;
-    if (reason.isEmpty || reason.length > 500) return false;
-    if (!const ['info', 'warning', 'severe'].contains(level)) return false;
-    return true;
-  }
 }

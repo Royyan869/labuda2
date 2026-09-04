@@ -66,7 +66,7 @@ class NotificationNavigationHandler {
       case 'content.liked': // Canonical: backend sends this for like notifications
         return _navigateToContentByTarget(context, data);
 
-      case 'mention':
+      case 'content.mentioned':
         return _navigateToMention(context, data);
 
       case 'seller.response': // Seller responded to a request - navigate to request
@@ -395,16 +395,13 @@ class NotificationNavigationHandler {
 
       appRouter.navigateToHome();
       Timer(const Duration(milliseconds: 600), () {
-        final chatId = data['chatId'] as String?;
-        if (chatId != null && chatId.isNotEmpty) {
-          appRouter.navigateToChatConversation(chatId);
-          return;
-        }
+        final targetType = data['targetType'] as String?;
+        final targetId = data['targetId'] as String?;
 
-        final contentId =
-            data['contentId'] as String? ?? data['content_id'] as String?;
-        if (contentId != null && contentId.isNotEmpty) {
-          appRouter.navigateToContentDetail(contentId);
+        if (targetType == 'content' &&
+            targetId != null &&
+            targetId.isNotEmpty) {
+          appRouter.navigateToContentDetail(targetId);
           return;
         }
 

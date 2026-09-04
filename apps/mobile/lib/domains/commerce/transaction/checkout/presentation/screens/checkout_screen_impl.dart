@@ -46,6 +46,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/core/api/api_error_codes.dart' as api_codes;
 import 'package:labuda/domains/commerce/transaction/checkout/checkout.dart';
 import 'package:labuda/domains/commerce/transaction/checkout/presentation/utils/checkout_honesty_messages.dart';
 import 'package:labuda/domains/finance/wallet/coins/coins.dart';
@@ -213,9 +214,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         // Inline gate: backend rejected order creation because the user's
         // email is not verified. Buy-now and direct checkout funnel through
         // this same notifier, so the gate covers both call sites.
-        if (next.errorCode == 'EMAIL_VERIFICATION_REQUIRED') {
+        if (next.errorCode == api_codes.emailVerificationRequired) {
           ref.read(checkoutNotifierProvider.notifier).clearError();
           showBlockedActionGate(
+            context,
+            actionDescription: 'melakukan checkout',
+          );
+          return;
+        }
+        // Commerce restriction — canonical backend rejection.
+        if (CommerceRestrictionPresenter.isCommerceRestricted(next.errorCode)) {
+          ref.read(checkoutNotifierProvider.notifier).clearError();
+          CommerceRestrictionPresenter.show(
             context,
             actionDescription: 'melakukan checkout',
           );

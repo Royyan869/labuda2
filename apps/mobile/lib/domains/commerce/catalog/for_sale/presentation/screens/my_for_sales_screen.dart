@@ -309,6 +309,13 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
       // shipping options to the listing. Offer two CTAs: one to set up
       // global options (if the catalog is empty), one to pick options for
       // this specific listing via the edit screen.
+      if (CommerceRestrictionPresenter.isCommerceRestricted(result.errorCode)) {
+        CommerceRestrictionPresenter.show(
+          context,
+          actionDescription: 'mengubah status listing',
+        );
+        return;
+      }
       if (result.errorCode == 'SHIPPING_NOT_CONFIGURED') {
         showDialog<void>(
           context: context,

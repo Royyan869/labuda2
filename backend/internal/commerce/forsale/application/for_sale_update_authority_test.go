@@ -36,9 +36,6 @@ func (r *fakeForSaleRepository) Update(_ context.Context, _ db.Tx, _ *entity.For
 }
 func (r *fakeForSaleRepository) UpdateStock(_ context.Context, _ db.Tx, _ *entity.ForSale) error { return nil }
 func (r *fakeForSaleRepository) UpdateStatus(_ context.Context, _ db.Tx, _ *entity.ForSale) error { return nil }
-func (r *fakeForSaleRepository) GetBySellerID(_ context.Context, _ db.Tx, _ uuid.UUID, _ bool) ([]*entity.ForSale, error) {
-	return nil, nil
-}
 func (r *fakeForSaleRepository) GetBySellerIDPaginated(_ context.Context, _ db.Tx, _ uuid.UUID, _, _ int, _ bool) ([]*entity.ForSale, error) {
 	return nil, nil
 }

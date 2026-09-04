@@ -25,7 +25,6 @@ class ReportMapper {
       description: dto.reasonNote,
       evidenceUrls: const [],
       status: ReportStatus.pending,
-      action: ReportAction.none,
       createdAt: dto.createdAt,
     );
   }
@@ -46,23 +45,6 @@ class ReportMapper {
     );
   }
 
-  /// Map Review Request to DTO
-  static ReviewReportRequestDto toReviewRequestDto(
-    ReviewReportRequest request,
-  ) {
-    return ReviewReportRequestDto(
-      action: _actionToString(request.action),
-      note: request.moderatorNote,
-    );
-  }
-
-  // =====================
-  // Private Helpers
-  // =====================
-
-  static String _actionToString(ReportAction action) {
-    return action.value;
-  }
 }
 
 // =====================
@@ -166,24 +148,6 @@ class WarningMapper {
       expiresAt: dto.expiresAt,
       revokedAt: dto.revokedAt,
       revokedBy: dto.revokedBy,
-    );
-  }
-
-  /// Map Domain Entity to DTO (for creating request)
-  ///
-  /// Matches backend CreateWarningRequest exactly:
-  /// - user_id (required, uuid)
-  /// - level (required, one of: info, warning, severe)
-  /// - reason (required, string 1-500 chars)
-  /// - expires_at (optional, Unix timestamp)
-  static IssueWarningRequestDto toCreateRequestDto(
-    CreateWarningRequest request,
-  ) {
-    return IssueWarningRequestDto(
-      userId: request.userId,
-      level: request.level.value, // Direct string mapping
-      reason: request.reason,
-      expiresAt: request.expiresAtUnix,
     );
   }
 

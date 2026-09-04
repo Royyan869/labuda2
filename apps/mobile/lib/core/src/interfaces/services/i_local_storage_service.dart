@@ -39,23 +39,33 @@ abstract class ILocalStorageService {
   Future<Result<bool>> containsKey(String key);
   Future<Result<Set<String>>> getKeys();
 
-  // Auth-specific operations
+  // Auth-specific operations (canonical helpers — non-termination reads)
   Future<Result<void>> setAuthToken(String token);
   Future<Result<String?>> getAuthToken();
-  Future<Result<void>> clearAuthToken();
 
   Future<Result<void>> setRefreshToken(String token);
   Future<Result<String?>> getRefreshToken();
-  Future<Result<void>> clearRefreshToken();
 
   Future<Result<void>> setUserSession(Map<String, dynamic> session);
   Future<Result<Map<String, dynamic>?>> getUserSession();
-  Future<Result<void>> clearUserSession();
+
+  // Restricted profile-completion credential (isolated from normal access token)
+  Future<Result<void>> setRestrictedToken(String token);
+  Future<Result<String?>> getRestrictedToken();
+  Future<Result<void>> clearRestrictedToken();
+
+  // Canonical Labuda credential operations
+  Future<Result<void>> saveLabudaCredential(String accessToken, String refreshToken);
+  Future<Result<String?>> readLabudaAccessToken();
+  Future<Result<String?>> readLabudaRefreshToken();
+  Future<Result<void>> clearLabudaCredential();
+  Future<Result<bool>> hasLabudaCredential();
 }
 
 class StorageKeys {
   static const String authToken = 'auth_token';
   static const String refreshToken = 'refresh_token';
+  static const String restrictedToken = 'restricted_token';
   static const String userSession = 'user_session';
   static const String userPreferences = 'user_preferences';
   // REMOVED: onboardingCompleted - was never used, app entry is controlled by AuthController

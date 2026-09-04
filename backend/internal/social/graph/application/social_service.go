@@ -223,21 +223,8 @@ func (s *SocialService) Unblock(
 		if err := s.repo.DeleteBlock(ctx, tx, blockerID, blockedID); err != nil {
 			return fmt.Errorf("failed to delete block: %w", err)
 		}
-
-		// Insert outbox event for notification delivery
-		// EventType: events.EventUserUnblocked
-		// AggregateType: "user"
-		// AggregateID: blockedID (the user being unblocked)
-		payload := map[string]any{
-			"actor_id":    blockerID,
-			"recipient_id": blockedID,
-		}
-		// Idempotency key format: user.unblocked.{recipientID}.{actorID}
-		idempotencyKey := fmt.Sprintf("user.unblocked.%s.%s", blockedID, blockerID)
-		if err := s.outboxRepo.InsertTx(ctx, tx, events.EventUserUnblocked, payload, idempotencyKey); err != nil {
-			return fmt.Errorf("insert outbox event failed: %w", err)
-		}
-
+		// No outbox: unblock is silent and has no consumer side-effect (follow is not restored, notifications remain deleted).
+		// Former EventUserUnblocked producer was orphan (no handler) - removed in Phase 2A.
 		return nil
 	})
 }

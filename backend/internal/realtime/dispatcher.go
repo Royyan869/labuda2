@@ -14,9 +14,7 @@ import (
 
 // Event constants
 const (
-	EventTypeChatMessageSent        = "chat.message.sent"
-	EventTypeModerationChatHidden   = "moderation.chat_message.hidden"
-	EventTypeModerationChatRestored = "moderation.chat_message.restored"
+	EventTypeChatMessageSent = "chat.message.sent"
 )
 
 // OutboxPayload represents the raw outbox event payload.
@@ -93,8 +91,6 @@ func NewDispatcherWithRoomResolver(
 // lifecycle MUST NOT be trusted here (ADR-005).
 func (d *Dispatcher) Dispatch(eventType string, payload []byte) error {
 	if eventType != EventTypeChatMessageSent &&
-		eventType != EventTypeModerationChatHidden &&
-		eventType != EventTypeModerationChatRestored &&
 		eventType != EventTypeChatRoomCreated &&
 		eventType != EventTypeChatRoomUpdated {
 		d.log.Debug("Skipping non-chat event",
@@ -179,14 +175,7 @@ func marshalChatRoomSignal(eventType string, payload ChatRoomSummaryPayload) []b
 }
 
 func marshalChatSignal(eventType string, roomID, messageID uuid.UUID) []byte {
-	switch eventType {
-	case EventTypeModerationChatHidden:
-		return marshalChatMessageHidden(roomID, messageID)
-	case EventTypeModerationChatRestored:
-		return marshalChatMessageRestored(roomID, messageID)
-	default:
-		return marshalChatMessageSent(roomID, messageID)
-	}
+	return marshalChatMessageSent(roomID, messageID)
 }
 
 type roomEventRecipientPayload struct {

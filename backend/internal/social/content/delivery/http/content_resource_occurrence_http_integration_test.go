@@ -130,7 +130,10 @@ func TestCreateContent_CanonicalResourceOccurrenceBindingAndNegativeContracts(t 
 		handler.CreateContent(c)
 
 		require.Equal(t, http.StatusBadRequest, w.Code)
-		require.Contains(t, w.Body.String(), "mutually exclusive")
+		// share_reference is legacy and rejected by bindStrictContentJSON before
+		// any mutual-exclusion check. The canonical dual-authority rejection is
+		// implicit: the legacy field is blocked as unsupported.
+		require.Contains(t, w.Body.String(), "not supported")
 	})
 
 	t.Run("CW20 update content cannot mutate canonical occurrence", func(t *testing.T) {

@@ -46,15 +46,6 @@ enum ReportReasonType {
 /// display and are populated from Case/Decision state in a later slice.
 enum ReportStatus { pending, underReview, approved, rejected, resolved }
 
-/// Report Action - Tindakan yang diambil moderator
-enum ReportAction {
-  none,
-  warning,
-  contentRemoved,
-  userSuspended,
-  userBanned,
-  dismissed,
-}
 
 // =====================
 // Extensions
@@ -204,33 +195,6 @@ extension ReportStatusExtension on ReportStatus {
   }
 }
 
-extension ReportActionExtension on ReportAction {
-  String get value => name;
-
-  String get displayName {
-    switch (this) {
-      case ReportAction.none:
-        return 'No Action';
-      case ReportAction.warning:
-        return 'Warning';
-      case ReportAction.contentRemoved:
-        return 'Content Removed';
-      case ReportAction.userSuspended:
-        return 'User Suspended';
-      case ReportAction.userBanned:
-        return 'User Banned';
-      case ReportAction.dismissed:
-        return 'Report Dismissed';
-    }
-  }
-
-  static ReportAction fromString(String value) {
-    return ReportAction.values.firstWhere(
-      (e) => e.name == value,
-      orElse: () => ReportAction.none,
-    );
-  }
-}
 
 // =====================
 // Entities
@@ -248,7 +212,6 @@ class Report {
   final String? description;
   final List<String> evidenceUrls;
   final ReportStatus status;
-  final ReportAction action;
   final String? moderatorId;
   final String? moderatorNote;
   final DateTime createdAt;
@@ -266,7 +229,6 @@ class Report {
     this.description,
     this.evidenceUrls = const [],
     this.status = ReportStatus.pending,
-    this.action = ReportAction.none,
     this.moderatorId,
     this.moderatorNote,
     required this.createdAt,
@@ -298,7 +260,6 @@ class Report {
     String? description,
     List<String>? evidenceUrls,
     ReportStatus? status,
-    ReportAction? action,
     String? moderatorId,
     String? moderatorNote,
     DateTime? createdAt,
@@ -316,7 +277,6 @@ class Report {
       description: description ?? this.description,
       evidenceUrls: evidenceUrls ?? this.evidenceUrls,
       status: status ?? this.status,
-      action: action ?? this.action,
       moderatorId: moderatorId ?? this.moderatorId,
       moderatorNote: moderatorNote ?? this.moderatorNote,
       createdAt: createdAt ?? this.createdAt,
@@ -432,46 +392,6 @@ class ReportStatistics {
       reportsByReason: reportsByReason ?? this.reportsByReason,
       reportsByTarget: reportsByTarget ?? this.reportsByTarget,
       generatedAt: generatedAt ?? this.generatedAt,
-    );
-  }
-}
-
-/// Review Report Request - DTO untuk review laporan (admin)
-class ReviewReportRequest {
-  final String reportId;
-  final ReportStatus status;
-  final ReportAction action;
-  final String moderatorId;
-  final String? moderatorNote;
-
-  const ReviewReportRequest({
-    required this.reportId,
-    required this.status,
-    required this.action,
-    required this.moderatorId,
-    this.moderatorNote,
-  });
-
-  /// Validate request
-  bool get isValid {
-    if (reportId.isEmpty) return false;
-    if (moderatorId.isEmpty) return false;
-    return true;
-  }
-
-  ReviewReportRequest copyWith({
-    String? reportId,
-    ReportStatus? status,
-    ReportAction? action,
-    String? moderatorId,
-    String? moderatorNote,
-  }) {
-    return ReviewReportRequest(
-      reportId: reportId ?? this.reportId,
-      status: status ?? this.status,
-      action: action ?? this.action,
-      moderatorId: moderatorId ?? this.moderatorId,
-      moderatorNote: moderatorNote ?? this.moderatorNote,
     );
   }
 }

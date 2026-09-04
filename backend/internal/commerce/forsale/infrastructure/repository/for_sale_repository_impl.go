@@ -257,21 +257,6 @@ func (r *ForSaleRepositoryImpl) UpdateStatus(ctx context.Context, tx db.Tx, for_
 	return nil
 }
 
-func (r *ForSaleRepositoryImpl) GetBySellerID(ctx context.Context, tx db.Tx, sellerID uuid.UUID, includeWithdrawn bool) ([]*entity.ForSale, error) {
-	query := joinedSalesQueryBase() + ` WHERE fps.seller_id = $1`
-	args := []any{sellerID}
-	if !includeWithdrawn {
-		query += ` AND fps.status != 'withdrawn'`
-	}
-	query += ` ORDER BY fps.created_at DESC`
-	rows, err := tx.Query(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("get fixed price sales by seller failed: %w", err)
-	}
-	defer rows.Close()
-	return scanJoinedSaleRows(rows)
-}
-
 func (r *ForSaleRepositoryImpl) GetBySellerIDPaginated(ctx context.Context, tx db.Tx, sellerID uuid.UUID, limit, offset int, includeWithdrawn bool) ([]*entity.ForSale, error) {
 	query := joinedSalesQueryBase() + ` WHERE fps.seller_id = $1`
 	args := []any{sellerID}
@@ -605,7 +590,6 @@ func scanJoinedSaleFromRow(scanner interface {
 	sale.WithdrawnAt = withdrawnAt
 	sale.CreatedAt = saleCreatedAt
 	sale.UpdatedAt = saleUpdatedAt
-	sale.Origin = entity.ForSaleOriginDirectCreate
 	sale.FarmAddressID = productFarmAddressID
 	sale.PreparationNote = preparationNote
 	sale.PricePerUnit = money.New(sale.PricePerUnit.Int64())

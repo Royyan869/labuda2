@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/labuda/backend/internal/config"
+	"github.com/labuda/backend/internal/identity/auth/application"
 	"github.com/labuda/backend/internal/middleware"
 	"github.com/labuda/backend/internal/platform/logger"
 	"github.com/labuda/backend/internal/platform/response"
@@ -117,8 +118,22 @@ func SetupRoutes(
 	router.POST("/api/v1/auth/refresh", deps.AuthHandler.RefreshToken)
 	router.POST("/api/v1/auth/complete-profile", deps.AuthHandler.CompleteProfile)
 
+	// Labuda access JWT authority for protected auth session routes.
+	labudaTokenService := application.NewTokenService(&cfg.JWT, &logger.Logger{Logger: log.Logger})
+
+	// ===== WEBSOCKET BOUNDARY — Phase 5 Labuda canonical =====
+	// WebSocket now uses the same Labuda access JWT authority as REST.
+	// No Firebase fallback, no dual-auth. Validate via LabudaAuthMiddleware
+	// (token_use=access, issuer, expiry, user_id) then UserLookupMiddleware.
+	wsGroup := router.Group("/api/v1")
+	wsGroup.Use(middleware.ErrorHandler(log.Logger))
+	wsGroup.Use(middleware.LabudaAuthMiddleware(labudaTokenService))
+	wsGroup.Use(middleware.UserLookupMiddleware(middleware.NewDBUserLookupService(db.Pgx())))
+	wsGroup.GET("/ws", deps.RealtimeHandler.HandleWebSocket)
+	wsGroup.GET("/ws/stats", deps.RealtimeHandler.GetStats)
+
 	authRoutes := router.Group("/api/v1/auth")
-	authRoutes.Use(middleware.AuthMiddleware(firebaseClient))
+	authRoutes.Use(middleware.LabudaAuthMiddleware(labudaTokenService))
 	authRoutes.Use(middleware.UserLookupMiddleware(middleware.NewDBUserLookupService(db.Pgx())))
 	authRoutes.POST("/logout", deps.AuthHandler.Logout)
 	authRoutes.POST("/logout-all", deps.AuthHandler.LogoutAll)
@@ -136,7 +151,7 @@ func SetupRoutes(
 	// DO NOT move /api/v1/feed here (FeedHandler explicitly rejects anonymous).
 	v1Browse := router.Group("/api/v1")
 	v1Browse.Use(middleware.ErrorHandler(log.Logger))
-	v1Browse.Use(middleware.StrictBrowseAuthMiddleware(firebaseClient))
+	v1Browse.Use(middleware.StrictBrowseLabudaAuthMiddleware(labudaTokenService))
 	v1Browse.Use(middleware.UserLookupMiddleware(middleware.NewDBUserLookupService(db.Pgx())))
 	v1Browse.Use(middleware.RolesLookupMiddleware(db.Pgx()))
 	v1Browse.Use(middleware.ActorContextInject(deps.ActorResolver, middleware.ActorContextInjectOptions{Log: log.Logger}))
@@ -169,13 +184,13 @@ func SetupRoutes(
 
 	// ===== GLOBAL MIDDLEWARE CHAIN FOR /api/v1 =====
 	// All authenticated routes under /api/v1 share the same middleware pipeline:
-	// 1. AuthMiddleware - Validates Firebase tokens
-	// 2. UserLookupMiddleware - Looks up user in database (errors if not provisioned)
+	// 1. LabudaAuthMiddleware - Validates canonical Labuda Access JWT (user_id, token_use=access)
+	// 2. UserLookupMiddleware - Validates canonical user_id exists (skips Firebase UID lookup when Labuda already set)
 	// 3. RolesLookupMiddleware - Fetches role from PostgreSQL for authorization
 	// 4. ActorContextInject - Injects Actor (role + capabilities) into request context
 	//
 	// DATABASE-BASED AUTHORIZATION: Roles are queried from PostgreSQL on every request.
-	// This allows immediate role revocation without requiring Firebase token refresh.
+	// This allows immediate role revocation without requiring token refresh.
 	//
 	// USER PROVISIONING REMOVED: Middleware no longer creates users automatically.
 	// Users must be created through explicit signup flow (POST /api/v1/auth/firebase/exchange).
@@ -183,7 +198,7 @@ func SetupRoutes(
 
 	v1 := router.Group("/api/v1")
 	v1.Use(middleware.ErrorHandler(log.Logger))
-	v1.Use(middleware.AuthMiddleware(firebaseClient))
+	v1.Use(middleware.LabudaAuthMiddleware(labudaTokenService))
 	v1.Use(middleware.UserLookupMiddleware(middleware.NewDBUserLookupService(db.Pgx())))
 	v1.Use(middleware.RolesLookupMiddleware(db.Pgx()))
 	// SLICE 2+3: Capability-based auth - inject Actor with capabilities into context
@@ -631,16 +646,6 @@ func SetupRoutes(
 			discountSellerRoutes.DELETE("/:id", deps.DiscountHandler.DeactivateDiscount)
 		}
 
-		// Realtime WebSocket endpoint (CORE)
-		// WebSocket endpoint for realtime chat message delivery
-		// Uses the same auth middleware as other API routes
-		// Client sends: {"action": "subscribe", "room_id": "..."}
-		// Server broadcasts: {"event": "chat.message.sent", "room_id": "...", "message_id": "..."}
-		v1.GET("/ws", deps.RealtimeHandler.HandleWebSocket)
-
-		// Realtime stats endpoint (for monitoring)
-		v1.GET("/ws/stats", deps.RealtimeHandler.GetStats)
-
 		// Admin routes - requires active account + admin role
 		adminRoutes := v1.Group("/admin")
 		adminRoutes.Use(middleware.RequireActiveAccount(db.Pgx()))
@@ -925,13 +930,10 @@ func SetupRoutes(
 				deps.AppealHandler.AdminReviewAppeal) // Review/appeal decision
 
 			// ===== WARNINGS SYSTEM (Admin) =====
-			// WarningHandler admin routes - list, issue, and revoke warnings
+			// WarningHandler admin routes - list and revoke warnings
 			adminRoutes.GET("/warnings",
 				middleware.RequireCapability("moderation.case.read"),
 				deps.WarningHandler.AdminListWarnings) // List all warnings
-			adminRoutes.POST("/warnings",
-				middleware.RequireCapability("moderation.case.resolve"),
-				deps.WarningHandler.AdminIssueWarning) // Issue warning to user
 			adminRoutes.DELETE("/warnings/:id/revoke",
 				middleware.RequireCapability("moderation.case.resolve"),
 				deps.WarningHandler.AdminRevokeWarning) // Revoke warning

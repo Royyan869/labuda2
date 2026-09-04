@@ -13,7 +13,7 @@ File _tempFile(String name, {int byteCount = 1}) {
 void main() {
   group('ForSaleMediaHandler validation', () {
     test('exposes canonical media limits', () {
-      expect(ForSaleMediaHandler.maxImages, 10);
+      expect(ForSaleMediaHandler.maxMedia, 10);
       expect(ForSaleMediaHandler.maxImageSizeMb, 10);
       final handler = ForSaleMediaHandler();
       expect(handler, isA<ForSaleMediaHandler>());
@@ -21,7 +21,7 @@ void main() {
 
     test('handler can be instantiated and has expected gallery/camera entry points', () {
       final handler = ForSaleMediaHandler();
-      expect(handler.pickPhotosFromGallery, isA<Function>());
+      expect(handler.pickMediaFromGallery, isA<Function>());
       expect(handler.openCamera, isA<Function>());
       expect(ForSaleMediaHandler.showMediaPicker, isA<Function>());
     });

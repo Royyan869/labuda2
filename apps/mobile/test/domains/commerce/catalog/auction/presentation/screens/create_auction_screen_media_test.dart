@@ -196,7 +196,7 @@ Widget _wrapInteractive({
 void main() {
   group('CreateAuctionScreen shared validation', () {
     test('ForSaleMediaHandler exposes canonical limits', () {
-      expect(ForSaleMediaHandler.maxImages, 10);
+      expect(ForSaleMediaHandler.maxMedia, 10);
       expect(ForSaleMediaHandler.maxImageSizeMb, 10);
       final handler = ForSaleMediaHandler();
       expect(handler, isA<ForSaleMediaHandler>());
@@ -204,7 +204,7 @@ void main() {
 
     test('ForSaleMediaHandler has gallery/camera entry points', () {
       final handler = ForSaleMediaHandler();
-      expect(handler.pickPhotosFromGallery, isA<Function>());
+      expect(handler.pickMediaFromGallery, isA<Function>());
       expect(handler.openCamera, isA<Function>());
       expect(ForSaleMediaHandler.showMediaPicker, isA<Function>());
     });

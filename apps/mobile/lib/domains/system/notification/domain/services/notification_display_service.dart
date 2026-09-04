@@ -191,7 +191,7 @@ class NotificationDisplayService {
       case NotificationType.comment:
       case NotificationType.commentReply:
         return NotificationDisplayIcon.comment;
-      case NotificationType.mention:
+      case NotificationType.contentMentioned:
         return NotificationDisplayIcon.alternateEmail;
       case NotificationType.userFollowed:
       case NotificationType.sellerResponse:
@@ -342,7 +342,7 @@ class NotificationDisplayService {
       case NotificationType.comment:
       case NotificationType.commentReply:
         return NotificationDisplayColor.indigo;
-      case NotificationType.mention:
+      case NotificationType.contentMentioned:
         return NotificationDisplayColor.deepOrange;
       case NotificationType.userFollowed:
       case NotificationType.sellerResponse:

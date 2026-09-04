@@ -25,7 +25,6 @@ type Config struct {
 	Midtrans  MidtransConfig
 	Dev       DevConfig
 	Pricing   PricingConfig // P8: Price Authority configuration
-	Coin      CoinConfig    // Coin value configuration
 	Outbox    OutboxConfig  // Outbox archival configuration
 	// CommissionPercent removed - now managed by PlatformConfigService (see platformconfig domain)
 	InternalAPIKey string             // Internal API key for service-to-service communication
@@ -138,13 +137,6 @@ type PricingConfig struct {
 	// - All payments MUST have price_snapshot_id
 	// - Client-provided amounts are rejected with 400
 	// - No legacy mode support
-}
-
-// CoinConfig holds coin value configuration
-type CoinConfig struct {
-	// CoinValueCents defines the monetary value of 1 coin in cents
-	// 1 coin = Rp 10 = 1000 cents (sen in Indonesian context)
-	CoinValueCents int64
 }
 
 // OutboxConfig holds outbox archival configuration
@@ -386,9 +378,6 @@ func Load() (*Config, error) {
 		Pricing: PricingConfig{
 			// P8 Phase 3: Strict price authority is always enabled
 			// Environment variables PRICING_STRICT_MODE and PRICING_LEGACY_MODE_ALLOWED are ignored
-		},
-		Coin: CoinConfig{
-			CoinValueCents: getInt64Env("COIN_VALUE_CENTS", 1000), // 1 coin = Rp 10 = 1000 cents
 		},
 		Outbox: OutboxConfig{
 			RetentionDays:    getIntEnv("OUTBOX_RETENTION_DAYS", 30),      // Archive events older than 30 days

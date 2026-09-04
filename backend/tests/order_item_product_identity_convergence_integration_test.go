@@ -295,7 +295,7 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 			nil, nil, nil, nil, nil, []string{},
 			fpsentity.ForSaleTypeFixedPrice, money.New(100_000), qty, false,
 			fpsentity.ForSaleVisibilityPublic,
-			fpsentity.ForSaleOriginDirectCreate,
+			
 			&farmAddressID, fpsentity.PreparationTimeImmediate, nil,
 		)
 		require.NoError(t, err)
@@ -374,7 +374,7 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 		nil, nil, nil, nil, nil, []string{},
 		fpsentity.ForSaleTypeFixedPrice, money.New(100_000), 3, false,
 		fpsentity.ForSaleVisibilityPublic,
-		fpsentity.ForSaleOriginDirectCreate,
+		
 		&farmAddressID, fpsentity.PreparationTimeImmediate, nil,
 	)
 	require.NoError(t, err)

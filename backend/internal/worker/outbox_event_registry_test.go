@@ -134,13 +134,11 @@ var knownProducedEvents = []string{
 	"moderation.for_sale.removed",
 	"moderation.auction.removed",
 	"moderation.user.suspended",
-	"moderation.chat_message.hidden",
 	"moderation.content.restored",
 	"moderation.comment.restored",
 	"moderation.for_sale.restored",
 	"moderation.auction.restored",
 	"moderation.user.restored",
-	"moderation.chat_message.restored",
 	"moderation.warning.issued",
 
 	// Appeal events
@@ -158,13 +156,14 @@ var knownProducedEvents = []string{
 	"user.followed",
 	"user.unfollowed",
 	"user.blocked",
-	"user.unblocked",
 	"content.liked",
+	"content.mentioned",
 
 	// Comment events
 	"comment.created",
 	"comment.reply",
 	"seller.response",
+	"auction.response",
 
 	// Chat events
 	"chat.room.created",
@@ -216,13 +215,11 @@ var knownConsumedEvents = []string{
 	"moderation.for_sale.removed",
 	"moderation.auction.removed",
 	"moderation.user.suspended",
-	"moderation.chat_message.hidden",
 	"moderation.content.restored",
 	"moderation.comment.restored",
 	"moderation.for_sale.restored",
 	"moderation.auction.restored",
 	"moderation.user.restored",
-	"moderation.chat_message.restored",
 
 	// SetupPromotionHandlers (P5B-C: target + seller governance + moderation)
 	"for_sale.sold",
@@ -271,9 +268,11 @@ var knownConsumedEvents = []string{
 	// SetupNotificationHandlers — social
 	"user.followed",
 	"content.liked",
+	"content.mentioned",
 	"comment.created",
 	"comment.reply",
 	"seller.response",
+	"auction.response",
 	"chat.message.sent",
 
 	// SetupNotificationHandlers — order

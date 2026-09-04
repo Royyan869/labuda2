@@ -105,7 +105,7 @@ final totalCoinsProvider = FutureProvider.family<int, String>((
 
 /// Gets the estimated discount value from coins
 ///
-/// Calculates based on exchange rate: 1 coin = Rp 10 (ESTIMATED only)
+/// Calculates based on exchange rate: 1 coin = Rp1 (ESTIMATED only)
 /// Backend determines actual discount amount during checkout.
 final estimatedCoinsValueProvider = FutureProvider.family<int, String>((
   ref,
@@ -113,6 +113,6 @@ final estimatedCoinsValueProvider = FutureProvider.family<int, String>((
 ) async {
   final balance = await ref.watch(coinBalanceProvider(userId).future);
   if (balance == null) return 0;
-  // Exchange rate: 1 coin = Rp 10 (for ESTIMATION only)
-  return balance.balance * 10;
+  // Exchange rate: 1 coin = Rp1 (for ESTIMATION only)
+  return balance.balance * 1;
 });

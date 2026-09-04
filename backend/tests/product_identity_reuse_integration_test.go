@@ -72,7 +72,7 @@ func stage1ForSale(sellerID, productID uuid.UUID, title string, quantity int) *f
 		quantity,
 		false,
 		forsaleEntity.ForSaleVisibilityPrivate,
-		forsaleEntity.ForSaleOriginDirectCreate,
+		
 		nil,
 		forsaleEntity.PreparationTimeImmediate,
 		nil,

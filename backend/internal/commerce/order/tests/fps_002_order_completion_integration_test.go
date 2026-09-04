@@ -75,7 +75,7 @@ func seedFPS002PendingOrder(t *testing.T, ctx context.Context, tdb *testdb.TestD
 	orderRepo := orderrepo.NewOrderRepository()
 	var listingID uuid.UUID
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		listing, err := forsaleentity.NewForSale(sellerID, "FPS-002", "test", []byte(`[]`), "Kohaku", nil, nil, nil, nil, nil, []string{}, forsaleentity.ForSaleTypeFixedPrice, money.New(50000), 1, false, forsaleentity.ForSaleVisibilityPublic, forsaleentity.ForSaleOriginDirectCreate, nil, forsaleentity.PreparationTimeImmediate, nil)
+		listing, err := forsaleentity.NewForSale(sellerID, "FPS-002", "test", []byte(`[]`), "Kohaku", nil, nil, nil, nil, nil, []string{}, forsaleentity.ForSaleTypeFixedPrice, money.New(50000), 1, false, forsaleentity.ForSaleVisibilityPublic, nil, forsaleentity.PreparationTimeImmediate, nil)
 		if err != nil {
 			return err
 		}

@@ -285,25 +285,12 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Listing media images
+          // Listing media — images and videos with canonical type rendering
           if (listing.media.isNotEmpty)
-            SizedBox(
-              height: 300,
-              child: PageView.builder(
-                itemCount: listing.media.length,
-                itemBuilder: (context, index) {
-                  return Image.network(
-                    listing.media[index].originalUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                      child: const Center(child: Icon(Icons.image, size: 48)),
-                    ),
-                  );
-                },
-              ),
+            MediaCarouselWidget(
+              media: listing.media,
+              aspectRatio: 4 / 3,
+              borderRadius: BorderRadius.zero,
             ),
           // Listing details
           Padding(
@@ -342,16 +329,6 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 16),
-                if (listing.location != null) ...[
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on),
-                      const SizedBox(width: 8),
-                      Text(listing.location!.displayName),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ],
                 _ForSaleSellerCard(listing: listing),
                 const SizedBox(height: 16),
                 // Promote button (only for listing owner)

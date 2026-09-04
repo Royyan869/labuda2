@@ -47,14 +47,25 @@ type CommentReplyPayload struct {
 	CreatedAt      string `json:"created_at"`
 }
 
-// SellerResponsePayload represents the payload for seller.response events.
+// SellerResponsePayload represents the payload for seller.response / auction.response events.
+// Canonical shape (Closure): request_creator_id is recipient (content author), seller_id is actor,
+// resource_id + resource_type discriminate for_sale vs auction. No legacy aliases.
 type SellerResponsePayload struct {
 	CommentID        string `json:"comment_id"`
 	ContentID        string `json:"content_id"`
-	ForSaleID string `json:"for_sale_id"`
+	ResourceID       string `json:"resource_id"`
+	ResourceType     string `json:"resource_type"`
 	SellerID         string `json:"seller_id"`
 	RequestCreatorID string `json:"request_creator_id"`
 	CreatedAt        string `json:"created_at"`
+}
+
+// ContentMentionedPayload represents the payload for content.mentioned events.
+type ContentMentionedPayload struct {
+	ContentID       string `json:"content_id"`
+	AuthorID        string `json:"author_id"`
+	MentionedUserID string `json:"mentioned_user_id"`
+	CreatedAt       string `json:"created_at,omitempty"`
 }
 
 // ChatMessagePayload represents the payload for chat.message events.
@@ -241,8 +252,10 @@ func (h *NotificationEventHandler) getTitleAndBody(notifyType string) (title, bo
 		return "New Comment", "Someone commented on your post"
 	case "comment_reply":
 		return "New Reply", "Someone replied to your comment"
-	case "seller.response":
+	case "seller.response", "auction.response":
 		return "Seller Responded", "A seller responded to your request"
+	case "content.mentioned":
+		return "Mentioned You", "Someone mentioned you in a post"
 	case "chat_message":
 		return "New Message", "You received a new message"
 	// =============================================================================

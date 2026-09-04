@@ -84,27 +84,6 @@ func (e *ErrWarningAlreadyRevoked) Error() string {
 	return fmt.Sprintf("warning already revoked: %s", e.WarningID)
 }
 
-// NewWarning creates a new active warning.
-func NewWarning(
-	userID uuid.UUID,
-	issuedBy uuid.UUID,
-	level WarningLevel,
-	reason string,
-	expiresAt *time.Time,
-) *UserWarning {
-	now := time.Now()
-	return &UserWarning{
-		ID:        uuid.New(),
-		UserID:    userID,
-		IssuedBy:  issuedBy,
-		Level:     level,
-		Reason:    reason,
-		IsActive:  true,
-		CreatedAt: now,
-		ExpiresAt: expiresAt,
-	}
-}
-
 // Revoke marks the warning as revoked.
 func (w *UserWarning) Revoke(revokedBy uuid.UUID) error {
 	if !w.IsActive {

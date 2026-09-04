@@ -17,7 +17,6 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	warningApp "github.com/labuda/backend/internal/governance/moderation/application"
 	warningEntity "github.com/labuda/backend/internal/governance/moderation/entity"
-	userentity "github.com/labuda/backend/internal/identity/user/domain/entity"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,23 +25,12 @@ import (
 
 // ============================================================================
 // PASS_14D: real fakes for WarningService's dependencies.
-//
-// WarningService (unlike AppealService) takes 3 small interfaces with no
-// nil-panic guards in its constructor, so a fully real service can be built
-// directly — no live Postgres, no cross-domain stubs required.
 // ============================================================================
 
-// fakeWarningRow is a minimal pgx.Row satisfying value; never expected to be
-// scanned by these tests since QueryRow is never invoked through the fakes
-// below, but returning a valid Row (rather than nil) avoids a latent nil
-// panic if that ever changes.
 type fakeWarningRow struct{}
 
 func (fakeWarningRow) Scan(_ ...any) error { return nil }
 
-// fakeWarningTx is a minimal no-op db.Tx. WarningService.IssueWarning does a
-// runtime tx.(db.Tx) assertion, so a real (non-nil) db.Tx value must flow
-// through fakeWarningDB.WithTx for the success path to be reachable.
 type fakeWarningTx struct{}
 
 func (fakeWarningTx) Exec(context.Context, string, ...any) (pgconn.CommandTag, error) {
@@ -55,7 +43,6 @@ func (fakeWarningTx) Rollback(context.Context) error                        { re
 
 var _ db.Tx = fakeWarningTx{}
 
-// fakeWarningDB implements db.Transactor without a live Postgres connection.
 type fakeWarningDB struct{}
 
 func (fakeWarningDB) WithTx(ctx context.Context, fn func(tx db.Tx) error) error {
@@ -64,12 +51,7 @@ func (fakeWarningDB) WithTx(ctx context.Context, fn func(tx db.Tx) error) error 
 
 var _ db.Transactor = fakeWarningDB{}
 
-// fakeWarningRepository is an explicit test double for repository.WarningRepository.
-// Only methods a given test configures behave meaningfully; any unconfigured
-// method panics loudly so an unexpected call fails the test clearly instead
-// of silently returning a zero value.
 type fakeWarningRepository struct {
-	createFunc           func(ctx context.Context, tx interface{}, warning *warningEntity.UserWarning) error
 	getByIDFunc          func(ctx context.Context, tx interface{}, warningID uuid.UUID) (*warningEntity.UserWarning, error)
 	getForUpdateFunc     func(ctx context.Context, tx interface{}, warningID uuid.UUID) (*warningEntity.UserWarning, error)
 	updateFunc           func(ctx context.Context, tx interface{}, warning *warningEntity.UserWarning) error
@@ -78,12 +60,6 @@ type fakeWarningRepository struct {
 	listAllFunc          func(ctx context.Context, tx interface{}, userID *uuid.UUID, isActive *bool, limit, offset int) ([]*warningEntity.UserWarning, int64, error)
 }
 
-func (f *fakeWarningRepository) Create(ctx context.Context, tx interface{}, warning *warningEntity.UserWarning) error {
-	if f.createFunc == nil {
-		panic("fakeWarningRepository.Create called without createFunc configured")
-	}
-	return f.createFunc(ctx, tx, warning)
-}
 
 func (f *fakeWarningRepository) GetByID(ctx context.Context, tx interface{}, warningID uuid.UUID) (*warningEntity.UserWarning, error) {
 	if f.getByIDFunc == nil {
@@ -127,28 +103,6 @@ func (f *fakeWarningRepository) ListAll(ctx context.Context, tx interface{}, use
 	return f.listAllFunc(ctx, tx, userID, isActive, limit, offset)
 }
 
-// fakeWarningUserLookup satisfies WarningService's unexported
-// warningTargetUserLookup interface structurally (GetByID only).
-type fakeWarningUserLookup struct {
-	user *userentity.User
-	err  error
-}
-
-func (f fakeWarningUserLookup) GetByID(ctx context.Context, tx db.Tx, userID uuid.UUID) (*userentity.User, error) {
-	return f.user, f.err
-}
-
-// fakeWarningOutbox satisfies WarningService's unexported warningOutboxWriter
-// interface structurally (InsertEvent only). Always a no-op: no real outbox
-// writes happen in these tests.
-type fakeWarningOutbox struct{}
-
-func (fakeWarningOutbox) InsertEvent(ctx context.Context, tx db.Tx, eventType string, entityID uuid.UUID, payload []byte) error {
-	return nil
-}
-
-// setupWarningRouter creates a test router with an explicit, caller-known
-// user_id in context (needed to exercise ownership checks deterministically).
 func setupWarningRouter(handler *WarningHandler, userID uuid.UUID) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
@@ -169,59 +123,12 @@ func decodeResponseData(t *testing.T, body []byte) map[string]interface{} {
 	return data
 }
 
-func TestAdminIssueWarning(t *testing.T) {
-	log := zap.NewNop()
-
-	targetUserID := uuid.New()
-	adminID := uuid.New()
-	expiresAt := int64(time.Now().Add(30 * 24 * time.Hour).Unix())
-
-	repo := &fakeWarningRepository{
-		createFunc: func(ctx context.Context, tx interface{}, warning *warningEntity.UserWarning) error {
-			assert.Equal(t, targetUserID, warning.UserID)
-			assert.Equal(t, adminID, warning.IssuedBy)
-			return nil
-		},
-	}
-	service := warningApp.NewWarningService(repo, fakeWarningUserLookup{user: &userentity.User{ID: targetUserID}}, fakeWarningOutbox{})
-	handler := NewWarningHandler(service, fakeWarningDB{}, log, fakeAdminAuditLogger{})
-
-	reqBody := CreateWarningRequest{
-		UserID:    targetUserID.String(),
-		Level:     "warning",
-		Reason:    "Policy violation",
-		ExpiresAt: &expiresAt,
-	}
-	body, _ := json.Marshal(reqBody)
-
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
-	router.Use(func(c *gin.Context) {
-		c.Set("user_id", adminID)
-		c.Set("user_role", "admin")
-		c.Next()
-	})
-	router.POST("/warnings", handler.AdminIssueWarning)
-
-	req, _ := http.NewRequest("POST", "/warnings", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	require.Equal(t, http.StatusCreated, w.Code, "body: %s", w.Body.String())
-	data := decodeResponseData(t, w.Body.Bytes())
-	assert.Equal(t, targetUserID.String(), data["user_id"])
-	assert.Equal(t, "warning", data["level"])
-	assert.Equal(t, "Policy violation", data["reason"])
-	assert.Equal(t, true, data["is_active"])
-}
-
 func TestGetWarning(t *testing.T) {
 	log := zap.NewNop()
 
 	ownerID := uuid.New()
 	warningID := uuid.New()
-	existing := warningEntity.NewWarning(ownerID, uuid.New(), warningEntity.WarningLevelWarning, "Policy violation", nil)
+	existing := &warningEntity.UserWarning{UserID: ownerID, IssuedBy: uuid.New(), Level: warningEntity.WarningLevelWarning, Reason: "Policy violation", IsActive: true}
 	existing.ID = warningID
 
 	repo := &fakeWarningRepository{
@@ -230,7 +137,7 @@ func TestGetWarning(t *testing.T) {
 			return existing, nil
 		},
 	}
-	service := warningApp.NewWarningService(repo, fakeWarningUserLookup{}, fakeWarningOutbox{})
+	service := warningApp.NewWarningService(repo)
 	handler := NewWarningHandler(service, fakeWarningDB{}, log, fakeAdminAuditLogger{})
 
 	router := setupWarningRouter(handler, ownerID)
@@ -252,8 +159,8 @@ func TestListWarnings(t *testing.T) {
 	log := zap.NewNop()
 
 	ownerID := uuid.New()
-	w1 := warningEntity.NewWarning(ownerID, uuid.New(), warningEntity.WarningLevelInfo, "First", nil)
-	w2 := warningEntity.NewWarning(ownerID, uuid.New(), warningEntity.WarningLevelSevere, "Second", nil)
+	w1 := &warningEntity.UserWarning{UserID: ownerID, IssuedBy: uuid.New(), Level: warningEntity.WarningLevelInfo, Reason: "First", IsActive: true}
+	w2 := &warningEntity.UserWarning{UserID: ownerID, IssuedBy: uuid.New(), Level: warningEntity.WarningLevelSevere, Reason: "Second", IsActive: true}
 
 	repo := &fakeWarningRepository{
 		listByUserFunc: func(ctx context.Context, tx interface{}, userID uuid.UUID, limit, offset int) ([]*warningEntity.UserWarning, error) {
@@ -263,7 +170,7 @@ func TestListWarnings(t *testing.T) {
 			return []*warningEntity.UserWarning{w1, w2}, nil
 		},
 	}
-	service := warningApp.NewWarningService(repo, fakeWarningUserLookup{}, fakeWarningOutbox{})
+	service := warningApp.NewWarningService(repo)
 	handler := NewWarningHandler(service, fakeWarningDB{}, log, fakeAdminAuditLogger{})
 
 	router := setupWarningRouter(handler, ownerID)
@@ -285,7 +192,7 @@ func TestGetActiveWarnings(t *testing.T) {
 	log := zap.NewNop()
 
 	ownerID := uuid.New()
-	active := warningEntity.NewWarning(ownerID, uuid.New(), warningEntity.WarningLevelSevere, "Still active", nil)
+	active := &warningEntity.UserWarning{UserID: ownerID, IssuedBy: uuid.New(), Level: warningEntity.WarningLevelSevere, Reason: "Still active", IsActive: true}
 
 	repo := &fakeWarningRepository{
 		listActiveByUserFunc: func(ctx context.Context, tx interface{}, userID uuid.UUID) ([]*warningEntity.UserWarning, error) {
@@ -293,7 +200,7 @@ func TestGetActiveWarnings(t *testing.T) {
 			return []*warningEntity.UserWarning{active}, nil
 		},
 	}
-	service := warningApp.NewWarningService(repo, fakeWarningUserLookup{}, fakeWarningOutbox{})
+	service := warningApp.NewWarningService(repo)
 	handler := NewWarningHandler(service, fakeWarningDB{}, log, fakeAdminAuditLogger{})
 
 	router := setupWarningRouter(handler, ownerID)
@@ -313,7 +220,7 @@ func TestAdminRevokeWarning(t *testing.T) {
 
 	adminID := uuid.New()
 	warningID := uuid.New()
-	existing := warningEntity.NewWarning(uuid.New(), uuid.New(), warningEntity.WarningLevelWarning, "Policy violation", nil)
+	existing := &warningEntity.UserWarning{UserID: uuid.New(), IssuedBy: uuid.New(), Level: warningEntity.WarningLevelWarning, Reason: "Policy violation", IsActive: true}
 	existing.ID = warningID
 
 	repo := &fakeWarningRepository{
@@ -326,7 +233,7 @@ func TestAdminRevokeWarning(t *testing.T) {
 			return nil
 		},
 	}
-	service := warningApp.NewWarningService(repo, fakeWarningUserLookup{}, fakeWarningOutbox{})
+	service := warningApp.NewWarningService(repo)
 	handler := NewWarningHandler(service, fakeWarningDB{}, log, fakeAdminAuditLogger{})
 
 	gin.SetMode(gin.TestMode)
@@ -354,7 +261,14 @@ func TestWarningToResponse(t *testing.T) {
 
 	userID := uuid.New()
 	adminID := uuid.New()
-	warning := warningEntity.NewWarning(userID, adminID, warningEntity.WarningLevelWarning, "Policy violation", nil)
+	warning := &warningEntity.UserWarning{
+			UserID:   userID,
+			IssuedBy: adminID,
+			Level:    warningEntity.WarningLevelWarning,
+			Reason:   "Policy violation",
+			IsActive: true,
+			ExpiresAt: nil,
+		}
 
 	resp := handler.warningToResponse(warning)
 
@@ -368,8 +282,6 @@ func TestWarningToResponse(t *testing.T) {
 }
 
 // TestWarningContractSafety validates the warning request/response contract
-// This test ensures that Flutter clients can correctly parse warning responses
-// and that requests match backend validation requirements.
 func TestWarningContractSafety(t *testing.T) {
 	t.Run("valid warning levels", func(t *testing.T) {
 		validLevels := []string{"info", "warning", "severe"}
@@ -391,7 +303,6 @@ func TestWarningContractSafety(t *testing.T) {
 		validStatuses := []string{"active", "revoked", "expired"}
 		for _, status := range validStatuses {
 			entityStatus := warningEntity.WarningStatus(status)
-			// Verify status is a valid WarningStatus value
 			assert.Contains(t, []warningEntity.WarningStatus{
 				warningEntity.WarningStatusActive,
 				warningEntity.WarningStatusRevoked,
@@ -404,7 +315,6 @@ func TestWarningContractSafety(t *testing.T) {
 		invalidStatuses := []string{"acknowledged", "pending", "under_review"}
 		for _, status := range invalidStatuses {
 			entityStatus := warningEntity.WarningStatus(status)
-			// These should not match any valid status
 			assert.NotEqual(t, warningEntity.WarningStatusActive, entityStatus)
 			assert.NotEqual(t, warningEntity.WarningStatusRevoked, entityStatus)
 			assert.NotEqual(t, warningEntity.WarningStatusExpired, entityStatus)
@@ -419,7 +329,14 @@ func TestWarningContractSafety(t *testing.T) {
 		adminID := uuid.New()
 
 		// Test with no expiration
-		warning := warningEntity.NewWarning(userID, adminID, warningEntity.WarningLevelWarning, "Test reason", nil)
+		warning := &warningEntity.UserWarning{
+			UserID:   userID,
+			IssuedBy: adminID,
+			Level:    warningEntity.WarningLevelWarning,
+			Reason:   "Test reason",
+			IsActive: true,
+			ExpiresAt: nil,
+		}
 		resp := handler.warningToResponse(warning)
 
 		// Required fields for Flutter client
@@ -438,7 +355,14 @@ func TestWarningContractSafety(t *testing.T) {
 
 		// Test with expiration
 		expiresAt := time.Now().Add(30 * 24 * time.Hour)
-		warningWithExpiry := warningEntity.NewWarning(userID, adminID, warningEntity.WarningLevelSevere, "Severe violation", &expiresAt)
+		warningWithExpiry := &warningEntity.UserWarning{
+			UserID:   userID,
+			IssuedBy: adminID,
+			Level:    warningEntity.WarningLevelSevere,
+			Reason:   "Severe violation",
+			IsActive: true,
+			ExpiresAt: &expiresAt,
+		}
 		respWithExpiry := handler.warningToResponse(warningWithExpiry)
 
 		assert.Contains(t, respWithExpiry, "expires_at", "response with expiry must contain expires_at")

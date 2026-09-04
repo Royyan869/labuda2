@@ -43,7 +43,7 @@ class NotificationNavigationService {
         break;
 
       // Mention notifications
-      case NotificationType.mention:
+      case NotificationType.contentMentioned:
         _navigateToMention(context, notification);
         break;
 
@@ -236,15 +236,13 @@ class NotificationNavigationService {
     BuildContext context,
     NotificationEntity notification,
   ) {
-    final contentId =
-        notification.data?['contentId'] as String? ??
-        notification.data?['content_id'] as String?;
-    final chatId = notification.data?['chatId'] as String?;
+    final targetId = notification.data?['targetId'] as String?;
+    final targetType = notification.data?['targetType'] as String?;
 
-    if (contentId != null) {
-      _navigationHandler.navigateToContentDetail(contentId);
-    } else if (chatId != null) {
-      _navigationHandler.navigateToChatConversation(chatId);
+    if (targetType == 'content' && targetId != null) {
+      _navigationHandler.navigateToContentDetail(targetId);
+    } else {
+      _navigateToNotifications(context);
     }
   }
 

@@ -3,8 +3,6 @@ import { api } from '@/lib/api'
 import type {
   UserWarning,
   WarningsResponse,
-  IssueWarningRequest,
-  IssueWarningResponse,
   RevokeWarningResponse,
   WarningsQueryParams,
 } from '@/types'
@@ -57,40 +55,6 @@ export function useWarnings(params: WarningsQueryParams = {}) {
     setLimit,
     count,
     refetch: fetchWarnings,
-  }
-}
-
-/**
- * Hook for issuing warnings
- */
-export function useIssueWarning() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
-
-  const issueWarning = useCallback(async (
-    data: IssueWarningRequest
-  ): Promise<IssueWarningResponse> => {
-    setLoading(true)
-    setError(null)
-    try {
-      const response = await api.post<IssueWarningResponse>(
-        '/api/v1/admin/warnings',
-        data
-      )
-      return response
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to issue warning')
-      setError(error)
-      throw error
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  return {
-    issueWarning,
-    loading,
-    error,
   }
 }
 

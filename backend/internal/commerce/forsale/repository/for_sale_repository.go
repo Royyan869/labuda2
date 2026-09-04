@@ -50,12 +50,6 @@ type ForSaleRepository interface {
 	// UpdateStatus updates only the status field within a transaction.
 	UpdateStatus(ctx context.Context, tx db.Tx, for_sale *entity.ForSale) error
 
-	// GetBySellerID retrieves a seller's full history (draft/active/sold;
-	// withdrawn optional) — OWNER-ONLY inventory authority. Never expose this
-	// through a public/anon path; public seller pages must use
-	// GetPublicBySellerID.
-	GetBySellerID(ctx context.Context, tx db.Tx, sellerID uuid.UUID, includeWithdrawn bool) ([]*entity.ForSale, error)
-
 	// GetBySellerIDPaginated retrieves a seller's full history with
 	// SQL-based pagination — OWNER-ONLY inventory authority. Never expose
 	// this through a public/anon path; public seller pages must use

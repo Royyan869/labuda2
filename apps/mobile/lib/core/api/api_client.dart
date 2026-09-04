@@ -4,6 +4,7 @@ import 'package:labuda/core/api/exceptions/api_exception.dart';
 import 'package:labuda/core/api/interceptors/auth_interceptor.dart';
 import 'package:labuda/core/api/interceptors/detailed_logging_interceptor.dart';
 import 'package:labuda/core/api/interceptors/error_interceptor.dart';
+import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 
 // Conditional import for Platform detection
@@ -14,17 +15,20 @@ import 'package:labuda/core/api/platform/platform_io.dart'
 /// Central HTTP client for all API calls to Go backend
 ///
 /// Features:
-/// - Automatic Firebase token attachment (via AuthInterceptor)
+/// - Automatic Labuda access JWT attachment (via AuthInterceptor, Phase 3B)
+/// - Single-flight Labuda refresh + single-shot 401 retry (Phase 3C)
 /// - Error handling and conversion to ApiException
 /// - Request/response logging (dev only)
 /// - Configurable timeouts
 /// - Platform-aware base URL
-/// - 401 auto-retry with token refresh
 class ApiClient {
   late final Dio _dio;
   final ILoggerService? _logger;
+  final ILocalStorageService? _localStorage;
 
-  ApiClient({ILoggerService? logger, String? baseUrl}) : _logger = logger {
+  ApiClient({ILoggerService? logger, ILocalStorageService? localStorage, String? baseUrl})
+      : _logger = logger,
+        _localStorage = localStorage {
     _dio = _createDio(baseUrl);
   }
 
@@ -37,15 +41,20 @@ class ApiClient {
         receiveTimeout: Duration(milliseconds: ApiConfig.receiveTimeout),
         sendTimeout: Duration(milliseconds: ApiConfig.sendTimeout),
         headers: ApiConfig.defaultHeaders,
-        // 🔥 FIX: Disable connectivity check for emulator
-        validateStatus: (status) => status != null && status < 500,
+        // Phase 3C: 401 must be treated as error to trigger Labuda refresh in AuthInterceptor.onError.
+        // Other 4xx remain success for envelope handling.
+        validateStatus: (status) => status != null && status < 500 && status != 401,
       ),
     );
 
     // Add interceptors in order
+    final authInterceptor = AuthInterceptor(logger: _logger, localStorage: _localStorage);
+    authInterceptor.attachDio(dio);
     dio.interceptors.addAll([
-      // Auth interceptor - adds Firebase token directly from FirebaseAuth
-      AuthInterceptor(logger: _logger),
+      // Auth interceptor - canonical Labuda JWT authority (Phase 3B) + Phase 3C refresh.
+      // Firebase token is NOT used for normal API; exchange & complete-profile
+      // are skipAuth and carry their own credentials. Refresh is skipAuth-isolated.
+      authInterceptor,
       // Detailed logging - logs request/response with headers AFTER auth interceptor
       DetailedLoggingInterceptor(),
       // Error interceptor - converts to ApiException

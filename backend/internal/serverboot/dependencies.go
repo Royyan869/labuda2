@@ -1622,6 +1622,11 @@ func InitServices(
 	// unresolved; records the canonical commerce violation + restriction and
 	// returns the auction to DRAFT. Default ON.
 	commercegovRepository := commercegovRepo.NewRepository()
+
+	// COMMERCE RESTRICTION ENFORCEMENT: Wire canonical restriction repository
+	// into the for-sale service for seller restriction at create/publish boundaries.
+	forSaleService.SetCommerceGovRepository(commercegovRepository)
+
 	auctionSettlementWorker := worker.NewAuctionSettlementWorker(
 		db.Pgx(),
 		auctionService,
@@ -2270,7 +2275,7 @@ func InitServices(
 		commentRepo,
 		forSaleService,
 		nil, // auctionValidator — not wired on this path
-		nil, // visibilityChecker — falls back to contentRepo in AddCommerceReferenceComment
+		contentService, // visibilityChecker — canonical V-VISIBILITY via ContentService.GetContentVisibleToViewer
 		outboxRepository,
 		idempotencyCommentRepo,
 		blockChecker,
@@ -2286,6 +2291,7 @@ func InitServices(
 		auctionRepository, // AuctionGetter — already constructed in AUCTION MODULE
 	)
 	contentService.SetCommerceReferenceValidator(commerceRefValidator)
+	contentService.SetOutboxInserter(outboxRepository)
 	commentService.SetCommerceReferenceValidator(commerceRefValidator)
 	chatService.SetCommerceReferenceValidator(commerceRefValidator)
 
@@ -2327,7 +2333,6 @@ func InitServices(
 			forSaleService,        // Withdraw (idempotent on terminal state)
 			auctionService,        // CancelForModeration (governance bypass)
 			userRepository,        // Update account_status (suspended / active)
-			chatService,           // Chat moderation service: hide/restore + room.updated projection
 			enforcementRepository, // SLICE 5: enforcement write-back
 			notifEventHandler,     // fanout: notification fires AFTER enforcement
 		)
@@ -2487,6 +2492,10 @@ func InitServices(
 	promotionEventRepo := promotionInfraRepo.NewPromotionEventRepository()
 	promotionHandler.SetEventRepo(promotionEventRepo)
 
+	// COMMERCE RESTRICTION ENFORCEMENT: Wire canonical restriction repository
+	// into the promotion handler for seller restriction at activate/reassign boundaries.
+	promotionHandler.SetCommerceGovRepository(commercegovRepository)
+
 	// ===== FEDERATED SEARCH CONTRACT REALIGN PACK V1 =====
 	// Initialize search domain for federated search across content, users, forSales
 	//
@@ -2564,6 +2573,17 @@ func InitServices(
 	// DRAFT + records buyer_bnr violation).
 	orderService.SetCommerceViolationRepo(commercegovRepository)
 
+	// COMMERCE RESTRICTION ENFORCEMENT: Wire the canonical commerce restriction
+	// repository into the order creation path so buyer restrictions are enforced
+	// at the order-mutation boundary (CreateFromSaleSurface, CreateFromAuction).
+	orderService.SetCommerceGovRepository(commercegovRepository)
+
+	// COMMERCE RESTRICTION ENFORCEMENT: Wire into auction service for seller
+	// restriction at auction creation/schedule/activation and bidder restriction
+	// at bid/claim boundaries.
+	auctionService.SetCommerceGovRepository(commercegovRepository)
+
+
 	// CANONICAL COIN CONSUME+SPEND WIRING: the finalization service was built
 	// before coinsService existed; inject the consume+spend surface now so a
 	// settling payment with K>0 completes RESERVE → CONSUME atomically with
@@ -2610,12 +2630,10 @@ func InitServices(
 	// These are record-only appeals: no auto-restoration; approval is administrative.
 	appealSvc.SetForSaleRepo(forSaleRepo.NewForSaleRepository())
 	appealSvc.SetAuctionRepo(auctionRepo.NewAuctionRepository())
-	appealHandler := appealHTTP.NewAppealHandler(appealSvc, db.Pgx(), log.Logger, adminAuditLogger)
-
-	// 3. Warning Handler - Warnings system for policy violations
-	warningRepository := warningInfraRepo.NewWarningRepository()
-	warningSvc := warningApp.NewWarningService(warningRepository, userRepository, outboxRepository)
-	warningHandler := appealHTTP.NewWarningHandler(warningSvc, db.Pgx(), log.Logger, adminAuditLogger)
+	appealHandler := appealHTTP.NewAppealHandler(appealSvc, db.Pgx(), log.Logger, adminAuditLogger)		// 3. Warning Handler - Warnings read/revoke (standalone creation removed)
+		warningRepository := warningInfraRepo.NewWarningRepository()
+		warningSvc := warningApp.NewWarningService(warningRepository)
+		warningHandler := appealHTTP.NewWarningHandler(warningSvc, db.Pgx(), log.Logger, adminAuditLogger)
 
 	// 4. Support Handler - Support ticket system
 	// Create an adapter for the chat service to match support handler's interface

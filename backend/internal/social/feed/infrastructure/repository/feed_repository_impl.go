@@ -184,6 +184,12 @@ func (r *feedRepositoryImpl) GetFeed(ctx context.Context, tx interface{}, viewer
 		    WHERE (b.blocker_id = $1 AND b.blocked_id = c.author_id)
 		       OR (b.blocker_id = c.author_id AND b.blocked_id = $1)
 		  )
+		  -- MUTE GOVERNANCE (Phase 2A): muted authors excluded from viewer feed.
+		  -- Directional: viewer muted author -> hidden. Author muted viewer has no effect.
+		  AND NOT EXISTS (
+		    SELECT 1 FROM user_mutes m
+		    WHERE m.muter_id = $1 AND m.muted_id = c.author_id
+		  )
 		  -- REPOST GOVERNANCE: exclude reposts whose target is no longer available.
 		  -- FIX-1 (2026-05-15): content-type reposts
 		  AND NOT (

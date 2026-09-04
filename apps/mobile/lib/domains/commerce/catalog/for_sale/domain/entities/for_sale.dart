@@ -165,7 +165,6 @@ class ForSale extends Equatable {
   final ForSaleStatus status;
   final ForSaleVisibility visibility;
   final bool isNegotiable;
-  final ForSaleLocation? location;
   final int viewCount;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -196,7 +195,6 @@ class ForSale extends Equatable {
     required this.status,
     this.visibility = ForSaleVisibility.public,
     this.isNegotiable = false,
-    this.location,
     this.viewCount = 0,
     this.preparationTime = PreparationTime.immediate,
     this.preparationNote,
@@ -264,11 +262,6 @@ class ForSale extends Equatable {
     return 'Rp ${price.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}';
   }
 
-  String get locationDisplay {
-    if (location == null) return '';
-    return location!.displayName;
-  }
-
   ForSale copyWith({
     String? forSaleId,
     String? productId,
@@ -287,7 +280,6 @@ class ForSale extends Equatable {
     ForSaleStatus? status,
     ForSaleVisibility? visibility,
     bool? isNegotiable,
-    ForSaleLocation? location,
     int? viewCount,
     PreparationTime? preparationTime,
     String? preparationNote,
@@ -318,7 +310,6 @@ class ForSale extends Equatable {
       status: status ?? this.status,
       visibility: visibility ?? this.visibility,
       isNegotiable: isNegotiable ?? this.isNegotiable,
-      location: location ?? this.location,
       viewCount: viewCount ?? this.viewCount,
       preparationTime: preparationTime ?? this.preparationTime,
       preparationNote: preparationNote ?? this.preparationNote,
@@ -352,7 +343,6 @@ class ForSale extends Equatable {
     status,
     visibility,
     isNegotiable,
-    location,
     viewCount,
     preparationTime,
     preparationNote,
@@ -454,30 +444,6 @@ enum ForSaleStatus {
 }
 
 // =============================================================================
-// Value Objects
-// =============================================================================
-
-/// For Sale location value object
-class ForSaleLocation extends Equatable {
-  final String city;
-  final String province;
-
-  const ForSaleLocation({required this.city, required this.province});
-
-  String get displayName => '$city, $province';
-
-  ForSaleLocation copyWith({String? city, String? province}) {
-    return ForSaleLocation(
-      city: city ?? this.city,
-      province: province ?? this.province,
-    );
-  }
-
-  @override
-  List<Object?> get props => [city, province];
-}
-
-// =============================================================================
 // Request DTOs (Domain Layer)
 // =============================================================================
 
@@ -490,7 +456,6 @@ class GetForSalesParams {
   final String? sellerId;
   final double? minPrice;
   final double? maxPrice;
-  final String? location;
 
   const GetForSalesParams({
     this.page = 1,
@@ -500,7 +465,6 @@ class GetForSalesParams {
     this.sellerId,
     this.minPrice,
     this.maxPrice,
-    this.location,
   });
 
   GetForSalesParams copyWith({
@@ -511,7 +475,6 @@ class GetForSalesParams {
     String? sellerId,
     double? minPrice,
     double? maxPrice,
-    String? location,
   }) {
     return GetForSalesParams(
       page: page ?? this.page,
@@ -521,7 +484,6 @@ class GetForSalesParams {
       sellerId: sellerId ?? this.sellerId,
       minPrice: minPrice ?? this.minPrice,
       maxPrice: maxPrice ?? this.maxPrice,
-      location: location ?? this.location,
     );
   }
 
@@ -547,12 +509,6 @@ class CreateForSaleRequest {
   final String? breeder;
   final String? bloodline;
   final List<String> certificates;
-  final String?
-  origin; // Origin tracking: direct_create, request_context, chat_context
-  final String? cityId;
-  final String? provinceId;
-  final double? latitude;
-  final double? longitude;
   final String? farmAddressId;
   // Shipping readiness
   final PreparationTime? preparationTime;
@@ -573,11 +529,6 @@ class CreateForSaleRequest {
     this.breeder,
     this.bloodline,
     this.certificates = const [],
-    this.origin,
-    this.cityId,
-    this.provinceId,
-    this.latitude,
-    this.longitude,
     this.farmAddressId,
     this.preparationTime,
     this.preparationNote,
@@ -591,7 +542,6 @@ class UpdateForSaleRequest {
   final double? price;
   final int? quantity;
   final bool? negotiationEnabled;
-  final String? visibility;
   final ForSaleStatus? status; // For publishing draft → active
   final List<String>? mediaUrls;
   final String? variety;
@@ -611,7 +561,6 @@ class UpdateForSaleRequest {
     this.price,
     this.quantity,
     this.negotiationEnabled,
-    this.visibility,
     this.status,
     this.mediaUrls,
     this.variety,

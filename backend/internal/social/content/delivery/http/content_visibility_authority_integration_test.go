@@ -13,6 +13,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
+	commerceResponse "github.com/labuda/backend/internal/commerce/response"
+	forsalerepo "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	"github.com/labuda/backend/internal/governance/evaluator"
 	contentapp "github.com/labuda/backend/internal/social/content/application"
 	contententity "github.com/labuda/backend/internal/social/content/entity"
@@ -75,14 +78,22 @@ func (visibilityHTTPLikeRepository) GetLikeCreatedAt(ctx context.Context, tx int
 }
 
 func newVisibilityHTTPHandlerFromPool(pool *db.DB) *ContentHandler {
-	return NewContentHandler(
-		contentapp.NewContentService(
-			contentrepo.NewContentRepository(),
-			visibilityHTTPLikeRepository{},
-			visibilityHTTPRoleChecker{},
-			visibilityHTTPAccountChecker{},
-			nil,
+	contentService := contentapp.NewContentService(
+		contentrepo.NewContentRepository(),
+		visibilityHTTPLikeRepository{},
+		visibilityHTTPRoleChecker{},
+		visibilityHTTPAccountChecker{},
+		nil,
+	)
+	// Wire the canonical commerce resource validator (production-shaped).
+	contentService.SetCommerceReferenceValidator(
+		commerceResponse.NewValidator(
+			forsalerepo.NewForSaleRepository(),
+			repository.NewAuctionRepository(),
 		),
+	)
+	return NewContentHandler(
+		contentService,
 		visibilityHTTPRoleChecker{},
 		pool,
 		zap.NewNop(),
@@ -572,6 +583,7 @@ func TestCreateContent_NormalizesMixedMediaOrderAndPersistsPositions(t *testing.
 
 	body := `{
 		"caption":"mixed order",
+		"visibility":"public",
 		"media":[
 			{"url":"videos/bravo.mp4","type":"video"},
 			{"url":"images/alpha.jpg","type":"image"},
@@ -751,6 +763,29 @@ func TestUpdateContent_InvalidVisibilityRejected(t *testing.T) {
 	handler := newVisibilityHTTPHandlerFromPool(appDB)
 	userID := seedVisibilityHTTPUser(t, ctx, appDB, "active")
 
+	// Create a valid content first so the handler can find it.
+	var contentID uuid.UUID
+	err := tdb.WithTx(ctx, func(tx db.Tx) error {
+		content, createErr := handler.contentService.CreateContent(
+			ctx,
+			tx,
+			userID,
+			"update target for visibility validation",
+			contententity.VisibilityPublic,
+			nil,
+			nil,
+			nil,
+			nil,
+			nil,
+		)
+		if createErr != nil {
+			return createErr
+		}
+		contentID = content.ID
+		return nil
+	})
+	require.NoError(t, err)
+
 	cases := []struct {
 		name  string
 		value string
@@ -766,7 +801,6 @@ func TestUpdateContent_InvalidVisibilityRejected(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			body := `{"caption":"invalid visibility","visibility":"` + tc.value + `"}`
-			contentID := uuid.New()
 			req := httptest.NewRequest(http.MethodPut, "/api/v1/contents/"+contentID.String(), strings.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("Idempotency-Key", "visibility-update-"+tc.name)
@@ -780,6 +814,8 @@ func TestUpdateContent_InvalidVisibilityRejected(t *testing.T) {
 			require.Contains(t, w.Body.String(), "Invalid request")
 		})
 	}
+
+
 }
 
 func TestUpdateContent_RejectsLegacyShareReferenceAndResourceOccurrence(t *testing.T) {

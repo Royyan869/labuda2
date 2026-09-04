@@ -283,7 +283,7 @@ func (s *CommentService) AddComment(
 					"created_at":       comment.CreatedAt.UTC().Format(time.RFC3339),
 				}
 				idempotencyKey := fmt.Sprintf("comment.reply.%s", comment.ID.String())
-				if err := s.outboxRepo.InsertTx(ctx, tx, "comment.reply", payload, idempotencyKey); err != nil {
+				if err := s.outboxRepo.InsertTx(ctx, tx, events.EventCommentReply, payload, idempotencyKey); err != nil {
 					return nil, fmt.Errorf("insert outbox event failed: %w", err)
 				}
 			}
@@ -474,17 +474,18 @@ func (s *CommentService) AddCommerceReferenceComment(
 	}
 
 	if content.AuthorID != callerID && s.outboxRepo != nil {
-		eventType := "seller.response"
+		eventType := events.EventSellerResponse
 		if input.ResourceType == entity.ResourceTypeAuction {
-			eventType = "auction.response"
+			eventType = events.EventAuctionResponse
 		}
 		payload := map[string]any{
-			"comment_id":    comment.ID.String(),
-			"content_id":    input.TargetID.String(),
-			"resource_id":   input.ResourceID.String(),
-			"seller_id":     callerID.String(),
-			"created_at":    comment.CreatedAt.UTC().Format(time.RFC3339),
-			"resource_type": string(input.ResourceType),
+			"comment_id":         comment.ID.String(),
+			"content_id":         input.TargetID.String(),
+			"seller_id":          callerID.String(),
+			"request_creator_id": content.AuthorID.String(),
+			"resource_id":        input.ResourceID.String(),
+			"resource_type":      string(input.ResourceType),
+			"created_at":         comment.CreatedAt.UTC().Format(time.RFC3339),
 		}
 		outboxKey := fmt.Sprintf("%s.%s", eventType, comment.ID.String())
 		if err := s.outboxRepo.InsertTx(ctx, tx, eventType, payload, outboxKey); err != nil {
@@ -503,12 +504,8 @@ func (s *CommentService) loadVisibleContentForComment(ctx context.Context, tx db
 		}
 		return content, nil
 	}
-
-	content, err := s.contentRepo.GetByID(ctx, tx, contentID)
-	if err != nil {
-		return nil, fmt.Errorf("get content failed: %w", err)
-	}
-	return content, nil
+	// Fail-closed: visibility checker must be wired. Permissive fallback would expose private/followers_only content.
+	return nil, fmt.Errorf("content visibility checker not configured")
 }
 
 // validateCommerceReference validates that the referenced commerce resource

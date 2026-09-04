@@ -179,7 +179,7 @@ enum NotificationType {
   comment('comment'),
   commentReply('comment_reply'),
   sellerResponse('seller.response'),
-  mention('mention'), // Flutter-side only: MentionNotificationService
+  contentMentioned('content.mentioned'),
 
   // =============================================================================
   // EXTERNAL PRODUCT REVIEW — owner-facing review decision notifications

@@ -54,10 +54,12 @@ class AuthCoreRepository {
     }
   }
 
+  /// Firebase-only sign-out. Local Labuda credential termination is owned
+  /// exclusively by [AuthController.signOut]/[signOutAll] via
+  /// `clearLabudaCredential()`. This method must NOT call `clear()` or
+  /// `clearSecure()` (broad storage wipe).
   Future<Result<void>> signOut() async {
     try {
-      await _localStorage.clear();
-      await _localStorage.clearSecure();
       await _firebaseAuth.signOut();
       return Result.success(null);
     } catch (e) {

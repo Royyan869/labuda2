@@ -168,14 +168,12 @@ class _RecordingLocalStorageService extends Fake
   @override
   Future<Result<void>> clearSecure() async => Result.success(null);
 
-  @override
   Future<Result<void>> clearAuthToken() async {
     clearAuthTokenCalls++;
     authToken = null;
     return Result.success(null);
   }
 
-  @override
   Future<Result<void>> clearRefreshToken() async {
     clearRefreshTokenCalls++;
     refreshToken = null;
@@ -203,7 +201,6 @@ class _RecordingLocalStorageService extends Fake
     return Result.success(null);
   }
 
-  @override
   Future<Result<void>> clearUserSession() async {
     authToken = null;
     refreshToken = null;

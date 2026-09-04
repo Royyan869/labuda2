@@ -114,23 +114,6 @@ export interface WarningsResponse {
   count: number
 }
 
-export interface IssueWarningRequest {
-  user_id: string
-  level: WarningLevel
-  reason: string
-  expires_at?: number
-}
-
-export interface IssueWarningResponse {
-  id: string
-  user_id: string
-  level: WarningLevel
-  reason: string
-  is_active: boolean
-  created_at: string
-  expires_at?: string
-}
-
 export interface RevokeWarningResponse {
   id: string
   is_active: boolean

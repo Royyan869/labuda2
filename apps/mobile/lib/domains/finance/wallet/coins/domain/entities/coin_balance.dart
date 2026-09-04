@@ -17,7 +17,7 @@ import 'package:equatable/equatable.dart';
 /// COINS DO NOT EXPIRE - Per business decision, coins are permanent loyalty points.
 /// No distinction between regular and promo coins - single balance only.
 ///
-/// Exchange rate reference: 1 coin = Rp 10 (for ESTIMATED discount calculation only)
+/// Exchange rate reference: 1 coin = Rp1 (for ESTIMATED discount calculation only)
 /// Max balance: 1,000,000 coins
 class CoinBalance extends Equatable {
   /// User ID who owns this balance

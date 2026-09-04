@@ -70,14 +70,12 @@ class _RecordingLocalStorageService extends Fake
     return Result.success(null);
   }
 
-  @override
   Future<Result<void>> clearAuthToken() async {
     clearAuthTokenCalls++;
     authToken = null;
     return Result.success(null);
   }
 
-  @override
   Future<Result<void>> clearRefreshToken() async {
     clearRefreshTokenCalls++;
     refreshToken = null;

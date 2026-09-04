@@ -64,11 +64,12 @@ func TestPreviewTimeServiceFee_IsZero(t *testing.T) {
 	// =================================================================
 	// Each NewPricingToken/NewPricingTokenFromNegotiation/NewPricingTokenFromAuction
 	// passes money.Zero() as the serviceFeeAmount parameter. In every case,
-	// this money.Zero() immediately follows the EscrowAmount parameter.
-	// The file uses CRLF line endings, so search with \r\n
-	constructorZeroFee := strings.Count(code, "postDiscount.EscrowAmount,\r\n\t\tmoney.Zero(),")
+	// this money.Zero() immediately follows the EscrowAmount parameter.	// Match both LF and CRLF line endings (depends on git checkout config).
+	constructorZeroFeeLF := strings.Count(code, "postDiscount.EscrowAmount,\n\t\tmoney.Zero(),")
+	constructorZeroFeeCRLF := strings.Count(code, "postDiscount.EscrowAmount,\r\n\t\tmoney.Zero(),")
+	constructorZeroFee := constructorZeroFeeLF + constructorZeroFeeCRLF
 	if constructorZeroFee < 3 {
-		t.Fatalf("REGRESSION: all 3 token constructors (ForSale, Negotiation, Auction) must pass money.Zero() as serviceFeeAmount after EscrowAmount, found %d", constructorZeroFee)
+		t.Fatalf("REGRESSION: all 3 token constructors (ForSale, Negotiation, Auction) must pass money.Zero() as serviceFeeAmount after EscrowAmount, found %d (LF=%d CRLF=%d)", constructorZeroFee, constructorZeroFeeLF, constructorZeroFeeCRLF)
 	}
 
 	// =================================================================

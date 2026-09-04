@@ -103,6 +103,13 @@ func (s *OrderService) GetCreationService() *OrderCreationService {
 	return s.creationService
 }
 
+// SetCommerceGovRepository wires the canonical commerce restriction repository
+// into the order creation path so buyer restriction is enforced inside the
+// same transaction as the order mutation.
+func (s *OrderService) SetCommerceGovRepository(repo commercegov.Repository) {
+	s.creationService.SetCommerceGovRepository(repo)
+}
+
 // SetShippingQuoteService sets the shipping quote service for shipping quote reactivation.
 // This allows the service to be wired up after OrderService creation to avoid circular dependencies.
 func (s *OrderService) SetShippingQuoteService(shippingQuoteService ShippingQuoteService) {

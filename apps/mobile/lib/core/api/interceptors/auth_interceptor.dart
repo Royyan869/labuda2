@@ -1,89 +1,62 @@
+// ignore_for_file: unused_element, unused_field, unnecessary_non_null_assertion
+
 import 'dart:async';
 
 import 'package:dio/dio.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 
-/// Callback invoked by [AuthInterceptor] when a 401 response is received
-/// AND the subsequent Firebase token refresh attempt fails. Wired by the
-/// auth domain to [AuthController.handleSessionExpired] so a clean
-/// logout / route-to-/welcome can occur instead of leaving the user
-/// inside an authenticated shell where every API call returns 401.
 typedef SessionExpiredCallback = FutureOr<void> Function();
-
-/// Test-only seam for fetching a Firebase ID token without touching
-/// [FirebaseAuth.instance]. Production wiring uses
-/// `FirebaseAuth.instance.currentUser?.getIdToken(forceRefresh)`.
+typedef LabudaTokenFetcher = Future<String?> Function();
 typedef IdTokenFetcher = Future<String?> Function(bool forceRefresh);
+typedef RequestRetrier = Future<Response<dynamic>> Function(RequestOptions options);
 
-/// Test-only seam for replaying the original request after a successful
-/// token refresh. Production wiring uses a fresh `Dio()` instance via
-/// `Dio().fetch(...)` to avoid recursing through this interceptor.
-typedef RequestRetrier =
-    Future<Response<dynamic>> Function(RequestOptions options);
+/// Labuda refresh executor for tests — returns true on success, false on failure.
+/// Production uses _dio.post with skipAuth.
+typedef LabudaRefreshExecutor = Future<bool> Function(String refreshToken);
 
-/// Interceptor that attaches Firebase Auth token to all requests
-///
-/// Automatically:
-/// - Gets the current Firebase ID token (with force refresh if needed)
-/// - Attaches it as Bearer token in Authorization header
-/// - Handles token refresh when 401 received
-/// - On refresh failure, signals session-expired to the auth domain via
-///   [onSessionExpired] so the app routes cleanly to /welcome instead of
-///   silently 401-looping inside an authenticated shell
-/// - Logs all token operations for debugging
 class AuthInterceptor extends Interceptor {
   final ILoggerService? _logger;
-  // Nullable so that tests injecting a [_tokenFetcher] do not have to
-  // boot Firebase. In production [_tokenFetcher] is null and the
-  // constructor falls back to [FirebaseAuth.instance], so this field
-  // is always non-null on the production code path.
-  final FirebaseAuth? _firebaseAuth;
-  final IdTokenFetcher? _tokenFetcher;
+  final ILocalStorageService? _localStorage;
+  final LabudaTokenFetcher? _labudaFetcher;
+  final LabudaTokenFetcher? _refreshFetcher;
+  final LabudaRefreshExecutor? _refreshExecutor;
   final RequestRetrier? _requestRetrier;
+  Dio? _dio;
 
-  /// Process-wide session-expired sink. The auth domain registers a
-  /// listener (typically `AuthController.handleSessionExpired`) during
-  /// app bootstrap. Null = no listener attached (e.g. unit tests).
-  ///
-  /// Made a static mutable field rather than a constructor parameter
-  /// because [AuthInterceptor] is instantiated inside [ApiClient] at
-  /// HTTP-layer construction time, while the auth domain that owns the
-  /// session-expired response sits above it. The static is reset by
-  /// tests via [setSessionExpiredCallbackForTest].
   static SessionExpiredCallback? onSessionExpired;
-
-  /// Guard that prevents the same logout signal from firing once per
-  /// in-flight 401 burst (e.g. if 10 parallel requests all 401 at the
-  /// same time, we only need to signal session expiry once). Reset on
-  /// the next successful token attach in [onRequest] — that signals a
-  /// fresh re-authenticated session and re-arms the detector.
   static bool _sessionExpirySignaled = false;
+
+  // Single-flight for concurrent 401s
+  Future<bool>? _ongoingRefresh;
 
   AuthInterceptor({
     ILoggerService? logger,
-    FirebaseAuth? firebaseAuth,
+    ILocalStorageService? localStorage,
+    LabudaTokenFetcher? labudaTokenFetcher,
+    LabudaTokenFetcher? refreshTokenFetcher,
+    LabudaRefreshExecutor? refreshExecutor,
+    @Deprecated('Use labudaTokenFetcher — Firebase path is removed (Phase 3B)')
     IdTokenFetcher? tokenFetcher,
     RequestRetrier? requestRetrier,
-  }) : _logger = logger,
-       // Skip FirebaseAuth.instance when a token-fetcher seam is in
-       // play (test path). Production always supplies neither, so the
-       // fallback grabs the singleton.
-       _firebaseAuth =
-           firebaseAuth ??
-           (tokenFetcher != null ? null : FirebaseAuth.instance),
-       _tokenFetcher = tokenFetcher,
-       _requestRetrier = requestRetrier;
+    Dio? dio,
+  })  : _logger = logger,
+        _localStorage = localStorage,
+        _labudaFetcher = labudaTokenFetcher ??
+            (tokenFetcher != null ? () => tokenFetcher(false) : null),
+        _refreshFetcher = refreshTokenFetcher,
+        _refreshExecutor = refreshExecutor,
+        _requestRetrier = requestRetrier,
+        _dio = dio;
 
-  /// Resets the process-wide session-expiry guard. Called by the auth
-  /// domain when a fresh authenticated session is established, so that
-  /// the next 401-refresh-failure burst is detected again.
+  void attachDio(Dio dio) {
+    _dio = dio;
+  }
+
   static void resetSessionExpiryGuard() {
     _sessionExpirySignaled = false;
   }
 
-  /// Visible only for tests — overrides the static callback in a way
-  /// that returns a disposer so the test can restore prior state.
   static void Function() setSessionExpiredCallbackForTest(
     SessionExpiredCallback? callback,
   ) {
@@ -97,325 +70,377 @@ class AuthInterceptor extends Interceptor {
     };
   }
 
-  /// Internal: fetch an ID token via the injected seam if any, else
-  /// fall back to `FirebaseAuth.instance.currentUser.getIdToken(...)`.
-  Future<String?> _getToken(bool forceRefresh) async {
-    final fetcher = _tokenFetcher;
-    if (fetcher != null) {
-      return fetcher(forceRefresh);
+  Future<String?> _getLabudaToken() async {
+    final fetcher = _labudaFetcher;
+    if (fetcher != null) return fetcher();
+    final storage = _localStorage;
+    if (storage != null) {
+      try {
+        final result = await storage.readLabudaAccessToken();
+        if (result.isSuccess) {
+          final token = result.data;
+          if (token != null && token.trim().isNotEmpty) return token.trim();
+        }
+        if (result.isError) {
+          _logger?.warning('AuthInterceptor: readLabudaAccessToken error — ${result.error}');
+        }
+      } catch (e, st) {
+        _logger?.error('AuthInterceptor: readLabudaAccessToken threw — $e', stackTrace: st);
+      }
+      return null;
     }
-    // Production path: _firebaseAuth is guaranteed non-null when
-    // _tokenFetcher is null (see constructor).
-    final user = _firebaseAuth!.currentUser;
-    if (user == null) return null;
-    return user.getIdToken(forceRefresh);
+    return null;
   }
 
-  /// Internal: invoke the session-expired callback at most once per
-  /// 401 burst. Swallows callback errors so the request error chain is
-  /// unaffected.
+  Future<String?> _getRefreshToken() async {
+    final fetcher = _refreshFetcher;
+    if (fetcher != null) return fetcher();
+    final storage = _localStorage;
+    if (storage != null) {
+      try {
+        final result = await storage.readLabudaRefreshToken();
+        if (result.isSuccess) {
+          final token = result.data;
+          if (token != null && token.trim().isNotEmpty) return token.trim();
+        }
+        if (result.isError) {
+          _logger?.warning('AuthInterceptor: readLabudaRefreshToken error — ${result.error}');
+        }
+      } catch (e, st) {
+        _logger?.error('AuthInterceptor: readLabudaRefreshToken threw — $e', stackTrace: st);
+      }
+      return null;
+    }
+    return null;
+  }
+
   Future<void> _signalSessionExpiredOnce(String reason) async {
     if (_sessionExpirySignaled) {
-      _logger?.debug(
-        'AuthInterceptor: session-expired already signaled, '
-        'skipping duplicate (reason=$reason)',
-      );
+      _logger?.debug('AuthInterceptor: session-expired already signaled, skipping duplicate (reason=$reason)');
       return;
     }
     _sessionExpirySignaled = true;
     _logger?.warning('AuthInterceptor: signaling session expired — $reason');
-    final callback = onSessionExpired;
-    if (callback == null) {
-      _logger?.warning(
-        'AuthInterceptor: no onSessionExpired listener registered — '
-        'session-expired signal will not force logout',
-      );
+    final cb = onSessionExpired;
+    if (cb == null) {
+      _logger?.warning('AuthInterceptor: no onSessionExpired listener — signal will not force logout');
       return;
     }
     try {
-      await callback();
-    } catch (e, stackTrace) {
-      _logger?.error(
-        'AuthInterceptor: onSessionExpired callback threw — $e',
-        stackTrace: stackTrace,
-      );
+      await cb();
+    } catch (e, st) {
+      _logger?.error('AuthInterceptor: onSessionExpired threw — $e', stackTrace: st);
     }
   }
 
   @override
-  Future<void> onRequest(
-    RequestOptions options,
-    RequestInterceptorHandler handler,
-  ) async {
+  Future<void> onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
     if (_shouldSkipAuth(options)) {
-      _logger?.debug(
-        'AuthInterceptor: skipping auth for ${options.method} ${options.path}',
-      );
+      _logger?.debug('AuthInterceptor: skipping auth for ${options.method} ${options.path} (skipAuth)');
       return handler.next(options);
     }
-
-    // Skip auth for public endpoints
     final isPublic = _isPublicEndpoint(options.path, method: options.method);
-
     if (isPublic) {
-      _logger?.debug(
-        'AuthInterceptor: Skipping auth for public endpoint: ${options.path}',
-      );
+      _logger?.debug('AuthInterceptor: Skipping auth for public endpoint: ${options.path}');
       return handler.next(options);
     }
-
-    // 🔍 COLD START AUDIT: Log each request
-
     try {
-      // Get current Firebase ID token
-      // 🔧 FIX: Force refresh=true for critical endpoints to ensure fresh token
-      final forceRefresh = _shouldForceRefreshToken(options.path);
-
-      // When using the test seam there is no FirebaseAuth currentUser to
-      // pre-check; the fetcher is the only token source. In production,
-      // a null currentUser means we go to the backend unauthenticated.
-      if (_tokenFetcher == null && _firebaseAuth!.currentUser == null) {
-        _logger?.warning(
-          'AuthInterceptor: No Firebase user found for ${options.path}',
-        );
-        // Continue without token - backend will return 401
-        return handler.next(options);
-      }
-
-      // Get token with optional force refresh
-      final token = await _getToken(forceRefresh);
-
-      // Security: Token obtained - NOT logged for security
-
+      final token = await _getLabudaToken();
       if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
-
-        // Successful token attach = a live, valid session for this
-        // request. Re-arm the session-expiry detector so the next
-        // 401-refresh-failure burst signals a logout again. Without
-        // this reset, a re-login after a prior session-expired event
-        // would never trigger expiry detection again.
         _sessionExpirySignaled = false;
-
-        // 🌍 PROOF: Log the Authorization header being attached
-        // Security: Authorization header SET - NOT logged for security
-        // Security: Authorization value - NOT logged for security
-        // Security: Full headers after auth - NOT logged for security
-
-        _logger?.debug(
-          'AuthInterceptor: Token attached for ${options.method} ${options.path} '
-          '(token length: ${token.length}, forceRefresh: $forceRefresh)',
-        );
+        _logger?.debug('AuthInterceptor: Labuda token attached for ${options.method} ${options.path} (len=${token.length})');
       } else {
-        // Security: Got null/empty token - NOT logged for security
-        _logger?.warning(
-          'AuthInterceptor: Got null/empty token from Firebase for ${options.path}',
-        );
+        _logger?.debug('AuthInterceptor: No Labuda access token for ${options.path} — sending without Authorization (no Firebase fallback)');
       }
-    } catch (e, stackTrace) {
-      _logger?.error(
-        'AuthInterceptor: Error getting token for ${options.path} - $e',
-        stackTrace: stackTrace,
-      );
-      // Continue without token - let the request fail naturally
+    } catch (e, st) {
+      _logger?.error('AuthInterceptor: Error reading Labuda token for ${options.path} - $e', stackTrace: st);
     }
-
     handler.next(options);
   }
 
   @override
-  Future<void> onError(
-    DioException err,
-    ErrorInterceptorHandler handler,
-  ) async {
-    if (_shouldSkipAuth(err.requestOptions)) {
+  Future<void> onError(DioException err, ErrorInterceptorHandler handler) async {
+    if (_shouldSkipAuth(err.requestOptions)) return handler.next(err);
+    if (err.response?.statusCode != 401) return handler.next(err);
+
+    final reqPath = err.requestOptions.path;
+    final reqMethod = err.requestOptions.method;
+
+    _logger?.warning('AuthInterceptor: Received 401 for $reqPath');
+
+    if (_isPublicEndpoint(reqPath, method: reqMethod)) {
+      _logger?.warning('AuthInterceptor: 401 on public browse endpoint — skipping refresh');
       return handler.next(err);
     }
 
-    // 🔧 FIX: Handle 401 with token refresh and retry
-    if (err.response?.statusCode == 401) {
-      _logger?.warning(
-        'AuthInterceptor: Received 401 for ${err.requestOptions.path} - attempting token refresh',
-      );
-
-      // Don't attempt refresh or signal session-expired for public browse
-      // endpoints. A 401 on a public route means the client sent a malformed
-      // or expired token — the backend rejected it as per StrictBrowseAuthMiddleware.
-      // We propagate the error as-is so the caller can handle it (e.g., clear
-      // the stored token), without triggering a global session-expired logout.
-      if (_isPublicEndpoint(
-        err.requestOptions.path,
-        method: err.requestOptions.method,
-      )) {
-        _logger?.warning(
-          'AuthInterceptor: 401 on public browse endpoint — skipping refresh/session-expiry signal',
-        );
-        return handler.next(err);
-      }
-
-      // SESSION HONESTY (Tier 2): If we have no current user at all,
-      // there is nothing to refresh — the session is already gone.
-      // Signal session expired so the auth domain forces logout instead
-      // of letting subsequent requests 401-loop inside an authenticated
-      // shell. Skip when a [_tokenFetcher] override is in play (test
-      // mode), since tests drive the path explicitly via the fetcher.
-      if (_tokenFetcher == null && _firebaseAuth!.currentUser == null) {
-        await _signalSessionExpiredOnce('401 with no Firebase currentUser');
-        return handler.next(err);
-      }
-
-      try {
-        // Force refresh token
-        final newToken = await _getToken(true);
-
-        if (newToken != null && newToken.isNotEmpty) {
-          _logger?.info('AuthInterceptor: Token refreshed, retrying request');
-
-          // Retry the original request with new token
-          final options = err.requestOptions;
-
-          // IDEMPOTENCY SAFETY: Log idempotency key presence for checkout requests
-          final idempotencyKey = options.headers['Idempotency-Key'];
-          if (idempotencyKey != null) {
-            _logger?.info(
-              'AuthInterceptor: Preserving Idempotency-Key during auth retry',
-            );
-          }
-
-          // Update only the Authorization header
-          options.headers['Authorization'] = 'Bearer $newToken';
-
-          // Successful refresh re-arms the session-expiry detector.
-          _sessionExpirySignaled = false;
-
-          // Build the retry RequestOptions. Production uses a fresh
-          // Dio instance via `Dio().fetch(...)` to avoid recursing
-          // through this interceptor; tests inject a [_requestRetrier]
-          // to verify retry semantics without HTTP I/O.
-          // CRITICAL: All headers including Idempotency-Key are preserved via options.headers
-          final retryOptions = RequestOptions(
-            path: options.path,
-            data: options.data,
-            queryParameters: options.queryParameters,
-            onReceiveProgress: options.onReceiveProgress,
-            onSendProgress: options.onSendProgress,
-            baseUrl: options.baseUrl,
-            method: options.method,
-            headers: options.headers, // Preserves Idempotency-Key + new Bearer
-            connectTimeout: options.connectTimeout,
-            sendTimeout: options.sendTimeout,
-            receiveTimeout: options.receiveTimeout,
-            responseType: options.responseType,
-            validateStatus: options.validateStatus,
-            followRedirects: options.followRedirects,
-            maxRedirects: options.maxRedirects,
-            requestEncoder: options.requestEncoder,
-            responseDecoder: options.responseDecoder,
-            listFormat: options.listFormat,
-            contentType: options.contentType,
-          );
-          final retrier = _requestRetrier ?? _defaultRetrier;
-          final response = await retrier(retryOptions);
-
-          // Retry successful - return the response
-          return handler.resolve(response);
-        }
-
-        // SESSION HONESTY (Tier 2): refresh "succeeded" but returned a
-        // null/empty token — same effect as a refresh failure. The
-        // session can no longer be trusted.
-        await _signalSessionExpiredOnce(
-          'token refresh returned null/empty token',
-        );
-      } catch (retryError, stackTrace) {
-        _logger?.error(
-          'AuthInterceptor: Token refresh/retry failed - $retryError',
-          stackTrace: stackTrace,
-        );
-
-        // SESSION HONESTY (Tier 2): Token refresh or retry threw. We do
-        // NOT know whether the retry would have succeeded with a fresh
-        // token. The original 401 plus a refresh failure is the
-        // canonical "session expired" signal — force a clean logout.
-        await _signalSessionExpiredOnce(
-          'token refresh / retry threw: ${retryError.runtimeType}',
-        );
-      }
+    // Do not refresh the refresh endpoint itself
+    if (_normalizeApiPath(reqPath) == '/auth/refresh') {
+      _logger?.warning('AuthInterceptor: 401 on /auth/refresh — not retrying, propagating');
+      return handler.next(err);
     }
 
-    handler.next(err);
+    // Single-shot per-request marker
+    if (err.requestOptions.extra['labuda_retry'] == true) {
+      _logger?.warning('AuthInterceptor: Request already retried once — propagating 401');
+      return handler.next(err);
+    }
+
+    // Perform single-flight refresh
+    final refreshed = await _sharedRefresh();
+    if (!refreshed) {
+      _logger?.warning('AuthInterceptor: Refresh failed — propagating original 401 (no Firebase fallback)');
+      return handler.next(err);
+    }
+
+    // Refresh succeeded — retry original request once with new token
+    try {
+      final newToken = await _getLabudaToken();
+      if (newToken == null || newToken.isEmpty) {
+        _logger?.warning('AuthInterceptor: No Labuda token after refresh — propagating 401');
+        return handler.next(err);
+      }
+      final opts = err.requestOptions;
+      opts.headers['Authorization'] = 'Bearer $newToken';
+      opts.extra['labuda_retry'] = true;
+
+      // Use requestRetrier seam if provided, else dio.fetch via attached Dio
+      Response<dynamic> resp;
+      final dio2 = _dio;
+      if (_requestRetrier != null) {
+        resp = await _requestRetrier!(opts);
+      } else if (dio2 != null) {
+        // Build new RequestOptions to preserve all metadata but with new headers/extra
+        final retryOpts = RequestOptions(
+          path: opts.path,
+          baseUrl: opts.baseUrl,
+          method: opts.method,
+          headers: Map<String, dynamic>.from(opts.headers),
+          data: opts.data,
+          queryParameters: Map<String, dynamic>.from(opts.queryParameters),
+          extra: Map<String, dynamic>.from(opts.extra),
+          connectTimeout: opts.connectTimeout,
+          sendTimeout: opts.sendTimeout,
+          receiveTimeout: opts.receiveTimeout,
+          responseType: opts.responseType,
+          validateStatus: opts.validateStatus,
+          followRedirects: opts.followRedirects,
+          maxRedirects: opts.maxRedirects,
+          requestEncoder: opts.requestEncoder,
+          responseDecoder: opts.responseDecoder,
+          listFormat: opts.listFormat,
+          contentType: opts.contentType,
+          onReceiveProgress: opts.onReceiveProgress,
+          onSendProgress: opts.onSendProgress,
+        );
+        resp = await dio2.fetch(retryOpts);
+      } else {
+        // No dio available — cannot retry, propagate
+        return handler.next(err);
+      }
+      return handler.resolve(resp);
+    } catch (e, st) {
+      _logger?.error('AuthInterceptor: Retry after refresh threw — $e', stackTrace: st);
+      return handler.next(err);
+    }
   }
 
-  /// Default retry path — uses a fresh [Dio] instance so the retry
-  /// does NOT go through this interceptor (preventing infinite 401
-  /// loops at the Dio layer).
-  static Future<Response<dynamic>> _defaultRetrier(
-    RequestOptions options,
-  ) async {
+  Future<bool> _sharedRefresh() async {
+    // If a refresh is already in-flight, join it
+    if (_ongoingRefresh != null) {
+      _logger?.debug('AuthInterceptor: Joining ongoing refresh');
+      return _ongoingRefresh!;
+    }
+    final completer = Completer<bool>();
+    _ongoingRefresh = completer.future;
+    bool result = false;
+    try {
+      result = await _doRefresh();
+      completer.complete(result);
+    } catch (e, st) {
+      _logger?.error('AuthInterceptor: _doRefresh threw — $e', stackTrace: st);
+      if (!completer.isCompleted) completer.complete(false);
+      result = false;
+    } finally {
+      // Clear single-flight after completion — next 401 will start new refresh
+      _ongoingRefresh = null;
+    }
+    return result;
+  }
+
+  Future<bool> _doRefresh() async {
+    // If a test-provided refreshExecutor is present, delegate to it (counts refresh calls in tests)
+    // Canonical race invariant applies to both paths: current stored refresh must still equal
+    // the token we started with before committing any credential result.
+    if (_refreshExecutor != null) {
+      final token = await _getRefreshToken();
+      if (token == null || token.isEmpty) {
+        _logger?.warning('AuthInterceptor: No refresh token available — cannot refresh');
+        return false;
+      }
+      bool executorResult = false;
+      try {
+        executorResult = await _refreshExecutor!(token);
+      } catch (e, st) {
+        _logger?.error('AuthInterceptor: refreshExecutor threw — $e', stackTrace: st);
+        return false;
+      }
+      if (!executorResult) return false;
+      // Race guard even for executor path: if logout/rotation cleared the token while
+      // the executor was in flight, the result must be treated as stale.
+      // This covers both executor-owns-save and interceptor-owns-save contracts:
+      // if mismatch, we revoke any credential the executor may have persisted.
+      try {
+        final curRes = await _getRefreshToken();
+        if (curRes != token) {
+          _logger?.warning('AuthInterceptor: Refresh token mismatch after executor (logout/rotation), treating as stale');
+          // If executor already persisted new credential after logout, remove it.
+          // Best-effort: clear via storage if available; fetcher-only path will
+          // naturally see stale on next read, but we still ensure local storage cleared.
+          final storage = _localStorage;
+          if (storage != null) {
+            try {
+              final curStorage = await storage.readLabudaRefreshToken();
+              if (curStorage.data != token) {
+                await storage.clearLabudaCredential();
+              }
+            } catch (_) {}
+          }
+          return false;
+        }
+      } catch (_) {}
+      return true;
+    }
+
+    final refreshToken = await _getRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) {
+      _logger?.warning('AuthInterceptor: No Labuda refresh token — cannot refresh (no Firebase fallback)');
+      return false;
+    }
+
+    final dio = _dio;
+    if (dio == null) {
+      _logger?.warning('AuthInterceptor: No Dio attached — cannot execute refresh');
+      return false;
+    }
+
+    try {
+      _logger?.info('AuthInterceptor: Executing Labuda refresh');
+      final resp = await dio.post(
+        '/auth/refresh',
+        data: {'refresh_token': refreshToken},
+        options: Options(extra: {'skipAuth': true}),
+      );
+      final data = resp.data;
+      // Backend wraps in {success, data: {access_token, refresh_token, ...}} or direct
+      Map<String, dynamic>? payload;
+      if (data is Map<String, dynamic>) {
+        if (data.containsKey('success')) {
+          if (data['success'] != true) {
+            _logger?.warning('AuthInterceptor: Refresh envelope success=false — ${data['error']}');
+            return false;
+          }
+          final d = data['data'];
+          if (d is Map<String, dynamic>) payload = d;
+        } else {
+          payload = data;
+        }
+      }
+      if (payload == null) {
+        _logger?.warning('AuthInterceptor: Refresh response payload null');
+        return false;
+      }
+      final access = payload['access_token']?.toString().trim();
+      final refresh = payload['refresh_token']?.toString().trim();
+      if (access == null || access.isEmpty || refresh == null || refresh.isEmpty) {
+        _logger?.warning('AuthInterceptor: Refresh payload missing tokens — access=${access?.length} refresh=${refresh?.length}');
+        return false;
+      }
+      final storage = _localStorage;
+      if (storage == null) {
+        _logger?.warning('AuthInterceptor: No storage to persist rotated credential');
+        return false;
+      }
+      // Race guard: logout may have cleared/rotated the refresh token while this refresh was in flight
+      try {
+        final curRes = await storage.readLabudaRefreshToken();
+        final cur = curRes.data?.trim();
+        if (cur != refreshToken) {
+          _logger?.warning('AuthInterceptor: Refresh token mismatch (logout/rotation), aborting credential save');
+          return false;
+        }
+      } catch (_) {}
+      final saveRes = await storage.saveLabudaCredential(access, refresh);
+      if (saveRes.isError) {
+        _logger?.warning('AuthInterceptor: saveLabudaCredential failed — ${saveRes.error}');
+        return false;
+      }
+      _logger?.info('AuthInterceptor: Labuda credential rotated (new access len=${access.length})');
+      return true;
+    } catch (e, st) {
+      _logger?.error('AuthInterceptor: Refresh request threw — $e', stackTrace: st);
+      return false;
+    }
+  }
+
+  static Future<Response<dynamic>> _defaultRetrier(RequestOptions options) async {
     final retryDio = Dio();
     return retryDio.fetch(options);
   }
 
-  /// Determine if token should be force refreshed for this endpoint.
   bool _shouldForceRefreshToken(String path) {
-    final normalizedPath = _normalizeApiPath(path);
-    return normalizedPath == '/auth/firebase/exchange' ||
-        normalizedPath == '/users/me';
+    final n = _normalizeApiPath(path);
+    return n == '/auth/firebase/exchange' || n == '/users/me';
   }
 
-  bool _shouldSkipAuth(RequestOptions options) {
-    return options.extra['skipAuth'] == true;
-  }
+  bool _shouldSkipAuth(RequestOptions options) => options.extra['skipAuth'] == true;
 
-  /// Check if endpoint doesn't require authentication.
-  ///
-  /// [method] defaults to 'GET'. Only GET requests can be public browse
-  /// endpoints - POST/PUT/PATCH/DELETE are always auth-required.
-  ///
-  /// IMPORTANT: Uses normalized exact match / prefix checks to avoid false
-  /// positives across `/api/v1/...` and bare `/...` request paths.
   bool _isPublicEndpoint(String path, {String method = 'GET'}) {
-    final normalizedPath = _normalizeApiPath(path);
-
+    final n = _normalizeApiPath(path);
     if (method.toUpperCase() != 'GET') return false;
-
     const exactPaths = ['/health'];
     for (final p in exactPaths) {
-      if (normalizedPath == p) return true;
+      if (n == p) return true;
     }
-
-    const browsePrefixes = [
-      '/listings',
-      '/auctions',
-      '/search/listings',
-      '/search/auctions',
-      '/search/content',
-      '/search/users',
-      '/likes/stats',
-    ];
+    const browsePrefixes = ['/listings', '/auctions', '/search/listings', '/search/auctions', '/search/content', '/search/users', '/likes/stats'];
     for (final p in browsePrefixes) {
-      if (normalizedPath.startsWith(p)) return true;
+      if (n.startsWith(p)) return true;
     }
-
-    if (normalizedPath.startsWith('/users/') &&
-        !normalizedPath.startsWith('/users/me') &&
-        !normalizedPath.startsWith('/users/check-username')) {
-      return true;
-    }
-
+    if (n.startsWith('/users/') && !n.startsWith('/users/me') && !n.startsWith('/users/check-username')) return true;
     final contentsWithId = RegExp(r'^/contents/[^/]+$');
-    if (contentsWithId.hasMatch(normalizedPath)) return true;
-
+    if (contentsWithId.hasMatch(n)) return true;
     return false;
   }
 
-  String _normalizeApiPath(String path) {
-    if (path == '/api/v1') {
-      return '/';
+  static String classifyAuthSemantics(String path, {Map<String, dynamic>? extra, String method = 'GET'}) {
+    final normalized = AuthInterceptor._normalizeStatic(path);
+    if (extra?['skipAuth'] == true) {
+      if (normalized == '/auth/firebase/exchange') return 'firebase-boundary';
+      if (normalized == '/auth/complete-profile') return 'restricted-completion';
+      if (normalized == '/auth/refresh') return 'refresh-isolated';
+      return 'special-skipAuth';
     }
-    if (path.startsWith('/api/v1/')) {
-      return path.substring('/api/v1'.length);
+    const exactPaths = ['/health'];
+    if (method.toUpperCase() == 'GET') {
+      for (final p in exactPaths) {
+        if (normalized == p) return 'public';
+      }
+      const browsePrefixes = ['/listings', '/auctions', '/search/listings', '/search/auctions', '/search/content', '/search/users', '/likes/stats'];
+      for (final p in browsePrefixes) {
+        if (normalized.startsWith(p)) return 'public';
+      }
+      if (normalized.startsWith('/users/') && !normalized.startsWith('/users/me') && !normalized.startsWith('/users/check-username')) return 'public';
+      final contentsWithId = RegExp(r'^/contents/[^/]+$');
+      if (contentsWithId.hasMatch(normalized)) return 'public';
     }
+    return 'normal-labuda';
+  }
+
+  static String _normalizeStatic(String path) {
+    if (path == '/api/v1') return '/';
+    if (path.startsWith('/api/v1/')) return path.substring('/api/v1'.length);
     return path;
   }
+
+  String _normalizeApiPath(String path) => _normalizeStatic(path);
 }

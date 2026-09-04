@@ -222,7 +222,7 @@ func seedPublishedForSale(t *testing.T, ctx context.Context, tdb *testdb.TestDB,
 		1,
 		false,
 		forsaleEntity.ForSaleVisibilityPrivate,
-		forsaleEntity.ForSaleOriginDirectCreate,
+		
 		nil,
 		forsaleEntity.PreparationTimeImmediate,
 		nil,

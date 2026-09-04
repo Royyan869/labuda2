@@ -19,49 +19,6 @@ func NewWarningRepository() WarningRepository {
 	return &WarningRepositoryImpl{}
 }
 
-// Create persists a new warning within a transaction.
-func (r *WarningRepositoryImpl) Create(
-	ctx context.Context,
-	tx interface{},
-	warning *entity.UserWarning,
-) error {
-	dbTx, ok := tx.(db.Tx)
-	if !ok {
-		return fmt.Errorf("invalid transaction type")
-	}
-
-	var revokedBy *uuid.UUID
-	if warning.RevokedBy != nil {
-		revokedBy = warning.RevokedBy
-	}
-
-	_, err := dbTx.Exec(ctx, `
-		INSERT INTO user_warnings (
-			id, user_id, issued_by, level, reason,
-			is_active, revoked_at, revoked_by,
-			created_at, expires_at
-		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-	`,
-		warning.ID,
-		warning.UserID,
-		warning.IssuedBy,
-		string(warning.Level),
-		warning.Reason,
-		warning.IsActive,
-		warning.RevokedAt,
-		revokedBy,
-		warning.CreatedAt,
-		warning.ExpiresAt,
-	)
-
-	if err != nil {
-		return fmt.Errorf("create warning failed: %w", err)
-	}
-
-	return nil
-}
-
 // GetByID retrieves a warning without locking (for read-only operations).
 func (r *WarningRepositoryImpl) GetByID(
 	ctx context.Context,

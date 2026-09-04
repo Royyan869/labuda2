@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/core/api/api_error_codes.dart' as api_codes;
 import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
@@ -23,13 +24,7 @@ import 'package:labuda/domains/user/identity/authentication/presentation/widgets
 ///
 /// UI only - delegates all logic to forSale application layer.
 class CreateForSaleScreen extends ConsumerStatefulWidget {
-  /// Optional origin tracking for analytics
-  /// - 'request_context': Created from a buyer request
-  /// - 'chat_context': Created from chat conversation
-  /// - null or 'direct_create': Created directly from seller dashboard
-  final String? origin;
-
-  const CreateForSaleScreen({super.key, this.origin});
+  const CreateForSaleScreen({super.key});
 
   @override
   ConsumerState<CreateForSaleScreen> createState() =>
@@ -91,7 +86,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
 
     // Validate media
     if (_mediaUrls.isEmpty) {
-      setState(() => _errorMessage = 'Minimal 1 foto wajib diupload');
+      setState(() => _errorMessage = 'Minimal 1 media wajib diupload');
       return;
     }
 
@@ -125,7 +120,6 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
         gender: _gender,
         breeder: _breeder,
         bloodline: _bloodline,
-        origin: widget.origin,
         preparationTime: _preparationTime,
         preparationNote: _preparationNoteController.text.trim().isEmpty
             ? null
@@ -184,9 +178,14 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
           ),
         );
         Navigator.of(context).pop(listing); // Return created listing
-      } else if (result.errorCode == 'EMAIL_VERIFICATION_REQUIRED') {
+      } else if (result.errorCode == api_codes.emailVerificationRequired) {
         // Defensive backend fail-close: keep honoring the server's rejection.
         await showBlockedActionGate(
+          context,
+          actionDescription: 'membuat listing',
+        );
+      } else if (CommerceRestrictionPresenter.isCommerceRestricted(result.errorCode)) {
+        CommerceRestrictionPresenter.show(
           context,
           actionDescription: 'membuat listing',
         );
@@ -389,7 +388,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
             const SizedBox(height: 24),
 
             // Media Upload Section
-            const _SectionTitle('Foto Produk'),
+            const _SectionTitle('Media Produk'),
             const SizedBox(height: 12),
             _MediaUploadSection(
               mediaUrls: _mediaUrls,
@@ -654,8 +653,8 @@ class _MediaUploadSection extends StatelessWidget {
                   children: [
                     Icon(Icons.add_photo_alternate, size: 40),
                     SizedBox(height: 8),
-                    Text('Tap untuk upload foto'),
-                    Text('(Minimal 1 foto)', style: TextStyle(fontSize: 12)),
+                    Text('Tap untuk upload foto/video'),
+                    Text('(Minimal 1 media)', style: TextStyle(fontSize: 12)),
                   ],
                 ),
               ),

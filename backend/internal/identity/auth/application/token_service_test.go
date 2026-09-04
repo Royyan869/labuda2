@@ -61,6 +61,37 @@ func TestGenerateTokenPair_RefreshTokenHasCorrectType(t *testing.T) {
 
 // --- ValidateRefreshToken type gate ---
 
+func TestValidateAccessToken_AcceptsCanonicalAccessToken(t *testing.T) {
+	svc := newTestTokenService(t)
+	userID := uuid.New()
+	pair, err := svc.GenerateTokenPair(userID, []string{"user"}, nil)
+	if err != nil {
+		t.Fatalf("GenerateTokenPair error: %v", err)
+	}
+
+	claims, err := svc.ValidateAccessToken(pair.AccessToken)
+	if err != nil {
+		t.Fatalf("ValidateAccessToken error: %v", err)
+	}
+	if claims.UserID != userID || claims.ID == "" {
+		t.Fatalf("access identity = %s/%q, want %s/non-empty", claims.UserID, claims.ID, userID)
+	}
+	if claims.TokenUse != application.TokenUseAccess {
+		t.Fatalf("token_use = %q, want %q", claims.TokenUse, application.TokenUseAccess)
+	}
+}
+
+func TestValidateAccessToken_RejectsRefreshToken(t *testing.T) {
+	svc := newTestTokenService(t)
+	pair, err := svc.GenerateTokenPair(uuid.New(), []string{"user"}, nil)
+	if err != nil {
+		t.Fatalf("GenerateTokenPair error: %v", err)
+	}
+	if _, err := svc.ValidateAccessToken(pair.RefreshToken); err == nil {
+		t.Fatal("expected refresh token rejection")
+	}
+}
+
 func TestValidateRefreshToken_RejectsAccessToken(t *testing.T) {
 	svc := newTestTokenService(t)
 	userID := uuid.New()

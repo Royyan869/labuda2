@@ -109,7 +109,7 @@ func insertLinkageTestForSale(
 		1,
 		true, // negotiationEnabled
 		forsaleEntity.ForSaleVisibilityPublic,
-		forsaleEntity.ForSaleOriginDirectCreate,
+		
 		nil,
 		forsaleEntity.PreparationTimeImmediate,
 		nil,

@@ -253,17 +253,6 @@ func (d *Decimal) Scan(value interface{}) error {
 	return nil
 }
 
-// CalculateFinalAmount calculates the final amount with platform fee.
-// final = amount + shipping + platformFee - discounts
-// Result is rounded to 0 decimal places (IDR standard).
-func CalculateFinalAmount(base, shipping, platformFee, discount, coinDiscount Decimal) Decimal {
-	total := base.Add(shipping).Add(platformFee).Sub(discount).Sub(coinDiscount)
-	if total.IsNegative() {
-		return Zero()
-	}
-	return total.RoundIDR()
-}
-
 // ParseDecimalOrZero parses a string to Decimal, returning Zero on error.
 func ParseDecimalOrZero(s string) Decimal {
 	d, err := NewFromString(s)

@@ -886,7 +886,6 @@ func (w *OutboxWorker) SetupModerationHandlers(
 	forSaleService interface{},
 	auctionService interface{},
 	userRepo interface{},
-	chatMessageStore ChatMessageModerationService,
 	enfRepo moderationRepo.EnforcementRepository,
 	notifHandler EventHandler,
 ) *OutboxWorker {
@@ -895,15 +894,7 @@ func (w *OutboxWorker) SetupModerationHandlers(
 	// The forSaleService is expected to be *forsaleapp.ForSaleService
 	// The auctionService is expected to be *auctionapp.AuctionService
 	// The userRepo is expected to be userrepo.UserRepository
-	// The chatMessageStore is expected to satisfy ChatMessageModerationStore
-	// Type assertion will happen in NewModerationEventHandler
-	handler := NewModerationEventHandler(db, contentService, commentService, forSaleService, auctionService, userRepo, chatMessageStore, enfRepo, w.log)
-
-	// Enforcement-only: chat_message has no seller-facing notification.
-	w.dispatcher.RegisterMultiple([]string{
-		"moderation.chat_message.hidden",
-		"moderation.chat_message.restored",
-	}, handler)
+	handler := NewModerationEventHandler(db, contentService, commentService, forSaleService, auctionService, userRepo, enfRepo, w.log)
 
 	// Enforcement + notification fanout: enforcement FIRST, notification SECOND.
 	// SetupModerationWSEvictionHandler composes WS eviction as THIRD for .suspended.

@@ -68,7 +68,14 @@ class AuctionRemoteDatasource extends BaseApiRepository {
       parser: (data) => AuctionDto.fromJson(data as Map<String, dynamic>),
     );
 
-    return result.fold((error) => throw Exception(error), (data) => data);
+    if (result.isError) {
+      throw StructuredApiException(
+        message: result.error ?? 'Failed to create auction',
+        code: result.errorCode,
+        details: result.errorDetails,
+      );
+    }
+    return result.data!;
   }
 
   /// Update auction
@@ -92,7 +99,13 @@ class AuctionRemoteDatasource extends BaseApiRepository {
       () => apiClient.post('/auctions/$auctionId/schedule'),
     );
 
-    return result.fold((error) => throw Exception(error), (data) => data);
+    if (result.isError) {
+      throw StructuredApiException(
+        message: result.error ?? 'Failed to schedule auction',
+        code: result.errorCode,
+        details: result.errorDetails,
+      );
+    }
   }
 
   /// Cancel auction
@@ -203,6 +216,13 @@ class AuctionRemoteDatasource extends BaseApiRepository {
       },
     );
 
-    return result.fold((error) => throw Exception(error), (data) => data ?? '');
+    if (result.isError) {
+      throw StructuredApiException(
+        message: result.error ?? 'Failed to claim auction',
+        code: result.errorCode,
+        details: result.errorDetails,
+      );
+    }
+    return result.data ?? '';
   }
 }

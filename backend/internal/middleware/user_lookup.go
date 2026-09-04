@@ -9,9 +9,10 @@ import (
 	"github.com/labuda/backend/pkg/db"
 )
 
-// UserLookupService interface for looking up user by Firebase UID
+// UserLookupService interface for looking up user by Firebase UID or canonical Labuda ID.
 type UserLookupService interface {
 	GetUserIDByFirebaseUID(ctx context.Context, firebaseUID string) (uuid.UUID, error)
+	GetUserIDByID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 }
 
 // UserLookupMiddleware creates middleware that looks up user ID from Firebase UID
@@ -23,6 +24,19 @@ type UserLookupService interface {
 // - DO NOT fallback - users must be created through explicit signup flow
 func UserLookupMiddleware(userLookup UserLookupService) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// If canonical user_id is already present (e.g., from LabudaAuthMiddleware), validate existence.
+		if uidVal, hasUserID := c.Get("user_id"); hasUserID {
+			if uid, ok := uidVal.(uuid.UUID); ok && uid != uuid.Nil {
+				if _, err := userLookup.GetUserIDByID(c.Request.Context(), uid); err != nil {
+					response.Unauthorized(c, "USER_NOT_PROVISIONED: User not found")
+					c.Abort()
+					return
+				}
+			}
+			c.Next()
+			return
+		}
+
 		// Get claims from auth middleware
 		claims, exists := GetUserFromContext(c)
 		if !exists {
@@ -41,10 +55,6 @@ func UserLookupMiddleware(userLookup UserLookupService) gin.HandlerFunc {
 			return
 		}
 
-		// Update claims with user ID string representation
-		claims.UID = userID.String()
-
-		// Also store directly for easier access
 		c.Set("user_id", userID)
 		c.Set("userID", userID)
 		c.Set("firebase_uid", claims.UID)
@@ -91,6 +101,16 @@ func (s *DBUserLookupService) GetUserIDByFirebaseUID(ctx context.Context, fireba
 		return uuid.Nil, err
 	}
 	return userID, nil
+}
+
+// GetUserIDByID validates that a canonical Labuda user_id exists.
+func (s *DBUserLookupService) GetUserIDByID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
+	var found uuid.UUID
+	err := s.db.Pool().QueryRow(ctx, "SELECT id FROM users WHERE id = $1 AND deleted_at IS NULL", userID).Scan(&found)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return found, nil
 }
 
 // RolesLookupMiddleware fetches user role from database and injects into UserClaims.

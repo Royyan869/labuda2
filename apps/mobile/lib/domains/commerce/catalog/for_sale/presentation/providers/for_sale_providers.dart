@@ -60,7 +60,6 @@ class ForSalesParams extends Equatable {
   final String? sellerId;
   final double? minPrice;
   final double? maxPrice;
-  final String? location;
 
   const ForSalesParams({
     this.page = 1,
@@ -70,7 +69,6 @@ class ForSalesParams extends Equatable {
     this.sellerId,
     this.minPrice,
     this.maxPrice,
-    this.location,
   });
 
   GetForSalesParams toDomainParams() {
@@ -82,7 +80,6 @@ class ForSalesParams extends Equatable {
       sellerId: sellerId,
       minPrice: minPrice,
       maxPrice: maxPrice,
-      location: location,
     );
   }
 
@@ -94,7 +91,6 @@ class ForSalesParams extends Equatable {
     String? sellerId,
     double? minPrice,
     double? maxPrice,
-    String? location,
   }) {
     return ForSalesParams(
       page: page ?? this.page,
@@ -104,7 +100,6 @@ class ForSalesParams extends Equatable {
       sellerId: sellerId ?? this.sellerId,
       minPrice: minPrice ?? this.minPrice,
       maxPrice: maxPrice ?? this.maxPrice,
-      location: location ?? this.location,
     );
   }
 
@@ -117,7 +112,6 @@ class ForSalesParams extends Equatable {
     sellerId,
     minPrice,
     maxPrice,
-    location,
   ];
 }
 

@@ -35,16 +35,13 @@ type ForSale struct {
 	Certificates []string // Array of certificate URLs/IDs
 
 	// Pricing and inventory
-	ForSaleType ForSaleType
-	PricePerUnit       money.Money
-	QuantityAvailable  int
+	ForSaleType       ForSaleType
+	PricePerUnit      money.Money
+	QuantityAvailable int
 
 	// Feature flags
 	NegotiationEnabled bool
 	Visibility         ForSaleVisibility
-
-	// Origin - Source/context of how for_sale was created (tracking only, NOT for business logic)
-	Origin ForSaleOrigin
 
 	// Shipping preferences - how this item can be shipped
 	// Shipping options are now managed through product_shipping_options table
@@ -106,7 +103,7 @@ func (e *ForSaleNotActiveError) Error() string {
 // ForSaleNotAvailableError is returned when for_sale is not available for purchase.
 type ForSaleNotAvailableError struct {
 	ForSaleID uuid.UUID
-	Reason           string
+	Reason    string
 }
 
 func (e *ForSaleNotAvailableError) Error() string {
@@ -138,21 +135,6 @@ func (l *ForSale) Publish() error {
 	l.Visibility = ForSaleVisibilityPublic
 	now := time.Now()
 	l.PublishedAt = &now
-	l.UpdatedAt = time.Now()
-	return nil
-}
-
-// MarkSold transitions the for_sale to sold status.
-func (l *ForSale) MarkSold() error {
-	if !CanTransition(l.Status, ForSaleStatusSold) {
-		return &InvalidTransitionError{
-			CurrentStatus: l.Status,
-			TargetStatus:  ForSaleStatusSold,
-		}
-	}
-	l.Status = ForSaleStatusSold
-	now := time.Now()
-	l.SoldAt = &now
 	l.UpdatedAt = time.Now()
 	return nil
 }
@@ -203,16 +185,6 @@ func (l *ForSale) MarkActiveFromModeration() error {
 		// Draft or unknown — not a valid restoration target.
 		return fmt.Errorf("cannot restore for_sale from moderation: unexpected status %q (id=%s)", l.Status, l.ID)
 	}
-}
-
-// IsDraft returns true if the for_sale is in draft state (not yet published).
-func (l *ForSale) IsDraft() bool {
-	return l.Status == ForSaleStatusDraft
-}
-
-// IsPublished returns true if the for_sale has been published (active state).
-func (l *ForSale) IsPublished() bool {
-	return l.Status == ForSaleStatusActive
 }
 
 // ============================================================================
@@ -334,7 +306,6 @@ func NewForSale(
 	quantityAvailable int,
 	negotiationEnabled bool,
 	visibility ForSaleVisibility,
-	origin ForSaleOrigin,
 	// Shipping preferences
 	farmAddressID *uuid.UUID,
 	// Shipping Readiness
@@ -365,12 +336,11 @@ func NewForSale(
 		Breeder:            breeder,
 		Bloodline:          bloodline,
 		Certificates:       certificates,
-		ForSaleType: for_saleType,
+		ForSaleType:        for_saleType,
 		PricePerUnit:       pricePerUnit,
 		QuantityAvailable:  quantityAvailable,
 		NegotiationEnabled: negotiationEnabled,
 		Visibility:         visibility,
-		Origin:             origin,
 		FarmAddressID:      farmAddressID,
 		PreparationTime:    preparationTime,
 		PreparationNote:    preparationNote,

@@ -1,8 +1,8 @@
 import 'package:get_it/get_it.dart';
 import 'package:labuda/core/api/api_client.dart';
 import 'package:labuda/core/api/config/api_config.dart';
+import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/core/src/services/service_locator.dart';
 
 /// API Layer Dependency Injection
 ///
@@ -30,19 +30,24 @@ class ApiDI {
   /// Initialize API dependencies
   ///
   /// Must be called after:
-  /// - Firebase is initialized (AuthInterceptor uses FirebaseAuth directly)
-  /// - ILoggerService is registered
+  /// - ILoggerService + ILocalStorageService are registered (AuthInterceptor uses Labuda JWT)
   static void init({ApiEnvironment? environment}) {
     // Set environment if provided
     if (environment != null) {
       ApiConfig.setEnvironment(environment);
     }
 
-    // Register ApiClient as lazy singleton
-    // 🔧 FIX: No longer requires IAuthenticationService - AuthInterceptor uses FirebaseAuth directly
+    // Register ApiClient as lazy singleton — Phase 3B: Labuda JWT authority.
     if (!_sl.isRegistered<ApiClient>()) {
       _sl.registerLazySingleton<ApiClient>(
-        () => ApiClient(logger: ServiceLocator.getService<ILoggerService>()),
+        () => ApiClient(
+          logger: _sl.isRegistered<ILoggerService>()
+              ? _sl<ILoggerService>()
+              : null,
+          localStorage: _sl.isRegistered<ILocalStorageService>()
+              ? _sl<ILocalStorageService>()
+              : null,
+        ),
       );
     }
   }

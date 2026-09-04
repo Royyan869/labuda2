@@ -939,11 +939,10 @@ func TestSocialService_EventEmission(t *testing.T) {
 		assert.Equal(t, blockedID, capturedPayload["recipient_id"])
 	})
 
-	t.Run("Unblock emits user.unblocked event", func(t *testing.T) {
+	t.Run("Unblock is silent no outbox", func(t *testing.T) {
 		blockerID := uuid.New()
 		blockedID := uuid.New()
-		var capturedEventType string
-		var capturedPayload map[string]any
+		insertCalled := false
 
 		repo := &mockSocialRepository{
 			deleteBlockFunc: func(ctx context.Context, tx interface{}, bid, tid uuid.UUID) error {
@@ -953,8 +952,7 @@ func TestSocialService_EventEmission(t *testing.T) {
 
 		outboxRepo := &mockSocialOutboxInserter{
 			insertTxFunc: func(ctx context.Context, tx db.Tx, eventType string, payload any, idempotencyKey string) error {
-				capturedEventType = eventType
-				capturedPayload = payload.(map[string]any)
+				insertCalled = true
 				return nil
 			},
 		}
@@ -965,9 +963,7 @@ func TestSocialService_EventEmission(t *testing.T) {
 		err := service.Unblock(context.Background(), blockerID, blockedID)
 
 		require.NoError(t, err)
-		assert.Equal(t, events.EventUserUnblocked, capturedEventType)
-		assert.Equal(t, blockerID, capturedPayload["actor_id"])
-		assert.Equal(t, blockedID, capturedPayload["recipient_id"])
+		assert.False(t, insertCalled, "unblock must not emit outbox (silent, no consumer) Phase 2A")
 	})
 }
 
@@ -1090,13 +1086,12 @@ func TestSocialService_EventIdempotency(t *testing.T) {
 		transactor := &mockSocialTransactor{}
 		service := application.NewSocialService(transactor, repo, outboxRepo)
 
-		// Unblock twice with same IDs
+		// Unblock twice with same IDs - no outbox per Phase 2A silent convergence
 		_ = service.Unblock(context.Background(), blockerID, blockedID)
 		_ = service.Unblock(context.Background(), blockerID, blockedID)
 
-		// Both requests should use the same idempotency key
-		assert.Equal(t, 2, len(idempotencyKeys))
-		assert.Equal(t, idempotencyKeys[0], idempotencyKeys[1])
+		// No events expected
+		assert.Equal(t, 0, len(idempotencyKeys))
 	})
 }
 

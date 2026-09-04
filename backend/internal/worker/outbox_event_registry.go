@@ -228,10 +228,7 @@ var AcknowledgedNoHandlerEvents = map[string]NoHandlerEntry{
 	// =========================================================================
 	// SOCIAL GRAPH
 	// =========================================================================
-	"user.unblocked": {
-		Class: NoHandlerAuditOnly,
-		Note:  "unblock audit trail; user.blocked triggers notification cleanup, unblock has no side-effect",
-	},
+	// user.unblocked removed Phase 2A: producer was orphan (no handler, no audit need). Unblock is silent; DeleteBlock has no outbox.
 
 	// =========================================================================
 	// ACCOUNT LIFECYCLE

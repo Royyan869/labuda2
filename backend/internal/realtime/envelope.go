@@ -105,20 +105,6 @@ func marshalChatMessageSent(roomID, messageID uuid.UUID) []byte {
 	})
 }
 
-func marshalChatMessageHidden(roomID, messageID uuid.UUID) []byte {
-	return marshalWSEnvelope("chat.message.hidden", map[string]any{
-		"room_id":    roomID.String(),
-		"message_id": messageID.String(),
-	})
-}
-
-func marshalChatMessageRestored(roomID, messageID uuid.UUID) []byte {
-	return marshalWSEnvelope("chat.message.restored", map[string]any{
-		"room_id":    roomID.String(),
-		"message_id": messageID.String(),
-	})
-}
-
 func marshalChatRoomCreated(payload ChatRoomSummaryPayload) []byte {
 	return marshalWSEnvelope(EventTypeChatRoomCreated, payload.toMap())
 }

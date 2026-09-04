@@ -355,19 +355,6 @@ func emitChatMessageNotification(t *testing.T, ctx context.Context, handler *wor
 	emitChatMessageNotificationWithType(t, ctx, handler, senderID, recipientID, roomID, messageID, "text")
 }
 
-func emitUnknownModerationChatEvent(t *testing.T, ctx context.Context, handler *worker.NotificationEventHandler, roomID uuid.UUID, payload []byte, eventType string) {
-	t.Helper()
-
-	err := handler.Handle(ctx, event.OutboxEvent{
-		ID:            uuid.New(),
-		AggregateType: "chat_message",
-		AggregateID:   roomID,
-		EventType:     eventType,
-		Payload:       payload,
-	})
-	require.NoError(t, err)
-}
-
 func fetchNotificationCount(t *testing.T, ctx context.Context, pool *db.DB, recipientID, actorID, entityID uuid.UUID) int {
 	t.Helper()
 
@@ -714,9 +701,7 @@ func TestChatNotificationLifecycle_PostgresBacked(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		emitUnknownModerationChatEvent(t, ctx, fixture.handler, roomID, payload, "moderation.chat_message.hidden")
-		emitUnknownModerationChatEvent(t, ctx, fixture.handler, roomID, payload, "moderation.chat_message.restored")
-		time.Sleep(200 * time.Millisecond)
+
 
 		require.Equal(t, baseline, fixture.pushSender.count())
 		require.Equal(t, 0, fetchNotificationCount(t, ctx, fixture.appDB, recipientID, senderID, roomID))

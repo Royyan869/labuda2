@@ -1285,9 +1285,9 @@ func TestSocialGovernance_CommentReply_ContentLookupFailure_FallbackToPost(t *te
 	}
 }
 
-// --- Validation F: seller.response Social category, forSaleId preserved, no push ---
+// --- Validation F: seller.response Social category, canonical contract, no push ---
 
-func TestSocialGovernance_SellerResponse_SocialCategory_ForSaleIdPreserved(t *testing.T) {
+func TestSocialGovernance_SellerResponse_SocialCategory_CanonicalContract(t *testing.T) {
 	sellerID := uuid.New()
 	requestCreatorID := uuid.New()
 	contentID := uuid.New()
@@ -1308,7 +1308,8 @@ func TestSocialGovernance_SellerResponse_SocialCategory_ForSaleIdPreserved(t *te
 		RequestCreatorID: requestCreatorID.String(),
 		ContentID:        contentID.String(),
 		CommentID:        commentID.String(),
-		ForSaleID:        forSaleID.String(),
+		ResourceID:       forSaleID.String(),
+		ResourceType:     "for_sale",
 	})
 	err := h.Handle(context.Background(), platformevent.OutboxEvent{
 		ID: uuid.New(), EventType: "seller.response", Payload: payload,
@@ -1323,12 +1324,22 @@ func TestSocialGovernance_SellerResponse_SocialCategory_ForSaleIdPreserved(t *te
 	if capturedActor != sellerID {
 		t.Errorf("actor = %s, want %s (no anonymization for Social)", capturedActor, sellerID)
 	}
-	if capturedData["forSaleId"] != forSaleID.String() {
+	if capturedData["resourceId"] != forSaleID.String() {
 		t.Errorf(
-			"forSaleId = %v, want %s",
-			capturedData["forSaleId"],
+			"resourceId = %v, want %s",
+			capturedData["resourceId"],
 			forSaleID.String(),
 		)
+	}
+	if capturedData["resourceType"] != "for_sale" {
+		t.Errorf("resourceType = %v, want for_sale", capturedData["resourceType"])
+	}
+	// Verify no legacy backward-compat keys are emitted.
+	if _, ok := capturedData["forSaleId"]; ok {
+		t.Error("forSaleId must not be present in notification data (obsolete compat key removed)")
+	}
+	if _, ok := capturedData["auctionId"]; ok {
+		t.Error("auctionId must not be present in notification data (obsolete compat key removed)")
 	}
 	if capturedData["targetType"] != "request" {
 		t.Errorf("targetType = %v, want request", capturedData["targetType"])
@@ -1454,7 +1465,7 @@ func TestSocialGovernance_ShouldFilterNotification_Deleted(t *testing.T) {
 		})},
 		{"seller.response", mustMarshal(SellerResponsePayload{
 			SellerID: actor.String(), RequestCreatorID: recipient.String(),
-			ContentID: content.String(), CommentID: comment.String(), ForSaleID: forSaleID.String(),
+			ContentID: content.String(), CommentID: comment.String(), ResourceID: forSaleID.String(), ResourceType: "for_sale",
 		})},
 		{events.EventCommentCreated, mustMarshal(CommentCreatedPayload{
 			AuthorID: actor.String(), ContentID: content.String(), CommentID: comment.String(),
@@ -1615,23 +1626,19 @@ func TestHandleUserBlocked_DeletesSocialPreservesCommerce(t *testing.T) {
 		t.Fatalf("arg[2] expected []string, got %T", capturedArgs[2])
 	}
 
-	// Must contain exactly the social notification types
-	expectedTypes := map[string]bool{
-		"user.followed":   true,
-		"content.liked":   true,
-		"comment":         true,
-		"comment_reply":   true,
-		"chat_message":    true,
-		"seller.response": true,
+	// Verify against canonical socialNotificationTypes slice (single source of truth).
+	if len(types) != len(socialNotificationTypes) {
+		t.Errorf("Expected %d social types (socialNotificationTypes), got %d: %v",
+			len(socialNotificationTypes), len(types), types)
 	}
 
-	if len(types) != len(expectedTypes) {
-		t.Errorf("Expected %d social types, got %d: %v", len(expectedTypes), len(types), types)
-	}
-
+	haveTypes := make(map[string]bool, len(types))
 	for _, typ := range types {
-		if !expectedTypes[typ] {
-			t.Errorf("Unexpected type in cleanup list: %s", typ)
+		haveTypes[typ] = true
+	}
+	for _, canonical := range socialNotificationTypes {
+		if !haveTypes[canonical] {
+			t.Errorf("Canonical social type %q not found in handler arg", canonical)
 		}
 	}
 }
@@ -1823,6 +1830,233 @@ func TestHandleUserBlocked_InvalidPayload(t *testing.T) {
 				t.Error("Expected error for invalid payload, got nil")
 			}
 		})
+	}
+}
+
+// =============================================================================
+// SOCIAL MENTION NOTIFICATION RUNTIME E2E PROOF
+// =============================================================================
+//
+// Proves the canonical mention notification wire contract:
+//   type = "content.mentioned"
+//   data = { "targetId": "<content UUID>", "targetType": "content" }
+//
+// Each test uses mock infrastructure (no PostgreSQL required) to prove
+// the handler parses the canonical payload and produces correct notification
+// fields.
+
+// TestSocialGovernance_ContentMentioned_ActiveRecipient_Delivered proves:
+//   1. content.mentioned event is parsed correctly
+//   2. Notification recipient = mentioned_user_id (not author)
+//   3. Notification actor = author_id
+//   4. Notification type = "content.mentioned"
+//   5. Notification data = { targetId: contentID, targetType: "content" }
+//   6. Self-mention is skipped
+//
+// This is the single authoritative proof that the canonical wire contract
+// is implemented correctly at the handler level.
+func TestSocialGovernance_ContentMentioned_ActiveRecipient_Delivered(t *testing.T) {
+	authorID := uuid.New()
+	mentionedUserID := uuid.New()
+	contentID := uuid.New()
+
+	var capturedRecipient, capturedActor, capturedEntity uuid.UUID
+	var capturedType string
+	var capturedData map[string]interface{}
+
+	mockDB := &mockDBForNotification{
+		WithTxFunc: insertCaptureTx(&capturedRecipient, &capturedActor, &capturedType, &capturedEntity, &capturedData),
+	}
+	handler := buildSocialGovernanceHandler(t, mockDB, &mockAccountStatusControlled{}, &mockBlockCheckerControlled{}, nil)
+
+	payload, _ := json.Marshal(ContentMentionedPayload{
+		ContentID:       contentID.String(),
+		AuthorID:        authorID.String(),
+		MentionedUserID: mentionedUserID.String(),
+	})
+	err := handler.Handle(context.Background(), platformevent.OutboxEvent{
+		ID:        uuid.New(),
+		EventType: events.EventContentMentioned,
+		Payload:   payload,
+	})
+
+	if err != nil {
+		t.Fatalf("Handle() error = %v", err)
+	}
+
+	// CRITICAL: recipient must be the mentioned user, not the author
+	if capturedRecipient != mentionedUserID {
+		t.Errorf("recipient = %s, want %s (mentioned user)", capturedRecipient, mentionedUserID)
+	}
+
+	// CRITICAL: actor must be the content author
+	if capturedActor != authorID {
+		t.Errorf("actor = %s, want %s (content author)", capturedActor, authorID)
+	}
+
+	// CRITICAL: notification type must be the canonical backend wire type
+	if capturedType != events.EventContentMentioned {
+		t.Errorf("type = %q, want %q (canonical backend type)", capturedType, events.EventContentMentioned)
+	}
+
+	// CRITICAL: entity ID must be the content
+	if capturedEntity != contentID {
+		t.Errorf("entity = %s, want %s (content ID)", capturedEntity, contentID)
+	}
+
+	// CRITICAL: data must use canonical backend keys
+	if capturedData == nil {
+		t.Fatal("data is nil, want {targetId, targetType}")
+	}
+	if capturedData["targetId"] != contentID.String() {
+		t.Errorf("data[targetId] = %v, want %q", capturedData["targetId"], contentID.String())
+	}
+	if capturedData["targetType"] != "content" {
+		t.Errorf("data[targetType] = %v, want \"content\"", capturedData["targetType"])
+	}
+
+	// CRITICAL: no obsolete keys in data
+	if _, ok := capturedData["forSaleId"]; ok {
+		t.Error("data contains obsolete key 'forSaleId'")
+	}
+	if _, ok := capturedData["auctionId"]; ok {
+		t.Error("data contains obsolete key 'auctionId'")
+	}
+	if _, ok := capturedData["contentId"]; ok {
+		t.Error("data contains key 'contentId' — must use 'targetId' (canonical backend key)")
+	}
+}
+
+// TestSocialGovernance_ContentMentioned_SelfMention_Skipped proves:
+//   When author == mentioned_user, notification is NOT created.
+//   Self-mention is a no-op at the handler level.
+func TestSocialGovernance_ContentMentioned_SelfMention_Skipped(t *testing.T) {
+	userA := uuid.New()
+	contentID := uuid.New()
+
+	insertCalled := false
+	mockDB := &mockDBForNotification{
+		WithTxFunc: func(ctx context.Context, fn func(dbpkg.Tx) error) error {
+			insertCalled = true
+			return fn(&mockTxForNotification{
+				QueryRowFunc: func(_ context.Context, _ string, _ ...any) pgx.Row {
+					return &mockRowForNotification{scanValue: uuid.New()}
+				},
+			})
+		},
+	}
+	handler := buildSocialGovernanceHandler(t, mockDB, &mockAccountStatusControlled{}, &mockBlockCheckerControlled{}, nil)
+
+	payload, _ := json.Marshal(ContentMentionedPayload{
+		ContentID:       contentID.String(),
+		AuthorID:        userA.String(),
+		MentionedUserID: userA.String(), // self-mention
+	})
+	err := handler.Handle(context.Background(), platformevent.OutboxEvent{
+		ID:        uuid.New(),
+		EventType: events.EventContentMentioned,
+		Payload:   payload,
+	})
+
+	if err != nil {
+		t.Fatalf("Handle() error = %v", err)
+	}
+	if insertCalled {
+		t.Error("INSERT was called; self-mention must not create notification")
+	}
+}
+
+// TestSocialGovernance_ContentMentioned_BlockedActor_Dropped proves:
+//   When the actor (author) is blocked by the recipient, the mention notification
+//   is dropped (Social category policy).
+func TestSocialGovernance_ContentMentioned_BlockedActor_Dropped(t *testing.T) {
+	authorID := uuid.New()
+	mentionedUserID := uuid.New()
+	contentID := uuid.New()
+
+	insertCalled := false
+	mockDB := &mockDBForNotification{
+		WithTxFunc: func(ctx context.Context, fn func(dbpkg.Tx) error) error {
+			insertCalled = true
+			return fn(&mockTxForNotification{
+				QueryRowFunc: func(_ context.Context, _ string, _ ...any) pgx.Row {
+					return &mockRowForNotification{scanValue: uuid.New()}
+				},
+			})
+		},
+	}
+	block := &mockBlockCheckerControlled{
+		blocked: map[[2]uuid.UUID]bool{{authorID, mentionedUserID}: true},
+	}
+	handler := buildSocialGovernanceHandler(t, mockDB, &mockAccountStatusControlled{}, block, nil)
+
+	payload, _ := json.Marshal(ContentMentionedPayload{
+		ContentID:       contentID.String(),
+		AuthorID:        authorID.String(),
+		MentionedUserID: mentionedUserID.String(),
+	})
+	err := handler.Handle(context.Background(), platformevent.OutboxEvent{
+		ID:        uuid.New(),
+		EventType: events.EventContentMentioned,
+		Payload:   payload,
+	})
+
+	if err != nil {
+		t.Fatalf("Handle() error = %v", err)
+	}
+	if insertCalled {
+		t.Error("INSERT was called; blocked actor notification must be dropped")
+	}
+}
+
+// TestSocialGovernance_ContentMentioned_BannedActor_Dropped proves:
+//   Banned author → mention notification is not created.
+func TestSocialGovernance_ContentMentioned_BannedActor_Dropped(t *testing.T) {
+	authorID := uuid.New()
+	mentionedUserID := uuid.New()
+	contentID := uuid.New()
+
+	insertCalled := false
+	mockDB := &mockDBForNotification{
+		WithTxFunc: func(ctx context.Context, fn func(dbpkg.Tx) error) error {
+			insertCalled = true
+			return fn(&mockTxForNotification{
+				QueryRowFunc: func(_ context.Context, _ string, _ ...any) pgx.Row {
+					return &mockRowForNotification{scanValue: uuid.New()}
+				},
+			})
+		},
+	}
+	status := &mockAccountStatusControlled{
+		statuses: map[uuid.UUID]string{authorID: "banned"},
+	}
+	handler := buildSocialGovernanceHandler(t, mockDB, status, &mockBlockCheckerControlled{}, nil)
+
+	payload, _ := json.Marshal(ContentMentionedPayload{
+		ContentID:       contentID.String(),
+		AuthorID:        authorID.String(),
+		MentionedUserID: mentionedUserID.String(),
+	})
+	err := handler.Handle(context.Background(), platformevent.OutboxEvent{
+		ID:        uuid.New(),
+		EventType: events.EventContentMentioned,
+		Payload:   payload,
+	})
+
+	if err != nil {
+		t.Fatalf("Handle() error = %v", err)
+	}
+	if insertCalled {
+		t.Error("INSERT was called; banned actor notification must be dropped")
+	}
+}
+
+// TestSocialGovernance_ContentMentioned_CategoryIsSocial proves:
+//   content.mentioned is classified as Social in the notification policy.
+func TestSocialGovernance_ContentMentioned_CategoryIsSocial(t *testing.T) {
+	cat := policy.GetCategory(events.EventContentMentioned)
+	if cat != policy.Social {
+		t.Errorf("GetCategory(%q) = %v, want Social", events.EventContentMentioned, cat)
 	}
 }
 

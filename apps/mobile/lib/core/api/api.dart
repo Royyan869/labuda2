@@ -12,6 +12,11 @@ export 'config/api_config.dart';
 // Exceptions
 export 'exceptions/api_exception.dart';
 
+// Error codes & commerce restriction UX
+export 'api_error_codes.dart';
+export 'commerce_restriction_presenter.dart';
+export 'structured_api_exception.dart';
+
 // Interceptors
 export 'interceptors/auth_interceptor.dart';
 export 'interceptors/error_interceptor.dart';

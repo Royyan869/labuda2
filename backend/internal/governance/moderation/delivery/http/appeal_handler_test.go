@@ -207,8 +207,7 @@ func (unusedCommentRepository) FindTargetIDByCommerceReference(_ context.Context
 
 // fakeAppealDB implements db.Transactor without a live Postgres connection.
 // AppealRepository.GetByID's tx parameter is untyped (interface{}), so a nil
-// tx flowing through is safe here (unlike WarningService.IssueWarning, which
-// needs a real db.Tx — see fakeWarningDB in warning_handler_test.go).
+tx flowing through is safe here.
 type fakeAppealDB struct{}
 
 func (fakeAppealDB) WithTx(ctx context.Context, fn func(tx db.Tx) error) error {

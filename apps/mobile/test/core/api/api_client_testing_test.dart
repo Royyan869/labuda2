@@ -15,10 +15,12 @@ void main() {
 
       expect(
         source,
-        contains('ApiClient({ILoggerService? logger, String? baseUrl})'),
+        contains('ApiClient({ILoggerService? logger,'),
       );
+      expect(source, contains('ILocalStorageService? localStorage'));
+      expect(source, contains('String? baseUrl'));
       expect(source, contains('_createDio(baseUrl);'));
-      expect(source, contains('AuthInterceptor(logger: _logger)'));
+      expect(source, contains('AuthInterceptor(logger: _logger, localStorage: _localStorage)'));
       expect(source, contains('DetailedLoggingInterceptor()'));
       expect(source, contains('ErrorInterceptor(logger: _logger)'));
       expect(source, contains('if (ApiConfig.enableLogging)'));

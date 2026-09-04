@@ -66,7 +66,7 @@ func TestStage5_RestoreListingStock_ResolvesSurfaceFromOrderSource(t *testing.T)
 			sellerID, "Kohaku", "d", []byte(`[]`), "Kohaku",
 			nil, nil, nil, nil, nil, []string{},
 			fpsentity.ForSaleTypeFixedPrice, money.New(50000), 2, false,
-			fpsentity.ForSaleVisibilityPublic, fpsentity.ForSaleOriginDirectCreate,
+			fpsentity.ForSaleVisibilityPublic,
 			nil, fpsentity.PreparationTimeImmediate, nil,
 		)
 		if err != nil {

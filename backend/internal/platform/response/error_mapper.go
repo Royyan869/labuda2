@@ -179,7 +179,8 @@ func IsAuthError(err error) bool {
 		errors.Is(err, auth.ErrAccountSuspended) ||
 		errors.Is(err, auth.ErrAccountBanned) ||
 		errors.Is(err, auth.ErrAccountInactive) ||
-		errors.Is(err, auth.ErrAccountRemoved)
+		errors.Is(err, auth.ErrAccountRemoved) ||
+		errors.Is(err, auth.ErrCommerceRestricted)
 }
 
 // IsPaymentError checks if err is payment repository error
@@ -458,6 +459,14 @@ func MapErrorToResponse(err error) ErrorMapping {
 			StatusCode: http.StatusForbidden,
 			Code:       "ACCOUNT_REMOVED",
 			Message:    "Your account has been removed.",
+		}
+	}
+
+	if errors.Is(err, auth.ErrCommerceRestricted) {
+		return ErrorMapping{
+			StatusCode: http.StatusForbidden,
+			Code:       "COMMERCE_RESTRICTED",
+			Message:    "Your account has an active commerce restriction. Please wait for the restriction to expire.",
 		}
 	}
 

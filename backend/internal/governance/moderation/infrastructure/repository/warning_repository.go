@@ -9,9 +9,6 @@ import (
 
 // WarningRepository defines the interface for warning persistence operations.
 type WarningRepository interface {
-	// Create persists a new warning within a transaction.
-	Create(ctx context.Context, tx interface{}, warning *entity.UserWarning) error
-
 	// GetByID retrieves a warning by ID without locking.
 	GetByID(ctx context.Context, tx interface{}, warningID uuid.UUID) (*entity.UserWarning, error)
 
@@ -34,5 +31,3 @@ type WarningRepository interface {
 	// Ordered by created_at DESC (newest first).
 	ListAll(ctx context.Context, tx interface{}, userID *uuid.UUID, isActive *bool, limit, offset int) ([]*entity.UserWarning, int64, error)
 }
-
-

@@ -696,7 +696,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   void _navigateToCreateForSale() async {
     final result = await Navigator.of(context).push<ForSale>(
       MaterialPageRoute(
-        builder: (context) => const CreateForSaleScreen(origin: 'chat_context'),
+        builder: (context) => const CreateForSaleScreen(),
       ),
     );
 

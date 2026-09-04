@@ -185,6 +185,7 @@ class AuthApiDatasource extends BaseApiRepository {
       () => apiClient.post(
         '/auth/refresh',
         data: {'refresh_token': refreshToken},
+        options: Options(extra: {'skipAuth': true}),
       ),
       parser: (data) =>
           BackendRefreshResponse.fromJson(data as Map<String, dynamic>),

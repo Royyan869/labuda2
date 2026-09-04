@@ -51,8 +51,8 @@ func testCommentDisplayabilityHandler(appDB *db.DB) *CommentHandler {
 		contentrepo.NewContentRepository(),
 		contentrepo.NewCommentRepository(),
 		forSaleSvc,
-		nil,                     // auctionValidator
-		nil,                     // visibilityChecker
+		nil,            // auctionValidator
+		contentService, // visibilityChecker — canonical V-VISIBILITY
 		commentWireTestOutbox{}, // outboxRepo
 		idempotencyRepo.NewRepository(),
 		nil, // blockChecker

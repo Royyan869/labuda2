@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/core/api/api_error_codes.dart' as api_codes;
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/target_type.dart';
@@ -565,7 +566,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       // Inline gate: backend rejected because the user's email is not
       // verified. The bidding chain now propagates the API code via
       // RepositoryResult.errorCode → AuctionNotifierState.errorCode.
-      if (notifierState.errorCode == 'EMAIL_VERIFICATION_REQUIRED') {
+      if (notifierState.errorCode == api_codes.emailVerificationRequired) {
         if (!mounted) return;
         await showBlockedActionGate(
           this.context,
@@ -573,7 +574,15 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
         );
         return;
       }
-      if (notifierState.errorCode == 'BNR_AUCTION_RESTRICTED') {
+      if (CommerceRestrictionPresenter.isCommerceRestricted(notifierState.errorCode)) {
+        if (!mounted) return;
+        CommerceRestrictionPresenter.show(
+          this.context,
+          actionDescription: 'menempatkan bid',
+        );
+        return;
+      }
+      if (notifierState.errorCode == api_codes.bnrAuctionRestricted) {
         if (!mounted) return;
         final details = notifierState.errorDetails;
         final permanentBan = details?['permanent_ban'] == true;
@@ -813,9 +822,17 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
             if (orderId != null) {
               return orderId;
             } else {
-              // Error - show error in modal (handled by modal)
               if (!mounted) return null;
               final state = ref.read(auctionNotifierProvider);
+              // Commerce restriction — canonical backend rejection.
+              if (CommerceRestrictionPresenter.isCommerceRestricted(state.errorCode)) {
+                CommerceRestrictionPresenter.show(
+                  this.context,
+                  actionDescription: 'mengklaim lelang',
+                );
+                return null;
+              }
+              // Generic error fallback
               final error = state.error ?? 'Gagal mengklaim lelang';
               AppSnackBar.showError(this.context, error);
               return null;

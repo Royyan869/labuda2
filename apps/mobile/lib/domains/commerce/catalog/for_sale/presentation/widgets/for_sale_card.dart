@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
+import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/governance/seller_inactive_badge.dart';
 import 'package:labuda/shared/utils/commerce_seller_identity.dart';
@@ -52,18 +53,41 @@ class ForSaleCard extends StatelessWidget {
                     ? AppColors.darkGray700
                     : AppColors.neutralGray200,
                 child: listing.media.isNotEmpty
-                    ? Image.network(
-                        listing.media.first.originalUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Icon(
-                            Icons.image,
-                            size: 48,
-                            color: isDark
-                                ? AppColors.neutralGray600
-                                : AppColors.neutralGray400,
-                          );
-                        },
+                    ? Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.network(
+                            listing.media.first.originalUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Icon(
+                                Icons.image,
+                                size: 48,
+                                color: isDark
+                                    ? AppColors.neutralGray600
+                                    : AppColors.neutralGray400,
+                              );
+                            },
+                          ),
+                          // Video badge
+                          if (listing.media.first.type == MediaType.video)
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.7),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Icon(
+                                  Icons.play_circle_filled,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                        ],
                       )
                     : Icon(
                         Icons.image,
@@ -148,36 +172,13 @@ class ForSaleCard extends StatelessWidget {
                     const SellerInactiveBadge(),
                   ],
                   const SizedBox(height: 8),
-                  // Price and location row
-                  Row(
-                    children: [
-                      Text(
-                        listing.formattedPrice,
-                        style: AppTypography.bodyMedium.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primaryRed,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      if (listing.location?.city != null) ...[
-                        Icon(
-                          Icons.location_on,
-                          size: 14,
-                          color: isDark
-                              ? AppColors.neutralGray500
-                              : AppColors.neutralGray400,
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          listing.location!.city,
-                          style: AppTypography.bodySmall.copyWith(
-                            color: isDark
-                                ? AppColors.neutralGray500
-                                : AppColors.neutralGray400,
-                          ),
-                        ),
-                      ],
-                    ],
+                  // Price
+                  Text(
+                    listing.formattedPrice,
+                    style: AppTypography.bodyMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryRed,
+                    ),
                   ),
                 ],
               ),

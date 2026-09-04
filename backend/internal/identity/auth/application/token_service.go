@@ -109,11 +109,9 @@ func (s *TokenService) GenerateTokenPair(userID uuid.UUID, roles []string, famil
 		resolvedFamily = uuid.New()
 	}
 
-	// Each refresh token issuance gets a unique JTI for session tracking.
 	refreshJTI := uuid.New()
 
-	// Generate access token (short-lived, e.g. 24 hours)
-	accessToken, expiresAt, err := s.generateAccessToken(userID, roles)
+	accessToken, expiresAt, err := s.generateAccessToken(userID, roles, refreshJTI)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
@@ -141,7 +139,7 @@ func (s *TokenService) GenerateTokenPair(userID uuid.UUID, roles []string, famil
 }
 
 // generateAccessToken generates a short-lived JWT access token.
-func (s *TokenService) generateAccessToken(userID uuid.UUID, roles []string) (string, time.Time, error) {
+func (s *TokenService) generateAccessToken(userID uuid.UUID, roles []string, sessionID uuid.UUID) (string, time.Time, error) {
 	now := time.Now()
 	expiresAt := now.Add(s.config.Expiration)
 
@@ -152,6 +150,7 @@ func (s *TokenService) generateAccessToken(userID uuid.UUID, roles []string) (st
 		TokenUse:  TokenUseAccess,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    "labuda-backend",
+			ID:        sessionID.String(),
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 		},
@@ -224,7 +223,7 @@ func (s *TokenService) GenerateRestrictedCompletionToken(userID uuid.UUID) (stri
 // Does NOT enforce token type — use ValidateRefreshToken for type-safe refresh validation.
 func (s *TokenService) ValidateToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+		if token.Method != jwt.SigningMethodHS256 {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return s.jwtSecret, nil
@@ -239,6 +238,21 @@ func (s *TokenService) ValidateToken(tokenString string) (*Claims, error) {
 		return nil, fmt.Errorf("invalid token")
 	}
 
+	return claims, nil
+}
+
+// ValidateAccessToken validates a normal Labuda access token.
+func (s *TokenService) ValidateAccessToken(tokenString string) (*Claims, error) {
+	claims, err := s.ValidateToken(tokenString)
+	if err != nil {
+		return nil, err
+	}
+	if claims.TokenType != TokenTypeAccess || claims.TokenUse != TokenUseAccess {
+		return nil, fmt.Errorf("token is not a normal access token")
+	}
+	if claims.UserID == uuid.Nil || claims.ID == "" {
+		return nil, fmt.Errorf("access token identity is incomplete")
+	}
 	return claims, nil
 }
 

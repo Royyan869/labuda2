@@ -78,7 +78,7 @@ func TestForSaleStockRoundTrip_Qty1(t *testing.T) {
 			1,                 // qty=1: unique koi
 			false,             // negotiation disabled
 			forsaleEntity.ForSaleVisibilityPublic,
-			forsaleEntity.ForSaleOriginDirectCreate,
+			
 			nil, // farmAddressID
 			forsaleEntity.PreparationTimeImmediate,
 			nil, // preparationNote
@@ -201,7 +201,7 @@ func TestForSaleStockRoundTrip_MultiQty(t *testing.T) {
 			5, // qty=5
 			false,
 			forsaleEntity.ForSaleVisibilityPublic,
-			forsaleEntity.ForSaleOriginDirectCreate,
+			
 			nil,
 			forsaleEntity.PreparationTimeImmediate,
 			nil,
@@ -288,7 +288,7 @@ func TestNegativeQuantityStillBlocked(t *testing.T) {
 			1,
 			false,
 			forsaleEntity.ForSaleVisibilityPublic,
-			forsaleEntity.ForSaleOriginDirectCreate,
+			
 			nil,
 			forsaleEntity.PreparationTimeImmediate,
 			nil,

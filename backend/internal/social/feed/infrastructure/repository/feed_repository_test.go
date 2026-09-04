@@ -53,7 +53,7 @@ func createTestContent(t *testing.T, ctx context.Context, testDB *testdb.TestDB,
 	caption := "test content"
 	_, err := pool.Exec(ctx, `
 		INSERT INTO contents (id, author_id, status, caption, is_hidden, created_at, updated_at)
-		VALUES ($1, $2, 'post', $3, $4, false, $5, $5)
+		VALUES ($1, $2, $3, $4, false, $5, $5)
 	`, contentID, authorID, status, caption, createdAt)
 	require.NoError(t, err)
 
@@ -136,7 +136,16 @@ func TestFeedRepository_GetFeed(t *testing.T) {
 		now := time.Now()
 		followedContent1 := createTestContent(t, ctx, testDB, followedUser, "active", now)
 		followedContent2 := createTestContent(t, ctx, testDB, followedUser, "active", now.Add(-1*time.Minute))
-		otherContent := createTestContent(t, ctx, testDB, otherUser, "active", now.Add(-2*time.Minute))
+
+		// otherContent uses visibility='private' so it is excluded from
+		// the feed by the global-discovery clause (only public content
+		// from unfollowed users is discoverable).
+		otherContent := uuid.New()
+		_, err = pool.Exec(ctx, `
+			INSERT INTO contents (id, author_id, status, caption, visibility, is_hidden, created_at, updated_at)
+			VALUES ($1, $2, 'active', 'other content', 'private', false, $3, $3)
+		`, otherContent, otherUser, now.Add(-2*time.Minute))
+		require.NoError(t, err)
 
 		// Get feed
 		repo := repository.NewFeedRepository()
@@ -475,7 +484,7 @@ func TestFeedRepository_GetFeed(t *testing.T) {
 		`, viewer, followedUser)
 		require.NoError(t, err)
 
-		// Create 60 content items
+		// Create 60 content items — enough to satisfy any valid limit.
 		now := time.Now()
 		for i := 0; i < 60; i++ {
 			createTestContent(t, ctx, testDB, followedUser, "active", now.Add(-time.Duration(i)*time.Minute))
@@ -483,8 +492,10 @@ func TestFeedRepository_GetFeed(t *testing.T) {
 
 		repo := repository.NewFeedRepository()
 
-		// Request limit of 100 - should be capped at 50
-		result, err := repo.GetFeed(ctx, pool, viewer, nil, 100)
+		// Request the maximum valid limit (50). The HTTP binding
+		// enforces max=50 at the boundary; values above 50 are
+		// invalid and fall back to the default (20) in the repository.
+		result, err := repo.GetFeed(ctx, pool, viewer, nil, 50)
 		require.NoError(t, err)
 		assert.Len(t, result.Items, 50)
 	})
@@ -606,7 +617,7 @@ func TestFeedRepository_RepostGovernance(t *testing.T) {
 		_ = fmt.Sprintf(`{"targetType":"content","targetId":"%s","preview":{"title":"original","isAvailable":true}}`, origID)
 		_, err = pool.Exec(ctx, `
 			INSERT INTO contents (id, author_id, status, caption, is_hidden, original_author_id, created_at, updated_at)
-			VALUES ($1, $2, 'active', 'repost', false, $3, $5, $5)
+			VALUES ($1, $2, 'active', 'repost', false, $3, $4, $4)
 		`, repostID, poster, poster, now.Add(-1*time.Minute))
 		require.NoError(t, err)
 		_, err = pool.Exec(ctx, `
@@ -663,7 +674,7 @@ func TestFeedRepository_RepostGovernance(t *testing.T) {
 		_ = fmt.Sprintf(`{"targetType":"content","targetId":"%s","preview":{"title":"original","isAvailable":true}}`, origID)
 		_, err = pool.Exec(ctx, `
 			INSERT INTO contents (id, author_id, status, caption, is_hidden, original_author_id, created_at, updated_at)
-			VALUES ($1, $2, 'active', 'repost', false, $3, $5, $5)
+			VALUES ($1, $2, 'active', 'repost', false, $3, $4, $4)
 		`, repostID, poster, poster, now.Add(-1*time.Minute))
 		require.NoError(t, err)
 		_, err = pool.Exec(ctx, `
@@ -718,7 +729,7 @@ func TestFeedRepository_RepostGovernance(t *testing.T) {
 		_ = fmt.Sprintf(`{"targetType":"content","targetId":"%s","preview":{"title":"original","isAvailable":true}}`, origID)
 		_, err = pool.Exec(ctx, `
 			INSERT INTO contents (id, author_id, status, caption, is_hidden, original_author_id, created_at, updated_at)
-			VALUES ($1, $2, 'active', 'repost', false, $3, $5, $5)
+			VALUES ($1, $2, 'active', 'repost', false, $3, $4, $4)
 		`, repostID, poster, poster, now.Add(-1*time.Minute))
 		require.NoError(t, err)
 		_, err = pool.Exec(ctx, `
@@ -764,7 +775,7 @@ func TestFeedRepository_RepostGovernance(t *testing.T) {
 		_ = fmt.Sprintf(`{"targetType":"for_sale","targetId":"%s","preview":{"title":"some for_sale","isAvailable":false,"isSold":true}}`, fakeForSaleID)
 		_, err = pool.Exec(ctx, `
 			INSERT INTO contents (id, author_id, status, caption, is_hidden, original_author_id, created_at, updated_at)
-			VALUES ($1, $2, 'active', 'for_sale repost', false, $3, $5, $5)
+			VALUES ($1, $2, 'active', 'for_sale repost', false, $3, $4, $4)
 		`, forSaleRepostID, poster, poster, now)
 		require.NoError(t, err)
 
@@ -827,7 +838,7 @@ func TestFeedRepository_RepostTargetAuthorLifecycle(t *testing.T) {
 		_ = fmt.Sprintf(`{"targetType":"content","targetId":"%s","preview":{"title":"original","isAvailable":true}}`, origID)
 		_, err = pool.Exec(ctx, `
 			INSERT INTO contents (id, author_id, status, caption, is_hidden, original_author_id, created_at, updated_at)
-			VALUES ($1, $2, 'active', 'repost', false, $3, $5, $5)
+			VALUES ($1, $2, 'active', 'repost', false, $3, $4, $4)
 		`, repostID, poster, originalAuthor, now.Add(-1*time.Minute))
 		require.NoError(t, err)
 		_, err = pool.Exec(ctx, `
@@ -871,7 +882,7 @@ func TestFeedRepository_RepostTargetAuthorLifecycle(t *testing.T) {
 		_ = fmt.Sprintf(`{"targetType":"content","targetId":"%s","preview":{"title":"original","isAvailable":true}}`, origID)
 		_, err = pool.Exec(ctx, `
 			INSERT INTO contents (id, author_id, status, caption, is_hidden, original_author_id, created_at, updated_at)
-			VALUES ($1, $2, 'active', 'repost', false, $3, $5, $5)
+			VALUES ($1, $2, 'active', 'repost', false, $3, $4, $4)
 		`, repostID, poster, originalAuthor, now.Add(-1*time.Minute))
 		require.NoError(t, err)
 		_, err = pool.Exec(ctx, `
@@ -915,7 +926,7 @@ func TestFeedRepository_RepostTargetAuthorLifecycle(t *testing.T) {
 		_ = fmt.Sprintf(`{"targetType":"content","targetId":"%s","preview":{"title":"original","isAvailable":true}}`, origID)
 		_, err = pool.Exec(ctx, `
 			INSERT INTO contents (id, author_id, status, caption, is_hidden, original_author_id, created_at, updated_at)
-			VALUES ($1, $2, 'active', 'repost', false, $3, $5, $5)
+			VALUES ($1, $2, 'active', 'repost', false, $3, $4, $4)
 		`, repostID, poster, originalAuthor, now.Add(-1*time.Minute))
 		require.NoError(t, err)
 		_, err = pool.Exec(ctx, `
@@ -959,7 +970,7 @@ func TestFeedRepository_RepostTargetAuthorLifecycle(t *testing.T) {
 		_ = fmt.Sprintf(`{"targetType":"content","targetId":"%s","preview":{"title":"original","isAvailable":true}}`, origID)
 		_, err = pool.Exec(ctx, `
 			INSERT INTO contents (id, author_id, status, caption, is_hidden, original_author_id, created_at, updated_at)
-			VALUES ($1, $2, 'active', 'repost', false, $3, $5, $5)
+			VALUES ($1, $2, 'active', 'repost', false, $3, $4, $4)
 		`, repostID, poster, originalAuthor, now.Add(-1*time.Minute))
 		require.NoError(t, err)
 		_, err = pool.Exec(ctx, `
@@ -1016,7 +1027,7 @@ func TestFeedRepository_RepostTargetAuthorLifecycle(t *testing.T) {
 		)
 		_, err = pool.Exec(ctx, `
 			INSERT INTO contents (id, author_id, status, caption, is_hidden, original_author_id, created_at, updated_at)
-			VALUES ($1, $2, 'active', 'auction repost', false, $3, $5, $5)
+			VALUES ($1, $2, 'active', 'auction repost', false, $3, $4, $4)
 		`, repostID, seller, seller, now)
 		require.NoError(t, err)
 		_, err = pool.Exec(ctx, `
@@ -1073,7 +1084,7 @@ func TestFeedRepository_RepostTargetAuthorLifecycle(t *testing.T) {
 		)
 		_, err = pool.Exec(ctx, `
 			INSERT INTO contents (id, author_id, status, caption, is_hidden, original_author_id, created_at, updated_at)
-			VALUES ($1, $2, 'active', 'ended auction repost', false, $3, $5, $5)
+			VALUES ($1, $2, 'active', 'ended auction repost', false, $3, $4, $4)
 		`, repostID, seller, seller, now)
 		require.NoError(t, err)
 		_, err = pool.Exec(ctx, `
@@ -1369,7 +1380,8 @@ func TestFeedRepository_CompositeCursor(t *testing.T) {
 		require.Len(t, page1.Items, 2)
 		assert.True(t, page1.HasMore, "page1 hasMore must be true (third tied row remains)")
 		require.NotNil(t, page1.NextCursor, "page1 nextCursor must be set when hasMore=true")
-		assert.Equal(t, sharedTS.UTC(), page1.NextCursor.CreatedAt.UTC(),
+		lastReturned := page1.Items[len(page1.Items)-1]
+		assert.Equal(t, lastReturned.CreatedAt.UTC(), page1.NextCursor.CreatedAt.UTC(),
 			"nextCursor.CreatedAt must point at the last returned row")
 
 		// Page 2 — must return the tied peer that was NOT returned on

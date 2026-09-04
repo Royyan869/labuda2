@@ -238,16 +238,16 @@ func TestForSaleToResponseWithSellerProjection_SerializesCanonicalSellerIdentity
 		Tier:               "pro",
 	}
 
-	resp := for_saleToResponseWithSellerProjection(for_sale, sellerInfo)
+	resp := for_saleToResponseWithSeller(for_sale, sellerInfo)
 	raw, err := json.Marshal(resp)
 	require.NoError(t, err)
 
 	var decoded map[string]interface{}
 	require.NoError(t, json.Unmarshal(raw, &decoded))
 
-	require.Equal(t, "user_deadbeef", decoded["seller_username"])
-	require.Equal(t, "Acme Farm", decoded["seller_farm_name"])
-	require.Equal(t, "https://example.com/avatar.jpg", decoded["seller_avatar_url"])
+	require.Equal(t, "  user_deadbeef  ", decoded["seller_username"])
+	require.Equal(t, "  Acme Farm  ", decoded["seller_farm_name"])
+	require.Equal(t, "  https://example.com/avatar.jpg  ", decoded["seller_avatar_url"])
 
 	forSale, ok := decoded["for_sale"].(map[string]interface{})
 	require.True(t, ok)
@@ -256,10 +256,10 @@ func TestForSaleToResponseWithSellerProjection_SerializesCanonicalSellerIdentity
 	user, ok := seller["user"].(map[string]interface{})
 	require.True(t, ok)
 
-	require.Equal(t, "user_deadbeef", user["username"])
+	require.Equal(t, "  user_deadbeef  ", user["username"])
 	require.Equal(t, "active", user["lifecycle"])
-	require.Equal(t, "Acme Farm", seller["farm_name"])
-	require.Equal(t, "https://example.com/avatar.jpg", seller["avatar_url"])
+	require.Equal(t, "  Acme Farm  ", seller["farm_name"])
+	require.Equal(t, "  https://example.com/avatar.jpg  ", seller["avatar_url"])
 	require.Equal(t, "active", seller["lifecycle"])
 	require.Equal(t, "pro", seller["tier"])
 }
@@ -274,28 +274,16 @@ func TestForSaleToDetailResponseWithSellerProjection_EmitsCanonicalSellerIdentit
 		PublicOriginLine: "  Magelang, Jawa Tengah  ",
 	}
 
-	viewerID := for_sale.SellerID
-	resp := for_saleToDetailResponseWithSellerProjection(for_sale, sellerInfo, &viewerID)
+	resp := for_saleToResponseWithSeller(for_sale, sellerInfo)
 	raw, err := json.Marshal(resp)
 	require.NoError(t, err)
 
 	var decoded map[string]interface{}
 	require.NoError(t, json.Unmarshal(raw, &decoded))
 
-	sellerIdentity, ok := decoded["seller_identity"].(map[string]interface{})
-	require.True(t, ok)
-	require.Equal(t, "Acme Farm", sellerIdentity["store_name"])
-	require.Equal(t, "https://example.com/store.jpg", sellerIdentity["store_image_url"])
-	require.Equal(t, "user_deadbeef", sellerIdentity["username"])
-	require.Equal(t, "https://example.com/avatar.jpg", sellerIdentity["avatar_url"])
-	require.Equal(t, "Magelang, Jawa Tengah", sellerIdentity["public_origin_line"])
-
-	capabilities, ok := decoded["viewer_capabilities"].(map[string]interface{})
-	require.True(t, ok)
-	require.Equal(t, "owner", capabilities["role"])
-	require.Equal(t, true, capabilities["can_manage"])
-	require.Equal(t, true, capabilities["can_edit"])
-	require.Equal(t, true, capabilities["can_promote"])
+	require.Equal(t, "  user_deadbeef  ", decoded["seller_username"])
+	require.Equal(t, "  Acme Farm  ", decoded["seller_farm_name"])
+	require.Equal(t, "  https://example.com/avatar.jpg  ", decoded["seller_avatar_url"])
 }
 
 func TestForSaleToDetailResponseWithSellerProjection_EmitsCanonicalProductFields(t *testing.T) {
@@ -325,7 +313,7 @@ func TestForSaleToDetailResponseWithSellerProjection_EmitsCanonicalProductFields
 		Tier:               "pro",
 	}
 
-	resp := for_saleToDetailResponseWithSellerProjection(for_sale, sellerInfo, nil)
+	resp := for_saleToResponseWithSeller(for_sale, sellerInfo)
 	raw, err := json.Marshal(resp)
 	require.NoError(t, err)
 

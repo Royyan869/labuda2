@@ -194,11 +194,6 @@ class ForSaleRepositoryImpl implements ForSaleRepository {
         breeder: request.breeder,
         bloodline: request.bloodline,
         certificates: request.certificates,
-        origin: request.origin,
-        cityId: request.cityId,
-        provinceId: request.provinceId,
-        latitude: request.latitude,
-        longitude: request.longitude,
         farmAddressId: request.farmAddressId,
         preparationTime: request.preparationTime?.toJson(),
         preparationNote: request.preparationNote,
@@ -247,7 +242,6 @@ class ForSaleRepositoryImpl implements ForSaleRepository {
         price: request.price?.toInt(),
         quantity: request.quantity,
         negotiationEnabled: request.negotiationEnabled,
-        visibility: request.visibility,
         status: request.status?.name, // Convert enum to string for backend
         mediaUrls: request.mediaUrls,
         variety: request.variety,
@@ -342,9 +336,8 @@ class ForSaleRepositoryImpl implements ForSaleRepository {
         ForSaleStatus.sold => 'sold',
       };
 
-      // Update ONLY status field (not visibility - this was a bug)
       final dto = UpdateForSaleRequestDto(
-        status: statusStr, // Use status field, not visibility
+        status: statusStr,
       );
 
       final result = await _datasource.updateForSale(forSaleId, dto);

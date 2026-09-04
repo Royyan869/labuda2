@@ -116,7 +116,11 @@ func TestUpdateForSale_MarketAuthorityCheckIsUnconditional(t *testing.T) {
 				"market-authority check must not be gated on current visibility inside the publish branch", lineNum)
 		}
 
-		if strings.Contains(line, "CheckMarketAuthorityForForSale") {
+		// After P1-2 publish convergence, the market-authority check was
+		// moved into ForSaleService.Publish(). The handler delegates via
+		// h.for_saleService.Publish(), which internally calls
+		// CheckMarketAuthorityForForSale. We verify delegation here.
+		if strings.Contains(line, "h.for_saleService.Publish(") {
 			foundAuthorityCheck = true
 		}
 
@@ -131,6 +135,171 @@ func TestUpdateForSale_MarketAuthorityCheckIsUnconditional(t *testing.T) {
 		t.Fatal("UpdateForSale function not found — for_sale update logic may have moved")
 	}
 	if !foundAuthorityCheck {
-		t.Fatal("CheckMarketAuthorityForForSale call not found inside UpdateForSale — market authority gate may have been removed")
+		t.Fatal("h.for_saleService.Publish() delegation not found inside UpdateForSale — market authority gate may have been removed or inlined")
+	}
+}
+
+// ============================================================================
+// P1-2: PUBLISH CONVERGENCE — ONE CANONICAL PUBLISH AUTHORITY
+// ============================================================================
+
+// TestUpdateForSale_NoInlinePublishMutation is a structural regression test
+// proving the P1-2 fix: the PUT handler must NOT call for_sale.Publish()
+// (the entity method) directly. Publish state mutation must flow through
+// ForSaleService.Publish() — the ONE canonical publish authority with
+// proper GetForUpdate() row locking.
+func TestUpdateForSale_NoInlinePublishMutation(t *testing.T) {
+	f, err := os.Open("for_sale_handler.go")
+	if err != nil {
+		t.Fatalf("failed to open for_sale_handler.go: %v", err)
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	lineNum := 0
+	inFunc := false
+	foundFunc := false
+	braceDepth := 0
+	for scanner.Scan() {
+		lineNum++
+		line := scanner.Text()
+
+		if !inFunc {
+			if strings.Contains(line, "func (h *ForSaleHandler) UpdateForSale(") {
+				inFunc = true
+				foundFunc = true
+				braceDepth = strings.Count(line, "{") - strings.Count(line, "}")
+			}
+			continue
+		}
+
+		braceDepth += strings.Count(line, "{") - strings.Count(line, "}")
+
+		// P1-2 regression: the handler must NOT call for_sale.Publish() directly.
+		// The only allowed publish path is h.for_saleService.Publish().
+		if strings.Contains(line, "for_sale.Publish()") {
+			t.Fatalf("for_sale_handler.go:%d: P1-2 regression — handler contains inline "+
+				"for_sale.Publish() call. Publish must go through ForSaleService.Publish()", lineNum)
+		}
+
+		if braceDepth <= 0 {
+			break
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatalf("failed to scan for_sale_handler.go: %v", err)
+	}
+	if !foundFunc {
+		t.Fatal("UpdateForSale function not found — for_sale update logic may have moved")
+	}
+}
+
+// TestUpdateForSale_DelegatesPublishToService is a structural regression test
+// proving the P1-2 fix: the PUT handler must call h.for_saleService.Publish()
+// (the service method) when a publish intent is detected, gaining proper
+// GetForUpdate() row locking and all canonical checks.
+func TestUpdateForSale_DelegatesPublishToService(t *testing.T) {
+	f, err := os.Open("for_sale_handler.go")
+	if err != nil {
+		t.Fatalf("failed to open for_sale_handler.go: %v", err)
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	lineNum := 0
+	inFunc := false
+	foundFunc := false
+	foundServicePublish := false
+	braceDepth := 0
+	for scanner.Scan() {
+		lineNum++
+		line := scanner.Text()
+
+		if !inFunc {
+			if strings.Contains(line, "func (h *ForSaleHandler) UpdateForSale(") {
+				inFunc = true
+				foundFunc = true
+				braceDepth = strings.Count(line, "{") - strings.Count(line, "}")
+			}
+			continue
+		}
+
+		braceDepth += strings.Count(line, "{") - strings.Count(line, "}")
+
+		// P1-2: handler must delegate publish to ForSaleService.Publish()
+		if strings.Contains(line, "h.for_saleService.Publish(") {
+			foundServicePublish = true
+		}
+
+		if braceDepth <= 0 {
+			break
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatalf("failed to scan for_sale_handler.go: %v", err)
+	}
+	if !foundFunc {
+		t.Fatal("UpdateForSale function not found — for_sale update logic may have moved")
+	}
+	if !foundServicePublish {
+		t.Fatal("h.for_saleService.Publish() not found inside UpdateForSale — " +
+			"publish may not be delegated to the canonical authority")
+	}
+}
+
+// TestUpdateForSale_NoInlinePublishGateChecks is a structural regression test
+// proving the P1-2 fix: the PUT handler must NOT independently call
+// EnsureShippingConfigured or EnsureFarmAddressValid for the publish path.
+// Those checks live inside ForSaleService.Publish() and must not be
+// duplicated in the handler.
+func TestUpdateForSale_NoInlinePublishGateChecks(t *testing.T) {
+	f, err := os.Open("for_sale_handler.go")
+	if err != nil {
+		t.Fatalf("failed to open for_sale_handler.go: %v", err)
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	lineNum := 0
+	inFunc := false
+	foundFunc := false
+	braceDepth := 0
+	for scanner.Scan() {
+		lineNum++
+		line := scanner.Text()
+
+		if !inFunc {
+			if strings.Contains(line, "func (h *ForSaleHandler) UpdateForSale(") {
+				inFunc = true
+				foundFunc = true
+				braceDepth = strings.Count(line, "{") - strings.Count(line, "}")
+			}
+			continue
+		}
+
+		braceDepth += strings.Count(line, "{") - strings.Count(line, "}")
+
+		// P1-2: handler must NOT call EnsureShippingConfigured or
+		// EnsureFarmAddressValid — those checks live inside Publish().
+		if strings.Contains(line, "EnsureShippingConfigured") {
+			t.Fatalf("for_sale_handler.go:%d: P1-2 regression — handler contains "+
+				"inline EnsureShippingConfigured call. This check must live in "+
+				"ForSaleService.Publish() only.", lineNum)
+		}
+		if strings.Contains(line, "EnsureFarmAddressValid") {
+			t.Fatalf("for_sale_handler.go:%d: P1-2 regression — handler contains "+
+				"inline EnsureFarmAddressValid call. This check must live in "+
+				"ForSaleService.Publish() only.", lineNum)
+		}
+
+		if braceDepth <= 0 {
+			break
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatalf("failed to scan for_sale_handler.go: %v", err)
+	}
+	if !foundFunc {
+		t.Fatal("UpdateForSale function not found — for_sale update logic may have moved")
 	}
 }

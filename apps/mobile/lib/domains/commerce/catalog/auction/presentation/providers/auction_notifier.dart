@@ -280,24 +280,29 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
         useCoins: useCoins,
       );
 
-      return result.fold(
-        (orderId) {
-          state = state.copyWith(
-            isLoading: false,
-            error: null,
-            successMessage: 'Klaim berhasil! Pesanan telah dibuat',
-          );
+      if (result.isError) {
+        // Preserve errorCode/errorDetails so the UI can branch on
+        // COMMERCE_RESTRICTED, EMAIL_VERIFICATION_REQUIRED, etc.
+        state = state.copyWith(
+          isLoading: false,
+          error: result.error ?? 'Gagal mengklaim lelang',
+          errorCode: result.errorCode,
+          errorDetails: result.errorDetails,
+        );
+        return null;
+      }
 
-          // Reload auction details to get updated order_id
-          loadAuctionDetails(auctionId);
-
-          return orderId;
-        },
-        (error) {
-          state = state.copyWith(isLoading: false, error: error);
-          return null;
-        },
+      final orderId = result.data;
+      state = state.copyWith(
+        isLoading: false,
+        error: null,
+        successMessage: 'Klaim berhasil! Pesanan telah dibuat',
       );
+
+      // Reload auction details to get updated order_id
+      loadAuctionDetails(auctionId);
+
+      return orderId;
     } finally {
       // Always reset guard in finally
       _isClaiming = false;
@@ -353,21 +358,23 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
       preparationNote: preparationNote,
     );
 
-    return result.fold(
-      (auction) {
-        state = state.copyWith(
-          isCreating: false,
-          error: null,
-          successMessage: 'Lelang berhasil dibuat',
-          selectedAuction: auction,
-        );
-        return true;
-      },
-      (error) {
-        state = state.copyWith(isCreating: false, error: error);
-        return false;
-      },
+    if (result.isError) {
+      state = state.copyWith(
+        isCreating: false,
+        error: result.error ?? 'Gagal membuat lelang',
+        errorCode: result.errorCode,
+        errorDetails: result.errorDetails,
+      );
+      return false;
+    }
+
+    state = state.copyWith(
+      isCreating: false,
+      error: null,
+      successMessage: 'Lelang berhasil dibuat',
+      selectedAuction: result.data,
     );
+    return true;
   }
 
   /// Update auction

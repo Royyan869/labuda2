@@ -30,17 +30,12 @@ const (
 	// Suspended users may appeal (POST /api/v1/appeals uses RequireAuth only).
 	ResourceTypeUser ResourceType = "user"
 
-	// ResourceTypeChatMessage represents chat messages.
-	// Enforcement: chat_service soft-hides on "moderation.chat_message.hidden".
-	// No seller-facing notification (chat_message has no owner notification pattern).
-	// V1 Appeal: NOT appealable. Too low trust-impact for appeal process.
-	ResourceTypeChatMessage ResourceType = "chat_message"
 )
 
 // IsValid returns true if the resource type is a defined constant.
 func (t ResourceType) IsValid() bool {
 	switch t {
-	case ResourceTypeContent, ResourceTypeComment, ResourceTypeForSale, ResourceTypeAuction, ResourceTypeUser, ResourceTypeChatMessage:
+	case ResourceTypeContent, ResourceTypeComment, ResourceTypeForSale, ResourceTypeAuction, ResourceTypeUser:
 		return true
 	default:
 		return false

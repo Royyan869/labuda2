@@ -354,11 +354,6 @@ class LocalStorageService implements ILocalStorageService {
   }
 
   @override
-  Future<Result<void>> clearAuthToken() async {
-    return await removeSecure(StorageKeys.authToken);
-  }
-
-  @override
   Future<Result<void>> setRefreshToken(String token) async {
     return await setSecureString(StorageKeys.refreshToken, token);
   }
@@ -366,11 +361,6 @@ class LocalStorageService implements ILocalStorageService {
   @override
   Future<Result<String?>> getRefreshToken() async {
     return await getSecureString(StorageKeys.refreshToken);
-  }
-
-  @override
-  Future<Result<void>> clearRefreshToken() async {
-    return await removeSecure(StorageKeys.refreshToken);
   }
 
   @override
@@ -383,16 +373,74 @@ class LocalStorageService implements ILocalStorageService {
     return await getObject(StorageKeys.userSession);
   }
 
+  // Restricted profile-completion credential (isolated from normal access token)
   @override
-  Future<Result<void>> clearUserSession() async {
-    final removeSessionResult = await remove(StorageKeys.userSession);
-    final clearTokenResult = await clearAuthToken();
-    final clearRefreshResult = await clearRefreshToken();
+  Future<Result<void>> setRestrictedToken(String token) async {
+    return await setSecureString(StorageKeys.restrictedToken, token);
+  }
 
-    if (removeSessionResult.isError) return removeSessionResult;
-    if (clearTokenResult.isError) return clearTokenResult;
-    if (clearRefreshResult.isError) return clearRefreshResult;
+  @override
+  Future<Result<String?>> getRestrictedToken() async {
+    return await getSecureString(StorageKeys.restrictedToken);
+  }
+
+  @override
+  Future<Result<void>> clearRestrictedToken() async {
+    return await removeSecure(StorageKeys.restrictedToken);
+  }
+
+  // Canonical Labuda credential operations
+  @override
+  Future<Result<void>> saveLabudaCredential(
+    String accessToken,
+    String refreshToken,
+  ) async {
+    if (accessToken.isEmpty || refreshToken.isEmpty) {
+      return Result.error('Both access and refresh tokens are required');
+    }
+
+    final accessResult = await setSecureString(StorageKeys.authToken, accessToken);
+    if (accessResult.isError) return accessResult;
+
+    final refreshResult = await setSecureString(StorageKeys.refreshToken, refreshToken);
+    if (refreshResult.isError) return refreshResult;
 
     return Result.success(null);
+  }
+
+  @override
+  Future<Result<String?>> readLabudaAccessToken() async {
+    return await getSecureString(StorageKeys.authToken);
+  }
+
+  @override
+  Future<Result<String?>> readLabudaRefreshToken() async {
+    return await getSecureString(StorageKeys.refreshToken);
+  }
+
+  @override
+  Future<Result<void>> clearLabudaCredential() async {
+    final clearAccess = await removeSecure(StorageKeys.authToken);
+    final clearRefresh = await removeSecure(StorageKeys.refreshToken);
+
+    if (clearAccess.isError) return clearAccess;
+    if (clearRefresh.isError) return clearRefresh;
+
+    return Result.success(null);
+  }
+
+  @override
+  Future<Result<bool>> hasLabudaCredential() async {
+    final access = await readLabudaAccessToken();
+    if (access.isError || access.data == null || access.data!.isEmpty) {
+      return Result.success(false);
+    }
+
+    final refresh = await readLabudaRefreshToken();
+    if (refresh.isError || refresh.data == null || refresh.data!.isEmpty) {
+      return Result.success(false);
+    }
+
+    return Result.success(true);
   }
 }

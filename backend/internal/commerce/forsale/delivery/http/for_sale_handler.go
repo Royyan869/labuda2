@@ -31,9 +31,9 @@ import (
 // ForSaleHandler handles HTTP requests for for_sale operations.
 type ForSaleHandler struct {
 	for_saleService *for_saleApp.ForSaleService
-	db             *db.DB
-	log            *zap.Logger
-	orderRepo      orderRepo.OrderRepository
+	db              *db.DB
+	log             *zap.Logger
+	orderRepo       orderRepo.OrderRepository
 }
 
 // NewForSaleHandler creates a new ForSaleHandler.
@@ -48,9 +48,9 @@ func NewForSaleHandler(
 	}
 	return &ForSaleHandler{
 		for_saleService: for_saleService,
-		db:             database,
-		log:            log,
-		orderRepo:      orderRepo,
+		db:              database,
+		log:             log,
+		orderRepo:       orderRepo,
 	}
 }
 
@@ -78,13 +78,6 @@ type CreateForSaleRequest struct {
 	Breeder      *string  `json:"breeder"`
 	Bloodline    *string  `json:"bloodline"`
 	Certificates []string `json:"certificates"`
-	// Origin tracking - optional, defaults to direct_create
-	Origin *string `json:"origin" binding:"omitempty,oneof=direct_create request_context chat_context"`
-	// Location fields
-	CityID     *string  `json:"city_id"`
-	ProvinceID *string  `json:"province_id"`
-	Latitude   *float64 `json:"latitude"`
-	Longitude  *float64 `json:"longitude"`
 	// Shipping configuration
 	FarmAddressID *string `json:"farm_address_id"`
 	// Shipping readiness
@@ -105,7 +98,6 @@ type CreateForSaleRequest struct {
 //     explicitly to enable multi-quantity sale.
 //   - negotiation_enabled: Whether negotiation is allowed
 //   - visibility: "public" or "private"
-//   - origin: Optional origin tracking (direct_create, request_context, chat_context)
 //
 // Headers:
 // - Idempotency-Key: Optional key for safe retries (recommended for mobile clients)
@@ -136,6 +128,10 @@ func (h *ForSaleHandler) CreateForSale(c *gin.Context) {
 	}
 	if bytes.Contains(rawBody, []byte(`"for_sale_id"`)) || bytes.Contains(rawBody, []byte(`"for_saleId"`)) {
 		response.BadRequest(c, "legacy for_sale_id field is not supported; use product_id for Product reuse or inline product fields")
+		return
+	}
+	if bytes.Contains(rawBody, []byte(`"listing_id"`)) || bytes.Contains(rawBody, []byte(`"listingId"`)) {
+		response.BadRequest(c, "legacy listing_id/listingId field is not supported; use product_id for Product reuse or inline product fields")
 		return
 	}
 	c.Request.Body = io.NopCloser(bytes.NewBuffer(rawBody))
@@ -172,7 +168,7 @@ func (h *ForSaleHandler) CreateForSale(c *gin.Context) {
 			json.Unmarshal(responseDataJSON, &existingForSale)
 			if existingForSale != nil {
 				response.Success(c, gin.H{
-					"message": "ForSale already created (idempotent request)",
+					"message":  "ForSale already created (idempotent request)",
 					"for_sale": existingForSale,
 				})
 				return
@@ -188,28 +184,8 @@ func (h *ForSaleHandler) CreateForSale(c *gin.Context) {
 		return
 	}
 
-	// Parse origin - defaults to direct_create if not provided or invalid
-	origin := entity.ForSaleOriginDirectCreate
-	if req.Origin != nil {
-		parsedOrigin := entity.ForSaleOrigin(*req.Origin)
-		if parsedOrigin.IsValid() {
-			origin = parsedOrigin
-		}
-		// If invalid, silently default to direct_create (fail-safe)
-	}
-
 	// Parse optional UUID fields
-	var cityID, provinceID, farmAddressID *uuid.UUID
-	if req.CityID != nil {
-		if id, err := uuid.Parse(*req.CityID); err == nil {
-			cityID = &id
-		}
-	}
-	if req.ProvinceID != nil {
-		if id, err := uuid.Parse(*req.ProvinceID); err == nil {
-			provinceID = &id
-		}
-	}
+	var farmAddressID *uuid.UUID
 	if req.FarmAddressID != nil {
 		if id, err := uuid.Parse(*req.FarmAddressID); err == nil {
 			farmAddressID = &id
@@ -260,17 +236,11 @@ func (h *ForSaleHandler) CreateForSale(c *gin.Context) {
 			Breeder:            req.Breeder,
 			Bloodline:          req.Bloodline,
 			Certificates:       req.Certificates,
-			ForSaleType: entity.ForSaleTypeFixedPrice, // Default to fixed_price
+			ForSaleType:        entity.ForSaleTypeFixedPrice, // Default to fixed_price
 			PricePerUnit:       money.New(req.Price),
 			QuantityAvailable:  quantity,
 			NegotiationEnabled: req.NegotiationEnabled,
 			Visibility:         visibility,
-			Origin:             origin,
-			// Location
-			CityID:     cityID,
-			ProvinceID: provinceID,
-			Latitude:   req.Latitude,
-			Longitude:  req.Longitude,
 			// Shipping preferences
 			FarmAddressID: farmAddressID,
 			// Shipping readiness
@@ -307,13 +277,16 @@ func (h *ForSaleHandler) CreateForSale(c *gin.Context) {
 }
 
 // UpdateForSaleRequest holds the request body for updating a for_sale.
+//
+// Quantity is intentionally excluded — stock mutations follow canonical paths:
+//   - ReduceQuantity: order creation (via OrderCreationService)
+//   - RestoreQuantity: order cancel/expire (via OrderCompletionService)
+// The handler does NOT bypass domain authority for quantity.
 type UpdateForSaleRequest struct {
 	Title              *string `json:"title"`
 	Description        *string `json:"description"`
 	Price              *int64  `json:"price" binding:"omitempty,min=1"`
-	Quantity           *int    `json:"quantity" binding:"omitempty,min=1"`
 	NegotiationEnabled *bool   `json:"negotiation_enabled"`
-	Visibility         *string `json:"visibility" binding:"omitempty,oneof=public private"`
 	Status             *string `json:"status" binding:"omitempty,oneof=draft active withdrawn sold"`
 	// Optional koi-specific fields
 	MediaURLs    *[]string `json:"media_urls"`
@@ -380,8 +353,13 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 
 	var updatedForSale *entity.ForSale
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
-		// Get the for_sale first
-		for_sale, err := h.for_saleService.GetByID(ctx, tx, for_saleID)
+		// ────────────────────────────────────────────────────────────────
+		// P1-1 FIX: Use GetForUpdate as the initial read.
+		// This ensures the handler applies mutations to the CURRENT locked
+		// state, preventing lost updates from concurrent order mutations.
+		// The row-level lock is held for the entire transaction.
+		// ────────────────────────────────────────────────────────────────
+		for_sale, err := h.for_saleService.GetForUpdate(ctx, tx, for_saleID)
 		if err != nil {
 			return err
 		}
@@ -415,16 +393,33 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 			if req.Title != nil && *req.Title != for_sale.Title {
 				criticalFieldsChanging = true
 			}
-			if req.Quantity != nil && *req.Quantity != for_sale.QuantityAvailable {
-				criticalFieldsChanging = true
-			}
 
 			if criticalFieldsChanging {
 				return fmt.Errorf("cannot modify for_sale: existing orders present")
 			}
 		}
 
-		// Apply updates
+		// ────────────────────────────────────────────────────────────────
+		// DETECT PUBLISH INTENT before applying any field mutations.
+		// If the request transitions draft → active, we delegate the entire
+		// publish mutation to ForSaleService.Publish() — the ONE canonical
+		// publish authority. All checks (ownership, restriction, market
+		// authority, shipping, farm address) and the state transition live
+		// there. The handler does NOT apply status changes on the publish
+		// path — Publish() re-reads the locked entity and transitions it.
+		// ────────────────────────────────────────────────────────────────
+		isPublishIntent := false
+		if req.Status != nil {
+			newStatus := entity.ForSaleStatus(*req.Status)
+			if !newStatus.IsValid() {
+				return fmt.Errorf("invalid status: must be 'draft', 'active', 'withdrawn', or 'sold'")
+			}
+			isPublishIntent = requiresMarketAuthorityForPublish(for_sale.Status, newStatus)
+		}
+
+		// Apply field mutations to the locked (current) entity.
+		// The handler is the HTTP contract boundary: it maps request fields
+		// onto the entity. The service layer re-validates and persists.
 		if req.Title != nil {
 			for_sale.Title = *req.Title
 		}
@@ -434,66 +429,27 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 		if req.Price != nil {
 			for_sale.PricePerUnit = money.New(*req.Price)
 		}
-		if req.Quantity != nil {
-			for_sale.QuantityAvailable = *req.Quantity
-		}
 		if req.NegotiationEnabled != nil {
 			for_sale.NegotiationEnabled = *req.NegotiationEnabled
 		}
-		if req.Visibility != nil {
-			visibility := entity.ForSaleVisibility(*req.Visibility)
-			if !visibility.IsValid() {
-				return fmt.Errorf("invalid visibility: must be 'public' or 'private'")
-			}
-			// MARKET AUTHORITY CHECK: Transitioning to public requires active seller subscription
-			if visibility == entity.ForSaleVisibilityPublic && for_sale.Visibility != entity.ForSaleVisibilityPublic {
-				if err := h.for_saleService.CheckMarketAuthorityForForSale(ctx, callerID); err != nil {
-					return err
-				}
-			}
-			for_sale.Visibility = visibility
+
+		// ────────────────────────────────────────────────────────────────
+		// P1-2 FIX: Quantity is NOT editable through Update.
+		// Stock mutations follow canonical paths:
+		//   - ReduceQuantity: order creation (via OrderCreationService)
+		//   - RestoreQuantity: order cancel/expire (via OrderCompletionService)
+		// The handler does NOT bypass domain authority for quantity.
+		// ────────────────────────────────────────────────────────────────
+
+		// Apply non-publish status transitions (active → withdrawn, etc.)
+		// Publish intent is deliberately NOT applied here — it is delegated
+		// to ForSaleService.Publish() below, which is the ONE canonical
+		// publish authority.
+		if req.Status != nil && !isPublishIntent {
+			for_sale.Status = entity.ForSaleStatus(*req.Status)
 		}
 
-		// Handle status transition (draft → active is publish action)
-		if req.Status != nil {
-			newStatus := entity.ForSaleStatus(*req.Status)
-			if !newStatus.IsValid() {
-				return fmt.Errorf("invalid status: must be 'draft', 'active', 'withdrawn', or 'sold'")
-			}
-
-			// PUBLISH ACTION: draft → active transition always results in public market
-			// exposure — entity.Publish() unconditionally sets Visibility=Public regardless
-			// of the for_sale's current or requested visibility field. Market authority must
-			// therefore be checked unconditionally here, not gated on for_sale.Visibility:
-			// mobile sends status-only publish updates with no visibility field at all, and
-			// that must still be caught (PASS_18M market-authority bypass).
-			if requiresMarketAuthorityForPublish(for_sale.Status, newStatus) {
-				if err := h.for_saleService.CheckMarketAuthorityForForSale(ctx, callerID); err != nil {
-					return err
-				}
-				// Phase 0 honesty: publish requires at least one shipping option
-				// linked to the product. Returns shippingApp.ErrShippingNotConfigured
-				// which the outer handler maps to the SHIPPING_NOT_CONFIGURED code.
-				if err := h.for_saleService.EnsureShippingConfigured(ctx, tx, for_sale.ProductID); err != nil {
-					return err
-				}
-				// Farm address gate: for_sale must have valid sender address.
-				if err := h.for_saleService.EnsureFarmAddressValid(ctx, tx, for_sale); err != nil {
-					return err
-				}
-				// Use the Publish method for proper state transition
-				if err := for_sale.Publish(); err != nil {
-					return err
-				}
-			} else if for_sale.Status != newStatus {
-				// Other status transitions (active → withdrawn, etc.)
-				// Validate the transition is allowed
-				if !entity.CanTransition(for_sale.Status, newStatus) {
-					return fmt.Errorf("invalid status transition: %s → %s", for_sale.Status, newStatus)
-				}
-				for_sale.Status = newStatus
-			}
-		}
+		// Apply remaining field mutations
 		if req.MediaURLs != nil {
 			mediaURLsJSON, err := json.Marshal(*req.MediaURLs)
 			if err != nil {
@@ -533,12 +489,32 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 			for_sale.PreparationNote = req.PreparationNote
 		}
 
-		// Save the updated for_sale
+		// Save field mutations via canonical service authority.
+		// service.Update() validates status transitions, seller restriction,
+		// and active+public invariant — the handler does NOT duplicate these.
 		if err := h.for_saleService.Update(ctx, tx, for_sale); err != nil {
 			return err
 		}
 
-		updatedForSale = for_sale
+		// ────────────────────────────────────────────────────────────────
+		// PUBLISH: Delegate to the ONE canonical publish authority.
+		// ForSaleService.Publish() handles: ownership check, commerce
+		// restriction, market authority, shipping configuration, farm
+		// address, state transition, and outbox event emission.
+		// ────────────────────────────────────────────────────────────────
+		if isPublishIntent {
+			if err := h.for_saleService.Publish(ctx, tx, for_saleID, callerID); err != nil {
+				return err
+			}
+			// Re-read to return the post-publish state to the caller.
+			published, reErr := h.for_saleService.GetByID(ctx, tx, for_saleID)
+			if reErr == nil {
+				updatedForSale = published
+			}
+		} else {
+			updatedForSale = for_sale
+		}
+
 		return nil
 	})
 
@@ -570,10 +546,6 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 			return
 		}
 		if strings.Contains(errMsg, "cannot update for_sale with status") {
-			response.BadRequest(c, errMsg)
-			return
-		}
-		if strings.Contains(errMsg, "invalid visibility:") {
 			response.BadRequest(c, errMsg)
 			return
 		}
@@ -609,6 +581,7 @@ func (h *ForSaleHandler) GetForSale(c *gin.Context) {
 
 	var for_sale *entity.ForSale
 	var sellerInfo sellerdisplay.Info
+	var publicOriginLine string
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
 		for_sale, err = h.for_saleService.GetByID(ctx, tx, for_saleID)
@@ -631,6 +604,10 @@ func (h *ForSaleHandler) GetForSale(c *gin.Context) {
 		// (seller_username/seller_farm_name/seller_avatar_url) inside
 		// the same transaction. Single query; no N+1.
 		sellerInfo, _ = sellerdisplay.FetchOne(ctx, tx, for_sale.SellerID)
+
+		// Derive public origin line from the product's farm_address_id → addresses
+		publicOriginLine = h.for_saleService.DerivePublicOriginLine(ctx, tx, productFarmAddressID(for_sale))
+
 		return nil
 	})
 
@@ -655,7 +632,25 @@ func (h *ForSaleHandler) GetForSale(c *gin.Context) {
 		}
 	}
 
-	response.Success(c, for_saleToResponseWithSeller(for_sale, sellerInfo))
+	resp := for_saleToResponseWithSeller(for_sale, sellerInfo)
+	if publicOriginLine != "" {
+		sellerIdentity := map[string]interface{}{
+			"store_name":         sellerInfo.FarmName,
+			"username":           sellerInfo.Username,
+			"avatar_url":         sellerInfo.AvatarURL,
+			"public_origin_line": publicOriginLine,
+		}
+		resp["seller_identity"] = sellerIdentity
+	}
+	response.Success(c, resp)
+}
+
+// productFarmAddressID extracts the product's farm_address_id from a for_sale entity.
+func productFarmAddressID(l *entity.ForSale) *uuid.UUID {
+	if l.Product != nil {
+		return l.Product.FarmAddressID
+	}
+	return nil
 }
 
 // DeleteForSale handles DELETE /api/v1/for_sales/:id
@@ -803,6 +798,7 @@ func (h *ForSaleHandler) ListForSales(c *gin.Context) {
 	// Execute query within transaction
 	var for_sales []*entity.ForSale
 	var sellerInfoByID map[uuid.UUID]sellerdisplay.Info
+	var originBySaleID map[uuid.UUID]string
 	var total int
 	var err error
 
@@ -859,6 +855,13 @@ func (h *ForSaleHandler) ListForSales(c *gin.Context) {
 			sellerIDs = append(sellerIDs, l.SellerID)
 		}
 		sellerInfoByID, _ = sellerdisplay.FetchMany(ctx, tx, sellerIDs)
+
+		// Derive public origin lines from each product's farm_address_id → addresses
+		originBySaleID = make(map[uuid.UUID]string, len(for_sales))
+		for _, l := range for_sales {
+			originBySaleID[l.ID] = h.for_saleService.DerivePublicOriginLine(ctx, tx, productFarmAddressID(l))
+		}
+
 		return nil
 	})
 
@@ -873,14 +876,23 @@ func (h *ForSaleHandler) ListForSales(c *gin.Context) {
 	// Convert to response format
 	items := make([]map[string]interface{}, 0, len(for_sales))
 	for _, for_sale := range for_sales {
-		items = append(items, for_saleToResponseWithSeller(for_sale, sellerInfoByID[for_sale.SellerID]))
+		resp := for_saleToResponseWithSeller(for_sale, sellerInfoByID[for_sale.SellerID])
+		if origin := originBySaleID[for_sale.ID]; origin != "" {
+			resp["seller_identity"] = map[string]interface{}{
+				"store_name":         sellerInfoByID[for_sale.SellerID].FarmName,
+				"username":           sellerInfoByID[for_sale.SellerID].Username,
+				"avatar_url":         sellerInfoByID[for_sale.SellerID].AvatarURL,
+				"public_origin_line": origin,
+			}
+		}
+		items = append(items, resp)
 	}
 
 	response.Success(c, gin.H{
 		"for_sales": items,
-		"page":     page,
-		"limit":    limit,
-		"total":    total,
+		"page":      page,
+		"limit":     limit,
+		"total":     total,
 	})
 }
 
@@ -978,6 +990,7 @@ func (h *ForSaleHandler) SearchForSales(c *gin.Context) {
 	// Execute search within transaction
 	var result *for_saleApp.SearchResult
 	var sellerInfoByID map[uuid.UUID]sellerdisplay.Info
+	var originBySaleID map[uuid.UUID]string
 	txErr := h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
 		result, err = h.for_saleService.Search(ctx, tx, filters)
@@ -992,6 +1005,13 @@ func (h *ForSaleHandler) SearchForSales(c *gin.Context) {
 			sellerIDs = append(sellerIDs, l.SellerID)
 		}
 		sellerInfoByID, _ = sellerdisplay.FetchMany(ctx, tx, sellerIDs)
+
+		// Derive public origin lines from each product's farm_address_id → addresses
+		originBySaleID = make(map[uuid.UUID]string, len(result.ForSales))
+		for _, l := range result.ForSales {
+			originBySaleID[l.ID] = h.for_saleService.DerivePublicOriginLine(ctx, tx, productFarmAddressID(l))
+		}
+
 		return nil
 	})
 
@@ -1006,11 +1026,20 @@ func (h *ForSaleHandler) SearchForSales(c *gin.Context) {
 	// Convert to response format
 	items := make([]map[string]interface{}, 0, len(result.ForSales))
 	for _, for_sale := range result.ForSales {
-		items = append(items, for_saleToResponseWithSeller(for_sale, sellerInfoByID[for_sale.SellerID]))
+		resp := for_saleToResponseWithSeller(for_sale, sellerInfoByID[for_sale.SellerID])
+		if origin := originBySaleID[for_sale.ID]; origin != "" {
+			resp["seller_identity"] = map[string]interface{}{
+				"store_name":         sellerInfoByID[for_sale.SellerID].FarmName,
+				"username":           sellerInfoByID[for_sale.SellerID].Username,
+				"avatar_url":         sellerInfoByID[for_sale.SellerID].AvatarURL,
+				"public_origin_line": origin,
+			}
+		}
+		items = append(items, resp)
 	}
 
 	response.Success(c, gin.H{
-		"for_sales":    items,
+		"for_sales":   items,
 		"next_cursor": result.NextCursor,
 		"has_more":    result.HasMore,
 	})
@@ -1042,6 +1071,16 @@ func for_saleToResponseWithSeller(
 	mediaURLs := product.MediaURLs
 	if len(mediaURLs) == 0 && len(l.MediaURLs) > 0 && string(l.MediaURLs) != "null" {
 		_ = json.Unmarshal(l.MediaURLs, &mediaURLs)
+	}
+
+	// Typed media items with type inference from URL extension.
+	mediaItems := for_saleResponseMediaItems(l)
+	renderedMedia := make([]map[string]interface{}, 0, len(mediaItems))
+	for _, item := range mediaItems {
+		renderedMedia = append(renderedMedia, renderForSaleMediaWire(item))
+	}
+	if renderedMedia == nil {
+		renderedMedia = []map[string]interface{}{}
 	}
 
 	// Canonical PublicCard ForSaleCard (Batch 2C).
@@ -1088,6 +1127,7 @@ func for_saleToResponseWithSeller(
 		"seller_id":           l.SellerID.String(),
 		"title":               product.Title,
 		"description":         product.Description,
+		"media":               renderedMedia,
 		"media_urls":          mediaURLs,
 		"variety":             product.Variety,
 		"size_cm":             product.SizeCm,

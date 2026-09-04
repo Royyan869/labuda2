@@ -155,7 +155,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
     }
 
     if (_mediaUrls.isEmpty) {
-      setState(() => _errorMessage = 'Minimal 1 foto wajib diupload');
+      setState(() => _errorMessage = 'Minimal 1 media wajib diupload');
       return;
     }
 
@@ -349,7 +349,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
 
             const SizedBox(height: 24),
 
-            const _SectionTitle('Foto Produk'),
+            const _SectionTitle('Media Produk'),
             const SizedBox(height: 12),
             _MediaUploadSection(
               mediaUrls: _mediaUrls,
@@ -555,8 +555,8 @@ class _MediaUploadSection extends StatelessWidget {
                   children: [
                     Icon(Icons.add_photo_alternate, size: 40),
                     SizedBox(height: 8),
-                    Text('Tap untuk upload foto'),
-                    Text('(Minimal 1 foto)', style: TextStyle(fontSize: 12)),
+                    Text('Tap untuk upload foto/video'),
+                    Text('(Minimal 1 media)', style: TextStyle(fontSize: 12)),
                   ],
                 ),
               ),

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	commerceResponse "github.com/labuda/backend/internal/commerce/response"
 	"github.com/labuda/backend/internal/identity/auth"
 	"github.com/labuda/backend/internal/social/content/entity"
 	"github.com/labuda/backend/pkg/db"
@@ -91,44 +90,14 @@ func (s *ContentService) createInternalContentShare(
 	if err != nil {
 		return nil, err
 	}
-
-	originalAuthorID := uuid.UUID{}
-	switch {
-	case input.OriginalAuthorID != nil:
-		originalAuthorID = *input.OriginalAuthorID
-	case input.SourceEntrypoint == internalShareSourceEntrypointRepostEndpoint:
-		originalAuthorID = originalContent.AuthorID
-	default:
-		return nil, fmt.Errorf("original_author_id is required when sharing content")
-	}
-
-	repost := entity.NewContent(input.ActorID, input.Caption)
-	repost.Visibility = entity.VisibilityPublic
-
-	if err := repost.MarkAsRepostWithStatus(
-		originalContent.ID,
-		originalAuthorID,
-		"",
-		"",
-		false,
-	); err != nil {
-		return nil, fmt.Errorf("mark as repost failed: %w", err)
-	}
-
-	if err := s.contentRepo.Create(ctx, tx, repost); err != nil {
-		return nil, fmt.Errorf("create repost failed: %w", err)
-	}
-
-	occ := entity.NewContentResourceOccurrence(repost.ID, input.ActorID, &entity.ContentResourceOccurrenceIdentity{
+	occurrence := &entity.ContentResourceOccurrenceIdentity{
 		Operation:    entity.ContentResourceOccurrenceOperationShareToFeed,
 		ResourceType: entity.ContentResourceOccurrenceResourceTypeContent,
 		ResourceID:   originalContent.ID,
-	})
-	if err := createContentResourceOccurrence(ctx, tx, s.contentRepo, occ); err != nil {
-		return nil, fmt.Errorf("create repost occurrence failed: %w", err)
 	}
-
-	return repost, nil
+	// Canonical path: delegate to CreateContentWithResourceOccurrence so share_to_feed has single write authority.
+	// Attribution (original_author_id) is set inside CreateContentWithResourceOccurrence for content-type shares.
+	return s.CreateContentWithResourceOccurrence(ctx, tx, input.ActorID, input.Caption, entity.VisibilityPublic, input.City, input.Province, occurrence, nil, nil)
 }
 
 func (s *ContentService) createInternalReferenceShare(
@@ -144,41 +113,14 @@ func (s *ContentService) createInternalReferenceShare(
 		return nil, err
 	}
 
-	// Commerce reference validation: ForSale and Auction targets must pass
-	// canonical existence + displayability validation before the occurrence
-	// is created. This converges Internal Share with CreateContentWithResourceOccurrence
-	// on the same canonical commerce response validator.
 	targetID := mustParseUUID(input.TargetID)
-	switch input.TargetType {
-	case entity.ShareTargetTypeForSale:
-		if err := s.validateCommerceReference(ctx, tx, commerceResponse.ResourceTypeForSale, targetID); err != nil {
-			return nil, err
-		}
-	case entity.ShareTargetTypeAuction:
-		if err := s.validateCommerceReference(ctx, tx, commerceResponse.ResourceTypeAuction, targetID); err != nil {
-			return nil, err
-		}
-	}
-
-	content := entity.NewContent(input.ActorID, input.Caption)
-	content.Visibility = entity.VisibilityPublic
-	content.City = input.City
-	content.Province = input.Province
-
-	if err := s.contentRepo.Create(ctx, tx, content); err != nil {
-		return nil, fmt.Errorf("create content failed: %w", err)
-	}
-
 	occurrence := &entity.ContentResourceOccurrenceIdentity{
 		Operation:    entity.ContentResourceOccurrenceOperationShareToFeed,
 		ResourceType: shareTargetTypeToOccurrenceType(input.TargetType),
 		ResourceID:   targetID,
 	}
-	if err := createContentResourceOccurrence(ctx, tx, s.contentRepo, entity.NewContentResourceOccurrence(content.ID, input.ActorID, occurrence)); err != nil {
-		return nil, fmt.Errorf("create content occurrence failed: %w", err)
-	}
-
-	return content, nil
+	// Single canonical writer for share_to_feed (validation + attribution inside CreateContentWithResourceOccurrence).
+	return s.CreateContentWithResourceOccurrence(ctx, tx, input.ActorID, input.Caption, entity.VisibilityPublic, input.City, input.Province, occurrence, nil, nil)
 }
 
 func (s *ContentService) loadShareableContentTarget(

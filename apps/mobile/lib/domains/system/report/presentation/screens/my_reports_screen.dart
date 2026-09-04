@@ -262,24 +262,10 @@ class ReportCard extends StatelessWidget {
             const SizedBox(height: 8),
           ],
 
-          // Footer: Date + Action info
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _formatDate(report.createdAt),
-                style: TextStyle(fontSize: 12, color: AppColors.neutralGray400),
-              ),
-              if (report.action != ReportAction.none)
-                Text(
-                  report.action.displayName,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: _getActionColor(report.action),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-            ],
+          // Footer: Date
+          Text(
+            _formatDate(report.createdAt),
+            style: TextStyle(fontSize: 12, color: AppColors.neutralGray400),
           ),
         ],
       ),
@@ -355,22 +341,6 @@ class ReportCard extends StatelessWidget {
         return Icons.shopping_bag_outlined;
       case ReportTargetType.auction:
         return Icons.gavel_outlined;
-    }
-  }
-
-  Color _getActionColor(ReportAction action) {
-    switch (action) {
-      case ReportAction.none:
-        return AppColors.neutralGray400;
-      case ReportAction.warning:
-        return AppColors.warning;
-      case ReportAction.contentRemoved:
-        return AppColors.error;
-      case ReportAction.userSuspended:
-      case ReportAction.userBanned:
-        return AppColors.error;
-      case ReportAction.dismissed:
-        return AppColors.neutralGray400;
     }
   }
 

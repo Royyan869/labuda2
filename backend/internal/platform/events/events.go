@@ -41,8 +41,11 @@ const (
 	EventUserFollowed   = "user.followed"
 	EventUserUnfollowed = "user.unfollowed"
 	EventUserBlocked    = "user.blocked"
-	EventUserUnblocked  = "user.unblocked"
 	EventContentLiked   = "content.liked"
+	EventContentMentioned = "content.mentioned"
+	EventCommentReply   = "comment.reply"
+	EventSellerResponse = "seller.response"
+	EventAuctionResponse = "auction.response"
 
 	// Presence events
 	EventUserPresenceLastSeenRecord = "presence.last_seen_record"

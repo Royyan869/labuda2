@@ -10,11 +10,8 @@
 /// - VerificationDeliveryStatus typed variants
 /// - Protected-provider initialization blocking
 ///
-/// Retired tests (32) previously tested:
-/// - AuthStateRequiresEmailVerification (removed from production)
-/// - AppAuthStatus.requiresEmailVerification (removed)
-/// - AuthState.requiresEmailVerification factory (does not exist)
-/// - /auth/verify-email portal route (removed)
+/// Retired tests (32) previously tested legacy verification portal
+/// (removed from production) — these covered a separate portal route.
 /// These are obsolete: production surfaces unverified email via
 /// AuthStateAuthenticated.emailVerified flag + banner, not via
 /// a separate auth state or redirect portal.

@@ -21,19 +21,10 @@ import (
 func beginIsolatedFeedTx(t *testing.T, ctx context.Context, testDB *testdb.TestDB) pgx.Tx {
 	t.Helper()
 
-	// Use a dedicated connection for TRUNCATE to avoid session-level side effects
-	// on the test pool. Disabling FK triggers prevents lock-ordering deadlocks
-	// during the cascade truncation.
-	if err := testDB.TruncateSubset(ctx, []string{
-		"content_hashtags",
-		"content_media",
-		"user_blocks",
-		"user_follows",
-		"contents",
-		"user_profiles",
-		"users",
-	}); err != nil {
-		t.Fatalf("truncate subset: %v", err)
+	// Truncate all tables before each subtest to guarantee isolation.
+	// TruncateAll is the canonical cleanup authority in testdb.TestDB.
+	if err := testDB.TruncateAll(ctx); err != nil {
+		t.Fatalf("truncate all tables: %v", err)
 	}
 
 	tx, err := testDB.Pool().Begin(ctx)

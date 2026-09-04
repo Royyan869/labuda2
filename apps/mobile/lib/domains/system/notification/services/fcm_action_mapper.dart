@@ -63,8 +63,7 @@ class FCMActionMapper {
         ];
 
       // Mention - View
-      case 'mention':
-      case 'new_mention': // Backend alias
+      case 'content.mentioned':
         return [
           BannerAction(
             label: 'Lihat',

@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/commerce/forsale/entity"
 	"github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	for_saleRepo "github.com/labuda/backend/internal/commerce/forsale/repository"
+	"github.com/labuda/backend/internal/commerce/governance/commercegov"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	shippingRepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
 	shippingquoteRepo "github.com/labuda/backend/internal/commerce/shipping/quote/repository"
@@ -51,6 +53,7 @@ type ForSaleService struct {
 	coverageRepo        shippingRepo.ShippingCoverageRepository
 	shippingQuoteRepo   shippingquoteRepo.ShippingQuoteRepository
 	addressRepo         addressRepoInterface.AddressRepository
+	commerceGovRepo     commercegov.Repository // COMMERCE RESTRICTION: canonical restriction checker
 }
 
 // NewForSaleService creates a new ForSaleService.
@@ -75,29 +78,55 @@ func NewForSaleService(args ...any) *ForSaleService {
 			svc.shippingQuoteRepo = v
 		case addressRepoInterface.AddressRepository:
 			svc.addressRepo = v
+		case commercegov.Repository:
+			svc.commerceGovRepo = v
 		}
 	}
 
 	return svc
 }
 
+// SetCommerceGovRepository wires the canonical commerce restriction repository
+// into the for-sale service so seller restrictions are enforced at the create/
+// publish mutation boundaries (TOCTOU prevention).
+func (s *ForSaleService) SetCommerceGovRepository(repo commercegov.Repository) {
+	s.commerceGovRepo = repo
+}
+
+// requireSellerNotRestricted checks whether the given seller has an active
+// commerce restriction. Must be called inside the same transaction as the
+// commerce mutation. Returns auth.ErrCommerceRestricted when restricted.
+func (s *ForSaleService) requireSellerNotRestricted(ctx context.Context, tx db.Tx, sellerID uuid.UUID) error {
+	if s.commerceGovRepo == nil {
+		return nil // repo not wired — fail-open for backward compat
+	}
+	restricted, _, err := commercegov.IsUserRestricted(ctx, tx, s.commerceGovRepo, sellerID)
+	if err != nil {
+		return fmt.Errorf("commerce restriction check failed: %w", err)
+	}
+	if restricted {
+		return auth.ErrCommerceRestricted
+	}
+	return nil
+}
+
 // buildForSaleEventPayload creates a JSON payload for fixed-price sale events.
 func buildForSaleEventPayload(for_sale *entity.ForSale) []byte {
 	type payload struct {
 		ForSaleID string `json:"for_sale_id"`
-		SellerID         string `json:"seller_id"`
-		Status           string `json:"status,omitempty"`
-		Title            string `json:"title,omitempty"`
-		Variety          string `json:"variety,omitempty"`
-		Price            int64  `json:"price,omitempty"`
+		SellerID  string `json:"seller_id"`
+		Status    string `json:"status,omitempty"`
+		Title     string `json:"title,omitempty"`
+		Variety   string `json:"variety,omitempty"`
+		Price     int64  `json:"price,omitempty"`
 	}
 	p := payload{
 		ForSaleID: for_sale.ID.String(),
-		SellerID:         for_sale.SellerID.String(),
-		Status:           string(for_sale.Status),
-		Title:            for_sale.Title,
-		Variety:          for_sale.Variety,
-		Price:            for_sale.PricePerUnit.Int64(),
+		SellerID:  for_sale.SellerID.String(),
+		Status:    string(for_sale.Status),
+		Title:     for_sale.Title,
+		Variety:   for_sale.Variety,
+		Price:     for_sale.PricePerUnit.Int64(),
 	}
 	b, _ := json.Marshal(p)
 	return b
@@ -121,17 +150,11 @@ type CreateForSaleInput struct {
 	Breeder            *string
 	Bloodline          *string
 	Certificates       []string
-	ForSaleType entity.ForSaleType
+	ForSaleType        entity.ForSaleType
 	PricePerUnit       money.Money
 	QuantityAvailable  int
 	NegotiationEnabled bool
 	Visibility         entity.ForSaleVisibility
-	Origin             entity.ForSaleOrigin // Source/context of for_sale creation
-	// Location
-	CityID     *uuid.UUID
-	ProvinceID *uuid.UUID
-	Latitude   *float64
-	Longitude  *float64
 	// Shipping preferences
 	FarmAddressID *uuid.UUID
 	// Shipping readiness
@@ -165,6 +188,12 @@ func (s *ForSaleService) Create(
 		return nil, auth.ErrSellerNotReady
 	}
 
+	// COMMERCE RESTRICTION: Reject restricted seller at creation boundary.
+	// Checked inside the same transaction as the for_sale mutation (TOCTOU prevention).
+	if err := s.requireSellerNotRestricted(ctx, tx, input.SellerID); err != nil {
+		return nil, err
+	}
+
 	// MARKET AUTHORITY CHECK: Public for_sales require active seller subscription
 	if input.Visibility == entity.ForSaleVisibilityPublic {
 		hasCapability, err := s.roleChecker.HasActiveSellerCapability(ctx, input.SellerID)
@@ -185,13 +214,6 @@ func (s *ForSaleService) Create(
 	mediaURLsJSON, err := json.Marshal(mediaURLs)
 	if err != nil {
 		return nil, fmt.Errorf("marshal media urls failed: %w", err)
-	}
-
-	// Create the for_sale entity
-	// Default origin to DirectCreate if not specified
-	origin := input.Origin
-	if origin == "" {
-		origin = entity.ForSaleOriginDirectCreate
 	}
 
 	// Guard: Ensure certificates is never nil (entity expects non-nil slice)
@@ -217,7 +239,6 @@ func (s *ForSaleService) Create(
 		input.QuantityAvailable,
 		input.NegotiationEnabled,
 		input.Visibility,
-		origin,
 		// Shipping preferences
 		input.FarmAddressID,
 		// Shipping readiness
@@ -301,6 +322,9 @@ func (s *ForSaleService) GetForUpdate(
 // before persisting. This prevents the service boundary from being
 // bypassed by a caller that supplies an invalid status.
 //
+// COMMERCE RESTRICTION: A restricted seller must not be able to bypass
+// the restriction by mutating an existing for_sale.
+//
 // Special governed transitions (sold→active via stock restore,
 // withdrawn→active via moderation) MUST NOT flow through Update().
 // They have dedicated service methods with their own authority checks.
@@ -309,22 +333,40 @@ func (s *ForSaleService) Update(
 	tx db.Tx,
 	for_sale *entity.ForSale,
 ) error {
-	// Load the current state to validate any status transition.
-	original, err := s.repo.GetByID(ctx, tx, for_sale.ID)
-	if err != nil {
-		return fmt.Errorf("cannot validate update: %w", err)
+	// P1-1 FIX: Caller is responsible for acquiring the row lock via
+	// GetForUpdate() before calling Update(). This service no longer
+	// re-locks — the handler's GetForUpdate() holds the lock for the
+	// entire transaction. The entity passed in reflects the CURRENT
+	// locked state with caller-intended mutations applied.
+	//
+	// Lock contract: Every caller MUST use GetForUpdate() before Update().
+	// service.Update() validates and persists; it does NOT re-lock.
+
+	// COMMERCE RESTRICTION: Reject restricted seller at update boundary.
+	// Checked inside the same transaction as the for_sale mutation (TOCTOU prevention).
+	// Uses the SAME canonical restriction authority as Create() and Publish().
+	if err := s.requireSellerNotRestricted(ctx, tx, for_sale.SellerID); err != nil {
+		return err
 	}
 
 	// Validate status transition if status is changing.
-	if original.Status != for_sale.Status {
+	// The caller applies the desired status to the entity. We re-read the
+	// current locked state to detect what transition is being attempted.
+	// Special governed transitions (sold→active, withdrawn→active) MUST NOT
+	// flow through Update(); they have dedicated service methods.
+	current, err := s.repo.GetByID(ctx, tx, for_sale.ID)
+	if err != nil {
+		return fmt.Errorf("cannot validate update: %w", err)
+	}
+	if current.Status != for_sale.Status {
 		// Special governed transitions must not flow through Update().
 		if for_sale.Status == entity.ForSaleStatusActive &&
-			(original.Status == entity.ForSaleStatusSold || original.Status == entity.ForSaleStatusWithdrawn) {
-			return fmt.Errorf("status transition %s → %s is not permitted through Update; use dedicated governed path", original.Status, for_sale.Status)
+			(current.Status == entity.ForSaleStatusSold || current.Status == entity.ForSaleStatusWithdrawn) {
+			return fmt.Errorf("status transition %s → %s is not permitted through Update; use dedicated governed path", current.Status, for_sale.Status)
 		}
 		// Ordinary transition must be in the canonical transition graph.
-		if !entity.CanTransition(original.Status, for_sale.Status) {
-			return fmt.Errorf("invalid status transition: %s → %s", original.Status, for_sale.Status)
+		if !entity.CanTransition(current.Status, for_sale.Status) {
+			return fmt.Errorf("invalid status transition: %s → %s", current.Status, for_sale.Status)
 		}
 	}
 
@@ -503,6 +545,46 @@ func (s *ForSaleService) EnsureFarmAddressValid(
 	return nil
 }
 
+// DerivePublicOriginLine resolves the public seller origin string from a
+// product's farm_address_id. Returns the canonical "{city_name}, {province_name}"
+// projection from the addresses table, or empty string when the address is
+// absent/unresolvable.
+//
+// The origin is product-specific: different products from the same seller
+// may ship from different farms. This method uses the EXACT product's
+// farm_address_id — never a fallback or approximation.
+func (s *ForSaleService) DerivePublicOriginLine(
+	ctx context.Context,
+	tx db.Tx,
+	farmAddressID *uuid.UUID,
+) string {
+	if farmAddressID == nil || *farmAddressID == uuid.Nil {
+		return ""
+	}
+	address, err := s.addressRepo.GetByID(ctx, tx, *farmAddressID)
+	if err != nil {
+		return ""
+	}
+	return formatOriginLine(address.CityName, address.ProvinceName)
+}
+
+// formatOriginLine builds the public origin string from city and province
+// names. Empty string when both are absent.
+func formatOriginLine(cityName, provinceName string) string {
+	city := strings.TrimSpace(cityName)
+	province := strings.TrimSpace(provinceName)
+	if city == "" && province == "" {
+		return ""
+	}
+	if city == "" {
+		return province
+	}
+	if province == "" {
+		return city
+	}
+	return city + ", " + province
+}
+
 // Publish publishes a for_sale from draft to active (market-visible).
 // This is the EXPLICIT publish boundary - for_sales do NOT auto-publish.
 //
@@ -524,6 +606,12 @@ func (s *ForSaleService) Publish(
 	// Ownership check
 	if for_sale.SellerID != callerID {
 		return fmt.Errorf("for_sale does not belong to caller")
+	}
+
+	// COMMERCE RESTRICTION: Reject restricted seller at publish boundary.
+	// Checked inside the same transaction as the status mutation (TOCTOU prevention).
+	if err := s.requireSellerNotRestricted(ctx, tx, callerID); err != nil {
+		return err
 	}
 
 	// HARD RULE: Market authority check is ALWAYS required for publish
@@ -571,52 +659,6 @@ func (s *ForSaleService) Publish(
 	return nil
 }
 
-// ReduceStock reduces the quantity of a for_sale.
-// This is used when an order is created.
-// All stock mutations must use this method within a transaction.
-func (s *ForSaleService) ReduceStock(
-	ctx context.Context,
-	tx db.Tx,
-	for_saleID uuid.UUID,
-	quantity int,
-) error {
-	// Lock the for_sale for update
-	for_sale, err := s.repo.GetForUpdate(ctx, tx, for_saleID)
-	if err != nil {
-		return err
-	}
-
-	// Check if for_sale will transition to sold after this reduction
-	previousQuantity := for_sale.QuantityAvailable
-	willTransitionToSold := previousQuantity > 0 && (previousQuantity-quantity) <= 0
-
-	// Reduce quantity (this auto-transitions to sold if quantity reaches 0)
-	if err := for_sale.ReduceQuantity(quantity); err != nil {
-		return err
-	}
-
-	// Persist the changes
-	if err := s.repo.UpdateStock(ctx, tx, for_sale); err != nil {
-		return err
-	}
-
-	// Emit for_sale.sold event when the sale transitions to sold status
-	if willTransitionToSold && for_sale.Status == entity.ForSaleStatusSold {
-		if s.outboxRepo != nil {
-			if err := s.outboxRepo.InsertEvent(
-				ctx, tx,
-				events.EventForSaleSold,
-				for_sale.ID,
-				buildForSaleEventPayload(for_sale),
-			); err != nil {
-				return fmt.Errorf("failed to insert for_sale.sold event: %w", err)
-			}
-		}
-	}
-
-	return nil
-}
-
 // GetBySellerIDPaginated retrieves for_sales for a seller with SQL-based pagination.
 // When includeWithdrawn is false, withdrawn for_sales are excluded from results.
 func (s *ForSaleService) GetBySellerIDPaginated(
@@ -652,9 +694,9 @@ func (s *ForSaleService) GetPublicBySellerID(
 
 // SearchResult holds the search results with pagination metadata.
 type SearchResult struct {
-	ForSales []*entity.ForSale
-	NextCursor      *string // RFC3339 timestamp for next page
-	HasMore         bool    // True if there are more results
+	ForSales   []*entity.ForSale
+	NextCursor *string // RFC3339 timestamp for next page
+	HasMore    bool    // True if there are more results
 }
 
 // Search performs full-text search on for_sales.
@@ -675,8 +717,8 @@ func (s *ForSaleService) Search(
 	}
 
 	return &SearchResult{
-		ForSales: for_sales,
-		NextCursor:      nextCursorStr,
-		HasMore:         nextCursor != nil,
+		ForSales:   for_sales,
+		NextCursor: nextCursorStr,
+		HasMore:    nextCursor != nil,
 	}, nil
 }

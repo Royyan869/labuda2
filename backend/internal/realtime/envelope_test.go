@@ -68,52 +68,6 @@ func TestMarshalChatMessageSent_CanonicalEnvelope(t *testing.T) {
 	}
 }
 
-func TestMarshalChatMessageHidden_CanonicalEnvelope(t *testing.T) {
-	roomID := uuid.New()
-	messageID := uuid.New()
-
-	env := decodeEnvelope(t, marshalChatMessageHidden(roomID, messageID))
-
-	if env.Type != "chat.message.hidden" {
-		t.Fatalf("type=%q want chat.message.hidden", env.Type)
-	}
-	if got := env.Data["room_id"]; got != roomID.String() {
-		t.Fatalf("room_id=%v want %s", got, roomID.String())
-	}
-	if got := env.Data["message_id"]; got != messageID.String() {
-		t.Fatalf("message_id=%v want %s", got, messageID.String())
-	}
-	if _, ok := env.Data["body"]; ok {
-		t.Fatal("hidden message envelope must not include body")
-	}
-	if _, ok := env.Data["attachment"]; ok {
-		t.Fatal("hidden message envelope must not include attachment")
-	}
-}
-
-func TestMarshalChatMessageRestored_CanonicalEnvelope(t *testing.T) {
-	roomID := uuid.New()
-	messageID := uuid.New()
-
-	env := decodeEnvelope(t, marshalChatMessageRestored(roomID, messageID))
-
-	if env.Type != "chat.message.restored" {
-		t.Fatalf("type=%q want chat.message.restored", env.Type)
-	}
-	if got := env.Data["room_id"]; got != roomID.String() {
-		t.Fatalf("room_id=%v want %s", got, roomID.String())
-	}
-	if got := env.Data["message_id"]; got != messageID.String() {
-		t.Fatalf("message_id=%v want %s", got, messageID.String())
-	}
-	if _, ok := env.Data["body"]; ok {
-		t.Fatal("restored message envelope must not include body")
-	}
-	if _, ok := env.Data["attachment"]; ok {
-		t.Fatal("restored message envelope must not include attachment")
-	}
-}
-
 func TestMarshalChatRoomCreated_CanonicalEnvelope(t *testing.T) {
 	roomID := uuid.NewString()
 	otherUserID := uuid.NewString()

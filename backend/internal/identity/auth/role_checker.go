@@ -22,6 +22,7 @@ var (
 	ErrMarketAuthorityRequired = errors.New("unauthorized: active seller subscription required to perform market operations")
 	ErrSellerNotReady          = errors.New("unauthorized: seller account not ready - active subscription required")
 	ErrProfileNotComplete      = errors.New("unauthorized: profile not complete - required for checkout")
+	ErrCommerceRestricted      = errors.New("forbidden: user has an active commerce restriction")
 )
 
 // SystemCallerID is the canonical special UUID used for system-initiated

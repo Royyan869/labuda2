@@ -27,6 +27,42 @@ import 'package:equatable/equatable.dart';
 ///
 /// Backend API: GET /api/v1/for-sale/:id
 /// Returns a single forSale with all details
+/// Typed media item from backend response.
+class ForSaleMediaItemDto {
+  final String id;
+  final String type; // "image" or "video"
+  final String url;
+  final int position;
+  final String? thumbnailUrl;
+  final int? width;
+  final int? height;
+  final int? duration;
+
+  const ForSaleMediaItemDto({
+    required this.id,
+    required this.type,
+    required this.url,
+    required this.position,
+    this.thumbnailUrl,
+    this.width,
+    this.height,
+    this.duration,
+  });
+
+  factory ForSaleMediaItemDto.fromJson(Map<String, dynamic> json) {
+    return ForSaleMediaItemDto(
+      id: json['id'] as String? ?? '',
+      type: json['type'] as String? ?? 'image',
+      url: json['url'] as String? ?? '',
+      position: json['position'] as int? ?? 0,
+      thumbnailUrl: json['thumbnail_url'] as String?,
+      width: json['width'] as int?,
+      height: json['height'] as int?,
+      duration: json['duration'] as int?,
+    );
+  }
+}
+
 class ForSaleResponseDto extends Equatable {
   final String id;
   final String? productId;
@@ -34,6 +70,7 @@ class ForSaleResponseDto extends Equatable {
   final String title;
   final String description;
   final List<String> mediaUrls;
+  final List<ForSaleMediaItemDto> mediaItems;
   final String? variety;
   final int? sizeCm;
   final int? ageMonths;
@@ -46,10 +83,6 @@ class ForSaleResponseDto extends Equatable {
   final bool negotiationEnabled;
   final String visibility;
   final String status;
-  final String? cityId;
-  final String? provinceId;
-  final double? latitude;
-  final double? longitude;
   final String? farmAddressId;
   final String? preparationTime;
   final String? preparationNote;
@@ -101,6 +134,7 @@ class ForSaleResponseDto extends Equatable {
     required this.title,
     required this.description,
     this.mediaUrls = const [],
+    this.mediaItems = const [],
     this.variety,
     this.sizeCm,
     this.ageMonths,
@@ -113,10 +147,6 @@ class ForSaleResponseDto extends Equatable {
     this.negotiationEnabled = false,
     required this.visibility,
     required this.status,
-    this.cityId,
-    this.provinceId,
-    this.latitude,
-    this.longitude,
     this.farmAddressId,
     this.preparationTime,
     this.preparationNote,
@@ -146,6 +176,11 @@ class ForSaleResponseDto extends Equatable {
               ?.map((e) => e as String)
               .toList() ??
           [],
+      mediaItems:
+          (json['media'] as List<dynamic>?)
+              ?.map((e) => ForSaleMediaItemDto.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
       variety: json['variety'] as String?,
       sizeCm: json['size_cm'] as int?,
       ageMonths: json['age_months'] as int?,
@@ -162,10 +197,6 @@ class ForSaleResponseDto extends Equatable {
       negotiationEnabled: json['negotiation_enabled'] as bool? ?? false,
       visibility: json['visibility'] as String? ?? 'public',
       status: json['status'] as String? ?? 'active',
-      cityId: json['city_id'] as String?,
-      provinceId: json['province_id'] as String?,
-      latitude: (json['latitude'] as num?)?.toDouble(),
-      longitude: (json['longitude'] as num?)?.toDouble(),
       farmAddressId: json['farm_address_id'] as String?,
       preparationTime: json['preparation_time'] as String?,
       preparationNote: json['preparation_note'] as String?,
@@ -304,12 +335,6 @@ class CreateForSaleRequestDto {
   final String? breeder;
   final String? bloodline;
   final List<String> certificates;
-  final String?
-  origin; // Origin tracking: direct_create, request_context, chat_context
-  final String? cityId;
-  final String? provinceId;
-  final double? latitude;
-  final double? longitude;
   final String? farmAddressId;
   final String? preparationTime;
   final String? preparationNote;
@@ -329,11 +354,6 @@ class CreateForSaleRequestDto {
     this.breeder,
     this.bloodline,
     this.certificates = const [],
-    this.origin,
-    this.cityId,
-    this.provinceId,
-    this.latitude,
-    this.longitude,
     this.farmAddressId,
     this.preparationTime,
     this.preparationNote,
@@ -354,11 +374,6 @@ class CreateForSaleRequestDto {
     if (breeder != null) 'breeder': breeder,
     if (bloodline != null) 'bloodline': bloodline,
     if (certificates.isNotEmpty) 'certificates': certificates,
-    if (origin != null) 'origin': origin,
-    if (cityId != null) 'city_id': cityId,
-    if (provinceId != null) 'province_id': provinceId,
-    if (latitude != null) 'latitude': latitude,
-    if (longitude != null) 'longitude': longitude,
     if (farmAddressId != null) 'farm_address_id': farmAddressId,
     if (preparationTime != null) 'preparation_time': preparationTime,
     if (preparationNote != null) 'preparation_note': preparationNote,
@@ -372,14 +387,13 @@ class CreateForSaleRequestDto {
 /// **PUBLISH FLOW:**
 /// To publish a draft forSale, set status to "active". This requires:
 /// - Active seller subscription (hasMarketAuthority)
-/// - visibility must be "public" for market forSale
+/// - visibility is derived from status (active = public)
 class UpdateForSaleRequestDto {
   final String? title;
   final String? description;
   final int? price;
   final int? quantity;
   final bool? negotiationEnabled;
-  final String? visibility;
   final String? status; // draft, active, withdrawn, sold
   final List<String>? mediaUrls;
   final String? variety;
@@ -398,7 +412,6 @@ class UpdateForSaleRequestDto {
     this.price,
     this.quantity,
     this.negotiationEnabled,
-    this.visibility,
     this.status,
     this.mediaUrls,
     this.variety,
@@ -418,7 +431,6 @@ class UpdateForSaleRequestDto {
     if (price != null) 'price': price,
     if (quantity != null) 'quantity': quantity,
     if (negotiationEnabled != null) 'negotiation_enabled': negotiationEnabled,
-    if (visibility != null) 'visibility': visibility,
     if (status != null) 'status': status,
     if (mediaUrls != null) 'media_urls': mediaUrls,
     if (variety != null) 'variety': variety,

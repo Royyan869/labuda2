@@ -17,6 +17,7 @@ import (
 	"github.com/labuda/backend/internal/commerce/forsale/entity"
 	forSaleRepoImpl "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	forSalerepo "github.com/labuda/backend/internal/commerce/forsale/repository"
+	"github.com/labuda/backend/internal/commerce/governance/commercegov"
 	negotiationEntity "github.com/labuda/backend/internal/commerce/negotiation/entity"
 	negotiationRepoImpl "github.com/labuda/backend/internal/commerce/negotiation/infrastructure/repository"
 	negotiationRepo "github.com/labuda/backend/internal/commerce/negotiation/repository"
@@ -126,6 +127,7 @@ type OrderCreationService struct {
 	auditService         *auditApp.AuditService   // OBSERVABILITY: Audit logging service
 	auctionRepo          AuctionStatusChecker     // BNR: Check auction settlement status
 	walletService        *walletApp.WalletService // WALLET PHASE 1: Escrow hold on order creation
+	commerceGovRepo      commercegov.Repository   // COMMERCE RESTRICTION: canonical restriction checker
 }
 
 // NewOrderCreationService creates a new OrderCreationService.
@@ -162,6 +164,30 @@ func NewOrderCreationService(
 		auctionRepo:          auctionStatusChecker,
 		walletService:        walletService,
 	}
+}
+
+// SetCommerceGovRepository wires the canonical commerce restriction repository
+// into the order creation path so buyer restriction can be enforced inside the
+// same transaction as the order mutation (TOCTOU prevention).
+func (s *OrderCreationService) SetCommerceGovRepository(repo commercegov.Repository) {
+	s.commerceGovRepo = repo
+}
+
+// requireBuyerNotRestricted checks whether the given buyer has an active
+// commerce restriction. Must be called inside the same transaction as the
+// order mutation. Returns auth.ErrCommerceRestricted when restricted.
+func (s *OrderCreationService) requireBuyerNotRestricted(ctx context.Context, tx db.Tx, buyerID uuid.UUID) error {
+	if s.commerceGovRepo == nil {
+		return nil // repo not wired — fail-open for backward compat
+	}
+	restricted, _, err := commercegov.IsUserRestricted(ctx, tx, s.commerceGovRepo, buyerID)
+	if err != nil {
+		return fmt.Errorf("commerce restriction check failed: %w", err)
+	}
+	if restricted {
+		return auth.ErrCommerceRestricted
+	}
+	return nil
 }
 
 // extractPrimaryImageURL extracts the first image URL from a media URL array (JSONB).
@@ -776,6 +802,12 @@ func (s *OrderCreationService) CreateFromAuction(
 		return nil, auth.ErrProfileNotComplete
 	}
 
+	// COMMERCE RESTRICTION: Reject restricted buyer at the order-mutation boundary.
+	// Checked inside the same transaction to prevent TOCTOU bypass.
+	if err := s.requireBuyerNotRestricted(ctx, tx, input.BuyerID); err != nil {
+		return nil, err
+	}
+
 	// Step 2: Load and validate shipping address
 	// Load address using AddressService
 	// Validates: address.user_id == buyerID, address.is_available_for_checkout == true
@@ -1351,6 +1383,15 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 	}
 
 	// ============================================================
+	// STEP 1.6: COMMERCE RESTRICTION - REJECT RESTRICTED BUYER
+	// ============================================================
+	// Cross-commerce restriction applies to buyer + seller; checked inside the
+	// same transaction as the order mutation to prevent TOCTOU bypass.
+	if err := s.requireBuyerNotRestricted(ctx, tx, input.BuyerID); err != nil {
+		return nil, err
+	}
+
+	// ============================================================
 	// STEP 2: LOAD AND VALIDATE SHIPPING ADDRESS
 	// ============================================================
 	// Load address using AddressService
@@ -1524,13 +1565,40 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 	}
 
 	// Reduce quantity (auto-transitions to sold if quantity reaches 0)
+	// Track whether a sold transition occurs for event emission.
+	previousQuantity := forSale.QuantityAvailable
 	if err := forSale.ReduceQuantity(input.Quantity); err != nil {
 		return nil, fmt.Errorf("failed to reduce sale surface quantity: %w", err)
 	}
+	willTransitionToSold := previousQuantity > 0 && forSale.QuantityAvailable == 0 && forSale.Status == entity.ForSaleStatusSold
 
 	// Update sale surface in database
 	if err := s.forSaleRepo.UpdateStock(ctx, tx, forSale); err != nil {
 		return nil, fmt.Errorf("failed to update sale surface: %w", err)
+	}
+
+	// P1-3 FIX: Emit for_sale.sold event when the sale transitions to sold.
+	// This is the ONLY emitter for for_sale.sold on order creation.
+	// Event is emitted within the same transaction as the stock mutation.
+	if willTransitionToSold {
+		type forSaleSoldPayload struct {
+			ForSaleID string `json:"for_sale_id"`
+			SellerID  string `json:"seller_id"`
+			Status    string `json:"status"`
+		}
+		payload, _ := json.Marshal(forSaleSoldPayload{
+			ForSaleID: forSale.ID.String(),
+			SellerID:  forSale.SellerID.String(),
+			Status:    string(forSale.Status),
+		})
+		if err := s.outboxRepo.InsertEvent(
+			ctx, tx,
+			events.EventForSaleSold,
+			forSale.ID,
+			payload,
+		); err != nil {
+			return nil, fmt.Errorf("failed to insert for_sale.sold event: %w", err)
+		}
 	}
 
 	// ============================================================

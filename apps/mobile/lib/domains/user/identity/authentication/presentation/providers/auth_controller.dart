@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:labuda/core/core.dart';
@@ -7,7 +8,7 @@ import '../../domain/entities/firebase_principal.dart';
 // R4.3: Import data layer providers instead of constructing inline
 import 'package:labuda/domains/user/identity/authentication/data/auth_providers.dart'
     as auth_data
-    show authRepositoryProvider;
+    show authRepositoryProvider, authApiDatasourceProvider;
 import 'package:labuda/domains/user/profile/data/profile_providers.dart'
     show userSyncServiceProvider;
 import 'package:labuda/domains/user/profile/data/services/user_sync_service.dart';
@@ -245,6 +246,11 @@ class AuthController extends Notifier<AuthState> {
   Timer? _retryTimer;
   int _authHydrationGeneration = 0;
 
+  // Phase 3D: Labuda startup single-flight and explicit login guard
+  Future<bool>? _labudaRestoreFuture;
+  bool _isExplicitLoginInProgress = false;
+  bool _initialFirebaseEventPending = true;
+
   /// True while an automatic backend-sync retry is still scheduled (or in
   /// flight) after a transient backend-unavailable failure.
   ///
@@ -439,100 +445,210 @@ class AuthController extends Notifier<AuthState> {
     await signOut();
   }
 
-  /// ðŸ” AUTH PERSISTENCE FIX: Listen to Firebase Auth state changes
-  /// This is the most reliable way to check if user is logged in on app start
-  /// Firebase Auth will emit the current state once it loads from platform storage
-  ///
-  /// âœ… NEW SIMPLIFIED FLOW: Email verification happens outside app
-  /// - Signup â†’ Verify email (outside app) â†’ Login â†’ DONE
-  /// - No blocking for unverified emails - backend enforces verification
-  void _initializeAuthState() {
-    _logger.log('[AUTH] _initializeAuthState() called', level: LogLevel.info);
+  // Phase 3D: Labuda-first startup — Firebase must NOT resurrect Labuda session.
+  bool _isLabudaAccessTokenExpired(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return true;
+      final payload = parts[1];
+      final normalized = base64Url.normalize(payload);
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      final map = jsonDecode(decoded) as Map<String, dynamic>;
+      final exp = map['exp'];
+      int? expSec;
+      if (exp is int) expSec = exp;
+      if (exp is double) expSec = exp.toInt();
+      if (expSec == null) return true;
+      final expDate = DateTime.fromMillisecondsSinceEpoch(expSec * 1000);
+      return DateTime.now().isAfter(expDate.subtract(const Duration(seconds: 30)));
+    } catch (_) {
+      return true;
+    }
+  }
 
-    // Cancel any existing subscription
-    _authStateSubscription?.cancel();
+  Future<bool> _restoreLabudaSession() async {
+    if (_labudaRestoreFuture != null) return _labudaRestoreFuture!;
+    final completer = Completer<bool>();
+    _labudaRestoreFuture = completer.future;
+    bool result = false;
+    try {
+      result = await _doRestoreLabudaSession();
+      completer.complete(result);
+    } catch (_) {
+      if (!completer.isCompleted) completer.complete(false);
+      result = false;
+    } finally {
+      _labudaRestoreFuture = null;
+    }
+    return result;
+  }
 
-    // ðŸ›¡ï¸ STARTUP FAILSAFE: If Firebase listener never fires (network hang,
-    // Firebase SDK issue), force unauthenticated after 15s to escape splash.
-    Future.delayed(const Duration(seconds: 15), () {
-      if (state is AuthStateInitial) {
-        _logger.log(
-          '[AUTH] STARTUP TIMEOUT: still AuthStateInitial after 15s â€” forcing unauthenticated',
-          level: LogLevel.error,
-        );
-        _setState(const AuthState.unauthenticated());
+  Future<bool> _doRestoreLabudaSession() async {
+    final accessRes = await _localStorage.readLabudaAccessToken();
+    final access = accessRes.data?.trim();
+    if (access != null && access.isNotEmpty && !_isLabudaAccessTokenExpired(access)) {
+      try {
+        final svc = _userSyncService;
+        if (svc != null) {
+          final userRes = await svc.getCurrentUser().timeout(const Duration(seconds: 10));
+          if (userRes.isSuccess && userRes.data != null) {
+            final user = _canonicalizeBackendUser(userRes.data!);
+            final gen = _beginHydrationRequest();
+            _publishAuthenticatedIfCurrent(gen, user, emailVerified: user.isEmailVerified);
+            _startSessionValidation();
+            _logger.info('[AUTH] Labuda startup restore via valid access token');
+            return true;
+          }
+        }
+      } catch (e) {
+        _logger.warning('[AUTH] Labuda access validation failed, trying refresh', extra: {'error': e.toString()});
       }
-    });
+    }
+    // Try refresh if access missing/expired or validation failed
+    final refreshRes = await _localStorage.readLabudaRefreshToken();
+    final refresh = refreshRes.data?.trim();
+    if (refresh == null || refresh.isEmpty) {
+      _logger.info('[AUTH] No Labuda refresh token for startup');
+      return false;
+    }
+    try {
+      final apiDs = ref.read(auth_data.authApiDatasourceProvider);
+      final refreshResult = await apiDs.refreshPlatformToken(refresh).timeout(const Duration(seconds: 10));
+      if (refreshResult.isError || refreshResult.data == null) {
+        _logger.warning('[AUTH] Labuda refresh failed at startup', extra: {'error': refreshResult.error});
+        return false;
+      }
+      final pair = refreshResult.data!;
+      final saveRes = await _localStorage.saveLabudaCredential(pair.accessToken, pair.refreshToken);
+      if (saveRes.isError) {
+        _logger.warning('[AUTH] saveLabudaCredential failed after startup refresh');
+        return false;
+      }
+      final svc = _userSyncService;
+      if (svc != null) {
+        final userRes = await svc.getCurrentUser().timeout(const Duration(seconds: 10));
+        if (userRes.isSuccess && userRes.data != null) {
+          final user = _canonicalizeBackendUser(userRes.data!);
+          final gen = _beginHydrationRequest();
+          _publishAuthenticatedIfCurrent(gen, user, emailVerified: user.isEmailVerified);
+          _startSessionValidation();
+          _logger.info('[AUTH] Labuda startup restore via refresh succeeded');
+          return true;
+        }
+      }
+      return false;
+    } catch (e) {
+      _logger.warning('[AUTH] Labuda refresh exception at startup', extra: {'error': e.toString()});
+      return false;
+    }
+  }
 
-    // Listen to Firebase Auth state changes
+  void _setupFirebaseAuthListener() {
+    _initialFirebaseEventPending = true;
     _authStateSubscription = FirebaseAuth.instance.authStateChanges().listen(
       (User? user) async {
-        _logger.log(
-          '[AUTH] Firebase Auth listener fired â†’ ${user != null ? "User(${user.uid})" : "None"}',
-          level: LogLevel.info,
-        );
+        _logger.log('[AUTH] Firebase Auth listener fired → ${user != null ? "User(${user.uid})" : "None"}', level: LogLevel.info);
+        final isInitial = _initialFirebaseEventPending;
+        if (isInitial) _initialFirebaseEventPending = false;
+        // Phase 3D: Firebase must NOT resurrect Labuda when Labuda missing at startup.
+        // The initial emission reflects pre-existing Firebase session, not explicit login.
+        if (isInitial && user != null && !_isExplicitLoginInProgress && !_isInitiatingEmailSignup) {
+          bool hasLabuda = false;
+          try {
+            final r = await _localStorage.hasLabudaCredential();
+            hasLabuda = r.data == true;
+          } catch (_) {
+            hasLabuda = false;
+          }
+          if (!hasLabuda && state is AuthStateUnauthenticated) {
+            _logger.info('[AUTH] Initial Firebase user present but no Labuda session — staying unauthenticated (no exchange fallback)');
+            return;
+          }
+        }
         if (user != null) {
+          if (!_isExplicitLoginInProgress && !_isInitiatingEmailSignup && !isInitial) {
+            bool hasLabuda2 = false;
+            try {
+              final r2 = await _localStorage.hasLabudaCredential();
+              hasLabuda2 = r2.data == true;
+            } catch (_) {
+              hasLabuda2 = false;
+            }
+            final hasLabuda = hasLabuda2;
+            if (!hasLabuda && state is AuthStateUnauthenticated) {
+              _logger.info('[AUTH] Firebase user present but no Labuda session — staying unauthenticated (no exchange fallback)');
+              return;
+            }
+            if (state is AuthStateAuthenticated) {
+              _logger.debug('[AUTH] Firebase event while Labuda authenticated — ignoring');
+              return;
+            }
+          }
           final principal = FirebasePrincipal.fromFirebaseUser(user);
-          // ðŸ” CRITICAL: RELOAD Firebase user to get fresh data
-          // ðŸ›¡ï¸ TIMEOUT: user.reload() can hang indefinitely on bad networks.
-          // The catch block below handles TimeoutException and continues
-          // with stale cached data rather than blocking forever.
           try {
             _logger.log('[AUTH] user.reload() start', level: LogLevel.debug);
             await user.reload().timeout(const Duration(seconds: 5));
             _logger.log('[AUTH] user.reload() done', level: LogLevel.debug);
             final refreshedUser = activeFirebaseUser;
             if (refreshedUser == null) {
-              // User was deleted during reload
               _setState(const AuthState.unauthenticated());
               return;
             }
-
-            // Email verification is NOT a separate auth state.
-            // Surface unverified status via persistent banner + inline gate
-            // (see EmailVerificationBanner / blocked_action_gate).
-            // Backend (route middleware) is the enforcement boundary â€” mobile
-            // does NOT halt sync on `!emailVerified`.
-            _setState(
-              AuthState.firebaseAuthenticated(
-                refreshedUser.uid,
-                principal: FirebasePrincipal.fromFirebaseUser(refreshedUser),
-              ),
-            );
-
-            // ðŸ”’ FLOW AWARENESS: Pass explicit isEmailSignup flag from signup flow
+            _setState(AuthState.firebaseAuthenticated(refreshedUser.uid, principal: FirebasePrincipal.fromFirebaseUser(refreshedUser)));
             final isEmailSignupFlow = _isInitiatingEmailSignup;
-            _syncWithBackend(
-              refreshedUser.uid,
-              refreshedUser,
-              isEmailSignup: isEmailSignupFlow,
-            );
+            _syncWithBackend(refreshedUser.uid, refreshedUser, isEmailSignup: isEmailSignupFlow);
           } catch (e) {
-            _logger.error(
-              'Failed to reload Firebase user',
-              extra: {'error': e.toString()},
-            );
-            // Continue with stale user data on reload failure
-            _setState(
-              AuthState.firebaseAuthenticated(user.uid, principal: principal),
-            );
-
+            _logger.error('Failed to reload Firebase user', extra: {'error': e.toString()});
+            _setState(AuthState.firebaseAuthenticated(user.uid, principal: principal));
             final isEmailSignupFlow = _isInitiatingEmailSignup;
             _syncWithBackend(user.uid, user, isEmailSignup: isEmailSignupFlow);
           }
         } else {
+          // Firebase signed out — but if Labuda still authenticated, keep Labuda (step 7)
+          bool hasLabuda3 = false;
+          try {
+            final r3 = await _localStorage.hasLabudaCredential();
+            hasLabuda3 = r3.data == true;
+          } catch (_) {
+            hasLabuda3 = false;
+          }
+          final hasLabuda = hasLabuda3;
+          if (hasLabuda && state is AuthStateAuthenticated) {
+            _logger.info('[AUTH] Firebase null but Labuda authenticated — keeping Labuda session');
+            return;
+          }
           _setState(const AuthState.unauthenticated());
           _stopSessionValidation();
         }
       },
       onError: (e) {
-        _logger.error(
-          'Firebase Auth state error',
-          extra: {'error': e.toString()},
-        );
+        _logger.error('Firebase Auth state error', extra: {'error': e.toString()});
+        // Do not clear Labuda authenticated state on Firebase stream error
+        if (state is AuthStateAuthenticated) return;
         _setState(const AuthState.unauthenticated());
       },
     );
+  }
+
+  void _initializeAuthState() {
+    _logger.log('[AUTH] _initializeAuthState() called', level: LogLevel.info);
+    _authStateSubscription?.cancel();
+    Future.delayed(const Duration(seconds: 15), () {
+      if (state is AuthStateInitial) {
+        _logger.log('[AUTH] STARTUP TIMEOUT: still AuthStateInitial after 15s — forcing unauthenticated', level: LogLevel.error);
+        _setState(const AuthState.unauthenticated());
+      }
+    });
+    // Labuda-first startup authority
+    _restoreLabudaSession().then((restored) {
+      if (restored) {
+        _logger.info('[AUTH] Startup Labuda restore succeeded');
+      } else {
+        _logger.info('[AUTH] Startup Labuda restore not available — unauthenticated');
+        if (state is AuthStateInitial) _setState(const AuthState.unauthenticated());
+      }
+      _setupFirebaseAuthListener();
+    });
   }
 
   /// ðŸ”§ BACKEND SYNC: Sync user with backend and get complete user data
@@ -941,6 +1057,7 @@ class AuthController extends Notifier<AuthState> {
     } finally {
       _syncInProgress = false;
       _ongoingSync = null;
+      _isExplicitLoginInProgress = false;
       syncCompleter.complete();
       _logger.log('[SYNC] Backend sync complete', level: LogLevel.debug);
     }
@@ -1199,6 +1316,7 @@ class AuthController extends Notifier<AuthState> {
     required String email,
     required String password,
   }) async {
+    _isExplicitLoginInProgress = true;
     _setState(const AuthState.loading());
 
     final result = await _signInService.signInWithEmail(
@@ -1207,13 +1325,12 @@ class AuthController extends Notifier<AuthState> {
     );
 
     if (result.isError) {
-      // Only set error state if login failed
+      _isExplicitLoginInProgress = false;
       _setState(AuthState.error(result.error!));
     }
-    // If success: DO NOT set state here
-    // Firebase listener will handle state transition:
-    // loading â†’ firebaseAuthenticated â†’ syncingWithBackend â†’ authenticated
-    // This prevents state overwrite race condition
+    // If success: DO NOT set state here — Firebase listener will handle
+    // and _isExplicitLoginInProgress allows the listener to perform exchange.
+    // Flag cleared after sync (see _syncWithBackend finally).
   }
 
   /// Sign in dengan Google
@@ -1244,11 +1361,13 @@ class AuthController extends Notifier<AuthState> {
 
     _isGoogleSigningIn = true;
 
+    _isExplicitLoginInProgress = true;
     try {
       final result = await _signInService.signInWithGoogle();
 
       if (result.isError) {
         // Only set error state if login failed
+        _isExplicitLoginInProgress = false;
         _setState(AuthState.error(result.error!));
       }
       // If success: DO NOT set state here
@@ -1442,6 +1561,11 @@ class AuthController extends Notifier<AuthState> {
       }
     }
 
+    // Phase 3E: Clear local Labuda credential via canonical abstraction (fail-closed even if server logout failed)
+    try {
+      await _localStorage.clearLabudaCredential();
+    } catch (_) {}
+
     // 2. Cleanup FCM BEFORE sign out (while user is still authenticated)
     if (currentState is AuthStateAuthenticated) {
       try {
@@ -1506,18 +1630,71 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
+  /// Sign out from all devices (logout-all).
+  Future<void> signOutAll() async {
+    _stopSessionValidation();
+    _retryTimer?.cancel();
+    _retryTimer = null;
+    _retryCount = 0;
+    final currentState = state;
+    if (currentState is AuthStateAuthenticated) {
+      try {
+        final result = await _authRepository.logoutAllSessions();
+        if (result.isError) {
+          await _logger.warning('Backend logout-all failed; local logout will continue', extra: {'error': result.error});
+        }
+      } catch (e) {
+        await _logger.warning('Backend logout-all failed; local logout will continue', extra: {'error': e.toString()});
+      }
+    }
+    try {
+      await _localStorage.clearLabudaCredential();
+    } catch (_) {}
+    try {
+      ref.read(presenceManagerProvider.notifier).clearUser();
+    } catch (_) {}
+    try {
+      final ws = ref.read(webSocketServiceProvider);
+      await ws.disconnect().timeout(const Duration(seconds: 3));
+    } catch (_) {}
+    if (currentState is AuthStateAuthenticated) {
+      await _analytics.logEvent('logout', parameters: {'user_id': currentState.user.id, 'all_devices': true}, userId: currentState.user.id);
+    }
+    _syncedUserId = null;
+    _syncInProgress = false;
+    _ongoingSync = null;
+    final result = await _signInService.signOut();
+    if (result.isSuccess) {
+      _setState(const AuthState.unauthenticated());
+    } else {
+      _setState(AuthState.error(result.error!));
+    }
+  }
+
   /// Activate WebSocket connection and presence tracking after successful
   /// backend sync. Called once per login; idempotent on re-entry (WS guards
   /// duplicate connect, presence handles same-user no-op).
   ///
   /// Fire-and-forget: failures are logged but NEVER block the auth flow.
   void _activateRealtimeServices(String userId, User firebaseUser) {
-    // WebSocket: connect with fresh Firebase ID token
+    // Phase 5: WebSocket uses Labuda access JWT (canonical). No Firebase fallback.
+    // Install Labuda token provider for future reconnects, then connect with current Labuda token.
+    try {
+      final ws = ref.read(webSocketServiceProvider);
+      ws.setLabudaTokenProvider(() async {
+        final res = await _localStorage.readLabudaAccessToken();
+        return res.data?.trim();
+      });
+    } catch (_) {}
     unawaited(
       Future<void>(() async {
         try {
-          final token = await firebaseUser.getIdToken();
-          if (token == null || token.isEmpty) return;
+          final res = await _localStorage.readLabudaAccessToken();
+          final token = res.data?.trim();
+          if (token == null || token.isEmpty) {
+            _logger.log('[AUTH] WebSocket connect skipped — Labuda access missing (no Firebase fallback)', level: LogLevel.debug);
+            return;
+          }
           final ws = ref.read(webSocketServiceProvider);
           await ws.connect(token);
         } catch (e) {

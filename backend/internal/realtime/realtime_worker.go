@@ -243,8 +243,6 @@ func (w *Worker) processBatch() {
 		// Process only chat realtime events that the realtime dispatcher knows
 		// how to deliver to websocket recipients.
 		if event.EventType != EventTypeChatMessageSent &&
-			event.EventType != EventTypeModerationChatHidden &&
-			event.EventType != EventTypeModerationChatRestored &&
 			event.EventType != EventTypeChatRoomCreated &&
 			event.EventType != EventTypeChatRoomUpdated {
 			continue

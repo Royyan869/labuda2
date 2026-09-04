@@ -13,6 +13,7 @@ import (
 	"github.com/labuda/backend/internal/audit"
 	billingApp "github.com/labuda/backend/internal/finance/billing/application"
 	billingentity "github.com/labuda/backend/internal/finance/billing/entity"
+	"github.com/labuda/backend/internal/commerce/governance/commercegov"
 	"github.com/labuda/backend/internal/identity/auth"
 	"github.com/labuda/backend/internal/middleware"
 	"github.com/labuda/backend/internal/platform/response"
@@ -37,6 +38,7 @@ type PromotionHandler struct {
 	log              *zap.Logger
 	adminAuditLogger audit.AdminAuditLogger
 	eventRepo        promotionRepo.PromotionEventRepository // optional; nil = tracking disabled
+	commerceGovRepo  commercegov.Repository                 // COMMERCE RESTRICTION: canonical restriction checker
 }
 
 // NewPromotionHandler creates a new PromotionHandler.
@@ -63,6 +65,41 @@ func NewPromotionHandler(
 		log:              log,
 		adminAuditLogger: auditLogger,
 	}
+}
+
+// SetCommerceGovRepository wires the canonical commerce restriction repository
+// into the promotion handler so seller commerce restriction is enforced at
+// promotion activation/reassignment mutation boundaries.
+func (h *PromotionHandler) SetCommerceGovRepository(repo commercegov.Repository) {
+	h.commerceGovRepo = repo
+}
+
+// requireSellerNotRestricted checks whether the given seller has an active
+// commerce restriction at the HTTP mutation boundary. Returns true if
+// the seller IS restricted (handler should abort), false otherwise.
+func (h *PromotionHandler) requireSellerNotRestricted(c *gin.Context, sellerID uuid.UUID) bool {
+	if h.commerceGovRepo == nil {
+		return false // repo not wired — fail-open for backward compat
+	}
+	ctx := c.Request.Context()
+	// Use a nil transaction — the promotion handler does not run inside
+	// a WithTx block. IsUserRestricted with tx=nil still works because
+	// the canonical implementation opens its own read query. The race
+	// window is acceptable for this enforcement layer (the DB constraint
+	// and seller capability check together form the primary guard).
+	restricted, _, err := commercegov.IsUserRestricted(ctx, nil, h.commerceGovRepo, sellerID)
+	if err != nil {
+		h.log.Warn("commerce restriction check failed",
+			zap.String("seller_id", sellerID.String()),
+			zap.Error(err),
+		)
+		return false // fail-open on transport error
+	}
+	if restricted {
+		response.Error(c, 403, "COMMERCE_RESTRICTED", "Your account has an active commerce restriction. Please wait for the restriction to expire.")
+		return true
+	}
+	return false
 }
 
 // SetEventRepo wires the analytics event repository for click tracking.
@@ -614,6 +651,9 @@ func (h *PromotionHandler) ActivatePromotion(c *gin.Context) {
 				response.Forbidden(c, "Active seller subscription required to promote fixed-price sales")
 				return
 			}
+			if h.requireSellerNotRestricted(c, sellerID) {
+				return
+			}
 		} else if targetType == entity.TargetTypeAuction {
 			// Get auction to verify ownership and check seller capability
 			var sellerID uuid.UUID
@@ -648,6 +688,9 @@ func (h *PromotionHandler) ActivatePromotion(c *gin.Context) {
 				response.Forbidden(c, "Active seller subscription required to promote auctions")
 				return
 			}
+			if h.requireSellerNotRestricted(c, sellerID) {
+				return
+			}
 		} else if targetType == entity.TargetTypeExternalProduct {
 			// Get external product to verify ownership and check seller capability
 			var ownerUserID uuid.UUID
@@ -680,6 +723,9 @@ func (h *PromotionHandler) ActivatePromotion(c *gin.Context) {
 			}
 			if !hasCapability {
 				response.Forbidden(c, "Active seller subscription required to promote external products")
+				return
+			}
+			if h.requireSellerNotRestricted(c, ownerUserID) {
 				return
 			}
 		}
@@ -905,6 +951,9 @@ func (h *PromotionHandler) ReassignPromotion(c *gin.Context) {
 				response.Forbidden(c, "Active seller subscription required to promote fixed-price sales")
 				return
 			}
+			if h.requireSellerNotRestricted(c, sellerID) {
+				return
+			}
 		} else if newTargetType == entity.TargetTypeAuction {
 			// Get auction to verify ownership and check seller capability
 			var sellerID uuid.UUID
@@ -939,6 +988,9 @@ func (h *PromotionHandler) ReassignPromotion(c *gin.Context) {
 				response.Forbidden(c, "Active seller subscription required to promote auctions")
 				return
 			}
+			if h.requireSellerNotRestricted(c, sellerID) {
+				return
+			}
 		} else if newTargetType == entity.TargetTypeExternalProduct {
 			// Get external product to verify ownership and check seller capability
 			var ownerUserID uuid.UUID
@@ -971,6 +1023,9 @@ func (h *PromotionHandler) ReassignPromotion(c *gin.Context) {
 			}
 			if !hasCapability {
 				response.Forbidden(c, "Active seller subscription required to promote external products")
+				return
+			}
+			if h.requireSellerNotRestricted(c, ownerUserID) {
 				return
 			}
 		}

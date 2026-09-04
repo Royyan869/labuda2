@@ -237,11 +237,10 @@ func (h *NotificationEventHandler) handleCommentReply(ctx context.Context, paylo
 	)
 }
 
-// handleSellerResponse processes seller.response events.
-// Social governance: applyPolicyLayer via insertNotificationWithPolicy.
-// shouldFilterNotification removed; recipient lifecycle, actor lifecycle, block, and account
-// status are all enforced at delivery time. Push and in-app governed by the same policy result.
-// seller.response is Social category; no CommerceCritical reclassification.
+// handleSellerResponse processes seller.response / auction.response events.
+// Canonical payload (Phase 2A): comment_id, content_id, seller_id, request_creator_id,
+// resource_id + resource_type discriminate for_sale vs auction. Supports both event
+// names via same handler. Social category; no CommerceCritical reclassification.
 func (h *NotificationEventHandler) handleSellerResponse(ctx context.Context, payload []byte) (notificationInfo, error) {
 	var p SellerResponsePayload
 	if err := json.Unmarshal(payload, &p); err != nil {
@@ -268,10 +267,17 @@ func (h *NotificationEventHandler) handleSellerResponse(ctx context.Context, pay
 		return notificationInfo{}, fmt.Errorf("invalid content_id: %w", err)
 	}
 
-	forSaleID, err := uuid.Parse(p.ForSaleID)
-	if err != nil {
-		return notificationInfo{}, fmt.Errorf("invalid for_sale_id: %w", err)
+	if p.ResourceID == "" {
+		return notificationInfo{}, fmt.Errorf("invalid resource_id: missing")
 	}
+	resourceID, err := uuid.Parse(p.ResourceID)
+	if err != nil {
+		return notificationInfo{}, fmt.Errorf("invalid resource_id: %w", err)
+	}
+	if p.ResourceType != "for_sale" && p.ResourceType != "auction" {
+		return notificationInfo{}, fmt.Errorf("invalid resource_type: %s", p.ResourceType)
+	}
+	resourceType := p.ResourceType
 
 	// Don't notify self (seller responding to own request - edge case)
 	if sellerID == requestCreatorID {
@@ -282,17 +288,65 @@ func (h *NotificationEventHandler) handleSellerResponse(ctx context.Context, pay
 	}
 
 	data := map[string]interface{}{
-		"targetId":   contentID.String(),
-		"targetType": "request",
-		"commentId":  commentID.String(),
-		"forSaleId":  forSaleID.String(),
+		"targetId":     contentID.String(),
+		"targetType":   "request",
+		"commentId":    commentID.String(),
+		"resourceId":   resourceID.String(),
+		"resourceType": resourceType,
+	}
+
+	// Preserve event type as seller.response / auction.response for policy parity.
+	// Both are Social; we emit seller.response canonically but accept either.
+	notifyType := events.EventSellerResponse
+	if resourceType == "auction" {
+		// Keep auction.response distinct for routing parity; policy treats both as Social.
+		notifyType = events.EventAuctionResponse
 	}
 
 	return h.insertNotificationWithPolicy(
 		ctx,
 		requestCreatorID,
 		sellerID,
-		"seller.response",
+		notifyType,
+		contentID,
+		data,
+	)
+}
+
+// handleContentMentioned processes content.mentioned events.
+// Each event is per-mentioned-user; recipient = mentioned_user_id, actor = content author.
+func (h *NotificationEventHandler) handleContentMentioned(ctx context.Context, payload []byte) (notificationInfo, error) {
+	var p ContentMentionedPayload
+	if err := json.Unmarshal(payload, &p); err != nil {
+		return notificationInfo{}, fmt.Errorf("unmarshal payload failed: %w", err)
+	}
+	authorID, err := uuid.Parse(p.AuthorID)
+	if err != nil {
+		return notificationInfo{}, fmt.Errorf("invalid author_id: %w", err)
+	}
+	mentionedID, err := uuid.Parse(p.MentionedUserID)
+	if err != nil {
+		return notificationInfo{}, fmt.Errorf("invalid mentioned_user_id: %w", err)
+	}
+	contentID, err := uuid.Parse(p.ContentID)
+	if err != nil {
+		return notificationInfo{}, fmt.Errorf("invalid content_id: %w", err)
+	}
+	if authorID == mentionedID {
+		h.log.Debug("Skipping self-mention notification",
+			zap.String("user_id", authorID.String()),
+		)
+		return notificationInfo{}, nil
+	}
+	data := map[string]interface{}{
+		"targetId":   contentID.String(),
+		"targetType": "content",
+	}
+	return h.insertNotificationWithPolicy(
+		ctx,
+		mentionedID,
+		authorID,
+		events.EventContentMentioned,
 		contentID,
 		data,
 	)
@@ -378,6 +432,8 @@ var socialNotificationTypes = []string{
 	"comment_reply",
 	"chat_message",
 	"seller.response",
+	"auction.response",
+	"content.mentioned",
 }
 
 // handleUserBlocked removes all SOCIAL-category notification history between two users

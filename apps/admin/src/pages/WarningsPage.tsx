@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { AlertTriangle, Plus, Filter, X } from 'lucide-react'
+import { AlertTriangle, Filter, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table'
-import { IssueWarningModal } from '@/components/moderation/IssueWarningModal'
 import { useWarnings, useRevokeWarning } from '@/hooks/useWarnings'
 import { formatDate } from '@/lib/utils'
 import {
@@ -20,7 +19,6 @@ const ACTIVE_FILTERS: { value: boolean | null; label: string }[] = [
 
 export function WarningsPage() {
   const [activeFilter, setActiveFilter] = useState<boolean | null>(true)
-  const [isIssueModalOpen, setIsIssueModalOpen] = useState(false)
   const [revokingId, setRevokingId] = useState<string | null>(null)
 
   const { warnings, loading, error, count, refetch } = useWarnings(
@@ -43,11 +41,6 @@ export function WarningsPage() {
     } finally {
       setRevokingId(null)
     }
-  }
-
-  const handleWarningIssued = () => {
-    setIsIssueModalOpen(false)
-    refetch()
   }
 
   if (loading) {
@@ -84,15 +77,9 @@ export function WarningsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">User Warnings</h1>
-          <p className="text-gray-600 mt-1">Manage user warnings and policy violations</p>
-        </div>
-        <Button onClick={() => setIsIssueModalOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Issue Warning
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">User Warnings</h1>
+        <p className="text-gray-600 mt-1">Manage user warnings and policy violations</p>
       </div>
 
       {/* Stats Card */}
@@ -222,13 +209,6 @@ export function WarningsPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Issue Warning Modal */}
-      <IssueWarningModal
-        isOpen={isIssueModalOpen}
-        onClose={() => setIsIssueModalOpen(false)}
-        onWarningIssued={handleWarningIssued}
-      />
     </div>
   )
 }

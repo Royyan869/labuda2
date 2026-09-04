@@ -177,7 +177,7 @@ Future<_AppBootstrap> _initServices() async {
   logger.info('[BOOTSTRAP] LocalStorage.initialize() done ✓');
   final navigationRegistry = NavigationRegistryImpl();
   final authService = FirebaseAuthenticationService();
-  final apiClient = ApiClient(logger: logger);
+  final apiClient = ApiClient(logger: logger, localStorage: localStorage);
 
   // ── Notification stack ─────────────────────────────────────────────────────
   final notificationPlugin = FlutterLocalNotificationsPlugin();

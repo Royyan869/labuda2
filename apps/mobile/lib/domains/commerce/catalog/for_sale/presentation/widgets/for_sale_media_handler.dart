@@ -4,31 +4,39 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/ui/src/helpers/media_picker_helper.dart';
 import 'package:labuda/shared/ui/src/screens/custom_camera_screen.dart';
 
-/// ForSale Media Handler - Handles photo selection for forSales
+/// ForSale Media Handler — handles image + video selection for For Sale listings.
 ///
-/// Features:
-/// - Photo selection from gallery
-/// - Camera with photo capture
-/// - Multiple selection support
-/// - File size validation
-/// - S3 upload with proper error handling
+/// Uses canonical upload primitives:
+/// - S3Service.uploadImage() for images
+/// - S3Service.uploadVideo() for videos
+///
+/// Ordering: preserves selection order (sequential upload, no concurrency).
+/// Business rule: photos first, then videos — enforced by caller selection order.
 class ForSaleMediaHandler {
-  static const int maxImages = 10;
+  static const int maxMedia = 10;
   static const int maxImageSizeMb = 10;
+  static const int maxVideoSizeMb = 100;
+  static const int maxVideoDurationMs = 180000; // 3 minutes
 
-  /// Pick photos from gallery
-  Future<List<File>> pickPhotosFromGallery({
+  /// Whether a file is a video based on extension.
+  static bool _isVideoFile(File file) {
+    final ext = file.path.split('.').last.toLowerCase();
+    return const {'mp4', 'mov', 'webm', 'm4v', 'avi', 'mkv', '3gp', 'wmv'}.contains(ext);
+  }
+
+  /// Pick media (photos + videos) from gallery.
+  Future<List<File>> pickMediaFromGallery({
     required BuildContext context,
     int currentMediaCount = 0,
   }) async {
-    final maxAssets = maxImages - currentMediaCount;
+    final maxAssets = maxMedia - currentMediaCount;
     if (maxAssets <= 0) {
-      _showError(context, 'Maksimal $maxImages foto untuk forSale');
+      _showError(context, 'Maksimal $maxMedia media untuk forSale');
       return [];
     }
 
     try {
-      final mediaUrls = await MediaPickerHelper.pickPhotos(
+      final mediaUrls = await MediaPickerHelper.pickMedia(
         context: context,
         maxAssets: maxAssets,
       );
@@ -39,7 +47,7 @@ class ForSaleMediaHandler {
       for (final path in mediaUrls) {
         final file = File(path);
         if (!context.mounted) continue;
-        if (await _validateImageFile(file, context)) {
+        if (await _validateFile(file, context)) {
           validFiles.add(file);
         }
       }
@@ -47,19 +55,19 @@ class ForSaleMediaHandler {
       return validFiles;
     } catch (e) {
       if (!context.mounted) return [];
-      _showError(context, 'Gagal memilih foto. Coba lagi.');
+      _showError(context, 'Gagal memilih media. Coba lagi.');
       return [];
     }
   }
 
-  /// Open camera for photo capture
+  /// Open camera for photo capture.
   Future<List<File>> openCamera({
     required BuildContext context,
     int currentMediaCount = 0,
   }) async {
-    final maxAssets = maxImages - currentMediaCount;
+    final maxAssets = maxMedia - currentMediaCount;
     if (maxAssets <= 0) {
-      _showError(context, 'Maksimal $maxImages foto untuk forSale');
+      _showError(context, 'Maksimal $maxMedia media untuk forSale');
       return [];
     }
 
@@ -72,7 +80,7 @@ class ForSaleMediaHandler {
       for (final path in mediaUrls) {
         final file = File(path);
         if (!context.mounted) continue;
-        if (await _validateImageFile(file, context)) {
+        if (await _validateFile(file, context)) {
           validFiles.add(file);
         }
       }
@@ -85,23 +93,30 @@ class ForSaleMediaHandler {
     }
   }
 
-  /// Upload photos to S3 and return URLs
+  /// Upload media to S3 and return URLs.
   ///
-  /// Returns a list of successfully uploaded URLs.
-  /// Failed uploads are reported via SnackBar but don't block the entire operation.
-  Future<List<String>> uploadPhotos({
+  /// Uses canonical primitives:
+  /// - S3Service.uploadImage() for image files
+  /// - S3Service.uploadVideo() for video files
+  ///
+  /// Preserves selection order (sequential upload, no concurrency).
+  Future<List<String>> uploadMedia({
     required BuildContext context,
-    required List<File> photos,
+    required List<File> files,
   }) async {
-    if (photos.isEmpty) return [];
+    if (files.isEmpty) return [];
 
     final s3Service = S3Service();
     final List<String> uploadedUrls = [];
     int successCount = 0;
     int failCount = 0;
 
-    for (final photo in photos) {
-      final result = await s3Service.uploadImage(photo);
+    for (final file in files) {
+      final isVideo = _isVideoFile(file);
+      final result = isVideo
+          ? await s3Service.uploadVideo(file)
+          : await s3Service.uploadImage(file);
+
       if (result.isSuccess && result.data != null) {
         uploadedUrls.add(result.data!);
         successCount++;
@@ -116,12 +131,12 @@ class ForSaleMediaHandler {
     if (failCount > 0) {
       _showError(
         context,
-        '$successCount foto berhasil diupload, $failCount gagal',
+        '$successCount media berhasil diupload, $failCount gagal',
       );
     } else if (successCount > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('$successCount foto berhasil diupload'),
+          content: Text('$successCount media berhasil diupload'),
           backgroundColor: AppColors.successGreen,
           duration: const Duration(seconds: 2),
         ),
@@ -131,20 +146,22 @@ class ForSaleMediaHandler {
     return uploadedUrls;
   }
 
-  /// Validate image file
-  Future<bool> _validateImageFile(File file, BuildContext context) async {
+  /// Validate file (size check).
+  Future<bool> _validateFile(File file, BuildContext context) async {
     final bytes = await file.length();
     final sizeMB = bytes / (1024 * 1024);
+    final isVideo = _isVideoFile(file);
+    final maxSize = isVideo ? maxVideoSizeMb : maxImageSizeMb;
 
-    if (sizeMB > maxImageSizeMb) {
+    if (sizeMB > maxSize) {
       if (!context.mounted) return false;
-      _showError(context, 'Ukuran foto maksimal ${maxImageSizeMb}MB');
+      _showError(context, 'Ukuran ${isVideo ? "video" : "foto"} maksimal ${maxSize}MB');
       return false;
     }
     return true;
   }
 
-  /// Show error messages
+  /// Show error messages.
   void _showError(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -155,7 +172,7 @@ class ForSaleMediaHandler {
     );
   }
 
-  /// Show media picker bottom sheet - 2 options: Gallery & Camera
+  /// Show media picker bottom sheet — Gallery & Camera.
   static void showMediaPicker({
     required BuildContext context,
     required Future<void> Function(List<String> urls) onMediaUploaded,
@@ -182,15 +199,15 @@ class ForSaleMediaHandler {
               onTap: () async {
                 final ctx = context;
                 Navigator.pop(ctx);
-                final photos = await handler.pickPhotosFromGallery(
+                final files = await handler.pickMediaFromGallery(
                   context: ctx,
                   currentMediaCount: currentMediaCount,
                 );
                 if (ctx.mounted) {
-                  await _handlePhotoSelection(
+                  await _handleMediaSelection(
                     context: ctx,
                     handler: handler,
-                    photos: photos,
+                    files: files,
                     onMediaUploaded: onMediaUploaded,
                   );
                 }
@@ -203,15 +220,15 @@ class ForSaleMediaHandler {
               onTap: () async {
                 final ctx = context;
                 Navigator.pop(ctx);
-                final photos = await handler.openCamera(
+                final files = await handler.openCamera(
                   context: ctx,
                   currentMediaCount: currentMediaCount,
                 );
                 if (ctx.mounted) {
-                  await _handlePhotoSelection(
+                  await _handleMediaSelection(
                     context: ctx,
                     handler: handler,
-                    photos: photos,
+                    files: files,
                     onMediaUploaded: onMediaUploaded,
                   );
                 }
@@ -223,15 +240,14 @@ class ForSaleMediaHandler {
     );
   }
 
-  static Future<void> _handlePhotoSelection({
+  static Future<void> _handleMediaSelection({
     required BuildContext context,
     required ForSaleMediaHandler handler,
-    required List<File> photos,
+    required List<File> files,
     required Future<void> Function(List<String> urls) onMediaUploaded,
   }) async {
-    if (photos.isEmpty) return;
+    if (files.isEmpty) return;
 
-    // Show uploading indicator
     if (!context.mounted) return;
 
     // Show progress dialog
@@ -241,7 +257,7 @@ class ForSaleMediaHandler {
       builder: (context) => const _UploadProgressDialog(),
     );
 
-    final urls = await handler.uploadPhotos(context: context, photos: photos);
+    final urls = await handler.uploadMedia(context: context, files: files);
 
     // Close progress dialog
     if (!context.mounted) return;
@@ -267,7 +283,7 @@ class ForSaleMediaHandler {
   }
 }
 
-/// Upload progress dialog
+/// Upload progress dialog.
 class _UploadProgressDialog extends StatelessWidget {
   const _UploadProgressDialog();
 
@@ -280,7 +296,7 @@ class _UploadProgressDialog extends StatelessWidget {
           const CircularProgressIndicator(),
           const SizedBox(height: 16),
           Text(
-            'Mengupload foto...',
+            'Mengupload media...',
             style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
           ),
         ],

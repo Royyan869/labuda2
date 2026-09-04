@@ -51,8 +51,8 @@ func newCommentCommerceWireHandler(appDB *db.DB) *CommentHandler {
 		contentrepo.NewContentRepository(),
 		contentrepo.NewCommentRepository(),
 		forSaleSvc,
-		nil,                     // auctionValidator
-		nil,                     // visibilityChecker (falls back to contentRepo)
+		nil,            // auctionValidator
+		contentService, // visibilityChecker — canonical V-VISIBILITY via ContentService
 		commentWireTestOutbox{}, // outboxRepo (no-op)
 		idempotencyRepo.NewRepository(),
 		nil, // blockChecker

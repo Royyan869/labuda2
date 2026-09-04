@@ -76,7 +76,7 @@ import (
 // FLOW:
 // 1. GenerateForForSale/Negotiation/Auction → Token (PREVIEW)
 // 2. Client displays preview to user
-// 3. ValidateAndConsume → validates snapshot, marks token used, returns snapshot
+// 3. ValidateForOrderLocked → validates snapshot under lock, returns snapshot
 // 4. Order creation uses the validated snapshot from token
 // 5. Coins are calculated and applied AT ORDER LAYER (not pricing)
 //
@@ -564,48 +564,6 @@ func (s *PricingTokenService) FinalizeOrderConsumption(
 	}
 
 	return nil
-}
-
-// ValidateAndConsume validates a pricing token and marks it as used.
-//
-// Deprecated for order creation flows that need the real order ID. Prefer:
-// 1. ValidateForOrderLocked
-// 2. Create order
-// 3. FinalizeOrderConsumption
-func (s *PricingTokenService) ValidateAndConsume(
-	ctx context.Context,
-	tx db.Tx,
-	token uuid.UUID,
-	requesterID uuid.UUID,
-	productID uuid.UUID,
-	sourceType string,
-	sourceID uuid.UUID,
-	quantity int,
-	addressID uuid.UUID,
-	shippingSetupID uuid.UUID,
-	orderID uuid.UUID,
-) (*pricingtokenentity.PricingToken, error) {
-	pricingToken, err := s.ValidateForOrderLocked(
-		ctx,
-		tx,
-		token,
-		requesterID,
-		productID,
-		sourceType,
-		sourceID,
-		quantity,
-		addressID,
-		shippingSetupID,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := s.FinalizeOrderConsumption(ctx, tx, pricingToken, orderID); err != nil {
-		return nil, err
-	}
-
-	return pricingToken, nil
 }
 
 // GetSnapshot retrieves a pricing token's snapshot without consuming it.

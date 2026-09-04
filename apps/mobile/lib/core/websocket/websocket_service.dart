@@ -23,6 +23,10 @@ class WebSocketService {
   int _reconnectAttempts = 0;
   ConnectionState _state = ConnectionState.disconnected;
 
+  // Phase 5: Labuda canonical — token provider and connect generation for race safety.
+  Future<String?> Function()? _labudaTokenProvider;
+  int _connectGeneration = 0;
+
   // Room subscriptions
   final Set<String> _subscribedRooms = {};
 
@@ -45,9 +49,18 @@ class WebSocketService {
   bool get isConnected => _state == ConnectionState.connected;
   ConnectionState get state => _state;
 
+  void setLabudaTokenProvider(Future<String?> Function()? provider) {
+    _labudaTokenProvider = provider;
+  }
+
+  // Test-only accessor for provider
+  Future<String?> Function()? get labudaTokenProviderForTest => _labudaTokenProvider;
+  int get connectGenerationForTest => _connectGeneration;
+
   Future<void> connect(String authToken) async {
     if (_isConnecting || isConnected) return;
 
+    final int generation = ++_connectGeneration;
     _isConnecting = true;
     _authToken = authToken;
     _updateState(ConnectionState.connecting);
@@ -60,7 +73,7 @@ class WebSocketService {
       );
 
       // Auth via Authorization header — never embed token in the URL.
-      // Backend AuthMiddleware reads only the Authorization header;
+      // Backend LabudaAuthMiddleware reads only the Authorization header;
       // a ?token= query param would be silently ignored → 401.
       _channel = IOWebSocketChannel.connect(
         wsUri,
@@ -79,6 +92,16 @@ class WebSocketService {
       // Await the ready future so handshake failures (e.g. 401) are caught
       // here rather than leaking as uncaught async errors.
       await _channel!.ready;
+
+      // Phase 5 race: if disconnect/logout happened while handshake was in flight,
+      // the generation will have changed — abort stale handshake before marking connected.
+      if (generation != _connectGeneration) {
+        developer.log('WebSocket handshake stale (generation $generation != $_connectGeneration) — aborting', name: 'WebSocketService');
+        try { await _channel?.sink.close(status.goingAway); } catch (_) {}
+        _channel = null;
+        _isConnecting = false;
+        return;
+      }
 
       _isConnecting = false;
       _reconnectAttempts = 0;
@@ -203,17 +226,37 @@ class WebSocketService {
       return;
     }
 
+    // Phase 5: do not reconnect if Labuda credential has been cleared (logout).
+    // Canonical reconnect uses Labuda token provider (Labuda storage). No _authToken fallback,
+    // no Firebase fallback, no stale pre-logout reuse.
     _updateState(ConnectionState.reconnecting);
     _reconnectTimer?.cancel();
-    _reconnectTimer = Timer(reconnectDelay, () {
+    _reconnectTimer = Timer(reconnectDelay, () async {
       _reconnectAttempts++;
       developer.log(
         'Reconnect attempt $_reconnectAttempts',
         name: 'WebSocketService',
       );
-      if (_authToken != null) {
-        connect(_authToken!);
+      String? fresh;
+      final provider = _labudaTokenProvider;
+      if (provider != null) {
+        try {
+          fresh = await provider();
+          fresh = fresh?.trim();
+          if (fresh == null || fresh.isEmpty) {
+            developer.log('WebSocket reconnect skipped — Labuda access missing (no fallback)', name: 'WebSocketService');
+            return;
+          }
+        } catch (e) {
+          developer.log('WebSocket token provider error: $e', name: 'WebSocketService');
+          return;
+        }
+      } else {
+        developer.log('WebSocket reconnect skipped — no Labuda token provider (no _authToken fallback)', name: 'WebSocketService');
+        return;
       }
+      // Use fresh Labuda JWT
+      connect(fresh);
     });
   }
 
@@ -375,6 +418,10 @@ class WebSocketService {
   void handleMessageForTest(dynamic frame) => _handleMessage(frame);
 
   Future<void> disconnect() async {
+    // Phase 5: bump generation to invalidate any in-flight handshake, clear token to prevent stale reconnect.
+    _connectGeneration++;
+    _authToken = null;
+    _isConnecting = false;
     _reconnectTimer?.cancel();
     _pingTimer?.cancel();
     _subscribedRooms.clear();
@@ -390,8 +437,10 @@ class WebSocketService {
     _stateController = null;
 
     _reconnectAttempts = 0;
-    _updateState(ConnectionState.disconnected);
-
+    // _state already disconnected but ensure controller handles closed state gracefully.
+    try {
+      _updateState(ConnectionState.disconnected);
+    } catch (_) {}
     developer.log('WebSocket disconnected', name: 'WebSocketService');
   }
 

@@ -108,19 +108,12 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
 
   Future<void> _logoutAll() async {
     setState(() => _isMutating = true);
-
-    final repo = ref.read(authRepositoryProvider);
-    final result = await repo.logoutAllSessions();
-
+    final controller = ref.read(authControllerProvider.notifier);
+    await controller.signOutAll();
     if (!mounted) return;
-
     setState(() => _isMutating = false);
-
-    final l10n = AppLocalizations.of(context)!;
-    result.fold((msg) => AppSnackBar.showError(context, msg), (_) {
-      AppSnackBar.showSuccess(context, l10n.allSessionsRevokedSuccess);
-      _loadSessions();
-    });
+    AppSnackBar.showSuccess(context, AppLocalizations.of(context)!.allSessionsRevokedSuccess);
+    _loadSessions();
   }
 
   Future<bool> _showConfirmDialog({

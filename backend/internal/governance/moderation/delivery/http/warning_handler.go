@@ -1,9 +1,7 @@
 package http
 
 import (
-	"errors"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -48,13 +46,6 @@ func NewWarningHandler(
 // REQUEST/RESPONSE DTOs
 // ============================================================================
 
-// CreateWarningRequest represents the request body for issuing a warning.
-type CreateWarningRequest struct {
-	UserID    string `json:"user_id" binding:"required,uuid"`
-	Level     string `json:"level" binding:"required,oneof=info warning severe"`
-	Reason    string `json:"reason" binding:"required,min=1,max=500"`
-	ExpiresAt *int64 `json:"expires_at,omitempty"` // Unix timestamp, optional
-}
 
 // ============================================================================
 // USER ENDPOINTS - Get Warnings
@@ -376,83 +367,6 @@ func (h *WarningHandler) AdminListWarnings(c *gin.Context) {
 	})
 }
 
-// AdminIssueWarning handles POST /api/v1/warnings
-//
-// Allows admins to issue warnings to users.
-func (h *WarningHandler) AdminIssueWarning(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	// Get authenticated admin ID from context
-	adminID, ok := middleware.MustGetUserIDFromContext(c)
-	if !ok {
-		return
-	}
-
-	// Parse request body
-	var req CreateWarningRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "Invalid request: "+err.Error())
-		return
-	}
-
-	// Parse user ID
-	userID, err := uuid.Parse(req.UserID)
-	if err != nil {
-		response.BadRequest(c, "Invalid user_id")
-		return
-	}
-
-	// Convert level
-	level := warningEntity.WarningLevel(req.Level)
-	if !level.IsValid() {
-		response.BadRequest(c, "Invalid level")
-		return
-	}
-
-	// Issue warning
-	var warning *warningEntity.UserWarning
-	err = h.db.WithTx(ctx, func(tx db.Tx) error {
-		var err error
-		warning, err = h.warningService.IssueWarning(ctx, tx, userID, adminID, level, req.Reason, req.ExpiresAt)
-		return err
-	})
-
-	if err != nil {
-		var targetErr *warningEntity.ErrWarningTargetNotFound
-		if errors.As(err, &targetErr) {
-			response.NotFound(c, "Warning target user not found")
-			return
-		}
-		h.log.Error("Failed to issue warning",
-			zap.String("admin_id", adminID.String()),
-			zap.String("user_id", req.UserID),
-			zap.Error(err),
-		)
-		response.InternalServerError(c, "Failed to issue warning")
-		return
-	}
-
-	response.Created(c, gin.H{
-		"id":         warning.ID,
-		"user_id":    warning.UserID,
-		"level":      string(warning.Level),
-		"reason":     warning.Reason,
-		"is_active":  warning.IsActive,
-		"created_at": warning.CreatedAt,
-		"expires_at": warning.ExpiresAt,
-	})
-
-	if h.adminAuditLogger != nil {
-		h.adminAuditLogger.LogSafe(ctx, adminID,
-			"admin_warning_issued", "warning", warning.ID,
-			map[string]interface{}{
-				"user_id": warning.UserID.String(),
-				"level":   string(warning.Level),
-			},
-		)
-	}
-}
-
 // AdminRevokeWarning handles DELETE /api/v1/warnings/:id/revoke
 //
 // Allows admins to revoke an active warning.
@@ -548,13 +462,5 @@ func (h *WarningHandler) warningToResponse(warning *warningEntity.UserWarning) g
 	return resp
 }
 
-// parseExpiresAt converts an optional Unix timestamp to *time.Time.
-func parseExpiresAt(timestamp *int64) *time.Time {
-	if timestamp == nil {
-		return nil
-	}
-	t := time.Unix(*timestamp, 0)
-	return &t
-}
 
 

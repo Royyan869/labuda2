@@ -9,8 +9,7 @@ import '../providers/email_verification_state.dart';
 
 /// Verify Email Screen — minimal compile-correct placeholder.
 ///
-/// The legacy verification portal (AuthStateRequiresEmailVerification +
-/// VerificationDelivery*) was removed in the auth convergence — the current
+/// The legacy verification portal (removed in auth convergence) — the current
 /// canonical email-verified signal is [AuthStateAuthenticated.emailVerified]
 /// and [EmailVerificationState] (verified/unverified). This screen is no
 /// longer routed (see AuthModule — no verify-email route), but it must still

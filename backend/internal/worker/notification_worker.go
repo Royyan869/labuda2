@@ -193,11 +193,14 @@ func (h *NotificationEventHandler) Handle(ctx context.Context, event platformeve
 	case events.EventCommentCreated:
 		info, err = h.handleCommentCreated(ctx, event.Payload)
 
-	case "comment.reply":
+	case events.EventCommentReply:
 		info, err = h.handleCommentReply(ctx, event.Payload)
 
-	case "seller.response":
+	case events.EventSellerResponse, events.EventAuctionResponse:
 		info, err = h.handleSellerResponse(ctx, event.Payload)
+
+	case events.EventContentMentioned:
+		info, err = h.handleContentMentioned(ctx, event.Payload)
 
 	case "chat.message.sent":
 		info, err = h.handleChatMessage(ctx, event.Payload)
@@ -620,8 +623,10 @@ func (w *OutboxWorker) SetupNotificationHandlers(
 		events.EventUserFollowed,
 		events.EventContentLiked,
 		events.EventCommentCreated,
-		"comment.reply",
-		"seller.response",
+		events.EventCommentReply,
+		events.EventSellerResponse,
+		events.EventAuctionResponse,
+		events.EventContentMentioned,
 		"chat.message.sent",
 	}, handler)
 

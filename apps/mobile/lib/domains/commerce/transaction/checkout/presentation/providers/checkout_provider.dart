@@ -64,6 +64,16 @@ class CheckoutNotifier extends Notifier<CheckoutState> {
         idempotencyKey: null,
       );
       return response;
+    } on CheckoutException catch (e) {
+      _logger?.error('Failed to create order: ${e.message}');
+      // Preserve the structured error code so the UI can branch on
+      // COMMERCE_RESTRICTED, EMAIL_VERIFICATION_REQUIRED, etc.
+      state = state.copyWith(
+        isCreatingOrder: false,
+        error: e.userFriendlyMessage,
+        errorCode: e.code,
+      );
+      return null;
     } catch (e, stackTrace) {
       _logger?.error('Failed to create order: $e', stackTrace: stackTrace);
       // Keep idempotency key for potential retry

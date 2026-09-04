@@ -423,6 +423,11 @@ func runMigrationsWithLogger(cfg *config.Config, logf func(string, ...any)) erro
 	return runMigrationsRaw(cfg, logf)
 }
 
+// lifecycleLockPool holds the pool created by acquireLifecycleLock.
+// It is closed in releaseLifecycleLock after the connection is released,
+// preventing a connection leak per Setup() call.
+var lifecycleLockPool *pgxpool.Pool
+
 // lifecycleLockConn holds the advisory lock connection for the entire
 // test binary lifecycle (migration + test execution + cleanup).
 var lifecycleLockConn *pgxpool.Conn
@@ -441,12 +446,13 @@ func acquireLifecycleLock(dsn string) error {
 		pool.Close()
 		return fmt.Errorf("acquire lifecycle lock connection: %w", err)
 	}
-	pool.Close() // Release the pool; we only need the single acquired connection.
 
 	if _, err := conn.Exec(context.Background(), `SELECT pg_advisory_lock(hashtextextended($1, 0))`, testDBMigrationLockKey); err != nil {
 		conn.Release()
+		pool.Close()
 		return fmt.Errorf("acquire lifecycle advisory lock: %w", err)
 	}
+	lifecycleLockPool = pool
 	lifecycleLockConn = conn
 	return nil
 }
@@ -458,6 +464,10 @@ func releaseLifecycleLock() {
 		_, _ = lifecycleLockConn.Exec(context.Background(), `SELECT pg_advisory_unlock(hashtextextended($1, 0))`, testDBMigrationLockKey)
 		lifecycleLockConn.Release()
 		lifecycleLockConn = nil
+	}
+	if lifecycleLockPool != nil {
+		lifecycleLockPool.Close()
+		lifecycleLockPool = nil
 	}
 }
 

@@ -435,7 +435,7 @@ func TestStage6B_ReuseQuantity_RejectsSecondForSale(t *testing.T) {
 		seller, "Koi A", "desc", []byte(`[]`), "Kohaku",
 		nil, nil, nil, nil, nil, []string{},
 		fpsEntity.ForSaleTypeFixedPrice, money.New(100000), 10, false,
-		fpsEntity.ForSaleVisibilityPublic, fpsEntity.ForSaleOriginDirectCreate,
+		fpsEntity.ForSaleVisibilityPublic,
 		nil, fpsEntity.PreparationTimeImmediate, nil,
 	)
 	require.NoError(t, err)
@@ -458,7 +458,7 @@ func TestStage6B_ReuseQuantity_RejectsSecondForSale(t *testing.T) {
 		seller, "Koi B", "desc", []byte(`[]`), "Kohaku",
 		nil, nil, nil, nil, nil, []string{},
 		fpsEntity.ForSaleTypeFixedPrice, money.New(150000), 1, false,
-		fpsEntity.ForSaleVisibilityPublic, fpsEntity.ForSaleOriginDirectCreate,
+		fpsEntity.ForSaleVisibilityPublic,
 		nil, fpsEntity.PreparationTimeImmediate, nil,
 	)
 	require.NoError(t, err)

@@ -29,17 +29,36 @@ import 'package:labuda/shared/governance/content_lifecycle.dart';
 class ForSaleDtoMapper {
   /// Convert ForSaleResponseDto to ForSale entity
   static ForSale toEntity(ForSaleResponseDto dto) {
-    // Convert backend mediaUrls to MediaEntity
-    final media = dto.mediaUrls
-        .map(
-          (url) => MediaEntity(
-            id: _generateMediaId(url),
-            originalUrl: url,
-            type: MediaType.image,
-            createdAt: DateTime.now(),
-          ),
-        )
-        .toList();
+    // Convert backend typed media items to MediaEntity.
+    // Type is inferred from URL extension by the backend via InferMediaType.
+    // Falls back to flat media_urls with image-only if typed media is absent.
+    List<MediaEntity> media;
+    if (dto.mediaItems.isNotEmpty) {
+      media = dto.mediaItems
+          .map(
+            (item) => MediaEntity(
+              id: item.id.isNotEmpty ? item.id : _generateMediaId(item.url),
+              originalUrl: item.url,
+              type: item.type == 'video' ? MediaType.video : MediaType.image,
+              position: item.position,
+              duration: item.duration,
+              createdAt: DateTime.now(),
+            ),
+          )
+          .toList();
+    } else {
+      // Fallback: flat media_urls with image-only (legacy)
+      media = dto.mediaUrls
+          .map(
+            (url) => MediaEntity(
+              id: _generateMediaId(url),
+              originalUrl: url,
+              type: MediaType.image,
+              createdAt: DateTime.now(),
+            ),
+          )
+          .toList();
+    }
 
     // Owner Truth: username = account; farmName = seller/store; fullName = private/KYC.
     // Identity slots map directly from backend identity scalars:
@@ -78,7 +97,6 @@ class ForSaleDtoMapper {
       status: _mapStatus(dto.status),
       visibility: _mapVisibility(dto.visibility),
       isNegotiable: dto.negotiationEnabled,
-      location: null,
       viewCount: 0,
       preparationTime: _mapPreparationTime(dto.preparationTime),
       preparationNote: dto.preparationNote,

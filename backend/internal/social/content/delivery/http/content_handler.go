@@ -564,7 +564,14 @@ func (h *ContentHandler) CreateContent(c *gin.Context) {
 			}
 		}
 
+		// Normalize before validity check: empty/omitted visibility defaults to
+		// public, consistent with the entity Normalize() contract used by the
+		// repository, service, and response layers.
 		visibility := entity.Visibility(req.Visibility).Normalize()
+		if !visibility.IsValid() {
+			response.BadRequest(c, "Invalid request: invalid visibility value")
+			return fmt.Errorf("invalid visibility: %s", req.Visibility)
+		}
 
 		// Parse mentioned user IDs from string to UUID.
 		// Invalid UUIDs are silently skipped (consistent with tags fail-open policy).
@@ -586,20 +593,36 @@ func (h *ContentHandler) CreateContent(c *gin.Context) {
 
 		// Add media if provided
 		if len(req.Media) > 0 {
-			// Convert media inputs to entity media items
+			// CANONICAL MEDIA ORDERING (Phase 2A): photos first, then videos,
+			// preserving the seller's input order within each group.
+			type rawMedia struct {
+				URL  string
+				Type entity.MediaType
+			}
+			var photos, videos []rawMedia
+			for _, m := range req.Media {
+				mt := entity.MediaType(m.Type)
+				if mt == entity.MediaTypeVideo {
+					videos = append(videos, rawMedia{URL: m.URL, Type: mt})
+				} else {
+					photos = append(photos, rawMedia{URL: m.URL, Type: mt})
+				}
+			}
+			canonical := append(photos, videos...)
+
 			mediaItems := make([]struct {
 				MediaURL  string
 				MediaType entity.MediaType
 				Position  int
-			}, len(req.Media))
-			for i, m := range req.Media {
+			}, len(canonical))
+			for i, m := range canonical {
 				mediaItems[i] = struct {
 					MediaURL  string
 					MediaType entity.MediaType
 					Position  int
 				}{
 					MediaURL:  m.URL,
-					MediaType: entity.MediaType(m.Type),
+					MediaType: m.Type,
 					Position:  i,
 				}
 			}
@@ -752,8 +775,16 @@ func (h *ContentHandler) UpdateContent(c *gin.Context) {
 		}
 	}
 
-	// Execute update within transaction
+	// Validate visibility if provided (nil = omitted = no change).
+	if req.Visibility != nil {
+		vis := entity.Visibility(*req.Visibility)
+		if !vis.IsValid() {
+			response.BadRequest(c, "Invalid request: invalid visibility value")
+			return
+		}
+	}
 
+	// Execute update within transaction
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		return h.contentService.UpdateCaptionAndVisibility(ctx, tx, userID, contentID, req.Caption, req.Visibility)
 	})

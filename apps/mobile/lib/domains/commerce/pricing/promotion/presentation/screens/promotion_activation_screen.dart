@@ -379,6 +379,13 @@ class _PromotionActivationScreenState
     if (!mounted) return;
     setState(() => _isSubmitting = false);
     if (!result.isSuccess) {
+      if (CommerceRestrictionPresenter.isCommerceRestricted(result.errorCode)) {
+        CommerceRestrictionPresenter.show(
+          context,
+          actionDescription: 'mengaktifkan promosi',
+        );
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result.error ?? 'Activation failed'),

@@ -242,11 +242,6 @@ void main() {
           ),
           media: _detailMedia(),
           publicOriginLine: 'Magelang, Jawa Tengah',
-        ).copyWith(
-          location: const ForSaleLocation(
-            city: 'Magelang',
-            province: 'Jawa Tengah',
-          ),
         );
     final savedRepo = _FakeSavedItemRepository(initialSaved: false);
 
@@ -466,11 +461,6 @@ void main() {
             ),
             media: _detailMedia(),
             publicOriginLine: 'Magelang, Jawa Tengah',
-          ).copyWith(
-            location: const ForSaleLocation(
-              city: 'Magelang',
-              province: 'Jawa Tengah',
-            ),
           );
       final savedRepo = _FakeSavedItemRepository(initialSaved: false);
       final darkTheme = ThemeData.dark();
@@ -613,15 +603,10 @@ void main() {
                 createdAt: DateTime.utc(2026, 1, 1),
               ),
             ],
-            publicOriginLine: 'Magelang, Jawa Tengah',
-          ).copyWith(
-            location: const ForSaleLocation(
-              city: 'Magelang',
-              province: 'Jawa Tengah',
-            ),
-          );
+          publicOriginLine: 'Magelang, Jawa Tengah',
+        );
 
-      const firstRefreshUrl =
+    const firstRefreshUrl =
           'https://cdn.example.com/gallery/listing-1.jpg?X-Amz-Signature=one';
       const refreshedFirstUrl =
           'https://cdn.example.com/gallery/listing-1.jpg?X-Amz-Signature=two';

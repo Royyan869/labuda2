@@ -139,7 +139,7 @@ class AuthProfileRepository {
     required String username,
   }) async {
     try {
-      final tokenResult = await _localStorage.getAuthToken();
+      final tokenResult = await _localStorage.getRestrictedToken();
       final restrictedToken = tokenResult.data?.trim();
       if (restrictedToken == null || restrictedToken.isEmpty) {
         return Result.error('Restricted completion token not available');
@@ -154,23 +154,18 @@ class AuthProfileRepository {
       }
 
       final completeResponse = result.data!;
-      final storeAuth = await _localStorage.setAuthToken(
+      final storeResult = await _localStorage.saveLabudaCredential(
         completeResponse.accessToken,
-      );
-      if (storeAuth.isError) {
-        return Result.error(storeAuth.error ?? 'Failed to store auth token');
-      }
-
-      final storeRefresh = await _localStorage.setRefreshToken(
         completeResponse.refreshToken,
       );
-      if (storeRefresh.isError) {
-        await _localStorage.clearAuthToken();
-        await _localStorage.clearRefreshToken();
+      if (storeResult.isError) {
         return Result.error(
-          storeRefresh.error ?? 'Failed to store refresh token',
+          storeResult.error ?? 'Failed to store session credential',
         );
       }
+
+      // Restricted completion token has been consumed — clear its isolated key
+      await _localStorage.clearRestrictedToken();
 
       final currentUserResult = await _apiDatasource.getCurrentUser();
       if (currentUserResult.isError || currentUserResult.data == null) {
@@ -570,7 +565,6 @@ class AuthProfileRepository {
   }
 
   Future<void> _clearStoredSessionTokens() async {
-    await _localStorage.clearAuthToken();
-    await _localStorage.clearRefreshToken();
+    await _localStorage.clearLabudaCredential();
   }
 }

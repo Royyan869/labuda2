@@ -309,9 +309,19 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
     if (!mounted) return;
 
     if (!success) {
+      final notifierState = ref.read(auctionNotifierProvider);
+      // Commerce restriction — canonical backend rejection.
+      if (CommerceRestrictionPresenter.isCommerceRestricted(notifierState.errorCode)) {
+        setState(() => _isSubmitting = false);
+        CommerceRestrictionPresenter.show(
+          context,
+          actionDescription: 'membuat lelang',
+        );
+        return;
+      }
       setState(() {
         _errorMessage =
-            ref.read(auctionNotifierProvider).error ??
+            notifierState.error ??
             'Gagal membuat lelang. Cek pesan dari backend.';
       });
       setState(() => _isSubmitting = false);

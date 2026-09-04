@@ -77,7 +77,9 @@ func GetCategory(notifyType string) NotificationCategory {
 		notifyType == "comment",
 		notifyType == "comment_reply",
 		notifyType == "chat_message",
-		notifyType == "seller.response":
+		notifyType == "seller.response",
+		notifyType == "auction.response",
+		notifyType == "content.mentioned":
 		return Social
 
 	// ============================================================================

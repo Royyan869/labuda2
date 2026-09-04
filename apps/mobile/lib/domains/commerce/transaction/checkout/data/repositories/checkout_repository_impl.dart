@@ -3,6 +3,7 @@ library;
 
 import 'package:dio/dio.dart';
 import 'package:labuda/core/api/api_client.dart';
+import 'package:labuda/core/api/api_error_codes.dart' as api_codes;
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 import 'package:labuda/domains/commerce/transaction/checkout/domain/entities/checkout_request.dart';
 import 'package:labuda/domains/commerce/transaction/checkout/domain/entities/checkout_response.dart';
@@ -319,6 +320,16 @@ class CheckoutRepositoryImpl implements CheckoutRepository {
           userFriendlyMessage:
               'Alamat pengiriman tidak lengkap atau tidak valid.',
           code: 'ADDRESS_INVALID',
+        );
+
+      // Commerce restriction — preserve raw backend code so the UI
+      // layer can branch via CheckoutState.errorCode.
+      case api_codes.commerceRestricted:
+        return CheckoutException(
+          message: 'Commerce activity restricted',
+          userFriendlyMessage:
+              'Aktivitas commerce Anda saat ini dibatasi.',
+          code: api_codes.commerceRestricted,
         );
 
       default:

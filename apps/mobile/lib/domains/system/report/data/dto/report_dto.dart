@@ -72,16 +72,3 @@ class CreateReportRequestDto {
     if (reasonNote != null && reasonNote!.isNotEmpty) 'reason_note': reasonNote,
   };
 }
-
-/// Request to review a report
-class ReviewReportRequestDto {
-  final String action;
-  final String? note;
-
-  const ReviewReportRequestDto({required this.action, this.note});
-
-  Map<String, dynamic> toJson() => {
-    'action': action,
-    if (note != null) 'note': note,
-  };
-}

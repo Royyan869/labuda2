@@ -1,12 +1,21 @@
 package realtime
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
+
+type testStatusChecker struct{}
+
+func (testStatusChecker) EnsureActive(_ context.Context, _ uuid.UUID) error { return nil }
+func (testStatusChecker) GetStatus(_ context.Context, _ uuid.UUID) (string, error) { return "active", nil }
+func (testStatusChecker) IsBanned(_ context.Context, _ uuid.UUID) (bool, error) { return false, nil }
+
+
 
 func TestDispatcher_ChatRoomCreated_BroadcastsToRecipientConnectionsOnly(t *testing.T) {
 	hub := NewHub(zap.NewNop())
