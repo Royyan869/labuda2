@@ -10,6 +10,7 @@ import (
 	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
 	addressRepoTypes "github.com/labuda/backend/internal/identity/address/repository"
 	"github.com/labuda/backend/internal/commerce/forsale/entity"
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -72,7 +73,7 @@ func TestEnsureFarmAddressValid_NilFarmAddressID(t *testing.T) {
 	for_sale := &entity.ForSale{
 		ID:            uuid.New(),
 		SellerID:      uuid.New(),
-		FarmAddressID: nil, // NOT SET
+		Product: &productEntity.Product{FarmAddressID: nil}, // NOT SET
 	}
 
 	err := svc.EnsureFarmAddressValid(context.Background(), nil, for_sale)
@@ -93,7 +94,7 @@ func TestEnsureFarmAddressValid_AddressNotFound(t *testing.T) {
 	for_sale := &entity.ForSale{
 		ID:            uuid.New(),
 		SellerID:      uuid.New(),
-		FarmAddressID: &addressID,
+		Product: &productEntity.Product{FarmAddressID: &addressID},
 	}
 
 	err := svc.EnsureFarmAddressValid(context.Background(), nil, for_sale)
@@ -121,7 +122,7 @@ func TestEnsureFarmAddressValid_WrongOwner(t *testing.T) {
 	for_sale := &entity.ForSale{
 		ID:            uuid.New(),
 		SellerID:      sellerID,
-		FarmAddressID: &addressID,
+		Product: &productEntity.Product{FarmAddressID: &addressID},
 	}
 
 	err := svc.EnsureFarmAddressValid(context.Background(), nil, for_sale)
@@ -148,7 +149,7 @@ func TestEnsureFarmAddressValid_WrongPurpose(t *testing.T) {
 	for_sale := &entity.ForSale{
 		ID:            uuid.New(),
 		SellerID:      sellerID,
-		FarmAddressID: &addressID,
+		Product: &productEntity.Product{FarmAddressID: &addressID},
 	}
 
 	err := svc.EnsureFarmAddressValid(context.Background(), nil, for_sale)
@@ -175,7 +176,7 @@ func TestEnsureFarmAddressValid_ValidSenderAddress(t *testing.T) {
 	for_sale := &entity.ForSale{
 		ID:            uuid.New(),
 		SellerID:      sellerID,
-		FarmAddressID: &addressID,
+		Product: &productEntity.Product{FarmAddressID: &addressID},
 	}
 
 	err := svc.EnsureFarmAddressValid(context.Background(), nil, for_sale)

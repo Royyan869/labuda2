@@ -32,6 +32,14 @@ func (r *captureAuctionProductCreator) ClaimSellingSurface(_ context.Context, _ 
 	return nil
 }
 
+func (r *captureAuctionProductCreator) GetByID(_ context.Context, _ db.Tx, _ uuid.UUID) (*productEntity.Product, error) {
+	return &productEntity.Product{ID: uuid.New(), SellerID: uuid.New(), Title: "dummy", Description: "dummy"}, nil
+}
+
+func (r *captureAuctionProductCreator) Update(_ context.Context, _ db.Tx, _ *productEntity.Product) error {
+	return nil
+}
+
 // newAuctionServiceForFarmAddressTests builds a fully-wired AuctionService
 // whose Product creation is captured, so tests can verify that the canonical
 // Product minted by CreateDraft carries the FarmAddressID passed through the

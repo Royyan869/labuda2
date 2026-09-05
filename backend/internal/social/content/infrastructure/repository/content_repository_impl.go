@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -331,14 +332,24 @@ func (r *ContentRepositoryImpl) ListByAuthor(
 	args := []interface{}{authorID, viewerID}
 	argIdx := 3
 
-	// Cursor-based pagination
+	// Cursor-based pagination (composite: created_at|id)
 	if cursor != "" {
-		query += fmt.Sprintf(" AND c.created_at < $%d", argIdx)
-		args = append(args, cursor)
-		argIdx++
+		parts := strings.SplitN(cursor, "|", 2)
+		if len(parts) == 2 {
+			cursorCreatedAt, parseErr := time.Parse(time.RFC3339Nano, parts[0])
+			cursorID, idErr := uuid.Parse(parts[1])
+			if parseErr == nil && idErr == nil {
+				query += fmt.Sprintf(
+					" AND (c.created_at < $%d OR (c.created_at = $%d AND c.id < $%d))",
+					argIdx, argIdx+1, argIdx+2,
+				)
+				args = append(args, cursorCreatedAt, cursorCreatedAt, cursorID)
+				argIdx += 3
+			}
+		}
 	}
 
-	query += " ORDER BY c.created_at DESC"
+	query += " ORDER BY c.created_at DESC, c.id DESC"
 	query += fmt.Sprintf(" LIMIT $%d", argIdx)
 	args = append(args, limit+1) // Fetch one extra to determine if there's a next page
 
@@ -374,9 +385,14 @@ func (r *ContentRepositoryImpl) ListByAuthor(
 			return nil, "", fmt.Errorf("scan content failed: %w", err)
 		}
 
-		// If we have an extra row, use it to set the next cursor
+		// If we have an extra row (probe row), there are more pages.
+		// Cursor comes from the last RETURNED row, not the probe row,
+		// so the next page's composite boundary starts correctly.
 		if fetched == limit {
-			nextCursor = createdAt.Format(time.RFC3339Nano)
+			if len(contents) > 0 {
+				last := contents[len(contents)-1]
+				nextCursor = last.CreatedAt.Format(time.RFC3339Nano) + "|" + last.ID.String()
+			}
 			break
 		}
 

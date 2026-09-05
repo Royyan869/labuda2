@@ -390,7 +390,12 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 			if req.Price != nil && *req.Price != for_sale.PricePerUnit.Int64() {
 				criticalFieldsChanging = true
 			}
-			if req.Title != nil && *req.Title != for_sale.Title {
+			// Title is Product authority — compare via Product
+			productTitle := ""
+			if for_sale.Product != nil {
+				productTitle = for_sale.Product.Title
+			}
+			if req.Title != nil && *req.Title != productTitle {
 				criticalFieldsChanging = true
 			}
 
@@ -417,14 +422,17 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 			isPublishIntent = requiresMarketAuthorityForPublish(for_sale.Status, newStatus)
 		}
 
-		// Apply field mutations to the locked (current) entity.
-		// The handler is the HTTP contract boundary: it maps request fields
-		// onto the entity. The service layer re-validates and persists.
+		// Apply field mutations — explicit split: Product content vs ForSale surface.
+		// Product is the sole authority for title/description/media/koi/preparation.
+		// ForSale owns only price/negotiation/visibility/status.
+		if for_sale.Product == nil {
+			return fmt.Errorf("for_sale product not loaded")
+		}
 		if req.Title != nil {
-			for_sale.Title = *req.Title
+			for_sale.Product.Title = *req.Title
 		}
 		if req.Description != nil {
-			for_sale.Description = *req.Description
+			for_sale.Product.Description = *req.Description
 		}
 		if req.Price != nil {
 			for_sale.PricePerUnit = money.New(*req.Price)
@@ -449,47 +457,48 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 			for_sale.Status = entity.ForSaleStatus(*req.Status)
 		}
 
-		// Apply remaining field mutations
+		// Apply remaining Product content mutations
 		if req.MediaURLs != nil {
-			mediaURLsJSON, err := json.Marshal(*req.MediaURLs)
-			if err != nil {
-				return err
-			}
-			for_sale.MediaURLs = mediaURLsJSON
+			for_sale.Product.MediaURLs = *req.MediaURLs
 		}
 		if req.Variety != nil {
-			for_sale.Variety = *req.Variety
+			for_sale.Product.Variety = *req.Variety
 		}
 		if req.SizeCM != nil {
-			for_sale.SizeCM = req.SizeCM
+			for_sale.Product.SizeCm = req.SizeCM
 		}
 		if req.AgeMonths != nil {
-			for_sale.AgeMonths = req.AgeMonths
+			for_sale.Product.AgeMonths = req.AgeMonths
 		}
 		if req.Gender != nil {
-			for_sale.Gender = req.Gender
+			for_sale.Product.Gender = req.Gender
 		}
 		if req.Breeder != nil {
-			for_sale.Breeder = req.Breeder
+			for_sale.Product.Breeder = req.Breeder
 		}
 		if req.Bloodline != nil {
-			for_sale.Bloodline = req.Bloodline
+			for_sale.Product.Bloodline = req.Bloodline
 		}
 		if req.Certificates != nil {
-			for_sale.Certificates = *req.Certificates
+			for_sale.Product.Certificates = *req.Certificates
 		}
-		// Shipping readiness updates
+		// Shipping readiness updates — Product authority
 		if req.PreparationTime != nil {
 			prepTime := entity.PreparationTime(*req.PreparationTime)
 			if prepTime.IsValid() {
-				for_sale.PreparationTime = prepTime
+				for_sale.Product.PreparationTime = string(prepTime)
 			}
 		}
 		if req.PreparationNote != nil {
-			for_sale.PreparationNote = req.PreparationNote
+			for_sale.Product.PreparationNote = req.PreparationNote
 		}
 
-		// Save field mutations via canonical service authority.
+		// Persist both authorities atomically in the same transaction — explicit, no bridge.
+		// Product first, then surface. Both share the same tx and row lock.
+		if err := h.for_saleService.UpdateProduct(ctx, tx, for_sale.Product); err != nil {
+			return fmt.Errorf("update product failed: %w", err)
+		}
+		// Save surface mutations via canonical service authority.
 		// service.Update() validates status transitions, seller restriction,
 		// and active+public invariant — the handler does NOT duplicate these.
 		if err := h.for_saleService.Update(ctx, tx, for_sale); err != nil {

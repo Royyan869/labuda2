@@ -138,7 +138,7 @@ func TestForSaleToResponseWithSeller_PrefersProductMediaOverLegacyJSON(t *testin
 		"https://labuda-uploads.s3.us-east-1.amazonaws.com/for_sales/typed-1.jpg",
 		"https://labuda-uploads.s3.us-east-1.amazonaws.com/for_sales/typed-2.jpg",
 	}
-	for_sale.MediaURLs = []byte(`["https://labuda-uploads.s3.us-east-1.amazonaws.com/for_sales/legacy.jpg"]`)
+	// Legacy MediaURLs removed — Product is authority
 	sellerInfo := sellerdisplay.Info{
 		Username:           "seller_user",
 		FarmName:           "Acme Farm",

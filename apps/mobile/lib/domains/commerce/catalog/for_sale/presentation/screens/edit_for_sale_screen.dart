@@ -68,9 +68,10 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
   final _descriptionController = TextEditingController();
 
   // Form state
+  // F01C: quantity intentionally not editable here — backend PUT /for-sale/:id
+  // has no quantity field; stock mutations are canonical order paths only.
   bool _isNegotiable = true;
   double? _price;
-  int _quantity = 1;
   final List<String> _mediaUrls = [];
 
   // Koi details
@@ -127,7 +128,6 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
                 _descriptionController.text = listing.description;
                 _price = listing.price;
                 _isNegotiable = listing.price > 0;
-                _quantity = listing.stock > 0 ? listing.stock : 1;
                 _mediaUrls.clear();
                 _mediaUrls.addAll(listing.media.urls);
                 _variety = listing.variety;
@@ -176,7 +176,6 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         price: _price!,
-        quantity: _quantity,
         negotiationEnabled: _isNegotiable,
         mediaUrls: _mediaUrls,
         variety: _variety,
@@ -371,12 +370,6 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
               initialValue: _isNegotiable,
               onChanged: (value) => setState(() => _isNegotiable = value),
             ),
-            const SizedBox(height: 16),
-            _StockField(
-              initialValue: _quantity,
-              onChanged: (value) => setState(() => _quantity = value),
-            ),
-
             const SizedBox(height: 24),
 
             const _SectionTitle('Detail Koi'),
@@ -684,63 +677,6 @@ class _NegotiableToggle extends StatelessWidget {
 /// Sellers with multiple units of the same product increase this to enable
 /// stock-based sale; buyers can then purchase up to the available amount.
 /// Backend rejects changing this field once orders exist for the listing.
-class _StockField extends StatefulWidget {
-  final int initialValue;
-  final void Function(int) onChanged;
-
-  const _StockField({required this.initialValue, required this.onChanged});
-
-  @override
-  State<_StockField> createState() => _StockFieldState();
-}
-
-class _StockFieldState extends State<_StockField> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.initialValue.toString());
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: _controller,
-      keyboardType: TextInputType.number,
-      decoration: const InputDecoration(
-        labelText: 'Stok *',
-        hintText: 'Jumlah tersedia',
-        helperText:
-            'Untuk koi unik, biarkan 1. Untuk produk stok, sesuaikan jumlahnya.',
-        border: OutlineInputBorder(),
-      ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'Stok wajib diisi';
-        }
-        final stock = int.tryParse(value);
-        if (stock == null || stock < 1) {
-          return 'Stok minimal 1';
-        }
-        return null;
-      },
-      onChanged: (value) {
-        final stock = int.tryParse(value);
-        if (stock != null && stock >= 1) {
-          widget.onChanged(stock);
-        }
-      },
-    );
-  }
-}
-
 class _PriceField extends StatefulWidget {
   final double? initialValue;
   final void Function(double?) onChanged;

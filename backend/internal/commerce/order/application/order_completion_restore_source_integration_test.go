@@ -3,6 +3,7 @@
 package application
 
 import (
+	"encoding/json"
 	"context"
 	"testing"
 	"time"
@@ -13,6 +14,8 @@ import (
 	auctionentity "github.com/labuda/backend/internal/commerce/auction/entity"
 	auctionRepoImpl "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
 	fpsentity "github.com/labuda/backend/internal/commerce/forsale/entity"
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	forsaleRepoImpl "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
 	orderRepoImpl "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
@@ -62,13 +65,30 @@ func TestStage5_RestoreListingStock_ResolvesSurfaceFromOrderSource(t *testing.T)
 			return err
 		}
 		productID = product.ID
-		listing, err := fpsentity.NewForSale(
-			sellerID, "Kohaku", "d", []byte(`[]`), "Kohaku",
-			nil, nil, nil, nil, nil, []string{},
-			fpsentity.ForSaleTypeFixedPrice, money.New(50000), 2, false,
-			fpsentity.ForSaleVisibilityPublic,
-			nil, fpsentity.PreparationTimeImmediate, nil,
-		)
+		listing_product := &productEntity.Product{
+	SellerID: sellerID,
+	Title: "Kohaku",
+	Description: "d",
+	MediaURLs: []string{},
+	Variety: "Kohaku",
+	SizeCm: nil,
+	AgeMonths: nil,
+	Gender: nil,
+	Breeder: nil,
+	Bloodline: nil,
+	Certificates: []string{},
+	FarmAddressID: nil,
+	PreparationTime: string(fpsentity.PreparationTimeImmediate),
+	PreparationNote: nil,
+	SellingSurface: productEntity.SellingSurfaceForSale,
+}
+	productRepo := productInfraRepo.NewProductRepository()
+	if err := productRepo.Create(ctx, tx, listing_product); err != None {
+		return err
+	}
+	listing, err := fpsentity.NewForSaleSurface(sellerID, fpsentity.ForSaleTypeFixedPrice, money.New(50000), 2, false, fpsentity.ForSaleVisibilityPublic)
+	listing.ProductID = listing_product.ID
+	listing.Product = listing_product
 		if err != nil {
 			return err
 		}

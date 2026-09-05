@@ -3,6 +3,7 @@
 package tests
 
 import (
+	"encoding/json"
 	"context"
 	"testing"
 	"time"
@@ -11,6 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	forsaleentity "github.com/labuda/backend/internal/commerce/forsale/entity"
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	forsalerepo "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
 	orderrepo "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
@@ -75,7 +78,30 @@ func seedFPS002PendingOrder(t *testing.T, ctx context.Context, tdb *testdb.TestD
 	orderRepo := orderrepo.NewOrderRepository()
 	var listingID uuid.UUID
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		listing, err := forsaleentity.NewForSale(sellerID, "FPS-002", "test", []byte(`[]`), "Kohaku", nil, nil, nil, nil, nil, []string{}, forsaleentity.ForSaleTypeFixedPrice, money.New(50000), 1, false, forsaleentity.ForSaleVisibilityPublic, nil, forsaleentity.PreparationTimeImmediate, nil)
+		listing_product := &productEntity.Product{
+	SellerID: sellerID,
+	Title: "FPS-002",
+	Description: "test",
+	MediaURLs: []string{},
+	Variety: "Kohaku",
+	SizeCm: nil,
+	AgeMonths: nil,
+	Gender: nil,
+	Breeder: nil,
+	Bloodline: nil,
+	Certificates: []string{},
+	FarmAddressID: nil,
+	PreparationTime: string(forsaleentity.PreparationTimeImmediate),
+	PreparationNote: nil,
+	SellingSurface: productEntity.SellingSurfaceForSale,
+}
+	productRepo := productInfraRepo.NewProductRepository()
+	if err := productRepo.Create(ctx, tx, listing_product); err != None {
+		return err
+	}
+	listing, err := forsaleentity.NewForSaleSurface(sellerID, forsaleentity.ForSaleTypeFixedPrice, money.New(50000), 1, false, forsaleentity.ForSaleVisibilityPublic)
+	listing.ProductID = listing_product.ID
+	listing.Product = listing_product
 		if err != nil {
 			return err
 		}

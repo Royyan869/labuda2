@@ -13,28 +13,35 @@ import (
 	"github.com/labuda/backend/pkg/money"
 )
 
-// ForSale represents a sellable item owned by a seller.
-// This is the new commerce entry object, replacing Asset and Collection domains.
+// ForSale represents the selling surface owned by a seller.
+// Product content (title, description, media, koi attributes, farm address,
+// preparation) is owned exclusively by Product — ForSale surface owns ONLY price/stock/visibility/status.
+//
+// Deprecated alias fields below (Title, Description, MediaURLs, Variety, SizeCM, AgeMonths, Gender, Breeder, Bloodline,
+// Certificates, FarmAddressID, PreparationTime/Note) are kept ONLY for Social/legacy read compatibility until
+// Fase 2.2 Social convergence removes them. They are ALWAYS synced from Product during hydration and writes —
+// Product is the sole persistence authority. Do NOT read/write these alias fields in new code; use Product directly.
 type ForSale struct {
-	ID          uuid.UUID
-	ProductID   uuid.UUID
-	SellerID    uuid.UUID
-	Title       string
-	Description string
+	ID        uuid.UUID
+	ProductID uuid.UUID
+	SellerID  uuid.UUID
 
-	// MediaURLs is a JSONB array of media URLs (images/videos)
-	MediaURLs json.RawMessage
+	// Deprecated aliases — Product is authority. Kept for Social compatibility (revert per closure scope integrity).
+	Title       string          `json:"-"` // Deprecated: use Product.Title
+	Description string          `json:"-"` // Deprecated: use Product.Description
+	MediaURLs   json.RawMessage `json:"-"` // Deprecated: use Product.MediaURLs
+	Variety     string          `json:"-"` // Deprecated: use Product.Variety
+	SizeCM      *int            `json:"-"` // Deprecated: use Product.SizeCm
+	AgeMonths   *int            `json:"-"` // Deprecated: use Product.AgeMonths
+	Gender      *string         `json:"-"` // Deprecated: use Product.Gender
+	Breeder     *string         `json:"-"` // Deprecated: use Product.Breeder
+	Bloodline   *string         `json:"-"` // Deprecated: use Product.Bloodline
+	Certificates []string       `json:"-"` // Deprecated: use Product.Certificates
+	FarmAddressID *uuid.UUID    `json:"-"` // Deprecated: use Product.FarmAddressID
+	PreparationTime PreparationTime `json:"-"` // Deprecated: use Product.PreparationTime
+	PreparationNote *string         `json:"-"` // Deprecated: use Product.PreparationNote
 
-	// Koi fish specific attributes
-	Variety      string   // Koi variety (e.g., Kohaku, Showa)
-	SizeCM       *int     // Size in centimeters (nullable)
-	AgeMonths    *int     // Age in months (nullable)
-	Gender       *string  // Gender (nullable)
-	Breeder      *string  // Breeder name (nullable)
-	Bloodline    *string  // Bloodline information (nullable)
-	Certificates []string // Array of certificate URLs/IDs
-
-	// Pricing and inventory
+	// Pricing and inventory — ForSale surface authority
 	ForSaleType       ForSaleType
 	PricePerUnit      money.Money
 	QuantityAvailable int
@@ -42,17 +49,6 @@ type ForSale struct {
 	// Feature flags
 	NegotiationEnabled bool
 	Visibility         ForSaleVisibility
-
-	// Shipping preferences - how this item can be shipped
-	// Shipping options are now managed through product_shipping_options table
-	// FarmAddressID is the source of truth for shipping origin (references address with purpose="sender")
-	FarmAddressID *uuid.UUID // Farm/warehouse address for shipping origin (REQUIRED for published for_sales)
-
-	// Shipping Readiness - preparation time before item can be shipped
-	// BUYER EXPECTATION: This is what buyers see before purchasing
-	// ORDER SNAPSHOT: When order is created, this value is frozen as preparation_time_snapshot
-	PreparationTime PreparationTime // How long seller needs to prepare item for shipping
-	PreparationNote *string         // Optional: Additional context (e.g., "Butuh puasa 2 hari sebelum packing")
 
 	// Status
 	Status ForSaleStatus
@@ -278,72 +274,32 @@ func (l *ForSale) IsAvailable() bool {
 // FACTORY
 // ============================================================================
 
-// NewForSale creates a new for_sale in DRAFT state.
-// The for_sale must be explicitly published via Publish() before it becomes market-visible.
-//
-// Validates:
-// - Auction for_sales must have quantity = 1
-// - Fixed price for_sales must have quantity >= 1
-// - Price must be non-negative
-//
-// NOTE: Visibility defaults to private for draft for_sales.
-// Publishing with visibility=public requires active seller subscription.
-// Shipping options are managed through product_shipping_options table.
-func NewForSale(
+// NewForSaleSurface creates a ForSale surface-only entity (no Product content).
+// Use this in service mint path where Product is created explicitly via ProductRepository.
+// This is the canonical constructor for production service code — no hidden Product creation.
+func NewForSaleSurface(
 	sellerID uuid.UUID,
-	title string,
-	description string,
-	mediaURLs json.RawMessage,
-	variety string,
-	sizeCM *int,
-	ageMonths *int,
-	gender *string,
-	breeder *string,
-	bloodline *string,
-	certificates []string,
 	for_saleType ForSaleType,
 	pricePerUnit money.Money,
 	quantityAvailable int,
 	negotiationEnabled bool,
 	visibility ForSaleVisibility,
-	// Shipping preferences
-	farmAddressID *uuid.UUID,
-	// Shipping Readiness
-	preparationTime PreparationTime,
-	preparationNote *string,
 ) (*ForSale, error) {
-	// Guard: Fixed price for_sales must have quantity >= 1
 	if for_saleType == ForSaleTypeFixedPrice && quantityAvailable < 1 {
 		return nil, &InvalidQuantityError{Amount: quantityAvailable}
 	}
-
-	// Guard: Price must be non-negative
 	if pricePerUnit.IsNegative() {
 		return nil, fmt.Errorf("price cannot be negative: %d", pricePerUnit.Int64())
 	}
-
 	now := time.Now()
 	return &ForSale{
 		ID:                 uuid.New(),
 		SellerID:           sellerID,
-		Title:              title,
-		Description:        description,
-		MediaURLs:          mediaURLs,
-		Variety:            variety,
-		SizeCM:             sizeCM,
-		AgeMonths:          ageMonths,
-		Gender:             gender,
-		Breeder:            breeder,
-		Bloodline:          bloodline,
-		Certificates:       certificates,
 		ForSaleType:        for_saleType,
 		PricePerUnit:       pricePerUnit,
 		QuantityAvailable:  quantityAvailable,
 		NegotiationEnabled: negotiationEnabled,
 		Visibility:         visibility,
-		FarmAddressID:      farmAddressID,
-		PreparationTime:    preparationTime,
-		PreparationNote:    preparationNote,
 		Status:             ForSaleStatusDraft,
 		PublishedAt:        nil,
 		SoldAt:             nil,

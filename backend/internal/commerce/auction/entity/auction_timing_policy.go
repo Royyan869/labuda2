@@ -24,6 +24,14 @@ const (
 	// scheduled start requested for "now" isn't rejected for landing a few
 	// hundred milliseconds in the past by the time it reaches the server.
 	scheduledStartClockSkewTolerance = 1 * time.Minute
+
+	// MaxScheduledStartHorizon is the maximum time in the future a scheduled
+	// auction may be set to start, measured from the authoritative server time
+	// supplied to the timing resolution path. Owner-approved: exactly 30 days
+	// (720 hours). This is the single canonical domain authority for the
+	// scheduled-start horizon — no handler, service, or worker may duplicate
+	// this policy.
+	MaxScheduledStartHorizon = 30 * 24 * time.Hour
 )
 
 // StartMode selects how a newly created auction begins its lifecycle.
@@ -70,6 +78,19 @@ func (e *ErrScheduledStartMustBeFuture) Error() string {
 		e.ScheduledStartAt.Format(time.RFC3339), e.Now.Format(time.RFC3339))
 }
 
+// ErrScheduledStartBeyondHorizon is returned when a scheduled auction start
+// time exceeds the owner-approved maximum horizon (30 days from server now).
+type ErrScheduledStartBeyondHorizon struct {
+	ScheduledStartAt time.Time
+	Now              time.Time
+	MaxHorizon       time.Duration
+}
+
+func (e *ErrScheduledStartBeyondHorizon) Error() string {
+	return fmt.Sprintf("scheduled start_at %s exceeds maximum horizon of %s from now (%s)",
+		e.ScheduledStartAt.Format(time.RFC3339), e.MaxHorizon, e.Now.Format(time.RFC3339))
+}
+
 // ValidateAuctionTiming enforces the owner-approved auction timing invariants
 // that must hold for any create or update of start_at/end_at:
 //   - end_at must be strictly after start_at;
@@ -101,6 +122,15 @@ func RequireFutureScheduledStart(startAt, now time.Time) error {
 	return nil
 }
 
+// RequireScheduledStartWithinHorizon validates that startAt does not exceed
+// the owner-approved 30-day horizon from the authoritative server time.
+func RequireScheduledStartWithinHorizon(startAt, now time.Time) error {
+	if startAt.After(now.Add(MaxScheduledStartHorizon)) {
+		return &ErrScheduledStartBeyondHorizon{ScheduledStartAt: startAt, Now: now, MaxHorizon: MaxScheduledStartHorizon}
+	}
+	return nil
+}
+
 // ResolveAuctionTiming computes start_at/end_at from the seller's chosen
 // start mode and duration, validating both against the owner-approved
 // duration bounds and (for scheduled starts) the future-start invariant.
@@ -118,6 +148,9 @@ func ResolveAuctionTiming(mode StartMode, scheduledStartAt *time.Time, duration 
 			return time.Time{}, time.Time{}, ErrScheduledStartRequired
 		}
 		if err := RequireFutureScheduledStart(*scheduledStartAt, now); err != nil {
+			return time.Time{}, time.Time{}, err
+		}
+		if err := RequireScheduledStartWithinHorizon(*scheduledStartAt, now); err != nil {
 			return time.Time{}, time.Time{}, err
 		}
 		start = *scheduledStartAt

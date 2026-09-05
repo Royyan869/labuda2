@@ -12,6 +12,9 @@ import (
 	"github.com/labuda/backend/internal/commerce/forsale/entity"
 	"github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	for_saleRepo "github.com/labuda/backend/internal/commerce/forsale/repository"
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
+	productRepo "github.com/labuda/backend/internal/commerce/product/repository"
 	"github.com/labuda/backend/internal/commerce/governance/commercegov"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	shippingRepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
@@ -44,8 +47,14 @@ var ErrFarmAddressNotConfigured = errors.New("FARM_ADDRESS_NOT_CONFIGURED: for_s
 // MARKET AUTHORITY ENFORCEMENT (PHASE 1B):
 // Creating or updating for_sales with PUBLIC visibility requires active seller subscription.
 // Private for_sales can be created/updated without active subscription (workspace safety).
+//
+// PRODUCT AUTHORITY (FASE 2.1): Product is the sole persistence authority for
+// title/description/media/koi/farm/preparation. ForSale never stores a copy.
+// Unified PUT /for-sale edits Product content via ProductRepository and
+// ForSale surface via ForSaleRepository in the same transaction — no bridge.
 type ForSaleService struct {
 	repo                for_saleRepo.ForSaleRepository
+	productRepo         productRepo.ProductRepository
 	outboxRepo          *outboxRepo.OutboxRepository
 	roleChecker         auth.RoleChecker
 	actorResolver       capabilityEntity.ActorResolver
@@ -59,7 +68,8 @@ type ForSaleService struct {
 // NewForSaleService creates a new ForSaleService.
 func NewForSaleService(args ...any) *ForSaleService {
 	svc := &ForSaleService{
-		repo: repository.NewForSaleRepository(),
+		repo:        repository.NewForSaleRepository(),
+		productRepo: productInfraRepo.NewProductRepository(),
 	}
 
 	for _, arg := range args {
@@ -80,6 +90,10 @@ func NewForSaleService(args ...any) *ForSaleService {
 			svc.addressRepo = v
 		case commercegov.Repository:
 			svc.commerceGovRepo = v
+		case productRepo.ProductRepository:
+			svc.productRepo = v
+		case *productInfraRepo.ProductRepositoryImpl:
+			svc.productRepo = v
 		}
 	}
 
@@ -111,6 +125,7 @@ func (s *ForSaleService) requireSellerNotRestricted(ctx context.Context, tx db.T
 }
 
 // buildForSaleEventPayload creates a JSON payload for fixed-price sale events.
+// Product is the sole authority for title/variety — read from for_sale.Product.
 func buildForSaleEventPayload(for_sale *entity.ForSale) []byte {
 	type payload struct {
 		ForSaleID string `json:"for_sale_id"`
@@ -120,12 +135,17 @@ func buildForSaleEventPayload(for_sale *entity.ForSale) []byte {
 		Variety   string `json:"variety,omitempty"`
 		Price     int64  `json:"price,omitempty"`
 	}
+	title, variety := "", ""
+	if for_sale.Product != nil {
+		title = for_sale.Product.Title
+		variety = for_sale.Product.Variety
+	}
 	p := payload{
 		ForSaleID: for_sale.ID.String(),
 		SellerID:  for_sale.SellerID.String(),
 		Status:    string(for_sale.Status),
-		Title:     for_sale.Title,
-		Variety:   for_sale.Variety,
+		Title:     title,
+		Variety:   variety,
 		Price:     for_sale.PricePerUnit.Int64(),
 	}
 	b, _ := json.Marshal(p)
@@ -205,64 +225,76 @@ func (s *ForSaleService) Create(
 		}
 	}
 
-	// Convert media URLs to JSONB
-	// Guard: Ensure media URLs is never nil (database requires array)
-	mediaURLs := input.MediaURLs
-	if mediaURLs == nil {
-		mediaURLs = []string{}
-	}
-	mediaURLsJSON, err := json.Marshal(mediaURLs)
-	if err != nil {
-		return nil, fmt.Errorf("marshal media urls failed: %w", err)
-	}
-
-	// Guard: Ensure certificates is never nil (entity expects non-nil slice)
-	certificates := input.Certificates
-	if certificates == nil {
-		certificates = []string{}
-	}
-
-	for_sale, err := entity.NewForSale(
+	// Create ForSale surface entity — surface-only, no hidden Product creation.
+	// Product content is handled explicitly below via ProductRepository.
+	for_sale, err := entity.NewForSaleSurface(
 		input.SellerID,
-		input.Title,
-		input.Description,
-		mediaURLsJSON,
-		input.Variety,
-		input.SizeCM,
-		input.AgeMonths,
-		input.Gender,
-		input.Breeder,
-		input.Bloodline,
-		certificates,
 		input.ForSaleType,
 		input.PricePerUnit,
 		input.QuantityAvailable,
 		input.NegotiationEnabled,
 		input.Visibility,
-		// Shipping preferences
-		input.FarmAddressID,
-		// Shipping readiness
-		input.PreparationTime,
-		input.PreparationNote,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create for_sale entity failed: %w", err)
 	}
 
 	// HARD RULE: Validate that for_sale was not created in invalid state
-	// (entity.NewForSale creates for_sales in draft status, so this is a sanity check)
 	if for_sale.Status == entity.ForSaleStatusActive && for_sale.Visibility == entity.ForSaleVisibilityPrivate {
 		return nil, fmt.Errorf("invalid for_sale: active status requires public visibility")
 	}
 
-	// Product identity reuse: when the caller supplies an existing ProductID,
-	// attach this sale to that Product instead of minting a new one. The
-	// repository resolves + ownership-checks the product and skips the mint.
+	// Product handling — Product is the sole persistence authority for content.
+	// Explicit split: mint a new Product or reuse an existing one, then attach ForSale.
+	mediaURLs := input.MediaURLs
+	if mediaURLs == nil {
+		mediaURLs = []string{}
+	}
+	certificates := input.Certificates
+	if certificates == nil {
+		certificates = []string{}
+	}
 	if input.ProductID != nil {
-		for_sale.ProductID = *input.ProductID
+		// Reuse path: attach to existing Product
+		product, err := s.productRepo.GetByID(ctx, tx, *input.ProductID)
+		if err != nil {
+			return nil, fmt.Errorf("reuse product failed: %w", err)
+		}
+		if product.SellerID != input.SellerID {
+			return nil, fmt.Errorf("cannot attach for_sale to product owned by another seller")
+		}
+		if err := s.productRepo.ClaimSellingSurface(ctx, tx, product.ID, productEntity.SellingSurfaceForSale); err != nil {
+			return nil, fmt.Errorf("cannot attach for_sale to product: %w", err)
+		}
+		for_sale.ProductID = product.ID
+		for_sale.Product = product
+	} else {
+		// Mint path: create Product inline with content fields
+		product := &productEntity.Product{
+			SellerID:        input.SellerID,
+			Title:           input.Title,
+			Description:     input.Description,
+			MediaURLs:       mediaURLs,
+			Variety:         input.Variety,
+			SizeCm:          input.SizeCM,
+			AgeMonths:       input.AgeMonths,
+			Gender:          input.Gender,
+			Breeder:         input.Breeder,
+			Bloodline:       input.Bloodline,
+			Certificates:    certificates,
+			FarmAddressID:   input.FarmAddressID,
+			PreparationTime: string(input.PreparationTime),
+			PreparationNote: input.PreparationNote,
+			SellingSurface:  productEntity.SellingSurfaceForSale,
+		}
+		if err := s.productRepo.Create(ctx, tx, product); err != nil {
+			return nil, fmt.Errorf("create product failed: %w", err)
+		}
+		for_sale.ProductID = product.ID
+		for_sale.Product = product
 	}
 
-	// Persist the for_sale
+	// Persist the for_sale surface (product already persisted)
 	if err := s.repo.Create(ctx, tx, for_sale); err != nil {
 		return nil, fmt.Errorf("persist for_sale failed: %w", err)
 	}
@@ -314,6 +346,24 @@ func (s *ForSaleService) GetForUpdate(
 	id uuid.UUID,
 ) (*entity.ForSale, error) {
 	return s.repo.GetForUpdate(ctx, tx, id)
+}
+
+// UpdateProduct persists Product content changes within the same transaction as a ForSale surface update.
+// Product is the sole authority for title/description/media/koi/farm/preparation.
+// Called by the unified PUT /for-sale handler to keep Product and ForSale atomically consistent without a bridge.
+func (s *ForSaleService) UpdateProduct(
+	ctx context.Context,
+	tx db.Tx,
+	product *productEntity.Product,
+) error {
+	if product == nil {
+		return fmt.Errorf("product is nil")
+	}
+	if product.ID == uuid.Nil {
+		return fmt.Errorf("product id is required")
+	}
+	product.UpdatedAt = time.Now()
+	return s.productRepo.Update(ctx, tx, product)
 }
 
 // Update updates an existing for_sale.
@@ -511,9 +561,9 @@ func (s *ForSaleService) EnsureShippingConfigured(
 	return shippingApp.ErrShippingNotConfigured
 }
 
-// EnsureFarmAddressValid validates that the for_sale has a valid farm/sender
+// EnsureFarmAddressValid validates that the for_sale's Product has a valid farm/sender
 // address configured before publish. Checks:
-//   - FarmAddressID is set (not nil)
+//   - Product.FarmAddressID is set (not nil)
 //   - The referenced address exists
 //   - The address belongs to the seller (ownership)
 //   - The address has purpose="sender"
@@ -525,11 +575,11 @@ func (s *ForSaleService) EnsureFarmAddressValid(
 	tx db.Tx,
 	for_sale *entity.ForSale,
 ) error {
-	if for_sale.FarmAddressID == nil {
+	if for_sale.Product == nil || for_sale.Product.FarmAddressID == nil {
 		return fmt.Errorf("farm_address_id is required: %w", ErrFarmAddressNotConfigured)
 	}
 
-	address, err := s.addressRepo.GetByID(ctx, tx, *for_sale.FarmAddressID)
+	address, err := s.addressRepo.GetByID(ctx, tx, *for_sale.Product.FarmAddressID)
 	if err != nil {
 		return fmt.Errorf("farm address not found: %w", ErrFarmAddressNotConfigured)
 	}

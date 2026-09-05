@@ -12,85 +12,34 @@ import (
 	entity "github.com/labuda/backend/internal/commerce/forsale/entity"
 	for_saleRepo "github.com/labuda/backend/internal/commerce/forsale/repository"
 	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
-	productRepo "github.com/labuda/backend/internal/commerce/product/repository"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/money"
 )
 
 // ForSaleRepositoryImpl persists canonical fixed-price sale rows.
-type ForSaleRepositoryImpl struct {
-	productRepo productRepo.ProductRepository
-}
+// Strict surface persistence — Product is handled by ProductRepository via ForSaleService.
+type ForSaleRepositoryImpl struct{}
 
 // NewForSaleRepository creates a new fixed-price sale repository.
 func NewForSaleRepository() *ForSaleRepositoryImpl {
-	return &ForSaleRepositoryImpl{
-		productRepo: productInfraRepo.NewProductRepository(),
-	}
+	return &ForSaleRepositoryImpl{}
 }
 
 func (r *ForSaleRepositoryImpl) Create(ctx context.Context, tx db.Tx, for_sale *entity.ForSale) error {
 	if for_sale == nil {
 		return fmt.Errorf("for_sale is nil")
 	}
-
-	// Reuse path: an explicit ProductID attaches the sale to an existing
-	// Product (stable Product identity). The product must exist, be owned
-	// by this seller, and be unattached to any selling surface.
-	if for_sale.ProductID != uuid.Nil {
-		product, err := r.productRepo.GetByID(ctx, tx, for_sale.ProductID)
-		if err != nil {
-			return fmt.Errorf("reuse product failed: %w", err)
-		}
-		if product.SellerID != for_sale.SellerID {
-			return fmt.Errorf("cannot attach fixed-price sale to product owned by another seller")
-		}
-		// INVARIANT: Product must not already belong to any selling surface.
-		// ClaimSellingSurface uses SELECT ... FOR UPDATE to prevent concurrent
-		// attachment to both ForSale and Auction.
-		if err := r.productRepo.ClaimSellingSurface(ctx, tx, for_sale.ProductID, productEntity.SellingSurfaceForSale); err != nil {
-			return fmt.Errorf("cannot attach for_sale to product: %w", err)
-		}
-		for_sale.Product = product
-		for_sale.Visibility = derivedVisibility(for_sale.Status, for_sale.PublishedAt)
-		if err := r.insertForSaleRow(ctx, tx, for_sale); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	// Mint path: a Product is created atomically with the sale when the
-	// caller did not supply an existing ProductID.
-	product := buildProductFromSale(for_sale)
-	if product.ID == uuid.Nil {
-		product.ID = uuid.New()
+	if for_sale.ProductID == uuid.Nil {
+		return fmt.Errorf("product id is required: ForSale must be created with a Product already persisted via ProductRepository")
 	}
 	if for_sale.ID == uuid.Nil {
 		for_sale.ID = uuid.New()
 	}
-
-	// Set selling_surface atomically with Product creation.
-	product.SellingSurface = productEntity.SellingSurfaceForSale
-
-	if err := r.productRepo.Create(ctx, tx, product); err != nil {
-		return fmt.Errorf("create product failed: %w", err)
-	}
-
-	for_sale.ProductID = product.ID
-	for_sale.Product = product
 	for_sale.Visibility = derivedVisibility(for_sale.Status, for_sale.PublishedAt)
-
-	if err := r.insertForSaleRow(ctx, tx, for_sale); err != nil {
-		return err
-	}
-
-	return nil
+	return r.insertForSaleRow(ctx, tx, for_sale)
 }
 
-// insertForSaleRow persists the for_sales row. Shared by the
-// mint path (new product created inline) and the reuse path (explicit
-// ProductID attached to an existing product).
+// insertForSaleRow persists the for_sales row.
 func (r *ForSaleRepositoryImpl) insertForSaleRow(ctx context.Context, tx db.Tx, for_sale *entity.ForSale) error {
 	if for_sale.ID == uuid.Nil {
 		for_sale.ID = uuid.New()
@@ -142,22 +91,12 @@ func (r *ForSaleRepositoryImpl) Update(ctx context.Context, tx db.Tx, for_sale *
 	if for_sale == nil {
 		return fmt.Errorf("for_sale is nil")
 	}
-
-	product := buildProductFromSale(for_sale)
-	product.ID = for_sale.ProductID
-	if product.ID == uuid.Nil && for_sale.Product != nil {
-		product.ID = for_sale.Product.ID
+	if for_sale.ProductID == uuid.Nil && for_sale.Product != nil {
+		for_sale.ProductID = for_sale.Product.ID
 	}
-	if product.ID == uuid.Nil {
+	if for_sale.ProductID == uuid.Nil {
 		return fmt.Errorf("product id is required")
 	}
-
-	if err := r.productRepo.Update(ctx, tx, product); err != nil {
-		return fmt.Errorf("update product failed: %w", err)
-	}
-
-	for_sale.Product = product
-	for_sale.ProductID = product.ID
 	for_sale.Visibility = derivedVisibility(for_sale.Status, for_sale.PublishedAt)
 
 	_, err := tx.Exec(ctx, `
@@ -508,6 +447,7 @@ func scanJoinedSaleFromRow(scanner interface {
 	var userAccountStatus string
 	var userID uuid.UUID
 
+	var productTitle, productDescription, productVariety, productPreparationTime string
 	if err := scanner.Scan(
 		&sale.ID,
 		&saleProductID,
@@ -523,10 +463,10 @@ func scanJoinedSaleFromRow(scanner interface {
 		&saleUpdatedAt,
 		&productID,
 		&productSellerID,
-		&sale.Title,
-		&sale.Description,
+		&productTitle,
+		&productDescription,
 		&mediaURLsRaw,
-		&sale.Variety,
+		&productVariety,
 		&sizeCM,
 		&ageMonths,
 		&gender,
@@ -534,7 +474,7 @@ func scanJoinedSaleFromRow(scanner interface {
 		&bloodline,
 		&certificates,
 		&productFarmAddressID,
-		&sale.PreparationTime,
+		&productPreparationTime,
 		&preparationNote,
 		&sellingSurfaceRaw,
 		&productCreatedAt,
@@ -561,10 +501,10 @@ func scanJoinedSaleFromRow(scanner interface {
 	product := &productEntity.Product{
 		ID:              productID,
 		SellerID:        productSellerID,
-		Title:           sale.Title,
-		Description:     sale.Description,
+		Title:           productTitle,
+		Description:     productDescription,
 		MediaURLs:       mediaURLs,
-		Variety:         sale.Variety,
+		Variety:         productVariety,
 		SizeCm:          sizeCM,
 		AgeMonths:       ageMonths,
 		Gender:          gender,
@@ -572,7 +512,7 @@ func scanJoinedSaleFromRow(scanner interface {
 		Bloodline:       bloodline,
 		Certificates:    certificates,
 		FarmAddressID:   productFarmAddressID,
-		PreparationTime: string(sale.PreparationTime),
+		PreparationTime: productPreparationTime,
 		PreparationNote: preparationNote,
 		SellingSurface:  sellingSurface,
 		CreatedAt:       productCreatedAt,
@@ -590,58 +530,26 @@ func scanJoinedSaleFromRow(scanner interface {
 	sale.WithdrawnAt = withdrawnAt
 	sale.CreatedAt = saleCreatedAt
 	sale.UpdatedAt = saleUpdatedAt
-	sale.FarmAddressID = productFarmAddressID
-	sale.PreparationNote = preparationNote
 	sale.PricePerUnit = money.New(sale.PricePerUnit.Int64())
+	// Deprecated aliases — keep in sync for Social compatibility
+	sale.Title = productTitle
+	sale.Description = productDescription
+	sale.MediaURLs = mediaURLsRaw
+	sale.Variety = productVariety
+	sale.SizeCM = sizeCM
+	sale.AgeMonths = ageMonths
+	sale.Gender = gender
+	sale.Breeder = breeder
+	sale.Bloodline = bloodline
+	sale.Certificates = certificates
+	sale.FarmAddressID = productFarmAddressID
+	sale.PreparationTime = entity.PreparationTime(productPreparationTime)
+	sale.PreparationNote = preparationNote
 	_ = userID
 	_ = userAccountStatus
 	_ = deletedAt
 
 	return &sale, nil
-}
-
-func buildProductFromSale(for_sale *entity.ForSale) *productEntity.Product {
-	product := for_sale.Product
-	if product == nil {
-		product = &productEntity.Product{}
-	}
-	product.ID = for_sale.ProductID
-	product.SellerID = for_sale.SellerID
-	product.Title = for_sale.Title
-	product.Description = for_sale.Description
-	product.MediaURLs = rawMediaURLs(for_sale.MediaURLs)
-	product.Variety = for_sale.Variety
-	product.SizeCm = for_sale.SizeCM
-	product.AgeMonths = for_sale.AgeMonths
-	product.Gender = for_sale.Gender
-	product.Breeder = for_sale.Breeder
-	product.Bloodline = for_sale.Bloodline
-	product.Certificates = for_sale.Certificates
-	product.FarmAddressID = for_sale.FarmAddressID
-	product.PreparationTime = string(for_sale.PreparationTime)
-	product.PreparationNote = for_sale.PreparationNote
-	product.UpdatedAt = for_sale.UpdatedAt
-	if product.CreatedAt.IsZero() {
-		product.CreatedAt = for_sale.CreatedAt
-	}
-	// INVARIANT: SellingSurface is NEVER set by buildProductFromSale.
-	// It is set exclusively by Create() (mint path) and ClaimSellingSurface()
-	// (reuse path). If the source Product already has a SellingSurface, it
-	// is preserved via the copy from for_sale.Product above. If the source
-	// Product is nil (mint path), SellingSurface defaults to zero value and
-	// is explicitly set by the caller (Create method).
-	return product
-}
-
-func rawMediaURLs(raw json.RawMessage) []string {
-	if len(raw) == 0 || string(raw) == "null" {
-		return []string{}
-	}
-	var urls []string
-	if err := json.Unmarshal(raw, &urls); err != nil {
-		return []string{}
-	}
-	return urls
 }
 
 func derivedVisibility(status entity.ForSaleStatus, publishedAt *time.Time) entity.ForSaleVisibility {

@@ -431,13 +431,7 @@ func TestStage6B_ReuseQuantity_RejectsSecondForSale(t *testing.T) {
 	repo := fpsinfra.NewForSaleRepository()
 
 	// First surface: qty=10, then 3 units reserved → 7 remaining.
-	saleA, err := fpsEntity.NewForSale(
-		seller, "Koi A", "desc", []byte(`[]`), "Kohaku",
-		nil, nil, nil, nil, nil, []string{},
-		fpsEntity.ForSaleTypeFixedPrice, money.New(100000), 10, false,
-		fpsEntity.ForSaleVisibilityPublic,
-		nil, fpsEntity.PreparationTimeImmediate, nil,
-	)
+	saleA, err := fpsEntity.NewForSaleSurface(seller, fpsEntity.ForSaleTypeFixedPrice, money.New(100000), 10, false, fpsEntity.ForSaleVisibilityPublic)
 	require.NoError(t, err)
 	require.NoError(t, saleA.Publish())
 	saleA.ProductID = product
@@ -454,13 +448,7 @@ func TestStage6B_ReuseQuantity_RejectsSecondForSale(t *testing.T) {
 	}))
 
 	// A second ForSale cannot replace the existing stock-owning surface.
-	saleB, err := fpsEntity.NewForSale(
-		seller, "Koi B", "desc", []byte(`[]`), "Kohaku",
-		nil, nil, nil, nil, nil, []string{},
-		fpsEntity.ForSaleTypeFixedPrice, money.New(150000), 1, false,
-		fpsEntity.ForSaleVisibilityPublic,
-		nil, fpsEntity.PreparationTimeImmediate, nil,
-	)
+	saleB, err := fpsEntity.NewForSaleSurface(seller, fpsEntity.ForSaleTypeFixedPrice, money.New(150000), 1, false, fpsEntity.ForSaleVisibilityPublic)
 	require.NoError(t, err)
 	require.NoError(t, saleB.Publish())
 	saleB.ProductID = product

@@ -14,6 +14,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	forsaleRepo "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
 	quoteApp "github.com/labuda/backend/internal/commerce/shipping/quote/application"
@@ -205,28 +207,30 @@ func seedChatRoom(t *testing.T, ctx context.Context, tdb *testdb.TestDB, repo ch
 func seedPublishedForSale(t *testing.T, ctx context.Context, tdb *testdb.TestDB, repo *forsaleRepo.ForSaleRepositoryImpl, sellerID uuid.UUID, title string) *forsaleEntity.ForSale {
 	t.Helper()
 
-	forSale, err := forsaleEntity.NewForSale(
-		sellerID,
-		title,
-		"fixture forSale",
-		json.RawMessage(`[]`),
-		"kohaku",
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		forsaleEntity.ForSaleTypeFixedPrice,
-		money.New(25000),
-		1,
-		false,
-		forsaleEntity.ForSaleVisibilityPrivate,
-		
-		nil,
-		forsaleEntity.PreparationTimeImmediate,
-		nil,
-	)
+	forSale_product := &productEntity.Product{
+	SellerID: sellerID,
+	Title: title,
+	Description: "fixture forSale",
+	MediaURLs: json.RawMessage(`[]`),
+	Variety: "kohaku",
+	SizeCm: nil,
+	AgeMonths: nil,
+	Gender: nil,
+	Breeder: nil,
+	Bloodline: nil,
+	Certificates: nil,
+	FarmAddressID: nil,
+	PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
+	PreparationNote: nil,
+	SellingSurface: productEntity.SellingSurfaceForSale,
+}
+	productRepo := productInfraRepo.NewProductRepository()
+	if err := productRepo.Create(ctx, tx, forSale_product); err != None {
+		return err
+	}
+	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(25000), 1, false, forsaleEntity.ForSaleVisibilityPrivate)
+	forSale.ProductID = forSale_product.ID
+	forSale.Product = forSale_product
 	require.NoError(t, err)
 
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {

@@ -36,6 +36,14 @@ func (fakeProductCreator) ClaimSellingSurface(_ context.Context, _ db.Tx, _ uuid
 	return nil
 }
 
+func (fakeProductCreator) GetByID(_ context.Context, _ db.Tx, _ uuid.UUID) (*productEntity.Product, error) {
+	return &productEntity.Product{ID: uuid.New(), SellerID: uuid.New(), Title: "dummy", Description: "dummy"}, nil
+}
+
+func (fakeProductCreator) Update(_ context.Context, _ db.Tx, _ *productEntity.Product) error {
+	return nil
+}
+
 // newAuctionServiceForCreateTiming builds a fully-wired AuctionService whose
 // dependencies are either real (repos operating against fakeTx, which no-ops
 // successfully) or minimal stubs, so CreateDraft can run end-to-end including

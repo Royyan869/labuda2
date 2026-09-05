@@ -86,7 +86,7 @@ const (
 // The state machine enforces business rules at the entity level.
 var transitionAllowed = map[Status][]Status{
 	StatusDraft:             {StatusScheduled, StatusCancelled},
-	StatusScheduled:         {StatusActive, StatusCancelled, StatusDraft}, // Can revert to draft
+	StatusScheduled:         {StatusActive, StatusCancelled},
 	StatusActive:            {StatusWaitingSettlement, StatusEnded, StatusCancelled},
 	StatusWaitingSettlement: {StatusEnded, StatusDraft, StatusCancelled}, // After payment success OR settlement failure OR moderation enforcement
 	StatusEnded:             {},                                           // Terminal state
@@ -422,7 +422,10 @@ func (a *Auction) SettlementDeadline() time.Time {
 //     never become the current settlement authority for a relist)
 //   - CurrentWinnerID    = nil
 //   - CurrentBid         = nil (MinimumBid() returns StartPrice again)
-//
+//   - AntiSnipeExtensionTotal = 0 (anti-sniping budget is per-lifecycle;
+//     a relisted auction must start with a fresh extension budget —
+//     otherwise accumulated extension from the previous lifecycle would
+//     reduce or exhaust the new lifecycle's soft-close cap)
 // Historical auction_bids rows are intentionally preserved (never deleted).
 func (a *Auction) TransitionToDraftOnSettlementFailure() error {
 	if !canTransition(a.Status, StatusDraft) {
@@ -435,6 +438,7 @@ func (a *Auction) TransitionToDraftOnSettlementFailure() error {
 	a.SellerQuoteProvided = false
 	a.CurrentWinnerID = nil
 	a.CurrentBid = nil
+	a.AntiSnipeExtensionTotal = 0
 	a.UpdatedAt = time.Now()
 	return nil
 }
@@ -551,7 +555,11 @@ func (a *Auction) UpdateScheduled(
 	if err := ValidateAuctionTiming(startAt, endAt); err != nil {
 		return err
 	}
-	if err := RequireFutureScheduledStart(startAt, time.Now()); err != nil {
+	now := time.Now()
+	if err := RequireFutureScheduledStart(startAt, now); err != nil {
+		return err
+	}
+	if err := RequireScheduledStartWithinHorizon(startAt, now); err != nil {
 		return err
 	}
 

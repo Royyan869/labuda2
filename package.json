@@ -1,0 +1,25 @@
+{
+  "name": "unhinged-console-e2e-tests",
+  "version": "1.0.0",
+  "description": "E2E test suite for Unhinged Console MVP demo features",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node start.js",
+    "test": "npx playwright test",
+    "test:ai": "npx playwright test tests/ai-mode.spec.ts",
+    "test:console": "npx playwright test tests/console-mode.spec.ts",
+    "test:learn": "npx playwright test tests/learn-mode.spec.ts",
+    "test:gui": "npx playwright test tests/gui-behavior.spec.ts",
+    "test:integration": "npx playwright test tests/integration.spec.ts",
+    "test:headed": "npx playwright test --headed",
+    "test:debug": "npx playwright test --debug",
+    "test:ui": "npx playwright test --ui",
+    "report": "npx playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

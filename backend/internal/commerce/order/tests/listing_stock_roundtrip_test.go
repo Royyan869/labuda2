@@ -13,6 +13,7 @@ package tests
 // The test creates its own fixture and verifies each state transition.
 
 import (
+	"encoding/json"
 	"context"
 	"testing"
 
@@ -22,6 +23,8 @@ import (
 	"github.com/google/uuid"
 
 	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	forsaleRepo "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/money"
@@ -61,28 +64,30 @@ func TestForSaleStockRoundTrip_Qty1(t *testing.T) {
 	require.NoError(t, err, "seller user fixture failed")
 
 	err = testDB.WithTx(ctx, func(tx db.Tx) error {
-		forSale, err := forsaleEntity.NewForSale(
-			sellerID,
-			"Showa Koi — Round-Trip Test",
-			"Proves qty=1 reservation cycle",
-			[]byte(`["https://picsum.photos/seed/koi1/800/600"]`),
-			"Showa",
-			intPtr(25),
-			intPtr(8),
-			strPtr("male"),
-			nil,                // breeder
-			nil,                // bloodline
-			[]string{"global"}, // certificates
-			forsaleEntity.ForSaleTypeFixedPrice,
-			money.New(750000), // 750 000 IDR
-			1,                 // qty=1: unique koi
-			false,             // negotiation disabled
-			forsaleEntity.ForSaleVisibilityPublic,
-			
-			nil, // farmAddressID
-			forsaleEntity.PreparationTimeImmediate,
-			nil, // preparationNote
-		)
+		forSale_product := &productEntity.Product{
+	SellerID: sellerID,
+	Title: "Showa Koi — Round-Trip Test",
+	Description: "Proves qty=1 reservation cycle",
+	MediaURLs: []string{"https://picsum.photos/seed/koi1/800/600"},
+	Variety: "Showa",
+	SizeCm: intPtr(25),
+	AgeMonths: intPtr(8),
+	Gender: strPtr("male"),
+	Breeder: nil,
+	Bloodline: nil,
+	Certificates: []string{"global"},
+	FarmAddressID: nil,
+	PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
+	PreparationNote: nil,
+	SellingSurface: productEntity.SellingSurfaceForSale,
+}
+	productRepo := productInfraRepo.NewProductRepository()
+	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
+		return err
+	}
+	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(750000), 1, false, forsaleEntity.ForSaleVisibilityPublic)
+	forSale.ProductID = forSale_product.ID
+	forSale.Product = forSale_product
 		require.NoError(t, err)
 		require.NoError(t, forSale.Publish())
 		require.NoError(t, forSaleRepo.Create(ctx, tx, forSale))
@@ -187,25 +192,31 @@ func TestForSaleStockRoundTrip_MultiQty(t *testing.T) {
 	require.NoError(t, err)
 
 	err = testDB.WithTx(ctx, func(tx db.Tx) error {
-		forSale, err := forsaleEntity.NewForSale(
-			sellerID,
-			"Kohaku Koi Batch — Multi-Qty Test",
-			"Proves partial reservation",
-			[]byte(`[]`),
-			"Kohaku",
-			intPtr(20),
-			nil, nil, nil, nil,
-			[]string{"global"},
-			forsaleEntity.ForSaleTypeFixedPrice,
-			money.New(300000),
-			5, // qty=5
-			false,
-			forsaleEntity.ForSaleVisibilityPublic,
-			
-			nil,
-			forsaleEntity.PreparationTimeImmediate,
-			nil,
-		)
+		forSale_product := &productEntity.Product{
+	SellerID: sellerID,
+	Title: "Kohaku Koi Batch — Multi-Qty Test",
+	Description: "Proves partial reservation",
+	MediaURLs: []string{},
+	Variety: "Kohaku",
+	SizeCm: intPtr(20),
+	AgeMonths: nil,
+	Gender: nil,
+	Breeder: nil,
+	Bloodline: nil,
+	Certificates: []string{"global"},
+	FarmAddressID: nil,
+	PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
+	PreparationNote: nil,
+	SellingSurface: productEntity.SellingSurfaceForSale,
+}
+	productRepo := productInfraRepo.NewProductRepository()
+	if err := productRepo.Create(ctx, tx, forSale_product); err != None {
+		return err
+	}
+	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(300000), 5, // qty=5
+			false, forsaleEntity.ForSaleVisibilityPublic)
+	forSale.ProductID = forSale_product.ID
+	forSale.Product = forSale_product
 		require.NoError(t, err)
 		require.NoError(t, forSale.Publish())
 		require.NoError(t, forSaleRepo.Create(ctx, tx, forSale))
@@ -275,24 +286,30 @@ func TestNegativeQuantityStillBlocked(t *testing.T) {
 	require.NoError(t, err)
 
 	err = testDB.WithTx(ctx, func(tx db.Tx) error {
-		forSale, err := forsaleEntity.NewForSale(
-			sellerID,
-			"Guard Test Koi",
-			"Negative qty must fail",
-			[]byte(`[]`),
-			"Sanke",
-			nil, nil, nil, nil, nil,
-			[]string{"global"},
-			forsaleEntity.ForSaleTypeFixedPrice,
-			money.New(100000),
-			1,
-			false,
-			forsaleEntity.ForSaleVisibilityPublic,
-			
-			nil,
-			forsaleEntity.PreparationTimeImmediate,
-			nil,
-		)
+		forSale_product := &productEntity.Product{
+	SellerID: sellerID,
+	Title: "Guard Test Koi",
+	Description: "Negative qty must fail",
+	MediaURLs: []string{},
+	Variety: "Sanke",
+	SizeCm: nil,
+	AgeMonths: nil,
+	Gender: nil,
+	Breeder: nil,
+	Bloodline: nil,
+	Certificates: []string{"global"},
+	FarmAddressID: nil,
+	PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
+	PreparationNote: nil,
+	SellingSurface: productEntity.SellingSurfaceForSale,
+}
+	productRepo := productInfraRepo.NewProductRepository()
+	if err := productRepo.Create(ctx, tx, forSale_product); err != None {
+		return err
+	}
+	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(100000), 1, false, forsaleEntity.ForSaleVisibilityPublic)
+	forSale.ProductID = forSale_product.ID
+	forSale.Product = forSale_product
 		require.NoError(t, err)
 		require.NoError(t, forSale.Publish())
 		require.NoError(t, forSaleRepo.Create(ctx, tx, forSale))

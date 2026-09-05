@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unhinged Console - MVP</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: #0a0a0a;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #console-output {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        #console-input-container {
+            padding: 10px 20px;
+            border-top: 1px solid #333;
+            display: flex;
+            align-items: center;
+        }
+        
+        #console-prompt {
+            color: #00ff00;
+            margin-right: 10px;
+        }
+        
+        #console-input {
+            background: transparent;
+            border: none;
+            color: #00ff00;
+            font-family: inherit;
+            font-size: inherit;
+            flex: 1;
+            outline: none;
+        }
+        
+        .text-green { color: #00ff00; }
+        .text-red { color: #ff0000; }
+        .text-blue { color: #0000ff; }
+        .text-yellow { color: #ffff00; }
+        .text-orange { color: #ffa500; }
+        
+        .banner {
+            color: #00ff00;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .separator {
+            color: #666;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="console-output" data-testid="console-output"></div>
+    <div id="console-input-container">
+        <span id="console-prompt" data-testid="console-prompt">&gt;</span>
+        <input type="text" id="console-input" data-testid="console-input" autofocus>
+    </div>
+
+    <script>
+        const consoleOutput = document.getElementById('console-output');
+        const consoleInput = document.getElementById('console-input');
+        
+        let currentMode = 'menu';
+        let conversationHistory = [];
+        
+        // ASCII Banner
+        const banner = `
+ ███╗   ██╗██╗   ██╗██╗  ██╗██╗███╗   ██╗███████╗
+ ████╗  ██║██║   ██║██║  ██║██║████╗  ██║██╔════╝
+ ██╔██╗ ██║██║   ██║███████║██║██╔██╗ ██║███████╗
+ ██║╚██╗██║██║   ██║██╔══██║██║██║╚██╗██║╚════██║
+ ██║ ╚████║╚██████╔╝██║  ██║██║██║ ╚████║███████║
+ ╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝╚══════╝
+                    CONSOLE v0.1.0
+              Welcome to the Chaos Engine
+                    Ready for Chaos
+`;
+        
+        // Initialize with banner
+        printToConsole(banner, 'text-green');
+        
+        // Handle keyboard shortcuts
+        consoleInput.addEventListener('keydown', function(e) {
+            // Ctrl+C - Graceful exit
+            if (e.ctrlKey && e.key === 'c') {
+                e.preventDefault();
+                printToConsole('\\nGoodbye! Thanks for using Unhinged Console.', 'text-green');
+                consoleInput.disabled = true;
+                return;
+            }
+            
+            // Ctrl+L - Clear screen
+            if (e.ctrlKey && e.key === 'l') {
+                e.preventDefault();
+                consoleOutput.innerHTML = '';
+                printToConsole(banner, 'text-green');
+                return;
+            }
+            
+            // Enter - Process command
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const command = consoleInput.value.trim();
+                
+                if (command === '') {
+                    printToConsole('Please enter a command.', 'text-orange');
+                    consoleInput.value = '';
+                    return;
+                }
+                
+                printToConsole('> ' + command, 'text-blue');
+                processCommand(command);
+                consoleInput.value = '';
+            }
+        });
+        
+        function printToConsole(text, colorClass = '') {
+            const div = document.createElement('div');
+            div.textContent = text;
+            if (colorClass) {
+                div.className = colorClass;
+            }
+            consoleOutput.appendChild(div);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        function processCommand(command) {
+            const cmd = command.toLowerCase().trim();
+            
+            switch(currentMode) {
+                case 'menu':
+                    handleMenuCommand(cmd);
+                    break;
+                case 'console':
+                    handleConsoleCommand(cmd);
+                    break;
+                case 'ai':
+                    handleAICommand(cmd);
+                    break;
+                case 'learn':
+                    handleLearnCommand(cmd);
+                    break;
+                default:
+                    printToConsole('Unknown mode.', 'text-red');
+            }
+        }
+        
+        function handleMenuCommand(command) {
+            switch(command) {
+                case 'ai':
+                    currentMode = 'ai';
+                    printToConsole('AI mode activated! Welcome to the Game Show AI.', 'text-green');
+                    printToConsole('--- AI Response ---', 'text-blue');
+                    printToConsole('Timestamp: ' + new Date().toISOString(), 'text-blue');
+                    printToConsole('Model: mock-gpt', 'text-blue');
+                    printToConsole('Hello! I am your Game Show AI assistant. Ask me anything!', 'text-blue');
+                    conversationHistory = [];
+                    break;
+                case 'console':
+                    currentMode = 'console';
+                    printToConsole('Console mode activated! System administration ready.', 'text-green');
+                    printToConsole(banner, 'text-green');
+                    break;
+                case 'learn':
+                    currentMode = 'learn';
+                    printToConsole('Learn mode activated! Welcome to the interactive tutorial.', 'text-green');
+                    printToConsole('\\nWelcome to Unhinged Console! Here is what you can do:', 'text-blue');
+                    printToConsole('- Use "ai" mode to chat with our Game Show AI', 'text-blue');
+                    printToConsole('- Use "console" mode for system administration', 'text-blue');
+                    printToConsole('- Use "learn" mode (you are here!) for tutorials', 'text-blue');
+                    printToConsole('\\nKeyboard shortcuts:', 'text-blue');
+                    printToConsole('- Ctrl+L: Clear screen', 'text-blue');
+                    printToConsole('- Ctrl+C: Graceful exit', 'text-blue');
+                    break;
+                case 'help':
+                    printToConsole('Available modes:', 'text-blue');
+                    printToConsole('- ai: Chat with Game Show AI', 'text-blue');
+                    printToConsole('- console: System administration', 'text-blue');
+                    printToConsole('- learn: Interactive tutorial', 'text-blue');
+                    printToConsole('- help: Show this help message', 'text-blue');
+                    break;
+                default:
+                    printToConsole('Unknown command: ' + command, 'text-orange');
+            }
+        }
+        
+        function handleConsoleCommand(command) {
+            switch(command) {
+                case 'exit':
+                case 'menu':
+                    currentMode = 'menu';
+                    printToConsole('Returning to main menu.', 'text-green');
+                    break;
+                case 'status':
+                    printToConsole('System Status:', 'text-blue');
+                    printToConsole('- Mode: ' + currentMode, 'text-blue');
+                    printToConsole('- Uptime: ' + Math.floor(process.uptime?.() || 0) + 's', 'text-blue');
+                    printToConsole('- GUI Subsystem: Active', 'text-blue');
+                    printToConsole('- AI Provider: Configured', 'text-blue');
+                    printToConsole('- Version: 0.1.0', 'text-blue');
+                    break;
+                case 'clear':
+                    consoleOutput.innerHTML = '';
+                    printToConsole(banner, 'text-green');
+                    break;
+                case 'reset':
+                    printToConsole('Are you sure you want to reset? (y/n)', 'text-yellow');
+                    // In a real implementation, we would wait for y/n input
+                    printToConsole('Reset confirmed. All state cleared.', 'text-green');
+                    currentMode = 'menu';
+                    break;
+                default:
+                    printToConsole('Unknown console command: ' + command, 'text-orange');
+            }
+        }
+        
+        function handleAICommand(command) {
+            if (command === 'exit' || command === 'menu') {
+                currentMode = 'menu';
+                printToConsole('Returning to main menu.', 'text-green');
+                return;
+            }
+            
+            // Add to conversation history
+            conversationHistory.push({ role: 'user', content: command });
+            
+            // Simulate AI response
+            const response = generateAIResponse(command);
+            conversationHistory.push({ role: 'assistant', content: response });
+            
+            // Display response in AI format
+            printToConsole('--- AI Response ---', 'text-blue');
+            printToConsole('Timestamp: ' + new Date().toISOString(), 'text-blue');
+            printToConsole('Model: mock-gpt', 'text-blue');
+            printToConsole(response, 'text-green');
+        }
+        
+        function generateAIResponse(userMessage) {
+            // Mock AI responses
+            if (userMessage.toLowerCase().includes('hello')) {
+                return 'Hello! How can I help you today?';
+            }
+            if (userMessage.toLowerCase().includes('name')) {
+                return 'I am the Unhinged Console AI assistant!';
+            }
+            if (userMessage.toLowerCase().includes('help')) {
+                return 'I can help you with general questions. Just ask!';
+            }
+            return 'I received your message: "' + userMessage + '". This is a mock response from the AI.';
+        }
+        
+        function handleLearnCommand(command) {
+            switch(command) {
+                case 'exit':
+                case 'menu':
+                    currentMode = 'menu';
+                    printToConsole('Returning to main menu.', 'text-green');
+                    break;
+                case 'help':
+                    printToConsole('\\nTutorial Content:', 'text-blue');
+                    printToConsole('Welcome to Unhinged Console! This is an interactive tutorial.', 'text-blue');
+                    printToConsole('You are currently in Learn mode. Use "shortcuts" to see keyboard shortcuts.', 'text-blue');
+                    printToConsole('Use "bindings" to see key bindings. Use "exit" to return to the menu.', 'text-blue');
+                    break;
+                case 'shortcuts':
+                    printToConsole('\\nKeyboard Shortcuts:', 'text-blue');
+                    printToConsole('- Ctrl+L: Clear the screen', 'text-blue');
+                    printToConsole('- Ctrl+C: Gracefully exit the application', 'text-blue');
+                    printToConsole('- Enter: Execute the current command', 'text-blue');
+                    break;
+                case 'bindings':
+                    printToConsole('\\nKey Bindings:', 'text-blue');
+                    printToConsole('- ai: Switch to AI conversation mode', 'text-blue');
+                    printToConsole('- console: Switch to console system mode', 'text-blue');
+                    printToConsole('- learn: Switch to learn/tutorial mode', 'text-blue');
+                    printToConsole('- menu: Return to main menu', 'text-blue');
+                    break;
+                default:
+                    printToConsole('Unknown tutorial command: ' + command + '. Try "help".', 'text-orange');
+            }
+        }
+        
+        // Focus input on page load
+        consoleInput.focus();
+    </script>
+</body>
+</html>

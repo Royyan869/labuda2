@@ -138,17 +138,22 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   }
 
   /// Picks the custom scheduled start time. Only shown when _startMode is
-  /// "scheduled" — backend requires this to be strictly in the future.
+  /// "scheduled" — backend requires this to be strictly in the future and
+  /// no later than 30 days from server time (MaxScheduledStartHorizon).
+  /// Mobile enforces the same 30-day UX limit; backend remains authoritative
+  /// and rejects manipulated/stale client input.
   Future<void> _pickScheduledStartTime() async {
     final now = DateTime.now();
+    final maxHorizon = now.add(const Duration(days: 30));
     final initial = _scheduledStartTime ?? now.add(const Duration(hours: 1));
+    final clampedInitial = initial.isAfter(maxHorizon)
+        ? maxHorizon
+        : (initial.isAfter(now) ? initial : now.add(const Duration(hours: 1)));
     final date = await showDatePicker(
       context: context,
-      initialDate: initial.isAfter(now)
-          ? initial
-          : now.add(const Duration(hours: 1)),
+      initialDate: clampedInitial,
       firstDate: now,
-      lastDate: now.add(const Duration(days: 365)),
+      lastDate: maxHorizon,
     );
     if (date == null) return;
     if (!mounted) return;
@@ -247,8 +252,15 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
         setState(() => _errorMessage = 'Pilih waktu mulai lelang.');
         return;
       }
-      if (!scheduled.isAfter(DateTime.now())) {
+      final nowCheck = DateTime.now();
+      if (!scheduled.isAfter(nowCheck)) {
         setState(() => _errorMessage = 'Waktu mulai harus di masa depan.');
+        return;
+      }
+      // UX guard mirrors backend MaxScheduledStartHorizon (30 days).
+      // Backend remains authoritative for manipulated/stale input.
+      if (scheduled.isAfter(nowCheck.add(const Duration(days: 30)))) {
+        setState(() => _errorMessage = 'Waktu mulai tidak boleh lebih dari 30 hari dari sekarang.');
         return;
       }
       scheduledStartAt = scheduled;

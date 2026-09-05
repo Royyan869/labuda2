@@ -29,19 +29,15 @@ import (
 	"go.uber.org/zap"
 )
 
-// ProductCreator creates a canonical product record within a transaction.
-// Defined locally so auction/application does not import product/infrastructure.
-// dependencies.go wires the concrete productRepoImpl.ProductRepositoryImpl.
+// ProductCreator creates and mutates canonical product records within a
+// transaction. Defined locally so auction/application does not import
+// product/infrastructure; dependencies.go wires the concrete
+// productRepoImpl.ProductRepositoryImpl.
 type ProductCreator interface {
 	Create(ctx context.Context, tx db.Tx, product *productEntity.Product) error
-	ClaimSellingSurface(ctx context.Context, tx db.Tx, productID uuid.UUID, surface productEntity.SellingSurface) error
-}
-
-// productReusableGetter resolves an existing Product for reuse. The concrete
-// product repo (ProductRepositoryImpl) implements GetByID; the type assertion
-// keeps existing ProductCreator fakes (which only implement Create) compiling.
-type productReusableGetter interface {
 	GetByID(ctx context.Context, tx db.Tx, id uuid.UUID) (*productEntity.Product, error)
+	Update(ctx context.Context, tx db.Tx, product *productEntity.Product) error
+	ClaimSellingSurface(ctx context.Context, tx db.Tx, productID uuid.UUID, surface productEntity.SellingSurface) error
 }
 
 // AuctionService handles auction state transitions and operations.
@@ -316,11 +312,7 @@ func (s *AuctionService) CreateDraft(
 	// ForSaleRepositoryImpl.Create()).
 	var productID uuid.UUID
 	if input.ProductID != nil {
-		lookup, ok := s.productRepo.(productReusableGetter)
-		if !ok {
-			return nil, fmt.Errorf("product repo does not support product reuse")
-		}
-		existing, err := lookup.GetByID(ctx, tx, *input.ProductID)
+		existing, err := s.productRepo.GetByID(ctx, tx, *input.ProductID)
 		if err != nil {
 			return nil, fmt.Errorf("reuse product failed: %w", err)
 		}
@@ -567,20 +559,50 @@ func (s *AuctionService) ensureShippingCoverage(
 	return shippingApp.ErrShippingNotConfigured
 }
 
-// UpdateDraftInput contains parameters for updating a draft auction.
-// Product content (title, description, koi attributes) is updated via
-// the Product entity — this struct only carries surface-specific fields.
-type UpdateDraftInput struct {
-	AuctionID    uuid.UUID
-	CallerID     uuid.UUID
-	StartPrice   int64
-	BidIncrement int64
-	BuyNowPrice  *int64
-	StartAt      time.Time
-	EndAt        time.Time
+// validateProductContentUpdate validates title/description when provided
+// for auction draft/scheduled edits. Uses canonical Product bounds:
+// title 1-200 chars, description max 5000 chars. Matches
+// CreateAuctionRequest binding ("required,min=1,max=200" / "required,max=5000").
+func validateProductContentUpdate(title, description *string) error {
+	if title != nil {
+		trimmed := strings.TrimSpace(*title)
+		if trimmed == "" {
+			return fmt.Errorf("title is required")
+		}
+		if len(trimmed) < 1 || len(trimmed) > 200 {
+			return fmt.Errorf("title must be between 1 and 200 characters")
+		}
+	}
+	if description != nil {
+		if len(*description) > 5000 {
+			return fmt.Errorf("description must be at most 5000 characters")
+		}
+	}
+	return nil
 }
 
-// UpdateDraft updates a draft auction.
+// UpdateDraftInput contains parameters for updating a draft auction.
+//
+// Canonical flow: Product content (title/description) → products,
+// Auction surface (pricing/timing) → auctions — in ONE transaction.
+type UpdateDraftInput struct {
+	AuctionID   uuid.UUID
+	CallerID    uuid.UUID
+	Title       *string
+	Description *string
+	StartPrice  int64
+	BidIncrement int64
+	BuyNowPrice *int64
+	StartAt     time.Time
+	EndAt       time.Time
+}
+
+// UpdateDraft updates a draft auction and its Product content atomically.
+//
+// ONE DB TRANSACTION:
+//   ProductRepository.UpdateTx → products
+//   AuctionRepository.UpdateTx → auctions
+// Both commit or both rollback.
 func (s *AuctionService) UpdateDraft(
 	ctx context.Context,
 	tx db.Tx,
@@ -597,7 +619,37 @@ func (s *AuctionService) UpdateDraft(
 		return auth.ErrSellerRequired
 	}
 
-	// Update draft
+	// Validate Product content before any mutation
+	if err := validateProductContentUpdate(input.Title, input.Description); err != nil {
+		return err
+	}
+
+	// Product content authority: update products.title/description when provided.
+	if input.Title != nil || input.Description != nil {
+		if s.productRepo == nil {
+			return fmt.Errorf("product repo not wired for auction draft update")
+		}
+		product, err := s.productRepo.GetByID(ctx, tx, auction.ProductID)
+		if err != nil {
+			return fmt.Errorf("failed to load product for auction update: %w", err)
+		}
+		// Ownership defense: product must belong to the same seller
+		if product.SellerID != auction.SellerID {
+			return fmt.Errorf("product ownership mismatch")
+		}
+		if input.Title != nil {
+			product.Title = strings.TrimSpace(*input.Title)
+		}
+		if input.Description != nil {
+			product.Description = *input.Description
+		}
+		product.UpdatedAt = time.Now()
+		if err := s.productRepo.Update(ctx, tx, product); err != nil {
+			return fmt.Errorf("failed to update product: %w", err)
+		}
+	}
+
+	// Update draft auction surface
 	if err := auction.UpdateDraft(
 		input.StartPrice,
 		input.BidIncrement,
@@ -608,7 +660,7 @@ func (s *AuctionService) UpdateDraft(
 		return err
 	}
 
-	// Persist
+	// Persist auction surface
 	if err := s.auctionRepo.UpdateTx(ctx, tx, auction); err != nil {
 		return err
 	}
@@ -617,16 +669,19 @@ func (s *AuctionService) UpdateDraft(
 }
 
 // UpdateScheduledInput contains parameters for updating a scheduled auction.
-// Only timing can be changed at this stage. Product content is updated via
-// the Product entity.
+// Allowed: Product content (title/description) + timing (start_at/end_at).
+// Pricing is immutable once scheduled.
 type UpdateScheduledInput struct {
-	AuctionID uuid.UUID
-	CallerID  uuid.UUID
-	StartAt   time.Time
-	EndAt     time.Time
+	AuctionID   uuid.UUID
+	CallerID    uuid.UUID
+	Title       *string
+	Description *string
+	StartAt     time.Time
+	EndAt       time.Time
 }
 
-// UpdateScheduled updates a scheduled auction (restricted fields).
+// UpdateScheduled updates a scheduled auction (restricted fields) and its
+// Product content atomically.
 func (s *AuctionService) UpdateScheduled(
 	ctx context.Context,
 	tx db.Tx,
@@ -643,7 +698,36 @@ func (s *AuctionService) UpdateScheduled(
 		return auth.ErrSellerRequired
 	}
 
-	// Update scheduled
+	// Validate Product content before any mutation
+	if err := validateProductContentUpdate(input.Title, input.Description); err != nil {
+		return err
+	}
+
+	// Product content authority: update products.title/description when provided.
+	if input.Title != nil || input.Description != nil {
+		if s.productRepo == nil {
+			return fmt.Errorf("product repo not wired for auction scheduled update")
+		}
+		product, err := s.productRepo.GetByID(ctx, tx, auction.ProductID)
+		if err != nil {
+			return fmt.Errorf("failed to load product for auction update: %w", err)
+		}
+		if product.SellerID != auction.SellerID {
+			return fmt.Errorf("product ownership mismatch")
+		}
+		if input.Title != nil {
+			product.Title = strings.TrimSpace(*input.Title)
+		}
+		if input.Description != nil {
+			product.Description = *input.Description
+		}
+		product.UpdatedAt = time.Now()
+		if err := s.productRepo.Update(ctx, tx, product); err != nil {
+			return fmt.Errorf("failed to update product: %w", err)
+		}
+	}
+
+	// Update scheduled auction timing
 	if err := auction.UpdateScheduled(
 		input.StartAt,
 		input.EndAt,
@@ -1083,6 +1167,18 @@ func (s *AuctionService) EndAuctionInternal(
 		return nil
 	}
 
+	// REVALIDATION (F22D-001): phase-1 discovery used DB NOW() but the
+	// authoritative eligibility must be proven after the row is locked.
+	// If a concurrent PlaceBid extended EndAt (anti-sniping) after phase-1,
+	// the auction is no longer expired and must NOT be ended here.
+	if time.Now().Before(auction.EndAt) {
+		s.log.Info("Auction no longer expired, skipping stale end",
+			zap.String("auction_id", auction.ID.String()),
+			zap.Time("end_at", auction.EndAt),
+		)
+		return nil
+	}
+
 	// NOTE: Shipping details are NO LONGER used by worker
 	// Worker only transitions auction state
 	// Winner must use pricing token flow to create order
@@ -1360,6 +1456,18 @@ func (s *AuctionService) ActivateScheduledAuction(
 		return nil // Already processed
 	}
 
+	// REVALIDATION (F22D-003): phase-1 discovery used DB NOW() but the
+	// authoritative eligibility must be proven after the row is locked.
+	// If a concurrent UpdateScheduled moved start_at into the future after
+	// phase-1, the auction is no longer eligible and must NOT be activated.
+	if time.Now().Before(auction.StartAt) {
+		s.log.Info("Auction start_at in future, skipping stale activation",
+			zap.String("auction_id", auction.ID.String()),
+			zap.Time("start_at", auction.StartAt),
+		)
+		return nil
+	}
+
 	// COMMERCE RESTRICTION: Reject restricted seller at activation boundary.
 	// Checked inside the same transaction as the state mutation.
 	if err := s.requireSellerNotRestricted(ctx, tx, auction.SellerID); err != nil {
@@ -1399,6 +1507,29 @@ func (s *AuctionService) ActivateScheduledAuction(
 		}
 
 		return nil
+	}
+
+	// SHIPPING COVERAGE REVALIDATION (F22D-002 / F2.2F - fail-closed):
+	// Scheduling requires at least one active coverage. Seller may deactivate
+	// or delete coverages / unlink options after scheduling but before start_at.
+	// Revalidate against authoritative current state after row lock; if no longer
+	// shippable, keep scheduled and allow future retry when seller restores coverage.
+	// Uses canonical ensureShippingCoverage (at least one option has is_available=true).
+	// Fail-closed: required shipping dependencies must be present; missing repo is a
+	// system error, not a silent skip.
+	if s.productShippingRepo == nil || s.shippingCoverageRepo == nil {
+		return fmt.Errorf("auction shipping validation requires productShippingRepo and shippingCoverageRepo")
+	}
+	if err := s.ensureShippingCoverage(ctx, tx, auction.ProductID); err != nil {
+		if errors.Is(err, shippingApp.ErrShippingNotConfigured) {
+			s.log.Info("Auction shipping coverage not available, skipping activation",
+				zap.String("auction_id", auction.ID.String()),
+				zap.String("product_id", auction.ProductID.String()),
+				zap.Error(err),
+			)
+			return nil
+		}
+		return fmt.Errorf("failed to validate shipping coverage: %w", err)
 	}
 
 	// Seller has active subscription - proceed with activation

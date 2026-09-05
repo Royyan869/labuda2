@@ -303,14 +303,25 @@ func isAuctionTimingValidationError(err error) bool {
 		return true
 	}
 	var futureErr *entity.ErrScheduledStartMustBeFuture
-	return errors.As(err, &futureErr)
+	if errors.As(err, &futureErr) {
+		return true
+	}
+	var horizonErr *entity.ErrScheduledStartBeyondHorizon
+	return errors.As(err, &horizonErr)
 }
 
 // UpdateAuctionRequest holds the request body for updating an auction.
-// Product content (title, description, koi attributes, media, preparation)
-// is updated via the Product entity — this request only carries surface-specific
-// fields (pricing, timing).
+//
+// Canonical update contract (F2.2B):
+//   Draft:     title, description, start_price, bid_increment, buy_now_price, start_at, end_at
+//   Scheduled: title, description, start_at, end_at
+// Product content (title/description) is persisted via ProductRepository;
+// Auction surface (pricing/timing) via AuctionRepository — ONE transaction.
+// Unsupported fields (images/category/condition/auto_extend*) are NOT bound
+// and are explicitly rejected when present (see UpdateAuction guard).
 type UpdateAuctionRequest struct {
+	Title       *string `json:"title" binding:"omitempty,min=1,max=200"`
+	Description *string `json:"description" binding:"omitempty,max=5000"`
 	StartPrice   *int64  `json:"start_price" binding:"omitempty,min=0"`
 	BidIncrement *int64  `json:"bid_increment" binding:"omitempty,min=1"`
 	BuyNowPrice  *int64  `json:"buy_now_price" binding:"omitempty,min=0"`
@@ -347,7 +358,26 @@ func (h *AuctionHandler) UpdateAuction(c *gin.Context) {
 		return
 	}
 
-	// Parse request body
+	// Parse request body — raw read first to enforce unsupported-field guard
+	// before ShouldBindJSON silently ignores them.
+	rawBody, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		response.BadRequest(c, "Invalid request")
+		return
+	}
+	// Explicitly reject unsupported update fields that were carried by the
+	// stale mobile DTO (images/category/condition/auto_extend*).
+	// Canonical contract is title/description/start_price/bid_increment/buy_now_price/start_at/end_at only.
+	if bytes.Contains(rawBody, []byte(`"images"`)) ||
+		bytes.Contains(rawBody, []byte(`"category"`)) ||
+		bytes.Contains(rawBody, []byte(`"condition"`)) ||
+		bytes.Contains(rawBody, []byte(`"auto_extend"`)) ||
+		bytes.Contains(rawBody, []byte(`"autoExtend"`)) {
+		response.BadRequest(c, "unsupported field: images/category/condition/auto_extend are not supported for auction update")
+		return
+	}
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(rawBody))
+
 	var req UpdateAuctionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, err.Error())
@@ -392,8 +422,10 @@ func (h *AuctionHandler) UpdateAuction(c *gin.Context) {
 			}
 
 			return h.auctionService.UpdateDraft(ctx, tx, auctionApp.UpdateDraftInput{
-				AuctionID:    auctionID,
-				CallerID:     callerID,
+				AuctionID:   auctionID,
+				CallerID:    callerID,
+				Title:       req.Title,
+				Description: req.Description,
 				StartPrice:   startPrice,
 				BidIncrement: bidIncrement,
 				BuyNowPrice:  buyNowPrice,
@@ -419,15 +451,18 @@ func (h *AuctionHandler) UpdateAuction(c *gin.Context) {
 			}
 
 			return h.auctionService.UpdateScheduled(ctx, tx, auctionApp.UpdateScheduledInput{
-				AuctionID: auctionID,
-				CallerID:  callerID,
+				AuctionID:   auctionID,
+				CallerID:    callerID,
+				Title:       req.Title,
+				Description: req.Description,
 				StartAt:   startAt,
 				EndAt:     endAt,
 			})
 
 		} else {
-			// Active, Ended, Cancelled: cannot update
-			return fmt.Errorf("cannot update auction in status %s", auction.Status)
+			// Active, Ended, Cancelled, WaitingSettlement: cannot update.
+			// Covers waiting_settlement as well — settlement lifecycle is immutable via edit.
+			return &entity.InvalidOperationError{Status: auction.Status, Reason: "can only update draft or scheduled auctions"}
 		}
 	})
 
@@ -438,6 +473,12 @@ func (h *AuctionHandler) UpdateAuction(c *gin.Context) {
 		)
 		if isAuctionTimingValidationError(err) {
 			response.BadRequest(c, err.Error())
+			return
+		}
+		var opErr *entity.InvalidOperationError
+		var transErr *entity.InvalidTransitionError
+		if errors.As(err, &opErr) || errors.As(err, &transErr) {
+			response.Conflict(c, err.Error())
 			return
 		}
 		response.InternalServerError(c, "Failed to update auction")

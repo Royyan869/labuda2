@@ -171,16 +171,15 @@ class AuctionMapper {
     );
   }
 
-  /// Convert Auction entity to UpdateAuctionDto
+  /// Convert Auction entity to UpdateAuctionDto — CANONICAL UPDATE CONTRACT.
   ///
-  /// NOTE: autoExtend and autoExtendMinutes are REMOVED - these are false
-  /// feature signals. Backend does not implement anti-sniping in production.
+  /// Only supported keys are mapped; legacy keys (images/category/condition)
+  /// are intentionally NOT propagated — the canonical client never sends them
+  /// and the backend now rejects them.
   static UpdateAuctionDto toUpdateDto(Map<String, dynamic> updates) {
     return UpdateAuctionDto(
       title: updates['title'] as String?,
       description: updates['description'] as String?,
-      images: (updates['images'] as List<dynamic>?)?.cast<String>(),
-      category: updates['category'] as String?,
       startPrice: (updates['startPrice'] as num?)?.toDouble(),
       bidIncrement: (updates['bidIncrement'] as num?)?.toDouble(),
       buyNowPrice: (updates['buyNowPrice'] as num?)?.toDouble(),

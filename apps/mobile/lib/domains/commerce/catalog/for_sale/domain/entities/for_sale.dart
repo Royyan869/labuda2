@@ -536,11 +536,14 @@ class CreateForSaleRequest {
 }
 
 /// Update forSale request
+///
+/// F01C: `quantity`/stock intentionally absent — stock is not editable via
+/// PUT /for-sale/:id. Backend UpdateForSaleRequest has no quantity field;
+/// canonical stock mutations are order-driven only.
 class UpdateForSaleRequest {
   final String? title;
   final String? description;
   final double? price;
-  final int? quantity;
   final bool? negotiationEnabled;
   final ForSaleStatus? status; // For publishing draft → active
   final List<String>? mediaUrls;
@@ -559,7 +562,6 @@ class UpdateForSaleRequest {
     this.title,
     this.description,
     this.price,
-    this.quantity,
     this.negotiationEnabled,
     this.status,
     this.mediaUrls,

@@ -1110,7 +1110,7 @@ func (h *ContentHandler) GetContent(c *gin.Context) {
 //     account_status never leaves the handler.
 //   - PublicCard emitted on every item via card.author.lifecycle.
 //
-// Pagination: cursor-based (opaque created_at timestamp). Callers pass the
+// Pagination: cursor-based (opaque composite created_at|id). Callers pass the
 // next_cursor value from a prior response verbatim as ?cursor=. A null
 // next_cursor signals the terminal page.
 func (h *ContentHandler) GetUserContent(c *gin.Context) {
@@ -1134,6 +1134,25 @@ func (h *ContentHandler) GetUserContent(c *gin.Context) {
 		limit = 50
 	}
 	cursor := c.Query("cursor")
+
+	// Validate composite cursor format (created_at|id) at HTTP boundary.
+	// Empty cursor is valid (first page). Non-empty cursor must be
+	// RFC3339Nano|UUID. Invalid cursor → 400, not silent first-page fallback.
+	if cursor != "" {
+		parts := strings.SplitN(cursor, "|", 2)
+		if len(parts) != 2 {
+			response.BadRequest(c, "Invalid cursor format")
+			return
+		}
+		if _, tErr := time.Parse(time.RFC3339Nano, parts[0]); tErr != nil {
+			response.BadRequest(c, "Invalid cursor: invalid timestamp")
+			return
+		}
+		if _, uErr := uuid.Parse(parts[1]); uErr != nil {
+			response.BadRequest(c, "Invalid cursor: invalid ID")
+			return
+		}
+	}
 
 	// F1-W2 — Canonical Pattern A ViewerContext construction at the
 	// HTTP boundary. Replaces the prior silent `var viewerID

@@ -388,11 +388,16 @@ class CreateForSaleRequestDto {
 /// To publish a draft forSale, set status to "active". This requires:
 /// - Active seller subscription (hasMarketAuthority)
 /// - visibility is derived from status (active = public)
+///
+/// **STOCK NOTE (F01C):** `quantity`/stock is intentionally absent. Stock
+/// mutations follow canonical order paths (Reduce/Restore) and are NOT
+/// editable via PUT /for-sale/:id. Mobile must not send quantity here
+/// (backend UpdateForSaleRequest has no quantity field and silently
+/// ignores it).
 class UpdateForSaleRequestDto {
   final String? title;
   final String? description;
   final int? price;
-  final int? quantity;
   final bool? negotiationEnabled;
   final String? status; // draft, active, withdrawn, sold
   final List<String>? mediaUrls;
@@ -410,7 +415,6 @@ class UpdateForSaleRequestDto {
     this.title,
     this.description,
     this.price,
-    this.quantity,
     this.negotiationEnabled,
     this.status,
     this.mediaUrls,
@@ -429,7 +433,6 @@ class UpdateForSaleRequestDto {
     if (title != null) 'title': title,
     if (description != null) 'description': description,
     if (price != null) 'price': price,
-    if (quantity != null) 'quantity': quantity,
     if (negotiationEnabled != null) 'negotiation_enabled': negotiationEnabled,
     if (status != null) 'status': status,
     if (mediaUrls != null) 'media_urls': mediaUrls,

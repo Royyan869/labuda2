@@ -34,8 +34,6 @@ const (
 
 	// Comment events
 	EventCommentCreated = "comment.created"
-	EventCommentUpdated = "comment.updated"
-	EventCommentDeleted = "comment.deleted"
 
 	// Social interaction events
 	EventUserFollowed   = "user.followed"

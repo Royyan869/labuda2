@@ -1,7 +1,6 @@
 package http
 
 import (
-	"encoding/json"
 	"strings"
 	"time"
 
@@ -67,15 +66,6 @@ func for_saleResponseMediaItems(l *entity.ForSale) []mediaentity.Media {
 		items, err := mediaentity.NewListFromReferences(l.Product.MediaURLs, l.CreatedAt)
 		if err == nil {
 			return items
-		}
-	}
-	if len(l.MediaURLs) > 0 && string(l.MediaURLs) != "null" {
-		var mediaURLs []string
-		if err := json.Unmarshal(l.MediaURLs, &mediaURLs); err == nil {
-			items, err := mediaentity.NewListFromReferences(mediaURLs, l.CreatedAt)
-			if err == nil {
-				return items
-			}
 		}
 	}
 	return []mediaentity.Media{}

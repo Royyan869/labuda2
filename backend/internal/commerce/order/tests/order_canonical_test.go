@@ -3,6 +3,7 @@
 package tests
 
 import (
+	"encoding/json"
 	"context"
 	"fmt"
 	"sync"
@@ -14,6 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	forsaleRepo "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
 	orderinfra "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
@@ -76,28 +79,30 @@ func TestDoubleCheckoutProtection(t *testing.T) {
 
 	var forSaleID uuid.UUID
 	err := testDB.WithTx(ctx, func(tx db.Tx) error {
-		forSale, err := forsaleEntity.NewForSale(
-			sellerID,
-			"Kohaku Koi",
-			"Beautiful Kohaku",
-			[]byte(`["https://picsum.photos/seed/koi1/800/600"]`),
-			"Kohaku",
-			intPtr(30),
-			intPtr(12),
-			strPtr("female"),
-			nil,                // breeder
-			nil,                // bloodline
-			[]string{"global"}, // certificates
-			forsaleEntity.ForSaleTypeFixedPrice,
-			money.New(500000), // 500000 IDR
-			1,                 // CRITICAL: Only 1 item available
-			false,
-			forsaleEntity.ForSaleVisibilityPublic,
-			
-			nil, // farmAddressID
-			forsaleEntity.PreparationTimeImmediate,
-			nil, // preparationNote
-		)
+		forSale_product := &productEntity.Product{
+	SellerID: sellerID,
+	Title: "Kohaku Koi",
+	Description: "Beautiful Kohaku",
+	MediaURLs: []string{"https://picsum.photos/seed/koi1/800/600"},
+	Variety: "Kohaku",
+	SizeCm: intPtr(30),
+	AgeMonths: intPtr(12),
+	Gender: strPtr("female"),
+	Breeder: nil,
+	Bloodline: nil,
+	Certificates: []string{"global"},
+	FarmAddressID: nil,
+	PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
+	PreparationNote: nil,
+	SellingSurface: productEntity.SellingSurfaceForSale,
+}
+	productRepo := productInfraRepo.NewProductRepository()
+	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
+		return err
+	}
+	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(500000), 1, false, forsaleEntity.ForSaleVisibilityPublic)
+	forSale.ProductID = forSale_product.ID
+	forSale.Product = forSale_product
 		if err != nil {
 			return err
 		}
@@ -270,28 +275,30 @@ func TestStockRaceCondition(t *testing.T) {
 	// Setup: Create a forSale with limited stock
 	var forSaleID uuid.UUID
 	err = testDB.WithTx(ctx, func(tx db.Tx) error {
-		forSale, err := forsaleEntity.NewForSale(
-			sellerID,
-			"Popular Koi",
-			"High demand item",
-			[]byte(`[]`),
-			"Showa",
-			intPtr(25),
-			nil,                // ageMonths
-			nil,                // gender
-			nil,                // breeder
-			nil,                // bloodline
-			[]string{"global"}, // certificates
-			forsaleEntity.ForSaleTypeFixedPrice,
-			money.New(300000),
-			initialStock, // Limited stock
-			false,
-			forsaleEntity.ForSaleVisibilityPublic,
-			
-			nil, // farmAddressID
-			forsaleEntity.PreparationTimeImmediate,
-			nil, // preparationNote
-		)
+		forSale_product := &productEntity.Product{
+	SellerID: sellerID,
+	Title: "Popular Koi",
+	Description: "High demand item",
+	MediaURLs: []string{},
+	Variety: "Showa",
+	SizeCm: intPtr(25),
+	AgeMonths: nil,
+	Gender: nil,
+	Breeder: nil,
+	Bloodline: nil,
+	Certificates: []string{"global"},
+	FarmAddressID: nil,
+	PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
+	PreparationNote: nil,
+	SellingSurface: productEntity.SellingSurfaceForSale,
+}
+	productRepo := productInfraRepo.NewProductRepository()
+	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
+		return err
+	}
+	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(300000), initialStock, false, forsaleEntity.ForSaleVisibilityPublic)
+	forSale.ProductID = forSale_product.ID
+	forSale.Product = forSale_product
 		if err != nil {
 			return err
 		}
@@ -435,28 +442,30 @@ func TestOrderCreationIdempotency(t *testing.T) {
 	// Setup: Create a forSale
 	var forSaleID uuid.UUID
 	err := testDB.WithTx(ctx, func(tx db.Tx) error {
-		forSale, err := forsaleEntity.NewForSale(
-			sellerID,
-			"Test Item",
-			"Description",
-			[]byte(`[]`),
-			"Kohaku",
-			nil,                // sizeCM
-			nil,                // ageMonths
-			nil,                // gender
-			nil,                // breeder
-			nil,                // bloodline
-			[]string{"global"}, // certificates
-			forsaleEntity.ForSaleTypeFixedPrice,
-			money.New(100000),
-			3,
-			false,
-			forsaleEntity.ForSaleVisibilityPublic,
-			
-			nil, // farmAddressID
-			forsaleEntity.PreparationTimeImmediate,
-			nil, // preparationNote
-		)
+		forSale_product := &productEntity.Product{
+	SellerID: sellerID,
+	Title: "Test Item",
+	Description: "Description",
+	MediaURLs: []string{},
+	Variety: "Kohaku",
+	SizeCm: nil,
+	AgeMonths: nil,
+	Gender: nil,
+	Breeder: nil,
+	Bloodline: nil,
+	Certificates: []string{"global"},
+	FarmAddressID: nil,
+	PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
+	PreparationNote: nil,
+	SellingSurface: productEntity.SellingSurfaceForSale,
+}
+	productRepo := productInfraRepo.NewProductRepository()
+	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
+		return err
+	}
+	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(100000), 3, false, forsaleEntity.ForSaleVisibilityPublic)
+	forSale.ProductID = forSale_product.ID
+	forSale.Product = forSale_product
 		if err != nil {
 			return err
 		}
@@ -575,28 +584,30 @@ func TestDifferentBuyersSameIdempotencyKey(t *testing.T) {
 	// Setup: Create forSale with 2 items
 	var forSaleID uuid.UUID
 	err := testDB.WithTx(ctx, func(tx db.Tx) error {
-		forSale, err := forsaleEntity.NewForSale(
-			sellerID,
-			"Item",
-			"Desc",
-			[]byte(`[]`),
-			"Kohaku",
-			nil,                // sizeCM
-			nil,                // ageMonths
-			nil,                // gender
-			nil,                // breeder
-			nil,                // bloodline
-			[]string{"global"}, // certificates
-			forsaleEntity.ForSaleTypeFixedPrice,
-			money.New(100000),
-			2,
-			false,
-			forsaleEntity.ForSaleVisibilityPublic,
-			
-			nil, // farmAddressID
-			forsaleEntity.PreparationTimeImmediate,
-			nil, // preparationNote
-		)
+		forSale_product := &productEntity.Product{
+	SellerID: sellerID,
+	Title: "Item",
+	Description: "Desc",
+	MediaURLs: []string{},
+	Variety: "Kohaku",
+	SizeCm: nil,
+	AgeMonths: nil,
+	Gender: nil,
+	Breeder: nil,
+	Bloodline: nil,
+	Certificates: []string{"global"},
+	FarmAddressID: nil,
+	PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
+	PreparationNote: nil,
+	SellingSurface: productEntity.SellingSurfaceForSale,
+}
+	productRepo := productInfraRepo.NewProductRepository()
+	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
+		return err
+	}
+	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(100000), 2, false, forsaleEntity.ForSaleVisibilityPublic)
+	forSale.ProductID = forSale_product.ID
+	forSale.Product = forSale_product
 		if err != nil {
 			return err
 		}

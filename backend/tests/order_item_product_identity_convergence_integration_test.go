@@ -290,14 +290,7 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 
 	createActiveFPS := func(productID uuid.UUID, qty int) uuid.UUID {
 		t.Helper()
-		forSale, err := fpsentity.NewForSale(
-			sellerID, "Kohaku Premium", "desc", []byte(`["https://example.com/koi.jpg"]`), "Kohaku",
-			nil, nil, nil, nil, nil, []string{},
-			fpsentity.ForSaleTypeFixedPrice, money.New(100_000), qty, false,
-			fpsentity.ForSaleVisibilityPublic,
-			
-			&farmAddressID, fpsentity.PreparationTimeImmediate, nil,
-		)
+		forSale, err := fpsentity.NewForSaleSurface(sellerID, fpsentity.ForSaleTypeFixedPrice, money.New(100_000), qty, false, fpsentity.ForSaleVisibilityPublic)
 		require.NoError(t, err)
 		forSale.ProductID = productID
 		require.NoError(t, forSale.Publish())
@@ -369,14 +362,7 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 		_, err := tx.Exec(ctx, `UPDATE for_sales SET status = 'sold', sold_at = NOW(), quantity_available = 0 WHERE id = $1`, fps1ID)
 		return err
 	}))
-	forSale2, err := fpsentity.NewForSale(
-		sellerID, "Kohaku Premium 2", "desc", []byte(`["https://example.com/koi2.jpg"]`), "Kohaku",
-		nil, nil, nil, nil, nil, []string{},
-		fpsentity.ForSaleTypeFixedPrice, money.New(100_000), 3, false,
-		fpsentity.ForSaleVisibilityPublic,
-		
-		&farmAddressID, fpsentity.PreparationTimeImmediate, nil,
-	)
+	forSale2, err := fpsentity.NewForSaleSurface(sellerID, fpsentity.ForSaleTypeFixedPrice, money.New(100_000), 3, false, fpsentity.ForSaleVisibilityPublic)
 	require.NoError(t, err)
 	forSale2.ProductID = product1
 	require.NoError(t, forSale2.Publish())

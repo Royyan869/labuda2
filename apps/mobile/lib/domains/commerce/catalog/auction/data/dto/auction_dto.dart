@@ -121,24 +121,18 @@ class CreateAuctionDto {
   };
 }
 
-/// Request to update an auction
+/// Request to update an auction — CANONICAL UPDATE CONTRACT (F2.2B).
 ///
-/// autoExtend/autoExtendMinutes client fields are not part of this request —
-/// anti-sniping soft-close is entirely backend-computed (PASS_18C, PlaceBid),
-/// not client-configurable.
+/// Draft allowed: title, description, startPrice, bidIncrement, buyNowPrice, startTime, endTime
+/// Scheduled allowed: title, description, startTime, endTime
 ///
-/// NOT YET ALIGNED (out of scope for PASS_18E): this DTO still uses raw
-/// startTime/endTime and the old images/category keys, unlike
-/// CreateAuctionDto. The auction edit route is currently unreachable
-/// (no navigation ever passes auctionToEdit — see create_auction_screen.dart),
-/// so this has not been prioritized. Align this DTO with CreateAuctionDto's
-/// contract if/when the edit flow is actually wired up.
+/// Backend persists title/description → products, and pricing/timing → auctions
+/// in ONE transaction. Unsupported legacy fields (images/category/condition/
+/// auto_extend*) are NOT part of this contract and will be rejected by the
+/// backend if sent — the canonical client never sends them.
 class UpdateAuctionDto {
   final String? title;
   final String? description;
-  final List<String>? images;
-  final String? category;
-  final String? condition;
   final double? startPrice;
   final double? bidIncrement;
   final double? buyNowPrice;
@@ -148,9 +142,6 @@ class UpdateAuctionDto {
   const UpdateAuctionDto({
     this.title,
     this.description,
-    this.images,
-    this.category,
-    this.condition,
     this.startPrice,
     this.bidIncrement,
     this.buyNowPrice,
@@ -162,9 +153,6 @@ class UpdateAuctionDto {
     final map = <String, dynamic>{};
     if (title != null) map['title'] = title;
     if (description != null) map['description'] = description;
-    if (images != null) map['images'] = images;
-    if (category != null) map['category'] = category;
-    if (condition != null) map['condition'] = condition;
     if (startPrice != null) map['start_price'] = startPrice;
     if (bidIncrement != null) map['bid_increment'] = bidIncrement;
     if (buyNowPrice != null) map['buy_now_price'] = buyNowPrice;

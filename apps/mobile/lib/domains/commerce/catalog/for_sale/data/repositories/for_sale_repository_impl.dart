@@ -235,12 +235,11 @@ class ForSaleRepositoryImpl implements ForSaleRepository {
         extra: {'id': forSaleId},
       );
 
-      // Convert domain request to DTO
+      // Convert domain request to DTO (F01C: no quantity — stock not editable via PUT)
       final dto = UpdateForSaleRequestDto(
         title: request.title,
         description: request.description,
         price: request.price?.toInt(),
-        quantity: request.quantity,
         negotiationEnabled: request.negotiationEnabled,
         status: request.status?.name, // Convert enum to string for backend
         mediaUrls: request.mediaUrls,

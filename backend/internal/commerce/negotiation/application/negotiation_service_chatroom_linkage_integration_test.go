@@ -11,6 +11,7 @@
 package application_test
 
 import (
+	"encoding/json"
 	"context"
 	"errors"
 	"testing"
@@ -18,6 +19,8 @@ import (
 	"github.com/google/uuid"
 
 	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	forsaleImpl "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	forsaleRepo "github.com/labuda/backend/internal/commerce/forsale/repository"
 	negotiationApp "github.com/labuda/backend/internal/commerce/negotiation/application"
@@ -92,28 +95,31 @@ func insertLinkageTestForSale(
 	sellerID uuid.UUID,
 ) uuid.UUID {
 	t.Helper()
-	sale, err := forsaleEntity.NewForSale(
-		sellerID,
-		"Test Kohaku Koi",
-		"Linkage fixture",
-		[]byte(`["https://picsum.photos/seed/koi-linkage/800/600"]`),
-		"Kohaku",
-		intPtr(30),
-		intPtr(12),
-		strPtr("female"),
-		nil,
-		nil,
-		[]string{"global"},
-		forsaleEntity.ForSaleTypeFixedPrice,
-		money.New(500000),
-		1,
-		true, // negotiationEnabled
-		forsaleEntity.ForSaleVisibilityPublic,
-		
-		nil,
-		forsaleEntity.PreparationTimeImmediate,
-		nil,
-	)
+	sale_product := &productEntity.Product{
+	SellerID: sellerID,
+	Title: "Test Kohaku Koi",
+	Description: "Linkage fixture",
+	MediaURLs: []string{"https://picsum.photos/seed/koi-linkage/800/600"},
+	Variety: "Kohaku",
+	SizeCm: intPtr(30),
+	AgeMonths: intPtr(12),
+	Gender: strPtr("female"),
+	Breeder: nil,
+	Bloodline: nil,
+	Certificates: []string{"global"},
+	FarmAddressID: nil,
+	PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
+	PreparationNote: nil,
+	SellingSurface: productEntity.SellingSurfaceForSale,
+}
+	productRepo := productInfraRepo.NewProductRepository()
+	if err := productRepo.Create(ctx, tx, sale_product); err != None {
+		return err
+	}
+	sale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(500000), 1, true, // negotiationEnabled
+		forsaleEntity.ForSaleVisibilityPublic)
+	sale.ProductID = sale_product.ID
+	sale.Product = sale_product
 	if err != nil {
 		t.Fatalf("NewForSale: %v", err)
 	}

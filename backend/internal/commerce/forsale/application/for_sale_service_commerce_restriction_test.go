@@ -101,9 +101,7 @@ func TestUpdate_RestrictedSeller_Blocked(t *testing.T) {
 	err := svc.Update(context.Background(), nil, &entity.ForSale{
 		ID:       forSaleID,
 		SellerID: sellerID,
-		Status:   entity.ForSaleStatusDraft,
-		Title:    "updated title",
-	})
+		Status:   entity.ForSaleStatusDraft,	})
 
 	require.Error(t, err)
 	assert.ErrorIs(t, err, auth.ErrCommerceRestricted,
@@ -131,9 +129,7 @@ func TestUpdate_UnrestrictedSeller_Allowed(t *testing.T) {
 	err := svc.Update(context.Background(), nil, &entity.ForSale{
 		ID:       forSaleID,
 		SellerID: sellerID,
-		Status:   entity.ForSaleStatusDraft,
-		Title:    "updated title",
-	})
+		Status:   entity.ForSaleStatusDraft,	})
 
 	require.NoError(t, err, "unrestricted seller should be allowed to update")
 	assert.True(t, repo.updateCalled, "Update should persist for unrestricted seller")

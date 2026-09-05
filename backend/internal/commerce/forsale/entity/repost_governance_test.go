@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
 	"github.com/labuda/backend/pkg/money"
 )
 
@@ -111,7 +112,7 @@ func newTestForSale(status ForSaleStatus) *ForSale {
 	return &ForSale{
 		ID:                uuid.New(),
 		SellerID:          uuid.New(),
-		Title:             "test",
+		Product: &productEntity.Product{Title: "test"},
 		Status:            status,
 		Visibility:        ForSaleVisibilityPrivate,
 		QuantityAvailable: 1,
