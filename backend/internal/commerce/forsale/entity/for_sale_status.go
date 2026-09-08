@@ -1,8 +1,13 @@
 package entity
 
 import (
+	"errors"
 	"fmt"
 )
+
+// ErrLiveImmutable is the canonical seller-edit rejection for live ForSale.
+// Seller-controlled product definition is immutable once status != draft.
+var ErrLiveImmutable = errors.New("LIVE_IMMUTABLE: for_sale is live, seller edit forbidden")
 
 // ForSaleStatus represents the lifecycle status of a for_sale.
 //

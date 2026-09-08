@@ -64,19 +64,19 @@ class PromotionFilterHelper {
   /// Mark search results as promoted based on promoted item IDs
   ///
   /// [results] - The search results to mark
-  /// [promotedIds] - Map of promoted item IDs to their promotion instance IDs
+  /// [promotedIds] - Map of promoted item IDs to their canonical contract IDs
   ///
   /// Returns a new list with results marked as promoted
   static List<SearchResult> markPromotedItems(
     List<SearchResult> results,
-    Map<String, String> promotedIds, // id -> instanceId
+    Map<String, String> promotedIds, // id -> contractId
   ) {
     return results.map((result) {
-      final instanceId = promotedIds[result.id];
-      if (instanceId != null) {
+      final contractId = promotedIds[result.id];
+      if (contractId != null) {
         return result.copyWith(
           isPromoted: true,
-          promotionInstanceId: instanceId,
+          contractId: contractId,
         );
       }
       return result;

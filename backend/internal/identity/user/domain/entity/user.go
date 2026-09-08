@@ -49,7 +49,7 @@ func (u *User) GetAccountStatus() string {
 // service boundary so viewercontext.CoarsenLifecycle can coarsen them at the
 // single canonical mapping site. These fields are NEVER serialized to the
 // wire; only the coarsened publiccard.UserCard.Lifecycle string crosses the
-// public-card boundary per docs/contracts/public-card-boundary.md §4.2.
+// public-card boundary.
 type UserPublicInfo struct {
 	UserID        uuid.UUID
 	Username      string

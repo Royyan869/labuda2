@@ -427,12 +427,15 @@ class NotificationNavigationService {
       return;
     }
 
-    final promotionInstanceId = _firstString(notification.data, [
-      'promotionInstanceId',
-      'promotion_instance_id',
+    // Canonical promotion surface: a contract id opens the contract analytics
+    // screen; otherwise the seller lands on the promotion contract list.
+    // The legacy /seller/promotions/:id detail route is purged.
+    final contractId = _firstString(notification.data, [
+      'contractId',
+      'contract_id',
     ]);
-    if (promotionInstanceId != null && promotionInstanceId.isNotEmpty) {
-      context.push('${RoutePaths.sellerPromotions}/$promotionInstanceId');
+    if (contractId != null && contractId.isNotEmpty) {
+      context.push(RoutePaths.sellerCanonicalPromotionAnalyticsPath(contractId));
       return;
     }
 
@@ -442,7 +445,7 @@ class NotificationNavigationService {
       return;
     }
 
-    _navigateToSellerDashboard(context);
+    context.push(RoutePaths.sellerCanonicalPromotions);
   }
 
   void _navigateToSupportTicket(

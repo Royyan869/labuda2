@@ -191,6 +191,7 @@ type ViewerContext struct {
 	capability   CapabilityOverlay
 	moderation   ModerationOverlay
 	relationship RelationshipOverlay
+	geography    GeographyOverlay
 
 	surface Surface
 	origin  RequestOrigin
@@ -299,6 +300,46 @@ func (vc *ViewerContext) Moderation() ModerationOverlay {
 // Relationship returns the viewer × target relationship overlay.
 func (vc *ViewerContext) Relationship() RelationshipOverlay {
 	return vc.relationship
+}
+
+// GeographyOverlay carries the canonical viewer geographic context
+// derived from the primary address (addresses.is_primary). Empty when viewer
+// has no primary address.
+type GeographyOverlay struct {
+	ProvinceID string
+	CityID     string
+	CityName   string
+	HasPrimary bool
+	hydrated   bool
+}
+
+// IsHydrated reports whether geography was sourced from DB.
+func (g GeographyOverlay) IsHydrated() bool { return g.hydrated }
+
+// HasGeography reports whether viewer has a primary address city.
+func (g GeographyOverlay) HasGeography() bool { return g.HasPrimary && g.CityID != "" }
+
+// NewGeographyOverlay constructs a GeographyOverlay.
+func NewGeographyOverlay(provinceID, cityID, cityName string, hasPrimary, hydrated bool) GeographyOverlay {
+	return GeographyOverlay{ProvinceID: provinceID, CityID: cityID, CityName: cityName, HasPrimary: hasPrimary, hydrated: hydrated}
+}
+
+// ViewerContext carries GeographyOverlay for promotion geographic eligibility.
+func (vc *ViewerContext) Geography() GeographyOverlay {
+	if vc == nil {
+		return GeographyOverlay{}
+	}
+	return vc.geography
+}
+
+// WithGeography returns a copy with geography attached.
+func (vc *ViewerContext) WithGeography(g GeographyOverlay) *ViewerContext {
+	if vc == nil {
+		panic("viewercontext: WithGeography called on nil ViewerContext")
+	}
+	out := *vc
+	out.geography = g
+	return &out
 }
 
 // Surface returns the surface classification.

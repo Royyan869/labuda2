@@ -117,14 +117,28 @@ func (s *NegotiationSession) Cancel() error {
 	return s.transitionTo(NegotiationStatusCancelled)
 }
 
+// IsSettled returns true if the negotiation has already produced a canonical order.
+// A settled negotiation is terminal for settlement/expiry/pricing-preview.
+// Authority: negotiation_sessions.order_id IS NOT NULL (unique, set exactly once in CreateFromSaleSurface TX).
+func (s *NegotiationSession) IsSettled() bool {
+	return s.OrderID != nil && *s.OrderID != uuid.Nil
+}
+
 // Expire transitions the session from active or accepted to expired.
 //
 // Allowed: active → expired, accepted → expired
-// Error: if not active or accepted
+// Error: if not active or accepted, or if already settled.
 //
-// NEGOTIATION EXPIRY CONSISTENCY: This prevents "accepted but expired"
-// state which allows checkout of stale agreements.
+// N5 LIFECYCLE FINALIZATION: A settled negotiation (order_id != NULL) is terminal
+// and must not be expired. Settled = accepted + order_id is the canonical terminal
+// representation; there is no separate "settled" status.
 func (s *NegotiationSession) Expire() error {
+	if s.IsSettled() {
+		return &ErrNegotiationAlreadySettled{
+			SessionID: s.ID,
+			OrderID:   *s.OrderID,
+		}
+	}
 	return s.transitionTo(NegotiationStatusExpired)
 }
 
@@ -148,6 +162,22 @@ func (s *NegotiationSession) IsExpired() bool {
 		return false
 	}
 	return time.Now().After(*s.ExpiresAt)
+}
+
+// CanSettle returns true if the negotiation is currently eligible to proceed to
+// settlement (canonical order creation / negotiation pricing-preview generation).
+//
+// CANONICAL LIFECYCLE ELIGIBILITY (N6 CONVERGENCE):
+//   Status == accepted
+//   AND NOT time-expired
+//   AND NOT already settled
+//
+// This predicate answers ONLY the lifecycle question "can this session settle at
+// all?". Authorization (buyer/seller identity), product/for-sale identity, and
+// accepted-price presence are separate request-specific validation concerns and
+// must remain outside this predicate.
+func (s *NegotiationSession) CanSettle() bool {
+	return s.Status == NegotiationStatusAccepted && !s.IsExpired() && !s.IsSettled()
 }
 
 // CanProceed returns true if the negotiation can proceed to order creation.

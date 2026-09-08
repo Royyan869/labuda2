@@ -7,11 +7,6 @@ import 'package:labuda/core/api/interceptors/error_interceptor.dart';
 import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 
-// Conditional import for Platform detection
-// Import platform_io by default, use platform_web for web
-import 'package:labuda/core/api/platform/platform_io.dart'
-    if (dart.library.html) 'package:labuda/core/api/platform/platform_web.dart';
-
 /// Central HTTP client for all API calls to Go backend
 ///
 /// Features:
@@ -20,7 +15,7 @@ import 'package:labuda/core/api/platform/platform_io.dart'
 /// - Error handling and conversion to ApiException
 /// - Request/response logging (dev only)
 /// - Configurable timeouts
-/// - Platform-aware base URL
+/// - Canonical localhost dev default (adb reverse for physical devices)
 class ApiClient {
   late final Dio _dio;
   final ILoggerService? _logger;
@@ -36,7 +31,7 @@ class ApiClient {
   Dio _createDio(String? baseUrl) {
     final dio = Dio(
       BaseOptions(
-        baseUrl: baseUrl ?? _getPlatformBaseUrl(),
+        baseUrl: baseUrl ?? ApiConfig.baseUrl,
         connectTimeout: Duration(milliseconds: ApiConfig.connectTimeout),
         receiveTimeout: Duration(milliseconds: ApiConfig.receiveTimeout),
         sendTimeout: Duration(milliseconds: ApiConfig.sendTimeout),
@@ -72,10 +67,7 @@ class ApiClient {
     return dio;
   }
 
-  /// Get platform-appropriate base URL
-  String _getPlatformBaseUrl() {
-    return ApiConfig.getBaseUrl(isIOS: platformDetector.isIOS);
-  }
+
 
   // ============ HTTP Methods ============
 

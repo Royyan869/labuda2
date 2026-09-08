@@ -378,12 +378,6 @@ func (s *PromotionService) applyAdminReview(
 	if err := s.repo.AppendReviewHistory(ctx, tx, history); err != nil {
 		return nil, err
 	}
-
-	if eventType := externalProductReviewEventType(action); eventType != "" {
-		if err := s.emitExternalProductReviewEventTx(ctx, tx, eventType, product, input.Reason, input.AdminID); err != nil {
-			return nil, err
-		}
-	}
 	return product, nil
 }
 

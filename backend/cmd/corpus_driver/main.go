@@ -402,7 +402,6 @@ func printServiceGraphSummary(d *serverboot.Dependencies) {
 		{"Worker:Payout", d.PayoutWorker != nil},
 		{"Worker:PayoutReconciliation", d.PayoutReconciliationWorker != nil},
 		{"Worker:NegotiationExpire", d.NegotiationExpireWorker != nil},
-		{"Worker:PromotionSafety", d.PromotionSafetyWorker != nil},
 		{"Worker:OrderOverdueReminder", d.OrderOverdueReminderWorker != nil},
 		{"Worker:DisputeTimeout", d.DisputeTimeoutWorker != nil},
 		{"Worker:AlertDetection", d.AlertDetectionWorker != nil},

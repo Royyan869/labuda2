@@ -113,15 +113,22 @@ func (s *BillingService) MarkPaid(
 		return false, fmt.Errorf("invalid billing status: %w", err)
 	}
 
-	// Build idempotency key for ledger transaction
-	idempotencyKey := fmt.Sprintf("billing-%s", billingID)
-
 	// Process based on billing type
 	switch billing.Type {
 	case entity.TypePromotionPackage:
-		// Promotion package: full amount goes to platform revenue
-		// These are one-time service purchases with no escrow holding
-		if err := s.processServicePurchase(ctx, tx, billing, idempotencyKey); err != nil {
+		// Promotion Package is FORBIDDEN (§28) — the duration-purchase
+		// authority was purged. Canonical promotion funding is
+		// promotion_contracts + Promote Balance top-up. Failing closed here
+		// (before any revenue booking) guarantees a legacy package billing
+		// row can never become paid platform revenue.
+		return false, fmt.Errorf("promotion package purchase forbidden — use promotion_contracts")
+
+	case entity.TypePromoteBalanceTopUp:
+		// Promote Balance top-up: the verified payment credits the seller's
+		// PROMOTE_BALANCE (funding). This is NOT revenue: PLATFORM_REVENUE
+		// receives promotion money only from Qualified Impression
+		// consumption, never from a top-up (canonical promotion contract).
+		if err := s.processPromoteBalanceTopUp(ctx, tx, billing); err != nil {
 			return false, err
 		}
 
@@ -131,21 +138,41 @@ func (s *BillingService) MarkPaid(
 
 	// Persist status change
 	return true, s.billingRepo.UpdateStatus(ctx, tx, billing)
-}
+}
 
-// processServicePurchase handles promotion package billing payments.
-// Full amount (platform fee + net amount) goes to platform revenue.
-// These are one-time service purchases with no escrow holding.
+// processPromoteBalanceTopUp books a verified Promote Balance top-up.
 //
-// FINANCE REDIRECT: Delegates to FinanceService.RecordBillingServiceRevenue
-func (s *BillingService) processServicePurchase(
+// FINANCE REDIRECT: delegates to FinanceService.RecordPromoteBalanceFunding
+// (BANK_SETTLEMENT -> PROMOTE_BALANCE[seller]) with the billing transaction as
+// the idempotency reference. Duplicate webhooks are no-ops at the ledger layer
+// (idempotency key "promote_balance_funding_<billing_id>") and MarkPaid's
+// status guard additionally prevents re-entry.
+//
+// A top-up is a funding event, NOT a service purchase: it must not carry a
+// platform fee (creation must pass platformFeePercent = 0). Fail-closed guard
+// below rejects a mis-configured fee so funding can never become revenue.
+func (s *BillingService) processPromoteBalanceTopUp(
 	ctx context.Context,
 	tx db.Tx,
 	billing *entity.BillingTransaction,
-	idempotencyKey string,
 ) error {
-	// FINANCE REDIRECT: All ledger operations go through FinanceService
-	return s.financeService.RecordBillingServiceRevenue(ctx, tx, billing)
+	if billing == nil {
+		return fmt.Errorf("promote balance top-up: billing is nil")
+	}
+	if billing.GrossAmount.Int64() <= 0 {
+		return fmt.Errorf("promote balance top-up: gross amount must be positive (got %d)", billing.GrossAmount.Int64())
+	}
+	if billing.PlatformFeePercent != 0 || billing.PlatformFeeAmount.Int64() != 0 {
+		return fmt.Errorf("promote balance top-up: must not carry a platform fee (percent=%d amount=%d); a top-up is funding, not revenue",
+			billing.PlatformFeePercent, billing.PlatformFeeAmount.Int64())
+	}
+	return s.financeService.RecordPromoteBalanceFunding(
+		ctx,
+		tx,
+		billing.ID, // funding reference + idempotency key
+		billing.PayerID,
+		billing.GrossAmount.Int64(),
+	)
 }
 
 // MarkFailed marks a billing transaction as failed.

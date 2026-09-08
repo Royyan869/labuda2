@@ -68,7 +68,7 @@ class _OverlappingPromotedSearchApiService implements SearchApiService {
       promotedItems: [
         PromotedSearchItemDto(
           type: 'promoted_for_sale',
-          promotionInstanceId: promotedId,
+          contractId: promotedId,
           targetType: 'for_sale',
           injectAt: 0,
           title: 'Promoted for-sale $query',
@@ -104,7 +104,7 @@ class _OverlappingPromotedSearchApiService implements SearchApiService {
       promotedItems: [
         PromotedSearchItemDto(
           type: 'promoted_auction',
-          promotionInstanceId: promotedId,
+          contractId: promotedId,
           targetType: 'auction',
           injectAt: 0,
           title: 'Promoted auction $query',
@@ -176,10 +176,10 @@ void main() {
         (item) => item.isPromoted,
       );
 
-      expect(fixedPriceSaleA.promotionInstanceId, 'pi-A-fixed-price-sale');
-      expect(auctionA.promotionInstanceId, 'pi-A-auction');
-      expect(fixedPriceSaleB.promotionInstanceId, 'pi-B-fixed-price-sale');
-      expect(auctionB.promotionInstanceId, 'pi-B-auction');
+      expect(fixedPriceSaleA.contractId, 'pi-A-fixed-price-sale');
+      expect(auctionA.contractId, 'pi-A-auction');
+      expect(fixedPriceSaleB.contractId, 'pi-B-fixed-price-sale');
+      expect(auctionB.contractId, 'pi-B-auction');
     },
   );
 }

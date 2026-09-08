@@ -195,9 +195,9 @@ func (h *Hub) unsubscribeUnsafe(conn *Connection, roomID uuid.UUID) {
 // to deliver, false to drop. filter is called outside the hub lock and may
 // perform IO (e.g. fresh lifecycle DB read).
 //
-// This is the canonical broadcast path per governance-constitution.md §2.2 and
-// ADR-005: every subscriber must pass a fresh per-subscriber governance check
-// before delivery. The blind-fanout BroadcastToRoom is retained only for
+// This is the canonical broadcast path per ADR-005: every subscriber must pass
+// a fresh per-subscriber governance check before delivery. The blind-fanout
+// BroadcastToRoom is retained only for
 // internal/test uses where governance does not apply.
 //
 // Non-blocking: slow clients are disconnected rather than blocking broadcast.

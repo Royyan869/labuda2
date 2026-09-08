@@ -6,8 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/evaluator"
 	"github.com/labuda/backend/internal/governance/viewercontext"
+	"github.com/labuda/backend/internal/governance/evaluator"
 	"github.com/labuda/backend/internal/pkg/publiccard"
 	"github.com/labuda/backend/internal/platform/response"
 	contentApp "github.com/labuda/backend/internal/social/content/application"
@@ -159,6 +159,7 @@ func (h *FeedHandler) GetFeed(c *gin.Context) {
 	var origAuthorLifecycles map[uuid.UUID]string // FIX-3: original-author lifecycle map for reposts
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
 		vc = constructFeedViewerContext(c, tx)
+		vc = vc.WithGeography(viewercontext.ResolveViewerGeography(ctx, tx, callerID))
 		var err error
 		result, err = h.feedService.GetFeed(ctx, tx, callerID, cursor, limit)
 		if err != nil {
@@ -254,8 +255,12 @@ func (h *FeedHandler) GetFeed(c *gin.Context) {
 
 	// P3A — Promotion injection. Fetch active promoted items, hydrate
 	// card data, and interleave into the organic feed at slot positions.
-	// FAIL-OPEN: if anything errors, items stays unchanged.
-	items = h.promotionInjector.InjectPromotions(ctx, items)
+	// FAIL-OPEN: if anything errors, items stays unchanged. viewerID is the
+	// audience fact carried into canonical delivery measurement (a canonical
+	// card included in this response is recorded as an 'included'
+	// observation bound to this viewer). Geography is canonical viewer primary address.
+	geo := vc.Geography()
+	items = h.promotionInjector.InjectPromotionsWithGeography(ctx, callerID, geo.CityID, geo.HasPrimary, items)
 
 	// Re-encode the next cursor at the HTTP boundary. nil cursor →
 	// JSON null (json.Marshal renders the typed *string nil as null).

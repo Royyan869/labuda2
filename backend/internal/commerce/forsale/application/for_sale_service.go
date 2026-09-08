@@ -348,102 +348,109 @@ func (s *ForSaleService) GetForUpdate(
 	return s.repo.GetForUpdate(ctx, tx, id)
 }
 
-// UpdateProduct persists Product content changes within the same transaction as a ForSale surface update.
-// Product is the sole authority for title/description/media/koi/farm/preparation.
-// Called by the unified PUT /for-sale handler to keep Product and ForSale atomically consistent without a bridge.
-func (s *ForSaleService) UpdateProduct(
-	ctx context.Context,
-	tx db.Tx,
-	product *productEntity.Product,
-) error {
-	if product == nil {
-		return fmt.Errorf("product is nil")
-	}
-	if product.ID == uuid.Nil {
-		return fmt.Errorf("product id is required")
-	}
-	product.UpdatedAt = time.Now()
-	return s.productRepo.Update(ctx, tx, product)
+// UpdateSellerInput contains the seller-controlled content fields that may be
+// mutated only while the ForSale is in draft. All fields are optional — only
+// non-nil fields are applied. Quantity is intentionally absent (stock-only path).
+type UpdateSellerInput struct {
+	ForSaleID          uuid.UUID
+	SellerID           uuid.UUID
+	Title              *string
+	Description        *string
+	Price              *int64
+	NegotiationEnabled *bool
+	MediaURLs          *[]string
+	Variety            *string
+	SizeCM             *int
+	AgeMonths          *int
+	Gender             *string
+	Breeder            *string
+	Bloodline          *string
+	Certificates       *[]string
+	PreparationTime    *string
+	PreparationNote    *string
 }
 
-// Update updates an existing for_sale.
+// UpdateSeller is the canonical seller-edit authority for ForSale.
+// It enforces draft-only mutability inside a single transaction with row lock.
 //
-// AUTHORITY ENFORCEMENT: Independently validates any status transition
-// before persisting. This prevents the service boundary from being
-// bypassed by a caller that supplies an invalid status.
-//
-// COMMERCE RESTRICTION: A restricted seller must not be able to bypass
-// the restriction by mutating an existing for_sale.
-//
-// Special governed transitions (sold→active via stock restore,
-// withdrawn→active via moderation) MUST NOT flow through Update().
-// They have dedicated service methods with their own authority checks.
-func (s *ForSaleService) Update(
+// Flow: GetForUpdate → ownership → status==draft → commerce restriction →
+// apply Product + ForSale mutations → persist both → commit.
+func (s *ForSaleService) UpdateSeller(
 	ctx context.Context,
 	tx db.Tx,
-	for_sale *entity.ForSale,
-) error {
-	// P1-1 FIX: Caller is responsible for acquiring the row lock via
-	// GetForUpdate() before calling Update(). This service no longer
-	// re-locks — the handler's GetForUpdate() holds the lock for the
-	// entire transaction. The entity passed in reflects the CURRENT
-	// locked state with caller-intended mutations applied.
-	//
-	// Lock contract: Every caller MUST use GetForUpdate() before Update().
-	// service.Update() validates and persists; it does NOT re-lock.
-
-	// COMMERCE RESTRICTION: Reject restricted seller at update boundary.
-	// Checked inside the same transaction as the for_sale mutation (TOCTOU prevention).
-	// Uses the SAME canonical restriction authority as Create() and Publish().
-	if err := s.requireSellerNotRestricted(ctx, tx, for_sale.SellerID); err != nil {
-		return err
-	}
-
-	// Validate status transition if status is changing.
-	// The caller applies the desired status to the entity. We re-read the
-	// current locked state to detect what transition is being attempted.
-	// Special governed transitions (sold→active, withdrawn→active) MUST NOT
-	// flow through Update(); they have dedicated service methods.
-	current, err := s.repo.GetByID(ctx, tx, for_sale.ID)
+	input UpdateSellerInput,
+) (*entity.ForSale, error) {
+	// Acquire canonical lock on for_sale + joined product.
+	forSale, err := s.repo.GetForUpdate(ctx, tx, input.ForSaleID)
 	if err != nil {
-		return fmt.Errorf("cannot validate update: %w", err)
+		return nil, err
 	}
-	if current.Status != for_sale.Status {
-		// Special governed transitions must not flow through Update().
-		if for_sale.Status == entity.ForSaleStatusActive &&
-			(current.Status == entity.ForSaleStatusSold || current.Status == entity.ForSaleStatusWithdrawn) {
-			return fmt.Errorf("status transition %s → %s is not permitted through Update; use dedicated governed path", current.Status, for_sale.Status)
-		}
-		// Ordinary transition must be in the canonical transition graph.
-		if !entity.CanTransition(current.Status, for_sale.Status) {
-			return fmt.Errorf("invalid status transition: %s → %s", current.Status, for_sale.Status)
-		}
+	if forSale.Product == nil {
+		return nil, fmt.Errorf("for_sale product not loaded")
 	}
-
-	// HARD RULE: Active for_sales cannot be private
-	if for_sale.Status == entity.ForSaleStatusActive && for_sale.Visibility == entity.ForSaleVisibilityPrivate {
-		return fmt.Errorf("invalid for_sale: active status requires public visibility")
+	// Ownership
+	if forSale.SellerID != input.SellerID {
+		return nil, fmt.Errorf("forbidden: you can only update your own for_sales")
 	}
-
-	for_sale.UpdatedAt = time.Now()
-
-	if err := s.repo.Update(ctx, tx, for_sale); err != nil {
-		return err
+	// Lifecycle: seller edit allowed IFF status == draft
+	if forSale.Status != entity.ForSaleStatusDraft {
+		return nil, fmt.Errorf("%w: status=%s", entity.ErrLiveImmutable, forSale.Status)
 	}
-
-	// Emit for_sale.updated event
+	// Commerce restriction inside same tx
+	if err := s.requireSellerNotRestricted(ctx, tx, input.SellerID); err != nil {
+		return nil, err
+	}
+	// Canonical Product validation (title 1-200, desc 5000, certs, prep)
+	patch := productEntity.ProductContentPatch{
+		Title:           input.Title,
+		Description:     input.Description,
+		MediaURLs:       input.MediaURLs,
+		Variety:         input.Variety,
+		SizeCM:          input.SizeCM,
+		AgeMonths:       input.AgeMonths,
+		Gender:          input.Gender,
+		Breeder:         input.Breeder,
+		Bloodline:       input.Bloodline,
+		Certificates:    input.Certificates,
+		PreparationTime: input.PreparationTime,
+		PreparationNote: input.PreparationNote,
+	}
+	if err := patch.Validate(); err != nil {
+		return nil, err
+	}
+	// Apply Product-owned mutations via canonical helper
+	product := forSale.Product
+	patch.ApplyTo(product)
+	// Apply ForSale-owned mutations
+	if input.Price != nil {
+		forSale.PricePerUnit = money.New(*input.Price)
+	}
+	if input.NegotiationEnabled != nil {
+		forSale.NegotiationEnabled = *input.NegotiationEnabled
+	}
+	// Persist both authorities atomically — product first, then surface.
+	product.UpdatedAt = time.Now()
+	if err := s.productRepo.Update(ctx, tx, product); err != nil {
+		return nil, fmt.Errorf("update product failed: %w", err)
+	}
+	forSale.UpdatedAt = time.Now()
+	// Use narrow persistence that does not re-validate status transition (already done).
+	// Call repo.Update directly to avoid double restriction/transition checks that
+	// would interfere with draft-only guarantee. Emit event via repo.Update-like path.
+	if err := s.repo.Update(ctx, tx, forSale); err != nil {
+		return nil, err
+	}
 	if s.outboxRepo != nil {
 		if err := s.outboxRepo.InsertEvent(
 			ctx, tx,
 			events.EventForSaleUpdated,
-			for_sale.ID,
-			buildForSaleEventPayload(for_sale),
+			forSale.ID,
+			buildForSaleEventPayload(forSale),
 		); err != nil {
-			return fmt.Errorf("failed to insert for_sale.updated event: %w", err)
+			return nil, fmt.Errorf("failed to insert for_sale.updated event: %w", err)
 		}
 	}
-
-	return nil
+	return forSale, nil
 }
 
 // Withdraw withdraws a for_sale from sale.

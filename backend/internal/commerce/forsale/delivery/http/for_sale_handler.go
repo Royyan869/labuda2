@@ -353,175 +353,98 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 
 	var updatedForSale *entity.ForSale
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
-		// ────────────────────────────────────────────────────────────────
-		// P1-1 FIX: Use GetForUpdate as the initial read.
-		// This ensures the handler applies mutations to the CURRENT locked
-		// state, preventing lost updates from concurrent order mutations.
-		// The row-level lock is held for the entire transaction.
-		// ────────────────────────────────────────────────────────────────
-		for_sale, err := h.for_saleService.GetForUpdate(ctx, tx, for_saleID)
-		if err != nil {
-			return err
-		}
-
-		// Authorization check: only the seller can update their for_sale
-		if for_sale.SellerID != callerID {
-			return fmt.Errorf("forbidden: you can only update your own for_sales")
-		}
-
-		// Check if for_sale can be updated (draft or active only, not terminal states)
-		// Terminal states (sold, withdrawn) cannot be updated
-		if for_sale.Status == entity.ForSaleStatusSold || for_sale.Status == entity.ForSaleStatusWithdrawn {
-			return fmt.Errorf("cannot update for_sale with terminal status %s", for_sale.Status)
-		}
-
-		// Check if any orders exist for this for_sale's Product.
-		// The check is product-keyed: order_items.product_id is always
-		// products.id (Stage 5 identity convergence), so the guard spans both
-		// fixed-price and auction orders that reference the same Product.
-		orderCount, err := h.orderRepo.CountAnyOrdersByProduct(ctx, tx, for_sale.ProductID)
-		if err != nil {
-			return fmt.Errorf("failed to check for existing orders: %w", err)
-		}
-
-		// Define critical fields that cannot be changed when orders exist
-		criticalFieldsChanging := false
-		if orderCount > 0 {
-			if req.Price != nil && *req.Price != for_sale.PricePerUnit.Int64() {
-				criticalFieldsChanging = true
-			}
-			// Title is Product authority — compare via Product
-			productTitle := ""
-			if for_sale.Product != nil {
-				productTitle = for_sale.Product.Title
-			}
-			if req.Title != nil && *req.Title != productTitle {
-				criticalFieldsChanging = true
-			}
-
-			if criticalFieldsChanging {
-				return fmt.Errorf("cannot modify for_sale: existing orders present")
-			}
-		}
-
-		// ────────────────────────────────────────────────────────────────
-		// DETECT PUBLISH INTENT before applying any field mutations.
-		// If the request transitions draft → active, we delegate the entire
-		// publish mutation to ForSaleService.Publish() — the ONE canonical
-		// publish authority. All checks (ownership, restriction, market
-		// authority, shipping, farm address) and the state transition live
-		// there. The handler does NOT apply status changes on the publish
-		// path — Publish() re-reads the locked entity and transitions it.
-		// ────────────────────────────────────────────────────────────────
-		isPublishIntent := false
+		// Detect publish intent (draft → active) without mutating entity.
+		// For non-publish status values via PUT, reject — lifecycle mutations
+		// other than publish must use dedicated endpoints (e.g., DELETE for withdraw).
 		if req.Status != nil {
 			newStatus := entity.ForSaleStatus(*req.Status)
 			if !newStatus.IsValid() {
 				return fmt.Errorf("invalid status: must be 'draft', 'active', 'withdrawn', or 'sold'")
 			}
-			isPublishIntent = requiresMarketAuthorityForPublish(for_sale.Status, newStatus)
-		}
-
-		// Apply field mutations — explicit split: Product content vs ForSale surface.
-		// Product is the sole authority for title/description/media/koi/preparation.
-		// ForSale owns only price/negotiation/visibility/status.
-		if for_sale.Product == nil {
-			return fmt.Errorf("for_sale product not loaded")
-		}
-		if req.Title != nil {
-			for_sale.Product.Title = *req.Title
-		}
-		if req.Description != nil {
-			for_sale.Product.Description = *req.Description
-		}
-		if req.Price != nil {
-			for_sale.PricePerUnit = money.New(*req.Price)
-		}
-		if req.NegotiationEnabled != nil {
-			for_sale.NegotiationEnabled = *req.NegotiationEnabled
-		}
-
-		// ────────────────────────────────────────────────────────────────
-		// P1-2 FIX: Quantity is NOT editable through Update.
-		// Stock mutations follow canonical paths:
-		//   - ReduceQuantity: order creation (via OrderCreationService)
-		//   - RestoreQuantity: order cancel/expire (via OrderCompletionService)
-		// The handler does NOT bypass domain authority for quantity.
-		// ────────────────────────────────────────────────────────────────
-
-		// Apply non-publish status transitions (active → withdrawn, etc.)
-		// Publish intent is deliberately NOT applied here — it is delegated
-		// to ForSaleService.Publish() below, which is the ONE canonical
-		// publish authority.
-		if req.Status != nil && !isPublishIntent {
-			for_sale.Status = entity.ForSaleStatus(*req.Status)
-		}
-
-		// Apply remaining Product content mutations
-		if req.MediaURLs != nil {
-			for_sale.Product.MediaURLs = *req.MediaURLs
-		}
-		if req.Variety != nil {
-			for_sale.Product.Variety = *req.Variety
-		}
-		if req.SizeCM != nil {
-			for_sale.Product.SizeCm = req.SizeCM
-		}
-		if req.AgeMonths != nil {
-			for_sale.Product.AgeMonths = req.AgeMonths
-		}
-		if req.Gender != nil {
-			for_sale.Product.Gender = req.Gender
-		}
-		if req.Breeder != nil {
-			for_sale.Product.Breeder = req.Breeder
-		}
-		if req.Bloodline != nil {
-			for_sale.Product.Bloodline = req.Bloodline
-		}
-		if req.Certificates != nil {
-			for_sale.Product.Certificates = *req.Certificates
-		}
-		// Shipping readiness updates — Product authority
-		if req.PreparationTime != nil {
-			prepTime := entity.PreparationTime(*req.PreparationTime)
-			if prepTime.IsValid() {
-				for_sale.Product.PreparationTime = string(prepTime)
+			// Only draft → active is allowed as publish via this endpoint.
+			// Other status transitions via PUT are not seller content edits.
+			if newStatus != entity.ForSaleStatusDraft && newStatus != entity.ForSaleStatusActive {
+				// For draft, only draft status is valid via content edit; active is publish.
+				// Non-draft status via PUT is rejected — use dedicated lifecycle endpoints.
+				if newStatus == entity.ForSaleStatusWithdrawn || newStatus == entity.ForSaleStatusSold {
+					return fmt.Errorf("status transition %s via PUT not allowed; use dedicated endpoint", newStatus)
+				}
+			}
+			if newStatus == entity.ForSaleStatusActive {
+				// Defer to canonical publish authority after content edit if needed.
+				// Publish will re-lock and validate draft status, ownership, restriction, market authority.
 			}
 		}
-		if req.PreparationNote != nil {
-			for_sale.Product.PreparationNote = req.PreparationNote
+
+		// Check if request contains seller-controlled content fields.
+		hasContent := req.Title != nil || req.Description != nil || req.Price != nil || req.NegotiationEnabled != nil ||
+			req.MediaURLs != nil || req.Variety != nil || req.SizeCM != nil || req.AgeMonths != nil ||
+			req.Gender != nil || req.Breeder != nil || req.Bloodline != nil || req.Certificates != nil ||
+			req.PreparationTime != nil || req.PreparationNote != nil
+
+		isPublishIntent := req.Status != nil && entity.ForSaleStatus(*req.Status) == entity.ForSaleStatusActive
+
+		// Content edit via canonical authority.
+		if hasContent {
+			input := for_saleApp.UpdateSellerInput{
+				ForSaleID:          for_saleID,
+				SellerID:           callerID,
+				Title:              req.Title,
+				Description:        req.Description,
+				Price:              req.Price,
+				NegotiationEnabled: req.NegotiationEnabled,
+				MediaURLs:          req.MediaURLs,
+				Variety:            req.Variety,
+				SizeCM:             req.SizeCM,
+				AgeMonths:          req.AgeMonths,
+				Gender:             req.Gender,
+				Breeder:            req.Breeder,
+				Bloodline:          req.Bloodline,
+				Certificates:       req.Certificates,
+				PreparationTime:    req.PreparationTime,
+				PreparationNote:    req.PreparationNote,
+			}
+			saved, err := h.for_saleService.UpdateSeller(ctx, tx, input)
+			if err != nil {
+				return err
+			}
+			updatedForSale = saved
 		}
 
-		// Persist both authorities atomically in the same transaction — explicit, no bridge.
-		// Product first, then surface. Both share the same tx and row lock.
-		if err := h.for_saleService.UpdateProduct(ctx, tx, for_sale.Product); err != nil {
-			return fmt.Errorf("update product failed: %w", err)
-		}
-		// Save surface mutations via canonical service authority.
-		// service.Update() validates status transitions, seller restriction,
-		// and active+public invariant — the handler does NOT duplicate these.
-		if err := h.for_saleService.Update(ctx, tx, for_sale); err != nil {
-			return err
-		}
-
-		// ────────────────────────────────────────────────────────────────
-		// PUBLISH: Delegate to the ONE canonical publish authority.
-		// ForSaleService.Publish() handles: ownership check, commerce
-		// restriction, market authority, shipping configuration, farm
-		// address, state transition, and outbox event emission.
-		// ────────────────────────────────────────────────────────────────
+		// Publish intent handling (draft → active)
 		if isPublishIntent {
 			if err := h.for_saleService.Publish(ctx, tx, for_saleID, callerID); err != nil {
 				return err
 			}
-			// Re-read to return the post-publish state to the caller.
 			published, reErr := h.for_saleService.GetByID(ctx, tx, for_saleID)
 			if reErr == nil {
 				updatedForSale = published
+			} else if updatedForSale == nil {
+				// No content edit before, just publish — load it
+				updatedForSale = published
 			}
-		} else {
-			updatedForSale = for_sale
+			return nil
+		}
+
+		// If no content and no publish, but status was provided as draft (no-op), ensure we return current.
+		if !hasContent && !isPublishIntent {
+			// If request had only status=draft or empty, treat as no-op content edit.
+			// For draft, UpdateSeller with no fields would be no-op; just load current.
+			if req.Status != nil && entity.ForSaleStatus(*req.Status) == entity.ForSaleStatusDraft {
+				// No mutation needed, just return current state (already draft)
+				if updatedForSale == nil {
+					cur, err := h.for_saleService.GetByID(ctx, tx, for_saleID)
+					if err != nil {
+						return err
+					}
+					updatedForSale = cur
+				}
+				return nil
+			}
+			if hasContent == false && req.Status == nil {
+				return fmt.Errorf("no fields to update")
+			}
+			// For other cases with no content but status present (e.g., withdrawn via PUT), already rejected above.
 		}
 
 		return nil
@@ -532,6 +455,12 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 			zap.String("for_sale_id", for_saleID.String()),
 			zap.Error(err),
 		)
+		// Canonical live immutability
+		if errors.Is(err, entity.ErrLiveImmutable) {
+			response.Error(c, http.StatusConflict, "LIVE_IMMUTABLE",
+				"ForSale is live (active/sold/withdrawn) — seller edit forbidden.")
+			return
+		}
 		// Phase 0 honesty: surface the typed shipping gate error as a
 		// machine-readable code so mobile can branch without string matching.
 		if errors.Is(err, shippingApp.ErrShippingNotConfigured) {
@@ -556,6 +485,15 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 		}
 		if strings.Contains(errMsg, "cannot update for_sale with status") {
 			response.BadRequest(c, errMsg)
+			return
+		}
+		if strings.Contains(errMsg, "title must be") || strings.Contains(errMsg, "description must be") || strings.Contains(errMsg, "certificate") || strings.Contains(errMsg, "preparation_time") {
+			response.BadRequest(c, errMsg)
+			return
+		}
+		if errors.Is(err, shippingApp.ErrShippingLiveImmutable) {
+			response.Error(c, http.StatusConflict, "LIVE_IMMUTABLE",
+				"Shipping configuration is immutable for live product.")
 			return
 		}
 		response.InternalServerError(c, "Failed to update for_sale")

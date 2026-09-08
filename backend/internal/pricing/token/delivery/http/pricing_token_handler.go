@@ -145,16 +145,23 @@ func (h *PricingTokenHandler) GeneratePreview(c *gin.Context) {
 		})
 	case "for_sale":
 		if req.NegotiationID != nil {
-			if req.ShippingSetupID == nil {
-				response.BadRequest(c, "shipping_option_id is required for negotiation pricing preview")
+			hasSetup := req.ShippingSetupID != nil && *req.ShippingSetupID != uuid.Nil
+			hasQuote := req.ShippingQuoteID != nil && *req.ShippingQuoteID != uuid.Nil
+			if hasSetup && hasQuote {
+				response.BadRequest(c, "exactly one of shipping_option_id or shipping_quote_id must be provided for negotiation pricing preview")
+				return
+			}
+			if !hasSetup && !hasQuote {
+				response.BadRequest(c, "either shipping_option_id or shipping_quote_id is required for negotiation pricing preview")
 				return
 			}
 			negotiationReq := &pricingtokenapp.GenerateForNegotiationRequest{
-				UserID:           userID,
-				NegotiationID:    *req.NegotiationID,
-				AddressID:        req.AddressID,
-				ShippingSetupID: *req.ShippingSetupID,
-				DiscountCode:     req.DiscountCode,
+				UserID:          userID,
+				NegotiationID:   *req.NegotiationID,
+				AddressID:       req.AddressID,
+				ShippingSetupID: req.ShippingSetupID,
+				ShippingQuoteID: req.ShippingQuoteID,
+				DiscountCode:    req.DiscountCode,
 			}
 			var negotiationResult *pricingtokenapp.GenerateForNegotiationResponse
 			err := h.db.WithTx(ctx, func(tx db.Tx) error {

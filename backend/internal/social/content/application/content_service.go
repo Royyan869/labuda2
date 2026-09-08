@@ -4,12 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	commerceResponse "github.com/labuda/backend/internal/commerce/response"
 	"github.com/labuda/backend/internal/identity/auth"
 	"github.com/labuda/backend/internal/platform/events"
+	idempotencyRepo "github.com/labuda/backend/internal/platform/idempotency/repository"
 	"github.com/labuda/backend/internal/social/content/entity"
 	contentrepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
 	likedomain "github.com/labuda/backend/internal/social/like"
@@ -32,6 +35,7 @@ type ContentService struct {
 	internalShareAuthority internalShareAuthority
 	commerceRefValidator   commerceResponse.Validator // Validates commerce resource references for display
 	outboxRepo             ContentOutboxInserter
+	idempotencyRepo        *idempotencyRepo.Repository
 }
 
 type contentResourceOccurrenceWriter interface {
@@ -73,6 +77,11 @@ func (s *ContentService) SetCommerceReferenceValidator(v commerceResponse.Valida
 // SetOutboxInserter injects the outbox inserter for content lifecycle events (mention).
 func (s *ContentService) SetOutboxInserter(o ContentOutboxInserter) {
 	s.outboxRepo = o
+}
+
+// SetIdempotencyRepository injects the idempotency repository for content creation idempotency.
+func (s *ContentService) SetIdempotencyRepository(r *idempotencyRepo.Repository) {
+	s.idempotencyRepo = r
 }
 
 // CreateContent creates a new active content.
@@ -1011,6 +1020,403 @@ func (s *ContentService) UpdateCaptionAndVisibility(
 	}
 
 	return nil
+}
+
+// ============================================================================
+// CONTENT CREATE IDEMPOTENCY — actor-scoped, transaction-atomik, fingerprint
+// ============================================================================
+
+// ContentCreateMediaInput is the canonical media shape for idempotency fingerprint.
+type ContentCreateMediaInput struct {
+	URL  string
+	Type entity.MediaType
+}
+
+// contentIdempotencyKey derives the actor-scoped idempotency key.
+// Different actors with same raw key must not collide (task §3.A, §8.E).
+func contentIdempotencyKey(actorID uuid.UUID, rawKey string) string {
+	return fmt.Sprintf("content.create:%s:%s", actorID.String(), rawKey)
+}
+
+// contentCreateFingerprint encodes the logical operation for mismatch detection.
+// Same actor + same key + different payload → ErrIdempotencyConflict (task §3.C).
+func contentCreateFingerprint(
+	callerID uuid.UUID,
+	caption string,
+	visibility entity.Visibility,
+	city *string,
+	province *string,
+	tags []string,
+	mentionedUserIDs []uuid.UUID,
+	occurrence *entity.ContentResourceOccurrenceIdentity,
+	media []ContentCreateMediaInput,
+) string {
+	cityStr := "<nil>"
+	if city != nil {
+		cityStr = *city
+	}
+	provStr := "<nil>"
+	if province != nil {
+		provStr = *province
+	}
+	tagsCopy := append([]string(nil), tags...)
+	sort.Strings(tagsCopy)
+	tagsToken := strings.Join(tagsCopy, ",")
+
+	idsCopy := append([]uuid.UUID(nil), mentionedUserIDs...)
+	sort.Slice(idsCopy, func(i, j int) bool { return idsCopy[i].String() < idsCopy[j].String() })
+	var idsTokens []string
+	for _, id := range idsCopy {
+		idsTokens = append(idsTokens, id.String())
+	}
+	idsToken := strings.Join(idsTokens, ",")
+
+	occToken := "<nil>"
+	if occurrence != nil {
+		occToken = fmt.Sprintf("%s:%s:%s", occurrence.Operation, occurrence.ResourceType, occurrence.ResourceID.String())
+	}
+
+	mediaTokens := make([]string, len(media))
+	for i, m := range media {
+		mediaTokens[i] = fmt.Sprintf("%s:%s", m.URL, string(m.Type))
+	}
+	// Media order is business truth (canonical photos→videos, position matters) — preserve sequence, do NOT sort.
+	mediaToken := strings.Join(mediaTokens, ",")
+
+	return fmt.Sprintf(
+		"content.create:%s:%s:%s:%s:%s:%s:%s:%s:%s",
+		callerID.String(),
+		caption,
+		string(visibility.Normalize()),
+		cityStr,
+		provStr,
+		tagsToken,
+		idsToken,
+		occToken,
+		mediaToken,
+	)
+}
+
+func isContentIdempotencyOperationConflict(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), "different operation")
+}
+
+// CreateContentIdempotent is the canonical idempotent entry for plain content creation.
+// It claims the actor-scoped idempotency key inside the same tx as the content row,
+// so concurrent same-key requests cannot create two rows (DB UNIQUE).
+// On replay (created==false) it returns the original content without re-executing side-effects.
+func (s *ContentService) CreateContentIdempotent(
+	ctx context.Context,
+	tx db.Tx,
+	callerID uuid.UUID,
+	idempotencyKey string,
+	caption string,
+	visibility entity.Visibility,
+	city *string,
+	province *string,
+	tags []string,
+	mentionedUserIDs []uuid.UUID,
+	media []ContentCreateMediaInput,
+) (*entity.Content, bool, error) {
+	if idempotencyKey == "" {
+		return nil, false, fmt.Errorf("idempotency key is required")
+	}
+	if s.idempotencyRepo == nil {
+		return nil, false, fmt.Errorf("idempotency repository not configured")
+	}
+	if err := auth.ValidateCaller(callerID); err != nil {
+		return nil, false, err
+	}
+	if err := s.accountStatusChecker.EnsureActive(ctx, callerID); err != nil {
+		return nil, false, err
+	}
+	if caption == "" {
+		return nil, false, fmt.Errorf("content caption cannot be empty")
+	}
+	if !visibility.IsValid() {
+		visibility = entity.VisibilityPublic
+	}
+	fingerprint := contentCreateFingerprint(callerID, caption, visibility, city, province, tags, mentionedUserIDs, nil, media)
+	compositeKey := contentIdempotencyKey(callerID, idempotencyKey)
+	claimedID := uuid.New()
+	rec, created, err := s.idempotencyRepo.GetOrCreate(ctx, tx, compositeKey, fingerprint, claimedID)
+	if err != nil {
+		if isContentIdempotencyOperationConflict(err) {
+			return nil, false, fmt.Errorf("%w: %v", entity.ErrIdempotencyConflict, err)
+		}
+		return nil, false, fmt.Errorf("idempotency claim failed: %w", err)
+	}
+	if !created {
+		existing, err := s.contentRepo.GetByID(ctx, tx, rec.EntityID)
+		if err != nil {
+			return nil, false, fmt.Errorf("idempotency replay fetch failed: %w", err)
+		}
+		return existing, false, nil
+	}
+	contentID := rec.EntityID
+	// Create content with the claimed ID so the idempotency record and content row share identity.
+	content := entity.NewContent(callerID, caption)
+	content.ID = contentID
+	content.Visibility = visibility.Normalize()
+	content.City = city
+	content.Province = province
+	if err := s.contentRepo.Create(ctx, tx, content); err != nil {
+		return nil, false, fmt.Errorf("create content failed: %w", err)
+	}
+	if len(tags) > 0 {
+		if err := s.contentRepo.InsertTags(ctx, tx, content.ID, tags); err != nil {
+			_ = err
+		} else {
+			content.Tags = tags
+		}
+	}
+	if len(mentionedUserIDs) > 0 {
+		validIDs := make([]uuid.UUID, 0, len(mentionedUserIDs))
+		for _, uid := range mentionedUserIDs {
+			if uid == uuid.Nil {
+				continue
+			}
+			var exists bool
+			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)`, uid).Scan(&exists); err != nil {
+				return nil, false, fmt.Errorf("mention validation failed for user %s: %w", uid, err)
+			}
+			if !exists {
+				return nil, false, fmt.Errorf("mentioned user %s does not exist", uid)
+			}
+			validIDs = append(validIDs, uid)
+		}
+		if len(validIDs) > 0 {
+			if err := s.contentRepo.InsertMentionedUsers(ctx, tx, content.ID, validIDs); err != nil {
+				return nil, false, fmt.Errorf("mention persistence failed: %w", err)
+			}
+			if s.outboxRepo != nil {
+				seen := map[uuid.UUID]struct{}{}
+				for _, mid := range validIDs {
+					if mid == callerID {
+						continue
+					}
+					if _, dup := seen[mid]; dup {
+						continue
+					}
+					seen[mid] = struct{}{}
+					payload := map[string]any{
+						"content_id":        content.ID.String(),
+						"author_id":         callerID.String(),
+						"mentioned_user_id": mid.String(),
+						"created_at":        content.CreatedAt.UTC().Format(time.RFC3339Nano),
+					}
+					key := fmt.Sprintf("content.mentioned.%s.%s", content.ID.String(), mid.String())
+					if err := s.outboxRepo.InsertTx(ctx, tx, events.EventContentMentioned, payload, key); err != nil {
+						return nil, false, fmt.Errorf("insert mention outbox event failed: %w", err)
+					}
+				}
+			}
+		}
+	}
+	if len(media) > 0 {
+		mediaEntities := make([]*entity.ContentMedia, len(media))
+		for i, m := range media {
+			mediaEntities[i] = entity.NewContentMedia(content.ID, m.URL, m.Type, i)
+		}
+		if err := s.contentRepo.CreateMedia(ctx, tx, mediaEntities); err != nil {
+			return nil, false, fmt.Errorf("create media failed: %w", err)
+		}
+	}
+	return content, true, nil
+}
+
+// CreateContentWithResourceOccurrenceIdempotent is the idempotent variant for creation with a canonical occurrence.
+// Occurrence validation runs before the idempotency claim so invalid payloads do not poison the key.
+func (s *ContentService) CreateContentWithResourceOccurrenceIdempotent(
+	ctx context.Context,
+	tx db.Tx,
+	callerID uuid.UUID,
+	idempotencyKey string,
+	caption string,
+	visibility entity.Visibility,
+	city *string,
+	province *string,
+	occurrence *entity.ContentResourceOccurrenceIdentity,
+	tags []string,
+	mentionedUserIDs []uuid.UUID,
+	media []ContentCreateMediaInput,
+) (*entity.Content, bool, error) {
+	if idempotencyKey == "" {
+		return nil, false, fmt.Errorf("idempotency key is required")
+	}
+	if s.idempotencyRepo == nil {
+		return nil, false, fmt.Errorf("idempotency repository not configured")
+	}
+	if err := auth.ValidateCaller(callerID); err != nil {
+		return nil, false, err
+	}
+	if err := s.accountStatusChecker.EnsureActive(ctx, callerID); err != nil {
+		return nil, false, err
+	}
+	if caption == "" {
+		return nil, false, fmt.Errorf("content caption cannot be empty")
+	}
+	if !visibility.IsValid() {
+		visibility = entity.VisibilityPublic
+	}
+	if occurrence != nil && !occurrence.Operation.IsValid() {
+		return nil, false, fmt.Errorf("invalid operation: %s", occurrence.Operation)
+	}
+	if occurrence != nil && occurrence.Operation == entity.ContentResourceOccurrenceOperationDirectCommerceInsertContent && !occurrence.ResourceType.CanDirectCommerceInsert() {
+		return nil, false, fmt.Errorf("invalid resource type for direct commerce insert: %s", occurrence.ResourceType)
+	}
+	if occurrence != nil && !occurrence.ResourceType.IsValid() {
+		return nil, false, fmt.Errorf("invalid resource type: %s", occurrence.ResourceType)
+	}
+	if occurrence != nil && occurrence.ResourceID == uuid.Nil {
+		return nil, false, fmt.Errorf("resource id is required")
+	}
+	// Validate occurrence target before claiming idempotency (avoid poisoning on invalid target).
+	if occurrence != nil {
+		if occurrence.Operation == entity.ContentResourceOccurrenceOperationDirectCommerceInsertContent {
+			switch occurrence.ResourceType {
+			case entity.ContentResourceOccurrenceResourceTypeForSale:
+				if err := s.validateCommerceReference(ctx, tx, commerceResponse.ResourceTypeForSale, occurrence.ResourceID); err != nil {
+					return nil, false, err
+				}
+			case entity.ContentResourceOccurrenceResourceTypeAuction:
+				if err := s.validateCommerceReference(ctx, tx, commerceResponse.ResourceTypeAuction, occurrence.ResourceID); err != nil {
+					return nil, false, err
+				}
+			case entity.ContentResourceOccurrenceResourceTypeContent:
+				if err := s.validateContentTarget(ctx, tx, occurrence.ResourceID.String()); err != nil {
+					return nil, false, err
+				}
+			case entity.ContentResourceOccurrenceResourceTypeProfile:
+				if err := s.validateProfileTarget(ctx, tx, occurrence.ResourceID.String()); err != nil {
+					return nil, false, err
+				}
+			}
+		} else {
+			switch occurrence.ResourceType {
+			case entity.ContentResourceOccurrenceResourceTypeContent:
+				if err := s.validateContentTarget(ctx, tx, occurrence.ResourceID.String()); err != nil {
+					return nil, false, err
+				}
+			case entity.ContentResourceOccurrenceResourceTypeForSale:
+				if err := s.validateCommerceReference(ctx, tx, commerceResponse.ResourceTypeForSale, occurrence.ResourceID); err != nil {
+					return nil, false, err
+				}
+			case entity.ContentResourceOccurrenceResourceTypeAuction:
+				if err := s.validateCommerceReference(ctx, tx, commerceResponse.ResourceTypeAuction, occurrence.ResourceID); err != nil {
+					return nil, false, err
+				}
+			case entity.ContentResourceOccurrenceResourceTypeProfile:
+				if err := s.validateProfileTarget(ctx, tx, occurrence.ResourceID.String()); err != nil {
+					return nil, false, err
+				}
+			}
+		}
+	}
+
+	fingerprint := contentCreateFingerprint(callerID, caption, visibility, city, province, tags, mentionedUserIDs, occurrence, media)
+	compositeKey := contentIdempotencyKey(callerID, idempotencyKey)
+	claimedID := uuid.New()
+	rec, created, err := s.idempotencyRepo.GetOrCreate(ctx, tx, compositeKey, fingerprint, claimedID)
+	if err != nil {
+		if isContentIdempotencyOperationConflict(err) {
+			return nil, false, fmt.Errorf("%w: %v", entity.ErrIdempotencyConflict, err)
+		}
+		return nil, false, fmt.Errorf("idempotency claim failed: %w", err)
+	}
+	if !created {
+		existing, err := s.contentRepo.GetByID(ctx, tx, rec.EntityID)
+		if err != nil {
+			return nil, false, fmt.Errorf("idempotency replay fetch failed: %w", err)
+		}
+		return existing, false, nil
+	}
+	contentID := rec.EntityID
+	content := entity.NewContent(callerID, caption)
+	content.ID = contentID
+	content.Visibility = visibility
+	content.IsHidden = visibility == entity.VisibilityPrivate
+	content.City = city
+	content.Province = province
+	if occurrence != nil && occurrence.Operation == entity.ContentResourceOccurrenceOperationShareToFeed && occurrence.ResourceType == entity.ContentResourceOccurrenceResourceTypeContent {
+		orig, err := s.contentRepo.GetByID(ctx, tx, occurrence.ResourceID)
+		if err == nil && orig != nil {
+			oa := orig.AuthorID
+			content.OriginalAuthorID = &oa
+		}
+	}
+	if err := s.contentRepo.Create(ctx, tx, content); err != nil {
+		return nil, false, fmt.Errorf("create content failed: %w", err)
+	}
+	if occurrence != nil {
+		occ := entity.NewContentResourceOccurrence(content.ID, callerID, occurrence)
+		if err := createContentResourceOccurrence(ctx, tx, s.contentRepo, occ); err != nil {
+			return nil, false, err
+		}
+	}
+	if len(tags) > 0 {
+		if err := s.contentRepo.InsertTags(ctx, tx, content.ID, tags); err != nil {
+			_ = err
+		} else {
+			content.Tags = tags
+		}
+	}
+	if len(mentionedUserIDs) > 0 {
+		validIDs := make([]uuid.UUID, 0, len(mentionedUserIDs))
+		for _, uid := range mentionedUserIDs {
+			if uid == uuid.Nil {
+				continue
+			}
+			var exists bool
+			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)`, uid).Scan(&exists); err != nil {
+				return nil, false, fmt.Errorf("mention validation failed for user %s: %w", uid, err)
+			}
+			if !exists {
+				return nil, false, fmt.Errorf("mentioned user %s does not exist", uid)
+			}
+			validIDs = append(validIDs, uid)
+		}
+		if len(validIDs) > 0 {
+			if err := s.contentRepo.InsertMentionedUsers(ctx, tx, content.ID, validIDs); err != nil {
+				return nil, false, fmt.Errorf("mention persistence failed: %w", err)
+			}
+			if s.outboxRepo != nil {
+				seen := map[uuid.UUID]struct{}{}
+				for _, mid := range validIDs {
+					if mid == callerID {
+						continue
+					}
+					if _, dup := seen[mid]; dup {
+						continue
+					}
+					seen[mid] = struct{}{}
+					payload := map[string]any{
+						"content_id":        content.ID.String(),
+						"author_id":         callerID.String(),
+						"mentioned_user_id": mid.String(),
+						"created_at":        content.CreatedAt.UTC().Format(time.RFC3339Nano),
+					}
+					key := fmt.Sprintf("content.mentioned.%s.%s", content.ID.String(), mid.String())
+					if err := s.outboxRepo.InsertTx(ctx, tx, events.EventContentMentioned, payload, key); err != nil {
+						return nil, false, fmt.Errorf("insert mention outbox event failed: %w", err)
+					}
+				}
+			}
+		}
+	}
+	if len(media) > 0 {
+		mediaEntities := make([]*entity.ContentMedia, len(media))
+		for i, m := range media {
+			mediaEntities[i] = entity.NewContentMedia(content.ID, m.URL, m.Type, i)
+		}
+		if err := s.contentRepo.CreateMedia(ctx, tx, mediaEntities); err != nil {
+			return nil, false, fmt.Errorf("create media failed: %w", err)
+		}
+	}
+	return content, true, nil
 }
 
 func createContentResourceOccurrence(

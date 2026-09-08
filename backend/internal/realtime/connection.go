@@ -326,8 +326,7 @@ func (c *Connection) Close() {
 }
 
 // ServerMessage represents a message sent from the server to the client.
-// This is the minimal realtime signal envelope per ADR-005 and
-// governance-constitution.md §2.2 (minimal-envelope interim relaxation).
-// The client fetches full message payload via REST.
+// This is the minimal realtime signal envelope (ADR-005 minimal-envelope
+// interim relaxation). The client fetches full message payload via REST.
 
 

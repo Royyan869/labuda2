@@ -5,68 +5,40 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/auction_card.dart';
-import 'package:labuda/features/explore/presentation/providers/explore_promotion_providers.dart';
-import 'package:labuda/features/explore/presentation/widgets/explore_promoted_section.dart';
 
 /// Auction tab content for Explore screen.
 ///
 /// FEED / DISCOVERY QUALITY PASS V1:
 /// - Commerce surface (auction only)
-/// - Promoted auctions appear in a small top section
 /// - Organic auction stream remains the primary browse experience
 /// - External products are intentionally excluded
+/// - Canonical promotion surfaces are Feed and Search; the legacy
+///   /promotions/discover authority is purged, so Explore is organic-only.
 class ExploreAuctionTab extends ConsumerWidget {
   const ExploreAuctionTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auctionsAsync = ref.watch(exploreAuctionsStreamProvider);
-    final promotedIdsAsync = ref.watch(explorePromotedAuctionIdsProvider);
 
     return auctionsAsync.when(
       data: (auctions) {
-        final promotedIds = promotedIdsAsync.maybeWhen(
-          data: (ids) => ids.toSet(),
-          orElse: () => <String>{},
-        );
-        final promotedAuctions = auctions
-            .where((auction) => promotedIds.contains(auction.id))
-            .toList();
-        final organicAuctions = auctions
-            .where((auction) => !promotedIds.contains(auction.id))
-            .toList();
-
         return CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            if (promotedAuctions.isNotEmpty)
-              SliverToBoxAdapter(
-                child: ExplorePromotedSection(
-                  title: 'Lelang Dipromosikan',
-                  children: promotedAuctions
-                      .map(
-                        (auction) => AuctionCard(
-                          auction: auction,
-                          onTap: () =>
-                              _navigateToAuctionDetail(context, auction),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
-            if (organicAuctions.isEmpty && promotedAuctions.isEmpty)
+            if (auctions.isEmpty)
               SliverFillRemaining(child: _buildEmptyState(context))
             else
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate((context, index) {
-                    final auction = organicAuctions[index];
+                    final auction = auctions[index];
                     return AuctionCard(
                       auction: auction,
                       onTap: () => _navigateToAuctionDetail(context, auction),
                     );
-                  }, childCount: organicAuctions.length),
+                  }, childCount: auctions.length),
                 ),
               ),
           ],
@@ -110,4 +82,4 @@ class ExploreAuctionTab extends ConsumerWidget {
       ),
     );
   }
-}
+}

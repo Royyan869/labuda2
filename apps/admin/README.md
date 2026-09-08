@@ -24,7 +24,7 @@ The admin uses **Firebase Authentication** for identity. On login the Firebase I
 
 The Go backend validates the token against Firebase and checks that the user has admin capability (`HasAdminCapability`). There is no separate admin credential store — access control is backend-enforced.
 
-**First admin setup:** The first admin user cannot be created through the panel — no admin exists yet to grant capabilities. See [`docs/operations/admin-bootstrap.md`](../../docs/operations/admin-bootstrap.md) for the SQL bootstrap procedure.
+**First admin setup:** The first admin user cannot be created through the panel — no admin exists yet to grant capabilities. Bootstrap it in the database: the backend seeder (`go run ./cmd/seed` in `backend/`) creates `admin@test.local` with the minimal capabilities, and `backend/cmd/seed` shows the exact `users`/`user_capabilities` insert pattern to replicate for other environments.
 
 ---
 

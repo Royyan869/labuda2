@@ -73,7 +73,7 @@ class _ExternalProductSearchApiService implements SearchApiService {
       promotedItems: const [
         PromotedSearchItemDto(
           type: 'promoted_external',
-          promotionInstanceId: 'pi-external',
+          contractId: 'pi-external',
           targetType: 'external_product',
           injectAt: 0,
           title: 'Promoted external product',
@@ -136,7 +136,7 @@ void main() {
       expect(listingSurface, hasLength(2));
 
       final external = listingSurface.singleWhere(
-        (item) => item.promotionInstanceId == 'pi-external',
+        (item) => item.contractId == 'pi-external',
       );
 
       expect(external.type, SearchResultType.externalProduct);
@@ -173,7 +173,7 @@ void main() {
         metadata: const {'externalUrl': 'https://example.com/product'},
         createdAt: DateTime.parse('2026-01-01T00:00:00.000Z'),
         isPromoted: true,
-        promotionInstanceId: 'pi-external',
+        contractId: 'pi-external',
       );
 
       late BuildContext context;

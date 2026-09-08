@@ -287,8 +287,11 @@ func TestPricingTokenHandler_GeneratePreview_RoutesNegotiation(t *testing.T) {
 	if service.negotiationReq.NegotiationID != negotiationID {
 		t.Fatalf("NegotiationID = %s, want %s", service.negotiationReq.NegotiationID, negotiationID)
 	}
-	if service.negotiationReq.ShippingSetupID != shippingSetupID {
-		t.Fatalf("ShippingSetupID = %s, want %s", service.negotiationReq.ShippingSetupID, shippingSetupID)
+	if service.negotiationReq.ShippingSetupID == nil || *service.negotiationReq.ShippingSetupID != shippingSetupID {
+		t.Fatalf("ShippingSetupID = %v, want %s", service.negotiationReq.ShippingSetupID, shippingSetupID)
+	}
+	if service.negotiationReq.ShippingQuoteID != nil {
+		t.Fatalf("ShippingQuoteID = %v, want nil", service.negotiationReq.ShippingQuoteID)
 	}
 	if service.negotiationReq.AddressID != addressID {
 		t.Fatalf("AddressID = %s, want %s", service.negotiationReq.AddressID, addressID)
@@ -298,6 +301,117 @@ func TestPricingTokenHandler_GeneratePreview_RoutesNegotiation(t *testing.T) {
 	}
 	if got := decodePreviewResponse(t, resp.Body.Bytes()); got.Data.Token != service.negotiationResp.Token.String() {
 		t.Fatalf("token = %s, want %s", got.Data.Token, service.negotiationResp.Token)
+	}
+}
+
+func TestPricingTokenHandler_GeneratePreview_RoutesNegotiationWithQuote(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	productID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	forSaleID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
+	negotiationID := uuid.MustParse("33333333-3333-3333-3333-333333333333")
+	shippingQuoteID := uuid.MustParse("44444444-4444-4444-4444-444444444444")
+	addressID := uuid.MustParse("55555555-5555-5555-5555-555555555555")
+	userID := uuid.MustParse("66666666-6666-6666-6666-666666666666")
+
+	service := &previewServiceStub{
+		t: t,
+		negotiationResp: &pricingtokenapp.GenerateForNegotiationResponse{
+			Token:     uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+			ExpiresAt: "2026-06-22T12:00:00Z",
+			PricingSnapshot: pricingtokenapp.PricingSnapshot{
+				UnitPrice:     money.New(55555),
+				ShippingTotal: money.New(20000),
+				ShippingMode:  "quote",
+			},
+		},
+	}
+
+	handler := &PricingTokenHandler{
+		tokenService: service,
+		db:           fakeTransactor{},
+		log:          zap.NewNop(),
+	}
+
+	resp := performGeneratePreviewRequest(t, handler, userID, GeneratePreviewRequest{
+		ProductID:       productID,
+		SourceType:      "for_sale",
+		SourceID:        forSaleID,
+		NegotiationID:   &negotiationID,
+		Quantity:        1,
+		ShippingQuoteID: &shippingQuoteID,
+		AddressID:       addressID,
+	})
+
+	if resp.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d body=%s", resp.Code, http.StatusOK, resp.Body.String())
+	}
+	if service.negotiationReq == nil {
+		t.Fatal("expected negotiation branch to be called")
+	}
+	if service.negotiationReq.ShippingQuoteID == nil || *service.negotiationReq.ShippingQuoteID != shippingQuoteID {
+		t.Fatalf("ShippingQuoteID = %v, want %s", service.negotiationReq.ShippingQuoteID, shippingQuoteID)
+	}
+	if service.negotiationReq.ShippingSetupID != nil {
+		t.Fatalf("ShippingSetupID = %v, want nil", service.negotiationReq.ShippingSetupID)
+	}
+}
+
+func TestPricingTokenHandler_GeneratePreview_NegotiationXORRejectsBoth(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	productID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	forSaleID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
+	negotiationID := uuid.MustParse("33333333-3333-3333-3333-333333333333")
+	shippingSetupID := uuid.MustParse("44444444-4444-4444-4444-444444444444")
+	shippingQuoteID := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+	addressID := uuid.MustParse("55555555-5555-5555-5555-555555555555")
+	userID := uuid.MustParse("66666666-6666-6666-6666-666666666666")
+
+	handler := &PricingTokenHandler{
+		tokenService: &previewServiceStub{t: t},
+		db:           fakeTransactor{},
+		log:          zap.NewNop(),
+	}
+
+	resp := performGeneratePreviewRequest(t, handler, userID, GeneratePreviewRequest{
+		ProductID:       productID,
+		SourceType:      "for_sale",
+		SourceID:        forSaleID,
+		NegotiationID:   &negotiationID,
+		Quantity:        1,
+		ShippingSetupID: &shippingSetupID,
+		ShippingQuoteID: &shippingQuoteID,
+		AddressID:       addressID,
+	})
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d for both provided", resp.Code, http.StatusBadRequest)
+	}
+}
+
+func TestPricingTokenHandler_GeneratePreview_NegotiationXORRejectsNeither(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	productID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	forSaleID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
+	negotiationID := uuid.MustParse("33333333-3333-3333-3333-333333333333")
+	addressID := uuid.MustParse("55555555-5555-5555-5555-555555555555")
+	userID := uuid.MustParse("66666666-6666-6666-6666-666666666666")
+
+	handler := &PricingTokenHandler{
+		tokenService: &previewServiceStub{t: t},
+		db:           fakeTransactor{},
+		log:          zap.NewNop(),
+	}
+
+	resp := performGeneratePreviewRequest(t, handler, userID, GeneratePreviewRequest{
+		ProductID:     productID,
+		SourceType:    "for_sale",
+		SourceID:      forSaleID,
+		NegotiationID: &negotiationID,
+		Quantity:      1,
+		AddressID:     addressID,
+	})
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d for neither provided", resp.Code, http.StatusBadRequest)
 	}
 }
 

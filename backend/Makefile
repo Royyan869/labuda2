@@ -1,11 +1,9 @@
-.PHONY: help run build test test-integration-auth test-worker-sql-alignment coverage lint fmt clean docker-up docker-down migrate-up migrate-down migrate-create migrate-status
+.PHONY: help run build test test-integration-auth test-worker-sql-alignment coverage lint fmt clean docker-up docker-down
 
 # Variables
 APP_NAME=labuda-backend
 MAIN_PATH=./cmd/core_server
 BUILD_DIR=./bin
-MIGRATIONS_DIR=./migrations
-DB_DSN=postgresql://labuda:labuda123@localhost:5432/labuda?sslmode=disable
 
 # Colors for output
 COLOR_RESET=\033[0m
@@ -80,37 +78,6 @@ docker-logs: ## Show Docker logs
 docker-ps: ## Show running containers
 	docker-compose ps
 
-# Database migration commands
-
-migrate-up: ## Run database migrations (up)
-	@echo "$(COLOR_YELLOW)Running migrations...$(COLOR_RESET)"
-	migrate -path $(MIGRATIONS_DIR) -database "$(DB_DSN)" up
-	@echo "$(COLOR_GREEN)Migrations complete$(COLOR_RESET)"
-
-migrate-down: ## Rollback last migration
-	@echo "$(COLOR_YELLOW)Rolling back migration...$(COLOR_RESET)"
-	migrate -path $(MIGRATIONS_DIR) -database "$(DB_DSN)" down 1
-	@echo "$(COLOR_GREEN)Rollback complete$(COLOR_RESET)"
-
-migrate-create: ## Create new migration (usage: make migrate-create name=create_users_table)
-	@echo "$(COLOR_YELLOW)Creating migration: $(name)$(COLOR_RESET)"
-	migrate create -ext sql -dir $(MIGRATIONS_DIR) -seq $(name)
-	@echo "$(COLOR_GREEN)Migration files created$(COLOR_RESET)"
-
-migrate-force: ## Force migration version (usage: make migrate-force version=1)
-	@echo "$(COLOR_YELLOW)Forcing migration version to $(version)$(COLOR_RESET)"
-	migrate -path $(MIGRATIONS_DIR) -database "$(DB_DSN)" force $(version)
-
-migrate-status: ## Show migration status
-	@echo "$(COLOR_YELLOW)Checking migration status...$(COLOR_RESET)"
-	migrate -path $(MIGRATIONS_DIR) -database "$(DB_DSN)" version
-
-migrate-reset: ## Drop all tables and re-run migrations
-	@echo "$(COLOR_YELLOW)Resetting database...$(COLOR_RESET)"
-	migrate -path $(MIGRATIONS_DIR) -database "$(DB_DSN)" drop -f
-	migrate -path $(MIGRATIONS_DIR) -database "$(DB_DSN)" up
-	@echo "$(COLOR_GREEN)Database reset complete$(COLOR_RESET)"
-
 # Development commands
 
 dev: ## Run with hot reload (requires air)
@@ -133,13 +100,3 @@ deps: ## Download dependencies
 
 db-connect: ## Connect to PostgreSQL
 	docker exec -it labuda-postgres psql -U labuda -d labuda
-
-db-backup: ## Backup database
-	@echo "$(COLOR_YELLOW)Creating database backup...$(COLOR_RESET)"
-	docker exec labuda-postgres pg_dump -U labuda labuda > backup_$(shell date +%Y%m%d_%H%M%S).sql
-	@echo "$(COLOR_GREEN)Backup created$(COLOR_RESET)"
-
-db-restore: ## Restore database (usage: make db-restore file=backup.sql)
-	@echo "$(COLOR_YELLOW)Restoring database from $(file)...$(COLOR_RESET)"
-	docker exec -i labuda-postgres psql -U labuda labuda < $(file)
-	@echo "$(COLOR_GREEN)Restore complete$(COLOR_RESET)"

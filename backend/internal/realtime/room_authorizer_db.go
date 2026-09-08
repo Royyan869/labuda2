@@ -62,7 +62,7 @@ func NewDatabaseRoomAuthorizer(
 }
 
 // CanSubscribeToRoom checks if a user can subscribe to a room.
-// Returns false (deny) on any error — fail-closed per governance-constitution.md §5.
+// Returns false (deny) on any error — fail-closed.
 func (a *DatabaseRoomAuthorizer) CanSubscribeToRoom(
 	ctx context.Context,
 	userID uuid.UUID,

@@ -13,7 +13,6 @@ package tests
 // The test creates its own fixture and verifies each state transition.
 
 import (
-	"encoding/json"
 	"context"
 	"testing"
 
@@ -210,7 +209,7 @@ func TestForSaleStockRoundTrip_MultiQty(t *testing.T) {
 	SellingSurface: productEntity.SellingSurfaceForSale,
 }
 	productRepo := productInfraRepo.NewProductRepository()
-	if err := productRepo.Create(ctx, tx, forSale_product); err != None {
+	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
 		return err
 	}
 	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(300000), 5, // qty=5
@@ -304,7 +303,7 @@ func TestNegativeQuantityStillBlocked(t *testing.T) {
 	SellingSurface: productEntity.SellingSurfaceForSale,
 }
 	productRepo := productInfraRepo.NewProductRepository()
-	if err := productRepo.Create(ctx, tx, forSale_product); err != None {
+	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
 		return err
 	}
 	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(100000), 1, false, forsaleEntity.ForSaleVisibilityPublic)

@@ -260,6 +260,11 @@ func NewPricingToken(
 // - Token validation ensures the negotiation is accepted and belongs to the buyer
 // - Token consumption creates the order with the negotiated price
 //
+// SHIPPING AUTHORITY (N3 CONVERGENCE):
+// - Exactly one of shippingQuoteID or shippingSetupID must be authoritative.
+// - Quote path: shippingQuoteID != nil → shippingTotal = quote.cost, setup = Manual Quote.
+// - Option path: shippingQuoteID == nil → shippingTotal from coverage.
+//
 // COINS SNAPSHOT:
 // - coinsUsed should be 0 for new tokens (set at order confirmation time)
 // - maxCoinsAllowed is calculated at token generation using the same logic as preview
@@ -287,6 +292,7 @@ func NewPricingTokenFromNegotiation(
 	coinsUsed int64, // Coins applied (0 for new tokens)
 	maxCoinsAllowed int64, // Max coins allowed based on canonical 20% of PD
 	orderValueForCoins int64, // Pre-calculated for coins service: discounted product value (PD)
+	shippingQuoteID *uuid.UUID, // N3: nil for shipping option, non-nil for shipping quote
 ) *PricingToken {
 	now := time.Now()
 
@@ -321,6 +327,7 @@ func NewPricingTokenFromNegotiation(
 		CoinsUsed:              coinsUsed,          // Coins applied (0 for new tokens)
 		MaxCoinsAllowed:        maxCoinsAllowed,    // Max coins allowed
 		OrderValueForCoins:     orderValueForCoins, // Pre-calculated for coins service
+		ShippingQuoteID:        shippingQuoteID,    // N3 convergence: quote authority for negotiation
 		IsUsed:                 false,
 		UsedAt:                 nil,
 		OrderID:                nil,

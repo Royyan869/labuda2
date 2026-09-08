@@ -793,12 +793,17 @@ func (s *PricingTokenService) ValidateForOrder(
 // ============================================================================
 
 // GenerateForNegotiationRequest contains parameters for generating a pricing token from an accepted negotiation.
+//
+// SHIPPING AUTHORITY (N3 CONVERGENCE):
+// - Exactly one of ShippingSetupID or ShippingQuoteID must be provided.
+// - Quote path uses quote.cost as shipping total; option path uses coverage.
 type GenerateForNegotiationRequest struct {
-	UserID           uuid.UUID
-	NegotiationID    uuid.UUID
-	AddressID        uuid.UUID
-	ShippingSetupID uuid.UUID
-	DiscountCode     *string
+	UserID          uuid.UUID
+	NegotiationID   uuid.UUID
+	AddressID       uuid.UUID
+	ShippingSetupID *uuid.UUID // Optional: nil when using ShippingQuoteID (N3 XOR)
+	ShippingQuoteID *uuid.UUID // Optional: nil when using ShippingSetupID (N3 XOR)
+	DiscountCode    *string
 }
 
 // GenerateForNegotiationResponse contains the generated pricing token and its snapshot.
@@ -840,23 +845,31 @@ func (s *PricingTokenService) GenerateForNegotiation(
 		return nil, fmt.Errorf("negotiation session not found: %w", err)
 	}
 
-	// Guard: Negotiation must be accepted
-	if session.Status != negotiationEntity.NegotiationStatusAccepted {
-		return nil, fmt.Errorf("negotiation is not accepted: current_status=%s", session.Status)
-	}
-
-	// Guard: Negotiation must not be expired
-	// NEGOTIATION EXPIRY CONSISTENCY: Prevent pricing token generation for expired negotiations
-	// Even if status is "accepted", an expired negotiation should not be settleable
-	if session.IsExpired() {
-		return nil, fmt.Errorf("negotiation expired: session_id=%s, expired_at=%v",
-			session.ID, session.ExpiresAt)
-	}
-
-	// Guard: User must be the buyer
+	// Guard: User must be the buyer — runs BEFORE the settlement gate so a
+	// non-buyer can never observe a session's settlement state (OrderID).
 	if session.BuyerID != req.UserID {
 		return nil, fmt.Errorf("negotiation buyer mismatch: session_buyer=%s, requester=%s",
 			session.BuyerID, req.UserID)
+	}
+
+	// Lifecycle settlement eligibility — one canonical entity predicate
+	// (accepted AND not expired AND not settled). The switch below only maps
+	// the failure to a distinct actionable error; the eligibility decision
+	// itself lives in NegotiationSession.CanSettle.
+	if !session.CanSettle() {
+		switch {
+		case session.Status != negotiationEntity.NegotiationStatusAccepted:
+			return nil, fmt.Errorf("negotiation is not accepted: current_status=%s", session.Status)
+		case session.IsExpired():
+			// NEGOTIATION EXPIRY CONSISTENCY: Even if status is "accepted", an
+			// expired negotiation must not be settleable (no token generation).
+			return nil, fmt.Errorf("negotiation expired: session_id=%s, expired_at=%v",
+				session.ID, session.ExpiresAt)
+		default:
+			// Status accepted + not expired + CanSettle false ⇒ already settled
+			// (OrderID != nil && != uuid.Nil) — duplicate order prevention.
+			return nil, fmt.Errorf("negotiation already settled: order_id=%s", *session.OrderID)
+		}
 	}
 
 	// CRITICAL: Validate accepted_price is set
@@ -864,11 +877,6 @@ func (s *PricingTokenService) GenerateForNegotiation(
 	if session.AcceptedPrice == nil {
 		return nil, fmt.Errorf("negotiation accepted_price not set: session_id=%s, status=%s",
 			session.ID, session.Status)
-	}
-
-	// Guard: Not already settled (duplicate order prevention)
-	if session.OrderID != nil {
-		return nil, fmt.Errorf("negotiation already settled: order_id=%s", *session.OrderID)
 	}
 
 	// ============================================================
@@ -896,23 +904,68 @@ func (s *PricingTokenService) GenerateForNegotiation(
 	}
 
 	// ============================================================
-	// STEP 4: VALIDATE SHIPPING OPTION AND GET PROVINCE-BASED PRICING
+	// STEP 4: SHIPPING AUTHORITY — XOR (N3 CONVERGENCE)
 	// ============================================================
-	shippingSetup, err := s.shippingRepo.GetByID(ctx, tx, req.ShippingSetupID)
-	if err != nil {
-		return nil, fmt.Errorf("shipping option not found: %w", err)
+	hasShippingQuote := req.ShippingQuoteID != nil && *req.ShippingQuoteID != uuid.Nil
+	hasShippingSetup := req.ShippingSetupID != nil && *req.ShippingSetupID != uuid.Nil
+	if hasShippingQuote && hasShippingSetup {
+		return nil, fmt.Errorf("invalid shipping source: both shipping_quote_id and shipping_option_id cannot be provided")
+	}
+	if !hasShippingQuote && !hasShippingSetup {
+		return nil, fmt.Errorf("invalid shipping source: either shipping_quote_id or shipping_option_id must be provided")
 	}
 
-	// Get buyer province for shipping coverage lookup
-	provinceCode, _, err := s.getAddressWithProvince(ctx, tx, req.AddressID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get buyer province: %w", err)
-	}
+	var shippingTotal money.Money
+	var shippingSetupID uuid.UUID
+	var shippingSetupName string
+	var shippingTransportType string
 
-	// Get province-based shipping cost from ShippingCoverage
-	shippingTotal, err := s.getShippingCostAndETA(ctx, tx, req.ShippingSetupID, provinceCode)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get shipping cost for province %s: %w", provinceCode, err)
+	if hasShippingQuote {
+		quote, err := s.shippingQuoteRepo.GetByID(ctx, tx, *req.ShippingQuoteID)
+		if err != nil {
+			return nil, fmt.Errorf("shipping quote not found: %w", err)
+		}
+		if quote.ProductID != forSale.ProductID {
+			return nil, fmt.Errorf("shipping quote product mismatch: quote_product=%s, product=%s", quote.ProductID, forSale.ProductID)
+		}
+		if quote.SourceType == nil || quote.SourceID == nil || *quote.SourceType != "for_sale" || *quote.SourceID != forSale.ID {
+			qst := "<nil>"
+			qsid := "<nil>"
+			if quote.SourceType != nil {
+				qst = *quote.SourceType
+			}
+			if quote.SourceID != nil {
+				qsid = quote.SourceID.String()
+			}
+			return nil, fmt.Errorf("shipping quote source mismatch: quote=%s:%s, for_sale=%s", qst, qsid, forSale.ID)
+		}
+		if quote.BuyerID != req.UserID {
+			return nil, fmt.Errorf("shipping quote buyer mismatch: quote_buyer=%s, requester=%s", quote.BuyerID, req.UserID)
+		}
+		if quote.SellerID != forSale.SellerID {
+			return nil, fmt.Errorf("shipping quote seller mismatch: quote_seller=%s, for_sale_seller=%s", quote.SellerID, forSale.SellerID)
+		}
+		shippingTotal = quote.Cost
+		shippingSetupID = uuid.Nil
+		shippingSetupName = "Manual Quote"
+		shippingTransportType = "manual"
+	} else {
+		shippingSetup, err := s.shippingRepo.GetByID(ctx, tx, *req.ShippingSetupID)
+		if err != nil {
+			return nil, fmt.Errorf("shipping option not found: %w", err)
+		}
+		provinceCode, _, err := s.getAddressWithProvince(ctx, tx, req.AddressID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get buyer province: %w", err)
+		}
+		st, err := s.getShippingCostAndETA(ctx, tx, *req.ShippingSetupID, provinceCode)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get shipping cost for province %s: %w", provinceCode, err)
+		}
+		shippingTotal = st
+		shippingSetupID = shippingSetup.ID
+		shippingSetupName = shippingSetup.Name
+		shippingTransportType = string(shippingSetup.TransportType)
 	}
 
 	// ============================================================
@@ -975,6 +1028,10 @@ func (s *PricingTokenService) GenerateForNegotiation(
 	// ============================================================
 	// STEP 5: CREATE PRICING TOKEN WITH NEGOTIATION CONTEXT
 	// ============================================================
+	shippingMode := "standard"
+	if hasShippingQuote {
+		shippingMode = "quote"
+	}
 	token := pricingtokenentity.NewPricingTokenFromNegotiation(
 		req.UserID,
 		forSale.ProductID,
@@ -986,9 +1043,9 @@ func (s *PricingTokenService) GenerateForNegotiation(
 		postDiscount.CommissionAmount,
 		postDiscount.EscrowAmount,
 		money.Zero(),
-		req.ShippingSetupID,
-		shippingSetup.Name,
-		string(shippingSetup.TransportType),
+		shippingSetupID,
+		shippingSetupName,
+		shippingTransportType,
 		req.AddressID,
 		addressSnapshot,
 		discountID, // Discount may be applied for negotiation checkout
@@ -999,6 +1056,7 @@ func (s *PricingTokenService) GenerateForNegotiation(
 		coinsUsed,          // Coins applied (0 for new tokens)
 		postDiscount.MaxCoinsAllowed,    // Max coins allowed
 		postDiscount.OrderValueForCoins, // Pre-calculated for coins service: discounted product value (PD)
+		req.ShippingQuoteID, // N3: quote authority (nil for option)
 	)
 
 	if err := s.tokenRepo.CreateTx(ctx, tx, token); err != nil {
@@ -1037,7 +1095,7 @@ func (s *PricingTokenService) GenerateForNegotiation(
 			DiscountType:       discountTypeStr,
 			DiscountValue:      discountValue,
 			EscrowAmount:       postDiscount.EscrowAmount,
-			ShippingMode:       "standard", // Negotiations use standard shipping options
+			ShippingMode:       shippingMode,
 			CoinsPreview:       coinsPreview,
 		},
 	}, nil

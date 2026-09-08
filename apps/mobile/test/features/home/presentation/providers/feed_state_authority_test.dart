@@ -682,7 +682,7 @@ void main() {
         'data': [
           {
             'type': 'promoted_for_sale',
-            'promotion_instance_id': 'pi-1',
+            'contract_id': 'pi-1',
             'target_type': 'listing',
             'title': 'Nice Koi',
           },
@@ -698,7 +698,7 @@ void main() {
           },
           {
             'type': 'promoted_auction',
-            'promotion_instance_id': 'pi-2',
+            'contract_id': 'pi-2',
             'target_type': 'auction',
             'title': 'Auction Item',
           },
@@ -754,7 +754,7 @@ void main() {
       // Production: _mapPromotedType defaults unknown types to promotedListing.
       final dto = PromotedFeedItemDto(
         type: 'promoted_unknown',
-        promotionInstanceId: 'pi-1',
+        contractId: 'pi-1',
         targetType: 'listing',
       );
       final item = dto.toFeedItem();

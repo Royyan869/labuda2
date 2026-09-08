@@ -4,11 +4,10 @@ set -e
 # B4.2 / G15 — *Actor governance fields MUST NOT be assigned outside
 # constructors and the canonical injection seam.
 #
-# Doctrine: docs/contracts/governance-constitution.md §1 verdict 10 +
-# §3 F9 + §8.1 G15. Actor is the middleware-layer capability cache;
-# it is not the visibility authority. Its fields are exported by Go
-# convention but mutation is forbidden by doctrine. This guard
-# enforces the doctrine since the language cannot.
+# Doctrine: Actor is the middleware-layer capability cache; it is not
+# the visibility authority. Its fields are exported by Go convention
+# but mutation is forbidden by doctrine (G15). This guard enforces the
+# doctrine since the language cannot.
 #
 # Detection heuristic: assignments of the form `actor.<Field> = ...`
 # where <Field> is one of Actor's governance-critical fields. The
@@ -42,8 +41,6 @@ if [ -n "$VIOLATIONS" ]; then
   echo "Forbidden pattern (G15): actor.<Field> = ..."
   echo "Actor is a read-only middleware-layer cache. Construct a new"
   echo "Actor (or use the existing constructor) instead of mutating."
-  echo "See: docs/contracts/governance-constitution.md §1 verdict 10,"
-  echo "     §3 F9, §8.1 G15"
   echo ""
   echo "Allowed sites (excluded from this guard):"
   echo "  - backend/internal/platform/capability/"

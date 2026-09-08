@@ -8,15 +8,16 @@ import (
 	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/commerce/forsale/entity"
 	forsaleRepo "github.com/labuda/backend/internal/commerce/forsale/repository"
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	"github.com/labuda/backend/internal/identity/auth"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// fakeForSaleRepository is a minimal stub for Update authority tests.
-// It returns a configurable "current" ForSale for GetByID and tracks Update calls.
+// fakeForSaleRepository is a minimal stub for UpdateSeller authority tests.
 type fakeForSaleRepository struct {
-	current *entity.ForSale
+	current      *entity.ForSale
 	updateCalled bool
 }
 
@@ -49,123 +50,127 @@ func (r *fakeForSaleRepository) Search(_ context.Context, _ db.Tx, _ forsaleRepo
 	return nil, nil, nil
 }
 
-func TestUpdate_RejectsInvalidOrdinaryTransition(t *testing.T) {
-	tests := []struct {
-		name    string
-		from    entity.ForSaleStatus
-		to      entity.ForSaleStatus
-	}{
-		{"active to draft", entity.ForSaleStatusActive, entity.ForSaleStatusDraft},
-		{"sold to withdrawn", entity.ForSaleStatusSold, entity.ForSaleStatusWithdrawn},
-		{"withdrawn to sold", entity.ForSaleStatusWithdrawn, entity.ForSaleStatusSold},
-		{"draft to sold", entity.ForSaleStatusDraft, entity.ForSaleStatusSold},
-		{"sold to withdrawn", entity.ForSaleStatusSold, entity.ForSaleStatusWithdrawn},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			forSaleID := uuid.New()
-			repo := &fakeForSaleRepository{
-				current: &entity.ForSale{
-					ID:     forSaleID,
-					Status: tt.from,
-				},
-			}
-			svc := &ForSaleService{repo: repo}
-
-			err := svc.Update(context.Background(), nil, &entity.ForSale{
-				ID:     forSaleID,
-				Status: tt.to,
-			})
-
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), "invalid status transition")
-			assert.False(t, repo.updateCalled, "Update should not be called on invalid transition")
-		})
-	}
+type fakeProductRepoForUpdateSeller struct {
+	updateCalled bool
 }
 
-func TestUpdate_RejectsGovernedTransition(t *testing.T) {
-	tests := []struct {
-		name string
-		from entity.ForSaleStatus
-		to   entity.ForSaleStatus
-	}{
-		{"sold to active via Update", entity.ForSaleStatusSold, entity.ForSaleStatusActive},
-		{"withdrawn to active via Update", entity.ForSaleStatusWithdrawn, entity.ForSaleStatusActive},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			forSaleID := uuid.New()
-			repo := &fakeForSaleRepository{
-				current: &entity.ForSale{
-					ID:     forSaleID,
-					Status: tt.from,
-				},
-			}
-			svc := &ForSaleService{repo: repo}
-
-			err := svc.Update(context.Background(), nil, &entity.ForSale{
-				ID:     forSaleID,
-				Status: tt.to,
-			})
-
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), "not permitted through Update")
-			assert.False(t, repo.updateCalled, "Update should not be called on governed transition")
-		})
-	}
+func (f *fakeProductRepoForUpdateSeller) Create(_ context.Context, _ db.Tx, _ *productEntity.Product) error { return nil }
+func (f *fakeProductRepoForUpdateSeller) GetByID(_ context.Context, _ db.Tx, _ uuid.UUID) (*productEntity.Product, error) {
+	return nil, nil
+}
+func (f *fakeProductRepoForUpdateSeller) Update(_ context.Context, _ db.Tx, _ *productEntity.Product) error {
+	f.updateCalled = true
+	return nil
+}
+func (f *fakeProductRepoForUpdateSeller) ClaimSellingSurface(_ context.Context, _ db.Tx, _ uuid.UUID, _ productEntity.SellingSurface) error {
+	return nil
 }
 
-func TestUpdate_AllowsValidOrdinaryTransition(t *testing.T) {
-	tests := []struct {
-		name string
-		from entity.ForSaleStatus
-		to   entity.ForSaleStatus
-	}{
-		{"draft to active", entity.ForSaleStatusDraft, entity.ForSaleStatusActive},
-		{"active to withdrawn", entity.ForSaleStatusActive, entity.ForSaleStatusWithdrawn},
-		{"draft to withdrawn", entity.ForSaleStatusDraft, entity.ForSaleStatusWithdrawn},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			forSaleID := uuid.New()
-			repo := &fakeForSaleRepository{
-				current: &entity.ForSale{
-					ID:     forSaleID,
-					Status: tt.from,
-				},
-			}
-			svc := &ForSaleService{repo: repo}
-
-			err := svc.Update(context.Background(), nil, &entity.ForSale{
-				ID:     forSaleID,
-				Status: tt.to,
-			})
-
-			require.NoError(t, err)
-			assert.True(t, repo.updateCalled, "Update should be called for valid transition")
-		})
-	}
-}
-
-func TestUpdate_AllowsStatusUnchanged(t *testing.T) {
-	forSaleID := uuid.New()
-	repo := &fakeForSaleRepository{
-		current: &entity.ForSale{
-			ID:     forSaleID,
-			Status: entity.ForSaleStatusActive,
+func newDraftForSaleForUpdateSeller(sellerID, forSaleID, productID uuid.UUID, status entity.ForSaleStatus) *entity.ForSale {
+	return &entity.ForSale{
+		ID:        forSaleID,
+		ProductID: productID,
+		SellerID:  sellerID,
+		Status:    status,
+		Product: &productEntity.Product{
+			ID:       productID,
+			SellerID: sellerID,
+			Title:    "orig",
 		},
 	}
-	svc := &ForSaleService{repo: repo}
+}
 
-	err := svc.Update(context.Background(), nil, &entity.ForSale{
-		ID:     forSaleID,
-		Status: entity.ForSaleStatusActive, // same status
+func TestUpdateSeller_AllowsDraft(t *testing.T) {
+	sellerID := uuid.New()
+	forSaleID := uuid.New()
+	productID := uuid.New()
+	repo := &fakeForSaleRepository{current: newDraftForSaleForUpdateSeller(sellerID, forSaleID, productID, entity.ForSaleStatusDraft)}
+	prodRepo := &fakeProductRepoForUpdateSeller{}
+	svc := &ForSaleService{repo: repo, productRepo: prodRepo}
+	title := "new title"
+	_, err := svc.UpdateSeller(context.Background(), nil, UpdateSellerInput{
+		ForSaleID: forSaleID,
+		SellerID:  sellerID,
+		Title:     &title,
 	})
-
 	require.NoError(t, err)
-	assert.True(t, repo.updateCalled)
+	assert.True(t, repo.updateCalled, "for_sale Update should be called")
+	assert.True(t, prodRepo.updateCalled, "product Update should be called")
+}
+
+func TestUpdateSeller_RejectsActive(t *testing.T) {
+	sellerID := uuid.New()
+	forSaleID := uuid.New()
+	productID := uuid.New()
+	repo := &fakeForSaleRepository{current: newDraftForSaleForUpdateSeller(sellerID, forSaleID, productID, entity.ForSaleStatusActive)}
+	prodRepo := &fakeProductRepoForUpdateSeller{}
+	svc := &ForSaleService{repo: repo, productRepo: prodRepo}
+	title := "hacked"
+	_, err := svc.UpdateSeller(context.Background(), nil, UpdateSellerInput{
+		ForSaleID: forSaleID,
+		SellerID:  sellerID,
+		Title:     &title,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "LIVE_IMMUTABLE")
+	assert.False(t, repo.updateCalled)
+	assert.False(t, prodRepo.updateCalled)
+}
+
+func TestUpdateSeller_RejectsSold(t *testing.T) {
+	sellerID := uuid.New()
+	forSaleID := uuid.New()
+	productID := uuid.New()
+	repo := &fakeForSaleRepository{current: newDraftForSaleForUpdateSeller(sellerID, forSaleID, productID, entity.ForSaleStatusSold)}
+	prodRepo := &fakeProductRepoForUpdateSeller{}
+	svc := &ForSaleService{repo: repo, productRepo: prodRepo}
+	title := "hacked"
+	_, err := svc.UpdateSeller(context.Background(), nil, UpdateSellerInput{
+		ForSaleID: forSaleID,
+		SellerID:  sellerID,
+		Title:     &title,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "LIVE_IMMUTABLE")
+	assert.False(t, repo.updateCalled)
+}
+
+func TestUpdateSeller_RejectsWithdrawn(t *testing.T) {
+	sellerID := uuid.New()
+	forSaleID := uuid.New()
+	productID := uuid.New()
+	repo := &fakeForSaleRepository{current: newDraftForSaleForUpdateSeller(sellerID, forSaleID, productID, entity.ForSaleStatusWithdrawn)}
+	prodRepo := &fakeProductRepoForUpdateSeller{}
+	svc := &ForSaleService{repo: repo, productRepo: prodRepo}
+	title := "hacked"
+	_, err := svc.UpdateSeller(context.Background(), nil, UpdateSellerInput{
+		ForSaleID: forSaleID,
+		SellerID:  sellerID,
+		Title:     &title,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "LIVE_IMMUTABLE")
+	assert.False(t, repo.updateCalled)
+}
+
+func TestUpdateSeller_CommerceRestriction_Blocked(t *testing.T) {
+	sellerID := uuid.New()
+	forSaleID := uuid.New()
+	productID := uuid.New()
+	repo := &fakeForSaleRepository{current: newDraftForSaleForUpdateSeller(sellerID, forSaleID, productID, entity.ForSaleStatusDraft)}
+	prodRepo := &fakeProductRepoForUpdateSeller{}
+	svc := &ForSaleService{
+		repo:            repo,
+		productRepo:     prodRepo,
+		commerceGovRepo: &forSaleCommerceRestrictionRepo{restricted: true},
+	}
+	title := "new"
+	_, err := svc.UpdateSeller(context.Background(), nil, UpdateSellerInput{
+		ForSaleID: forSaleID,
+		SellerID:  sellerID,
+		Title:     &title,
+	})
+	require.Error(t, err)
+	assert.ErrorIs(t, err, auth.ErrCommerceRestricted)
+	assert.False(t, repo.updateCalled)
 }

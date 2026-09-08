@@ -1,5 +1,4 @@
-// Package publiccard hosts the canonical PublicCard exposure types per
-// docs/contracts/public-card-boundary.md.
+// Package publiccard hosts the canonical PublicCard exposure types.
 //
 // PHASE 2A SCOPE — three card families:
 //   - CommentAuthorCard

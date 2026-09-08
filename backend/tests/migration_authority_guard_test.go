@@ -58,47 +58,6 @@ func TestMigrationAuthorityDocsAndRuntimeStayAligned(t *testing.T) {
 			},
 		},
 		{
-			path: "../../docs/operations/migration-governance.md",
-			mustContain: []string{
-				"The runtime server does not auto-run migrations.",
-				"go run ./cmd/migrate",
-				"000001_canonical_schema",
-			},
-			mustNotContain: []string{
-				"Auto-runs at server startup",
-				"production authority is `backend/pkg/database/migrate.go`",
-				"backend/migrations/000_init/",
-			},
-		},
-		{
-			path: "../../docs/operations/dev-seed-guide.md",
-			mustContain: []string{
-				"go run ./cmd/core_server",
-				"go run ./cmd/migrate",
-				"Run migrations first.",
-			},
-		},
-		{
-			path: "../../docs/operations/owner-test-guide.md",
-			mustContain: []string{
-				"go run ./cmd/core_server",
-				"cd backend && go run ./cmd/migrate",
-			},
-		},
-		{
-			path: "../../docs/operations/canonical-runtime-paths.md",
-			mustContain: []string{
-				"Does not auto-run migrations.",
-				"Explicit migration apply command.",
-				"Not wired into `core_server`",
-			},
-			mustNotContain: []string{
-				"backend/migrations/000_init/",
-				"backend/migrations/archive/",
-				"backend/migrations/snapshots/",
-			},
-		},
-		{
 			path: "../.env.example",
 			mustContain: []string{
 				"Deprecated compatibility flags only.",

@@ -134,17 +134,16 @@ Future<_AppBootstrap> _initServices() async {
   // REAL DEVICE DEV CONNECTIVITY (PASS 1 — minimal fail-fast):
   // Explicit --dart-define is the canonical authority for LAN. No .env fallback,
   // no chained fallback, no auto-detect of LAN IP. Log the effective authority
-  // so a physical device without override is immediately obvious (10.0.2.2).
+  // so a physical device without adb reverse is immediately obvious.
   if (kDebugMode) {
     final baseUrl = ApiConfig.baseUrl;
     final wsUrl = ApiConfig.wsUrl;
     if (ApiConfig.hasOverrideBaseUrl) {
       logger.info('[CONFIG] API override active: $baseUrl');
     } else {
-      logger.warning(
-        '[CONFIG] No --dart-define=API_BASE_URL — using dev default $baseUrl '
-        '(emulator 10.0.2.2; physical device requires '
-        '--dart-define=API_BASE_URL=http://<LAN-IP>:8080/api/v1)',
+      logger.info(
+        '[CONFIG] Using dev default $baseUrl '
+        '(physical devices require: adb reverse tcp:8080 tcp:8080)',
       );
     }
     if (ApiConfig.hasOverrideWsUrl) {

@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_review_status.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/promotion_providers.dart';
+import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/canonical_external_product_providers.dart';
 
 class ExternalProductManagementScreen extends ConsumerStatefulWidget {
   const ExternalProductManagementScreen({super.key});
@@ -153,7 +153,7 @@ class _ExternalProductManagementScreenState
     }
 
     final description = _descriptionController.text.trim();
-    final controller = ref.read(promotionControllerProvider);
+    final controller = ref.read(externalProductControllerProvider);
     final result = await controller.createExternalProductDraft(
       title: title,
       externalUrl: url,

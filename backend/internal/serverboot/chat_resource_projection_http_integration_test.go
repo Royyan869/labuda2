@@ -55,8 +55,6 @@ func newChatProjectionHTTPFixture(t *testing.T) *chatProjectionHTTPFixture {
 		service,
 		nil,
 		nil,
-		nil,
-		nil,
 		base.traced,
 		zap.NewNop(),
 	)
@@ -685,8 +683,6 @@ func TestChatResourceProjectionHTTPMatrix(t *testing.T) {
 			fixture.service,
 			nil,
 			nil,
-			nil,
-			nil,
 			fixture.traced,
 			zap.NewNop(),
 		)
@@ -704,8 +700,6 @@ func TestChatResourceProjectionHTTPMatrix(t *testing.T) {
 		messageID := fixture.seedMessageWithOccurrence(t, roomID, otherID, strPtr("profile"), nil, time.Now().UTC(), chatEntity.ResourceOccurrenceOperationShareToChat, chatEntity.ResourceOccurrenceResourceTypeProfile, otherID)
 		malformedHandler := chatHTTP.NewHandler(
 			fixture.service,
-			nil,
-			nil,
 			nil,
 			nil,
 			fixture.traced,

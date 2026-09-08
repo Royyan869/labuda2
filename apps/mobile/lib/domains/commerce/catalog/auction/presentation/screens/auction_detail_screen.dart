@@ -9,7 +9,6 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/core/api/api_error_codes.dart' as api_codes;
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/target_type.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_bid.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_providers.dart';
@@ -275,14 +274,9 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                   auction.status == AuctionStatus.scheduled))
             IconButton(
               onPressed: () {
-                context.push(
-                  RoutePaths.sellerPromotionActivate,
-                  extra: {
-                    'preselectedTargetType': TargetType.auction,
-                    'preselectedTargetId': auction.id,
-                    'preselectedTargetTitle': auction.title,
-                  },
-                );
+                // Canonical era: promotion is contract-based; seller manages
+                // contracts from the canonical promotion list screen.
+                context.push(RoutePaths.sellerCanonicalPromotions);
               },
               icon: const Icon(Icons.campaign_outlined),
               tooltip: 'Promote',

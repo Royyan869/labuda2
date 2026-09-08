@@ -62,6 +62,11 @@ func (m *auctionQuoteRepoStub) GetByID(_ context.Context, _ db.Tx, _ uuid.UUID) 
 	return m.auction, m.err
 }
 
+func (m *auctionQuoteRepoStub) GetForUpdate(_ context.Context, _ db.Tx, _ uuid.UUID) (*auctionEntity.Auction, error) {
+	m.called = true
+	return m.auction, m.err
+}
+
 func (m *auctionQuoteRepoStub) MarkSellerQuoteProvided(_ context.Context, _ db.Tx, _ uuid.UUID) error {
 	return nil
 }

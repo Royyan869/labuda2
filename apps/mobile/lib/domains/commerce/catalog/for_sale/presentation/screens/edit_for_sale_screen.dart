@@ -118,10 +118,18 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
         },
         (listing) {
           if (listing != null) {
-            // Check ownership
+            // Check ownership + canonical draft-only mutability
             final authState = ref.read(authControllerProvider);
             if (authState is AuthStateAuthenticated &&
                 authState.user.id == listing.sellerId) {
+              // Canonical: only draft is seller-editable (active/sold/withdrawn are live/terminal)
+              if (listing.status != ForSaleStatus.draft) {
+                setState(
+                  () => _errorMessage =
+                      'Listing dengan status ${listing.status.displayName} tidak dapat diedit (hanya draft yang dapat diedit).',
+                );
+                return;
+              }
               setState(() {
                 _originalListing = listing;
                 _titleController.text = listing.title;

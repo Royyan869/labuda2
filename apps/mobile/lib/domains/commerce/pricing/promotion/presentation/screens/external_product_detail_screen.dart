@@ -9,7 +9,7 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_media.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_review_status.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/promotion_providers.dart';
+import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/canonical_external_product_providers.dart';
 import 'package:labuda/shared/ui/src/helpers/media_picker_helper.dart';
 
 class ExternalProductDetailScreen extends ConsumerStatefulWidget {
@@ -199,14 +199,14 @@ class _ExternalProductDetailScreenState
 
   Future<void> _submit(String productId) async {
     setState(() => _isSubmitting = true);
-    final controller = ref.read(promotionControllerProvider);
+    final controller = ref.read(externalProductControllerProvider);
     final result = await controller.submitExternalProduct(id: productId);
     _finishMutation(result.isSuccess, result.error ?? 'Submit failed');
   }
 
   Future<void> _resubmit(String productId) async {
     setState(() => _isSubmitting = true);
-    final controller = ref.read(promotionControllerProvider);
+    final controller = ref.read(externalProductControllerProvider);
     final result = await controller.resubmitExternalProduct(id: productId);
     _finishMutation(result.isSuccess, result.error ?? 'Resubmit failed');
   }
@@ -235,7 +235,7 @@ class _ExternalProductDetailScreenState
 
     if (confirmed != true || !mounted) return;
     setState(() => _isSubmitting = true);
-    final controller = ref.read(promotionControllerProvider);
+    final controller = ref.read(externalProductControllerProvider);
     final result = await controller.deleteExternalProductMedia(
       externalProductId: productId,
       mediaId: mediaId,
@@ -307,7 +307,7 @@ class _ExternalProductDetailScreenState
     final newDesc = descCtrl.text.trim();
 
     setState(() => _isSubmitting = true);
-    final controller = ref.read(promotionControllerProvider);
+    final controller = ref.read(externalProductControllerProvider);
     final result = await controller.updateExternalProduct(
       id: product.id,
       title: newTitle != product.title ? newTitle : null,
@@ -415,7 +415,7 @@ class _ExternalProductDetailScreenState
     // Attach uploaded media to external product
     // storageKey = raw S3 object key (e.g. images/1234_photo.jpg)
     // url = public CDN URL for display
-    final controller = ref.read(promotionControllerProvider);
+    final controller = ref.read(externalProductControllerProvider);
     final result = await controller.attachExternalProductMedia(
       externalProductId: product.id,
       mediaType: mediaType,

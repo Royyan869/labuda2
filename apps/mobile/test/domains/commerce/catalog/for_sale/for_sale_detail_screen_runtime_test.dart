@@ -11,9 +11,6 @@ import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart'
     show forSaleDetailProvider;
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/screens/for_sale_detail_screen.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/promotion_instance.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/promotion_providers.dart'
-    show fixedPriceSaleActivePromotionsProvider;
 import 'package:labuda/domains/user/preference/saved_item/models/saved_item_model.dart';
 import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository.dart';
 import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository_provider.dart';
@@ -194,7 +191,6 @@ Widget _wrap({
   required ForSale listing,
   required AuthState authState,
   required SavedItemRepository savedItemRepository,
-  Result<List<PromotionInstance>>? promotionResult,
   ForSale Function()? listingLoader,
   ThemeData? theme,
 }) {
@@ -206,10 +202,6 @@ Widget _wrap({
         listing.forSaleId,
       ).overrideWith((ref) async => listingLoader?.call() ?? listing),
       navigationHandlerProvider.overrideWithValue(_FakeNavigationHandler()),
-      if (promotionResult != null)
-        fixedPriceSaleActivePromotionsProvider(
-          listing.forSaleId,
-        ).overrideWith((ref) async => promotionResult),
     ],
     child: MaterialApp(
       theme: theme,
@@ -864,7 +856,6 @@ void main() {
           emailVerified: true,
         ),
         savedItemRepository: savedRepo,
-        promotionResult: Result.success(const <PromotionInstance>[]),
       ),
     );
     await tester.pumpAndSettle();

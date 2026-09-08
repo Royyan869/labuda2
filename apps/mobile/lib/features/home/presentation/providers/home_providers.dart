@@ -14,5 +14,6 @@ export 'feed_renderers.dart'
     show
         pendingTabSwitchProvider,
         FeedCardFactory,
-        setGlobalFeedRefreshCallback,
-        refreshFeedGlobally;
+         setGlobalFeedRefreshCallback,
+         refreshFeedGlobally,
+         resetPromotionExposureAttempts;

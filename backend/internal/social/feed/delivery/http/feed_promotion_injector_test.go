@@ -1,7 +1,6 @@
 package http
 
 import (
-	"context"
 	"testing"
 
 	"github.com/google/uuid"
@@ -23,10 +22,10 @@ func makeHydrated(n int) []hydratedPromotion {
 	for i := 0; i < n; i++ {
 		tid := uuid.New()
 		items = append(items, hydratedPromotion{
-			Instance: &promoentity.PromotionInstance{
-				ID:         uuid.New(),
-				TargetType: promoentity.TargetTypeForSale,
-				TargetID:   &tid,
+			View: &promotedTargetView{
+				DeliveryItemID: uuid.New(),
+				TargetType:     promoentity.TargetTypeForSale,
+				TargetID:       &tid,
 			},
 			SellerID: uuid.New(),
 			Response: map[string]interface{}{"type": "promoted_for_sale", "promo_index": i},
@@ -110,19 +109,19 @@ func TestApplySlotPolicy_DedupTarget(t *testing.T) {
 	targetID := uuid.New()
 	items := []hydratedPromotion{
 		{
-			Instance: &promoentity.PromotionInstance{
-				ID:         uuid.New(),
-				TargetType: promoentity.TargetTypeForSale,
-				TargetID:   &targetID,
+			View: &promotedTargetView{
+				DeliveryItemID: uuid.New(),
+				TargetType:     promoentity.TargetTypeForSale,
+				TargetID:       &targetID,
 			},
 			SellerID: uuid.New(),
 			Response: map[string]interface{}{"type": "promoted_for_sale"},
 		},
 		{
-			Instance: &promoentity.PromotionInstance{
-				ID:         uuid.New(),
-				TargetType: promoentity.TargetTypeForSale,
-				TargetID:   &targetID, // same target
+			View: &promotedTargetView{
+				DeliveryItemID: uuid.New(),
+				TargetType:     promoentity.TargetTypeForSale,
+				TargetID:       &targetID, // same target
 			},
 			SellerID: uuid.New(),
 			Response: map[string]interface{}{"type": "promoted_for_sale"},
@@ -141,19 +140,19 @@ func TestApplySlotPolicy_DedupSeller(t *testing.T) {
 	t2 := uuid.New()
 	items := []hydratedPromotion{
 		{
-			Instance: &promoentity.PromotionInstance{
-				ID:         uuid.New(),
-				TargetType: promoentity.TargetTypeForSale,
-				TargetID:   &t1,
+			View: &promotedTargetView{
+				DeliveryItemID: uuid.New(),
+				TargetType:     promoentity.TargetTypeForSale,
+				TargetID:       &t1,
 			},
 			SellerID: sellerID,
 			Response: map[string]interface{}{"type": "promoted_for_sale"},
 		},
 		{
-			Instance: &promoentity.PromotionInstance{
-				ID:         uuid.New(),
-				TargetType: promoentity.TargetTypeAuction,
-				TargetID:   &t2,
+			View: &promotedTargetView{
+				DeliveryItemID: uuid.New(),
+				TargetType:     promoentity.TargetTypeAuction,
+				TargetID:       &t2,
 			},
 			SellerID: sellerID, // same seller
 			Response: map[string]interface{}{"type": "promoted_auction"},
@@ -179,7 +178,7 @@ func TestApplySlotPolicy_MaxCap(t *testing.T) {
 func TestInjectPromotions_NilInjector(t *testing.T) {
 	var inj *FeedPromotionInjector
 	organic := makeOrganic(5)
-	result := inj.InjectPromotions(nil, organic)
+	result := inj.InjectPromotions(nil, uuid.Nil, organic)
 	if len(result) != 5 {
 		t.Fatalf("nil injector should return organic unchanged, got %d", len(result))
 	}
@@ -188,7 +187,7 @@ func TestInjectPromotions_NilInjector(t *testing.T) {
 func TestInjectPromotions_TooFewOrganic(t *testing.T) {
 	inj := &FeedPromotionInjector{}
 	organic := makeOrganic(2)
-	result := inj.InjectPromotions(nil, organic)
+	result := inj.InjectPromotions(nil, uuid.Nil, organic)
 	if len(result) != 2 {
 		t.Fatalf("should return organic unchanged when < %d items, got %d",
 			minOrganicForInjection, len(result))
@@ -196,9 +195,9 @@ func TestInjectPromotions_TooFewOrganic(t *testing.T) {
 }
 
 func TestBuildPromotedForSaleResponse_AddsSplitIdentity(t *testing.T) {
-	inst := &promoentity.PromotionInstance{ID: uuid.New()}
+	view := &promotedTargetView{DeliveryItemID: uuid.New()}
 	card := &forSaleCardData{ID: uuid.New(), Title: "t", PricePerUnit: 1000, ImageURL: "https://example.com/a.jpg"}
-	resp := buildPromotedForSaleResponse(inst, card, "seller-user", "Farm Name", "active")
+	resp := buildPromotedForSaleResponse(view, card, "seller-user", "Farm Name", "active")
 
 	if _, ok := resp["seller_name"]; ok {
 		t.Fatalf("seller_name should not be present: %v", resp["seller_name"])
@@ -244,20 +243,5 @@ func TestExtractFirstMediaURL_Empty(t *testing.T) {
 }
 
 func TestHydratePromotedItems_ExcludesExternalProduct(t *testing.T) {
-	inj := &FeedPromotionInjector{}
-	instances := []*promoentity.PromotionInstance{
-		{
-			ID:         uuid.New(),
-			TargetType: promoentity.TargetTypeExternalProduct,
-			UserID:     uuid.New(),
-		},
-	}
-
-	hydrated, err := inj.hydratePromotedItems(context.Background(), instances)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if len(hydrated) != 0 {
-		t.Fatalf("expected external product to be excluded, got %d items", len(hydrated))
-	}
+	// Legacy PromotionInstance hydrate path purged — canonical-only injector has no hydratePromotedItems.
 }

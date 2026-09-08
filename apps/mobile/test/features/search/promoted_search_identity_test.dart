@@ -53,7 +53,7 @@ class _FakeSearchApiService implements SearchApiService {
       promotedItems: const [
         PromotedSearchItemDto(
           type: 'promoted_for_sale',
-          promotionInstanceId: 'pi-for-sale',
+          contractId: 'pi-for-sale',
           targetType: 'for_sale',
           injectAt: 0,
           title: 'Promoted for-sale',
@@ -83,7 +83,7 @@ class _FakeSearchApiService implements SearchApiService {
       promotedItems: const [
         PromotedSearchItemDto(
           type: 'promoted_auction',
-          promotionInstanceId: 'pi-auction',
+          contractId: 'pi-auction',
           targetType: 'auction',
           injectAt: 0,
           title: 'Promoted auction',
@@ -129,10 +129,10 @@ void main() {
 
     final data = result.data!;
     final promotedForSale = data.listings.singleWhere(
-      (item) => item.promotionInstanceId == 'pi-for-sale',
+      (item) => item.contractId == 'pi-for-sale',
     );
     final promotedAuction = data.auctions.singleWhere(
-      (item) => item.promotionInstanceId == 'pi-auction',
+      (item) => item.contractId == 'pi-auction',
     );
 
     expect(promotedForSale.subtitle, '@seller_user');

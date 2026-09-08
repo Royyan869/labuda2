@@ -6,31 +6,21 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
 	negotiationApp "github.com/labuda/backend/internal/commerce/negotiation/application"
 	negotiationEntity "github.com/labuda/backend/internal/commerce/negotiation/entity"
 	negotiationImpl "github.com/labuda/backend/internal/commerce/negotiation/infrastructure/repository"
 	negotiationRepo "github.com/labuda/backend/internal/commerce/negotiation/repository"
-	orderApp "github.com/labuda/backend/internal/commerce/order/application"
-	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
-	orderRepoImpl "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
-	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
-	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	"github.com/labuda/backend/internal/governance/viewercontext"
-	addressentity "github.com/labuda/backend/internal/identity/address/entity"
 	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
 	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	chatRepo "github.com/labuda/backend/internal/interaction/chat/repository"
 	"github.com/labuda/backend/internal/pkg/blockcheck"
 	"github.com/labuda/backend/internal/pkg/publiccard"
 	"github.com/labuda/backend/internal/platform/response"
-	pricingtokenapp "github.com/labuda/backend/internal/pricing/token/application"
-	pricingtokenentity "github.com/labuda/backend/internal/pricing/token/entity"
 	"github.com/labuda/backend/pkg/db"
 	"go.uber.org/zap"
 )
@@ -42,12 +32,14 @@ type handlerAccountStatusChecker interface {
 }
 
 // Handler handles HTTP requests for chat operations.
+//
+// N6: orderService and pricingTokenService were removed from this struct — they
+// existed solely for the deleted POST /chat/rooms/:room_id/order endpoint.
+// Canonical negotiation checkout lives entirely in pricing preview + POST /orders.
 type Handler struct {
 	chatService                *chatApp.Service
-	orderService               *orderApp.OrderService
 	negotiationRepo            negotiationRepo.Repository
 	negotiationService         *negotiationApp.NegotiationService
-	pricingTokenService        *pricingtokenapp.PricingTokenService
 	statusChecker              handlerAccountStatusChecker // Account status enforcement
 	db                         *db.DB
 	log                        *zap.Logger
@@ -57,9 +49,7 @@ type Handler struct {
 // NewHandler creates a new chat handler.
 func NewHandler(
 	chatService *chatApp.Service,
-	orderService *orderApp.OrderService,
 	negotiationService *negotiationApp.NegotiationService,
-	pricingTokenService *pricingtokenapp.PricingTokenService,
 	statusChecker handlerAccountStatusChecker,
 	database *db.DB,
 	log *zap.Logger,
@@ -68,14 +58,12 @@ func NewHandler(
 		log = zap.NewNop()
 	}
 	return &Handler{
-		chatService:         chatService,
-		orderService:        orderService,
-		negotiationRepo:     negotiationImpl.NewNegotiationRepository(),
-		negotiationService:  negotiationService,
-		pricingTokenService: pricingTokenService,
-		statusChecker:       statusChecker,
-		db:                  database,
-		log:                 log,
+		chatService:        chatService,
+		negotiationRepo:    negotiationImpl.NewNegotiationRepository(),
+		negotiationService: negotiationService,
+		statusChecker:      statusChecker,
+		db:                 database,
+		log:                log,
 	}
 }
 
@@ -102,23 +90,6 @@ type SendMessageRequest struct {
 // MarkAsReadRequest holds the request body for marking messages as read.
 type MarkAsReadRequest struct {
 	Timestamp string `json:"timestamp" binding:"required"`
-}
-
-// CreateOrderFromChatRequest holds the request body for creating an order from a chat room.
-type CreateOrderFromChatRequest struct {
-	// Shipping destination (required)
-	AddressID string `json:"address_id" binding:"required,uuid"`
-
-	// Shipping method (one of these is required)
-	ShippingQuoteID *string `json:"shipping_quote_id,omitempty"`
-	ShippingSetupID *string `json:"shipping_option_id,omitempty"`
-
-	// Pricing token (required for anti-tamper)
-	// CRITICAL: All pricing data comes from the validated token
-	PricingToken string `json:"pricing_token" binding:"required"`
-
-	// Quantity (optional, defaults to 1)
-	Quantity int `json:"quantity" binding:"omitempty,min=1,max=100"`
 }
 
 // ========================================================================
@@ -474,443 +445,6 @@ func (h *Handler) LinkOrderToChat(c *gin.Context) {
 
 	cards := h.hydrateRoomParticipants(ctx, []*chatEntity.ChatRoom{room}, userID)
 	response.Success(c, roomToResponse(room, userID, cards))
-}
-
-// CreateOrderFromChat handles POST /api/v1/chat/rooms/:room_id/order
-//
-// CHAT-CENTRIC ORDER CREATION:
-// Creates an order from an accepted negotiation in the chat room.
-// This makes chat a TRUE commerce entry point - no need to leave chat context.
-//
-// Behavior:
-// 1. Find active negotiation by chat_room_id
-// 2. Validate negotiation.status = accepted AND not already converted to order
-// 3. Extract for_sale_id and accepted_price from NegotiationSession
-// 4. Create order with source_type = "negotiation"
-// 5. Link order ↔ chat ↔ negotiation
-//
-// CRITICAL RULE:
-// - ❌ DO NOT trust chat message data
-// - ✅ ALWAYS use NegotiationSession for authoritative pricing
-func (h *Handler) CreateOrderFromChat(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	userIDVal, exists := c.Get("userID")
-	if !exists {
-		response.Unauthorized(c, "User not authenticated")
-		return
-	}
-	userID, ok := userIDVal.(uuid.UUID)
-	if !ok {
-		response.InternalServerError(c, "Invalid user ID in context")
-		return
-	}
-
-	// Parse room ID
-	roomID, err := uuid.Parse(c.Param("room_id"))
-	if err != nil {
-		response.BadRequest(c, "Invalid room ID")
-		return
-	}
-
-	// Parse request body
-	var req CreateOrderFromChatRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err.Error())
-		return
-	}
-
-	// Set default quantity
-	quantity := req.Quantity
-	if quantity == 0 {
-		quantity = 1
-	}
-
-	// STEP 1: Verify user is a participant in the room
-	room, err := h.chatService.GetRoom(ctx, roomID)
-	if err != nil {
-		if err == chatRepo.ErrRoomNotFound {
-			response.NotFound(c, "Room not found")
-			return
-		}
-		h.log.Error("Failed to get room",
-			zap.String("room_id", roomID.String()),
-			zap.String("user_id", userID.String()),
-			zap.Error(err),
-		)
-		response.InternalServerError(c, "Failed to retrieve room")
-		return
-	}
-
-	if !room.HasParticipant(userID) {
-		response.Forbidden(c, "You are not a participant in this room")
-		return
-	}
-
-	// Account status enforcement: buyer must be active before creating binding commerce records.
-	if h.statusChecker != nil {
-		if err := h.statusChecker.EnsureActive(ctx, userID); err != nil {
-			response.RespondWithError(c, h.log, err)
-			return
-		}
-	}
-
-	// STEP 2: Parse and validate UUIDs
-	addressID, err := uuid.Parse(req.AddressID)
-	if err != nil {
-		response.BadRequest(c, "Invalid address ID")
-		return
-	}
-
-	var shippingSetupID uuid.UUID
-	if req.ShippingSetupID != nil && *req.ShippingSetupID != "" {
-		shippingSetupID, err = uuid.Parse(*req.ShippingSetupID)
-		if err != nil {
-			response.BadRequest(c, "Invalid shipping option ID")
-			return
-		}
-	}
-
-	// STEP 3: QUANTITY VALIDATION RULES
-	// CRITICAL: Negotiation is for 1 unit only (prevents abuse)
-	if quantity != 1 {
-		response.BadRequest(c, "Negotiation orders must have quantity = 1. The negotiated price is for a single unit.")
-		return
-	}
-
-	// STEP 4: SINGLE ATOMIC TRANSACTION FOR ENTIRE FLOW
-	// CRITICAL: All operations MUST happen in ONE transaction to prevent race conditions
-	// This includes: lock negotiation, validate, create order, update negotiation, link chat
-	var (
-		order         *orderentity.Order
-		negotiationID uuid.UUID
-		acceptedPrice int64
-		tokenID       uuid.UUID
-	)
-	err = h.db.WithTx(ctx, func(tx db.Tx) error {
-		// STEP 4.1: LOCK negotiation FIRST with FOR UPDATE (mandatory order)
-		session, err := h.negotiationRepo.GetAcceptedSessionByChatRoomIDForUpdate(ctx, tx, roomID)
-		if err != nil {
-			return err
-		}
-		if session == nil {
-			return &ErrNoAcceptedNegotiation{RoomID: roomID}
-		}
-		negotiation := session
-
-		// Store for response after commit
-		negotiationID = negotiation.ID
-		if negotiation.AcceptedPrice != nil {
-			acceptedPrice = *negotiation.AcceptedPrice
-		}
-
-		// STEP 4.2: VALIDATION (inside TX only - no validation outside!)
-		// All validation MUST happen inside the transaction while lock is held
-
-		// Check status = accepted (already enforced by GetAcceptedSessionByChatRoomIDForUpdate)
-
-		// Check order_id IS NULL
-		if negotiation.OrderID != nil && *negotiation.OrderID != uuid.Nil {
-			return &ErrNegotiationAlreadySettled{NegotiationID: negotiation.ID, OrderID: *negotiation.OrderID}
-		}
-
-		// Check expiry
-		if negotiation.IsExpired() {
-			return &ErrNegotiationExpired{NegotiationID: negotiation.ID}
-		}
-
-		// Check user is buyer
-		if !negotiation.IsBuyer(userID) {
-			return &ErrUnauthorizedBuyer{UserID: userID, NegotiationID: negotiation.ID}
-		}
-
-		// Validate accepted_price exists
-		if negotiation.AcceptedPrice == nil || *negotiation.AcceptedPrice <= 0 {
-			return &ErrInvalidNegotiationData{Field: "accepted_price", NegotiationID: negotiation.ID}
-		}
-
-		if negotiation.ForSaleID == uuid.Nil {
-			return &ErrInvalidNegotiationData{Field: "for_sale_id", NegotiationID: negotiation.ID}
-		}
-
-		forSale, err := h.orderService.GetCreationService().GetForSaleByID(ctx, tx, negotiation.ForSaleID)
-		if err != nil {
-			return fmt.Errorf("failed to load fixed-price sale for negotiation checkout: %w", err)
-		}
-		if forSale == nil {
-			return &ErrInvalidNegotiationData{Field: "for_sale_id", NegotiationID: negotiation.ID}
-		}
-
-		// STEP 4.3: VALIDATE PRICING TOKEN (inside TX, under lock)
-		// CRITICAL: All pricing data comes from the validated token
-		// The token must have been generated for this negotiation with the negotiated price
-		parsedTokenID, parseErr := uuid.Parse(req.PricingToken)
-		if parseErr != nil {
-			return fmt.Errorf("invalid pricing token format: %w", parseErr)
-		}
-		tokenID = parsedTokenID
-
-		validatedToken, err := h.pricingTokenService.ValidateForOrderLocked(
-			ctx,
-			tx,
-			tokenID,
-			userID,
-			forSale.ProductID,
-			"negotiation",
-			forSale.ID,
-			0, // Quantity from token, not request
-			addressID,
-			shippingSetupID,
-		)
-		if err != nil {
-			return fmt.Errorf("pricing token validation failed: %w", err)
-		}
-
-		// STEP 4.4: BUILD PRICING SNAPSHOT FROM TOKEN
-		pricingSnapshot := buildPricingSnapshotFromToken(validatedToken)
-
-		// STEP 4.5: CREATE ORDER (still inside TX, still under lock)
-		// CRITICAL: Quantity comes from token, not from request
-		input := buildNegotiationCheckoutInput(
-			negotiation,
-			forSale,
-			userID,
-			addressID,
-			shippingSetupID,
-			pricingSnapshot,
-			&tokenID,
-			validatedToken.Quantity,
-		)
-
-		createdOrder, createErr := h.orderService.GetCreationService().CreateFromSaleSurface(ctx, tx, input)
-		if createErr != nil {
-			return createErr
-		}
-
-		if err := h.pricingTokenService.FinalizeOrderConsumption(ctx, tx, validatedToken, createdOrder.ID); err != nil {
-			return fmt.Errorf("pricing token consume failed: %w", err)
-		}
-
-		// STEP 4.4: UPDATE NEGOTIATION (CRITICAL - still inside TX)
-		// Set negotiation.order_id = order.ID BEFORE commit
-		// This prevents double-order race condition
-		updateErr := h.negotiationRepo.UpdateOrderID(ctx, tx, negotiation.ID, createdOrder.ID)
-		if updateErr != nil {
-			return updateErr
-		}
-
-		// STEP 4.5: LINK CHAT (still same TX)
-		_, linkErr := h.chatService.LinkOrderToChat(ctx, roomID, createdOrder.ID, userID)
-		if linkErr != nil {
-			// Log warning but don't fail - link is non-critical
-			// Order is already created and negotiation is updated
-			h.log.Warn("Failed to link order to chat (non-critical)",
-				zap.String("room_id", roomID.String()),
-				zap.String("order_id", createdOrder.ID.String()),
-				zap.Error(linkErr),
-			)
-		}
-
-		order = createdOrder
-		return nil
-	})
-
-	// STEP 5: HANDLE ERRORS with proper HTTP status codes
-	if err != nil {
-		var tokenValidationErr *pricingtokenentity.ValidationError
-		if errors.As(err, &tokenValidationErr) && tokenValidationErr.Code == pricingtokenentity.CodeTokenAlreadyUsed {
-			if tokenValidationErr.OrderID == nil || *tokenValidationErr.OrderID == uuid.Nil {
-				response.Error(c, 409, "PRICING_TOKEN_ALREADY_USED", "Pricing token already used but not linked to an order")
-				return
-			}
-
-			existingOrder, fetchErr := recoverChatOrderFromUsedPricingToken(ctx, h.db, tokenID, *tokenValidationErr.OrderID)
-			if fetchErr == nil && existingOrder != nil {
-				response.Success(c, gin.H{
-					"order_id":       existingOrder.ID.String(),
-					"order_number":   existingOrder.OrderNumber,
-					"room_id":        roomID.String(),
-					"negotiation_id": negotiationID.String(),
-					"unit_price":     existingOrder.UnitPrice,
-					"quantity":       existingOrder.Quantity,
-					"source_type":    "negotiation",
-					"message":        "Order already exists (idempotent response)",
-					"idempotent":     true,
-				})
-				return
-			}
-
-			h.log.Warn("Used pricing token detected but chat recovery fetch failed",
-				zap.String("pricing_token_id", tokenID.String()),
-				zap.String("order_id", tokenValidationErr.OrderID.String()),
-				zap.String("user_id", userID.String()),
-				zap.Error(fetchErr),
-			)
-			response.Error(c, 409, "PRICING_TOKEN_ALREADY_USED", "Pricing token already used for an existing order")
-			return
-		}
-
-		if errors.Is(err, orderrepository.ErrDuplicatePricingToken) {
-			var existingOrder *orderentity.Order
-			fetchErr := h.db.WithTx(ctx, func(tx db.Tx) error {
-				var lookupErr error
-				existingOrder, lookupErr = orderRepoImpl.NewOrderRepository().GetByPricingTokenID(ctx, tx, tokenID)
-				return lookupErr
-			})
-			if fetchErr == nil && existingOrder != nil {
-				response.Success(c, gin.H{
-					"order_id":       existingOrder.ID.String(),
-					"order_number":   existingOrder.OrderNumber,
-					"room_id":        roomID.String(),
-					"negotiation_id": negotiationID.String(),
-					"unit_price":     existingOrder.UnitPrice,
-					"quantity":       existingOrder.Quantity,
-					"source_type":    "negotiation",
-					"message":        "Order already exists (idempotent response)",
-					"idempotent":     true,
-				})
-				return
-			}
-		}
-
-		if errors.Is(err, orderrepository.ErrDuplicateIdempotencyKey) {
-			h.log.Info("Duplicate buyer idempotency key on chat order create",
-				zap.String("user_id", userID.String()),
-				zap.String("negotiation_id", negotiationID.String()),
-			)
-			response.Error(c, 409, "DUPLICATE_IDEMPOTENCY_KEY", "Idempotency key already used by a different request")
-			return
-		}
-
-		switch e := err.(type) {
-		case *ErrNoAcceptedNegotiation:
-			response.BadRequest(c, "No accepted negotiation found in this chat room. Please complete a negotiation first.")
-			return
-		case *ErrNegotiationAlreadySettled:
-			// IDEMPOTENCY UX: Instead of returning 409, fetch and return existing order
-			// This provides better UX - user gets their order instead of error
-			//
-			// Use a separate read-only transaction to fetch the complete order
-			var existingOrder *orderentity.Order
-			fetchErr := h.db.WithTx(ctx, func(tx db.Tx) error {
-				var err error
-				existingOrder, err = h.orderService.GetOrder(ctx, tx, e.OrderID)
-				return err
-			})
-
-			if fetchErr != nil {
-				h.log.Warn("Order already exists but fetch failed",
-					zap.String("order_id", e.OrderID.String()),
-					zap.String("negotiation_id", e.NegotiationID.String()),
-					zap.Error(fetchErr),
-				)
-				// Fallback to 409 if we can't fetch the order
-				response.ErrorWithDetails(c, 409, "NEGOTIATION_ALREADY_SETTLED", "This negotiation has already been converted to an order", gin.H{
-					"order_id":       e.OrderID.String(),
-					"negotiation_id": e.NegotiationID.String(),
-				})
-				return
-			}
-
-			// Return existing order (idempotent response)
-			response.Success(c, gin.H{
-				"order_id":       existingOrder.ID.String(),
-				"order_number":   existingOrder.OrderNumber,
-				"room_id":        roomID.String(),
-				"negotiation_id": e.NegotiationID.String(),
-				"unit_price":     existingOrder.UnitPrice,
-				"quantity":       existingOrder.Quantity,
-				"source_type":    "negotiation",
-				"message":        "Order already exists (idempotent response)",
-				"idempotent":     true,
-			})
-			return
-		case *ErrNegotiationExpired:
-			response.BadRequest(c, "This negotiation has expired. Please start a new negotiation.")
-			return
-		case *ErrUnauthorizedBuyer:
-			response.Forbidden(c, "Only the buyer can create an order from a negotiation")
-			return
-		case *ErrInvalidNegotiationData:
-			h.log.Error("Invalid negotiation data",
-				zap.String("field", e.Field),
-				zap.String("negotiation_id", e.NegotiationID.String()),
-				zap.Error(err),
-			)
-			response.InternalServerError(c, "Negotiation data is invalid")
-			return
-		default:
-			// Phase 0 honesty: surface typed shipping gate errors from the
-			// chat-driven order creation path with machine-readable codes.
-			if errors.Is(err, shippingApp.ErrNoShippingSetups) {
-				response.Error(c, 400, "NO_SHIPPING_OPTIONS",
-					"Penjual belum mengatur pengiriman untuk produk ini.")
-				return
-			}
-			if errors.Is(err, shippingApp.ErrShippingSetupUnavailable) {
-				response.Error(c, 400, "SHIPPING_OPTION_UNAVAILABLE",
-					"Produk ini di luar area pengiriman untuk alamat Anda.")
-				return
-			}
-
-			// Check for PostgreSQL unique violation (concurrent checkout)
-			// With unique constraint in place, this should be rare
-			if isUniqueViolationError(err) {
-				// Try to extract order_id from error message (PostgreSQL format)
-				// If successful, fetch and return existing order (idempotency)
-				response.ErrorWithDetails(c, 409, "CONCURRENT_CHECKOUT", "Another checkout attempt is in progress or already completed", gin.H{
-					"error": "concurrent_checkout",
-				})
-				return
-			}
-
-			h.log.Error("Failed to create order from negotiation",
-				zap.String("room_id", roomID.String()),
-				zap.String("user_id", userID.String()),
-				zap.Error(err),
-			)
-			response.InternalServerError(c, "Failed to create order: "+err.Error())
-			return
-		}
-	}
-
-	// STEP 6: Return success response
-	response.Success(c, gin.H{
-		"order_id":       order.ID.String(),
-		"order_number":   order.OrderNumber,
-		"room_id":        roomID.String(),
-		"negotiation_id": negotiationID.String(),
-		"unit_price":     acceptedPrice,
-		"quantity":       quantity, // Always 1 for negotiation orders
-		"source_type":    "negotiation",
-		"message":        "Order created successfully from chat negotiation",
-	})
-}
-
-func recoverChatOrderFromUsedPricingToken(
-	ctx context.Context,
-	transactor interface {
-		WithTx(context.Context, func(tx db.Tx) error) error
-	},
-	tokenID uuid.UUID,
-	orderID uuid.UUID,
-) (*orderentity.Order, error) {
-	repo := orderRepoImpl.NewOrderRepository()
-	var recoveredOrder *orderentity.Order
-	err := transactor.WithTx(ctx, func(tx db.Tx) error {
-		var lookupErr error
-		recoveredOrder, lookupErr = repo.GetByID(ctx, tx, orderID)
-		if lookupErr == nil && recoveredOrder != nil {
-			return nil
-		}
-
-		recoveredOrder, lookupErr = repo.GetByPricingTokenID(ctx, tx, tokenID)
-		return lookupErr
-	})
-	if err != nil {
-		return nil, err
-	}
-	return recoveredOrder, nil
 }
 
 // ========================================================================
@@ -1685,9 +1219,9 @@ func (h *Handler) hydrateMessageSenders(
 // buildChatParticipantCardsWithLifecycle is the chat-local lifecycle-aware
 // hydrator for participant/sender cards.
 //
-// E4.2 — bounded chat-only activation per docs/contracts/governance-
-// constitution.md §5 (chat = fail-CLOSED on relationship overlay; lifecycle
-// presence is mandatory on the participant card). Mirrors the comment-
+// E4.2 — bounded chat-only activation (chat = fail-CLOSED on relationship
+// overlay; lifecycle presence is mandatory on the participant card). Mirrors
+// the comment-
 // handler E3.2 recipe (single ANY($1) query + viewercontext.CoarsenLifecycle
 // + publiccard.NewWithLifecycle) but deliberately omits the
 // `users.deleted_at IS NULL` filter that comments uses — chat doctrine
@@ -1700,10 +1234,10 @@ func (h *Handler) hydrateMessageSenders(
 // hydrator can apply its existing degradation strategy.
 //
 // IMPORTANT: This helper does NOT mutate shared publiccard / userdisplay
-// plumbing; the public boundary (single canonical exposure authority per
-// docs/contracts/public-card-boundary.md §1) is preserved by passing the
-// pre-coarsened lifecycle string into publiccard.NewWithLifecycle. Raw
-// account_status enum strings never leave this function.
+// plumbing; the public boundary (single canonical exposure authority) is
+// preserved by passing the pre-coarsened lifecycle string into
+// publiccard.NewWithLifecycle. Raw account_status enum strings never leave
+// this function.
 func (h *Handler) buildChatParticipantCardsWithLifecycle(
 	ctx context.Context,
 	ids []uuid.UUID,
@@ -1715,9 +1249,8 @@ func (h *Handler) buildChatParticipantCardsWithLifecycle(
 
 	// SLOT-PERSISTENCE: no `u.deleted_at IS NULL` filter here. Deleted
 	// participants must still surface in chat with Lifecycle="removed";
-	// dropping the row would break thread continuity and violate the
-	// chat-specific carve-out in content-detail-visibility-doctrine.md
-	// §2.5.
+	// dropping the row would break thread continuity (chat-specific
+	// slot-persistence carve-out).
 	const query = `
 		SELECT
 			u.id,
@@ -1975,115 +1508,6 @@ func (h *Handler) hydrateAttachmentSellerLifecycles(
 	return result
 }
 
-// ErrNoAcceptedNegotiation is returned when no accepted negotiation is found for a chat room.
-type ErrNoAcceptedNegotiation struct {
-	RoomID uuid.UUID
-}
-
-func (e *ErrNoAcceptedNegotiation) Error() string {
-	return fmt.Sprintf("no accepted negotiation found for room: %s", e.RoomID)
-}
-
-// ErrNegotiationAlreadySettled is returned when negotiation already has an order.
-type ErrNegotiationAlreadySettled struct {
-	NegotiationID uuid.UUID
-	OrderID       uuid.UUID
-}
-
-func (e *ErrNegotiationAlreadySettled) Error() string {
-	return fmt.Sprintf("negotiation %s already settled with order %s", e.NegotiationID, e.OrderID)
-}
-
-// ErrNegotiationExpired is returned when negotiation has expired.
-type ErrNegotiationExpired struct {
-	NegotiationID uuid.UUID
-}
-
-func (e *ErrNegotiationExpired) Error() string {
-	return fmt.Sprintf("negotiation %s has expired", e.NegotiationID)
-}
-
-// ErrUnauthorizedBuyer is returned when user is not the buyer.
-type ErrUnauthorizedBuyer struct {
-	UserID        uuid.UUID
-	NegotiationID uuid.UUID
-}
-
-func (e *ErrUnauthorizedBuyer) Error() string {
-	return fmt.Sprintf("user %s is not the buyer of negotiation %s", e.UserID, e.NegotiationID)
-}
-
-// ErrInvalidNegotiationData is returned when negotiation data is invalid.
-type ErrInvalidNegotiationData struct {
-	Field         string
-	NegotiationID uuid.UUID
-}
-
-func (e *ErrInvalidNegotiationData) Error() string {
-	return fmt.Sprintf("negotiation %s has invalid %s", e.NegotiationID, e.Field)
-}
-
-// isUniqueViolationError checks if error is a PostgreSQL unique violation.
-func isUniqueViolationError(err error) bool {
-	if err == nil {
-		return false
-	}
-	errStr := err.Error()
-	return strings.Contains(errStr, "duplicate key") || strings.Contains(errStr, "23505")
-}
-
-// buildPricingSnapshotFromToken converts a validated PricingToken to a PricingSnapshot.
-//
-// This helper function extracts pricing data from the validated pricing token
-// and converts it to the format expected by the order creation service.
-//
-// CRITICAL: The token is the SINGLE SOURCE OF TRUTH for all pricing data.
-// No frontend values are used in pricing calculations.
-func buildPricingSnapshotFromToken(token *pricingtokenentity.PricingToken) *orderApp.PricingSnapshot {
-	// Determine shipping source
-	var shippingSource *string
-	if token.ShippingQuoteID != nil {
-		source := "shipping_quote"
-		shippingSource = &source
-	} else {
-		source := "for_sale"
-		shippingSource = &source
-	}
-
-	// Parse address snapshot from JSONB
-	var addressSnapshot *addressentity.AddressSnapshot
-	if len(token.AddressSnapshot) > 0 {
-		var snapshot addressentity.AddressSnapshot
-		if err := json.Unmarshal(token.AddressSnapshot, &snapshot); err == nil {
-			addressSnapshot = &snapshot
-		}
-	}
-
-	return &orderApp.PricingSnapshot{
-		UnitPrice:             token.UnitPrice,
-		Subtotal:              token.Subtotal,
-		ShippingTotal:         token.ShippingTotal,
-		CommissionPercent:     token.CommissionPercent,
-		CommissionAmount:      token.CommissionAmount,
-		EscrowAmount:          token.EscrowAmount,
-		ServiceFeeAmount:      token.ServiceFeeAmount,
-		TotalPayableAmount:    token.TotalPayableAmount,
-		DiscountAmount:        token.DiscountAmount,
-		MaxCoinsAllowed:       token.MaxCoinsAllowed,
-		CoinsUsed:             token.CoinsUsed,
-		OrderValueForCoins:    token.OrderValueForCoins,
-		ShippingSetupName:     token.ShippingSetupName,
-		ShippingTransportType: token.ShippingTransportType,
-		ShippingDestination:   addressSnapshot,
-		ShippingSource:        shippingSource,
-		ShippingQuoteID:       token.ShippingQuoteID,
-		ChatID:                nil, // Set during chat checkout if needed
-		AuctionID:             token.AuctionID,
-		PaymentMethod:         "default",   // TODO: Add payment method to token
-		TokenID:               token.Token, // Store token ID to prevent double-ordering
-	}
-}
-
 // ========================================================================
 // NEGOTIATION ENDPOINTS (Chat-Owned)
 // ========================================================================
@@ -2143,31 +1567,6 @@ func sessionToResponse(s *negotiationEntity.NegotiationSession) gin.H {
 		resp["order_id"] = s.OrderID.String()
 	}
 	return resp
-}
-
-// buildNegotiationCheckoutInput builds the canonical order input for a negotiation checkout.
-func buildNegotiationCheckoutInput(
-	negotiation *negotiationEntity.NegotiationSession,
-	forSale *forsaleEntity.ForSale,
-	buyerID uuid.UUID,
-	addressID uuid.UUID,
-	shippingSetupID uuid.UUID,
-	pricingSnapshot *orderApp.PricingSnapshot,
-	pricingTokenID *uuid.UUID,
-	quantity int,
-) orderApp.CreateFromSaleSurfaceInput {
-	return orderApp.CreateFromSaleSurfaceInput{
-		ProductID:       forSale.ProductID,
-		SourceType:      orderentity.OrderSourceForSale,
-		SourceID:        forSale.ID,
-		BuyerID:         buyerID,
-		Quantity:        quantity,
-		AddressID:       addressID,
-		ShippingSetupID: shippingSetupID,
-		NegotiationID:   &negotiation.ID,
-		PricingSnapshot: pricingSnapshot,
-		PricingTokenID:  pricingTokenID,
-	}
 }
 
 // StartNegotiation handles POST /api/v1/chat/rooms/:room_id/negotiate
@@ -2235,7 +1634,7 @@ func (h *Handler) StartNegotiation(c *gin.Context) {
 	// RoomID + RoomOtherParticipantID let the service verify the room's
 	// counterparty is exactly the resolved seller (PASS_7B / F2) and persist
 	// chat_room_id on the session at creation time (PASS_7B / F1) — this room
-	// is also what GetNegotiation/CreateOrderFromChat will later look it up by.
+	// is also what GetNegotiation will later look it up by.
 	session, err := h.negotiationService.StartNegotiation(ctx, negotiationApp.StartNegotiationRequest{
 		ResourceType:           negotiationEntity.NegotiationResourceForSale,
 		ForSaleID:              forSaleID,

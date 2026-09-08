@@ -89,10 +89,10 @@ Widget _routerApp() {
           },
         ),
         GoRoute(
-          path: '/seller/promotions/:instanceId',
+          path: '/seller/promotions/:contractId/analytics',
           builder: (context, state) {
-            final instanceId = state.pathParameters['instanceId']!;
-            return Scaffold(body: Text('promotion:$instanceId'));
+            final contractId = state.pathParameters['contractId']!;
+            return Scaffold(body: Text('analytics:$contractId'));
           },
         ),
       ],
@@ -149,11 +149,11 @@ void main() {
         context,
         _notification(
           type: NotificationType.promotion,
-          data: {'promotionInstanceId': 'promo-123'},
+          data: {'contractId': 'contract-123'},
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('promotion:promo-123'), findsOneWidget);
+      expect(find.text('analytics:contract-123'), findsOneWidget);
     });
 
     testWidgets('handler routes comment targetType=comment to parent content', (

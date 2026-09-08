@@ -235,32 +235,22 @@ jobs:
           echo "🔒 Checking startup doc correctness..."
           FAIL=0
 
-          # Guard 1: docs must not positively claim server auto-runs migrations
-          # Match only affirmative claims; "Does not auto-run" is the correct doc text and is excluded
-          if grep -rn "server auto.runs migration\|automatically runs migrations\|auto.migrate.*startup\|startup.*auto.migrat" docs/ backend/README.md --include="*.md" | grep -iv "does not\|not auto\|disable\|deprecated\|false"; then
-            echo "❌ FAIL: docs claim server auto-runs migrations"
+          # Guard 1: startup READMEs must not positively claim the server auto-runs migrations.
+          # Migration authority: the runtime never auto-applies migrations; the canonical apply
+          # path is the explicit `go run ./cmd/migrate` documented in backend/README.md and
+          # backend/migrations/README.md. "Does not auto-run" is correct text and is excluded.
+          if grep -rn "server auto.runs migration\|automatically runs migrations\|auto.migrate.*startup\|startup.*auto.migrat" backend/README.md backend/migrations/README.md --include="*.md" | grep -iv "does not\|not auto\|disable\|deprecated\|false"; then
+            echo "❌ FAIL: startup docs claim server auto-runs migrations"
             FAIL=1
           fi
 
-          # Guard 2: local-dev-quickstart.md must contain the Windows canonical 'go run' command
-          if ! grep -q "go run ./cmd/core_server" docs/operations/local-dev-quickstart.md; then
-            echo "❌ FAIL: local-dev-quickstart.md missing 'go run ./cmd/core_server' Windows command"
-            FAIL=1
-          fi
-
-          # Guard 3: 000_init must not appear as an active bootstrap path in operational docs
-          if grep -rn "000_init" docs/operations/ --include="*.md" | grep -v "legacy_do_not_run\|quarantine\|NOT run\|not run\|do not run"; then
-            echo "❌ FAIL: 000_init referenced as active bootstrap in operations docs"
-            FAIL=1
-          fi
-
-          # Guard 4: stale /api/v1/health URL must not appear in docs (actual endpoint is /health)
-          if grep -rn "/api/v1/health" docs/ backend/README.md --include="*.md"; then
+          # Guard 2: stale /api/v1/health URL must not appear in backend README (actual endpoint is /health)
+          if grep -rn "/api/v1/health" backend/README.md --include="*.md"; then
             echo "❌ FAIL: stale /api/v1/health URL found — actual endpoint is /health"
             FAIL=1
           fi
 
-          # Guard 5: .env.example DB credentials must match docker-compose
+          # Guard 3: .env.example DB credentials must match docker-compose
           if grep -q "^DB_USER=postgres" backend/.env.example; then
             echo "❌ FAIL: backend/.env.example DB_USER=postgres does not match docker-compose DB_USER=labuda"
             FAIL=1
@@ -270,14 +260,8 @@ jobs:
             FAIL=1
           fi
 
-          # Guard 6: local-dev-quickstart.md must exist
-          if [ ! -f docs/operations/local-dev-quickstart.md ]; then
-            echo "❌ FAIL: docs/operations/local-dev-quickstart.md does not exist"
-            FAIL=1
-          fi
-
-          # Guard 7: make migrate-up must not appear as canonical migration command in docs
-          if grep -rn "make migrate-up\b" docs/ backend/README.md --include="*.md" | grep -v "Do not use\|not.*make migrate\|do not.*make"; then
+          # Guard 4: make migrate-up must not appear as canonical migration command in backend README
+          if grep -rn "make migrate-up\b" backend/README.md --include="*.md" | grep -v "Do not use\|not.*make migrate\|do not.*make"; then
             echo "❌ FAIL: make migrate-up used as canonical migration command — use go run ./cmd/migrate"
             FAIL=1
           fi
@@ -310,7 +294,7 @@ jobs:
           echo "✅ Mobile deleted shell guard: core/app/app.dart stays deleted"
           echo "✅ Mobile raw error UI guard: no Text(\$e) or token/signature in logs"
           echo "✅ Mobile flutter analyze: info-only (non-blocking)"
-          echo "✅ Startup doc guardrails: /health URL, DB creds, no auto-migrate claim, quickstart present"
+          echo "✅ Startup doc guardrails: /health URL, DB creds, no auto-migrate claim, canonical migrate command"
           echo ""
           echo "🔒=========================================="
           echo "🔒 CI IS KING - NO BYPASS POSSIBLE"

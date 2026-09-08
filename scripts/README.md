@@ -75,8 +75,8 @@ cd scripts
 5. Actions tab:
    - Click "New"
    - Program: `powershell.exe`
-   - Arguments: `-ExecutionPolicy Bypass -File "C:\Project\labuda\scripts\db_backup.ps1"`
-   - Start in: `C:\Project\labuda\scripts`
+   - Arguments: `-ExecutionPolicy Bypass -File "<repo-root>\scripts\db_backup.ps1"`
+   - Start in: `<repo-root>\scripts`
    - Click OK
 6. Click OK to create the task
 

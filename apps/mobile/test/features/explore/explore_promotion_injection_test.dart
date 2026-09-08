@@ -1,30 +1,30 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/providers/core_providers.dart';
+import 'package:labuda/core/providers/core_providers.dart' show loggerServiceProvider;
 import 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart'
     show auctionRepositoryProvider;
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_bid.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/repositories/auction_repository.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/auction_card.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/repositories/for_sale_repository.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart'
     show forSaleRepositoryProvider;
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_card.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/dto/promotion_dto.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/promotion_discovery_service.dart';
+import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 import 'package:labuda/features/explore/explore.dart';
-import 'package:labuda/features/home/presentation/providers/feed_renderers.dart'
-    show PromotedExternalCard;
 import 'package:labuda/shared/services/logger_service.dart';
 
+/// Explore tabs are organic-only in the canonical promotion era.
+///
+/// NEGATIVE PROOF: the legacy promotion discovery service
+/// (/promotions/discover → PromotionDiscoveryService) is purged. Explore must
+/// render organic listings/auctions without any promoted section, and no
+/// legacy discovery provider may be referenced.
 class _FakeForSaleRepository implements ForSaleRepository {
   final List<ForSale> listings;
 
@@ -36,17 +36,13 @@ class _FakeForSaleRepository implements ForSaleRepository {
   }
 
   @override
-  Future<Result<ForSale?>> getForSaleById(
-    String forSaleId,
-  ) async {
+  Future<Result<ForSale?>> getForSaleById(String forSaleId) async {
     final listing =
         listings
             .where((item) => item.forSaleId == forSaleId)
             .isEmpty
         ? null
-        : listings.firstWhere(
-            (item) => item.forSaleId == forSaleId,
-          );
+        : listings.firstWhere((item) => item.forSaleId == forSaleId);
     return Result.success(listing);
   }
 
@@ -144,81 +140,8 @@ class _FakeAuctionRepository implements AuctionRepository {
   }
 
   @override
-  Future<RepositoryResult<Auction>> createAuction({
-    required String sellerId,
-    String? sellerUsername,
-    String? sellerFarmName,
-    String? sellerAvatar,
-    required String title,
-    required String description,
-    required List<String> mediaUrls,
-    required List<AuctionMediaType> mediaTypes,
-    required KoiDetails koiDetails,
-    required double openingBid,
-    required double bidIncrement,
-    double? buyNowPrice,
-    required String startMode,
-    DateTime? scheduledStartAt,
-    required int durationHours,
-    String? farmAddressId,
-    AuctionLocation? location,
-    required List<String> shippingSetupIds,
-    String? preparationNote,
-  }) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<RepositoryResult<Auction>> updateAuction(
-    String auctionId,
-    Map<String, dynamic> updates,
-  ) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<RepositoryResult<Auction>> updateAuctionStatus({
-    required String auctionId,
-    required AuctionStatus status,
-  }) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<RepositoryResult<void>> cancelAuction({
-    required String auctionId,
-    required String sellerId,
-    required String reason,
-  }) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<RepositoryResult<AuctionBid>> placeBid({
-    required String auctionId,
-    required String bidderId,
-    required double amount,
-  }) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<RepositoryResult<List<AuctionBid>>> getAuctionBids({
-    required String auctionId,
-    int limit = 50,
-  }) async {
-    return RepositoryResult.success(const []);
-  }
-
-  @override
-  Future<RepositoryResult<String>> claimAuction({
-    required String auctionId,
-    required String addressId,
-    required String shippingSetupId,
-    String? discountCode,
-    bool useCoins = false,
-  }) async {
-    throw UnimplementedError();
+  Stream<List<Auction>> watchActiveAuctions({int limit = 50}) {
+    return Stream<List<Auction>>.value(auctions);
   }
 
   @override
@@ -228,102 +151,6 @@ class _FakeAuctionRepository implements AuctionRepository {
     int limit = 100,
   }) {
     return const Stream<List<Auction>>.empty();
-  }
-
-  @override
-  Stream<List<Auction>> watchActiveAuctions({int limit = 50}) {
-    return Stream<List<Auction>>.value(auctions);
-  }
-
-  @override
-  Stream<Auction?> watchAuction(String auctionId) {
-    return const Stream<Auction?>.empty();
-  }
-
-  @override
-  Stream<List<AuctionBid>> watchAuctionBids(
-    String auctionId, {
-    int limit = 50,
-  }) {
-    return const Stream<List<AuctionBid>>.empty();
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
-class _FakePromotionDiscoveryService extends PromotionDiscoveryService {
-  final List<String> promotedFixedPriceSaleIds;
-  final List<String> promotedAuctionIds;
-
-  _FakePromotionDiscoveryService({
-    required this.promotedFixedPriceSaleIds,
-    required this.promotedAuctionIds,
-  }) : super(const _StubApiClient());
-
-  @override
-  Future<PromotedItemsResponse> getPromotedForSales({
-    int limit = 10,
-  }) async {
-    return PromotedItemsResponse(
-      promotedItems: promotedFixedPriceSaleIds
-          .take(limit)
-          .map(
-            (id) => PromotedItemDto(
-              instanceId: 'promo-$id',
-              targetType: 'for_sale',
-              targetId: id,
-            ),
-          )
-          .toList(),
-      count: promotedFixedPriceSaleIds.length,
-    );
-  }
-
-  @override
-  Future<PromotedItemsResponse> getPromotedAuctions({int limit = 10}) async {
-    return PromotedItemsResponse(
-      promotedItems: promotedAuctionIds
-          .take(limit)
-          .map(
-            (id) => PromotedItemDto(
-              instanceId: 'promo-$id',
-              targetType: 'auction',
-              targetId: id,
-            ),
-          )
-          .toList(),
-      count: promotedAuctionIds.length,
-    );
-  }
-}
-
-class _StubApiClient implements ApiClient {
-  const _StubApiClient();
-
-  @override
-  Future<Response<T>> get<T>(
-    String path, {
-    Map<String, dynamic>? queryParameters,
-    Options? options,
-    CancelToken? cancelToken,
-  }) async => throw UnimplementedError();
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
-class _ThrowingApiClient implements ApiClient {
-  const _ThrowingApiClient();
-
-  @override
-  Future<Response<T>> get<T>(
-    String path, {
-    Map<String, dynamic>? queryParameters,
-    Options? options,
-    CancelToken? cancelToken,
-  }) async {
-    throw StateError('boom');
   }
 
   @override
@@ -377,8 +204,6 @@ Widget _wrapExplore({
   required Widget child,
   required List<ForSale> listings,
   required List<Auction> auctions,
-  required List<String> promotedFixedPriceSaleIds,
-  required List<String> promotedAuctionIds,
 }) {
   final router = GoRouter(
     routes: [
@@ -389,9 +214,7 @@ Widget _wrapExplore({
       GoRoute(
         path: '/for-sale/:forSaleId',
         builder: (context, state) => Scaffold(
-          body: Text(
-            'for-sale detail ${state.pathParameters['forSaleId']}',
-          ),
+          body: Text('for-sale detail ${state.pathParameters['forSaleId']}'),
         ),
       ),
       GoRoute(
@@ -413,46 +236,13 @@ Widget _wrapExplore({
       auctionRepositoryProvider.overrideWithValue(
         _FakeAuctionRepository(auctions),
       ),
-      explorePromotionDiscoveryServiceProvider.overrideWithValue(
-        _FakePromotionDiscoveryService(
-          promotedFixedPriceSaleIds: promotedFixedPriceSaleIds,
-          promotedAuctionIds: promotedAuctionIds,
-        ),
-      ),
     ],
     child: MaterialApp.router(routerConfig: router),
   );
 }
 
 void main() {
-  testWidgets(
-    'listing tab renders promoted listing section, dedups organic items, and excludes external cards',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1080, 2400));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-
-      await tester.pumpWidget(
-        _wrapExplore(
-          child: const ExploreScreen(initialTab: 0),
-          listings: [
-            _forSale(id: 'for-sale-1', title: 'Promo ForSale'),
-            _forSale(id: 'for-sale-2', title: 'Organic ForSale'),
-          ],
-          auctions: const [],
-          promotedFixedPriceSaleIds: const ['for-sale-1'],
-          promotedAuctionIds: const [],
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Listing Dipromosikan'), findsOneWidget);
-      expect(find.text('Promo ForSale'), findsOneWidget);
-      expect(find.text('Organic ForSale'), findsOneWidget);
-      expect(find.byType(PromotedExternalCard), findsNothing);
-    },
-  );
-
-  testWidgets('listing tab promoted card navigates to for-sale detail', (
+  testWidgets('listing tab renders organic listings without promoted section', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(1080, 2400));
@@ -461,10 +251,31 @@ void main() {
     await tester.pumpWidget(
       _wrapExplore(
         child: const ExploreScreen(initialTab: 0),
-        listings: [_forSale(id: 'for-sale-1', title: 'Promo ForSale')],
+        listings: [
+          _forSale(id: 'for-sale-1', title: 'Koi A'),
+          _forSale(id: 'for-sale-2', title: 'Koi B'),
+        ],
         auctions: const [],
-        promotedFixedPriceSaleIds: const ['for-sale-1'],
-        promotedAuctionIds: const [],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Koi A'), findsOneWidget);
+    expect(find.text('Koi B'), findsOneWidget);
+    // Negative proof: no promoted section may exist.
+    expect(find.text('Listing Dipromosikan'), findsNothing);
+    expect(find.byType(ForSaleCard), findsNWidgets(2));
+  });
+
+  testWidgets('listing tab card navigates to for-sale detail', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1080, 2400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _wrapExplore(
+        child: const ExploreScreen(initialTab: 0),
+        listings: [_forSale(id: 'for-sale-1', title: 'Koi A')],
+        auctions: const [],
       ),
     );
     await tester.pumpAndSettle();
@@ -475,34 +286,7 @@ void main() {
     expect(find.text('for-sale detail for-sale-1'), findsOneWidget);
   });
 
-  testWidgets(
-    'auction tab renders promoted auction section and dedups organic items',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1080, 2400));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-
-      await tester.pumpWidget(
-        _wrapExplore(
-          child: const ExploreScreen(initialTab: 1),
-          listings: const [],
-          auctions: [
-            _auction(id: 'auction-1', title: 'Promo Auction'),
-            _auction(id: 'auction-2', title: 'Organic Auction'),
-          ],
-          promotedFixedPriceSaleIds: const [],
-          promotedAuctionIds: const ['auction-1'],
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Lelang Dipromosikan'), findsOneWidget);
-      expect(find.text('Promo Auction'), findsOneWidget);
-      expect(find.text('Organic Auction'), findsOneWidget);
-      expect(find.byType(PromotedExternalCard), findsNothing);
-    },
-  );
-
-  testWidgets('auction tab promoted card navigates to auction detail', (
+  testWidgets('auction tab renders organic auctions without promoted section', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(1080, 2400));
@@ -512,9 +296,30 @@ void main() {
       _wrapExplore(
         child: const ExploreScreen(initialTab: 1),
         listings: const [],
-        auctions: [_auction(id: 'auction-1', title: 'Promo Auction')],
-        promotedFixedPriceSaleIds: const [],
-        promotedAuctionIds: const ['auction-1'],
+        auctions: [
+          _auction(id: 'auction-1', title: 'Lelang A'),
+          _auction(id: 'auction-2', title: 'Lelang B'),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Lelang A'), findsOneWidget);
+    expect(find.text('Lelang B'), findsOneWidget);
+    // Negative proof: no promoted section may exist.
+    expect(find.text('Lelang Dipromosikan'), findsNothing);
+    expect(find.byType(AuctionCard), findsNWidgets(2));
+  });
+
+  testWidgets('auction tab card navigates to auction detail', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1080, 2400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _wrapExplore(
+        child: const ExploreScreen(initialTab: 1),
+        listings: const [],
+        auctions: [_auction(id: 'auction-1', title: 'Lelang A')],
       ),
     );
     await tester.pumpAndSettle();
@@ -524,33 +329,4 @@ void main() {
 
     expect(find.text('auction detail auction-1'), findsOneWidget);
   });
-
-  testWidgets('empty promotions hide the promoted section', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(1080, 2400));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-
-    await tester.pumpWidget(
-      _wrapExplore(
-        child: const ExploreScreen(initialTab: 0),
-        listings: [_forSale(id: 'for-sale-1', title: 'Organic ForSale')],
-        auctions: const [],
-        promotedFixedPriceSaleIds: const [],
-        promotedAuctionIds: const [],
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Listing Dipromosikan'), findsNothing);
-      expect(find.text('Organic ForSale'), findsOneWidget);
-  });
-
-  test('promotion discovery service fails open on transport errors', () async {
-    final service = PromotionDiscoveryService(_ThrowingApiClient());
-
-    final listings = await service.getPromotedForSales(limit: 2);
-    final auctions = await service.getPromotedAuctions(limit: 2);
-
-    expect(listings, PromotedItemsResponse.empty);
-    expect(auctions, PromotedItemsResponse.empty);
-  });
-}
+}

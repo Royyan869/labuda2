@@ -178,9 +178,8 @@ type ContentHandler struct {
 // NewContentHandler creates a new ContentHandler.
 //
 // contentDetailShadowRunner is optional. When non-nil, GetContent
-// dispatches a /contents/:id shadow evaluator run post-response per
-// docs/contracts/content-detail-visibility-doctrine.md §8. The shadow
-// path is observability-only and never alters the response.
+// dispatches a /contents/:id shadow evaluator run post-response. The
+// shadow path is observability-only and never alters the response.
 func NewContentHandler(
 	contentService *contentApp.ContentService,
 	roleChecker auth.RoleChecker,
@@ -507,21 +506,17 @@ func (h *ContentHandler) CreateContent(c *gin.Context) {
 		return
 	}
 
-	// Execute create within transaction
-	// Note: Idempotency handling is currently deferred to future implementation
-	// The service layer should handle idempotency within the transaction
+	// Execute create within transaction — idempotent, actor-scoped, single persistence authority.
 	var newContent *entity.Content
+	var isReplay bool
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
 
 		// Extract and validate location from request
 		var city, province *string
 		if req.Location != nil {
-			// DATA HYGIENE: Trim whitespace from input
 			cityStr := strings.TrimSpace(req.Location.City)
 			provinceStr := strings.TrimSpace(req.Location.Province)
-
-			// VALIDATION: Reject city/province longer than 100 characters
 			const maxLocationLength = 100
 			if len(cityStr) > maxLocationLength {
 				response.BadRequest(c, fmt.Sprintf("city exceeds maximum length of %d characters", maxLocationLength))
@@ -531,8 +526,6 @@ func (h *ContentHandler) CreateContent(c *gin.Context) {
 				response.BadRequest(c, fmt.Sprintf("province exceeds maximum length of %d characters", maxLocationLength))
 				return fmt.Errorf("province too long: %d characters", len(provinceStr))
 			}
-
-			// Only set non-empty values (empty strings become nil)
 			if cityStr != "" {
 				city = &cityStr
 			}
@@ -564,17 +557,12 @@ func (h *ContentHandler) CreateContent(c *gin.Context) {
 			}
 		}
 
-		// Normalize before validity check: empty/omitted visibility defaults to
-		// public, consistent with the entity Normalize() contract used by the
-		// repository, service, and response layers.
 		visibility := entity.Visibility(req.Visibility).Normalize()
 		if !visibility.IsValid() {
 			response.BadRequest(c, "Invalid request: invalid visibility value")
 			return fmt.Errorf("invalid visibility: %s", req.Visibility)
 		}
 
-		// Parse mentioned user IDs from string to UUID.
-		// Invalid UUIDs are silently skipped (consistent with tags fail-open policy).
 		var mentionedUserIDs []uuid.UUID
 		for _, idStr := range req.MentionedUserIDs {
 			if uid, parseErr := uuid.Parse(idStr); parseErr == nil && uid != uuid.Nil {
@@ -582,19 +570,9 @@ func (h *ContentHandler) CreateContent(c *gin.Context) {
 			}
 		}
 
-		if req.ResourceOccurrence != nil {
-			newContent, err = h.contentService.CreateContentWithResourceOccurrence(ctx, tx, userID, req.Caption, visibility, city, province, occurrence, req.Tags, mentionedUserIDs)
-		} else {
-			newContent, err = h.contentService.CreateContent(ctx, tx, userID, req.Caption, visibility, city, province, nil, req.Tags, mentionedUserIDs)
-		}
-		if err != nil {
-			return err
-		}
-
-		// Add media if provided
+		// Canonical media ordering before fingerprint (photos first, then videos).
+		var mediaInputs []contentApp.ContentCreateMediaInput
 		if len(req.Media) > 0 {
-			// CANONICAL MEDIA ORDERING (Phase 2A): photos first, then videos,
-			// preserving the seller's input order within each group.
 			type rawMedia struct {
 				URL  string
 				Type entity.MediaType
@@ -609,33 +587,32 @@ func (h *ContentHandler) CreateContent(c *gin.Context) {
 				}
 			}
 			canonical := append(photos, videos...)
-
-			mediaItems := make([]struct {
-				MediaURL  string
-				MediaType entity.MediaType
-				Position  int
-			}, len(canonical))
+			mediaInputs = make([]contentApp.ContentCreateMediaInput, len(canonical))
 			for i, m := range canonical {
-				mediaItems[i] = struct {
-					MediaURL  string
-					MediaType entity.MediaType
-					Position  int
-				}{
-					MediaURL:  m.URL,
-					MediaType: m.Type,
-					Position:  i,
-				}
-			}
-
-			if err := h.contentService.AddMedia(ctx, tx, userID, newContent.ID, mediaItems); err != nil {
-				return fmt.Errorf("add media failed: %w", err)
+				mediaInputs[i] = contentApp.ContentCreateMediaInput{URL: m.URL, Type: m.Type}
+				_ = i
 			}
 		}
 
+		var created bool
+		if req.ResourceOccurrence != nil {
+			newContent, created, err = h.contentService.CreateContentWithResourceOccurrenceIdempotent(ctx, tx, userID, idempotencyKey, req.Caption, visibility, city, province, occurrence, req.Tags, mentionedUserIDs, mediaInputs)
+		} else {
+			newContent, created, err = h.contentService.CreateContentIdempotent(ctx, tx, userID, idempotencyKey, req.Caption, visibility, city, province, req.Tags, mentionedUserIDs, mediaInputs)
+		}
+		if err != nil {
+			return err
+		}
+		isReplay = !created
+		_ = isReplay
 		return nil
 	})
 
 	if err != nil {
+		if errors.Is(err, entity.ErrIdempotencyConflict) {
+			response.Error(c, 409, "IDEMPOTENCY_CONFLICT", "Idempotency-Key already used with different payload")
+			return
+		}
 		h.log.Error("Failed to create content",
 			zap.String("user_id", userID.String()),
 			zap.Error(err),

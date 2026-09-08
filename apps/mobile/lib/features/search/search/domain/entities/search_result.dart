@@ -19,9 +19,10 @@ class SearchResult extends Equatable {
   /// When true, this item appears in results due to active promotion
   final bool isPromoted;
 
-  /// PROMOTION PHASE 4: Instance ID of the promotion (if promoted)
-  /// Used for tracking and anti-duplicate filtering
-  final String? promotionInstanceId;
+  /// PROMOTION CANONICAL: contract ID of the promotion (if promoted).
+  /// Carries promotion_contracts.id — the canonical identity. The legacy
+  /// instance-id vocabulary is purged.
+  final String? contractId;
 
   const SearchResult({
     required this.id,
@@ -34,7 +35,7 @@ class SearchResult extends Equatable {
     this.relevanceScore = 0.0,
     required this.createdAt,
     this.isPromoted = false,
-    this.promotionInstanceId,
+    this.contractId,
   });
 
   @override
@@ -49,7 +50,7 @@ class SearchResult extends Equatable {
     relevanceScore,
     createdAt,
     isPromoted,
-    promotionInstanceId,
+    contractId,
   ];
 
   SearchResult copyWith({
@@ -63,7 +64,7 @@ class SearchResult extends Equatable {
     double? relevanceScore,
     DateTime? createdAt,
     bool? isPromoted,
-    String? promotionInstanceId,
+    String? contractId,
   }) {
     return SearchResult(
       id: id ?? this.id,
@@ -76,7 +77,7 @@ class SearchResult extends Equatable {
       relevanceScore: relevanceScore ?? this.relevanceScore,
       createdAt: createdAt ?? this.createdAt,
       isPromoted: isPromoted ?? this.isPromoted,
-      promotionInstanceId: promotionInstanceId ?? this.promotionInstanceId,
+      contractId: contractId ?? this.contractId,
     );
   }
 }

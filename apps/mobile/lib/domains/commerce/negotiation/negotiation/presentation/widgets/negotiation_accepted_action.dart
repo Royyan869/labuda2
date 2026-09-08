@@ -28,11 +28,13 @@ import 'package:labuda/shared/shared.dart';
 class NegotiationAcceptedAction extends ConsumerWidget {
   final Negotiation negotiation;
   final String? chatId;
+  final String? shippingQuoteId;
 
   const NegotiationAcceptedAction({
     super.key,
     required this.negotiation,
     this.chatId,
+    this.shippingQuoteId,
   });
 
   void _handleBuyNow(BuildContext context, String? productId) {
@@ -44,12 +46,14 @@ class NegotiationAcceptedAction extends ConsumerWidget {
       return;
     }
 
-    // Navigate to checkout screen with negotiation context
+    // Navigate to checkout screen with negotiation context + optional shipping quote (N3 convergence)
     final uri = Uri(
       path: '/checkout/${negotiation.fixedPriceSaleId}',
       queryParameters: {
         'product_id': productId,
         if (negotiation.id.isNotEmpty) 'negotiation_id': negotiation.id,
+        if (shippingQuoteId != null && shippingQuoteId!.isNotEmpty)
+          'shipping_quote_id': shippingQuoteId!,
         if (chatId != null && chatId!.isNotEmpty) 'return_to_chat': chatId,
       },
     );

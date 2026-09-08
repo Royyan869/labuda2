@@ -506,17 +506,14 @@ class NotificationNavigationHandler {
       }
     }
 
-    final promotionInstanceId = _firstString(data, [
-      'promotionInstanceId',
-      'promotion_instance_id',
-    ]);
-    if (promotionInstanceId != null) {
+    final contractId = _firstString(data, ['contractId', 'contract_id']);
+    if (contractId != null) {
       try {
         final navigatorCtx = navigatorKey.currentContext;
         if (navigatorCtx != null) {
-          GoRouter.of(
-            navigatorCtx,
-          ).push('/seller/promotions/$promotionInstanceId');
+          GoRouter.of(navigatorCtx).push(
+            RoutePaths.sellerCanonicalPromotionAnalyticsPath(contractId),
+          );
           return true;
         }
       } catch (e) {
@@ -539,6 +536,16 @@ class NotificationNavigationHandler {
       }
     }
 
+    try {
+      final navigatorCtx = navigatorKey.currentContext;
+      if (navigatorCtx != null) {
+        GoRouter.of(navigatorCtx).push(RoutePaths.sellerCanonicalPromotions);
+        return true;
+      }
+    } catch (e) {
+      _showError(context, 'Gagal membuka promotion');
+      return false;
+    }
     return _navigateToSellerDashboard(context);
   }
 

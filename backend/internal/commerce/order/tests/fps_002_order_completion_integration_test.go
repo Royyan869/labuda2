@@ -3,7 +3,6 @@
 package tests
 
 import (
-	"encoding/json"
 	"context"
 	"testing"
 	"time"
@@ -96,7 +95,7 @@ func seedFPS002PendingOrder(t *testing.T, ctx context.Context, tdb *testdb.TestD
 	SellingSurface: productEntity.SellingSurfaceForSale,
 }
 	productRepo := productInfraRepo.NewProductRepository()
-	if err := productRepo.Create(ctx, tx, listing_product); err != None {
+	if err := productRepo.Create(ctx, tx, listing_product); err != nil {
 		return err
 	}
 	listing, err := forsaleentity.NewForSaleSurface(sellerID, forsaleentity.ForSaleTypeFixedPrice, money.New(50000), 1, false, forsaleentity.ForSaleVisibilityPublic)

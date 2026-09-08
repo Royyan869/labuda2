@@ -2,9 +2,11 @@ package application
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
 	orderRepo "github.com/labuda/backend/internal/commerce/order/repository"
 	shippingEntity "github.com/labuda/backend/internal/commerce/shipping/entity"
@@ -78,8 +80,15 @@ func (s *ProductShippingService) SetProductShippingSetups(
 		return fmt.Errorf("forbidden: product does not belong to seller")
 	}
 
+	// Step 2b: Canonical lifecycle guard — shipping is part of seller-controlled
+	// product definition. Acquire row lock on owning selling surface and enforce
+	// draft-only mutability. This prevents TOCTOU where status is checked without lock.
+	if err := s.checkShippingMutable(ctx, tx, input.ProductID); err != nil {
+		return err
+	}
+
 	// Step 3: Check for active orders before allowing shipping option changes
-	// Active orders: pending, paid, shipped, delivered
+	// Active orders: pending, paid, shipped, delivered (secondary protection)
 	activeOrderCount, err := s.orderRepo.CountActiveOrdersByProduct(ctx, tx, input.ProductID)
 	if err != nil {
 		return fmt.Errorf("failed to check for active orders: %w", err)
@@ -114,6 +123,47 @@ func (s *ProductShippingService) SetProductShippingSetups(
 		}
 	}
 
+	return nil
+}
+
+// checkShippingMutable enforces the locked shipping immutability policy with row locking.
+// It runs inside the same transaction as the subsequent DELETE/CREATE.
+//
+// Policy:
+//   ForSale: draft → allowed, active/sold/withdrawn → immutable
+//   Auction: draft → allowed, scheduled/active/waiting_settlement/ended/cancelled → immutable
+//
+// It acquires FOR UPDATE on the owning surface row (for_sales or auctions) so the
+// lifecycle decision and the shipping mutation are atomic (no TOCTOU).
+func (s *ProductShippingService) checkShippingMutable(ctx context.Context, tx db.Tx, productID uuid.UUID) error {
+	// Try for_sales first (locked read)
+	var fsStatus string
+	err := tx.QueryRow(ctx, `SELECT status FROM for_sales WHERE product_id = $1 FOR UPDATE`, productID).Scan(&fsStatus)
+	if err == nil {
+		if forsaleEntity.ForSaleStatus(fsStatus) != forsaleEntity.ForSaleStatusDraft {
+			return fmt.Errorf("%w: for_sale status=%s is immutable", ErrShippingLiveImmutable, fsStatus)
+		}
+		return nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return fmt.Errorf("failed to check for_sale shipping mutability: %w", err)
+	}
+	// No for_sale row — try auctions (locked read)
+	var aucStatus string
+	err = tx.QueryRow(ctx, `SELECT status FROM auctions WHERE product_id = $1 FOR UPDATE`, productID).Scan(&aucStatus)
+	if err == nil {
+		// Auction: only draft is mutable; scheduled and beyond are immutable per locked design
+		if aucStatus != "draft" {
+			return fmt.Errorf("%w: auction status=%s is immutable", ErrShippingLiveImmutable, aucStatus)
+		}
+		return nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return fmt.Errorf("failed to check auction shipping mutability: %w", err)
+	}
+	// No owning surface found — product is unattached (e.g., legacy or not yet published).
+	// Allow mutation (no live surface to protect). Selling surface exclusivity ensures
+	// at most one surface exists, so this is safe.
 	return nil
 }
 

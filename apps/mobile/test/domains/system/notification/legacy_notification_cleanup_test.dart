@@ -50,10 +50,10 @@ Widget _routerApp() {
           },
         ),
         GoRoute(
-          path: '/seller/promotions/:instanceId',
+          path: '/seller/promotions/:contractId/analytics',
           builder: (context, state) {
-            final instanceId = state.pathParameters['instanceId']!;
-            return Scaffold(body: Text('promotion:$instanceId'));
+            final contractId = state.pathParameters['contractId']!;
+            return Scaffold(body: Text('analytics:$contractId'));
           },
         ),
         GoRoute(
@@ -194,7 +194,7 @@ void main() {
     );
 
     testWidgets(
-      'promotion still navigates to seller promotion detail when promotionInstanceId exists',
+      'promotion routes to contract analytics when contractId exists',
       (tester) async {
         await tester.pumpWidget(_routerApp());
         await tester.pumpAndSettle();
@@ -203,7 +203,7 @@ void main() {
         final handled = NotificationNavigationHandler.navigate(
           context: context,
           type: 'promotion',
-          data: {'promotionInstanceId': 'promo-9'},
+          data: {'contractId': 'contract-9'},
         );
 
         expect(handled, isTrue);
@@ -211,7 +211,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 700));
         await tester.pumpAndSettle();
 
-        expect(find.text('promotion:promo-9'), findsOneWidget);
+        expect(find.text('analytics:contract-9'), findsOneWidget);
       },
     );
 

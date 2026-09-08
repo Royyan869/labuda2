@@ -11,34 +11,69 @@ import (
 	auctionRepo "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
 	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
 	"github.com/labuda/backend/internal/pricing/promotion/entity"
-	promotionRepo "github.com/labuda/backend/internal/pricing/promotion/repository"
 	"github.com/labuda/backend/pkg/db"
 )
 
 // OperabilityCheckerImpl implements OperabilityChecker with real domain checks.
-// This connects Promotion to the actual operability truth of fixed-price-sale and auction domains.
 type OperabilityCheckerImpl struct {
-	db            *db.DB
-	auctionRepo   *auctionRepo.AuctionRepository
-	promotionRepo promotionRepo.PromotionRepository
+	db          *db.DB
+	auctionRepo *auctionRepo.AuctionRepository
 }
 
-// NewOperabilityCheckerImpl creates a new real operability checker.
+// NewOperabilityCheckerImpl creates a new real operability checker. promotionRepo param kept for compat but ignored (legacy purged).
 func NewOperabilityCheckerImpl(
 	dbConn *db.DB,
-	promotionRepo promotionRepo.PromotionRepository,
+	_ interface{},
 ) *OperabilityCheckerImpl {
 	return &OperabilityCheckerImpl{
-		db:            dbConn,
-		auctionRepo:   auctionRepo.NewAuctionRepository(),
-		promotionRepo: promotionRepo,
+		db:          dbConn,
+		auctionRepo: auctionRepo.NewAuctionRepository(),
 	}
 }
 
+// rowQuerier is satisfied by both *pgxpool.Pool (reads outside any
+// transaction) and db.Tx (reads inside a caller-owned transaction). It lets
+// the canonical target-eligibility checks run on whichever connection the
+// caller owns, so a transaction-boundary revalidation (CheckOperabilityTx)
+// needs NO second pool acquisition and therefore cannot deadlock a small
+// connection pool (each transaction already holds its own connection).
+type rowQuerier interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
 // CheckOperability checks if a target is still operable for promotion.
-// Returns (isOperable, reason, error).
+// Returns (isOperable, reason, error). Pool-based read (no transaction).
 func (c *OperabilityCheckerImpl) CheckOperability(
 	ctx context.Context,
+	targetType entity.TargetType,
+	targetID *uuid.UUID,
+) (bool, string, error) {
+	return c.checkOperability(ctx, c.db.Pool(), "", time.Now(), targetType, targetID)
+}
+
+// CheckOperabilityTx re-runs the canonical target eligibility checks inside a
+// caller-owned transaction, using the SAME transaction connection (no second
+// pool acquisition — no connection-pool deadlock). The target row is read
+// FOR UPDATE so the eligibility judgment serializes against concurrent
+// target-state mutations: a target that lost canonical purchase availability
+// before this point is observed here and can never bill. now must be the DB
+// clock (server time authority), never the application clock.
+func (c *OperabilityCheckerImpl) CheckOperabilityTx(
+	ctx context.Context,
+	tx db.Tx,
+	now time.Time,
+	targetType entity.TargetType,
+	targetID *uuid.UUID,
+) (bool, string, error) {
+	return c.checkOperability(ctx, tx, " FOR UPDATE", now, targetType, targetID)
+}
+
+func (c *OperabilityCheckerImpl) checkOperability(
+	ctx context.Context,
+	q rowQuerier,
+	lockClause string,
+	now time.Time,
 	targetType entity.TargetType,
 	targetID *uuid.UUID,
 ) (bool, string, error) {
@@ -47,17 +82,17 @@ func (c *OperabilityCheckerImpl) CheckOperability(
 		if targetID == nil {
 			return false, "for_sale_not_found", nil
 		}
-		return c.checkForSaleOperability(ctx, *targetID)
+		return c.checkForSaleOperability(ctx, q, lockClause, now, *targetID)
 	case entity.TargetTypeAuction:
 		if targetID == nil {
 			return false, "auction_not_found", nil
 		}
-		return c.checkAuctionOperability(ctx, *targetID)
+		return c.checkAuctionOperability(ctx, q, lockClause, now, *targetID)
 	case entity.TargetTypeExternalProduct:
 		if targetID == nil {
 			return false, "external_product_not_found", nil
 		}
-		return c.checkExternalProductOperability(ctx, *targetID)
+		return c.checkExternalProductOperability(ctx, q, lockClause, now, *targetID)
 	default:
 		return false, fmt.Sprintf("unknown target type: %s", targetType), nil
 	}
@@ -102,6 +137,9 @@ func (c *OperabilityCheckerImpl) ValidateOwnership(
 // - QuantityAvailable > 0
 func (c *OperabilityCheckerImpl) checkForSaleOperability(
 	ctx context.Context,
+	q rowQuerier,
+	lockClause string,
+	now time.Time,
 	forSaleID uuid.UUID,
 ) (bool, string, error) {
 	// Query fixed-price sale directly with minimal fields for operability check.
@@ -115,6 +153,10 @@ func (c *OperabilityCheckerImpl) checkForSaleOperability(
 	// for_sales has no visibility column; visibility is derived the
 	// same way ForSaleRepositoryImpl.derivedVisibility does: active
 	// status with a non-nil published_at.
+	//
+	// lockClause is " FOR UPDATE" on the transaction-boundary revalidation
+	// path so the eligibility judgment serializes against concurrent
+	// target-state mutations (sale, withdrawal); it is empty on plain reads.
 	var status forsaleEntity.ForSaleStatus
 	var quantityAvailable int
 	var sellerID uuid.UUID
@@ -124,9 +166,9 @@ func (c *OperabilityCheckerImpl) checkForSaleOperability(
 		SELECT status, quantity_available, seller_id, published_at
 		FROM for_sales
 		WHERE id = $1
-	`
+	` + lockClause
 
-	err := c.db.Pool().QueryRow(ctx, query, forSaleID).Scan(&status, &quantityAvailable, &sellerID, &publishedAt)
+	err := q.QueryRow(ctx, query, forSaleID).Scan(&status, &quantityAvailable, &sellerID, &publishedAt)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return false, "for_sale_not_found", nil
@@ -160,7 +202,7 @@ func (c *OperabilityCheckerImpl) checkForSaleOperability(
 	// Seller governance: exclude promotions whose seller is ineligible.
 	// Covers: account suspended/banned/removed, subscription expired,
 	// verification suspended/revoked. Mirrors HasActiveSellerCapability gates.
-	if ok, reason, err := c.sellerIsDiscoveryEligible(ctx, sellerID); !ok || err != nil {
+	if ok, reason, err := c.sellerIsDiscoveryEligible(ctx, q, now, sellerID); !ok || err != nil {
 		if err != nil {
 			return false, "", err
 		}
@@ -209,13 +251,20 @@ func (c *OperabilityCheckerImpl) validateForSaleOwnership(
 // - Promoting a draft auction would be misleading to users
 func (c *OperabilityCheckerImpl) checkAuctionOperability(
 	ctx context.Context,
+	q rowQuerier,
+	lockClause string,
+	now time.Time,
 	auctionID uuid.UUID,
 ) (bool, string, error) {
 	var status auctionEntity.Status
 	var sellerID uuid.UUID
 
-	query := `SELECT status, seller_id FROM auctions WHERE id = $1`
-	err := c.db.Pool().QueryRow(ctx, query, auctionID).Scan(&status, &sellerID)
+	// lockClause is " FOR UPDATE" on the transaction-boundary revalidation
+	// path so the eligibility judgment serializes against concurrent auction
+	// end/cancel mutations (auction end authority stays canonical: status is
+	// the decision factor, end_at is the domain worker's trigger).
+	query := `SELECT status, seller_id FROM auctions WHERE id = $1` + lockClause
+	err := q.QueryRow(ctx, query, auctionID).Scan(&status, &sellerID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return false, "auction_not_found", nil
@@ -233,7 +282,7 @@ func (c *OperabilityCheckerImpl) checkAuctionOperability(
 		return false, "auction_cancelled", nil
 	case auctionEntity.StatusScheduled, auctionEntity.StatusActive:
 		// Seller governance: exclude auctions of ineligible sellers.
-		if ok, reason, err := c.sellerIsDiscoveryEligible(ctx, sellerID); !ok || err != nil {
+		if ok, reason, err := c.sellerIsDiscoveryEligible(ctx, q, now, sellerID); !ok || err != nil {
 			if err != nil {
 				return false, "", err
 			}
@@ -260,15 +309,16 @@ func (c *OperabilityCheckerImpl) checkAuctionOperability(
 // because a fixed-price-sale/auction row implies the seller profile already exists.
 func (c *OperabilityCheckerImpl) sellerIsDiscoveryEligible(
 	ctx context.Context,
+	q rowQuerier,
+	now time.Time,
 	sellerID uuid.UUID,
 ) (bool, string, error) {
 	var accountStatus string
 	var isDeleted bool
 	var subscriptionStatus string
 	var startedAt, expiresAt time.Time
-	now := time.Now()
 
-	err := c.db.Pool().QueryRow(ctx, `
+	err := q.QueryRow(ctx, `
 		SELECT
 			COALESCE(u.account_status::text, ''),
 			(u.deleted_at IS NOT NULL),
@@ -303,6 +353,9 @@ func (c *OperabilityCheckerImpl) sellerIsDiscoveryEligible(
 // for public promotion.
 func (c *OperabilityCheckerImpl) checkExternalProductOperability(
 	ctx context.Context,
+	q rowQuerier,
+	lockClause string,
+	now time.Time,
 	externalProductID uuid.UUID,
 ) (bool, string, error) {
 	type externalProductRow struct {
@@ -313,11 +366,12 @@ func (c *OperabilityCheckerImpl) checkExternalProductOperability(
 	}
 
 	var row externalProductRow
-	err := c.db.Pool().QueryRow(ctx, `
+	query := `
 		SELECT owner_user_id, review_status, normalized_external_url, (deleted_at IS NOT NULL)
 		FROM external_products
 		WHERE id = $1
-	`, externalProductID).Scan(&row.ownerUserID, &row.reviewStatus, &row.normalizedExternalURL, &row.deletedAtPresent)
+	` + lockClause
+	err := q.QueryRow(ctx, query, externalProductID).Scan(&row.ownerUserID, &row.reviewStatus, &row.normalizedExternalURL, &row.deletedAtPresent)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return false, "external_product_not_found", nil
@@ -335,7 +389,7 @@ func (c *OperabilityCheckerImpl) checkExternalProductOperability(
 	}
 
 	var mediaFound int
-	err = c.db.Pool().QueryRow(ctx, `
+	err = q.QueryRow(ctx, `
 		SELECT 1
 		FROM external_product_media
 		WHERE external_product_id = $1
@@ -351,7 +405,7 @@ func (c *OperabilityCheckerImpl) checkExternalProductOperability(
 		return false, "", fmt.Errorf("failed to check external product media: %w", err)
 	}
 
-	ok, reason, err := c.sellerIsDiscoveryEligible(ctx, row.ownerUserID)
+	ok, reason, err := c.sellerIsDiscoveryEligible(ctx, q, now, row.ownerUserID)
 	if err != nil {
 		return false, "", err
 	}
@@ -527,251 +581,13 @@ func IsReversibleReason(reason string) bool {
 	}
 }
 
-// SweepInactivePromotions checks all active promotions and returns lifecycle
-// recommendations for non-operable targets.
-//
-// The checker is read-only at the API boundary: it evaluates the current state
-// and emits recommendations, while PromotionService executes lifecycle writes.
-//
-// Returns actionable recommendations only.
-func (c *OperabilityCheckerImpl) SweepInactivePromotions(
-	ctx context.Context,
-	limit int,
-) ([]OperabilityRecommendation, error) {
-	candidates, err := c.readActiveSweepCandidates(ctx, limit)
-	if err != nil {
-		return nil, err
-	}
-
-	recommendations := make([]OperabilityRecommendation, 0, len(candidates))
-	for _, cand := range candidates {
-		recommendation, err := c.recommendForActiveCandidate(ctx, cand)
-		if err != nil {
-			recommendations = append(recommendations, OperabilityRecommendation{
-				Action:      OperabilityRecommendationNoAction,
-				Reason:      fmt.Sprintf("evaluation_error: %v", err),
-				TargetType:  cand.TargetType,
-				TargetID:    cand.TargetID,
-				InstanceID:  cand.ID,
-				OwnershipID: cand.OwnershipID,
-				UserID:      cand.UserID,
-			})
-			continue
-		}
-		if recommendation.HasAction() {
-			recommendations = append(recommendations, recommendation)
-		}
-	}
-
-	return recommendations, nil
+// Legacy sweep for promotion_instances purged — canonical is promotion_contracts queue.
+// Stub to keep OperabilityRecommendationSource interface satisfied without legacy table access.
+func (c *OperabilityCheckerImpl) SweepInactivePromotions(ctx context.Context, limit int) ([]OperabilityRecommendation, error) {
+	return nil, nil
 }
-
-// SweepPausedPromotions checks all paused promotions and returns lifecycle
-// recommendations for targets that should resume or stop.
-//
-// Returns actionable recommendations only.
-func (c *OperabilityCheckerImpl) SweepPausedPromotions(
-	ctx context.Context,
-	limit int,
-) ([]OperabilityRecommendation, error) {
-	candidates, err := c.readPausedSweepCandidates(ctx, limit)
-	if err != nil {
-		return nil, err
-	}
-
-	recommendations := make([]OperabilityRecommendation, 0, len(candidates))
-	for _, cand := range candidates {
-		recommendation, err := c.recommendForPausedCandidate(ctx, cand)
-		if err != nil {
-			recommendations = append(recommendations, OperabilityRecommendation{
-				Action:      OperabilityRecommendationNoAction,
-				Reason:      fmt.Sprintf("evaluation_error: %v", err),
-				TargetType:  cand.TargetType,
-				TargetID:    cand.TargetID,
-				InstanceID:  cand.ID,
-				OwnershipID: cand.OwnershipID,
-				UserID:      cand.UserID,
-			})
-			continue
-		}
-		if recommendation.HasAction() {
-			recommendations = append(recommendations, recommendation)
-		}
-	}
-
-	return recommendations, nil
-}
-
-// readActiveSweepCandidates loads active promotion candidates without mutating them.
-func (c *OperabilityCheckerImpl) readActiveSweepCandidates(
-	ctx context.Context,
-	limit int,
-) ([]sweepCandidate, error) {
-	var candidates []sweepCandidate
-
-	err := c.db.WithTx(ctx, func(tx db.Tx) error {
-		instances, err := c.promotionRepo.GetAllActiveInstances(ctx, tx, limit)
-		if err != nil {
-			return fmt.Errorf("failed to get active instances: %w", err)
-		}
-		for _, inst := range instances {
-			candidates = append(candidates, sweepCandidate{
-				ID:          inst.ID,
-				OwnershipID: inst.OwnershipID,
-				UserID:      inst.UserID,
-				TargetType:  inst.TargetType,
-				TargetID:    inst.TargetID,
-			})
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return candidates, nil
-}
-
-// readPausedSweepCandidates loads paused promotion candidates without mutating them.
-func (c *OperabilityCheckerImpl) readPausedSweepCandidates(
-	ctx context.Context,
-	limit int,
-) ([]sweepCandidate, error) {
-	var candidates []sweepCandidate
-
-	err := c.db.WithTx(ctx, func(tx db.Tx) error {
-		instances, err := c.promotionRepo.GetAllPausedInstances(ctx, tx, limit)
-		if err != nil {
-			return fmt.Errorf("failed to get paused instances: %w", err)
-		}
-		for _, inst := range instances {
-			candidates = append(candidates, sweepCandidate{
-				ID:          inst.ID,
-				OwnershipID: inst.OwnershipID,
-				UserID:      inst.UserID,
-				TargetType:  inst.TargetType,
-				TargetID:    inst.TargetID,
-			})
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return candidates, nil
-}
-
-func (c *OperabilityCheckerImpl) recommendForActiveCandidate(
-	ctx context.Context,
-	cand sweepCandidate,
-) (OperabilityRecommendation, error) {
-	eval, err := c.evaluateCandidate(ctx, cand)
-	if err != nil {
-		return OperabilityRecommendation{}, err
-	}
-
-	if eval.operable {
-		return OperabilityRecommendation{
-			Action:      OperabilityRecommendationNoAction,
-			Reason:      eval.reason,
-			TargetType:  cand.TargetType,
-			TargetID:    cand.TargetID,
-			InstanceID:  cand.ID,
-			OwnershipID: cand.OwnershipID,
-			UserID:      cand.UserID,
-			Reversible:  false,
-			Permanent:   false,
-		}, nil
-	}
-
-	recommendation := OperabilityRecommendation{
-		TargetType:  cand.TargetType,
-		TargetID:    cand.TargetID,
-		InstanceID:  cand.ID,
-		OwnershipID: cand.OwnershipID,
-		UserID:      cand.UserID,
-		Reversible:  eval.reversible,
-		Permanent:   !eval.reversible,
-		Reason:      eval.reason,
-	}
-
-	if eval.reversible {
-		recommendation.Action = OperabilityRecommendationPause
-		return recommendation, nil
-	}
-
-	recommendation.Action = OperabilityRecommendationStop
-	recommendation.Reason = string(c.mapReasonToStopReason(cand.TargetType, eval.reason))
-	return recommendation, nil
-}
-
-func (c *OperabilityCheckerImpl) recommendForPausedCandidate(
-	ctx context.Context,
-	cand sweepCandidate,
-) (OperabilityRecommendation, error) {
-	eval, err := c.evaluateCandidate(ctx, cand)
-	if err != nil {
-		return OperabilityRecommendation{}, err
-	}
-
-	if eval.operable {
-		ownership, dbTime, err := c.readOwnershipStateForCandidate(ctx, cand)
-		if err != nil {
-			return OperabilityRecommendation{}, err
-		}
-		if ownership == nil || !ownership.CanActivate(dbTime) {
-			return OperabilityRecommendation{
-				Action:      OperabilityRecommendationStop,
-				Reason:      string(entity.StopReasonValidityExpired),
-				TargetType:  cand.TargetType,
-				TargetID:    cand.TargetID,
-				InstanceID:  cand.ID,
-				OwnershipID: cand.OwnershipID,
-				UserID:      cand.UserID,
-				Reversible:  false,
-				Permanent:   true,
-			}, nil
-		}
-
-		return OperabilityRecommendation{
-			Action:      OperabilityRecommendationResume,
-			Reason:      eval.reason,
-			TargetType:  cand.TargetType,
-			TargetID:    cand.TargetID,
-			InstanceID:  cand.ID,
-			OwnershipID: cand.OwnershipID,
-			UserID:      cand.UserID,
-			Reversible:  false,
-			Permanent:   false,
-		}, nil
-	}
-
-	if eval.reversible {
-		return OperabilityRecommendation{
-			Action:      OperabilityRecommendationNoAction,
-			Reason:      eval.reason,
-			TargetType:  cand.TargetType,
-			TargetID:    cand.TargetID,
-			InstanceID:  cand.ID,
-			OwnershipID: cand.OwnershipID,
-			UserID:      cand.UserID,
-			Reversible:  true,
-			Permanent:   false,
-		}, nil
-	}
-
-	return OperabilityRecommendation{
-		Action:      OperabilityRecommendationStop,
-		Reason:      string(c.mapReasonToStopReason(cand.TargetType, eval.reason)),
-		TargetType:  cand.TargetType,
-		TargetID:    cand.TargetID,
-		InstanceID:  cand.ID,
-		OwnershipID: cand.OwnershipID,
-		UserID:      cand.UserID,
-		Reversible:  false,
-		Permanent:   true,
-	}, nil
+func (c *OperabilityCheckerImpl) SweepPausedPromotions(ctx context.Context, limit int) ([]OperabilityRecommendation, error) {
+	return nil, nil
 }
 
 type operabilityEvaluation struct {
@@ -779,26 +595,7 @@ type operabilityEvaluation struct {
 	reversible bool
 	reason     string
 }
-
-func (c *OperabilityCheckerImpl) evaluateCandidate(
-	ctx context.Context,
-	cand sweepCandidate,
-) (operabilityEvaluation, error) {
-	if cand.TargetType == entity.TargetTypeExternalProduct {
-		eligible, reason, err := c.CheckUserEligibility(ctx, cand.UserID)
-		if err != nil {
-			return operabilityEvaluation{}, err
-		}
-		if eligible {
-			return operabilityEvaluation{operable: true, reason: reason}, nil
-		}
-		return operabilityEvaluation{
-			operable:   false,
-			reversible: false,
-			reason:     reason,
-		}, nil
-	}
-
+func (c *OperabilityCheckerImpl) evaluateCandidate(ctx context.Context, cand sweepCandidate) (operabilityEvaluation, error) {
 	operable, reason, err := c.CheckOperability(ctx, cand.TargetType, cand.TargetID)
 	if err != nil {
 		return operabilityEvaluation{}, err
@@ -806,41 +603,8 @@ func (c *OperabilityCheckerImpl) evaluateCandidate(
 	if operable {
 		return operabilityEvaluation{operable: true, reason: reason}, nil
 	}
-
-	return operabilityEvaluation{
-		operable:   false,
-		reversible: IsReversibleReason(reason),
-		reason:     reason,
-	}, nil
+	return operabilityEvaluation{operable: false, reversible: IsReversibleReason(reason), reason: reason}, nil
 }
-
-func (c *OperabilityCheckerImpl) readOwnershipStateForCandidate(
-	ctx context.Context,
-	cand sweepCandidate,
-) (*entity.PromotionOwnership, time.Time, error) {
-	var ownership *entity.PromotionOwnership
-	var dbTime time.Time
-
-	err := c.db.WithTx(ctx, func(tx db.Tx) error {
-		var err error
-		dbTime, err = c.promotionRepo.GetDBTime(ctx, tx)
-		if err != nil {
-			return fmt.Errorf("failed to get database time: %w", err)
-		}
-		ownership, err = c.promotionRepo.GetOwnershipByID(ctx, tx, cand.OwnershipID)
-		if err != nil {
-			return fmt.Errorf("failed to get ownership: %w", err)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, time.Time{}, err
-	}
-
-	return ownership, dbTime, nil
-}
-
-// sweepCandidate holds minimal fields identified during the read-only scan.
 type sweepCandidate struct {
 	ID          uuid.UUID
 	OwnershipID uuid.UUID

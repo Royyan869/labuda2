@@ -2,10 +2,13 @@
 // PROMOTED FEED CLICK AND DESTINATION CONTINUITY AUTHORITY
 //
 // Proves that actual user taps on promoted feed cards:
-// 1. Fire exactly one canonical click event per tap
+// 1. Fire exactly one canonical click acknowledgement per tap
+//    (POST /promotions/clicks echoing the server-issued exposure id) when the
+//    card carries a canonical exposure identity
 // 2. Navigate to the correct ForSale / Auction / External destination
 // 3. Never let tracking failure block the destination action
-// 4. Never emit a click event for empty promotion instance IDs
+// 4. Never emit a click of any kind without a canonical exposure identity
+//    (the legacy /promotions/events path is purged)
 // 5. Never construct malformed destination routes
 // 6. Work through the actual Feed pipeline end-to-end
 //
@@ -53,11 +56,12 @@ class _CapturedPost {
   final Map<String, dynamic> body;
   const _CapturedPost({required this.path, required this.body});
 
-  bool get isClickEvent =>
+  bool get isCanonicalClick => path.contains('promotions/clicks');
+
+  bool get isLegacyClickEvent =>
       path.contains('promotions/events') && body['event_type'] == 'click';
 
-  String? get promotionInstanceId => body['promotion_instance_id'] as String?;
-  String? get surface => body['surface'] as String?;
+  String? get exposureId => body['exposure_id'] as String?;
 }
 
 // ============================================================================
@@ -83,15 +87,18 @@ Map<String, dynamic> _promotedListingItem({
   required String title,
   int pricePerUnit = 5000000,
   String forSaleId = 'listing-1',
+  String? canonicalExposureId,
 }) {
   return <String, dynamic>{
     'type': 'promoted_for_sale',
-    'promotion_instance_id': instanceId,
+    'contract_id': instanceId,
     'target_type': 'for_sale',
     'title': title,
     'image_url': 'https://example.com/koi.jpg',
     'for_sale_id': forSaleId,
     'price_per_unit': pricePerUnit,
+    if (canonicalExposureId != null)
+      'canonical_exposure_id': canonicalExposureId,
   };
 }
 
@@ -189,7 +196,7 @@ class _CaptureHttpAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 
   List<_CapturedPost> get clickPosts =>
-      capturedPosts.where((p) => p.isClickEvent).toList();
+      capturedPosts.where((p) => p.isCanonicalClick).toList();
 }
 
 ApiClient _fakeApiClient(_CaptureHttpAdapter adapter) {
@@ -278,8 +285,9 @@ class _FakeLikeRepository implements LikeRepository {
 FeedItem _makeFeedItem({
   required String id,
   required FeedItemType type,
-  required String promotionInstanceId,
+  required String contractId,
   required String title,
+  String? canonicalExposureId,
   Map<String, dynamic> extra = const {},
 }) {
   return FeedItem(
@@ -290,26 +298,30 @@ FeedItem _makeFeedItem({
     createdAt: DateTime.utc(2026, 8, 5, 10, 0),
     additionalData: <String, dynamic>{
       'isPromoted': true,
-      'promotionInstanceId': promotionInstanceId,
+      'contractId': contractId,
       'title': title,
       'imageUrl': 'https://example.com/img.jpg',
       'targetType': 'listing',
+      if (canonicalExposureId != null)
+        'canonicalExposureId': canonicalExposureId,
       ...extra,
     },
   );
 }
 
 FeedItem _listingItem({
-  String promotionInstanceId = 'pi-click-listing',
+  String contractId = 'pi-click-listing',
   String title = 'Click Test ForSale',
   String? forSaleId = 'fps-click-1',
   int pricePerUnit = 5000000,
+  String? canonicalExposureId,
 }) {
   return _makeFeedItem(
-    id: promotionInstanceId,
+    id: contractId,
     type: FeedItemType.promotedListing,
-    promotionInstanceId: promotionInstanceId,
+    contractId: contractId,
     title: title,
+    canonicalExposureId: canonicalExposureId,
     extra: {
       if (forSaleId != null) 'forSaleId': forSaleId,
       'pricePerUnit': pricePerUnit,
@@ -318,18 +330,20 @@ FeedItem _listingItem({
 }
 
 FeedItem _auctionItem({
-  String promotionInstanceId = 'pi-click-auction',
+  String contractId = 'pi-click-auction',
   String title = 'Click Test Auction',
   String? auctionId = 'auc-click-1',
   int startPrice = 1000000,
   int? currentBid,
   int bidCount = 3,
+  String? canonicalExposureId,
 }) {
   return _makeFeedItem(
-    id: promotionInstanceId,
+    id: contractId,
     type: FeedItemType.promotedAuction,
-    promotionInstanceId: promotionInstanceId,
+    contractId: contractId,
     title: title,
+    canonicalExposureId: canonicalExposureId,
     extra: {
       if (auctionId != null) 'auctionId': auctionId,
       'startPrice': startPrice,
@@ -341,16 +355,18 @@ FeedItem _auctionItem({
 }
 
 FeedItem _externalItem({
-  String promotionInstanceId = 'pi-click-external',
+  String contractId = 'pi-click-external',
   String title = 'Click Test External',
   String? externalUrl = 'https://example.com/product',
   String? externalMediaUrl,
+  String? canonicalExposureId,
 }) {
   return _makeFeedItem(
-    id: promotionInstanceId,
+    id: contractId,
     type: FeedItemType.promotedExternal,
-    promotionInstanceId: promotionInstanceId,
+    contractId: contractId,
     title: title,
+    canonicalExposureId: canonicalExposureId,
     extra: {
       if (externalUrl != null) 'externalUrl': externalUrl,
       if (externalMediaUrl != null) 'externalMediaUrl': externalMediaUrl,
@@ -403,8 +419,6 @@ void _setViewport(WidgetTester tester) {
 }
 
 /// Build harness with GoRouter for direct-card tests (scenarios 1-8).
-/// Build a direct card rendered via GoRouter for navigation testing.
-/// The initial route renders the card, destination routes render markers.
 Widget _buildCardRouterHarness({
   required _CaptureHttpAdapter adapter,
   required Widget card,
@@ -474,20 +488,15 @@ Future<void> _pump(WidgetTester tester) async {
 // Tap helper — finds the tappable area of a promoted card
 // ============================================================================
 
-/// Taps the CommerceMarketplaceCardShell (for ForSale/Auction) or
-/// the Card's InkWell (for External) inside a promoted card.
 Future<void> _tapPromotedCard(WidgetTester tester) async {
-  // Try CommerceMarketplaceCardShell first (ForSale / Auction).
   final shell = find.byType(CommerceMarketplaceCardShell);
   if (shell.evaluate().isNotEmpty) {
     await tester.tap(shell);
     await _pump(tester);
     return;
   }
-  // Fall back to the PromotedExternalCard's Card.
   final externalCard = find.byType(PromotedExternalCard);
   if (externalCard.evaluate().isNotEmpty) {
-    // Find the InkWell inside the Card.
     final inkWell = find.descendant(
       of: externalCard,
       matching: find.byType(InkWell),
@@ -506,14 +515,15 @@ Future<void> _tapPromotedCard(WidgetTester tester) async {
 
 void main() {
   setUp(() {
+    resetCanonicalClickAcks();
     VisibilityDetectorController.instance.updateInterval = Duration.zero;
   });
 
   // ==========================================================================
-  // SCENARIO 1: Promoted ForSale click → event + /for-sale/:id
+  // SCENARIO 1: Promoted ForSale click → ack + /for-sale/:id
   // ==========================================================================
   group('SCENARIO 1: Promoted ForSale click', () {
-    testWidgets('tap → 1 click POST + navigation to /for-sale/:id', (
+    testWidgets('tap → 1 canonical click ack + navigation to /for-sale/:id', (
       tester,
     ) async {
       _setViewport(tester);
@@ -525,30 +535,32 @@ void main() {
           adapter: adapter,
           card: PromotedListingCard(
             item: _listingItem(
-              promotionInstanceId: 'pi-click-list-001',               forSaleId: 'fps-42',
+              contractId: 'pi-click-list-001',
+              forSaleId: 'fps-42',
               title: 'Tap Me ForSale',
+              canonicalExposureId: 'exp-click-list-001',
             ),
           ),
         ),
       );
       await _pump(tester);
 
-      // Card is rendered.
       expect(find.byType(PromotedListingCard), findsOneWidget);
       expect(find.text('Tap Me ForSale'), findsOneWidget);
 
-      // Before tap: no click events, still on home route.
+      // Before tap: no click acks, still on home route.
       expect(adapter.clickPosts, isEmpty);
 
       // Tap.
       await _tapPromotedCard(tester);
 
-      // Exactly 1 click POST.
+      // Exactly 1 canonical click acknowledgement echoing the exposure id.
       final clicks = adapter.clickPosts;
       expect(clicks, hasLength(1));
-      expect(clicks.first.promotionInstanceId, 'pi-click-list-001');
-      expect(clicks.first.body['event_type'], 'click');
-      expect(clicks.first.surface, 'feed');
+      expect(clicks.first.exposureId, 'exp-click-list-001');
+      expect(clicks.first.body.containsKey('event_type'), isFalse,
+          reason: 'legacy event vocabulary is purged');
+      expect(clicks.first.body.containsKey('surface'), isFalse);
 
       // Navigation to /for-sale/fps-42.
       expect(find.text('for-sale-dest:fps-42'), findsOneWidget);
@@ -566,8 +578,10 @@ void main() {
           adapter: adapter,
           card: PromotedListingCard(
             item: _listingItem(
-              promotionInstanceId: 'pi-route-id',               forSaleId: 'custom-listing-uuid-999',
+              contractId: 'pi-route-id',
+              forSaleId: 'custom-listing-uuid-999',
               title: 'Route ID Test',
+              canonicalExposureId: 'exp-route-id',
             ),
           ),
         ),
@@ -576,18 +590,16 @@ void main() {
 
       await _tapPromotedCard(tester);
 
-      // The destination page shows the exact ID from forSaleId.
       expect(find.text('for-sale-dest:custom-listing-uuid-999'), findsOneWidget);
-      // Not a different ID.
       expect(find.text('for-sale-dest:fps-click-1'), findsNothing);
     });
   });
 
   // ==========================================================================
-  // SCENARIO 2: Promoted Auction click → event + /auction/:id
+  // SCENARIO 2: Promoted Auction click → ack + /auction/:id
   // ==========================================================================
   group('SCENARIO 2: Promoted Auction click', () {
-    testWidgets('tap → 1 click POST + navigation to /auction/:id', (
+    testWidgets('tap → 1 canonical click ack + navigation to /auction/:id', (
       tester,
     ) async {
       _setViewport(tester);
@@ -599,9 +611,10 @@ void main() {
           adapter: adapter,
           card: PromotedAuctionCard(
             item: _auctionItem(
-              promotionInstanceId: 'pi-click-auc-002',
+              contractId: 'pi-click-auc-002',
               auctionId: 'auc-77',
               title: 'Tap Me Auction',
+              canonicalExposureId: 'exp-click-auc-002',
             ),
           ),
         ),
@@ -612,23 +625,19 @@ void main() {
 
       await _tapPromotedCard(tester);
 
-      // Exactly 1 click POST.
       final clicks = adapter.clickPosts;
       expect(clicks, hasLength(1));
-      expect(clicks.first.promotionInstanceId, 'pi-click-auc-002');
-      expect(clicks.first.body['event_type'], 'click');
-      expect(clicks.first.surface, 'feed');
+      expect(clicks.first.exposureId, 'exp-click-auc-002');
 
-      // Navigation to /auction/auc-77.
       expect(find.text('auction-dest:auc-77'), findsOneWidget);
     });
   });
 
   // ==========================================================================
-  // SCENARIO 3: Promoted External click → event + interstitial
+  // SCENARIO 3: Promoted External click → ack + interstitial
   // ==========================================================================
   group('SCENARIO 3: Promoted External click', () {
-    testWidgets('tap → 1 click POST + external link interstitial appears', (
+    testWidgets('tap → 1 canonical click ack + external link interstitial', (
       tester,
     ) async {
       _setViewport(tester);
@@ -640,9 +649,10 @@ void main() {
           adapter: adapter,
           card: PromotedExternalCard(
             item: _externalItem(
-              promotionInstanceId: 'pi-click-ext-003',
+              contractId: 'pi-click-ext-003',
               title: 'External Product',
               externalUrl: 'https://shop.example.com/koi-food',
+              canonicalExposureId: 'exp-click-ext-003',
             ),
           ),
         ),
@@ -651,7 +661,6 @@ void main() {
 
       expect(find.byType(PromotedExternalCard), findsOneWidget);
 
-      // Tap the external card's InkWell.
       final inkWell = find.descendant(
         of: find.byType(PromotedExternalCard),
         matching: find.byType(InkWell),
@@ -660,18 +669,12 @@ void main() {
       await tester.tap(inkWell.first);
       await _pump(tester);
 
-      // Exactly 1 click POST.
       final clicks = adapter.clickPosts;
       expect(clicks, hasLength(1));
-      expect(clicks.first.promotionInstanceId, 'pi-click-ext-003');
-      expect(clicks.first.body['event_type'], 'click');
-      expect(clicks.first.surface, 'feed');
+      expect(clicks.first.exposureId, 'exp-click-ext-003');
 
-      // External link interstitial dialog appears.
       expect(find.byType(AlertDialog), findsOneWidget);
-      // Dialog shows the URL host (card also shows it, so at least 1).
       expect(find.text('shop.example.com'), findsAtLeast(1));
-      // Dialog has the confirmation button.
       expect(find.text('Buka'), findsOneWidget);
     });
 
@@ -687,15 +690,15 @@ void main() {
           adapter: adapter,
           card: PromotedExternalCard(
             item: _externalItem(
-              promotionInstanceId: 'pi-cancel-ext',
+              contractId: 'pi-cancel-ext',
               title: 'Cancel Test',
+              canonicalExposureId: 'exp-cancel-ext',
             ),
           ),
         ),
       );
       await _pump(tester);
 
-      // Tap to open interstitial.
       final inkWell = find.descendant(
         of: find.byType(PromotedExternalCard),
         matching: find.byType(InkWell),
@@ -705,11 +708,9 @@ void main() {
 
       expect(find.byType(AlertDialog), findsOneWidget);
 
-      // Tap cancel.
       await tester.tap(find.text('Batal'));
       await _pump(tester);
 
-      // Dialog dismissed, card still present, no new navigation.
       expect(find.byType(AlertDialog), findsNothing);
       expect(find.byType(PromotedExternalCard), findsOneWidget);
     });
@@ -719,21 +720,23 @@ void main() {
   // SCENARIO 4-6: Tracking failure does not block destination
   // ==========================================================================
   group('SCENARIO 4-6: Tracking failure continuity', () {
-    testWidgets('ForSale: click POST 500 → still navigates to listing', (
+    testWidgets('ForSale: click ack 500 → still navigates to listing', (
       tester,
     ) async {
       _setViewport(tester);
 
       final adapter = _CaptureHttpAdapter();
-      adapter.failNextPostPath = 'promotions/events';
+      adapter.failNextPostPath = 'promotions/clicks';
 
       await tester.pumpWidget(
         _buildCardRouterHarness(
           adapter: adapter,
           card: PromotedListingCard(
             item: _listingItem(
-              promotionInstanceId: 'pi-fail-list',               forSaleId: 'fps-survive',
+              contractId: 'pi-fail-list',
+              forSaleId: 'fps-survive',
               title: 'Survive Failure',
+              canonicalExposureId: 'exp-fail-list',
             ),
           ),
         ),
@@ -742,29 +745,27 @@ void main() {
 
       await _tapPromotedCard(tester);
 
-      // Click POST was attempted but failed.
-      // The POST is captured then throws — navigation still proceeds.
       expect(find.text('for-sale-dest:fps-survive'), findsOneWidget);
-      // Card no longer visible (we navigated away).
       expect(find.byType(PromotedListingCard), findsNothing);
     });
 
-    testWidgets('Auction: click POST 500 → still navigates to auction', (
+    testWidgets('Auction: click ack 500 → still navigates to auction', (
       tester,
     ) async {
       _setViewport(tester);
 
       final adapter = _CaptureHttpAdapter();
-      adapter.failNextPostPath = 'promotions/events';
+      adapter.failNextPostPath = 'promotions/clicks';
 
       await tester.pumpWidget(
         _buildCardRouterHarness(
           adapter: adapter,
           card: PromotedAuctionCard(
             item: _auctionItem(
-              promotionInstanceId: 'pi-fail-auc',
+              contractId: 'pi-fail-auc',
               auctionId: 'auc-survive',
               title: 'Survive Auction',
+              canonicalExposureId: 'exp-fail-auc',
             ),
           ),
         ),
@@ -776,22 +777,23 @@ void main() {
       expect(find.text('auction-dest:auc-survive'), findsOneWidget);
     });
 
-    testWidgets('External: click POST 500 → interstitial still appears', (
+    testWidgets('External: click ack 500 → interstitial still appears', (
       tester,
     ) async {
       _setViewport(tester);
 
       final adapter = _CaptureHttpAdapter();
-      adapter.failNextPostPath = 'promotions/events';
+      adapter.failNextPostPath = 'promotions/clicks';
 
       await tester.pumpWidget(
         _buildCardRouterHarness(
           adapter: adapter,
           card: PromotedExternalCard(
             item: _externalItem(
-              promotionInstanceId: 'pi-fail-ext',
+              contractId: 'pi-fail-ext',
               title: 'Fail External',
               externalUrl: 'https://fail.example.com/product',
+              canonicalExposureId: 'exp-fail-ext',
             ),
           ),
         ),
@@ -805,17 +807,16 @@ void main() {
       await tester.tap(inkWell.first);
       await _pump(tester);
 
-      // Interstitial still appears despite tracking failure.
       expect(find.byType(AlertDialog), findsOneWidget);
       expect(find.text('fail.example.com'), findsAtLeast(1));
     });
   });
 
   // ==========================================================================
-  // SCENARIO 7: Empty promotion identity
+  // SCENARIO 7: Empty exposure identity
   // ==========================================================================
-  group('SCENARIO 7: Empty promotion identity', () {
-    testWidgets('ForSale: empty promoInstanceId → 0 clicks, still navigates', (
+  group('SCENARIO 7: Empty exposure identity', () {
+    testWidgets('ForSale: no exposure id → 0 clicks, still navigates', (
       tester,
     ) async {
       _setViewport(tester);
@@ -827,7 +828,8 @@ void main() {
           adapter: adapter,
           card: PromotedListingCard(
             item: _listingItem(
-              promotionInstanceId: '', // empty               forSaleId: 'fps-empty-id',
+              contractId: 'pi-no-exposure-list',
+              forSaleId: 'fps-empty-id',
               title: 'Empty Click ID',
             ),
           ),
@@ -837,14 +839,14 @@ void main() {
 
       await _tapPromotedCard(tester);
 
-      // No click POST.
-      expect(adapter.clickPosts, isEmpty);
-
-      // Navigation still works.
+      expect(adapter.clickPosts, isEmpty,
+          reason: 'no exposure identity → no click of any kind');
+      expect(adapter.capturedPosts.where((p) => p.isLegacyClickEvent), isEmpty,
+          reason: 'the legacy /promotions/events path is purged');
       expect(find.text('for-sale-dest:fps-empty-id'), findsOneWidget);
     });
 
-    testWidgets('External: empty promoInstanceId → 0 clicks, interstitial shows', (
+    testWidgets('External: no exposure id → 0 clicks, interstitial shows', (
       tester,
     ) async {
       _setViewport(tester);
@@ -856,7 +858,7 @@ void main() {
           adapter: adapter,
           card: PromotedExternalCard(
             item: _externalItem(
-              promotionInstanceId: '', // empty
+              contractId: 'pi-no-exposure-ext',
               title: 'Empty Click Ext',
             ),
           ),
@@ -871,14 +873,11 @@ void main() {
       await tester.tap(inkWell.first);
       await _pump(tester);
 
-      // No click POST.
       expect(adapter.clickPosts, isEmpty);
-
-      // Interstitial still appears.
       expect(find.byType(AlertDialog), findsOneWidget);
     });
 
-    testWidgets('Auction: empty promoInstanceId → 0 clicks, still navigates', (
+    testWidgets('Auction: no exposure id → 0 clicks, still navigates', (
       tester,
     ) async {
       _setViewport(tester);
@@ -890,7 +889,7 @@ void main() {
           adapter: adapter,
           card: PromotedAuctionCard(
             item: _auctionItem(
-              promotionInstanceId: '',
+              contractId: 'pi-no-exposure-auc',
               auctionId: 'auc-empty-id',
               title: 'Empty Auction ID',
             ),
@@ -922,8 +921,10 @@ void main() {
           adapter: adapter,
           card: PromotedListingCard(
             item: _listingItem(
-              promotionInstanceId: 'pi-no-dest',               forSaleId: null, // missing
+              contractId: 'pi-no-dest',
+              forSaleId: null, // missing
               title: 'No Dest ForSale',
+              canonicalExposureId: 'exp-no-dest',
             ),
           ),
         ),
@@ -933,14 +934,12 @@ void main() {
       expect(find.byType(PromotedListingCard), findsOneWidget);
       expect(find.text('No Dest ForSale'), findsOneWidget);
 
-      // Tap should not navigate (onTap is null) and not crash.
       await _tapPromotedCard(tester);
 
-      // Still on the original page, no navigation.
       expect(find.text('for-sale-dest:'), findsNothing);
       expect(find.byType(PromotedListingCard), findsOneWidget);
-
-      // No click events (no tap handler = no click tracking either).
+      expect(adapter.clickPosts, isEmpty,
+          reason: 'no tap handler → no click tracking');
     });
 
     testWidgets('missing auction ID → onTap is null → no navigation, no crash', (
@@ -955,9 +954,10 @@ void main() {
           adapter: adapter,
           card: PromotedAuctionCard(
             item: _auctionItem(
-              promotionInstanceId: 'pi-no-auc',
+              contractId: 'pi-no-auc',
               auctionId: null, // missing
               title: 'No Dest Auction',
+              canonicalExposureId: 'exp-no-auc',
             ),
           ),
         ),
@@ -966,7 +966,6 @@ void main() {
 
       await _tapPromotedCard(tester);
 
-      // No navigation occurred.
       expect(find.text('auction-dest:'), findsNothing);
       expect(find.byType(PromotedAuctionCard), findsOneWidget);
     });
@@ -983,9 +982,10 @@ void main() {
           adapter: adapter,
           card: PromotedExternalCard(
             item: _externalItem(
-              promotionInstanceId: 'pi-no-url',
+              contractId: 'pi-no-url',
               title: 'No URL External',
               externalUrl: null, // missing
+              canonicalExposureId: 'exp-no-url',
             ),
           ),
         ),
@@ -994,9 +994,6 @@ void main() {
 
       expect(find.byType(PromotedExternalCard), findsOneWidget);
 
-      // Tap the external card — onTap is null, so nothing happens.
-      // Attempt to find InkWell — there should be none since onTap is null
-      // (InkWell with null onTap still renders but is not tappable).
       final inkWell = find.descendant(
         of: find.byType(PromotedExternalCard),
         matching: find.byType(InkWell),
@@ -1006,9 +1003,7 @@ void main() {
         await _pump(tester);
       }
 
-      // No interstitial.
       expect(find.byType(AlertDialog), findsNothing);
-      // No click events.
       expect(adapter.clickPosts, isEmpty);
     });
   });
@@ -1018,9 +1013,8 @@ void main() {
   // ==========================================================================
   group('SCENARIO 9: Actual Feed pipeline click', () {
     testWidgets(
-      'FeedApiDatasource → HomeScreen → tap listing → click + nav', (
-      tester,
-    ) async {
+      'FeedApiDatasource → HomeScreen → tap listing → ack + nav',
+      (tester) async {
         _setViewport(tester);
 
         final adapter = _CaptureHttpAdapter(
@@ -1029,7 +1023,9 @@ void main() {
               items: [
                 _promotedListingItem(
                   instanceId: 'pi-pipeline-click',
-                  title: 'Pipeline ForSale Click',                   forSaleId: 'fps-pipeline-1',
+                  title: 'Pipeline ForSale Click',
+                  forSaleId: 'fps-pipeline-1',
+                  canonicalExposureId: 'exp-pipeline-click',
                 ),
               ],
               hasMore: false,
@@ -1045,30 +1041,23 @@ void main() {
         );
         await _pump(tester);
 
-        // HomeScreen renders the promoted listing.
         expect(find.byType(HomeScreen), findsOneWidget);
         expect(find.byType(PromotedListingCard), findsOneWidget);
         expect(find.text('Pipeline ForSale Click'), findsOneWidget);
 
-        // Tap the promoted card inside HomeScreen.
         await _tapPromotedCard(tester);
 
-        // Click event fired through full production pipeline.
         final clicks = adapter.clickPosts;
         expect(clicks, hasLength(1));
-        expect(clicks.first.promotionInstanceId, 'pi-pipeline-click');
-        expect(clicks.first.body['event_type'], 'click');
-        expect(clicks.first.surface, 'feed');
+        expect(clicks.first.exposureId, 'exp-pipeline-click');
 
-        // Navigation to listing destination.
         expect(find.text('for-sale-dest:fps-pipeline-1'), findsOneWidget);
       },
     );
 
     testWidgets(
-      'pipeline: tap does NOT fire impression event (only click)', (
-      tester,
-    ) async {
+      'pipeline: tap does NOT fire impression ack (only click)',
+      (tester) async {
         _setViewport(tester);
 
         final adapter = _CaptureHttpAdapter(
@@ -1077,7 +1066,9 @@ void main() {
               items: [
                 _promotedListingItem(
                   instanceId: 'pi-click-only',
-                  title: 'Click Only Test',                   forSaleId: 'fps-click-1',
+                  title: 'Click Only Test',
+                  forSaleId: 'fps-click-1',
+                  canonicalExposureId: 'exp-click-only',
                 ),
               ],
               hasMore: false,
@@ -1093,20 +1084,15 @@ void main() {
         );
         await _pump(tester);
 
-        // Initially, impression fires due to visibility.
         expect(find.byType(PromotedListingCard), findsOneWidget);
 
-        // Count click POSTs before tap.
         final clicksBefore = adapter.clickPosts.length;
 
-        // Tap the card.
         await _tapPromotedCard(tester);
 
-        // After tap: exactly one click POST was added.
         final clicksAfter = adapter.clickPosts.length;
         expect(clicksAfter, clicksBefore + 1);
 
-        // Navigation succeeded.
         expect(find.text('for-sale-dest:fps-click-1'), findsOneWidget);
       },
     );
@@ -1123,21 +1109,22 @@ void main() {
 
       final adapter = _CaptureHttpAdapter();
 
-      // Render all three cards and tap each.
       await tester.pumpWidget(
         _buildCardRouterHarness(
           adapter: adapter,
           card: Column(children: [
             PromotedListingCard(
               item: _listingItem(
-                promotionInstanceId: 'pi-shape-list',
+                contractId: 'pi-shape-list',
                 title: 'Shape A',
+                canonicalExposureId: 'exp-shape-list',
               ),
             ),
             PromotedAuctionCard(
               item: _auctionItem(
-                promotionInstanceId: 'pi-shape-auc',
+                contractId: 'pi-shape-auc',
                 title: 'Shape B',
+                canonicalExposureId: 'exp-shape-auc',
               ),
             ),
           ]),
@@ -1145,35 +1132,28 @@ void main() {
       );
       await _pump(tester);
 
-      // Grab the GoRouter instance while both cards are still in tree.
       final router = GoRouter.of(
         tester.element(find.byType(PromotedListingCard)),
       );
 
-      // Tap listing.
       final shells = find.byType(CommerceMarketplaceCardShell);
       await tester.tap(shells.first);
       await _pump(tester);
 
-      // Verify payload shape for listing click.
       final listingClick = adapter.clickPosts.first;
-      expect(listingClick.body.keys, containsAll(['promotion_instance_id', 'event_type', 'surface']));
-      expect(listingClick.body['event_type'], 'click');
-      expect(listingClick.surface, 'feed');
+      expect(listingClick.body.keys, <String>['exposure_id']);
+      expect(listingClick.exposureId, 'exp-shape-list');
 
-      // Go back so we can tap the second card.
       router.go('/');
       await _pump(tester);
 
-      // Tap auction (find shells again after rebuild).
       final shells2 = find.byType(CommerceMarketplaceCardShell);
       await tester.tap(shells2.last);
       await _pump(tester);
 
       final auctionClick = adapter.clickPosts.last;
-      expect(auctionClick.body.keys, containsAll(['promotion_instance_id', 'event_type', 'surface']));
-      expect(auctionClick.body['event_type'], 'click');
-      expect(auctionClick.surface, 'feed');
+      expect(auctionClick.body.keys, <String>['exposure_id']);
+      expect(auctionClick.exposureId, 'exp-shape-auc');
     });
   });
-}
+}

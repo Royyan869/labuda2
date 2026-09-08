@@ -25,7 +25,6 @@ import (
 	"github.com/labuda/backend/internal/identity/auth"
 	"github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
 	alertentity "github.com/labuda/backend/internal/platform/alert/entity"
-	promotionapp "github.com/labuda/backend/internal/pricing/promotion/application"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/midtrans"
 	"go.uber.org/zap"
@@ -85,7 +84,6 @@ type PaymentWebhookService struct {
 	orderRepo                    *orderRepoImpl.OrderRepository
 	canonicalFinalizationService *CanonicalFinalizationService
 	billingService               *billingapp.BillingService
-	promotionService             *promotionapp.PromotionService
 	billingRepo                  *billingrepo.BillingRepository
 	subscriptionPaymentService   *subscriptionapp.SellerSubscriptionPaymentService
 	// refundService handles gateway refund acknowledgement webhooks.
@@ -143,14 +141,7 @@ func NewPaymentWebhookService(
 		billingRepo:        billingrepo.NewBillingRepository(),
 		log:                log,
 	}
-}
-
-// SetPromotionService wires the canonical PromotionService built with
-// OperabilityCheckerImpl. MUST be called before any billing webhook
-// for promotion_package can succeed; the branch is fail-closed when nil.
-func (s *PaymentWebhookService) SetPromotionService(service *promotionapp.PromotionService) {
-	s.promotionService = service
-}
+}
 
 // SetSubscriptionPaymentService sets the subscription payment service.
 // This is called during dependency injection after the subscription module is initialized.
@@ -614,48 +605,15 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 				zap.String("billing_type", string(billing.Type)),
 			)
 
-			// STEP 8e: PROMOTION PACKAGE - Create ownership after payment
-			// For promotion_package billing type, create the promotion ownership.
-			// This is the ONLY way ownership can be created (server-authoritative).
-			// newlyPaid=true guarantees this runs exactly once per billing transaction.
+			// PROMOTION PACKAGE PURCHASE PURGED — hard convergence (§28).
 			if billing.Type == billingentity.TypePromotionPackage {
-				if s.promotionService == nil {
-					s.log.Error("CRITICAL: PromotionService not wired; refusing to create unvalidated ownership",
-						zap.String("payment_id", payment.ID.String()),
-						zap.String("billing_id", billingID.String()),
-					)
-					errMsg := "CRITICAL: promotion service not wired"
-					_ = s.updateWebhookEventStatus(ctx, tx, eventID, "failed", &payment.ID, strPtr(errMsg))
-					return fmt.Errorf("CRITICAL: promotion service not wired")
-				}
-
-				// The TargetID in billing contains the package ID.
-				// BillingID is threaded through so the ownership can record its source
-				// and the DB unique constraint prevents any concurrent duplicate.
-				_, err := s.promotionService.PurchasePackage(ctx, tx, promotionapp.PurchasePackageInput{
-					UserID:    billing.PayerID,
-					PackageID: billing.TargetID, // Package ID stored as target_id
-					BillingID: billingID,        // source traceability + DB-level duplicate guard
-				})
-				if err != nil {
-					s.log.Error("CRITICAL: Failed to create promotion ownership",
-						zap.String("payment_id", payment.ID.String()),
-						zap.String("billing_id", billingID.String()),
-						zap.String("user_id", billing.PayerID.String()),
-						zap.String("package_id", billing.TargetID.String()),
-						zap.Error(err),
-					)
-					errMsg := fmt.Sprintf("CRITICAL: failed to create promotion ownership: %v", err)
-					_ = s.updateWebhookEventStatus(ctx, tx, eventID, "failed", &payment.ID, strPtr(errMsg))
-					return fmt.Errorf("CRITICAL: failed to create promotion ownership: %w", err)
-				}
-
-				s.log.Info("Promotion ownership created after payment",
+				s.log.Error("promotion_package billing forbidden — use promotion_contracts",
 					zap.String("payment_id", payment.ID.String()),
 					zap.String("billing_id", billingID.String()),
-					zap.String("user_id", billing.PayerID.String()),
-					zap.String("package_id", billing.TargetID.String()),
 				)
+				errMsg := "promotion package purchase purged — use promotion_contracts"
+				_ = s.updateWebhookEventStatus(ctx, tx, eventID, "failed", &payment.ID, strPtr(errMsg))
+				return fmt.Errorf("promotion package purchase forbidden")
 			}
 		}
 

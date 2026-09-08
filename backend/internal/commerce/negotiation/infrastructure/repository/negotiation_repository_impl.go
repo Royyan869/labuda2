@@ -139,7 +139,10 @@ func (r *NegotiationRepositoryImpl) GetSessionForUpdate(
 	return &session, nil
 }
 
-// GetActiveSessionByResourceAndBuyer retrieves the active session for a given resource and buyer.
+// GetActiveSessionByResourceAndBuyer retrieves the active/accepted-unsettled session for a given resource and buyer.
+// Canonical slot predicate: status IN ('active','accepted') AND order_id IS NULL.
+// This matches the partial unique index ux_negotiation_one_active_per_buyer_for_sale and is the
+// early/fast-path check; the index remains the final concurrency authority.
 func (r *NegotiationRepositoryImpl) GetActiveSessionByResourceAndBuyer(
 	ctx context.Context,
 	tx db.Tx,
@@ -157,7 +160,8 @@ func (r *NegotiationRepositoryImpl) GetActiveSessionByResourceAndBuyer(
 		WHERE resource_type = $1
 		  AND for_sale_id = $2
 		  AND buyer_id = $3
-		  AND status = 'active'
+		  AND status IN ('active', 'accepted')
+		  AND order_id IS NULL
 	`, string(resourceType), resourceID, buyerID).Scan(
 		&session.ID, &session.ResourceType, &session.ForSaleID,
 		&session.BuyerID, &session.SellerID, &session.ChatRoomID,
@@ -215,7 +219,9 @@ func (r *NegotiationRepositoryImpl) UpdateSession(
 // Uses FOR UPDATE SKIP LOCKED for concurrent worker support.
 // Returns up to limit sessions that should be expired.
 //
-// NEGOTIATION EXPIRY CONSISTENCY: Includes both active and accepted sessions to prevent
+// N5 LIFECYCLE FINALIZATION: Settled negotiations (order_id IS NOT NULL) are terminal
+// and must not be expired. Candidate predicate is the single expiry authority.
+// NEGOTIATION EXPIRY CONSISTENCY: Includes both active and accepted (unsettled) sessions to prevent
 // "accepted but expired" state which allows checkout of stale agreements.
 func (r *NegotiationRepositoryImpl) GetExpiredSessions(
 	ctx context.Context,
@@ -230,6 +236,7 @@ func (r *NegotiationRepositoryImpl) GetExpiredSessions(
 		       proposal_sequence, created_at, updated_at
 		FROM negotiation_sessions
 		WHERE status IN ('active', 'accepted')
+		  AND order_id IS NULL
 		  AND expires_at IS NOT NULL
 		  AND expires_at < NOW()
 		FOR UPDATE SKIP LOCKED
@@ -500,87 +507,6 @@ func (r *NegotiationRepositoryImpl) BulkCancelAcceptedByForSaleNoOrder(
 	return int(result.RowsAffected()), nil
 }
 
-// GetAcceptedSessionByChatRoomID retrieves an accepted negotiation session for a given chat room.
-// Returns nil if no accepted session exists.
-// Used for chat-centric order creation.
-func (r *NegotiationRepositoryImpl) GetAcceptedSessionByChatRoomID(
-	ctx context.Context,
-	tx db.Tx,
-	chatRoomID uuid.UUID,
-) (*negotiationEntity.NegotiationSession, error) {
-	var session negotiationEntity.NegotiationSession
-	var status string
-
-	err := tx.QueryRow(ctx, `
-		SELECT id, resource_type, for_sale_id, buyer_id, seller_id,
-		       chat_room_id, status, order_id, expires_at, current_price, accepted_price, accepted_at,
-		       proposal_sequence, created_at, updated_at
-		FROM negotiation_sessions
-		WHERE chat_room_id = $1
-		  AND status = 'accepted'
-	`, chatRoomID).Scan(
-		&session.ID, &session.ResourceType, &session.ForSaleID,
-		&session.BuyerID, &session.SellerID, &session.ChatRoomID,
-		&status, &session.OrderID, &session.ExpiresAt,
-		&session.CurrentPrice, &session.AcceptedPrice, &session.AcceptedAt,
-		&session.ProposalSequence,
-		&session.CreatedAt, &session.UpdatedAt,
-	)
-
-	if err == pgx.ErrNoRows {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("get accepted session by chat room failed: %w", err)
-	}
-
-	session.ResourceType = negotiationEntity.NegotiationResourceType(session.ResourceType)
-	session.Status = negotiationEntity.NegotiationStatus(status)
-
-	return &session, nil
-}
-
-// GetAcceptedSessionByChatRoomIDForUpdate retrieves an accepted negotiation session with FOR UPDATE lock.
-// Used for chat-centric order creation to prevent race conditions.
-// Returns nil if no accepted session exists.
-func (r *NegotiationRepositoryImpl) GetAcceptedSessionByChatRoomIDForUpdate(
-	ctx context.Context,
-	tx db.Tx,
-	chatRoomID uuid.UUID,
-) (*negotiationEntity.NegotiationSession, error) {
-	var session negotiationEntity.NegotiationSession
-	var status string
-
-	err := tx.QueryRow(ctx, `
-		SELECT id, resource_type, for_sale_id, buyer_id, seller_id,
-		       chat_room_id, status, order_id, expires_at, current_price, accepted_price, accepted_at,
-		       proposal_sequence, created_at, updated_at
-		FROM negotiation_sessions
-		WHERE chat_room_id = $1
-		  AND status = 'accepted'
-		FOR UPDATE
-	`, chatRoomID).Scan(
-		&session.ID, &session.ResourceType, &session.ForSaleID,
-		&session.BuyerID, &session.SellerID, &session.ChatRoomID,
-		&status, &session.OrderID, &session.ExpiresAt,
-		&session.CurrentPrice, &session.AcceptedPrice, &session.AcceptedAt,
-		&session.ProposalSequence,
-		&session.CreatedAt, &session.UpdatedAt,
-	)
-
-	if err == pgx.ErrNoRows {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("get accepted session by chat room for update failed: %w", err)
-	}
-
-	session.ResourceType = negotiationEntity.NegotiationResourceType(session.ResourceType)
-	session.Status = negotiationEntity.NegotiationStatus(status)
-
-	return &session, nil
-}
-
 // GetLatestSessionByChatRoomID retrieves the most recently updated negotiation session
 // for a given chat room, regardless of status. Returns nil if no session exists.
 func (r *NegotiationRepositoryImpl) GetLatestSessionByChatRoomID(
@@ -621,22 +547,3 @@ func (r *NegotiationRepositoryImpl) GetLatestSessionByChatRoomID(
 	return &session, nil
 }
 
-// UpdateOrderID sets the order_id for a negotiation within a transaction.
-// This is called during order creation to prevent double-order race condition.
-func (r *NegotiationRepositoryImpl) UpdateOrderID(
-	ctx context.Context,
-	tx db.Tx,
-	negotiationID, orderID uuid.UUID,
-) error {
-	_, err := tx.Exec(ctx, `
-		UPDATE negotiation_sessions
-		SET order_id = $1, updated_at = NOW()
-		WHERE id = $2
-	`, orderID, negotiationID)
-
-	if err != nil {
-		return fmt.Errorf("update order id failed: %w", err)
-	}
-
-	return nil
-}

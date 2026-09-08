@@ -50,6 +50,12 @@ func TestCanonicalAccountTypeConstants(t *testing.T) {
 		{"PlatformBank", finance.AccountPlatformBank, "PLATFORM_BANK", finance.AccountPlatformBank},
 		{"UserServiceCredit", finance.AccountUserServiceCredit, "USER_SERVICE_CREDIT", finance.AccountUserServiceCredit},
 		{"AdRevenue", finance.AccountAdRevenue, "AD_REVENUE", finance.AccountAdRevenue},
+		// Promotion account types (PROMOTION_FINANCIAL_FOUNDATION, migration
+		// 000064). PROMOTE_BALANCE is a plain user-scoped account (alias exists
+		// in the repository constants block); PROMOTION_ALLOCATION is the
+		// user+holder-scoped per-contract allocation account.
+		{"PromoteBalance", finance.AccountPromoteBalance, "PROMOTE_BALANCE", ledgerintf.AccountPromoteBalance},
+		{"PromotionAllocation", finance.AccountPromotionAllocation, "PROMOTION_ALLOCATION", ledgerintf.AccountPromotionAllocation},
 	}
 
 	for _, c := range cases {

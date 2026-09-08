@@ -2,10 +2,13 @@ package application
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	forSaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
 	forSaleRepo "github.com/labuda/backend/internal/commerce/forsale/repository"
 	negotiationEntity "github.com/labuda/backend/internal/commerce/negotiation/entity"
@@ -36,7 +39,7 @@ type BlockChecker interface {
 // service does not depend on the chat domain (see STRICT BOUNDARY below) —
 // it only receives plain UUIDs to (a) validate the room's counterparty is
 // the resolved seller and (b) persist the session's chat_room_id so
-// GetNegotiation/CreateOrderFromChat can later find it by that same room.
+// GetNegotiation can later find it by that same room.
 type StartNegotiationRequest struct {
 	ResourceType           negotiationEntity.NegotiationResourceType
 	ForSaleID       uuid.UUID
@@ -150,7 +153,7 @@ func (s *NegotiationService) EnsureParticipantsActive(ctx context.Context, sessi
 // NEGOTIATION → CHAT UNIFICATION (PASS_7B):
 // - chat_room_id is set on the session directly from the caller-supplied,
 //   participant-validated RoomID (see StartNegotiationRequest) — this is
-//   the same room GetNegotiation/CreateOrderFromChat later look it up by.
+//   the same room GetNegotiation later looks it up by.
 // - The chat-domain consumer (NegotiationEventHandler) still separately
 //   creates/resolves a room_type=negotiation room and posts the initial
 //   proposal message there; that room is independent of chat_room_id and
@@ -208,31 +211,58 @@ func (s *NegotiationService) StartNegotiation(
 		}
 	}
 
-	// Phase 3: Check for existing active session (in transaction)
-	var existingSession *negotiationEntity.NegotiationSession
-	err = s.db.WithTx(ctx, func(tx db.Tx) error {
-		var err error
-		existingSession, err = s.negotiationRepo.GetActiveSessionByResourceAndBuyer(
-			ctx, tx, req.ResourceType, req.ForSaleID, req.BuyerID)
-		return err
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to check existing session: %w", err)
-	}
-	if existingSession != nil {
-		return nil, &ErrActiveSessionExists{
-			SessionID:        existingSession.ID,
-			ForSaleID: req.ForSaleID,
-			BuyerID:          req.BuyerID,
-		}
-	}
-
-	// Phase 4: Create negotiation session with chat_room_id already set
-	// (PASS_7B / F1). The room was validated in Phase 1.5 to have exactly
-	// {buyer, seller} as participants, so it is the correct, permanent
-	// chat_room_id for this session — no separate async write-back needed.
+	// Phase 3+4: Check for existing active/accepted-unsettled session and create atomically
+	// Canonical slot predicate: status IN ('active','accepted') AND order_id IS NULL.
+	// Application lookup is fast-path defense-in-depth; the partial unique index
+	// ux_negotiation_one_active_per_buyer_for_sale is the final concurrency authority.
+	// The check and insert MUST be in the same transaction so the winner's commit
+	// covers session + initial price history + outbox atomically; the loser rolls
+	// back entirely and is translated via unique-violation handling below.
+	//
+	// N8-D STALE-RESOURCE AUTHORITY (external guard, not lifecycle mutator):
+	// for_sale availability is validated authoritatively INSIDE this insert TX
+	// via FOR UPDATE, closing the TOCTOU between Phase 1 validate and insert.
+	// Lock order is for_sale FOR UPDATE before negotiation slot check/insert,
+	// matching CreateFromSaleSurface's canonical for_sale → negotiation order
+	// and avoiding negotiation ↔ for_sale deadlock.
 	var newSession *negotiationEntity.NegotiationSession
 	err = s.db.WithTx(ctx, func(tx db.Tx) error {
+		// N8-D: authoritative for_sale availability inside mutation TX (FOR UPDATE).
+		forSaleLocked, lockErr := s.forSaleRepo.GetForUpdate(ctx, tx, req.ForSaleID)
+		if lockErr != nil {
+			return &ErrResourceNotFound{
+				ResourceType:     req.ResourceType,
+				ForSaleID: req.ForSaleID,
+			}
+		}
+		if forSaleLocked.Status != forSaleEntity.ForSaleStatusActive || !forSaleLocked.IsAvailable() {
+			return &ErrResourceNotNegotiable{
+				ResourceType:     req.ResourceType,
+				ForSaleID: req.ForSaleID,
+				Reason:           fmt.Sprintf("fixed-price sale status is %s, not active/available", forSaleLocked.Status),
+			}
+		}
+		if !forSaleLocked.NegotiationEnabled {
+			return &ErrResourceNotNegotiable{
+				ResourceType:     req.ResourceType,
+				ForSaleID: req.ForSaleID,
+				Reason:           "negotiation is disabled for this fixed-price sale",
+			}
+		}
+
+		existingSession, checkErr := s.negotiationRepo.GetActiveSessionByResourceAndBuyer(
+			ctx, tx, req.ResourceType, req.ForSaleID, req.BuyerID)
+		if checkErr != nil {
+			return fmt.Errorf("failed to check existing session: %w", checkErr)
+		}
+		if existingSession != nil {
+			return &ErrActiveSessionExists{
+				SessionID:        existingSession.ID,
+				ForSaleID: req.ForSaleID,
+				BuyerID:          req.BuyerID,
+			}
+		}
+
 		newSession = negotiationEntity.NewNegotiationSession(
 			req.ResourceType,
 			req.ForSaleID,
@@ -246,6 +276,12 @@ func (s *NegotiationService) StartNegotiation(
 		}
 
 		if err := s.negotiationRepo.CreateSession(ctx, tx, newSession); err != nil {
+			if isNegotiationActiveSlotUniqueViolation(err) {
+				return &ErrActiveSessionExists{
+					ForSaleID: req.ForSaleID,
+					BuyerID:          req.BuyerID,
+				}
+			}
 			return fmt.Errorf("failed to create negotiation session: %w", err)
 		}
 
@@ -342,10 +378,43 @@ func (s *NegotiationService) SendCounterOffer(
 	req SendCounterOfferRequest,
 ) error {
 	err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		// Step 1: Lock session for update
+		// N8-D: Canonical lock order is for_sale FOR UPDATE → negotiation FOR UPDATE
+		// to match CreateFromSaleSurface and avoid deadlock. We need ForSaleID
+		// before we can lock for_sale, so peek via non-locking GetSession (ForSaleID
+		// is immutable) then acquire locks in order.
+		peek, peekErr := s.negotiationRepo.GetSession(ctx, tx, req.SessionID)
+		if peekErr != nil {
+			return fmt.Errorf("failed to peek session: %w", peekErr)
+		}
+		forSaleLocked, forSaleErr := s.forSaleRepo.GetForUpdate(ctx, tx, peek.ForSaleID)
+		if forSaleErr != nil {
+			return &ErrResourceNotFound{
+				ResourceType:     negotiationEntity.NegotiationResourceForSale,
+				ForSaleID: peek.ForSaleID,
+			}
+		}
+		if forSaleLocked.Status != forSaleEntity.ForSaleStatusActive || !forSaleLocked.IsAvailable() {
+			return &ErrResourceNotNegotiable{
+				ResourceType:     negotiationEntity.NegotiationResourceForSale,
+				ForSaleID: peek.ForSaleID,
+				Reason:           fmt.Sprintf("fixed-price sale status is %s, not active/available", forSaleLocked.Status),
+			}
+		}
+		if !forSaleLocked.NegotiationEnabled {
+			return &ErrResourceNotNegotiable{
+				ResourceType:     negotiationEntity.NegotiationResourceForSale,
+				ForSaleID: peek.ForSaleID,
+				Reason:           "negotiation is disabled for this fixed-price sale",
+			}
+		}
+
+		// Step 1: Lock session for update (now that for_sale is already locked)
 		session, err := s.negotiationRepo.GetSessionForUpdate(ctx, tx, req.SessionID)
 		if err != nil {
 			return fmt.Errorf("failed to lock session: %w", err)
+		}
+		if session.ForSaleID != forSaleLocked.ID {
+			return fmt.Errorf("negotiation sale mismatch after lock: session_for_sale_id=%s, for_sale_id=%s", session.ForSaleID, forSaleLocked.ID)
 		}
 
 		// Step 2: Ensure session is active
@@ -470,10 +539,40 @@ func (s *NegotiationService) AcceptNegotiation(
 	var acceptedSession *negotiationEntity.NegotiationSession
 
 	err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		// Step 1: Lock session for update
+		// N8-D: Canonical lock order for_sale FOR UPDATE → negotiation FOR UPDATE
+		peek, peekErr := s.negotiationRepo.GetSession(ctx, tx, req.SessionID)
+		if peekErr != nil {
+			return fmt.Errorf("failed to peek session: %w", peekErr)
+		}
+		forSaleLocked, forSaleErr := s.forSaleRepo.GetForUpdate(ctx, tx, peek.ForSaleID)
+		if forSaleErr != nil {
+			return &ErrResourceNotFound{
+				ResourceType:     negotiationEntity.NegotiationResourceForSale,
+				ForSaleID: peek.ForSaleID,
+			}
+		}
+		if forSaleLocked.Status != forSaleEntity.ForSaleStatusActive || !forSaleLocked.IsAvailable() {
+			return &ErrResourceNotNegotiable{
+				ResourceType:     negotiationEntity.NegotiationResourceForSale,
+				ForSaleID: peek.ForSaleID,
+				Reason:           fmt.Sprintf("fixed-price sale status is %s, not active/available", forSaleLocked.Status),
+			}
+		}
+		if !forSaleLocked.NegotiationEnabled {
+			return &ErrResourceNotNegotiable{
+				ResourceType:     negotiationEntity.NegotiationResourceForSale,
+				ForSaleID: peek.ForSaleID,
+				Reason:           "negotiation is disabled for this fixed-price sale",
+			}
+		}
+
+		// Step 1: Lock session for update (after for_sale)
 		session, err := s.negotiationRepo.GetSessionForUpdate(ctx, tx, req.SessionID)
 		if err != nil {
 			return fmt.Errorf("failed to lock session: %w", err)
+		}
+		if session.ForSaleID != forSaleLocked.ID {
+			return fmt.Errorf("negotiation sale mismatch after lock: session_for_sale_id=%s, for_sale_id=%s", session.ForSaleID, forSaleLocked.ID)
 		}
 
 		// Step 2: Ensure session is active
@@ -708,6 +807,14 @@ func (s *NegotiationService) ExpireSession(
 		}
 
 		// Step 2: Transition to expired (idempotent - safe if already expired)
+		// N5: settled negotiations are terminal and must not be expired.
+		if session.IsSettled() {
+			s.log.Debug("Negotiation already settled, skip expiry",
+				zap.String("session_id", sessionID.String()),
+				zap.String("order_id", session.OrderID.String()),
+			)
+			return nil
+		}
 		if err := session.Expire(); err != nil {
 			// If already in a terminal state, that's fine for the worker
 			if session.Status.IsTerminal() {
@@ -975,4 +1082,27 @@ type ErrNegotiationBlockedByRelationship struct {
 func (e *ErrNegotiationBlockedByRelationship) Error() string {
 	return fmt.Sprintf("cannot start negotiation: block relationship exists between buyer %s and seller %s",
 		e.BuyerID, e.SellerID)
+}
+
+// isNegotiationActiveSlotUniqueViolation reports whether err is a PostgreSQL unique
+// violation for ux_negotiation_one_active_per_buyer_for_sale. Uses structured
+// pgconn.PgError Code+ConstraintName when available; falls back to constraint
+// name substring for wrapped errors. Does NOT remap unrelated unique violations.
+func isNegotiationActiveSlotUniqueViolation(err error) bool {
+	if err == nil {
+		return false
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		if pgErr.Code == "23505" && pgErr.ConstraintName == "ux_negotiation_one_active_per_buyer_for_sale" {
+			return true
+		}
+		// Some drivers surface constraint via message even when structured field empty
+		if pgErr.ConstraintName == "" && pgErr.Code == "23505" && strings.Contains(pgErr.Message, "ux_negotiation_one_active_per_buyer_for_sale") {
+			return true
+		}
+		return false
+	}
+	// Fallback for wrapped errors where pgconn is not directly unwrappable
+	return strings.Contains(err.Error(), "ux_negotiation_one_active_per_buyer_for_sale")
 }

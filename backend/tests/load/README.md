@@ -6,22 +6,17 @@ Modular load testing infrastructure for Labuda backend.
 
 ```
 backend/tests/load/
-├── .templates/          # PROGRESS.md and TEST_PLAN.md templates
 ├── infra/               # Shared utilities
 │   ├── token_loader.js  # Firebase token loader for k6
 │   └── verify_tokens.js # Token verification script
 │
 ├── auction/             # Auction/bidding load tests
+│   ├── data/            # Input fixtures (auction ids, ...)
 │   ├── scripts/         # k6 test scripts
-│   ├── results/         # Test reports (generated)
-│   ├── PROGRESS.md      # Current status tracker
-│   └── TEST_PLAN.md     # Test plan document
+│   └── results/         # Test reports (generated)
 │
 ├── payment/             # Payment load tests (TODO)
-│   ├── scripts/
-│   ├── results/
-│   ├── PROGRESS.md
-│   └── TEST_PLAN.md
+│   └── results/
 │
 └── README.md            # This file
 ```
@@ -41,9 +36,6 @@ Load tests require valid Firebase ID tokens:
 ```bash
 # Verify token setup
 node backend/tests/load/infra/verify_tokens.js
-
-# If no tokens, follow instructions in:
-# tests/load/tokens/README.md
 ```
 
 ### 3. Run Tests
@@ -66,35 +58,6 @@ k6 run backend/tests/load/auction/scripts/bidding_stress_test.js
 # Storm test (last-second sniping)
 k6 run backend/tests/load/auction/scripts/bidding_storm_test.js
 ```
-
-## Domain Organization
-
-Each domain (auction, payment, etc.) has its own:
-
-- **PROGRESS.md** - Current status, blocked items, next steps
-- **TEST_PLAN.md** - Test objectives, scenarios, success criteria
-- **scripts/** - K6 test files
-- **results/** - Generated test reports
-
-This allows:
-- ✅ Work to be paused and resumed without losing context
-- ✅ Each domain to have its own tracker
-- ✅ Multiple developers to work on different domains
-- ✅ Clear visibility into what's blocked and why
-
-## Templates
-
-When adding a new domain:
-
-1. Copy templates:
-   ```bash
-   cp backend/tests/load/.templates/PROGRESS_TEMPLATE.md backend/tests/load/[domain]/PROGRESS.md
-   cp backend/tests/load/.templates/TEST_PLAN_TEMPLATE.md backend/tests/load/[domain]/TEST_PLAN.md
-   ```
-
-2. Fill in the templates with domain-specific info
-
-3. Create scripts and update PROGRESS.md as you go
 
 ## Configuration
 
@@ -180,9 +143,7 @@ When adding new tests:
    const authToken = getTokenForVu(__VU);
    ```
 
-2. **Update PROGRESS.md** with status
-3. **Add to TEST_PLAN.md** if new scenario
-4. **Check results/** into .gitignore
+2. **Check results/** into .gitignore
 
 ## References
 

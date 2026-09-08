@@ -108,6 +108,10 @@ type OrderCompletionService struct {
 // ShippingQuoteService defines the interface for shipping quote operations.
 type ShippingQuoteService interface {
 	ReactivateQuoteIfEligible(ctx context.Context, tx db.Tx, quoteID uuid.UUID) error
+	// InvalidateQuotesByProduct marks all ACTIVE unsuperseded quotes for a
+	// product as INVALID. Called during auction settlement failure to prevent
+	// stale quotes from being usable in the next settlement lifecycle.
+	InvalidateQuotesByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) error
 }
 
 // ActiveRefundChecker checks whether an order has an active (non-terminal) refund.
@@ -2099,6 +2103,14 @@ func (s *OrderCompletionService) releaseAuctionOrderBinding(
 		}
 		if err := auction.TransitionToDraftOnSettlementFailure(); err != nil {
 			return fmt.Errorf("failed to return auction to draft on payment failure: %w", err)
+		}
+		// CROSS-LIFECYCLE ISOLATION: invalidate all ACTIVE shipping quotes
+		// for this product so no stale quote from the previous settlement
+		// lifecycle can be used in the next lifecycle.
+		if s.shippingQuoteService != nil {
+			if err := s.shippingQuoteService.InvalidateQuotesByProduct(ctx, tx, auction.ProductID); err != nil {
+				return fmt.Errorf("failed to invalidate shipping quotes on settlement failure: %w", err)
+			}
 		}
 	}
 

@@ -15,8 +15,7 @@ import "strings"
 //     wire so the row remains visible with a degraded card.
 //
 //   * /contents/:id is a DETAIL surface — the viewer explicitly navigated
-//     to a single object. Doctrine
-//     (docs/contracts/content-detail-visibility-doctrine.md §8.5):
+//     to a single object. Detail-surface doctrine:
 //       - fail-CLOSED on UNKNOWN (the seam must NEVER silently pass an
 //         unhydrated decision through to the wire);
 //       - tombstone semantic is HTTP 404 on this surface (existing

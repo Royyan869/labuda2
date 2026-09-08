@@ -3,13 +3,24 @@ import 'dart:collection';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/dto/promotion_dto.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/promotion_discovery_service.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/promotion_repository_impl.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/instance_status.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/ownership_status.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/target_type.dart';
+import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/canonical_promotion_analytics_repository.dart';
+import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/promotion_contract_repository.dart';
 
+/// Canonical promotion endpoint contract.
+///
+/// The single mobile promotion authority is promotion_contracts:
+///   GET    /promotions/contracts
+///   POST   /promotions/contracts
+///   GET    /promotions/contracts/:id
+///   POST   /promotions/contracts/:id/{pause,resume,finalize}
+///   GET    /promotions/contracts/:id/analytics
+///
+/// NEGATIVE PROOF: the legacy package/ownership/instance/discovery/events
+/// endpoints are purged. The canonical repository must never call:
+///   /promotions/packages, /promotions/packages/purchase,
+///   /promotions/my/ownerships, /promotions/my/instances,
+///   /promotions/activate, /promotions/instances/*,
+///   /promotions/discover, /promotions/events.
 class _MapResponse<T> extends Response<T> with MapMixin<String, dynamic> {
   final Map<String, dynamic> _map;
 
@@ -37,10 +48,9 @@ class _MapResponse<T> extends Response<T> with MapMixin<String, dynamic> {
 }
 
 class _RecordingApiClient implements ApiClient {
-  String? lastGetPath;
-  String? lastPostPath;
-  Map<String, dynamic>? lastGetQuery;
-  dynamic lastPostData;
+  final List<String> getPaths = [];
+  final List<String> postPaths = [];
+  final List<dynamic> postPayloads = [];
 
   dynamic getPayload = <String, dynamic>{};
   dynamic postPayload = <String, dynamic>{};
@@ -52,8 +62,7 @@ class _RecordingApiClient implements ApiClient {
     Options? options,
     CancelToken? cancelToken,
   }) async {
-    lastGetPath = path;
-    lastGetQuery = queryParameters;
+    getPaths.add(path);
     return _MapResponse<T>(
       requestOptions: RequestOptions(path: path),
       data: getPayload as Map<String, dynamic>,
@@ -69,8 +78,8 @@ class _RecordingApiClient implements ApiClient {
     Options? options,
     CancelToken? cancelToken,
   }) async {
-    lastPostPath = path;
-    lastPostData = data;
+    postPaths.add(path);
+    postPayloads.add(data);
     return _MapResponse<T>(
       requestOptions: RequestOptions(path: path),
       data: postPayload as Map<String, dynamic>,
@@ -82,230 +91,159 @@ class _RecordingApiClient implements ApiClient {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-Map<String, dynamic> _packagePayload({String id = 'pkg-1'}) => {
-  'id': id,
-  'name': 'Starter',
-  'total_duration_hours': 24,
-  'validity_window_hours': 72,
-  'price_amount': 1500,
-  'allowed_target_types': ['fixed_price_sale', 'auction', 'external_product'],
-  'is_active': true,
-  'created_at': '2026-06-01T00:00:00Z',
-};
+Map<String, dynamic> _contractPayload({String id = 'ctr-1'}) => {
+      'id': id,
+      'seller_id': 'user-1',
+      'kind': 'internal',
+      'status': 'active',
+      'budget_rupiah': 30000,
+      'cpm_rupiah': 1200,
+      'planned_start': '2026-06-01T00:00:00Z',
+      'planned_finish': '2026-06-04T00:00:00Z',
+      'allocation_account_id': 'acc-1',
+      'paused_at': null,
+      'finalized_at': null,
+      'created_at': '2026-06-01T00:00:00Z',
+      'updated_at': '2026-06-01T00:00:00Z',
+      'city_ids': <String>[],
+    };
 
-Map<String, dynamic> _ownershipPayload({String id = 'own-1'}) => {
-  'id': id,
-  'user_id': 'user-1',
-  'package_id': 'pkg-1',
-  'status': OwnershipStatus.available.value,
-  'purchased_at': '2026-06-01T00:00:00Z',
-  'expires_at': '2026-06-03T00:00:00Z',
-  'total_duration_hours': 24,
-  'consumed_duration_hours': 0,
-  'created_at': '2026-06-01T00:00:00Z',
-  'updated_at': '2026-06-01T00:00:00Z',
-};
+Map<String, dynamic> _analyticsPayload() => {
+      'contract_id': 'ctr-1',
+      'included_count': 100,
+      'impression_count': 60,
+      'click_count': 5,
+    };
 
-Map<String, dynamic> _instancePayload({String id = 'inst-1'}) => {
-  'id': id,
-  'ownership_id': 'own-1',
-  'user_id': 'user-1',
-  'target_type': TargetType.forSale.value,
-  'target_id': 'fixed-price-sale-1',
-  'status': InstanceStatus.active.value,
-  'activated_at': '2026-06-01T00:00:00Z',
-  'stopped_at': null,
-  'stop_reason': null,
-  'created_at': '2026-06-01T00:00:00Z',
-  'updated_at': '2026-06-01T00:00:00Z',
-};
-
-Map<String, dynamic> _promotedItemsPayload() => {
-  'promoted_items': [
-    {
-      'instance_id': 'inst-1',
-      'target_type': 'for_sale',
-      'target_id': 'for-sale-1',
-    },
-  ],
-  'count': 1,
-};
+const _legacyPaths = <String>[
+  '/promotions/packages',
+  '/promotions/packages/purchase',
+  '/promotions/my/ownerships',
+  '/promotions/my/instances',
+  '/promotions/activate',
+  '/promotions/instances/inst-1',
+  '/promotions/instances/inst-1/deactivate',
+  '/promotions/instances/inst-1/resume',
+  '/promotions/discover',
+  '/promotions/discover/for_sale',
+  '/promotions/events',
+];
 
 void main() {
-  group('Promotion repository endpoint contract', () {
-    test('uses canonical /promotions and /payments paths', () async {
+  group('Canonical promotion contract endpoint contract', () {
+    test('list + get + create use canonical /promotions/contracts paths',
+        () async {
       final client = _RecordingApiClient();
-      final repo = PromotionRepositoryImpl(client);
 
       client.getPayload = {
-        'packages': [_packagePayload()],
+        'data': {
+          'contracts': [_contractPayload()],
+          'count': 1,
+        },
       };
-      await repo.listPackages();
-      expect(client.lastGetPath, '/promotions/packages');
-
-      client.getPayload = _packagePayload(id: 'pkg-2');
-      await repo.getPackageById('pkg-2');
-      expect(client.lastGetPath, '/promotions/packages/pkg-2');
+      final repo = PromotionContractRepositoryImpl(client);
+      final listResult = await repo.listMyContracts();
+      expect(client.getPaths.last, '/promotions/contracts');
+      expect(listResult.isSuccess, true);
+      expect(listResult.data!.contracts.single.id, 'ctr-1');
 
       client.getPayload = {
-        'ownerships': [_ownershipPayload()],
+        'data': {
+          'contract': _contractPayload(id: 'ctr-2'),
+        },
       };
-      await repo.listMyOwnerships(
-        status: OwnershipStatus.available,
-        limit: 10,
-        offset: 20,
-      );
-      expect(client.lastGetPath, '/promotions/my/ownerships');
-      expect(client.lastGetQuery, {
-        'status': OwnershipStatus.available.value,
-        'page_size': '10',
-        'offset': '20',
-      });
-
-      client.getPayload = _ownershipPayload(id: 'own-2');
-      await repo.getOwnershipById('own-2');
-      expect(client.lastGetPath, '/promotions/ownerships/own-2');
-
-      client.getPayload = {
-        'instances': [_instancePayload()],
-      };
-      await repo.listMyInstances(status: InstanceStatus.active);
-      expect(client.lastGetPath, '/promotions/my/instances');
-      expect(client.lastGetQuery, {'status': InstanceStatus.active.value});
-
-      client.getPayload = _instancePayload(id: 'inst-2');
-      await repo.getInstanceById('inst-2');
-      expect(client.lastGetPath, '/promotions/instances/inst-2');
-
-      client.postPayload = {'instance': _instancePayload(id: 'inst-3')};
-      await repo.activatePromotion(
-        ownershipId: 'own-1',
-        targetType: TargetType.forSale,
-        targetId: 'fixed-price-sale-1',
-      );
-      expect(client.lastPostPath, '/promotions/activate');
-
-      client.postPayload = {};
-      await repo.deactivatePromotion(
-        instanceId: 'inst-3',
-        reason: 'user_paused',
-      );
-      expect(client.lastPostPath, '/promotions/instances/inst-3/deactivate');
-
-      client.postPayload = {'instance': _instancePayload(id: 'inst-4')};
-      await repo.reassignPromotion(
-        instanceId: 'inst-3',
-        newTargetType: TargetType.auction,
-        newTargetId: 'auction-1',
-      );
-      expect(client.lastPostPath, '/promotions/instances/inst-3/reassign');
-
-      client.postPayload = {'instance': _instancePayload(id: 'inst-5')};
-      await repo.resumePromotion(instanceId: 'inst-3');
-      expect(client.lastPostPath, '/promotions/instances/inst-3/resume');
-
-      client.postPayload = {'billing_id': 'bill-1', 'amount': 1500};
-      await repo.purchasePackage(packageId: 'pkg-1');
-      expect(client.lastPostPath, '/promotions/packages/purchase');
-      expect(client.lastPostData, {'package_id': 'pkg-1'});
+      final getResult = await repo.getContract('ctr-2');
+      expect(client.getPaths.last, '/promotions/contracts/ctr-2');
+      expect(getResult.isSuccess, true);
+      expect(getResult.data!.id, 'ctr-2');
 
       client.postPayload = {
-        'payment_id': 'pay-1',
-        'payment_url': 'https://pay.example.com',
-        'gross_amount': 1500,
-        'expired_at': '2026-06-01T01:00:00Z',
+        'data': {
+          'contract': _contractPayload(id: 'ctr-3'),
+        },
       };
-      await repo.initiateBillingPayment(billingId: 'bill-1');
-      expect(client.lastPostPath, '/payments/billing');
-      expect(client.lastPostData, {'billing_id': 'bill-1'});
-    });
-  });
-
-  group('PromotedItemDto title mapping (P2 contract patch)', () {
-    test('maps legacy external_title key into externalTitle', () {
-      final dto = PromotedItemDto.fromJson({
-        'instance_id': 'inst-1',
-        'target_type': 'external_product',
-        'external_url': 'https://example.com',
-        'external_title': 'Legacy Title',
-      });
-      expect(dto.externalTitle, 'Legacy Title');
+      final createResult = await repo.createContract(
+        kind: 'internal',
+        budgetRupiah: 30000,
+        durationDays: 3,
+        cityIds: const [],
+      );
+      expect(client.postPaths.last, '/promotions/contracts');
+      expect((client.postPayloads.last as Map)['kind'], 'internal');
+      expect((client.postPayloads.last as Map)['budget_rupiah'], 30000);
+      expect((client.postPayloads.last as Map)['duration_days'], 3);
+      expect((client.postPayloads.last as Map)['city_ids'], isEmpty);
+      expect(createResult.isSuccess, true);
+      expect(createResult.data!.id, 'ctr-3');
     });
 
-    test(
-      'maps public title key into externalTitle when external_title absent',
-      () {
-        final dto = PromotedItemDto.fromJson({
-          'instance_id': 'inst-2',
-          'target_type': 'external_product',
-          'external_url': 'https://example.com',
-          'title': 'Public Entity Title',
-        });
-        expect(dto.externalTitle, 'Public Entity Title');
-      },
-    );
-
-    test('prefers external_title over title when both keys are present', () {
-      final dto = PromotedItemDto.fromJson({
-        'instance_id': 'inst-3',
-        'target_type': 'external_product',
-        'external_url': 'https://example.com',
-        'external_title': 'Legacy',
-        'title': 'Public',
-      });
-      expect(dto.externalTitle, 'Legacy');
-    });
-
-    test(
-      'fixed-price-sale/auction items without title keys have null externalTitle',
-      () {
-        final fixedPriceSale = PromotedItemDto.fromJson({
-          'instance_id': 'inst-4',
-          'target_type': 'fixed_price_sale',
-          'target_id': 'fixed-price-sale-1',
-        });
-        expect(fixedPriceSale.externalTitle, isNull);
-
-        final auction = PromotedItemDto.fromJson({
-          'instance_id': 'inst-5',
-          'target_type': 'auction',
-          'target_id': 'auction-1',
-        });
-        expect(auction.externalTitle, isNull);
-      },
-    );
-  });
-
-  group('Promotion discovery endpoint contract', () {
-    test('keeps canonical discovery paths unchanged', () async {
+    test('pause / resume / finalize use canonical contract paths', () async {
       final client = _RecordingApiClient();
-      final service = PromotionDiscoveryService(client);
+      final repo = PromotionContractRepositoryImpl(client);
 
-      client.getPayload = _promotedItemsPayload();
-      final all = await service.getPromotedItems(limit: 5);
-      expect(client.lastGetPath, '/promotions/discover');
-      expect(client.lastGetQuery, {'limit': '5'});
-      expect(all.count, 1);
+      await repo.pauseContract('ctr-1');
+      expect(client.postPaths.last, '/promotions/contracts/ctr-1/pause');
 
-      client.getPayload = _promotedItemsPayload();
-      final byType = await service.getPromotedForSales(limit: 7);
-      expect(client.lastGetPath, '/promotions/discover/for_sale');
-      expect(client.lastGetQuery, {'limit': '7'});
-      expect(byType.promotedItems.single.targetType, 'for_sale');
+      await repo.resumeContract('ctr-1');
+      expect(client.postPaths.last, '/promotions/contracts/ctr-1/resume');
+
+      await repo.finalizeContract('ctr-1');
+      expect(client.postPaths.last, '/promotions/contracts/ctr-1/finalize');
+    });
+
+    test('analytics uses canonical contract analytics endpoint', () async {
+      final client = _RecordingApiClient();
+      client.getPayload = {
+        'data': _analyticsPayload(),
+      };
+      final repo = CanonicalPromotionAnalyticsRepositoryImpl(client);
+
+      final result = await repo.getDeliveryAnalytics('ctr-1');
+      expect(client.getPaths.last, '/promotions/contracts/ctr-1/analytics');
+      expect(result.isSuccess, true);
+      expect(result.data!.contractId, 'ctr-1');
+    });
+  });
+
+  group('Negative proof — legacy promotion endpoints are purged', () {
+    test('canonical repository never touches legacy promotion paths', () async {
+      final client = _RecordingApiClient();
+      final repo = PromotionContractRepositoryImpl(client);
 
       client.getPayload = {
-        'packages': [_packagePayload()],
+        'data': {
+          'contracts': [_contractPayload()],
+          'count': 1,
+        },
       };
-      final packages = await service.getPackages(includeInactive: true);
-      expect(client.lastGetPath, '/promotions/packages');
-      expect(client.lastGetQuery, {'include_inactive': 'true'});
-      expect(packages.single.id, 'pkg-1');
+      client.postPayload = {
+        'data': {
+          'contract': _contractPayload(),
+        },
+      };
 
-      client.postPayload = {'billing_id': 'bill-1', 'amount': 1500};
-      final purchase = await service.purchasePackage(packageId: 'pkg-1');
-      expect(client.lastPostPath, '/promotions/packages/purchase');
-      expect(client.lastPostData, {'package_id': 'pkg-1'});
-      expect(purchase.billingId, 'bill-1');
+      await repo.listMyContracts();
+      await repo.getContract('ctr-1');
+      await repo.createContract(
+        kind: 'internal',
+        budgetRupiah: 30000,
+        durationDays: 3,
+        cityIds: const ['3204'],
+      );
+      await repo.pauseContract('ctr-1');
+      await repo.resumeContract('ctr-1');
+      await repo.finalizeContract('ctr-1');
+
+      final allPaths = [...client.getPaths, ...client.postPaths];
+      for (final legacy in _legacyPaths) {
+        expect(
+          allPaths.where((p) => p == legacy || p.startsWith(legacy)),
+          isEmpty,
+          reason: 'legacy path $legacy must never be called',
+        );
+      }
+      // Only canonical contract paths were hit.
+      expect(allPaths, isNotEmpty);
     });
   });
-}
+}

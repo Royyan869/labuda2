@@ -1,7 +1,6 @@
 // API Configuration for different environments
 
-import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform, kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 /// Environment types
 enum ApiEnvironment {
@@ -41,9 +40,9 @@ class ApiConfig {
   ///
   ///     flutter run --dart-define=API_BASE_URL=http://192.168.1.50:8080/api/v1
   ///
-  /// When unset the environment defaults below apply (platform-aware for
-  /// dev so the Android emulator host mapping is handled without editing
-  /// source). `EnvConfig`/`ApiConfig` environment detection is unchanged.
+  /// When unset the environment defaults below apply (localhost for dev).
+  /// Physical devices require `adb reverse tcp:8080 tcp:8080`.
+  /// `EnvConfig`/`ApiConfig` environment detection is unchanged.
   static const String _overrideBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue: '',
@@ -60,36 +59,18 @@ class ApiConfig {
   static bool get hasOverrideBaseUrl => _overrideBaseUrl.isNotEmpty;
   static bool get hasOverrideWsUrl => _overrideWsUrl.isNotEmpty;
 
-  /// Android emulators reach the host machine via 10.0.2.2; every other
-  /// platform (iOS simulator, desktop, web) uses localhost.
-  static bool get _isAndroid {
-    if (kIsWeb) return false;
-    return defaultTargetPlatform == TargetPlatform.android;
-  }
+  // _isAndroid removed: 10.0.2.2 is an emulator-only alias that silently
+  // breaks physical devices.  All dev platforms now use localhost,
+  // paired with `adb reverse` for physical devices.
 
   /// Base URL for REST API
   static String get baseUrl {
     if (_overrideBaseUrl.isNotEmpty) return _overrideBaseUrl;
     switch (_environment) {
       case ApiEnvironment.dev:
-        // STAGE 3B: platform-aware dev default — Android emulators reach
-        // the host machine via 10.0.2.2; everything else (iOS simulator,
-        // desktop, web) uses localhost. A physical device still needs the
-        // explicit --dart-define=API_BASE_URL=<host-LAN-IP> override; no
-        // hard-coded LAN IP is the authority anymore.
-        return 'http://${_isAndroid ? '10.0.2.2' : 'localhost'}:8080/api/v1';
-      case ApiEnvironment.staging:
-        return 'https://staging-api.labuda.com/api/v1';
-      case ApiEnvironment.prod:
-        return 'https://api.labuda.com/api/v1';
-    }
-  }
-
-  /// Base URL for iOS simulator (uses different localhost address)
-  static String get baseUrlIOS {
-    if (_overrideBaseUrl.isNotEmpty) return _overrideBaseUrl;
-    switch (_environment) {
-      case ApiEnvironment.dev:
+        // CANONICAL dev default: localhost for all platforms.
+        // Physical devices require: `adb reverse tcp:8080 tcp:8080`
+        // before `flutter run`.  Override with --dart-define if needed.
         return 'http://localhost:8080/api/v1';
       case ApiEnvironment.staging:
         return 'https://staging-api.labuda.com/api/v1';
@@ -98,27 +79,16 @@ class ApiConfig {
     }
   }
 
+
+
   /// WebSocket URL for real-time features
   /// Backend route: GET /api/v1/ws
   static String get wsUrl {
     if (_overrideWsUrl.isNotEmpty) return _overrideWsUrl;
     switch (_environment) {
       case ApiEnvironment.dev:
-        // STAGE 3B: platform-aware dev default (see [baseUrl]).
-        return 'ws://${_isAndroid ? '10.0.2.2' : 'localhost'}:8080/api/v1/ws';
-      case ApiEnvironment.staging:
-        return 'wss://staging-api.labuda.com/api/v1/ws';
-      case ApiEnvironment.prod:
-        return 'wss://api.labuda.com/api/v1/ws';
-    }
-  }
-
-  /// WebSocket URL for iOS simulator
-  /// Backend route: GET /api/v1/ws
-  static String get wsUrlIOS {
-    if (_overrideWsUrl.isNotEmpty) return _overrideWsUrl;
-    switch (_environment) {
-      case ApiEnvironment.dev:
+        // CANONICAL dev default: localhost for all platforms.
+        // Physical devices require: `adb reverse tcp:8080 tcp:8080`
         return 'ws://localhost:8080/api/v1/ws';
       case ApiEnvironment.staging:
         return 'wss://staging-api.labuda.com/api/v1/ws';
@@ -126,6 +96,8 @@ class ApiConfig {
         return 'wss://api.labuda.com/api/v1/ws';
     }
   }
+
+
 
   // ============ Timeouts ============
 
@@ -163,15 +135,7 @@ class ApiConfig {
 
   // ============ Helper Methods ============
 
-  /// Get base URL based on current platform
-  static String getBaseUrl({bool isIOS = false}) {
-    return isIOS ? baseUrlIOS : baseUrl;
-  }
 
-  /// Get WebSocket URL based on current platform
-  static String getWsUrl({bool isIOS = false}) {
-    return isIOS ? wsUrlIOS : wsUrl;
-  }
 
   /// Check if current environment is development
   static bool get isDev => _environment == ApiEnvironment.dev;

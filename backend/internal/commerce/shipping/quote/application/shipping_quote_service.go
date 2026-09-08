@@ -75,6 +75,11 @@ type ForSaleRepository interface {
 // auction quote during waiting_settlement.
 type AuctionQuoteReader interface {
 	GetByID(ctx context.Context, tx db.Tx, auctionID uuid.UUID) (*auctionEntity.Auction, error)
+	// GetForUpdate locks the auction row FOR UPDATE within the caller's
+	// transaction. Required for shipping quote validation to prevent a stale
+	// unlocked read from allowing a quote against an auction that the
+	// settlement worker has already transitioned back to draft.
+	GetForUpdate(ctx context.Context, tx db.Tx, auctionID uuid.UUID) (*auctionEntity.Auction, error)
 	// MarkSellerQuoteProvided records that the seller has supplied a private
 	// shipping quote for the auction's current settlement, so the deadline
 	// worker does not classify the seller as defaulting.
@@ -318,7 +323,13 @@ func (s *Service) validateAuctionForQuote(
 		return nil, fmt.Errorf("auction validation unavailable")
 	}
 
-	auction, err := s.auctionRepo.GetByID(ctx, tx, auctionID)
+	// AUTHORITATIVE LOCK: GetForUpdate serializes against a concurrent
+	// settlement worker that may transition the auction back to draft.
+	// Using the unlocked GetByID here was a race — the settlement worker
+	// could commit a draft transition between our status check and our
+	// MarkSellerQuoteProvided call, producing a stale quote and a silent
+	// no-op on the seller_quote_provided flag.
+	auction, err := s.auctionRepo.GetForUpdate(ctx, tx, auctionID)
 	if err != nil {
 		return nil, fmt.Errorf("auction not found: %w", err)
 	}
@@ -394,6 +405,14 @@ func (s *Service) GetByID(ctx context.Context, quoteID uuid.UUID) (*shippingQuot
 	}
 
 	return quote, nil
+}
+
+// InvalidateQuotesByProduct marks all ACTIVE unsuperseded quotes for a product
+// as INVALID. Called during auction settlement failure (return-to-draft) to
+// ensure no shipping quote from the previous settlement lifecycle can be used
+// in the next lifecycle.
+func (s *Service) InvalidateQuotesByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) error {
+	return s.quoteRepo.InvalidateQuotesByProduct(ctx, tx, productID)
 }
 
 func validateCanonicalAttachmentJSON(attachment map[string]interface{}) error {

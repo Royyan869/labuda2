@@ -9,8 +9,7 @@ package evaluator
 // emit `would_enforce_*` telemetry, which is the canonical operational
 // signal Batch 3B needs to flip /search/content to authority safely.
 //
-// CONTRACT (mirrors docs/05-rollout/search-shadow-seam-* and
-// docs/contracts/public-card-boundary.md):
+// CONTRACT:
 //
 //   - Pure: no DB reads, no IO, no logging. Caller-side telemetry only.
 //   - Single source of decision truth: the canonical ShadowDecision
@@ -130,8 +129,7 @@ type SearchContentDecision struct {
 //	ShadowDecisionRedact     → Include=true,  override="unavailable", Reason=redact
 //	ShadowDecisionUnknown    +
 //	    reason=InputInvalid  → Include=false, no override, Reason=unknown_fail_closed
-//	  (handler construction defect; treated as fail-closed per
-//	   docs/contracts/viewer-context.md §8.1 caller responsibility).
+//	  (handler construction defect; the adapter fails closed on it).
 //	ShadowDecisionUnknown    +
 //	    any other reason     → Include=true,  no override, Reason=unknown_fail_open
 //	  (overlay-missing or hydration-error; legacy authority is preserved

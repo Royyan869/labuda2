@@ -83,7 +83,7 @@ Map<String, dynamic> feedPromotedListingItem({
 }) {
   return <String, dynamic>{
     'type': 'promoted_for_sale',
-    'promotion_instance_id': instanceId,
+    'contract_id': instanceId,
     'target_type': 'for_sale',
     'title': title,
     'image_url': 'https://example.com/koi.jpg',
@@ -104,7 +104,7 @@ Map<String, dynamic> feedPromotedAuctionItem({
 }) {
   return <String, dynamic>{
     'type': 'promoted_auction',
-    'promotion_instance_id': instanceId,
+    'contract_id': instanceId,
     'target_type': 'auction',
     'title': title,
     'image_url': 'https://example.com/auction.jpg',
@@ -125,7 +125,7 @@ Map<String, dynamic> feedPromotedExternalItem({
 }) {
   return <String, dynamic>{
     'type': 'promoted_external',
-    'promotion_instance_id': instanceId,
+    'contract_id': instanceId,
     'target_type': 'external_product',
     'title': title,
     'external_url': externalUrl,

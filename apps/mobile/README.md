@@ -163,14 +163,17 @@ locally if you use the Places/static-map surfaces.
 
 ### Backend Base URL (dev)
 
-Dev defaults are platform-aware: the Android emulator reaches the host via
-`10.0.2.2:8080`, everything else uses `localhost:8080`. For a physical device
-or a backend on another host, pass the override at run/build time (no source
-edit):
+Dev default is `localhost:8080` for all platforms.  Physical Android devices
+require port forwarding so localhost on the device reaches the host machine:
 
 ```bash
-flutter run --dart-define=API_BASE_URL=http://192.168.1.50:8080/api/v1
-# Optional matching WebSocket override:
+# Required for physical Android devices (run once per USB session):
+adb reverse tcp:8080 tcp:8080
+
+# Then run normally:
+flutter run
+
+# If you need a custom host instead of localhost:
 flutter run --dart-define=API_BASE_URL=http://192.168.1.50:8080/api/v1 \
             --dart-define=API_WS_URL=ws://192.168.1.50:8080/api/v1/ws
 ```

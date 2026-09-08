@@ -14,7 +14,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/finance"
-	billingentity "github.com/labuda/backend/internal/finance/billing/entity"
 	ledgerrepoimpl "github.com/labuda/backend/internal/finance/infrastructure/repository"
 	ledgerepo "github.com/labuda/backend/internal/finance/repository"
 	"github.com/labuda/backend/pkg/db"
@@ -84,58 +83,7 @@ func (s *FinanceService) SetLogger(logger *zap.Logger) {
 	if logger != nil {
 		s.logger = logger
 	}
-}
-
-// ============================================================================
-// BILLING - SERVICE REVENUE
-// ============================================================================
-
-// RecordBillingServiceRevenue creates ledger entries for service billing payments.
-//
-// Called by: BillingService.MarkPaid() for promotion packages
-//
-// For promotion packages: full amount goes to platform revenue immediately.
-// These are one-time service purchases with no escrow holding.
-//
-// Billing/subscription payments do NOT flow through RecordGatewayPaymentSettlement
-// (which funds GATEWAY_CLEARING). Instead, the combined settlement + 100% commission
-// effect is recorded as a single transfer from BANK_SETTLEMENT to PLATFORM_REVENUE.
-//
-// Ledger entries (Î£ entries = 0 invariant):
-// - Debit:  PLATFORM_REVENUE (+gross) â€” platform keeps full amount
-// - Credit: BANK_SETTLEMENT  (-gross) â€” reserve drains (mirrors gateway settlement)
-func (s *FinanceService) RecordBillingServiceRevenue(
-	ctx context.Context,
-	tx db.Tx,
-	billing *billingentity.BillingTransaction,
-) error {
-	// Get system account IDs
-	platformRevenueAccount, err := s.ledgerRepo.GetSystemAccountID(ctx, tx, ledgerepo.AccountPlatformRevenue)
-	if err != nil {
-		return fmt.Errorf("get platform revenue account: %w", err)
-	}
-
-	bankSettlementAccount, err := s.ledgerRepo.GetSystemAccountID(ctx, tx, ledgerepo.AccountBankSettlement)
-	if err != nil {
-		return fmt.Errorf("get bank settlement account: %w", err)
-	}
-
-	// Build idempotency key
-	idempotencyKey := fmt.Sprintf("billing-%s", billing.ID)
-
-	// Build ledger entries: DR PLATFORM_REVENUE / CR BANK_SETTLEMENT
-	// Mirrors RecordSubscriptionRevenue â€” full amount to platform, no escrow
-	entries := []ledgerepo.Entry{
-		{AccountID: platformRevenueAccount, Amount: billing.GrossAmount},      // DR +gross (revenue increases)
-		{AccountID: bankSettlementAccount, Amount: billing.GrossAmount.Neg()}, // CR -gross (reserve drains)
-	}
-
-	if err := s.ledgerRepo.CreateTransaction(ctx, tx, idempotencyKey, "billing", billing.ID, nil, nil, entries); err != nil {
-		return fmt.Errorf("create ledger transaction: %w", err)
-	}
-
-	return nil
-}
+}
 
 // ============================================================================
 // SELLER EARNINGS QUERY

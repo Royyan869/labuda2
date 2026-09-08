@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS ux_negotiation_one_active_per_buyer_for_sale;

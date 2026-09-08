@@ -425,10 +425,6 @@ func SetupRoutes(
 			// Mutation: requires active account + email verification (PASS_6A / F2).
 			chatRoutes.PUT("/rooms/:room_id/link-order", middleware.RequireActiveAccount(db.Pgx()), deps.ChatHandler.LinkOrderToChat)
 
-			// Create order from chat (CHAT-CENTRIC COMMERCE ENTRY POINT)
-			// Creates an order from an accepted negotiation in the chat room
-			chatRoutes.POST("/rooms/:room_id/order", middleware.RequireActiveAccount(db.Pgx()), deps.ChatHandler.CreateOrderFromChat)
-
 			// Get room by order ID for dispute resolution
 			chatRoutes.GET("/rooms/by-order/:order_id", deps.ChatHandler.GetRoomByOrderID)
 
@@ -821,36 +817,11 @@ func SetupRoutes(
 				middleware.RequireCapability("promotion.external_product.review"),
 				deps.PromotionHandler.HideExternalProduct)
 
-			// ===== PROMOTION PACKAGES ADMIN =====
-			// CRUD + enable/disable for promotion packages.
-			// Capability: promotion.package.manage
-			adminRoutes.GET("/promotions/packages",
-				middleware.RequireCapability("promotion.package.manage"),
-				deps.PromotionHandler.AdminListPackages)
-			adminRoutes.POST("/promotions/packages",
-				middleware.RequireCapability("promotion.package.manage"),
-				deps.PromotionHandler.AdminCreatePackage)
-			adminRoutes.PATCH("/promotions/packages/:id",
-				middleware.RequireCapability("promotion.package.manage"),
-				deps.PromotionHandler.AdminUpdatePackage)
-			adminRoutes.POST("/promotions/packages/:id/enable",
-				middleware.RequireCapability("promotion.package.manage"),
-				deps.PromotionHandler.AdminEnablePackage)
-			adminRoutes.POST("/promotions/packages/:id/disable",
-				middleware.RequireCapability("promotion.package.manage"),
-				deps.PromotionHandler.AdminDisablePackage)
+			// PURGED: PROMOTION PACKAGES ADMIN — Promotion Package is forbidden (§28). All CRUD disabled (410).
+			// Legacy package table dropped by 000079. Admin package management no longer exists.
 
-			// ===== PROMOTION CAMPAIGNS ADMIN =====
-			// Campaign visibility and force-stop.
-			adminRoutes.GET("/promotions/campaigns",
-				middleware.RequireCapability("promotion.campaign.view"),
-				deps.PromotionHandler.AdminListCampaigns)
-			adminRoutes.GET("/promotions/campaigns/:id/analytics",
-				middleware.RequireCapability("promotion.campaign.view"),
-				deps.PromotionHandler.AdminGetCampaignAnalytics)
-			adminRoutes.POST("/promotions/campaigns/:id/stop",
-				middleware.RequireCapability("promotion.campaign.stop"),
-				deps.PromotionHandler.AdminForceStopCampaign)
+			// PURGED: PROMOTION CAMPAIGNS ADMIN — legacy instance campaigns removed (000079).
+			// Use promotion_contracts admin visibility via ledger + contract status instead.
 
 			// ========================================================================
 			// ADMIN / OPERABILITY HARDENING PACK V1
@@ -1435,48 +1406,49 @@ func SetupRoutes(
 		// GET /api/v1/promotions/discover/:target_type - Get promoted items by type
 		promotionRoutes := v1.Group("/promotions")
 		{
-			// Public discovery endpoints (used by search, home)
-			promotionRoutes.GET("/discover", deps.PromotionHandler.GetPromotedItems)
-			promotionRoutes.GET("/discover/:target_type", deps.PromotionHandler.GetPromotedItemsByTarget)
+			// PURGED: legacy package/ownership/instance/discovery authority is removed.
+			// Canonical authority is promotion_contracts + promotion_contract_targets + Delivery Ticket/QI.
+			// Legacy endpoints below are disabled and return 410. See 000079 purge.
+			// promotionRoutes.GET("/discover", ...) REMOVED — use canonical SelectionService via feed/search injectors.
+			// promotionRoutes.GET("/packages", ...) REMOVED — Promotion Package is forbidden (§28).
+			// promotionRoutes.GET("/my/ownerships", ...) REMOVED — ownership is forbidden.
+			// promotionRoutes.GET("/my/instances", ...) REMOVED — instance wall-clock is forbidden.
+			// All legacy activation/resume/reassign/deactivate/events routes are purged.
 
-			// Package endpoints (seller-only — purchase is a seller growth action)
-			promotionRoutes.GET("/packages", deps.PromotionHandler.ListPackages)
-			// Purchase requires active account + active seller subscription.
-			promotionRoutes.POST("/packages/purchase",
+			// ===== CANONICAL PROMOTION CONTRACT SURFACE (PHASE 4A) =====
+			// Canonical lifecycle: Create / List / Get / Pause / Resume / Finalize.
+			// Create is a seller growth action (active account + seller capability
+			// middleware AND the service-level EnsureCanPromote gate). Pause / Resume /
+			// Finalize are owner lifecycle actions — ownership is enforced by
+			// PromotionContractService, and degraded sellers must still be able to
+			// finalize their own contracts. This surface creates no delivery trigger.
+			contractRoutes := promotionRoutes.Group("/contracts")
+			contractRoutes.POST("",
 				middleware.RequireActiveAccount(db.Pgx()),
 				middleware.RequireSellerMiddleware(deps.RoleChecker),
-				deps.PromotionHandler.PurchasePackage)
+				deps.PromotionContractHandler.CreateContract)
+			contractRoutes.GET("", deps.PromotionContractHandler.ListContracts)
+			contractRoutes.GET("/:id", deps.PromotionContractHandler.GetContract)
+			contractRoutes.POST("/:id/pause", deps.PromotionContractHandler.PauseContract)
+			contractRoutes.POST("/:id/resume", deps.PromotionContractHandler.ResumeContract)
+			contractRoutes.POST("/:id/finalize", deps.PromotionContractHandler.FinalizeContract)
+			// Target queue — Internal rolling queue max 10, External same authority; position-ordered.
+			contractRoutes.POST("/:id/targets", deps.PromotionContractHandler.AddTarget)
+			contractRoutes.DELETE("/:id/targets/:target_id", deps.PromotionContractHandler.RemoveTarget)
+			contractRoutes.GET("/:id/targets", deps.PromotionContractHandler.ListTargets)
+			// Contract-scoped delivery measurement projection (owner-only).
+			contractRoutes.GET("/:id/analytics", deps.PromotionContractHandler.GetContractAnalytics)
 
-			// Ownership endpoints (authenticated users — reads only)
-			promotionRoutes.GET("/my/ownerships", deps.PromotionHandler.ListMyOwnerships)
-			promotionRoutes.GET("/ownerships/:id", deps.PromotionHandler.GetOwnership)
-
-			// Instance endpoints (authenticated users — reads only)
-			promotionRoutes.GET("/my/instances", deps.PromotionHandler.ListMyInstances)
-			promotionRoutes.GET("/instances/:id", deps.PromotionHandler.GetInstance)
-
-			// Seller-gated activation/resume/reassign endpoints.
-			// Activate, resume, and reassign are seller growth actions: they open or restore
-			// promoted visibility. An active seller subscription is required.
-			// Deactivate (pause/cancel) is allowed regardless of subscription state.
-			promotionSellerRoutes := promotionRoutes.Group("")
-			promotionSellerRoutes.Use(
+			// Competing `promotions` aggregate purged (000081). Impression/click
+			// acknowledgement is the canonical delivery measurement projection
+			// over canonical_promotion_delivery_events (contract_id authority).
+			// ===== CANONICAL IMPRESSION ACKNOWLEDGEMENT (CLIENT-EXPLICIT) =====
+			promotionRoutes.POST("/impressions",
 				middleware.RequireActiveAccount(db.Pgx()),
-				middleware.RequireSellerMiddleware(deps.RoleChecker),
-			)
-			{
-				promotionSellerRoutes.POST("/activate", deps.PromotionHandler.ActivatePromotion)
-				promotionSellerRoutes.POST("/instances/:id/resume", deps.PromotionHandler.ResumePromotion)
-				promotionSellerRoutes.POST("/instances/:id/reassign", deps.PromotionHandler.ReassignPromotion)
-			}
-			// Deactivate does NOT require seller subscription — degraded sellers must still
-			// be able to cancel/pause their active promotions.
-			promotionRoutes.POST("/instances/:id/deactivate", deps.PromotionHandler.DeactivatePromotion)
-
-			// Analytics: record a viewer interaction (click) with a promoted item.
-			// Auth: required (all promotion surfaces are authenticated).
-			// Analytics-only — zero finance or lifecycle effect.
-			promotionRoutes.POST("/events", deps.PromotionHandler.RecordEvent)
+				deps.PromotionMeasurementHandler.AcknowledgeImpression)
+			promotionRoutes.POST("/clicks",
+				middleware.RequireActiveAccount(db.Pgx()),
+				deps.PromotionMeasurementHandler.AcknowledgeClick)
 
 			// External product user APIs (seller-only — external product is a promotion asset)
 			externalProductRoutes := promotionRoutes.Group("")
@@ -1495,6 +1467,18 @@ func SetupRoutes(
 				externalProductRoutes.GET("/my/external-products", deps.PromotionHandler.ListMyExternalProducts)
 				externalProductRoutes.GET("/external-products/:id", deps.PromotionHandler.GetExternalProduct)
 			}
+
+			// ===== CANONICAL PROMOTE BALANCE FUNDING ENTRY (PHASE 4B) =====
+			// Production-reachable billing-row creator for TypePromoteBalanceTopUp.
+			// The handler creates ONLY a billing transaction; settlement stays on
+			// the existing POST /payments/billing + webhook + MarkPaid path.
+			// Seller eligibility reuses the canonical HasActiveSellerCapability gate
+			// (same 4-gate authority as contract creation / for_sale / auction).
+			promoteBalanceRoutes := v1.Group("/promote-balance")
+			promoteBalanceRoutes.POST("/topup",
+				middleware.RequireActiveAccount(db.Pgx()),
+				middleware.RequireSellerMiddleware(deps.RoleChecker),
+				deps.PromoteBalanceHandler.CreateTopUp)
 		}
 	}
 }

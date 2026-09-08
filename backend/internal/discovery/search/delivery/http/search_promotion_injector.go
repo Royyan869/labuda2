@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/labuda/backend/internal/governance/viewercontext"
-	promotionApp "github.com/labuda/backend/internal/pricing/promotion/application"
+	contractApp "github.com/labuda/backend/internal/pricing/promotion/contract/application"
 	promoentity "github.com/labuda/backend/internal/pricing/promotion/entity"
 	"go.uber.org/zap"
 )
@@ -18,32 +18,26 @@ type promotionQueryPool interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-// searchMaxPromotedPerPage is the maximum promoted items per search page.
 const searchMaxPromotedPerPage = 1
-
-// searchMinOrganicForInjection is the minimum organic results before injection fires.
 const searchMinOrganicForInjection = 3
-
-// searchInjectAtIndex is the 0-based organic position before which the promoted
-// item is inserted on the client. Value 2 means the promoted card appears after
-// the 2nd organic result.
 const searchInjectAtIndex = 2
 
+// CanonicalSearchHandoff is the canonical contract delivery source for search.
+// Mirrors feed injector's CanonicalPromotionHandoff — single authority: promotion_contracts.
+type CanonicalSearchHandoff interface {
+	SelectForDelivery(ctx context.Context, limit int) ([]contractApp.DeliveryCandidate, error)
+}
+
 // SearchPromotionInjector builds a promoted items sidecar for search responses.
-// Unlike the feed injector (which interleaves into the organic array), the search
-// injector returns a separate promoted_items array with inject_at positions. This
-// preserves organic pagination (total/offset/limit) accurately.
-//
-// FAIL-OPEN: Any error returns nil (empty sidecar). Organic results are never affected.
+// Canonical authority: promotion_contracts → queue → pacing → ticket/QI. No legacy discovery.
 type SearchPromotionInjector struct {
-	discoveryService *promotionApp.DiscoveryService
+	canonicalHandoff CanonicalSearchHandoff
 	db               promotionQueryPool
 	log              *zap.Logger
 }
 
-// NewSearchPromotionInjector creates a new search injector.
 func NewSearchPromotionInjector(
-	discoveryService *promotionApp.DiscoveryService,
+	canonicalHandoff CanonicalSearchHandoff,
 	database promotionQueryPool,
 	log *zap.Logger,
 ) *SearchPromotionInjector {
@@ -51,63 +45,59 @@ func NewSearchPromotionInjector(
 		log = zap.NewNop()
 	}
 	return &SearchPromotionInjector{
-		discoveryService: discoveryService,
+		canonicalHandoff: canonicalHandoff,
 		db:               database,
 		log:              log,
 	}
 }
 
-// searchHydratedPromotion is an intermediate struct holding hydrated card data.
 type searchHydratedPromotion struct {
-	Instance *promoentity.PromotionInstance
-	SellerID uuid.UUID
-	Response map[string]interface{}
+	Candidate *contractApp.DeliveryCandidate
+	SellerID  uuid.UUID
+	Response  map[string]interface{}
 }
 
-// GetPromotedSidecar fetches active promotions, hydrates card data, applies
-// dedup against organic results, and returns the sidecar array. Each element
-// carries an "inject_at" field telling the mobile client where to insert.
-//
-// organicIDs: IDs of organic fixed-price-sale/auction results on this page (for target dedup).
-// organicSellerIDs: seller IDs of organic results (for seller dedup).
-//
-// Returns nil when there is nothing to inject (no promotions, too few organic,
-// errors, or all candidates filtered).
 func (inj *SearchPromotionInjector) GetPromotedSidecar(
 	ctx context.Context,
 	organicIDs []uuid.UUID,
 	organicSellerIDs []uuid.UUID,
 ) []map[string]interface{} {
-	if inj == nil || inj.discoveryService == nil {
+	return inj.GetPromotedSidecarWithGeography(ctx, organicIDs, organicSellerIDs, "", false)
+}
+
+func (inj *SearchPromotionInjector) GetPromotedSidecarWithGeography(
+	ctx context.Context,
+	organicIDs []uuid.UUID,
+	organicSellerIDs []uuid.UUID,
+	viewerCityID string,
+	viewerHasPrimary bool,
+) []map[string]interface{} {
+	if inj == nil || inj.canonicalHandoff == nil {
 		return nil
 	}
-
 	if len(organicIDs) < searchMinOrganicForInjection {
 		return nil
 	}
-
-	// Fetch more candidates than needed for filtering headroom.
-	candidates, err := inj.discoveryService.GetPromotedItems(ctx, searchMaxPromotedPerPage*3)
+	candidates, err := inj.canonicalHandoff.SelectForDelivery(ctx, searchMaxPromotedPerPage*3)
 	if err != nil {
-		inj.log.Warn("search promotion: discovery fetch failed, fail-open",
-			zap.Error(err))
+		inj.log.Warn("search promotion: canonical handoff failed, fail-open", zap.Error(err))
 		return nil
 	}
 	if len(candidates) == 0 {
 		return nil
 	}
-
-	hydrated, err := inj.hydrateSearchPromotedItems(ctx, candidates)
+	candidates = inj.filterCandidatesByGeography(ctx, candidates, viewerCityID, viewerHasPrimary)
+	if len(candidates) == 0 {
+		return nil
+	}
+	hydrated, err := inj.hydrateSearchPromotedCandidates(ctx, candidates)
 	if err != nil {
-		inj.log.Warn("search promotion: hydration failed, fail-open",
-			zap.Error(err))
+		inj.log.Warn("search promotion: hydration failed, fail-open", zap.Error(err))
 		return nil
 	}
 	if len(hydrated) == 0 {
 		return nil
 	}
-
-	// Build organic lookup sets for dedup.
 	organicIDSet := make(map[uuid.UUID]bool, len(organicIDs))
 	for _, id := range organicIDs {
 		organicIDSet[id] = true
@@ -116,13 +106,10 @@ func (inj *SearchPromotionInjector) GetPromotedSidecar(
 	for _, id := range organicSellerIDs {
 		organicSellerSet[id] = true
 	}
-
 	filtered := searchApplySlotPolicy(hydrated, organicIDSet, organicSellerSet)
 	if len(filtered) == 0 {
 		return nil
 	}
-
-	// Build sidecar array.
 	sidecar := make([]map[string]interface{}, 0, len(filtered))
 	for _, item := range filtered {
 		item.Response["inject_at"] = searchInjectAtIndex
@@ -131,30 +118,32 @@ func (inj *SearchPromotionInjector) GetPromotedSidecar(
 	return sidecar
 }
 
-// ---------- Hydration ----------
+// ---------- Hydration over canonical candidates ----------
 
-func (inj *SearchPromotionInjector) hydrateSearchPromotedItems(
+func (inj *SearchPromotionInjector) hydrateSearchPromotedCandidates(
 	ctx context.Context,
-	instances []*promoentity.PromotionInstance,
+	candidates []contractApp.DeliveryCandidate,
 ) ([]searchHydratedPromotion, error) {
 	var forSaleIDs, auctionIDs, externalProductIDs []uuid.UUID
 	var sellerIDs []uuid.UUID
-	for _, inst := range instances {
-		if !inst.TargetType.IsPublicPromotable() {
+	for i := range candidates {
+		c := &candidates[i]
+		tt := promoentity.TargetType(c.TargetType)
+		if !tt.IsPublicPromotable() {
 			continue
 		}
-		if inst.TargetType == promoentity.TargetTypeForSale && inst.TargetID != nil {
-			forSaleIDs = append(forSaleIDs, *inst.TargetID)
-			sellerIDs = append(sellerIDs, inst.UserID)
-		} else if inst.TargetType == promoentity.TargetTypeAuction && inst.TargetID != nil {
-			auctionIDs = append(auctionIDs, *inst.TargetID)
-			sellerIDs = append(sellerIDs, inst.UserID)
-		} else if inst.TargetType == promoentity.TargetTypeExternalProduct && inst.TargetID != nil {
-			externalProductIDs = append(externalProductIDs, *inst.TargetID)
-			sellerIDs = append(sellerIDs, inst.UserID)
+		switch tt {
+		case promoentity.TargetTypeForSale:
+			forSaleIDs = append(forSaleIDs, c.TargetID)
+			sellerIDs = append(sellerIDs, c.SellerID)
+		case promoentity.TargetTypeAuction:
+			auctionIDs = append(auctionIDs, c.TargetID)
+			sellerIDs = append(sellerIDs, c.SellerID)
+		case promoentity.TargetTypeExternalProduct:
+			externalProductIDs = append(externalProductIDs, c.TargetID)
+			sellerIDs = append(sellerIDs, c.SellerID)
 		}
 	}
-
 	forSaleCards := make(map[uuid.UUID]*searchForSaleCard)
 	if len(forSaleIDs) > 0 {
 		cards, err := inj.fetchSearchForSaleCards(ctx, forSaleIDs)
@@ -163,7 +152,6 @@ func (inj *SearchPromotionInjector) hydrateSearchPromotedItems(
 		}
 		forSaleCards = cards
 	}
-
 	auctionCards := make(map[uuid.UUID]*searchAuctionCard)
 	if len(auctionIDs) > 0 {
 		cards, err := inj.fetchSearchAuctionCards(ctx, auctionIDs)
@@ -172,7 +160,6 @@ func (inj *SearchPromotionInjector) hydrateSearchPromotedItems(
 		}
 		auctionCards = cards
 	}
-
 	externalProductCards := make(map[uuid.UUID]*searchExternalProductCard)
 	if len(externalProductIDs) > 0 {
 		cards, err := inj.fetchSearchExternalProductCards(ctx, externalProductIDs)
@@ -181,7 +168,6 @@ func (inj *SearchPromotionInjector) hydrateSearchPromotedItems(
 		}
 		externalProductCards = cards
 	}
-
 	sellerInfos := make(map[uuid.UUID]*searchSellerInfo)
 	if len(sellerIDs) > 0 {
 		infos, err := inj.fetchSearchSellerInfos(ctx, sellerIDs)
@@ -190,70 +176,56 @@ func (inj *SearchPromotionInjector) hydrateSearchPromotedItems(
 		}
 		sellerInfos = infos
 	}
-
 	var result []searchHydratedPromotion
-	for _, inst := range instances {
-		seller := sellerInfos[inst.UserID]
-		sellerUsername := ""
-		sellerFarmName := ""
-		sellerLifecycle := "active"
+	for i := range candidates {
+		c := &candidates[i]
+		tt := promoentity.TargetType(c.TargetType)
+		seller := sellerInfos[c.SellerID]
+		sellerUsername, sellerFarmName, sellerLifecycle := "", "", "active"
 		if seller != nil {
 			sellerUsername = seller.Username
 			sellerFarmName = seller.FarmName
 			sellerLifecycle = string(seller.Lifecycle)
 		}
-
-		switch inst.TargetType {
+		switch tt {
 		case promoentity.TargetTypeForSale:
-			if inst.TargetID == nil {
-				continue
-			}
-			card, ok := forSaleCards[*inst.TargetID]
+			card, ok := forSaleCards[c.TargetID]
 			if !ok {
 				continue
 			}
 			result = append(result, searchHydratedPromotion{
-				Instance: inst,
-				SellerID: inst.UserID,
-				Response: searchBuildForSaleResponse(
-					inst, card, sellerUsername, sellerFarmName, sellerLifecycle,
+				Candidate: c,
+				SellerID:  c.SellerID,
+				Response: searchBuildForSaleResponseCanonical(
+					c, card, sellerUsername, sellerFarmName, sellerLifecycle,
 				),
 			})
-
 		case promoentity.TargetTypeAuction:
-			if inst.TargetID == nil {
-				continue
-			}
-			card, ok := auctionCards[*inst.TargetID]
+			card, ok := auctionCards[c.TargetID]
 			if !ok {
 				continue
 			}
 			result = append(result, searchHydratedPromotion{
-				Instance: inst,
-				SellerID: inst.UserID,
-				Response: searchBuildAuctionResponse(
-					inst, card, sellerUsername, sellerFarmName, sellerLifecycle,
+				Candidate: c,
+				SellerID:  c.SellerID,
+				Response: searchBuildAuctionResponseCanonical(
+					c, card, sellerUsername, sellerFarmName, sellerLifecycle,
 				),
 			})
-
 		case promoentity.TargetTypeExternalProduct:
-			if inst.TargetID == nil {
-				continue
-			}
-			card, ok := externalProductCards[*inst.TargetID]
+			card, ok := externalProductCards[c.TargetID]
 			if !ok {
 				continue
 			}
 			result = append(result, searchHydratedPromotion{
-				Instance: inst,
-				SellerID: inst.UserID,
-				Response: searchBuildExternalResponse(
-					inst, card, sellerUsername, sellerFarmName, sellerLifecycle,
+				Candidate: c,
+				SellerID:  c.SellerID,
+				Response: searchBuildExternalResponseCanonical(
+					c, card, sellerUsername, sellerFarmName, sellerLifecycle,
 				),
 			})
 		}
 	}
-
 	return result, nil
 }
 
@@ -302,7 +274,6 @@ func (inj *SearchPromotionInjector) fetchSearchForSaleCards(
 	ctx context.Context,
 	ids []uuid.UUID,
 ) (map[uuid.UUID]*searchForSaleCard, error) {
-	// for_sales holds the sale surface; products holds title and media.
 	query := `
 		SELECT fps.id, p.title, fps.price_per_unit, p.media_urls
 		FROM for_sales fps
@@ -316,7 +287,6 @@ func (inj *SearchPromotionInjector) fetchSearchForSaleCards(
 		return nil, err
 	}
 	defer rows.Close()
-
 	result := make(map[uuid.UUID]*searchForSaleCard)
 	for rows.Next() {
 		var card searchForSaleCard
@@ -334,9 +304,6 @@ func (inj *SearchPromotionInjector) fetchSearchAuctionCards(
 	ctx context.Context,
 	ids []uuid.UUID,
 ) (map[uuid.UUID]*searchAuctionCard, error) {
-	// auctions.listing_id was a legacy column (never set for product-based
-	// auctions) dropped entirely by migration 000010 (PASS_21C). Canonical
-	// media + content source is products joined via auctions.product_id.
 	query := `
 		SELECT a.id, p.title, a.start_price, a.current_bid, a.buy_now_price,
 		       a.end_at, a.status,
@@ -352,7 +319,6 @@ func (inj *SearchPromotionInjector) fetchSearchAuctionCards(
 		return nil, err
 	}
 	defer rows.Close()
-
 	result := make(map[uuid.UUID]*searchAuctionCard)
 	for rows.Next() {
 		var card searchAuctionCard
@@ -400,7 +366,6 @@ func (inj *SearchPromotionInjector) fetchSearchExternalProductCards(
 		return nil, err
 	}
 	defer rows.Close()
-
 	result := make(map[uuid.UUID]*searchExternalProductCard)
 	for rows.Next() {
 		var card searchExternalProductCard
@@ -442,7 +407,6 @@ func (inj *SearchPromotionInjector) fetchSearchSellerInfos(
 		return nil, err
 	}
 	defer rows.Close()
-
 	result := make(map[uuid.UUID]*searchSellerInfo)
 	for rows.Next() {
 		var info searchSellerInfo
@@ -463,7 +427,6 @@ func (inj *SearchPromotionInjector) fetchSearchSellerInfos(
 	return result, nil
 }
 
-// searchExtractFirstMediaURL parses a JSONB array and returns the first URL.
 func searchExtractFirstMediaURL(raw json.RawMessage) string {
 	if len(raw) == 0 {
 		return ""
@@ -487,46 +450,48 @@ func searchExtractFirstMediaURL(raw json.RawMessage) string {
 	return ""
 }
 
-// ---------- Response builders ----------
+// ---------- Response builders (canonical) ----------
 
-func searchBuildForSaleResponse(
-	inst *promoentity.PromotionInstance,
+func searchBuildForSaleResponseCanonical(
+	c *contractApp.DeliveryCandidate,
 	card *searchForSaleCard,
 	sellerUsername, sellerFarmName, sellerLifecycle string,
 ) map[string]interface{} {
+	cid := c.ContractID
 	return map[string]interface{}{
-		"type":                  "promoted_for_sale",
-		"promotion_instance_id": inst.ID.String(),
-		"target_type":           "for_sale",
-		"for_sale_id":   card.ID.String(),
-		"title":                 card.Title,
-		"price_per_unit":        card.PricePerUnit,
-		"image_url":             card.ImageURL,
-		"seller_username":       sellerUsername,
-		"seller_farm_name":      sellerFarmName,
-		"seller_lifecycle":      sellerLifecycle,
+		"type":           "promoted_for_sale",
+		"contract_id":    cid.String(),
+		"target_type":    "for_sale",
+		"for_sale_id":    card.ID.String(),
+		"title":          card.Title,
+		"price_per_unit": card.PricePerUnit,
+		"image_url":      card.ImageURL,
+		"seller_username":  sellerUsername,
+		"seller_farm_name": sellerFarmName,
+		"seller_lifecycle": sellerLifecycle,
 	}
 }
 
-func searchBuildAuctionResponse(
-	inst *promoentity.PromotionInstance,
+func searchBuildAuctionResponseCanonical(
+	c *contractApp.DeliveryCandidate,
 	card *searchAuctionCard,
 	sellerUsername, sellerFarmName, sellerLifecycle string,
 ) map[string]interface{} {
+	cid := c.ContractID
 	resp := map[string]interface{}{
-		"type":                  "promoted_auction",
-		"promotion_instance_id": inst.ID.String(),
-		"target_type":           "auction",
-		"auction_id":            card.ID.String(),
-		"title":                 card.Title,
-		"start_price":           card.StartPrice,
-		"image_url":             card.ImageURL,
-		"end_at":                card.EndAt.Format(time.RFC3339),
-		"bid_count":             card.BidCount,
-		"status":                card.Status,
-		"seller_username":       sellerUsername,
-		"seller_farm_name":      sellerFarmName,
-		"seller_lifecycle":      sellerLifecycle,
+		"type":           "promoted_auction",
+		"contract_id":    cid.String(),
+		"target_type":    "auction",
+		"auction_id":     card.ID.String(),
+		"title":          card.Title,
+		"start_price":    card.StartPrice,
+		"image_url":      card.ImageURL,
+		"end_at":         card.EndAt.Format(time.RFC3339),
+		"bid_count":      card.BidCount,
+		"status":         card.Status,
+		"seller_username":  sellerUsername,
+		"seller_farm_name": sellerFarmName,
+		"seller_lifecycle": sellerLifecycle,
 	}
 	if card.CurrentBid != nil {
 		resp["current_bid"] = *card.CurrentBid
@@ -537,26 +502,22 @@ func searchBuildAuctionResponse(
 	return resp
 }
 
-func searchBuildExternalResponse(
-	inst *promoentity.PromotionInstance,
+func searchBuildExternalResponseCanonical(
+	c *contractApp.DeliveryCandidate,
 	card *searchExternalProductCard,
 	sellerUsername, sellerFarmName, sellerLifecycle string,
 ) map[string]interface{} {
+	cid := c.ContractID
 	mediaURL := ""
 	if card != nil && card.MediaURL != nil {
 		mediaURL = *card.MediaURL
 	}
 	resp := map[string]interface{}{
-		"type":                  "promoted_external",
-		"promotion_instance_id": inst.ID.String(),
-		"target_type":           "external_product",
-		"target_id": func() string {
-			if inst.TargetID != nil {
-				return inst.TargetID.String()
-			}
-			return ""
-		}(),
-		"promoted": true,
+		"type":        "promoted_external",
+		"contract_id": cid.String(),
+		"target_type": "external_product",
+		"target_id":   c.TargetID.String(),
+		"promoted":    true,
 	}
 	if card != nil {
 		resp["title"] = card.Title
@@ -577,13 +538,55 @@ func searchBuildExternalResponse(
 	return resp
 }
 
+func (inj *SearchPromotionInjector) filterCandidatesByGeography(ctx context.Context, candidates []contractApp.DeliveryCandidate, viewerCityID string, viewerHasPrimary bool) []contractApp.DeliveryCandidate {
+	if inj.db == nil {
+		return candidates
+	}
+	if len(candidates) == 0 {
+		return candidates
+	}
+	ids := make([]uuid.UUID, 0, len(candidates))
+	for _, c := range candidates {
+		ids = append(ids, c.ContractID)
+	}
+	rows, err := inj.db.Query(ctx, `SELECT contract_id, city_id FROM promotion_contract_geographies WHERE contract_id = ANY($1)`, ids)
+	if err != nil {
+		return candidates
+	}
+	defer rows.Close()
+	contractCities := make(map[uuid.UUID]map[string]struct{})
+	contractHasRestriction := make(map[uuid.UUID]bool)
+	for rows.Next() {
+		var cid uuid.UUID
+		var cityID string
+		if err := rows.Scan(&cid, &cityID); err != nil {
+			continue
+		}
+		if _, ok := contractCities[cid]; !ok {
+			contractCities[cid] = make(map[string]struct{})
+		}
+		contractCities[cid][cityID] = struct{}{}
+		contractHasRestriction[cid] = true
+	}
+	var out []contractApp.DeliveryCandidate
+	for _, c := range candidates {
+		cid := c.ContractID
+		if !contractHasRestriction[cid] {
+			out = append(out, c)
+			continue
+		}
+		if !viewerHasPrimary || viewerCityID == "" {
+			continue
+		}
+		if _, ok := contractCities[cid][viewerCityID]; ok {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 // ---------- Slot policy ----------
 
-// searchApplySlotPolicy filters hydrated promotions against organic results:
-// - Skip if promoted target is already in organic results (target dedup)
-// - Skip if promoted seller is already in organic sellers (seller dedup)
-// - Skip duplicate targets within promoted candidates
-// - Cap at searchMaxPromotedPerPage
 func searchApplySlotPolicy(
 	items []searchHydratedPromotion,
 	organicIDs map[uuid.UUID]bool,
@@ -592,36 +595,26 @@ func searchApplySlotPolicy(
 	seenTargets := make(map[string]bool)
 	seenSellers := make(map[uuid.UUID]bool)
 	var result []searchHydratedPromotion
-
 	for _, item := range items {
-		// Organic target dedup: skip if this target is already in organic results.
-		if item.Instance.TargetID != nil && organicIDs[*item.Instance.TargetID] {
+		if item.Candidate != nil && organicIDs[item.Candidate.TargetID] {
 			continue
 		}
-
-		// Organic seller dedup: skip if this seller is already in organic results.
 		if organicSellerIDs[item.SellerID] {
 			continue
 		}
-
-		// Within-promoted target dedup.
-		targetKey := item.Instance.TargetType.String()
-		if item.Instance.TargetID != nil {
-			targetKey += ":" + item.Instance.TargetID.String()
+		targetKey := ""
+		if item.Candidate != nil {
+			targetKey = item.Candidate.TargetType + ":" + item.Candidate.TargetID.String()
 		}
 		if seenTargets[targetKey] {
 			continue
 		}
-
-		// Within-promoted seller dedup.
 		if seenSellers[item.SellerID] {
 			continue
 		}
-
 		seenTargets[targetKey] = true
 		seenSellers[item.SellerID] = true
 		result = append(result, item)
-
 		if len(result) >= searchMaxPromotedPerPage {
 			break
 		}

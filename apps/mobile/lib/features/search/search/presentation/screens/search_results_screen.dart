@@ -8,34 +8,6 @@ import 'package:labuda/features/search/search/presentation/utils/search_result_t
 import 'package:labuda/features/search/search/presentation/widgets/global_search_bar.dart';
 import 'package:labuda/features/search/search/presentation/widgets/search_result_item.dart';
 import 'package:labuda/shared/widgets/external_link_interstitial.dart';
-import 'package:visibility_detector/visibility_detector.dart';
-
-// Session-level dedupe set for search promotion impressions.
-// Module-level Set — persists for the app session, resets on restart.
-// Independent from feed dedupe — same instance in both surfaces records both.
-final _searchImpressionSeen = <String>{};
-
-// Fire-and-forget impression helper for search promoted results.
-// Records at most once per instance per session; errors silently ignored.
-void _recordSearchImpression(WidgetRef ref, String instanceId) {
-  if (instanceId.isEmpty) return;
-  if (_searchImpressionSeen.contains(instanceId)) return;
-  _searchImpressionSeen.add(instanceId);
-  () async {
-    try {
-      await ref
-          .read(apiClientProvider)
-          .post(
-            '/promotions/events',
-            data: {
-              'promotion_instance_id': instanceId,
-              'event_type': 'impression',
-              'surface': 'search',
-            },
-          );
-    } catch (_) {}
-  }();
-}
 
 /// Screen displaying search results with tabs for different types
 class SearchResultsScreen extends ConsumerStatefulWidget {
@@ -184,22 +156,9 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
       ),
       itemBuilder: (context, index) {
         final result = results[index];
-        final item = SearchResultItem(
+        return SearchResultItem(
           result: result,
           onTap: () => _onResultTap(result),
-        );
-        final instanceId = result.promotionInstanceId;
-        if (!result.isPromoted || instanceId == null || instanceId.isEmpty) {
-          return item;
-        }
-        return VisibilityDetector(
-          key: Key('search_promo_imp_$instanceId'),
-          onVisibilityChanged: (info) {
-            if (info.visibleFraction >= 0.5) {
-              _recordSearchImpression(ref, instanceId);
-            }
-          },
-          child: item,
         );
       },
     );
@@ -286,25 +245,9 @@ Future<void> handleSearchResultTap(
   WidgetRef ref,
   SearchResult result,
 ) async {
-  // Fire-and-forget promotion click tracking for promoted search results.
-  final instanceId = result.promotionInstanceId;
-  if (result.isPromoted && instanceId != null && instanceId.isNotEmpty) {
-    () async {
-      try {
-        await ref
-            .read(apiClientProvider)
-            .post(
-              '/promotions/events',
-              data: {
-                'promotion_instance_id': instanceId,
-                'event_type': 'click',
-                'surface': 'search',
-              },
-            );
-      } catch (_) {}
-    }();
-  }
-
+  // Promotion click tracking removed: the legacy /promotions/events endpoint
+  // is purged and search sidecar cards carry no canonical exposure identity,
+  // so there is no legitimate measurement to acknowledge. Navigation only.
   final navHandler = ref.read(navigationHandlerProvider);
 
   switch (result.type) {

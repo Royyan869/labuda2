@@ -132,10 +132,10 @@ extension SearchResultPromotedExtension on dynamic {
     return false;
   }
 
-  /// Get the promotion instance ID if promoted
-  String? get promotionInstanceId {
+  /// Get the contract ID if promoted
+  String? get contractId {
     if (this is Map<String, dynamic>) {
-      return (this as Map<String, dynamic>)['promotionInstanceId'] as String?;
+      return (this as Map<String, dynamic>)['contractId'] as String?;
     }
     return null;
   }

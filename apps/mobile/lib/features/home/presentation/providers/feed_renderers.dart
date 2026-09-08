@@ -598,57 +598,107 @@ class FeedCard extends ConsumerWidget {
 // P3A — Promoted card widgets
 // ============================================================================
 
-// Fire-and-forget helper for promotion click analytics.
-// Silently ignores errors so tracking never blocks navigation.
-void _recordPromotionClick(WidgetRef ref, String instanceId, String surface) {
-  if (instanceId.isEmpty) return;
+// Canonical click acknowledgements already sent, keyed by the server-issued
+// canonical exposure identity. Client-side memo only — the canonical
+// authority enforces one click per exposure at the DB boundary; this just
+// avoids pointless repeats within a session (mirrors the impression memo).
+final _canonicalClickAcks = <String, bool>{};
+
+void resetCanonicalClickAcks() {
+  _canonicalClickAcks.clear();
+}
+
+/// Resets the client-side canonical promotion exposure memos (impression +
+/// click) so a refreshed feed re-acknowledges newly issued exposure ids.
+/// Called on feed refresh / global refresh; the server still enforces
+/// idempotency per exposure at the DB boundary.
+void resetPromotionExposureAttempts() {
+  _canonicalClickAcks.clear();
+  _canonicalImpressionAcks.clear();
+}
+
+/// Records a client-explicit canonical click acknowledgement: the tapped
+/// canonical card carried a canonical_exposure_id, so the click is reported
+/// to the canonical endpoint by echoing that server-issued exposure identity
+/// (never a naked promotion id — the server derives the promotion from the
+/// exposure). Fire-and-forget — errors silently reset the memo so the next
+/// tap retries.
+void _recordCanonicalPromotionClick(WidgetRef ref, String exposureId) {
+  if (exposureId.isEmpty) return;
+  if (_canonicalClickAcks[exposureId] == true) return;
+  _canonicalClickAcks[exposureId] = true;
   () async {
     try {
-      await ref
-          .read(apiClientProvider)
-          .post(
-            '/promotions/events',
-            data: {
-              'promotion_instance_id': instanceId,
-              'event_type': 'click',
-              'surface': surface,
-            },
-          );
-    } catch (_) {}
+      await ref.read(apiClientProvider).post(
+        '/promotions/clicks',
+        data: {'exposure_id': exposureId},
+      );
+    } catch (_) {
+      _canonicalClickAcks[exposureId] = false;
+    }
   }();
 }
 
-// Session-level dedupe set for feed promotion impressions.
-// Key: "instanceId:surface". Module-level — persists for the app session,
-// resets on restart. No Riverpod state needed (no widget rebuilds required).
-final _feedImpressionSeen = <String>{};
+// Canonical-only promotion click — legacy /promotions/events removed.
+void _recordPromotionClick(
+  WidgetRef ref,
+  String instanceId,
+  String surface, {
+  String? canonicalExposureId,
+}) {
+  if (canonicalExposureId != null && canonicalExposureId.isNotEmpty) {
+    _recordCanonicalPromotionClick(ref, canonicalExposureId);
+  }
+}
 
-// Fire-and-forget impression helper — records at most once per instance per session.
-// Fires when visibleFraction >= 0.5 (caller checks this).
-// Errors are silently ignored so scroll performance is never affected.
+/// Canonical impression acknowledgements already sent, keyed by the server-
+/// issued canonical exposure identity. Client-side memo only — the canonical
+/// authority enforces idempotency at the DB boundary; this just avoids
+/// pointless repeats within a session.
+final _canonicalImpressionAcks = <String, bool>{};
+
+void resetCanonicalImpressionAcks() {
+  _canonicalImpressionAcks.clear();
+}
+
+/// Records a client-explicit canonical impression acknowledgement: the card
+/// carried a canonical_exposure_id, so the impression is reported to the
+/// canonical endpoint by echoing that server-issued exposure identity (never
+/// a naked promotion id) together with the canonical contract id the card
+/// rendered. Fire-and-forget — errors silently reset the memo so the next
+/// visibility event retries.
+void _recordCanonicalPromotionImpression(
+  WidgetRef ref,
+  String contractId,
+  String exposureId,
+) {
+  if (contractId.isEmpty || exposureId.isEmpty) return;
+  if (_canonicalImpressionAcks[exposureId] == true) return;
+  _canonicalImpressionAcks[exposureId] = true;
+  () async {
+    try {
+      await ref.read(apiClientProvider).post(
+        '/promotions/impressions',
+        data: {
+          'exposure_id': exposureId,
+          'contract_id': contractId,
+        },
+      );
+    } catch (_) {
+      _canonicalImpressionAcks[exposureId] = false;
+    }
+  }();
+}
+
 void _recordPromotionImpression(
   WidgetRef ref,
   String instanceId,
-  String surface,
-) {
-  if (instanceId.isEmpty) return;
-  final key = '$instanceId:$surface';
-  if (_feedImpressionSeen.contains(key)) return;
-  _feedImpressionSeen.add(key);
-  () async {
-    try {
-      await ref
-          .read(apiClientProvider)
-          .post(
-            '/promotions/events',
-            data: {
-              'promotion_instance_id': instanceId,
-              'event_type': 'impression',
-              'surface': surface,
-            },
-          );
-    } catch (_) {}
-  }();
+  String surface, {
+  String? canonicalExposureId,
+}) {
+  if (canonicalExposureId != null && canonicalExposureId.isNotEmpty) {
+    _recordCanonicalPromotionImpression(ref, instanceId, canonicalExposureId);
+  }
 }
 
 /// Badge shown on all promoted feed items.
@@ -711,13 +761,15 @@ class PromotedListingCard extends ConsumerWidget {
     final sellerFarmName = data['sellerFarmName'] as String?;
     final sellerLabel = _formatSellerLabel(sellerUsername, sellerFarmName);
     final forSaleId = data['forSaleId'] as String?;
-    final promotionInstanceId = data['promotionInstanceId'] as String? ?? '';
+    final contractId = data['contractId'] as String? ?? '';
+    final canonicalExposureId = data['canonicalExposureId'] as String?;
 
     return VisibilityDetector(
-      key: Key('promo_imp_${promotionInstanceId}_feed_listing'),
+      key: Key('promo_imp_${contractId}_feed_listing'),
       onVisibilityChanged: (info) {
         if (info.visibleFraction >= 0.5) {
-          _recordPromotionImpression(ref, promotionInstanceId, 'feed');
+          _recordPromotionImpression(ref, contractId, 'feed',
+              canonicalExposureId: canonicalExposureId);
         }
       },
       child: Card(
@@ -733,7 +785,8 @@ class PromotedListingCard extends ConsumerWidget {
         child: InkWell(
           onTap: forSaleId != null
               ? () {
-                  _recordPromotionClick(ref, promotionInstanceId, 'feed');
+                  _recordPromotionClick(ref, contractId, 'feed',
+                      canonicalExposureId: canonicalExposureId);
                   context.push(
                     RoutePaths.forSaleDetail.replaceFirst(
                       ':forSaleId',
@@ -844,7 +897,8 @@ class PromotedAuctionCard extends ConsumerWidget {
     final sellerFarmName = data['sellerFarmName'] as String?;
     final sellerLabel = _formatSellerLabel(sellerUsername, sellerFarmName);
     final auctionId = data['auctionId'] as String?;
-    final promotionInstanceId = data['promotionInstanceId'] as String? ?? '';
+    final contractId = data['contractId'] as String? ?? '';
+    final canonicalExposureId = data['canonicalExposureId'] as String?;
 
     final displayPrice = currentBid ?? startPrice;
     final priceLabel = currentBid != null ? 'Bid saat ini' : 'Mulai dari';
@@ -867,10 +921,11 @@ class PromotedAuctionCard extends ConsumerWidget {
     }
 
     return VisibilityDetector(
-      key: Key('promo_imp_${promotionInstanceId}_feed_auction'),
+      key: Key('promo_imp_${contractId}_feed_auction'),
       onVisibilityChanged: (info) {
         if (info.visibleFraction >= 0.5) {
-          _recordPromotionImpression(ref, promotionInstanceId, 'feed');
+          _recordPromotionImpression(ref, contractId, 'feed',
+              canonicalExposureId: canonicalExposureId);
         }
       },
       child: Card(
@@ -886,7 +941,8 @@ class PromotedAuctionCard extends ConsumerWidget {
         child: InkWell(
           onTap: auctionId != null
               ? () {
-                  _recordPromotionClick(ref, promotionInstanceId, 'feed');
+                  _recordPromotionClick(ref, contractId, 'feed',
+                      canonicalExposureId: canonicalExposureId);
                   context.push('/auction/$auctionId');
                 }
               : null,
@@ -1038,13 +1094,15 @@ class PromotedExternalCard extends ConsumerWidget {
     final title = data['title'] as String? ?? '';
     final externalUrl = data['externalUrl'] as String?;
     final externalMediaUrl = data['externalMediaUrl'] as String?;
-    final promotionInstanceId = data['promotionInstanceId'] as String? ?? '';
+    final contractId = data['contractId'] as String? ?? '';
+    final canonicalExposureId = data['canonicalExposureId'] as String?;
 
     return VisibilityDetector(
-      key: Key('promo_imp_${promotionInstanceId}_feed_external'),
+      key: Key('promo_imp_${contractId}_feed_external'),
       onVisibilityChanged: (info) {
         if (info.visibleFraction >= 0.5) {
-          _recordPromotionImpression(ref, promotionInstanceId, 'feed');
+          _recordPromotionImpression(ref, contractId, 'feed',
+              canonicalExposureId: canonicalExposureId);
         }
       },
       child: Card(
@@ -1060,7 +1118,8 @@ class PromotedExternalCard extends ConsumerWidget {
         child: InkWell(
           onTap: externalUrl != null
               ? () {
-                  _recordPromotionClick(ref, promotionInstanceId, 'feed');
+                  _recordPromotionClick(ref, contractId, 'feed',
+                      canonicalExposureId: canonicalExposureId);
                   showExternalLinkInterstitial(context, url: externalUrl);
                 }
               : null,

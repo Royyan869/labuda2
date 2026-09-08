@@ -1,24 +1,28 @@
 // ============================================================================
 // PROMOTED FEED IMPRESSION IDENTITY AND DEDUPLICATION AUTHORITY
 //
-// Proves that impression events for promoted feed cards:
+// Proves that canonical impression acknowledgements for promoted feed cards:
 // 1. Are sent only when visibility >= 0.5 (threshold gate)
-// 2. Contain canonical promotion identity (promotion_instance_id + surface)
-// 3. Are emitted exactly once per instance per session (deduplication)
-// 4. Never generate events for empty/null promotion instance IDs
+// 2. Carry the canonical contract identity (contract_id) + server-issued
+//    exposure identity (exposure_id) — the /promotions/impressions contract.
+// 3. Are emitted exactly once per exposure per session (deduplication)
+// 4. Never generate requests for empty/null exposure identities
 // 5. Never crash or remove cards on transport failure
+//
+// The legacy /promotions/events path is PURGED: a card without a canonical
+// exposure identity acknowledges NOTHING (no impression of any kind).
 //
 // Tests exercise the ACTUAL production card widgets (PromotedListingCard,
 // PromotedAuctionCard, PromotedExternalCard) which call the private
-// _recordPromotionImpression helper. The canonical dedupe set
-// (_feedImpressionSeen) is tested through observed behavior (request
-// counts per instance ID), not through direct inspection.
+// _recordPromotionImpression helper. The canonical dedupe set is tested
+// through observed behavior (request counts per exposure ID), not through
+// direct inspection.
 //
 // DOES NOT TEST:
 //   - Click tracking (separate concern)
 //   - Navigation/routing
 //   - Backend impression storage
-//   - Search impression dedup (separate module)
+//   - Search promotion tracking (removed — no exposure identity)
 //   - Feed parsing/state
 //   - Root wiring (MainScreen)
 // ============================================================================
@@ -53,10 +57,13 @@ class _CapturedPost {
       path.contains('promotions/events') &&
       body['event_type'] == 'impression';
 
-  String? get promotionInstanceId =>
-      body['promotion_instance_id'] as String?;
+  bool get isCanonicalImpressionAck => path.contains('promotions/impressions');
 
   String? get surface => body['surface'] as String?;
+
+  String? get exposureId => body['exposure_id'] as String?;
+
+  String? get contractId => body['contract_id'] as String?;
 }
 
 // ============================================================================
@@ -88,10 +95,15 @@ Map<String, dynamic> _feedContentItem({
     'body': body,
     'created_at': '2026-08-05T10:00:00Z',
     'updated_at': '2026-08-05T10:00:00Z',
+    // FeedItemDto reads identity scalars at the top level (the backend emits
+    // both top-level scalars and the nested public author card).
+    // No avatar URL — keeps widget tests free of network image loads; the
+    // FeedCard avatar falls back to the person icon.
+    'author_id': 'author-1',
+    'author_username': 'alice',
     'author': <String, dynamic>{
       'id': 'author-1',
       'username': 'alice',
-      'avatar_url': 'https://example.com/avatar.jpg',
       'lifecycle': 'active',
     },
     'media': <Map<String, dynamic>>[],
@@ -103,15 +115,18 @@ Map<String, dynamic> _promotedListingItem({
   required String title,
   int pricePerUnit = 5000000,
   String forSaleId = 'listing-1',
+  String? canonicalExposureId,
 }) {
   return <String, dynamic>{
     'type': 'promoted_for_sale',
-    'promotion_instance_id': instanceId,
+    'contract_id': instanceId,
     'target_type': 'for_sale',
     'title': title,
     'image_url': 'https://example.com/koi.jpg',
     'for_sale_id': forSaleId,
     'price_per_unit': pricePerUnit,
+    if (canonicalExposureId != null)
+      'canonical_exposure_id': canonicalExposureId,
   };
 }
 
@@ -122,10 +137,11 @@ Map<String, dynamic> _promotedAuctionItem({
   int? currentBid,
   String auctionId = 'auction-1',
   int bidCount = 3,
+  String? canonicalExposureId,
 }) {
   return <String, dynamic>{
     'type': 'promoted_auction',
-    'promotion_instance_id': instanceId,
+    'contract_id': instanceId,
     'target_type': 'auction',
     'title': title,
     'image_url': 'https://example.com/auction.jpg',
@@ -134,6 +150,8 @@ Map<String, dynamic> _promotedAuctionItem({
     'auction_id': auctionId,
     'end_at': '2026-08-10T10:00:00Z',
     'bid_count': bidCount,
+    if (canonicalExposureId != null)
+      'canonical_exposure_id': canonicalExposureId,
   };
 }
 
@@ -141,14 +159,17 @@ Map<String, dynamic> _promotedExternalItem({
   required String instanceId,
   required String title,
   String externalUrl = 'https://example.com/product',
+  String? canonicalExposureId,
 }) {
   return <String, dynamic>{
     'type': 'promoted_external',
-    'promotion_instance_id': instanceId,
+    'contract_id': instanceId,
     'target_type': 'external_product',
     'title': title,
     'external_url': externalUrl,
     'external_media_url': 'https://example.com/external.jpg',
+    if (canonicalExposureId != null)
+      'canonical_exposure_id': canonicalExposureId,
   };
 }
 
@@ -231,9 +252,9 @@ class _CaptureHttpAdapter implements HttpClientAdapter {
   @override
   void close({bool force = false}) {}
 
-  /// Convenience: all captured impression events.
+  /// Convenience: all captured canonical impression acknowledgements.
   List<_CapturedPost> get impressionPosts =>
-      capturedPosts.where((p) => p.isImpressionEvent).toList();
+      capturedPosts.where((p) => p.isCanonicalImpressionAck).toList();
 
   /// Convenience: all captured click events.
   List<_CapturedPost> get clickPosts => capturedPosts.where(
@@ -334,7 +355,7 @@ class _FakeLikeRepository implements LikeRepository {
 FeedItem _makeFeedItem({
   required String id,
   required FeedItemType type,
-  required String promotionInstanceId,
+  required String contractId,
   required String title,
   Map<String, dynamic> extra = const {},
 }) {
@@ -346,7 +367,9 @@ FeedItem _makeFeedItem({
     createdAt: DateTime.utc(2026, 8, 5, 10, 0),
     additionalData: <String, dynamic>{
       'isPromoted': true,
-      'promotionInstanceId': promotionInstanceId,
+      // Canonical vocabulary: the promoted card identity is the promotion
+      // contract id. The legacy promotionInstanceId key is purged.
+      'contractId': contractId,
       'title': title,
       'imageUrl': 'https://example.com/img.jpg',
       'targetType': 'listing',
@@ -356,35 +379,39 @@ FeedItem _makeFeedItem({
 }
 
 FeedItem _listingItem({
-  String promotionInstanceId = 'pi-imp-listing',
+  String contractId = 'pi-imp-listing',
   String title = 'Impression Test Listing',
   String forSaleId = 'fps-1',
   int pricePerUnit = 5000000,
+  String? canonicalExposureId,
 }) {
   return _makeFeedItem(
-    id: promotionInstanceId,
+    id: contractId,
     type: FeedItemType.promotedListing,
-    promotionInstanceId: promotionInstanceId,
+    contractId: contractId,
     title: title,
     extra: {
       'forSaleId': forSaleId,
       'pricePerUnit': pricePerUnit,
+      if (canonicalExposureId != null)
+        'canonicalExposureId': canonicalExposureId,
     },
   );
 }
 
 FeedItem _auctionItem({
-  String promotionInstanceId = 'pi-imp-auction',
+  String contractId = 'pi-imp-auction',
   String title = 'Impression Test Auction',
   String auctionId = 'auc-1',
   int startPrice = 1000000,
   int? currentBid,
   int bidCount = 3,
+  String? canonicalExposureId,
 }) {
   return _makeFeedItem(
-    id: promotionInstanceId,
+    id: contractId,
     type: FeedItemType.promotedAuction,
-    promotionInstanceId: promotionInstanceId,
+    contractId: contractId,
     title: title,
     extra: {
       'auctionId': auctionId,
@@ -392,24 +419,29 @@ FeedItem _auctionItem({
       'currentBid': currentBid,
       'bidCount': bidCount,
       'endAt': '2026-08-10T10:00:00Z',
+      if (canonicalExposureId != null)
+        'canonicalExposureId': canonicalExposureId,
     },
   );
 }
 
 FeedItem _externalItem({
-  String promotionInstanceId = 'pi-imp-external',
+  String contractId = 'pi-imp-external',
   String title = 'Impression Test External',
   String externalUrl = 'https://example.com/product',
   String? externalMediaUrl,
+  String? canonicalExposureId,
 }) {
   return _makeFeedItem(
-    id: promotionInstanceId,
+    id: contractId,
     type: FeedItemType.promotedExternal,
-    promotionInstanceId: promotionInstanceId,
+    contractId: contractId,
     title: title,
     extra: {
       'externalUrl': externalUrl,
       if (externalMediaUrl != null) 'externalMediaUrl': externalMediaUrl,
+      if (canonicalExposureId != null)
+        'canonicalExposureId': canonicalExposureId,
     },
   );
 }
@@ -523,7 +555,7 @@ void main() {
             // Push the card 3000px down — well below the 2400px viewport.
             const SizedBox(height: 3000),
             PromotedListingCard(
-              item: _listingItem(promotionInstanceId: 'pi-offscreen'),
+              item: _listingItem(contractId: 'pi-offscreen'),
             ),
           ]),
         ),
@@ -539,7 +571,7 @@ void main() {
           reason: 'Off-screen card must not trigger impression');
     });
 
-    testWidgets('eligible visibility → exactly 1 impression with correct payload', (
+    testWidgets('eligible visibility → exactly 1 canonical ack with correct payload', (
       tester,
     ) async {
       _setViewport(tester);
@@ -551,8 +583,9 @@ void main() {
           adapter,
           PromotedListingCard(
             item: _listingItem(
-              promotionInstanceId: 'pi-imp-listing-001',
+              contractId: 'pi-imp-listing-001',
               title: 'Visible Listing Koi',
+              canonicalExposureId: 'exp-listing-001',
             ),
           ),
         ),
@@ -563,17 +596,19 @@ void main() {
       expect(find.byType(PromotedListingCard), findsOneWidget);
       expect(find.text('Visible Listing Koi'), findsOneWidget);
 
-      // Exactly 1 impression event fired.
+      // Exactly 1 canonical impression acknowledgement fired.
       final impressions = adapter.impressionPosts;
       expect(impressions, hasLength(1));
 
-      // Payload contract: promotion_instance_id, event_type, surface.
+      // Payload contract: exposure_id + contract_id (contract authority).
       final imp = impressions.first;
-      expect(imp.promotionInstanceId, 'pi-imp-listing-001');
-      expect(imp.body['event_type'], 'impression');
-      expect(imp.surface, 'feed');
+      expect(imp.exposureId, 'exp-listing-001');
+      expect(imp.contractId, 'pi-imp-listing-001');
+      expect(imp.body.containsKey('promotion_instance_id'), isFalse,
+          reason: 'legacy instance vocabulary is purged');
+      expect(imp.body.containsKey('event_type'), isFalse);
 
-      // No click events from impressions.
+      // No legacy /promotions/events impressions.
       expect(adapter.clickPosts, isEmpty);
     });
   });
@@ -582,7 +617,7 @@ void main() {
   // SCENARIO 2: Promoted Auction impression proof
   // ==========================================================================
   group('SCENARIO 2: Promoted Auction impression', () {
-    testWidgets('eligible visibility → exactly 1 impression with auction identity', (
+    testWidgets('eligible visibility → exactly 1 canonical ack with auction identity', (
       tester,
     ) async {
       _setViewport(tester);
@@ -594,10 +629,11 @@ void main() {
           adapter,
           PromotedAuctionCard(
             item: _auctionItem(
-              promotionInstanceId: 'pi-imp-auction-002',
+              contractId: 'pi-imp-auction-002',
               title: 'Visible Auction Koi',
               currentBid: 3000000,
               bidCount: 7,
+              canonicalExposureId: 'exp-auction-002',
             ),
           ),
         ),
@@ -606,14 +642,13 @@ void main() {
 
       expect(find.byType(PromotedAuctionCard), findsOneWidget);
 
-      // Exactly 1 impression.
+      // Exactly 1 canonical acknowledgement.
       final impressions = adapter.impressionPosts;
       expect(impressions, hasLength(1));
-      expect(impressions.first.promotionInstanceId, 'pi-imp-auction-002');
-      expect(impressions.first.body['event_type'], 'impression');
-      expect(impressions.first.surface, 'feed');
+      expect(impressions.first.exposureId, 'exp-auction-002');
+      expect(impressions.first.contractId, 'pi-imp-auction-002');
 
-      // No click events.
+      // No legacy click events.
       expect(adapter.clickPosts, isEmpty);
     });
   });
@@ -622,7 +657,7 @@ void main() {
   // SCENARIO 3: Promoted External impression proof
   // ==========================================================================
   group('SCENARIO 3: Promoted External impression', () {
-    testWidgets('eligible visibility → exactly 1 impression with external identity', (
+    testWidgets('eligible visibility → exactly 1 canonical ack with external identity', (
       tester,
     ) async {
       _setViewport(tester);
@@ -634,8 +669,9 @@ void main() {
           adapter,
           PromotedExternalCard(
             item: _externalItem(
-              promotionInstanceId: 'pi-imp-external-003',
+              contractId: 'pi-imp-external-003',
               title: 'Visible External Product',
+              canonicalExposureId: 'exp-external-003',
             ),
           ),
         ),
@@ -644,12 +680,11 @@ void main() {
 
       expect(find.byType(PromotedExternalCard), findsOneWidget);
 
-      // Exactly 1 impression.
+      // Exactly 1 canonical acknowledgement.
       final impressions = adapter.impressionPosts;
       expect(impressions, hasLength(1));
-      expect(impressions.first.promotionInstanceId, 'pi-imp-external-003');
-      expect(impressions.first.body['event_type'], 'impression');
-      expect(impressions.first.surface, 'feed');
+      expect(impressions.first.exposureId, 'exp-external-003');
+      expect(impressions.first.contractId, 'pi-imp-external-003');
     });
   });
 
@@ -671,8 +706,9 @@ void main() {
           _RebuildableHost(
             child: PromotedListingCard(
               item: _listingItem(
-                promotionInstanceId: 'pi-imp-rebuild-004',
+                contractId: 'pi-imp-rebuild-004',
                 title: 'Rebuild Test Listing',
+                canonicalExposureId: 'exp-rebuild-004',
               ),
             ),
           ),
@@ -682,7 +718,7 @@ void main() {
 
       expect(find.byType(PromotedListingCard), findsOneWidget);
 
-      // Initial impression: exactly 1.
+      // Initial canonical acknowledgement: exactly 1.
       expect(adapter.impressionPosts, hasLength(1));
 
       // Trigger widget rebuild (setState in the host widget).
@@ -714,8 +750,9 @@ void main() {
             adapter,
             PromotedAuctionCard(
               item: _auctionItem(
-                promotionInstanceId: 'pi-imp-vd-repeat-005',
+                contractId: 'pi-imp-vd-repeat-005',
                 title: 'VD Repeat Test',
+                canonicalExposureId: 'exp-vd-repeat-005',
               ),
             ),
           ),
@@ -730,10 +767,10 @@ void main() {
         VisibilityDetectorController.instance.notifyNow();
         await _pumpFrames(tester);
 
-        // Still exactly 1 impression.
+        // Still exactly 1 canonical acknowledgement.
         final impressions = adapter.impressionPosts;
         expect(impressions, hasLength(1));
-        expect(impressions.first.promotionInstanceId, 'pi-imp-vd-repeat-005');
+        expect(impressions.first.exposureId, 'exp-vd-repeat-005');
       },
     );
   });
@@ -762,20 +799,23 @@ void main() {
           Column(children: [
             PromotedListingCard(
               item: _listingItem(
-                promotionInstanceId: 'pi-imp-distinct-A',
+                contractId: 'pi-imp-distinct-A',
                 title: 'Distinct A',
+                canonicalExposureId: 'exp-distinct-A',
               ),
             ),
             PromotedAuctionCard(
               item: _auctionItem(
-                promotionInstanceId: 'pi-imp-distinct-B',
+                contractId: 'pi-imp-distinct-B',
                 title: 'Distinct B',
+                canonicalExposureId: 'exp-distinct-B',
               ),
             ),
             PromotedExternalCard(
               item: _externalItem(
-                promotionInstanceId: 'pi-imp-distinct-C',
+                contractId: 'pi-imp-distinct-C',
                 title: 'Distinct C',
+                canonicalExposureId: 'exp-distinct-C',
               ),
             ),
           ]),
@@ -788,11 +828,11 @@ void main() {
       expect(find.byType(PromotedAuctionCard), findsOneWidget);
       expect(find.byType(PromotedExternalCard), findsOneWidget);
 
-      // Each fires exactly 1 impression = 3 total.
+      // Each fires exactly 1 canonical ack = 3 total.
       final impressions = adapter.impressionPosts;
       expect(impressions, hasLength(3));
 
-      final ids = impressions.map((p) => p.promotionInstanceId).toSet();
+      final ids = impressions.map((p) => p.contractId).toSet();
       expect(ids, containsAll(['pi-imp-distinct-A', 'pi-imp-distinct-B', 'pi-imp-distinct-C']));
     });
   });
@@ -801,14 +841,14 @@ void main() {
   // SCENARIO 6: Empty identity
   // ==========================================================================
   group('SCENARIO 6: Empty promotion identity', () {
-    testWidgets('null promotionInstanceId → 0 impression requests', (
+    testWidgets('null contractId → 0 impression requests', (
       tester,
     ) async {
       _setViewport(tester);
 
       final adapter = _CaptureHttpAdapter();
 
-      // Card with no promotionInstanceId in additionalData.
+      // Card with no contractId in additionalData.
       final item = FeedItem(
         id: 'empty-id',
         content: 'No Instance ID',
@@ -820,7 +860,7 @@ void main() {
           'title': 'No Instance',
           'forSaleId': 'fps-empty',
           'pricePerUnit': 100000,
-          // promotionInstanceId deliberately absent
+          // contractId deliberately absent
         },
       );
 
@@ -837,7 +877,7 @@ void main() {
       expect(adapter.impressionPosts, isEmpty);
     });
 
-    testWidgets('empty string promotionInstanceId → 0 impression requests', (
+    testWidgets('empty string contractId → 0 impression requests', (
       tester,
     ) async {
       _setViewport(tester);
@@ -849,7 +889,7 @@ void main() {
           adapter,
           PromotedListingCard(
             item: _listingItem(
-              promotionInstanceId: '', // empty
+              contractId: '', // empty
               title: 'Empty Instance ID',
             ),
           ),
@@ -878,19 +918,19 @@ void main() {
           Column(children: [
             PromotedListingCard(
               item: _listingItem(
-                promotionInstanceId: '',
+                contractId: '',
                 title: 'Empty Listing',
               ),
             ),
             PromotedAuctionCard(
               item: _auctionItem(
-                promotionInstanceId: '',
+                contractId: '',
                 title: 'Empty Auction',
               ),
             ),
             PromotedExternalCard(
               item: _externalItem(
-                promotionInstanceId: '',
+                contractId: '',
                 title: 'Empty External',
               ),
             ),
@@ -919,16 +959,12 @@ void main() {
       _setViewport(tester);
 
       // The _recordPromotionImpression helper catches all errors silently.
-      // The fake adapter returns generic success for all non-feed POSTs,
-      // which means the POST to /promotions/events succeeds by default.
-      // To test transport failure, we need the adapter to throw on the POST.
-      //
-      // However, the impression POST is fire-and-forget with `catch (_) {}`.
+      // The canonical impression POST is fire-and-forget with `catch (_) {}`.
       // Even if the POST throws, the card survives. The adapter always
-      // returns success for POSTs in our harness, so the event IS recorded.
+      // returns success for POSTs in our harness, so the ack IS recorded.
       //
-      // Proof strategy: verify the catch block exists in source, and verify
-      // that multiple impressions can fire without crashing the widget tree.
+      // Proof strategy: verify the ack fires and the card survives the
+      // fire-and-forget transport.
 
       final adapter = _CaptureHttpAdapter();
 
@@ -937,8 +973,9 @@ void main() {
           adapter,
           PromotedListingCard(
             item: _listingItem(
-              promotionInstanceId: 'pi-imp-transport-007',
+              contractId: 'pi-imp-transport-007',
               title: 'Transport Test',
+              canonicalExposureId: 'exp-transport-007',
             ),
           ),
         ),
@@ -949,7 +986,7 @@ void main() {
       expect(find.byType(PromotedListingCard), findsOneWidget);
       expect(find.text('Transport Test'), findsOneWidget);
 
-      // Impression was sent.
+      // Canonical acknowledgement was sent.
       expect(adapter.impressionPosts, hasLength(1));
 
       // Card still in tree — no removal.
@@ -968,24 +1005,25 @@ void main() {
           adapter,
           PromotedListingCard(
             item: _listingItem(
-              promotionInstanceId: 'pi-fire-forget',
+              contractId: 'pi-fire-forget',
               title: 'Fire-and-Forget',
+              canonicalExposureId: 'exp-fire-forget',
             ),
           ),
         ),
       );
       await _pump(tester);
 
-      // Impression was sent (fire).
+      // Canonical acknowledgement was sent (fire).
       expect(adapter.impressionPosts, hasLength(1));
 
       // Card is still in the tree (forget — no crash, no removal).
       expect(find.byType(PromotedListingCard), findsOneWidget);
       expect(find.text('Fire-and-Forget'), findsOneWidget);
 
-      // Multiple impressions on the same instance are deduped.
+      // Multiple visibility callbacks on the same exposure are deduped.
       // The widget does NOT retry or re-fire on failure.
-      // (Proven by dedup: only 1 event despite multiple callbacks)
+      // (Proven by dedup: only 1 ack despite multiple callbacks)
     });
   });
 
@@ -1006,6 +1044,7 @@ void main() {
                 _promotedListingItem(
                   instanceId: 'pi-pipeline-listing',
                   title: 'Pipeline Listing',
+                  canonicalExposureId: 'exp-pipeline-listing',
                 ),
               ],
               hasMore: false,
@@ -1023,12 +1062,11 @@ void main() {
         expect(find.byType(PromotedListingCard), findsOneWidget);
         expect(find.text('Pipeline Listing'), findsOneWidget);
 
-        // Impression event fired through the full production pipeline.
+        // Canonical impression ack fired through the full production pipeline.
         final impressions = adapter.impressionPosts;
         expect(impressions, hasLength(1));
-        expect(impressions.first.promotionInstanceId, 'pi-pipeline-listing');
-        expect(impressions.first.body['event_type'], 'impression');
-        expect(impressions.first.surface, 'feed');
+        expect(impressions.first.exposureId, 'exp-pipeline-listing');
+        expect(impressions.first.contractId, 'pi-pipeline-listing');
       },
     );
 
@@ -1046,11 +1084,13 @@ void main() {
                 _promotedAuctionItem(
                   instanceId: 'pi-pipeline-auction',
                   title: 'Pipeline Auction',
+                  canonicalExposureId: 'exp-pipeline-auction',
                 ),
                 _feedContentItem(id: 'organic-2', body: 'Another post'),
                 _promotedExternalItem(
                   instanceId: 'pi-pipeline-external',
                   title: 'Pipeline External',
+                  canonicalExposureId: 'exp-pipeline-external',
                 ),
               ],
               hasMore: false,
@@ -1070,21 +1110,133 @@ void main() {
         expect(find.byType(PromotedAuctionCard), findsOneWidget);
         expect(find.byType(PromotedExternalCard), findsOneWidget);
 
-        // Only promoted items fire impressions.
+        // Only promoted items with a canonical exposure fire acknowledgements.
         final impressions = adapter.impressionPosts;
-        // Two promoted items → up to two impressions.
+        // Two promoted items → up to two acknowledgements.
         // If both are visible, each fires once.
         expect(impressions.length, lessThanOrEqualTo(2));
         expect(impressions.length, greaterThanOrEqualTo(1));
 
-        // All impressions have correct contract.
+        // All acknowledgements carry the canonical exposure + contract ids.
         for (final imp in impressions) {
-          expect(imp.body['event_type'], 'impression');
-          expect(imp.surface, 'feed');
-          expect(imp.promotionInstanceId, isNotEmpty);
+          expect(imp.exposureId, isNotEmpty);
+          expect(imp.contractId, isNotEmpty);
         }
       },
     );
+  });
+
+  // ==========================================================================
+  // CANONICAL IMPRESSION ACKNOWLEDGEMENT (exposure-echo path)
+  //
+  // Proves the narrow canonical client path: a canonical card that carries a
+  // server-issued canonical_exposure_id acknowledges its impression to the
+  // canonical /promotions/impressions endpoint by ECHOING that exposure
+  // identity together with the canonical contract id, exactly once per
+  // exposure. A card without an exposure identity acknowledges NOTHING — the
+  // legacy /promotions/events path is purged.
+  // ==========================================================================
+  group('CANONICAL: impression acknowledgement via exposure echo', () {
+    testWidgets('canonical card reports exposure echo, not a legacy event', (
+      tester,
+    ) async {
+      _setViewport(tester);
+
+      final adapter = _CaptureHttpAdapter();
+      const contractId = 'pi-canonical-1';
+      const exposureId = 'exp-canonical-1';
+      final card = PromotedExternalCard(
+        item: _externalItem(
+          contractId: contractId,
+          title: 'Canonical External',
+          canonicalExposureId: exposureId,
+        ),
+      );
+
+      await tester.pumpWidget(_buildDirectCardHarness(adapter, card));
+      await _pump(tester);
+
+      final acks = adapter.capturedPosts
+          .where((p) => p.isCanonicalImpressionAck)
+          .toList();
+      expect(acks, hasLength(1), reason: 'one canonical card → one exposure echo');
+      expect(acks.single.exposureId, exposureId,
+          reason: 'the ack echoes the server-issued exposure identity');
+      expect(acks.single.contractId, contractId,
+          reason: 'the ack carries the canonical contract id');
+      // No legacy instance-bound impression event for the canonical card.
+      expect(
+        adapter.capturedPosts.where((p) => p.isImpressionEvent).toList(),
+        isEmpty,
+      );
+    });
+
+    testWidgets('exposure echo is sent at most once per exposure (dedupe)', (
+      tester,
+    ) async {
+      _setViewport(tester);
+
+      final adapter = _CaptureHttpAdapter();
+      const exposureId = 'exp-canonical-dedupe';
+      final host = _RebuildableHost(
+        child: PromotedExternalCard(
+          item: _externalItem(
+            contractId: 'pi-canonical-dedupe',
+            title: 'Canonical Dedupe',
+            canonicalExposureId: exposureId,
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(_buildDirectCardHarness(adapter, host));
+      await _pump(tester);
+
+      // Force rebuilds → repeated visibility callbacks must not re-send.
+      final state = tester.state<_RebuildableHostState>(
+        find.byType(_RebuildableHost),
+      );
+      for (int i = 0; i < 3; i++) {
+        state.rebuild();
+        await _pump(tester);
+      }
+
+      final acks = adapter.capturedPosts
+          .where((p) => p.isCanonicalImpressionAck)
+          .toList();
+      expect(acks, hasLength(1),
+          reason: 'the same exposure must be acknowledged at most once per session');
+    });
+
+    testWidgets('card without exposure id acknowledges nothing', (
+      tester,
+    ) async {
+      _setViewport(tester);
+
+      final adapter = _CaptureHttpAdapter();
+      final card = PromotedExternalCard(
+        item: _externalItem(
+          contractId: 'pi-no-exposure-1',
+          title: 'No Exposure External',
+        ),
+      );
+
+      await tester.pumpWidget(_buildDirectCardHarness(adapter, card));
+      await _pump(tester);
+
+      // No canonical ack and NO legacy /promotions/events impression: the
+      // legacy endpoint is purged, and without an exposure identity there is
+      // nothing legitimate to acknowledge.
+      final acks = adapter.capturedPosts
+          .where((p) => p.isCanonicalImpressionAck)
+          .toList();
+      expect(acks, isEmpty,
+          reason: 'no exposure identity → no canonical impression ack');
+      final legacy = adapter.capturedPosts
+          .where((p) => p.isImpressionEvent)
+          .toList();
+      expect(legacy, isEmpty,
+          reason: 'the legacy /promotions/events path is purged');
+    });
   });
 
 }

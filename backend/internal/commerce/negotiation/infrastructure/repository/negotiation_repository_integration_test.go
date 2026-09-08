@@ -204,8 +204,10 @@ func TestNegotiationRepository_AcceptSetsAcceptedPriceAndAt(t *testing.T) {
 }
 
 // TestNegotiationRepository_ChatRoomLinkageRoundTrips proves chat_room_id
-// persists and satisfies its FK to chat_rooms, and that
-// GetAcceptedSessionByChatRoomID resolves it back.
+// persists and satisfies its FK to chat_rooms, and that the surviving room
+// lookup (GetLatestSessionByChatRoomID, used by GetNegotiation) resolves it
+// back. The accepted-session-by-room lookup was removed with the dead
+// POST /chat/rooms/:room_id/order endpoint (N6).
 func TestNegotiationRepository_ChatRoomLinkageRoundTrips(t *testing.T) {
 	tdb, repo, cleanup := setupNegotiationTest(t)
 	defer cleanup()
@@ -232,14 +234,14 @@ func TestNegotiationRepository_ChatRoomLinkageRoundTrips(t *testing.T) {
 	var found *negotiationEntity.NegotiationSession
 	err := tdb.WithTx(ctx, func(tx db.Tx) error {
 		var err error
-		found, err = repo.GetAcceptedSessionByChatRoomID(ctx, tx, roomID)
+		found, err = repo.GetLatestSessionByChatRoomID(ctx, tx, roomID)
 		return err
 	})
 	if err != nil {
-		t.Fatalf("GetAcceptedSessionByChatRoomID: %v", err)
+		t.Fatalf("GetLatestSessionByChatRoomID: %v", err)
 	}
 	if found == nil {
-		t.Fatal("expected accepted session to be found by chat_room_id, got nil")
+		t.Fatal("expected session to be found by chat_room_id, got nil")
 	}
 	if found.ID != session.ID {
 		t.Fatalf("session ID mismatch: got %v want %v", found.ID, session.ID)
@@ -249,10 +251,12 @@ func TestNegotiationRepository_ChatRoomLinkageRoundTrips(t *testing.T) {
 	}
 }
 
-// TestNegotiationRepository_UpdateOrderIDRoundTrips proves order_id persists,
-// satisfies its FK to orders, and enforces the one-order-per-negotiation
-// unique constraint that backs ErrNegotiationAlreadySettled.
-func TestNegotiationRepository_UpdateOrderIDRoundTrips(t *testing.T) {
+// TestNegotiationRepository_OrderIDRoundTripsViaUpdateSession proves the
+// canonical settlement write path — entity sets OrderID on the locked session
+// and persists it with UpdateSession (there is no UpdateOrderID authority
+// since N6) — against the live schema: order_id persists, satisfies its FK to
+// orders, and round-trips through GetSession.
+func TestNegotiationRepository_OrderIDRoundTripsViaUpdateSession(t *testing.T) {
 	tdb, repo, cleanup := setupNegotiationTest(t)
 	defer cleanup()
 	ctx := context.Background()
@@ -267,10 +271,15 @@ func TestNegotiationRepository_UpdateOrderIDRoundTrips(t *testing.T) {
 		t.Fatalf("CreateSession: %v", err)
 	}
 
+	// Mirror canonical settlement: accepted session → OrderID set → UpdateSession.
+	if err := session.AcceptWithPrice(); err != nil {
+		t.Fatalf("AcceptWithPrice: %v", err)
+	}
+	session.OrderID = &orderID
 	if err := tdb.WithTx(ctx, func(tx db.Tx) error {
-		return repo.UpdateOrderID(ctx, tx, session.ID, orderID)
+		return repo.UpdateSession(ctx, tx, session)
 	}); err != nil {
-		t.Fatalf("UpdateOrderID: %v", err)
+		t.Fatalf("UpdateSession (with OrderID): %v", err)
 	}
 
 	var fetched *negotiationEntity.NegotiationSession

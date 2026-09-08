@@ -123,9 +123,8 @@ type SyncUserResponse struct {
 //   - seller profile present); it is the only publicly-safe trust flag
 //     this surface emits.
 //
-// E5.1 — Identity is the canonical public-card seam per ADR-006 and
-// docs/contracts/public-card-boundary.md §1.1. It carries the
-// publiccard.UserCard with lifecycle populated via
+// E5.1 — Identity is the canonical public-card seam per ADR-006. It carries
+// the publiccard.UserCard with lifecycle populated via
 // publiccard.NewWithLifecycle from viewercontext.CoarsenLifecycle. New
 // consumers MUST read identity.* (and in particular identity.lifecycle for
 // the public lifecycle state).

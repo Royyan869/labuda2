@@ -77,6 +77,8 @@ const (
 	AccountBuyerRefundable = finance.AccountBuyerRefundable
 	AccountPlatformRevenue = finance.AccountPlatformRevenue
 	AccountBankSettlement  = finance.AccountBankSettlement
+	AccountPromoteBalance      = finance.AccountPromoteBalance
+	AccountPromotionAllocation = finance.AccountPromotionAllocation
 )
 
 

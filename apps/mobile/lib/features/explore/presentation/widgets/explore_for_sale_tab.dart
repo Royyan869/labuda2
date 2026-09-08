@@ -4,16 +4,15 @@ import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/for_sale.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_card.dart';
-import 'package:labuda/features/explore/presentation/providers/explore_promotion_providers.dart';
-import 'package:labuda/features/explore/presentation/widgets/explore_promoted_section.dart';
 
 /// For Sale tab content for Explore screen.
 ///
 /// FEED / DISCOVERY QUALITY PASS V1:
 /// - Commerce surface (for-sale only)
-/// - Promoted for-sales appear in a small top section
 /// - Organic for-sale list remains the primary browse experience
 /// - External products are intentionally excluded
+/// - Canonical promotion surfaces are Feed and Search; the legacy
+///   /promotions/discover authority is purged, so Explore is organic-only.
 class ExploreForSaleTab extends ConsumerWidget {
   const ExploreForSaleTab({super.key});
 
@@ -24,65 +23,33 @@ class ExploreForSaleTab extends ConsumerWidget {
         const ForSalesParams(status: ForSaleStatus.active, limit: 50),
       ),
     );
-    final promotedIdsAsync = ref.watch(
-      explorePromotedForSaleIdsProvider,
-    );
 
     return listingsAsync.when(
       data: (listings) {
-        final promotedIds = promotedIdsAsync.maybeWhen(
-          data: (ids) => ids.toSet(),
-          orElse: () => <String>{},
-        );
-        final promotedListings = listings
-            .where((listing) => promotedIds.contains(listing.forSaleId))
-            .toList();
-        final organicListings = listings
-            .where((listing) => !promotedIds.contains(listing.forSaleId))
-            .toList();
-
         return RefreshIndicator(
           onRefresh: () async {
-            await Future.wait([
-              ref.read(
-                forSalesProvider(
-                  const ForSalesParams(status: ForSaleStatus.active, limit: 50),
-                ).future,
-              ),
-              ref.read(explorePromotedForSaleIdsProvider.future),
-            ]);
+            await ref.read(
+              forSalesProvider(
+                const ForSalesParams(status: ForSaleStatus.active, limit: 50),
+              ).future,
+            );
           },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              if (promotedListings.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: ExplorePromotedSection(
-                    title: 'Listing Dipromosikan',
-                    children: promotedListings
-                        .map(
-                          (listing) => ForSaleCard(
-                            listing: listing,
-                            onTap: () =>
-                                _navigateToForSaleDetail(context, listing),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
-              if (organicListings.isEmpty && promotedListings.isEmpty)
+              if (listings.isEmpty)
                 SliverFillRemaining(child: _buildEmptyState(context))
               else
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate((context, index) {
-                      final listing = organicListings[index];
+                      final listing = listings[index];
                       return ForSaleCard(
                         listing: listing,
                         onTap: () => _navigateToForSaleDetail(context, listing),
                       );
-                    }, childCount: organicListings.length),
+                    }, childCount: listings.length),
                   ),
                 ),
             ],
@@ -134,4 +101,4 @@ class ExploreForSaleTab extends ConsumerWidget {
       ),
     );
   }
-}
+}

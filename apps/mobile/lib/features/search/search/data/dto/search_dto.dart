@@ -854,7 +854,9 @@ class SearchHistoryDto {
 class PromotedSearchItemDto {
   final String
   type; // promoted_fixed_price_sale, promoted_auction, promoted_external
-  final String promotionInstanceId;
+  /// Canonical contract identity (promotion_contracts.id) carried on the
+  /// wire as `contract_id`. The legacy `promotion_instance_id` key is purged.
+  final String contractId;
   final String targetType; // for_sale, auction, external_product
   final int injectAt; // 0-based index to insert before in organic list
 
@@ -884,7 +886,7 @@ class PromotedSearchItemDto {
 
   const PromotedSearchItemDto({
     required this.type,
-    required this.promotionInstanceId,
+    required this.contractId,
     required this.targetType,
     required this.injectAt,
     this.title,
@@ -908,7 +910,7 @@ class PromotedSearchItemDto {
   factory PromotedSearchItemDto.fromJson(Map<String, dynamic> json) {
     return PromotedSearchItemDto(
       type: json['type'] as String? ?? '',
-      promotionInstanceId: json['promotion_instance_id'] as String? ?? '',
+      contractId: json['contract_id'] as String? ?? '',
       targetType: json['target_type'] as String? ?? '',
       injectAt: (json['inject_at'] as num?)?.toInt() ?? 0,
       title: json['title'] as String?,

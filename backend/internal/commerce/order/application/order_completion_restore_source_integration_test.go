@@ -3,7 +3,6 @@
 package application
 
 import (
-	"encoding/json"
 	"context"
 	"testing"
 	"time"
@@ -83,7 +82,7 @@ func TestStage5_RestoreListingStock_ResolvesSurfaceFromOrderSource(t *testing.T)
 	SellingSurface: productEntity.SellingSurfaceForSale,
 }
 	productRepo := productInfraRepo.NewProductRepository()
-	if err := productRepo.Create(ctx, tx, listing_product); err != None {
+	if err := productRepo.Create(ctx, tx, listing_product); err != nil {
 		return err
 	}
 	listing, err := fpsentity.NewForSaleSurface(sellerID, fpsentity.ForSaleTypeFixedPrice, money.New(50000), 2, false, fpsentity.ForSaleVisibilityPublic)

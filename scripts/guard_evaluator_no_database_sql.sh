@@ -3,11 +3,9 @@ set -e
 
 # B4.2 / G2 — evaluator package MUST NOT import "database/sql".
 #
-# Doctrine: docs/contracts/governance-constitution.md §3 (F1, F2, F3) +
-# §8.1 G2. The evaluator is a pure decision module. Importing
+# Doctrine: The evaluator is a pure decision module. Importing
 # "database/sql" implies the evaluator owns query authority, which
-# violates the locked rule "evaluator never fetches internally" and the
-# operational lock in docs/contracts/viewer-context.md §2.4.
+# violates the locked rule "evaluator never fetches internally" (G2).
 #
 # This guard is anti-drift only. Existing transitional debt on the
 # evaluator package (the pgxpool runners on feed and content-detail
@@ -37,7 +35,6 @@ if [ -n "$VIOLATIONS" ]; then
   echo "❌ BLOCKED: evaluator package imports \"database/sql\""
   echo ""
   echo "Forbidden pattern (G2): import \"database/sql\" inside $EVALUATOR_DIR"
-  echo "See: docs/contracts/governance-constitution.md §3 F1–F3, §8.1 G2"
   echo ""
   echo "Offending files:"
   echo "$VIOLATIONS"

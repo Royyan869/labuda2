@@ -28,6 +28,7 @@ import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_providers.dart';
 import 'package:labuda/domains/commerce/transaction/order/presentation/screens/order_detail_screen.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
+import 'package:labuda/domains/commerce/negotiation/negotiation/domain/entities/negotiation.dart' show NegotiationStatus;
 import 'package:labuda/domains/user/profile/profile.dart' show userDataProvider;
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
 import 'package:labuda/domains/system/report/presentation/screens/report_screen.dart';
@@ -830,6 +831,20 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         return;
       }
 
+      // N3 convergence: if chat has an accepted negotiation for same for_sale, include negotiation_id
+      String? acceptedNegotiationId;
+      try {
+        final negoState = ref.read(negotiationNotifierProvider);
+        final cur = negoState.currentNegotiation;
+        if (cur != null &&
+            cur.status == NegotiationStatus.accepted &&
+            cur.fixedPriceSaleId == target.forSaleId) {
+          acceptedNegotiationId = cur.id;
+        }
+      } catch (_) {
+        // best-effort; ignore if negotiation provider unavailable
+      }
+
       if (target.auctionId != null) {
         // Auction shipping quote: navigate with explicit auction identity.
         // source_type=auction, source_id=auctionId, product_id=productId (distinct).
@@ -856,6 +871,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       } else {
         _navigateToCheckout(
           target.forSaleId!,
+          negotiationId: acceptedNegotiationId,
           shippingQuoteId: shippingQuote.offerId,
           returnToChat: true,
         );

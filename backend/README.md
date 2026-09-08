@@ -4,7 +4,7 @@ Go API server for the Labuda marketplace platform. Gin framework, Firebase auth,
 
 - Production entrypoint: [`cmd/core_server/main.go`](cmd/core_server/main.go)
 - Route registration: [`cmd/core_server/routes_core.go`](cmd/core_server/routes_core.go)
-- Migration governance: [`../docs/operations/migration-governance.md`](../docs/operations/migration-governance.md)
+- Migration governance: [`migrations/README.md`](migrations/README.md)
 - Entrypoint classification: [`cmd/README.md`](cmd/README.md)
 
 ---
@@ -66,9 +66,9 @@ go run ./cmd/migrate
 
 Run this before starting `core_server`. The server does not auto-apply migrations.
 
-> **Do not use `make migrate-up`.** The Makefile uses the external `migrate` CLI tool, which has a different `schema_migrations` table schema. Mixing it with `go run ./cmd/migrate` on the same database corrupts the migration state. Always use `go run ./cmd/migrate`.
+> **Do not use the external `migrate` CLI.** It writes a different `schema_migrations` table schema. Mixing it with `go run ./cmd/migrate` on the same database corrupts the migration state. Always use `go run ./cmd/migrate`.
 
-See [`docs/operations/migration-governance.md`](../docs/operations/migration-governance.md) for migration authoring rules.
+See [`migrations/README.md`](migrations/README.md) for migration authoring rules.
 
 ### 4. Seed reference data
 
@@ -80,11 +80,14 @@ go run ./cmd/seed
 
 ### 5. Create admin user
 
-The seeder does not create admin users. See [`docs/operations/admin-bootstrap.md`](../docs/operations/admin-bootstrap.md) for how to bootstrap the first admin via SQL.
+The admin panel cannot create an admin itself. For local development the seeder creates
+`admin@test.local` (with `buyer@test.local` and `seller@test.local`) and grants the minimal
+admin capabilities `governance.capability.assign` and `governance.dashboard.view`, so further
+capabilities can be granted through the panel. In environments where the seeder is not run,
+bootstrap the first admin directly in SQL using the same `users` + `user_capabilities` insert
+pattern that `cmd/seed` applies.
 
-For a full owner-test seed (buyer/seller/order states), see [`docs/operations/dev-seed-guide.md`](../docs/operations/dev-seed-guide.md).
-
-### 5. Run the server
+### 6. Run the server
 
 ```bash
 # Windows or any shell
@@ -139,11 +142,7 @@ backend/
 │   ├── interaction/   Chat, notifications, ratings
 │   ├── social/        Content, follows, likes, comments
 │   └── user/          Auth, profiles, seller, verification
-├── migrations/        PostgreSQL migration chain (000100+)
-│   └── legacy_do_not_run/
-│       ├── 000_init/  Legacy split-init docs — NOT run
-│       ├── archive/   Frozen table definitions — NOT run
-│       └── snapshots/ Snapshot material — NOT run
+├── migrations/        Canonical PostgreSQL migration chain (000001 baseline + additive hardening)
 ├── docs/              Generated Swagger/API docs (docs.go, swagger.*)
 ├── pkg/               Shared infrastructure (db, redis, firebase, config)
 └── scripts/           Guard scripts and CI helpers
@@ -168,4 +167,4 @@ backend/
 | `pq: relation "schema_migrations" does not exist` | Run `cd backend && go run ./cmd/migrate` before starting the server |
 | `Firebase: could not fetch token` | Check `FIREBASE_SERVICE_ACCOUNT_KEY_PATH` and file existence |
 | Port 8080 in use | Change `PORT=` in `.env` |
-| `migrate: Dirty database` | If you are using the Makefile / external `migrate` CLI path, run `make migrate-force version=N` where N is the dirty version. For `go run ./cmd/migrate`, recreate the DB and rerun migrations. |
+| Legacy golang-migrate table or dirty state | The external `migrate` CLI is unsupported — its `schema_migrations` shape is incompatible with the canonical runner. Recreate the DB (or drop the legacy table) and rerun `go run ./cmd/migrate`. |

@@ -97,12 +97,6 @@ func NewOrderService(
 	}
 }
 
-// GetCreationService returns the OrderCreationService for external access.
-// Used by chat handler for chat-centric order creation.
-func (s *OrderService) GetCreationService() *OrderCreationService {
-	return s.creationService
-}
-
 // SetCommerceGovRepository wires the canonical commerce restriction repository
 // into the order creation path so buyer restriction is enforced inside the
 // same transaction as the order mutation.

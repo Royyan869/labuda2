@@ -25,4 +25,5 @@ var (
 	ErrNoShippingSetups                      = errors.New("NO_SHIPPING_OPTIONS: for_sale has no shipping options configured")
 	ErrShippingSetupUnavailable              = errors.New("SHIPPING_OPTION_UNAVAILABLE: shipping option not available for buyer address")
 	ErrInvalidSellableCreateShippingSelection = errors.New("INVALID_SHIPPING_SELECTION: shipping option does not exist or does not belong to seller")
+	ErrShippingLiveImmutable                 = errors.New("LIVE_IMMUTABLE: shipping configuration is immutable for live/frozen product")
 )

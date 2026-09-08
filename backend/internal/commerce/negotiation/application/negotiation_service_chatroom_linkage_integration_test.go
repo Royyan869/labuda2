@@ -3,15 +3,18 @@
 // Package application_test proves the PASS_7B fix end to end against a real
 // database: NegotiationService.StartNegotiation now (1) rejects a chat room
 // whose other participant is not the resolved seller, and (2) persists the
-// session's chat_room_id at creation time, so GetNegotiation and
-// CreateOrderFromChat's underlying repository lookups
-// (GetLatestSessionByChatRoomID / GetAcceptedSessionByChatRoomIDForUpdate)
-// can actually find the session — which they never could before this fix,
-// since chat_room_id was always NULL (PASS_7A finding).
+// session's chat_room_id at creation time, so GetNegotiation's repository
+// lookup (GetLatestSessionByChatRoomID) can actually find the session — which
+// it never could before this fix, since chat_room_id was always NULL
+// (PASS_7A finding).
+//
+// N6: the accepted-session-by-room checkout lookup (GetAcceptedSessionByChatRoomID
+// and its ForUpdate variant) was removed together with the dead
+// POST /chat/rooms/:room_id/order endpoint; only the live GetLatestSessionByChatRoomID
+// linkage coverage remains here.
 package application_test
 
 import (
-	"encoding/json"
 	"context"
 	"errors"
 	"testing"
@@ -113,8 +116,8 @@ func insertLinkageTestForSale(
 	SellingSurface: productEntity.SellingSurfaceForSale,
 }
 	productRepo := productInfraRepo.NewProductRepository()
-	if err := productRepo.Create(ctx, tx, sale_product); err != None {
-		return err
+	if err := productRepo.Create(ctx, tx, sale_product); err != nil {
+		t.Fatalf("productRepo.Create: %v", err)
 	}
 	sale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(500000), 1, true, // negotiationEnabled
 		forsaleEntity.ForSaleVisibilityPublic)
@@ -307,70 +310,6 @@ func TestGetLatestSessionByChatRoomID_UnrelatedRoomCannotDiscloseSession(t *test
 	}
 	if foundForBystander != nil {
 		t.Fatalf("DISCLOSURE: userB's room lookup found buyer/sellerA's negotiation: %+v", foundForBystander)
-	}
-}
-
-// TestAcceptedNegotiation_FindableByGetAcceptedSessionByChatRoomIDForUpdate
-// is the checkout happy-path test (task item 2), at the exact repository
-// lookup CreateOrderFromChat depends on: after StartNegotiation + Accept,
-// the accepted session must be findable by the same room CreateOrderFromChat
-// will be called against.
-func TestAcceptedNegotiation_FindableByGetAcceptedSessionByChatRoomIDForUpdate(t *testing.T) {
-	ctx := context.Background()
-	h, cleanup := setupNegotiationLinkageHarness(t)
-	defer cleanup()
-
-	buyerID := insertLinkageTestUser(t, ctx, h.tdb)
-	sellerID := insertLinkageTestUser(t, ctx, h.tdb)
-
-	var forSaleID, roomID uuid.UUID
-	err := h.tdb.WithTx(ctx, func(tx db.Tx) error {
-		forSaleID = insertLinkageTestForSale(t, ctx, tx, h.forSaleRepo, sellerID)
-		roomID = insertLinkageTestDirectRoom(t, ctx, tx, buyerID, sellerID)
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("fixture setup failed: %v", err)
-	}
-
-	session, err := h.svc.StartNegotiation(ctx, negotiationApp.StartNegotiationRequest{
-		ResourceType:           negotiationEntity.NegotiationResourceForSale,
-		ForSaleID:              forSaleID,
-		BuyerID:                buyerID,
-		InitialPrice:           400000,
-		RoomID:                 roomID,
-		RoomOtherParticipantID: sellerID,
-	})
-	if err != nil {
-		t.Fatalf("StartNegotiation failed: %v", err)
-	}
-
-	accepted, err := h.svc.AcceptNegotiation(ctx, negotiationApp.AcceptNegotiationRequest{
-		SessionID: session.ID,
-		SellerID:  sellerID,
-	})
-	if err != nil {
-		t.Fatalf("AcceptNegotiation failed: %v", err)
-	}
-	if accepted.AcceptedPrice == nil || *accepted.AcceptedPrice != 400000 {
-		t.Fatalf("accepted price = %v, want 400000", accepted.AcceptedPrice)
-	}
-
-	repo := negotiationImpl.NewNegotiationRepository()
-	var forCheckout *negotiationEntity.NegotiationSession
-	err = h.tdb.WithTx(ctx, func(tx db.Tx) error {
-		var lookupErr error
-		forCheckout, lookupErr = repo.GetAcceptedSessionByChatRoomIDForUpdate(ctx, tx, roomID)
-		return lookupErr
-	})
-	if err != nil {
-		t.Fatalf("GetAcceptedSessionByChatRoomIDForUpdate failed: %v", err)
-	}
-	if forCheckout == nil {
-		t.Fatal("GetAcceptedSessionByChatRoomIDForUpdate returned nil — CreateOrderFromChat would fail with ErrNoAcceptedNegotiation (the exact PASS_7A defect)")
-	}
-	if forCheckout.ID != session.ID || forCheckout.AcceptedPrice == nil || *forCheckout.AcceptedPrice != 400000 {
-		t.Fatalf("checkout lookup mismatch: got %+v", forCheckout)
 	}
 }
 

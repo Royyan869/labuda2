@@ -58,7 +58,7 @@ void main() {
         content: 'promoted listing',
         type: FeedItemType.promotedListing,
         additionalData: const {
-          'promotionInstanceId': 'pi-1',
+          'contractId': 'pi-1',
           'targetType': 'listing',
           'forSaleId': 'listing-1',
           'pricePerUnit': 150000,
@@ -84,7 +84,7 @@ void main() {
         content: 'promoted auction',
         type: FeedItemType.promotedAuction,
         additionalData: const {
-          'promotionInstanceId': 'pi-2',
+          'contractId': 'pi-2',
           'targetType': 'auction',
           'auctionId': 'auction-1',
           'startPrice': 250000,
@@ -114,7 +114,7 @@ void main() {
         content: 'promoted external',
         type: FeedItemType.promotedExternal,
         additionalData: const {
-          'promotionInstanceId': 'pi-3',
+          'contractId': 'pi-3',
           'targetType': 'external_product',
           'externalUrl': 'https://example.com/product',
           'externalMediaUrl': 'https://example.com/product.jpg',
@@ -137,7 +137,7 @@ void main() {
         content: 'promoted listing 2',
         type: FeedItemType.promotedListing,
         additionalData: const {
-          'promotionInstanceId': 'pi-4',
+          'contractId': 'pi-4',
           'targetType': 'listing',
           'forSaleId': 'listing-2',
           'pricePerUnit': 150000,
@@ -162,7 +162,7 @@ void main() {
         content: 'promoted listing 3',
         type: FeedItemType.promotedListing,
         additionalData: const {
-          'promotionInstanceId': 'pi-5',
+          'contractId': 'pi-5',
           'targetType': 'listing',
           'forSaleId': 'listing-3',
           'pricePerUnit': 150000,

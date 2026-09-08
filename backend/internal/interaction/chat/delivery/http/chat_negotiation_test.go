@@ -5,10 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
 	negotiationEntity "github.com/labuda/backend/internal/commerce/negotiation/entity"
-	orderApp "github.com/labuda/backend/internal/commerce/order/application"
-	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
 )
 
 // TestSessionToResponse_AllFieldsPopulated verifies that sessionToResponse
@@ -156,45 +153,6 @@ func TestStartNegotiationRequest_Validation(t *testing.T) {
 	}
 	if req.Price <= 0 {
 		t.Error("price should be positive")
-	}
-}
-
-// TestBuildNegotiationCheckoutInput_UsesDistinctProductAndSaleIDs verifies the
-// negotiation checkout handoff keeps product_id and source_id separate.
-func TestBuildNegotiationCheckoutInput_UsesDistinctProductAndSaleIDs(t *testing.T) {
-	negotiationID := uuid.New()
-	productID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
-	forSaleID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
-	negotiation := &negotiationEntity.NegotiationSession{ID: negotiationID}
-	forSale := &forsaleEntity.ForSale{
-		ID:        forSaleID,
-		ProductID: productID,
-	}
-	pricingTokenID := uuid.New()
-	snapshot := &orderApp.PricingSnapshot{}
-
-	input := buildNegotiationCheckoutInput(
-		negotiation,
-		forSale,
-		uuid.New(),
-		uuid.New(),
-		uuid.New(),
-		snapshot,
-		&pricingTokenID,
-		1,
-	)
-
-	if input.ProductID != productID {
-		t.Fatalf("ProductID = %s, want %s", input.ProductID, productID)
-	}
-	if input.SourceID != forSaleID {
-		t.Fatalf("SourceID = %s, want %s", input.SourceID, forSaleID)
-	}
-	if input.SourceType != orderentity.OrderSourceForSale {
-		t.Fatalf("SourceType = %s, want %s", input.SourceType, orderentity.OrderSourceForSale)
-	}
-	if input.NegotiationID == nil || *input.NegotiationID != negotiationID {
-		t.Fatalf("NegotiationID mismatch: got %v, want %s", input.NegotiationID, negotiationID)
 	}
 }
 

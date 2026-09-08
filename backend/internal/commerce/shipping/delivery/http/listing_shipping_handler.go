@@ -1,6 +1,9 @@
 package http
 
 import (
+	"errors"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
@@ -109,6 +112,10 @@ func (h *ProductShippingHandler) SetProductShippingSetups(c *gin.Context) {
 			zap.Error(err),
 		)
 
+		if errors.Is(err, shippingApp.ErrShippingLiveImmutable) {
+			response.Error(c, http.StatusConflict, "LIVE_IMMUTABLE", "Shipping configuration is immutable for live/frozen product.")
+			return
+		}
 		errMsg := err.Error()
 		if contains(errMsg, "not found") {
 			response.NotFound(c, errMsg)

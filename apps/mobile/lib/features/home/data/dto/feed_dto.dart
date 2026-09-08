@@ -301,8 +301,18 @@ class FeedMediaDto {
 /// - promoted_external: external product with URL
 class PromotedFeedItemDto {
   final String type; // promoted_listing, promoted_auction, promoted_external
-  final String promotionInstanceId;
+  /// Canonical contract identity (promotion_contracts.id) carried on the
+  /// wire as `contract_id`. The legacy `promotion_instance_id` key is purged.
+  final String contractId;
   final String targetType; // listing, auction, external_product
+
+  /// Canonical exposure identity. Present ONLY on canonical promotion cards
+  /// (server-issued when the card was included in the feed response). When
+  /// present, impression/click acknowledgement must go to the canonical
+  /// /promotions/impressions and /promotions/clicks endpoints echoing this
+  /// id. A card without an exposure identity acknowledges nothing — the
+  /// legacy /promotions/events path is purged.
+  final String? canonicalExposureId;
 
   // Common
   final String? title;
@@ -330,8 +340,9 @@ class PromotedFeedItemDto {
 
   const PromotedFeedItemDto({
     required this.type,
-    required this.promotionInstanceId,
+    required this.contractId,
     required this.targetType,
+    this.canonicalExposureId,
     this.title,
     this.imageUrl,
     this.sellerUsername,
@@ -353,8 +364,10 @@ class PromotedFeedItemDto {
   factory PromotedFeedItemDto.fromJson(Map<String, dynamic> json) {
     return PromotedFeedItemDto(
       type: json['type'] as String? ?? '',
-      promotionInstanceId: json['promotion_instance_id'] as String? ?? '',
+      contractId: json['contract_id'] as String? ?? '',
       targetType: json['target_type'] as String? ?? '',
+      canonicalExposureId: json['canonical_exposure_id'] as String?,
+
       title: json['title'] as String?,
       imageUrl: json['image_url'] as String?,
       sellerUsername: json['seller_username'] as String?,

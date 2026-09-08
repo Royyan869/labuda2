@@ -159,11 +159,18 @@ import (
 
 	// Promotion domain - RUNTIME HARDENING PACK V1
 	promotionApp "github.com/labuda/backend/internal/pricing/promotion/application"
+	contractApp "github.com/labuda/backend/internal/pricing/promotion/contract/application"
+	contractHTTP "github.com/labuda/backend/internal/pricing/promotion/contract/delivery/http"
+	contractRepoImpl "github.com/labuda/backend/internal/pricing/promotion/contract/infrastructure/repository"
+	deliveryApp "github.com/labuda/backend/internal/pricing/promotion/delivery/application"
 	promotionHTTP "github.com/labuda/backend/internal/pricing/promotion/delivery/http"
+	deliveryRepoImpl "github.com/labuda/backend/internal/pricing/promotion/delivery/infrastructure/repository"
+	promotionEntity "github.com/labuda/backend/internal/pricing/promotion/entity"
 	promotionInfraRepo "github.com/labuda/backend/internal/pricing/promotion/infrastructure/repository"
 
-	// Billing domain - for promotion package purchases
+	// Billing domain - for promotion package purchases + promote balance funding (Phase 4B)
 	billingApp "github.com/labuda/backend/internal/finance/billing/application"
+	billingHTTP "github.com/labuda/backend/internal/finance/billing/delivery/http"
 
 	// Refund domain - TASK 34 / Phase 2a: gateway-aware refund foundation
 	refundApp "github.com/labuda/backend/internal/finance/refund/application"
@@ -216,38 +223,43 @@ type Dependencies struct {
 	// C6.1: seller self-service bank account management.
 	BankAccountHandler *bankaccountHTTP.BankAccountHandler
 	// Address CRUD endpoints (buyer shipping + seller sender)
-	AddressHandler         *addressHTTP.AddressHandler
-	OrderHandler           *orderHTTP.OrderHandler
-	AuctionHandler         *auctionHTTP.AuctionHandler
-	AdminAuctionHandler    *auctionHTTP.AdminAuctionHandler // PASS_5B: admin emergency auction cancel/override
-	SavedItemHandler       *savedItemHTTP.SavedItemHandler
-	BiddingHandler         *biddingHTTP.BiddingHandler
-	ForSaleHandler         *forSaleHTTP.ForSaleHandler
-	PricingTokenHandler    *pricingtokenHTTP.PricingTokenHandler
-	ChatHandler            *chatHTTP.Handler
-	DiscountHandler        *discountHTTP.DiscountHandler
-	DisputeHandler         *disputeHTTP.DisputeHandler
-	SellerHandler          *sellerHTTP.SellerHandler
-	SystemHealthHandler    *monitoring.SystemHealthHandler
-	RealtimeHandler        *realtime.Handler
-	FeedHandler            *feedHTTP.FeedHandler
-	ContentHandler         *contentHTTP.ContentHandler
-	OGHandler              *ogHTTP.Handler
-	CommentHandler         *contentHTTP.CommentHandler
-	LikeHandler            *likeHTTP.LikeHandler
-	NotificationHandler    *notificationHTTP.NotificationHandler
-	FCMTokenHandler        *notificationHTTP.FCMTokenHandler
-	ReportHandler          *moderationHTTP.ReportHandler          // SLICE 2: canonical Report intake
-	GovernanceAdminHandler *moderationHTTP.GovernanceAdminHandler // SLICE 6: admin governance workflow
-	FollowHandler          *socialhttp.FollowHandler              // SOCIAL domain: follow/block/mute
-	ShippingQuoteHandler   *shippingQuoteHTTP.Handler             // Shipping quote feature (chat-based manual quotes)
-	RatingHandler          *ratingHTTP.RatingHandler              // RATING DOMAIN: buyer→seller order ratings
-	PromotionHandler       *promotionHTTP.PromotionHandler        // PROMOTION PHASE 4: Discovery endpoints
-	SearchHandler          *searchHTTP.SearchHandler              // FEDERATED SEARCH: content, users, forSales
-	AdminOrderHandler      *orderHTTP.AdminOrderHandler           // ADMIN ORDER: read-only order management
-	AdminRefundHandler     *refundHTTP.AdminRefundHandler         // TASK 34 / Phase 2a: admin-only gateway refund trigger (feature-flagged)
-	SellerRefundHandler    *refundHTTP.SellerRefundHandler        // H2-A: seller approve/reject refund endpoints
-	BuyerEscalationHandler *refundHTTP.BuyerEscalationHandler     // H2-B: buyer escalate rejected refund
+	AddressHandler                      *addressHTTP.AddressHandler
+	OrderHandler                        *orderHTTP.OrderHandler
+	AuctionHandler                      *auctionHTTP.AuctionHandler
+	AdminAuctionHandler                 *auctionHTTP.AdminAuctionHandler // PASS_5B: admin emergency auction cancel/override
+	SavedItemHandler                    *savedItemHTTP.SavedItemHandler
+	BiddingHandler                      *biddingHTTP.BiddingHandler
+	ForSaleHandler                      *forSaleHTTP.ForSaleHandler
+	PricingTokenHandler                 *pricingtokenHTTP.PricingTokenHandler
+	ChatHandler                         *chatHTTP.Handler
+	DiscountHandler                     *discountHTTP.DiscountHandler
+	DisputeHandler                      *disputeHTTP.DisputeHandler
+	SellerHandler                       *sellerHTTP.SellerHandler
+	SystemHealthHandler                 *monitoring.SystemHealthHandler
+	RealtimeHandler                     *realtime.Handler
+	FeedHandler                         *feedHTTP.FeedHandler
+	ContentHandler                      *contentHTTP.ContentHandler
+	OGHandler                           *ogHTTP.Handler
+	CommentHandler                      *contentHTTP.CommentHandler
+	LikeHandler                         *likeHTTP.LikeHandler
+	NotificationHandler                 *notificationHTTP.NotificationHandler
+	FCMTokenHandler                     *notificationHTTP.FCMTokenHandler
+	ReportHandler                       *moderationHTTP.ReportHandler             // SLICE 2: canonical Report intake
+	GovernanceAdminHandler              *moderationHTTP.GovernanceAdminHandler    // SLICE 6: admin governance workflow
+	FollowHandler                       *socialhttp.FollowHandler                 // SOCIAL domain: follow/block/mute
+	ShippingQuoteHandler                *shippingQuoteHTTP.Handler                // Shipping quote feature (chat-based manual quotes)
+	RatingHandler                       *ratingHTTP.RatingHandler                 // RATING DOMAIN: buyer→seller order ratings
+	PromotionHandler              *promotionHTTP.PromotionHandler      // PROMOTION PHASE 4: external product surface
+	PromotionContractService     *contractApp.PromotionContractService // PHASE 4A: canonical contract runtime composition
+	PromotionContractHandler     *contractHTTP.ContractHandler         // PHASE 4A: canonical contract HTTP surface
+	PromotionMeasurementHandler  *promotionHTTP.MeasurementHandler     // CANONICAL delivery measurement ack surface (impressions/clicks)
+	PromotionDeliveryHandoff     *contractApp.DeliveryHandoffService   // CANONICAL contract-based selection (feed/search injectors)
+	PromoteBalanceHandler        *billingHTTP.PromoteBalanceFundingHandler // PHASE 4B: canonical promote balance funding entry (TypePromoteBalanceTopUp)
+	SearchHandler                *searchHTTP.SearchHandler             // FEDERATED SEARCH: content, users, forSales
+	AdminOrderHandler                   *orderHTTP.AdminOrderHandler       // ADMIN ORDER: read-only order management
+	AdminRefundHandler                  *refundHTTP.AdminRefundHandler     // TASK 34 / Phase 2a: admin-only gateway refund trigger (feature-flagged)
+	SellerRefundHandler                 *refundHTTP.SellerRefundHandler    // H2-A: seller approve/reject refund endpoints
+	BuyerEscalationHandler              *refundHTTP.BuyerEscalationHandler // H2-B: buyer escalate rejected refund
 
 	// VERIFICATION (Phase 2 operationalization)
 	VerificationHandler      *verificationHTTP.VerificationHandler      // Seller-facing: submit identity/business, status
@@ -296,33 +308,32 @@ type Dependencies struct {
 	ProjectionAdminHandler *worker.ProjectionAdminHandler
 
 	// Workers - All registered workers
-	PaymentExpiryWorker              Worker
-	ReconciliationWorker             Worker
-	OrderAutoCompleteWorker          Worker
-	OutboxWorker                     Worker
-	ProjectionWorker                 Worker
-	AuctionStartWorker               Worker
-	AuctionEndWorker                 Worker
-	SystemMonitoringWorker           Worker
-	RealtimeWorker                   Worker
-	PayoutWorker                     Worker
-	PayoutReconciliationWorker       Worker
-	NegotiationExpireWorker          Worker
-	PromotionSafetyWorker            Worker // RUNTIME HARDENING PACK V1
-	OrderOverdueReminderWorker       Worker // OVERDUE ENFORCEMENT CLOSURE
-	DisputeTimeoutWorker             Worker // DISPUTE HARDENING - DEADLOCK PREVENTION
-	AlertDetectionWorker             Worker // ALERT SYSTEM V1
-	SellerSubscriptionExpiryWorker   Worker // SUBSCRIPTION LIFECYCLE - hourly active→expired sweep
-	OutboxArchivalWorker             Worker // OUTBOX RETENTION - archives succeeded events older than RetentionDays
-	OrderOverdueCancelWorker         Worker // ORDER FULFILLMENT - auto-cancels paid orders past shipment deadline
-	SubscriptionReconciliationWorker Worker // SUBSCRIPTION HARDENING - recovers orphaned subscription payments
-	WithdrawalMonitoringWorker       Worker // PAYOUT MONITORING - read-only alert on stuck withdrawals
-	PushRetryWorker                  Worker // Z6: PUSH RELIABILITY - retries failed FCM pushes with exponential backoff
-	NotificationCleanupWorker        Worker // Z6: PUSH HYGIENE - deletes old delivery logs + expired retry entries
-	EscrowIntegrityWorker            Worker // ESCROW RECONCILIATION - shadow-rollout periodic escrow vs wallet check
-	TotalMoneyInvariantWorker        Worker // TOTAL MONEY INVARIANT - shadow-rollout periodic ledger sum check
-	SellerMetricsWorker              Worker // SELLER MEASUREMENT - daily seller_monthly_metrics snapshot (measurement only)
-	SellerReputationRecomputeWorker  Worker // REPUTATION AUTHORITY - nightly rolling 90-day recompute of seller tier + reputation state
+	PaymentExpiryWorker               Worker
+	ReconciliationWorker              Worker
+	OrderAutoCompleteWorker           Worker
+	OutboxWorker                      Worker
+	ProjectionWorker                  Worker
+	AuctionStartWorker                Worker
+	AuctionEndWorker                  Worker
+	SystemMonitoringWorker            Worker
+	RealtimeWorker                    Worker
+	PayoutWorker                      Worker
+	PayoutReconciliationWorker        Worker
+	NegotiationExpireWorker           Worker
+	OrderOverdueReminderWorker        Worker // OVERDUE ENFORCEMENT CLOSURE
+	DisputeTimeoutWorker              Worker // DISPUTE HARDENING - DEADLOCK PREVENTION
+	AlertDetectionWorker              Worker // ALERT SYSTEM V1
+	SellerSubscriptionExpiryWorker    Worker // SUBSCRIPTION LIFECYCLE - hourly active→expired sweep
+	OutboxArchivalWorker              Worker // OUTBOX RETENTION - archives succeeded events older than RetentionDays
+	OrderOverdueCancelWorker          Worker // ORDER FULFILLMENT - auto-cancels paid orders past shipment deadline
+	SubscriptionReconciliationWorker  Worker // SUBSCRIPTION HARDENING - recovers orphaned subscription payments
+	WithdrawalMonitoringWorker        Worker // PAYOUT MONITORING - read-only alert on stuck withdrawals
+	PushRetryWorker                   Worker // Z6: PUSH RELIABILITY - retries failed FCM pushes with exponential backoff
+	NotificationCleanupWorker         Worker // Z6: PUSH HYGIENE - deletes old delivery logs + expired retry entries
+	EscrowIntegrityWorker             Worker // ESCROW RECONCILIATION - shadow-rollout periodic escrow vs wallet check
+	TotalMoneyInvariantWorker         Worker // TOTAL MONEY INVARIANT - shadow-rollout periodic ledger sum check
+	SellerMetricsWorker               Worker // SELLER MEASUREMENT - daily seller_monthly_metrics snapshot (measurement only)
+	SellerReputationRecomputeWorker   Worker // REPUTATION AUTHORITY - nightly rolling 90-day recompute of seller tier + reputation state
 
 	// workerStartups is the deferred list of worker .Start() actions
 	// recorded during InitServices. StartWorkers invokes each closure in
@@ -464,6 +475,25 @@ func dangerousDormantGuard(name string, log *zap.Logger) {
 // goroutines that would interfere with deterministic corpus generation.
 // Production startup posture is preserved because main.go now calls
 // StartWorkers(deps) immediately after InitServices(...) returns.
+
+// canonicalPromotionOperabilityAdapterForContract bridges the canonical
+// target/seller operability authority to the shared commerce
+// OperabilityChecker — the single truth used by contract queue management,
+// delivery selection and qualification. The target type string values equal
+// the entity.TargetType values, so the bridge is a typed cast; unknown types
+// fail closed inside the checker (unknown target type), never from this
+// adapter.
+type canonicalPromotionOperabilityAdapterForContract struct {
+	checker *promotionApp.OperabilityCheckerImpl
+}
+
+func (a *canonicalPromotionOperabilityAdapterForContract) CheckOperability(ctx context.Context, targetType string, targetID *uuid.UUID) (bool, string, error) {
+	return a.checker.CheckOperability(ctx, promotionEntity.TargetType(targetType), targetID)
+}
+func (a *canonicalPromotionOperabilityAdapterForContract) ValidateOwnership(ctx context.Context, sellerID uuid.UUID, targetType string, targetID *uuid.UUID) error {
+	return a.checker.ValidateOwnership(ctx, sellerID, promotionEntity.TargetType(targetType), targetID)
+}
+
 func InitServices(
 	appCtx context.Context,
 	db *database.DB,
@@ -953,11 +983,11 @@ func InitServices(
 
 	chatOrderOwnershipReader := &chatOrderOwnershipAdapter{orderRepo: orderRepository}
 	chatService := chatApp.NewServiceWithDefaults(db.Pgx(), outboxRepository, chatRateLimiter, realtimeMetrics, accountStatusChecker, chatOrderOwnershipReader, log.Logger)
+	// N6: the deleted POST /chat/rooms/:room_id/order endpoint was the only
+	// consumer of orderService/pricingTokenService in the chat handler.
 	chatHandler := chatHTTP.NewHandler(
 		chatService,
-		orderService,
 		negotiationService,
-		pricingTokenService,
 		accountStatusChecker,
 		db.Pgx(),
 		log.Logger,
@@ -1439,67 +1469,47 @@ func InitServices(
 	//
 	// IMPORTANT: These components MUST be wired at boot for promotion to be runtime-truthful.
 
-	// Create promotion repository
-	promotionRepository := promotionInfraRepo.NewPromotionRepository()
+	// Canonical promotion graph — promotion_contracts is the single lifecycle
+	// authority (competing `promotions` aggregate purged by 000081).
+	//
+	// 1. Operability checker (validates forSale/auction/external state) —
+	//    canonical target/seller authority, shared by queue management,
+	//    selection and delivery qualification.
+	operabilityChecker := promotionApp.NewOperabilityCheckerImpl(db.Pgx(), nil)
 
-	// Create operability checker (validates forSale/auction state)
-	// This connects Promotion to ForSale/Auction domains for real-time operability
-	operabilityChecker := promotionApp.NewOperabilityCheckerImpl(db.Pgx(), promotionRepository)
-
-	// Create promotion service (core business logic)
-	promotionService := promotionApp.NewPromotionService(operabilityChecker)
-	// Wire outbox emitter so external_product.review.* events are emitted
-	// atomically with admin review state transitions.
-	promotionService.SetOutboxEmitter(outboxRepository)
-
-	// P3A — Promotion discovery service for feed injection.
-	// Provides read-time operability-filtered active promotions.
-	promotionDiscoveryService := promotionApp.NewDiscoveryService(db.Pgx(), operabilityChecker)
-
-	// Wire canonical promotion service into payment webhook so that
-	// promotion-package billing uses the same governance authority as
-	// the normal runtime (OperabilityCheckerImpl, not the V1 placeholder).
-	paymentWebhookService.SetPromotionService(promotionService)
-
-	// 4.3. Setup promotion event handlers — moved to after SetupSellerSubscriptionExpiredHandler
-	// (P5B-C ordering constraint: seller governance events require fanout composition
-	// with notification + auction-cancellation handlers registered earlier).
-
-	// 4.4. Promotion safety worker (mechanism B — periodic sweep)
-	// Catches missed events and data inconsistencies.
-	// P4C3: ENABLED — canonical entity-based finalization verified in P4B.
-	// OperabilityCheckerImpl read-time gate remains as defense in depth.
-	promotionSafetyWorker := worker.NewPromotionSafetyWorker(
-		operabilityChecker,
-		promotionService,
-		db,
-		log.Logger,
-		worker.DefaultPromotionSafetyWorkerConfig(),
-	)
-	if workerEnabled("PROMOTION_SAFETY_WORKER", true, log.Logger) {
-		workerStartups = append(workerStartups, func() {
-			promotionSafetyWorker.Start()
-			log.Info("PromotionSafetyWorker started (every 5m, batch 100, safety net for missed events)")
-		})
-	}
-
-	// 4.5. Promotion expiration worker (mechanism C — ownership validity window)
-	// Canonical time-based worker: marks expired ownerships + stops all active instances.
-	// This is the only mechanism that MUST be a background worker (time-based expiry
-	// cannot be handled at read time alone).
-	// P4C2: ENABLED default-ON — canonical finalization verified in P4B.
-	promotionExpirationWorker := worker.NewPromotionExpirationWorker(
-		promotionService,
+	// 2. Canonical contract-based delivery selection: active contracts inside
+	//    their planned window with positive allocation balance and a resolved
+	//    operable queue target (promotion_contracts + promotion_contract_targets
+	//    authority). Consumed by the feed/search injectors. Filter only — the
+	//    hard billing authority is Delivery Ticket issuance + Qualification.
+	canonicalDeliveryHandoffService := contractApp.NewDeliveryHandoffService(
 		db.Pgx(),
-		log.Logger,
-		worker.DefaultPromotionExpirationWorkerConfig(),
+		contractRepoImpl.NewContractRepository(),
+		contractRepoImpl.NewContractTargetRepository(),
+		&canonicalPromotionOperabilityAdapterForContract{checker: operabilityChecker},
 	)
-	if workerEnabled("PROMOTION_EXPIRATION_WORKER", true, log.Logger) {
-		workerStartups = append(workerStartups, func() {
-			promotionExpirationWorker.Start()
-			log.Info("PromotionExpirationWorker started (hourly, Phase 1: expired ownerships, Phase 2: duration exhaustion)")
-		})
-	}
+
+	// 3. Canonical delivery measurement: the truthful server-side observation
+	//    authority over canonical_promotion_delivery_events (contract_id). It
+	//    records ONLY server-issued 'included' observations plus client-explicit
+	//    impression/click acknowledgements (exposure echo). Projection only —
+	//    the ledger owns financial truth.
+	canonicalDeliveryMeasurementService := deliveryApp.NewDeliveryMeasurementService(
+		db.Pgx(),
+		deliveryRepoImpl.NewMeasurementRepository(),
+	)
+
+	// 4. Client-explicit impression/click acknowledgement surface.
+	promotionMeasurementHandler := promotionHTTP.NewMeasurementHandler(
+		canonicalDeliveryMeasurementService,
+		log.Logger,
+	)
+
+	// External product service (promotion contracts handle lifecycle; this service only for external product CRUD/review)
+	promotionService := promotionApp.NewPromotionService(operabilityChecker)
+	promotionService.SetRepo(promotionInfraRepo.NewPromotionRepository())
+
+	// Legacy promotion safety/expiration workers purged — duration billing forbidden (§28).
 
 	// =============================================================================
 	// ORDER OVERDUE REMINDER WORKER - OVERDUE ENFORCEMENT CLOSURE
@@ -2196,7 +2206,13 @@ func InitServices(
 	}
 	// P3A — Promotion feed injector. Interleaves active promoted items into
 	// the organic feed. Nil-safe: a nil injector disables injection entirely.
-	feedPromotionInjector := feedHTTP.NewFeedPromotionInjector(promotionDiscoveryService, db.Pgx().Pool(), log.Logger)
+	// CANONICAL CONVERGENCE: feed uses ONLY canonical handoff.
+	feedPromotionInjector := feedHTTP.NewFeedPromotionInjector(
+		canonicalDeliveryHandoffService,
+		canonicalDeliveryMeasurementService,
+		db.Pgx().Pool(),
+		log.Logger,
+	)
 	feedHandler := feedHTTP.NewFeedHandler(feedService, db.Pgx(), log.Logger, feedShadowRunner, feedPromotionInjector)
 
 	// ===== LIKE MODULE (constructed here so ContentService can receive it
@@ -2229,6 +2245,8 @@ func InitServices(
 		accountStatusChecker,
 		nil, // InvariantLogger - optional
 	)
+	contentService.SetIdempotencyRepository(idempotencyRepoPkg.NewRepository())
+	contentService.SetOutboxInserter(outboxRepository)
 	// BATCH 3Q — /contents/:id evaluator shadow seam. Gated on env var
 	// EVALUATOR_SHADOW_CONTENT_DETAIL_ENABLED=true. Default off so a
 	// disabled runner returns a nil pointer and the handler short-
@@ -2274,7 +2292,7 @@ func InitServices(
 		contentRepo, // E3.3 — wired (previously nil, causing AddComment panic)
 		commentRepo,
 		forSaleService,
-		nil, // auctionValidator — not wired on this path
+		nil,            // auctionValidator — not wired on this path
 		contentService, // visibilityChecker — canonical V-VISIBILITY via ContentService.GetContentVisibleToViewer
 		outboxRepository,
 		idempotencyCommentRepo,
@@ -2291,7 +2309,6 @@ func InitServices(
 		auctionRepository, // AuctionGetter — already constructed in AUCTION MODULE
 	)
 	contentService.SetCommerceReferenceValidator(commerceRefValidator)
-	contentService.SetOutboxInserter(outboxRepository)
 	commentService.SetCommerceReferenceValidator(commerceRefValidator)
 	chatService.SetCommerceReferenceValidator(commerceRefValidator)
 
@@ -2476,25 +2493,72 @@ func InitServices(
 		_ = ratingInvalidationWorker
 	}
 
-	// ===== PROMOTION PHASE 4: DISCOVERY ENDPOINTS =====
-	// Initialize promotion handler for discovery surfaces (search, home)
-	// PROMOTION PHASE 5: Add billing service for package purchases
+	// Promotion handler — canonical external-product surface only (legacy package/ownership/instance purged, canonical is promotion_contracts)
 	billingService := billingApp.NewBillingService(roleChecker, accountStatusChecker)
-	promotionHandler := promotionHTTP.NewPromotionHandler(
-		promotionService,
+	promotionHandler := promotionHTTP.NewPromotionHandler(promotionService, db.Pgx(), log.Logger, adminAuditLogger)
+
+	// =============================================================================
+	// CANONICAL PROMOTION CONTRACT RUNTIME COMPOSITION (PHASE 4A)
+	// =============================================================================
+	// Makes the canonical PromotionContractService production-reachable. The
+	// delivery repository is wired ONLY so Finalize can invalidate outstanding
+	// tickets against the canonical delivery boundary; it performs NO delivery
+	// activation — no production caller of IssueTicket/QualifyTicket is created
+	// here, and ticket/QI processing stays dormant. The seller eligibility gate
+	// delegates to the canonical auth.RoleChecker seller-capability authority
+	// (same market authority used by For Sale / Auction creation gates).
+	canonicalContractService := contractApp.NewPromotionContractService(
+		db.Pgx(),
+		settlementFinanceService, // canonical shared FinanceService instance
+		configService,
+		contractApp.NewRoleCheckerSellerEligibilityGate(roleChecker), // real seller-capability authority
+		deliveryRepoImpl.NewDeliveryRepository(db.Pgx()),             // canonical ticket persistence (no trigger)
+	)
+	// Queue operability wiring: canonical For Sale / Auction authority delegation.
+	{
+		opChecker := promotionApp.NewOperabilityCheckerImpl(db.Pgx(), nil)
+		adapter := &canonicalPromotionOperabilityAdapterForContract{checker: opChecker}
+		canonicalContractService.SetTargetOperability(adapter)
+	}
+	canonicalContractHandler := contractHTTP.NewContractHandler(canonicalContractService, canonicalDeliveryMeasurementService, log.Logger)
+
+	// =============================================================================
+	// CANONICAL PROMOTION DELIVERY COMPOSITION (PHASE 4C)
+	// =============================================================================
+	// Constructs the canonical DeliveryService to establish config-authority
+	// injection. No trigger is added. IssueTicket and QualifyTicket remain
+	// uncalled in production. The gate consumes IsPromotionDeliveryEnabled.
+	// Geography wired for hard gate.
+	ds := deliveryApp.NewDeliveryService(
+		db.Pgx(),
+		contractRepoImpl.NewContractRepository(),
+		deliveryRepoImpl.NewDeliveryRepository(db.Pgx()),
+		settlementFinanceService,
+		configService,
+		operabilityChecker, // canonical target/seller authority (same OperabilityCheckerImpl as queue + selection)
+	)
+	ds.SetGeographyRepository(contractRepoImpl.NewContractGeographyRepository())
+	_ = ds
+
+	// =============================================================================
+	// CANONICAL PROMOTE BALANCE FUNDING ENTRY (PHASE 4B)
+	// =============================================================================
+	// Production-reachable entry that creates a billing row of
+	// TypePromoteBalanceTopUp. The billing row is then settled through the
+	// EXISTING payment flow (POST /payments/billing -> webhook -> MarkPaid ->
+	// finance funding path -> PROMOTE_BALANCE). This handler MUST NOT
+	// directly credit balance or call ledger code — funding is
+	// settlement-only.
+	//
+	// Seller eligibility reuses the canonical market authority
+	// auth.RoleChecker.HasActiveSellerCapability (same 4-gate authority used
+	// by PromotionContractService / For Sale / Auction creation).
+	promoteBalanceHandler := billingHTTP.NewPromoteBalanceFundingHandler(
 		billingService,
 		roleChecker,
 		db.Pgx(),
 		log.Logger,
-		adminAuditLogger,
 	)
-	// Wire analytics event repository for click tracking.
-	promotionEventRepo := promotionInfraRepo.NewPromotionEventRepository()
-	promotionHandler.SetEventRepo(promotionEventRepo)
-
-	// COMMERCE RESTRICTION ENFORCEMENT: Wire canonical restriction repository
-	// into the promotion handler for seller restriction at activate/reassign boundaries.
-	promotionHandler.SetCommerceGovRepository(commercegovRepository)
 
 	// ===== FEDERATED SEARCH CONTRACT REALIGN PACK V1 =====
 	// Initialize search domain for federated search across content, users, forSales
@@ -2535,10 +2599,9 @@ func InitServices(
 	searchContentShadowRunner := evaluator.NewSearchContentShadowRunner(log.Logger).
 		WithMode(searchContentEvaluatorMode)
 
-	// P3B — Search promotion injector. Appends promoted sidecar to
-	// forSale and auction search responses. Nil-safe.
+	// P3B — Search promotion injector. Canonical contract handoff (feed parity).
 	searchPromotionInjector := searchHTTP.NewSearchPromotionInjector(
-		promotionDiscoveryService, db.Pgx().Pool(), log.Logger,
+		canonicalDeliveryHandoffService, db.Pgx().Pool(), log.Logger,
 	)
 
 	// Initialize search handler.
@@ -2583,6 +2646,11 @@ func InitServices(
 	// at bid/claim boundaries.
 	auctionService.SetCommerceGovRepository(commercegovRepository)
 
+	// CROSS-LIFECYCLE QUOTE ISOLATION: Wire shipping quote invalidation into
+	// auction service so return-to-draft on settlement failure atomically
+	// invalidates all ACTIVE quotes for the product, preventing stale quotes
+	// from being usable in the next settlement lifecycle.
+	auctionService.SetShippingQuoteInvalidator(shippingQuoteService)
 
 	// CANONICAL COIN CONSUME+SPEND WIRING: the finalization service was built
 	// before coinsService existed; inject the consume+spend surface now so a
@@ -2630,10 +2698,10 @@ func InitServices(
 	// These are record-only appeals: no auto-restoration; approval is administrative.
 	appealSvc.SetForSaleRepo(forSaleRepo.NewForSaleRepository())
 	appealSvc.SetAuctionRepo(auctionRepo.NewAuctionRepository())
-	appealHandler := appealHTTP.NewAppealHandler(appealSvc, db.Pgx(), log.Logger, adminAuditLogger)		// 3. Warning Handler - Warnings read/revoke (standalone creation removed)
-		warningRepository := warningInfraRepo.NewWarningRepository()
-		warningSvc := warningApp.NewWarningService(warningRepository)
-		warningHandler := appealHTTP.NewWarningHandler(warningSvc, db.Pgx(), log.Logger, adminAuditLogger)
+	appealHandler := appealHTTP.NewAppealHandler(appealSvc, db.Pgx(), log.Logger, adminAuditLogger) // 3. Warning Handler - Warnings read/revoke (standalone creation removed)
+	warningRepository := warningInfraRepo.NewWarningRepository()
+	warningSvc := warningApp.NewWarningService(warningRepository)
+	warningHandler := appealHTTP.NewWarningHandler(warningSvc, db.Pgx(), log.Logger, adminAuditLogger)
 
 	// 4. Support Handler - Support ticket system
 	// Create an adapter for the chat service to match support handler's interface
@@ -2924,13 +2992,7 @@ func InitServices(
 	// settlement, so live auctions of expired sellers are functionally inert).
 	outboxWorker.SetupSellerSubscriptionExpiredHandler(db.Pgx())
 
-	// P5B-C: Setup promotion event handlers (mechanism A — responsive to target + seller events)
-	// Registers handlers for for_sale.sold/withdrawn/updated, auction.ended/cancelled,
-	// seller.subscription.activated/expired, seller.verification.restored/suspended/revoked,
-	// moderation.for_sale.restored.
-	// ORDERING: Must be called AFTER SetupNotificationHandlers, SetupModerationHandlers,
-	// and SetupSellerSubscriptionExpiredHandler for fanout composition.
-	outboxWorker.SetupPromotionHandlers(db.Pgx(), promotionService)
+	// Legacy promotion event handlers purged — promotion_instances/ownership removed; operability is read-time via queue resolver.
 
 	// =============================================================================
 	// DISPUTE HARDENING — DEADLOCK PREVENTION
@@ -2995,32 +3057,37 @@ func InitServices(
 		BiddingHandler:           biddingHandler,
 		// CollectionHandler:     collectionHandler, // DISABLED: Collection domain being isolated for removal
 		// OfferHandler:          offerHandler,      // DISABLED: Offer domain being isolated for removal
-		ForSaleHandler:         forSaleHandler,
-		PricingTokenHandler:    pricingTokenHandler,
-		ChatHandler:            chatHandler,
-		DiscountHandler:        discountHandler,
-		DisputeHandler:         disputeHandler,
-		SellerHandler:          sellerHandler,
-		SystemHealthHandler:    systemHealthHandler,
-		RealtimeHandler:        realtimeHandler,
-		FeedHandler:            feedHandler,
-		ContentHandler:         contentHandler,
-		OGHandler:              ogHandler,
-		CommentHandler:         commentHandler,
-		LikeHandler:            likeHandler,
-		NotificationHandler:    notificationHandler,
-		FCMTokenHandler:        fcmTokenHandler,
-		ReportHandler:          reportHandler,          // SLICE 2: canonical Report intake
-		GovernanceAdminHandler: governanceAdminHandler, // SLICE 6: admin governance workflow
-		FollowHandler:          followHandler,          // SOCIAL domain: follow/block/mute
-		ShippingQuoteHandler:   shippingQuoteHandler,   // Shipping quote feature (chat-based manual quotes)
-		RatingHandler:          ratingHandler,          // RATING DOMAIN: buyer→seller order ratings
-		PromotionHandler:       promotionHandler,       // PROMOTION PHASE 4: Discovery endpoints
-		SearchHandler:          searchHandler,          // FEDERATED SEARCH: content, users, forSales
-		AdminOrderHandler:      adminOrderHandler,      // ADMIN ORDER: read-only order management
-		AdminRefundHandler:     adminRefundHandler,     // TASK 34 / Phase 2a: admin-only gateway refund trigger
-		SellerRefundHandler:    sellerRefundHandler,    // H2-A: seller approve/reject refund
-		BuyerEscalationHandler: buyerEscalationHandler, // H2-B: buyer escalate rejected refund
+		ForSaleHandler:                      forSaleHandler,
+		PricingTokenHandler:                 pricingTokenHandler,
+		ChatHandler:                         chatHandler,
+		DiscountHandler:                     discountHandler,
+		DisputeHandler:                      disputeHandler,
+		SellerHandler:                       sellerHandler,
+		SystemHealthHandler:                 systemHealthHandler,
+		RealtimeHandler:                     realtimeHandler,
+		FeedHandler:                         feedHandler,
+		ContentHandler:                      contentHandler,
+		OGHandler:                           ogHandler,
+		CommentHandler:                      commentHandler,
+		LikeHandler:                         likeHandler,
+		NotificationHandler:                 notificationHandler,
+		FCMTokenHandler:                     fcmTokenHandler,
+		ReportHandler:                       reportHandler,             // SLICE 2: canonical Report intake
+		GovernanceAdminHandler:              governanceAdminHandler,    // SLICE 6: admin governance workflow
+		FollowHandler:                       followHandler,             // SOCIAL domain: follow/block/mute
+		ShippingQuoteHandler:                shippingQuoteHandler,      // Shipping quote feature (chat-based manual quotes)
+		RatingHandler:                       ratingHandler,             // RATING DOMAIN: buyer→seller order ratings
+		PromotionHandler:             promotionHandler,          // PROMOTION PHASE 4: external product surface
+		PromotionContractService:     canonicalContractService,  // PHASE 4A: canonical contract runtime composition
+		PromotionContractHandler:     canonicalContractHandler,  // PHASE 4A: canonical contract HTTP surface
+		PromotionMeasurementHandler:  promotionMeasurementHandler, // CANONICAL delivery measurement ack surface (impressions/clicks)
+		PromotionDeliveryHandoff:     canonicalDeliveryHandoffService, // CANONICAL contract-based selection (feed/search injectors)
+		PromoteBalanceHandler:        promoteBalanceHandler,     // PHASE 4B: canonical promote balance funding entry
+		SearchHandler:                searchHandler,             // FEDERATED SEARCH: content, users, forSales
+		AdminOrderHandler:                   adminOrderHandler,      // ADMIN ORDER: read-only order management
+		AdminRefundHandler:                  adminRefundHandler,     // TASK 34 / Phase 2a: admin-only gateway refund trigger
+		SellerRefundHandler:                 sellerRefundHandler,    // H2-A: seller approve/reject refund
+		BuyerEscalationHandler:              buyerEscalationHandler, // H2-B: buyer escalate rejected refund
 
 		// VERIFICATION (Phase 2 operationalization)
 		VerificationHandler:      verificationHandler,
@@ -3069,7 +3136,6 @@ func InitServices(
 		PayoutWorker:                     payoutWorkerWrapper,
 		PayoutReconciliationWorker:       payoutReconWorkerWrapper,
 		NegotiationExpireWorker:          negotiationExpireWorker,
-		PromotionSafetyWorker:            promotionSafetyWorker, // RUNTIME HARDENING PACK V1
 		OrderOverdueReminderWorker:       orderOverdueReminderWorker,
 		DisputeTimeoutWorker:             disputeTimeoutWorker,             // DISPUTE HARDENING - DEADLOCK PREVENTION
 		AlertDetectionWorker:             alertDetectionWorker,             // ALERT SYSTEM V1

@@ -44,7 +44,7 @@ type ChatMessageRoomResolver interface {
 // - Send minimal room-message envelope for message events
 // - Send room-summary envelope for room-list events
 //
-// CONSTRAINTS per governance-constitution.md §2.2 and ADR-005:
+// CONSTRAINTS per ADR-005:
 // - No all-subscriber blind fanout
 // - Broadcast-time lifecycle is always fresh (never reuse subscribe-time state)
 // - No message payload in WS frame; client re-fetches via REST
@@ -149,7 +149,7 @@ func (d *Dispatcher) Dispatch(eventType string, payload []byte) error {
 				zap.String("room_id", roomID.String()),
 				zap.Error(err),
 			)
-			return false // fail-closed per governance-constitution.md §5
+			return false // fail-closed
 		}
 		lifecycle := viewercontext.CoarsenLifecycle(status, false)
 		decision := evaluator.EvaluateWSBroadcast(lifecycle)

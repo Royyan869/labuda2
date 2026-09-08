@@ -10,8 +10,7 @@ package evaluator
 // not topology drift — feed is Home and a hydration outage must not blank
 // the surface.
 //
-// CONTRACT (mirrors docs/05-rollout/search-shadow-seam-* and
-// docs/contracts/public-card-boundary.md):
+// CONTRACT:
 //
 //   - Pure: no DB reads, no IO, no logging. Caller-side telemetry only.
 //   - Single source of decision truth: the canonical ShadowDecision enum

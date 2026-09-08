@@ -12,8 +12,7 @@ import (
 
 // SubscribeGate is the WS subscribe governance gate.
 //
-// Enforces the mandatory subscribe authorization sequence from
-// governance-constitution.md §2.2 and ADR-005:
+// Enforces the mandatory subscribe authorization sequence per ADR-005:
 //  1. Fresh room membership check (DatabaseRoomAuthorizer)
 //  2. Fresh lifecycle check (AccountStatusChecker)
 //  3. Pure evaluator decision (EvaluateWSSubscribe)

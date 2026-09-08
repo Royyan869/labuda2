@@ -14,12 +14,12 @@ import 'package:labuda/domains/user/preference/seller/presentation/screens/selle
     show SellerShippingScreen;
 import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_shipping_option_detail_screen.dart'
     show SellerShippingSetupDetailScreen;
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/my_promotions_screen.dart'
-    show MyPromotionsScreen;
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/promotion_detail_screen.dart'
-    show PromotionDetailScreen;
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/promotion_activation_screen.dart'
-    show PromotionActivationScreen;
+import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_analytics_screen.dart'
+    show CanonicalPromotionAnalyticsScreen;
+import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_create_screen.dart'
+    show CanonicalPromotionCreateScreen;
+import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_list_screen.dart'
+    show CanonicalPromotionListScreen;
 import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/external_product_management_screen.dart'
     show ExternalProductManagementScreen;
 import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/external_product_detail_screen.dart'
@@ -111,31 +111,24 @@ class SellerModule extends BaseModule {
       builder: (context, state) => const BankAccountScreen(),
     ),
 
+    // Canonical Promotion Management List Route
     GoRoute(
-      path: RoutePaths.sellerPromotions,
-      name: RouteNames.sellerPromotions,
-      builder: (context, state) => const MyPromotionsScreen(),
+      path: RoutePaths.sellerCanonicalPromotions,
+      name: RouteNames.sellerCanonicalPromotions,
+      builder: (context, state) => const CanonicalPromotionListScreen(),
     ),
     GoRoute(
-      path: RoutePaths.sellerPromotionActivate,
-      name: RouteNames.sellerPromotionActivate,
-      builder: (context, state) {
-        final extra = state.extra as Map<String, dynamic>?;
-        return PromotionActivationScreen(
-          preselectedTargetType: extra?['preselectedTargetType'],
-          preselectedTargetId: extra?['preselectedTargetId'],
-          preselectedTargetTitle: extra?['preselectedTargetTitle'],
-          preselectedOwnershipId: extra?['preselectedOwnershipId'],
-          reassignInstanceId: extra?['reassignInstanceId'],
-        );
-      },
+      path: RoutePaths.sellerPromotionContractCreate,
+      name: 'sellerPromotionContractCreate',
+      builder: (context, state) => const CanonicalPromotionCreateScreen(),
     ),
+    // Canonical Promotion Analytics Route
     GoRoute(
-      path: RoutePaths.sellerPromotionDetail,
-      name: RouteNames.sellerPromotionDetail,
+      path: RoutePaths.sellerCanonicalPromotionAnalytics,
+      name: RouteNames.sellerCanonicalPromotionAnalytics,
       builder: (context, state) {
-        final instanceId = state.pathParameters['instanceId']!;
-        return PromotionDetailScreen(instanceId: instanceId);
+        final contractId = state.pathParameters['contractId']!;
+        return CanonicalPromotionAnalyticsScreen(contractId: contractId);
       },
     ),
     GoRoute(

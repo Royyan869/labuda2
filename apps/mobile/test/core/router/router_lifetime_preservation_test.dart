@@ -13,8 +13,6 @@ import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/screens/create_for_sale_screen.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/screens/for_sale_detail_screen.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/promotion.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/promotion_providers.dart';
 import 'package:labuda/domains/social/content/content.dart';
 import 'package:labuda/domains/social/follow/data/follow_providers.dart';
 import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
@@ -788,12 +786,6 @@ Future<ProviderContainer> _buildContainer({
         return forSale;
       }
       return null;
-    }),
-    fixedPriceSaleActivePromotionsProvider.overrideWith((
-      ref,
-      fixedPriceSaleId,
-    ) async {
-      return Result.success(const <PromotionInstance>[]);
     }),
     getUserRatingSummaryProvider.overrideWith((ref, userId) async {
       return Result.success(

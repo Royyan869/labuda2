@@ -104,7 +104,7 @@ Map<String, dynamic> _promotedListingItem({
 }) {
   return <String, dynamic>{
     'type': 'promoted_for_sale',
-    'promotion_instance_id': instanceId,
+    'contract_id': instanceId,
     'target_type': 'for_sale',
     'title': title,
     'image_url': imageUrl,
@@ -129,7 +129,7 @@ Map<String, dynamic> _promotedAuctionItem({
 }) {
   return <String, dynamic>{
     'type': 'promoted_auction',
-    'promotion_instance_id': instanceId,
+    'contract_id': instanceId,
     'target_type': 'auction',
     'title': title,
     'image_url': imageUrl,
@@ -151,7 +151,7 @@ Map<String, dynamic> _promotedExternalItem({
 }) {
   return <String, dynamic>{
     'type': 'promoted_external',
-    'promotion_instance_id': instanceId,
+    'contract_id': instanceId,
     'target_type': 'external_product',
     'title': title,
     'external_url': externalUrl,
@@ -1084,7 +1084,7 @@ void main() {
               items: [
                 {
                   'type': 'promoted_external',
-                  'promotion_instance_id': 'pi-no-media',
+                  'contract_id': 'pi-no-media',
                   'target_type': 'external_product',
                   'title': 'No Media External',
                   'external_url': 'https://example.com/no-media',

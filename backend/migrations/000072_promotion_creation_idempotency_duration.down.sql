@@ -1,0 +1,4 @@
+-- 000072_promotion_creation_idempotency_duration (down)
+
+ALTER TABLE promotion_creation_idempotency DROP CONSTRAINT IF EXISTS promotion_creation_idempotency_duration_non_negative;
+ALTER TABLE promotion_creation_idempotency DROP COLUMN IF EXISTS duration_seconds;

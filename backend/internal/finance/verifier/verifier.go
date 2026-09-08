@@ -17,6 +17,9 @@ type Account struct {
 	UserID      *uuid.UUID
 	AccountType string
 	Balance     int64
+	// Holder scope (PROMOTION_ALLOCATION rows only, migration 000064).
+	HolderType *string
+	HolderID   *uuid.UUID
 }
 
 type LedgerTransaction struct {
@@ -54,17 +57,17 @@ type Payment struct {
 }
 
 type Order struct {
-	ID                   uuid.UUID
-	BuyerID              uuid.UUID
-	SellerID             uuid.UUID
-	Status               string
-	EscrowStatus         string
-	Subtotal             int64
-	ShippingTotal        int64
-	CommissionAmount     int64
+	ID                     uuid.UUID
+	BuyerID                uuid.UUID
+	SellerID               uuid.UUID
+	Status                 string
+	EscrowStatus           string
+	Subtotal               int64
+	ShippingTotal          int64
+	CommissionAmount       int64
 	TotalBeforeCoinsAmount int64 // canonical buyer-funded escrow base = PD + S
-	RefundedAmount       int64
-	PaymentID            *uuid.UUID
+	RefundedAmount         int64
+	PaymentID              *uuid.UUID
 }
 
 type Withdrawal struct {
@@ -111,17 +114,41 @@ type OutboxEvent struct {
 	Archive     bool
 }
 
+// PromotionContract is the promotion_contracts row projection the verifier
+// needs to reconcile Qualified Impression charges against the immutable CPM
+// pricing snapshot (Phase 3 boundary, migration 000066).
+type PromotionContract struct {
+	ID                  uuid.UUID
+	SellerID            uuid.UUID
+	Status              string
+	CPMRupiah           int64
+	AllocationAccountID uuid.UUID
+}
+
+// QualifiedImpression is the promotion_qualified_impressions row projection
+// (immutable billable fact, migration 000066).
+type QualifiedImpression struct {
+	ID               uuid.UUID
+	TicketID         uuid.UUID
+	ContractID       uuid.UUID
+	SequenceN        int64
+	ChargeRupiah     int64
+	ServerOccurredAt time.Time
+}
+
 type Snapshot struct {
-	Accounts       []Account
-	Transactions   []LedgerTransaction
-	Entries        []LedgerEntry
-	Payments       []Payment
-	Orders         []Order
-	Withdrawals    []Withdrawal
-	Refunds        []Refund
-	DisputeFreezes []DisputeFreeze
-	Wallets        []Wallet
-	OutboxEvents   []OutboxEvent
+	Accounts             []Account
+	Transactions         []LedgerTransaction
+	Entries              []LedgerEntry
+	Payments             []Payment
+	Orders               []Order
+	Withdrawals          []Withdrawal
+	Refunds              []Refund
+	DisputeFreezes       []DisputeFreeze
+	Wallets              []Wallet
+	OutboxEvents         []OutboxEvent
+	PromotionContracts   []PromotionContract
+	QualifiedImpressions []QualifiedImpression
 }
 
 type Finding struct {
@@ -217,6 +244,12 @@ func LoadSnapshot(ctx context.Context, pool *pgxpool.Pool) (*Snapshot, error) {
 	if s.OutboxEvents, err = loadOutboxEvents(ctx, pool); err != nil {
 		return nil, err
 	}
+	if s.PromotionContracts, err = loadPromotionContracts(ctx, pool); err != nil {
+		return nil, err
+	}
+	if s.QualifiedImpressions, err = loadQualifiedImpressions(ctx, pool); err != nil {
+		return nil, err
+	}
 	return s, nil
 }
 
@@ -231,6 +264,8 @@ func Verify(snapshot *Snapshot, mode Mode) Report {
 			v.checkWithdrawalInvariants(),
 			v.checkRefundInvariants(),
 			v.checkDisputeFreezeInvariants(),
+			v.checkPromotionFinancialInvariants(),
+			v.checkQualifiedImpressionReconciliation(),
 			v.checkOutboxCorrelation(),
 		},
 	}
@@ -798,6 +833,228 @@ func (v *verifier) checkDisputeFreezeInvariants() SectionResult {
 	return v.finalize(&res)
 }
 
+// promotionReferenceAllowedAccounts maps each promotion ledger reference type
+// to the ONLY account types its canonical double-entry may touch
+// (promotion_finance.go, migration 000064). Any other account in one of these
+// transactions is an illegal financial flow (e.g. a top-up booking platform
+// revenue, or an allocation drawn from an account other than PROMOTE_BALANCE).
+var promotionReferenceAllowedAccounts = map[string]map[string]bool{
+	"promote_balance_funding": {
+		finance.AccountBankSettlement: true,
+		finance.AccountPromoteBalance: true,
+	},
+	"promotion_allocation": {
+		finance.AccountPromoteBalance:      true,
+		finance.AccountPromotionAllocation: true,
+	},
+	"promotion_qi": {
+		finance.AccountPromotionAllocation: true,
+		finance.AccountPlatformRevenue:     true,
+	},
+	"promotion_allocation_release": {
+		finance.AccountPromotionAllocation: true,
+		finance.AccountPromoteBalance:      true,
+	},
+}
+
+// checkPromotionFinancialInvariants validates that the promotion account
+// types (PROMOTE_BALANCE, PROMOTION_ALLOCATION) are structurally sound and
+// that every promotion ledger transaction follows its canonical financial
+// shape. It proves the verifier UNDERSTANDS the promotion primitives (no
+// "unknown accounting primitive") and that no accidental competing financial
+// authority exists (allocation is ledger-state, not a second wallet).
+func (v *verifier) checkPromotionFinancialInvariants() SectionResult {
+	res := SectionResult{Name: "Promotion Financial Invariants"}
+
+	typeByID := make(map[uuid.UUID]string, len(v.snapshot.Accounts))
+	for _, a := range v.snapshot.Accounts {
+		typeByID[a.ID] = a.AccountType
+		switch a.AccountType {
+		case finance.AccountPromoteBalance:
+			if a.UserID == nil {
+				v.addFinding(&res, "real_invariant_bug", "promote_balance_system_account",
+					fmt.Sprintf("account=%s PROMOTE_BALANCE must be seller-owned (user_id IS NULL)", a.ID))
+			}
+		case finance.AccountPromotionAllocation:
+			if a.UserID == nil || a.HolderID == nil {
+				v.addFinding(&res, "real_invariant_bug", "allocation_account_missing_scope",
+					fmt.Sprintf("account=%s PROMOTION_ALLOCATION must be user+holder scoped (user_id and holder_id required)", a.ID))
+			}
+		}
+	}
+
+	for _, tx := range v.snapshot.Transactions {
+		allowed, isPromotionRef := promotionReferenceAllowedAccounts[tx.ReferenceType]
+		if !isPromotionRef {
+			continue
+		}
+		for _, e := range v.entriesByTx[tx.ID] {
+			acctType, ok := typeByID[e.AccountID]
+			if !ok {
+				// Orphan-entry accounts are reported by Double-Entry Integrity.
+				continue
+			}
+			if !allowed[acctType] {
+				v.addFinding(&res, "real_invariant_bug", "promotion_reference_illegal_account",
+					fmt.Sprintf("transaction=%s reference_type=%s touches account_type=%s account=%s (allowed: %s)",
+						tx.ID, tx.ReferenceType, acctType, e.AccountID, sortedMapKeys(allowed)))
+			}
+		}
+	}
+	return v.finalize(&res)
+}
+
+// checkQualifiedImpressionReconciliation proves the Phase 3 exact-once
+// financial delivery invariant (migration 000066) against canonical data:
+//
+//	Qualified Impression  ↔  CPM arithmetic (contract snapshot)
+//	        ↔  ledger charge (promotion_qi transaction)
+//	        ↔  PROMOTION_ALLOCATION movement
+//
+// Rules proven:
+//   - each billable QI (charge > 0) has EXACTLY one promotion_qi ledger
+//     transaction whose charge equals the QI's charge_rupiah
+//   - a zero-charge QI (Phase 1 cumulative rounding) has NO ledger
+//     transaction (no illegal zero-amount money movement)
+//   - a promotion_qi ledger charge always corresponds to an existing QI
+//     (no charge without a Qualified Impression)
+//   - one ticket produces at most one QI (DB UNIQUE re-proven here)
+//   - per contract, QI sequence is contiguous 1..maxN and each charge equals
+//     finance.PromotionCharge(N, contract CPM snapshot); cumulative QI
+//     charges equal the contract allocation's promotion_qi movement
+//   - allocation balance never negative (also enforced structurally by the
+//     financial_accounts.balance >= 0 CHECK and Account Balance Integrity)
+func (v *verifier) checkQualifiedImpressionReconciliation() SectionResult {
+	res := SectionResult{Name: "Qualified Impression Reconciliation"}
+
+	contractByID := make(map[uuid.UUID]PromotionContract, len(v.snapshot.PromotionContracts))
+	for _, c := range v.snapshot.PromotionContracts {
+		contractByID[c.ID] = c
+	}
+
+	qiByTicket := make(map[uuid.UUID]int)
+	qisByContract := make(map[uuid.UUID][]QualifiedImpression)
+	qiByID := make(map[uuid.UUID]bool)
+	for _, qi := range v.snapshot.QualifiedImpressions {
+		qiByTicket[qi.TicketID]++
+		qisByContract[qi.ContractID] = append(qisByContract[qi.ContractID], qi)
+		qiByID[qi.ID] = true
+		if qi.SequenceN <= 0 {
+			v.addFinding(&res, "real_invariant_bug", "qi_sequence_non_positive",
+				fmt.Sprintf("qualified_impression=%s contract=%s sequence_n=%d", qi.ID, qi.ContractID, qi.SequenceN))
+		}
+		if qi.ChargeRupiah < 0 {
+			v.addFinding(&res, "real_invariant_bug", "qi_negative_charge",
+				fmt.Sprintf("qualified_impression=%s charge_rupiah=%d", qi.ID, qi.ChargeRupiah))
+		}
+		if _, ok := contractByID[qi.ContractID]; !ok {
+			v.addFinding(&res, "real_invariant_bug", "qi_missing_contract",
+				fmt.Sprintf("qualified_impression=%s references unknown contract=%s", qi.ID, qi.ContractID))
+		}
+	}
+
+	// One ticket -> at most one Qualified Impression (structural invariant).
+	for ticketID, count := range qiByTicket {
+		if count != 1 {
+			v.addFinding(&res, "real_invariant_bug", "qi_duplicate_ticket",
+				fmt.Sprintf("ticket=%s qualified_impression_count=%d (must be 1)", ticketID, count))
+		}
+	}
+
+	// Ledger correlation: reference_id of every promotion_qi transaction is a
+	// real QI, and the QI's charge exactly matches its ledger allocation
+	// movement (zero-charge QIs have no ledger movement).
+	typeByID := make(map[uuid.UUID]string, len(v.snapshot.Accounts))
+	for _, a := range v.snapshot.Accounts {
+		typeByID[a.ID] = a.AccountType
+	}
+	promotionQiTxByRef := make(map[uuid.UUID]int)
+	promotionQiChargeByRef := make(map[uuid.UUID]int64)
+	for _, tx := range v.snapshot.Transactions {
+		if tx.ReferenceType != "promotion_qi" || tx.ReferenceID == nil {
+			continue
+		}
+		promotionQiTxByRef[*tx.ReferenceID]++
+		if !qiByID[*tx.ReferenceID] {
+			v.addFinding(&res, "real_invariant_bug", "ledger_charge_without_qi",
+				fmt.Sprintf("promotion_qi ledger_transaction=%s references unknown qualified_impression=%s (no charge without a Qualified Impression)", tx.ID, *tx.ReferenceID))
+		}
+		for _, e := range v.entriesByTx[tx.ID] {
+			if typeByID[e.AccountID] == finance.AccountPromotionAllocation {
+				promotionQiChargeByRef[*tx.ReferenceID] += signedAmount(e)
+			}
+		}
+	}
+	for _, qi := range v.snapshot.QualifiedImpressions {
+		txCount := promotionQiTxByRef[qi.ID]
+		ledgerCharge := -promotionQiChargeByRef[qi.ID]
+		if qi.ChargeRupiah > 0 {
+			if txCount != 1 {
+				v.addFinding(&res, "real_invariant_bug", "qi_ledger_tx_count",
+					fmt.Sprintf("qualified_impression=%s charge=%d ledger_tx_count=%d (must be exactly 1)", qi.ID, qi.ChargeRupiah, txCount))
+			} else if ledgerCharge != qi.ChargeRupiah {
+				v.addFinding(&res, "real_invariant_bug", "qi_ledger_charge_mismatch",
+					fmt.Sprintf("qualified_impression=%s stored_charge=%d ledger_charge=%d", qi.ID, qi.ChargeRupiah, ledgerCharge))
+			}
+		} else if txCount != 0 {
+			v.addFinding(&res, "real_invariant_bug", "qi_zero_charge_has_ledger",
+				fmt.Sprintf("qualified_impression=%s charge=0 but has %d promotion_qi ledger transaction(s)", qi.ID, txCount))
+		}
+	}
+
+	// Per contract: contiguous unique sequence, exact cumulative CPM charges,
+	// and allocation movement equal to the sum of QI charges.
+	for contractID, qis := range qisByContract {
+		c, ok := contractByID[contractID]
+		if !ok {
+			continue // already flagged above
+		}
+		sort.Slice(qis, func(i, j int) bool { return qis[i].SequenceN < qis[j].SequenceN })
+		var cumulative int64
+		for i, qi := range qis {
+			if int64(i+1) != qi.SequenceN {
+				v.addFinding(&res, "real_invariant_bug", "qi_sequence_gap",
+					fmt.Sprintf("contract=%s expected_sequence=%d actual_sequence=%d (must be contiguous 1..maxN)", contractID, i+1, qi.SequenceN))
+			}
+			expectedCharge, err := finance.PromotionCharge(qi.SequenceN, c.CPMRupiah)
+			if err != nil {
+				v.addFinding(&res, "real_invariant_bug", "qi_cpm_arithmetic_error",
+					fmt.Sprintf("contract=%s sequence=%d cpm=%d: %v", contractID, qi.SequenceN, c.CPMRupiah, err))
+				continue
+			}
+			if qi.ChargeRupiah != expectedCharge {
+				v.addFinding(&res, "real_invariant_bug", "qi_charge_does_not_match_cpm",
+					fmt.Sprintf("qualified_impression=%s contract=%s sequence=%d stored_charge=%d expected_charge=%d (cumulative CPM formula)",
+						qi.ID, contractID, qi.SequenceN, qi.ChargeRupiah, expectedCharge))
+			}
+			cumulative += qi.ChargeRupiah
+		}
+
+		var allocationPromotionQiDelta int64
+		for _, e := range v.entriesByAccount[c.AllocationAccountID] {
+			tx, ok := v.txByID[e.TransactionID]
+			if ok && tx.ReferenceType == "promotion_qi" {
+				allocationPromotionQiDelta += signedAmount(e)
+			}
+		}
+		if -allocationPromotionQiDelta != cumulative {
+			v.addFinding(&res, "real_invariant_bug", "qi_allocation_movement_mismatch",
+				fmt.Sprintf("contract=%s cumulative_qi_charge=%d allocation_promotion_qi_movement=%d",
+					contractID, cumulative, -allocationPromotionQiDelta))
+		}
+	}
+	return v.finalize(&res)
+}
+
+func sortedMapKeys(m map[string]bool) string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return strings.Join(keys, ", ")
+}
+
 func (v *verifier) checkOutboxCorrelation() SectionResult {
 	res := SectionResult{Name: "Outbox Correlation"}
 	for _, o := range v.snapshot.Orders {
@@ -952,7 +1209,20 @@ func (v *verifier) paymentSettlementIsLegacyResidue(payment Payment) bool {
 }
 
 func loadAccounts(ctx context.Context, pool *pgxpool.Pool) ([]Account, error) {
-	rows, err := pool.Query(ctx, `SELECT id, user_id, account_type, balance FROM financial_accounts`)
+	// Holder scope columns exist only after migration 000064. Tolerate their
+	// absence so the verifier still runs against pre-migration databases.
+	hasHolder, err := columnExists(ctx, pool, "financial_accounts", "holder_id")
+	if err != nil {
+		return nil, err
+	}
+	query := `SELECT id, user_id, account_type, balance`
+	if hasHolder {
+		query += `, holder_type, holder_id`
+	} else {
+		query += `, NULL::text AS holder_type, NULL::uuid AS holder_id`
+	}
+	query += ` FROM financial_accounts`
+	rows, err := pool.Query(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("load financial_accounts: %w", err)
 	}
@@ -960,7 +1230,7 @@ func loadAccounts(ctx context.Context, pool *pgxpool.Pool) ([]Account, error) {
 	var out []Account
 	for rows.Next() {
 		var a Account
-		if err := rows.Scan(&a.ID, &a.UserID, &a.AccountType, &a.Balance); err != nil {
+		if err := rows.Scan(&a.ID, &a.UserID, &a.AccountType, &a.Balance, &a.HolderType, &a.HolderID); err != nil {
 			return nil, fmt.Errorf("scan financial_accounts: %w", err)
 		}
 		out = append(out, a)
@@ -1153,6 +1423,52 @@ func loadWallets(ctx context.Context, pool *pgxpool.Pool) ([]Wallet, error) {
 	return out, rows.Err()
 }
 
+func loadPromotionContracts(ctx context.Context, pool *pgxpool.Pool) ([]PromotionContract, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT id, seller_id, status::text, cpm_rupiah, allocation_account_id
+		FROM promotion_contracts
+	`)
+	if err != nil {
+		if strings.Contains(err.Error(), "does not exist") {
+			return nil, nil // migration 000065 not yet applied — empty, not an error
+		}
+		return nil, fmt.Errorf("load promotion_contracts: %w", err)
+	}
+	defer rows.Close()
+	var out []PromotionContract
+	for rows.Next() {
+		var c PromotionContract
+		if err := rows.Scan(&c.ID, &c.SellerID, &c.Status, &c.CPMRupiah, &c.AllocationAccountID); err != nil {
+			return nil, fmt.Errorf("scan promotion_contracts: %w", err)
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+func loadQualifiedImpressions(ctx context.Context, pool *pgxpool.Pool) ([]QualifiedImpression, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT id, ticket_id, contract_id, sequence_n, charge_rupiah, server_occurred_at
+		FROM promotion_qualified_impressions
+	`)
+	if err != nil {
+		if strings.Contains(err.Error(), "does not exist") {
+			return nil, nil // migration 000066 not yet applied — empty, not an error
+		}
+		return nil, fmt.Errorf("load promotion_qualified_impressions: %w", err)
+	}
+	defer rows.Close()
+	var out []QualifiedImpression
+	for rows.Next() {
+		var qi QualifiedImpression
+		if err := rows.Scan(&qi.ID, &qi.TicketID, &qi.ContractID, &qi.SequenceN, &qi.ChargeRupiah, &qi.ServerOccurredAt); err != nil {
+			return nil, fmt.Errorf("scan promotion_qualified_impressions: %w", err)
+		}
+		out = append(out, qi)
+	}
+	return out, rows.Err()
+}
+
 func loadOutboxEvents(ctx context.Context, pool *pgxpool.Pool) ([]OutboxEvent, error) {
 	rows, err := pool.Query(ctx, `
 		SELECT id, aggregate_id, event_type, status::text, false AS archive FROM outbox
@@ -1262,5 +1578,3 @@ func fixtureNegativeBalance() *Snapshot {
 		},
 	}
 }
-
-

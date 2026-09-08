@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	promotionapp "github.com/labuda/backend/internal/pricing/promotion/application"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
@@ -220,35 +219,12 @@ var _ interface{ Code() string } = (*mockPgError)(nil)
 // PROMOTION WEBHOOK GOVERNANCE ALIGNMENT
 // =============================================================================
 
-// TestPromotionService_NilFailsClosed verifies the payment webhook refuses
-// to create promotion ownership when PromotionService is not wired.
-// This is the fail-closed guard added during the V1→canonical alignment.
-func TestPromotionService_NilFailsClosed(t *testing.T) {
-	svc := &PaymentWebhookService{
-		promotionService: nil,
-	}
-	assert.Nil(t, svc.promotionService, "promotionService must be nil before SetPromotionService")
-}
-
-// TestPromotionService_SetterWires verifies SetPromotionService replaces nil.
-func TestPromotionService_SetterWires(t *testing.T) {
-	svc := &PaymentWebhookService{}
-	assert.Nil(t, svc.promotionService)
-
-	// Any non-nil value proves the setter wires correctly.
-	// We cannot construct a real PromotionService without DB, but the field
-	// type check is what matters — the canonical instance from dependencies.go
-	// will be the actual value at runtime.
-	dummy := &promotionapp.PromotionService{}
-	svc.SetPromotionService(dummy)
-	assert.NotNil(t, svc.promotionService, "SetPromotionService must wire the field")
-}
 
 // TestWebhookNoDefaultOperabilityChecker is a structural regression test.
 //
-// After the V1→canonical alignment, payment_webhook.go must NOT reference
-// DefaultOperabilityChecker anywhere. The canonical OperabilityCheckerImpl
-// is injected via SetPromotionService from dependencies.go.
+// payment_webhook.go must NOT reference DefaultOperabilityChecker anywhere.
+// Promotion package purchase authority is purged; promotion funding flows
+// through the canonical Promote Balance + contract ledger, never the webhook.
 func TestWebhookNoDefaultOperabilityChecker(t *testing.T) {
 	f, err := os.Open("payment_webhook.go")
 	if err != nil {
@@ -271,28 +247,31 @@ func TestWebhookNoDefaultOperabilityChecker(t *testing.T) {
 	}
 }
 
-// TestWebhookPromotionBranchHasNilGuard is a structural regression test.
+// TestWebhookPromotionPackageBranchIsForbidden is a structural regression test.
 //
-// The promotion ownership branch (TypePromotionPackage) must check
-// s.promotionService == nil before calling PurchasePackage, matching
-// the fail-closed pattern used by financeService and subscriptionPaymentService.
-func TestWebhookPromotionBranchHasNilGuard(t *testing.T) {
+// The TypePromotionPackage webhook branch must HARD-REJECT (forbidden), never
+// call a legacy PurchasePackage. BillingService.MarkPaid fails closed for
+// TypePromotionPackage before any revenue booking, so a legacy package billing
+// row can never become paid platform revenue.
+func TestWebhookPromotionPackageBranchIsForbidden(t *testing.T) {
 	f, err := os.Open("payment_webhook.go")
 	if err != nil {
 		t.Fatalf("failed to open payment_webhook.go: %v", err)
 	}
 	defer f.Close()
 
-	foundNilCheck := false
+	foundForbiddenBranch := false
 	foundPurchaseCall := false
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if strings.Contains(line, "s.promotionService == nil") {
-			foundNilCheck = true
+		if strings.Contains(line, "promotion_package billing forbidden") ||
+			strings.Contains(line, "promotion package purchase forbidden") {
+			foundForbiddenBranch = true
 		}
-		if strings.Contains(line, "s.promotionService.PurchasePackage") {
+		if strings.Contains(line, "PurchasePackage") ||
+			strings.Contains(line, "promotionService") {
 			foundPurchaseCall = true
 		}
 	}
@@ -300,11 +279,11 @@ func TestWebhookPromotionBranchHasNilGuard(t *testing.T) {
 		t.Fatalf("failed to scan payment_webhook.go: %v", err)
 	}
 
-	if !foundPurchaseCall {
-		t.Fatal("PurchasePackage call not found — promotion branch may have been removed")
+	if !foundForbiddenBranch {
+		t.Fatal("TypePromotionPackage hard-reject branch not found — webhook must reject legacy package billing")
 	}
-	if !foundNilCheck {
-		t.Fatal("promotionService nil check not found — webhook must fail-closed when PromotionService is not wired")
+	if foundPurchaseCall {
+		t.Fatal("payment_webhook.go must not reference PurchasePackage/promotionService — promotion package authority is purged")
 	}
 }
 

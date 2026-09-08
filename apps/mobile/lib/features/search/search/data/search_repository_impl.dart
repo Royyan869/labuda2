@@ -600,13 +600,13 @@ class SearchRepositoryImpl implements SearchRepository {
     switch (dto.targetType) {
       case 'for_sale':
         type = SearchResultType.listing;
-        id = dto.forSaleId ?? dto.promotionInstanceId;
+        id = dto.forSaleId ?? dto.contractId;
       case 'auction':
         type = SearchResultType.auction;
-        id = dto.auctionId ?? dto.promotionInstanceId;
+        id = dto.auctionId ?? dto.contractId;
       case 'external_product':
         type = SearchResultType.externalProduct;
-        id = dto.promotionInstanceId;
+        id = dto.contractId;
       default:
         return null;
     }
@@ -637,7 +637,7 @@ class SearchRepositoryImpl implements SearchRepository {
       },
       createdAt: DateTime.now(),
       isPromoted: true,
-      promotionInstanceId: dto.promotionInstanceId,
+      contractId: dto.contractId,
     );
   }
 

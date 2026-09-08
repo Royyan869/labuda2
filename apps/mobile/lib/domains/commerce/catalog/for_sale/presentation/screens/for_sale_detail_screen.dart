@@ -11,8 +11,6 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/target_type.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/promotion_providers.dart';
 import 'package:labuda/domains/user/profile/profile.dart' show userDataProvider;
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/governance/seller_tier_badge.dart';
@@ -332,7 +330,7 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
                 _ForSaleSellerCard(listing: listing),
                 const SizedBox(height: 16),
                 // Promote button (only for listing owner)
-                _PromoteButton(forSaleId: widget.forSaleId),
+                const _PromoteButton(),
               ],
             ),
           ),
@@ -343,17 +341,17 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
 }
 
 /// Promote Button Widget
+///
+/// Canonical era: promotion is contract-based. The seller entry point is the
+/// canonical promotion management list (create contract + queue targets).
+/// The legacy per-listing promotion instance lookup and the legacy
+/// activation route are purged.
 class _PromoteButton extends ConsumerWidget {
-  final String forSaleId;
-
-  const _PromoteButton({required this.forSaleId});
+  const _PromoteButton();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authControllerProvider);
-    final promotionsAsync = ref.watch(
-      fixedPriceSaleActivePromotionsProvider(forSaleId),
-    );
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Only show promote button to authenticated users
@@ -361,105 +359,22 @@ class _PromoteButton extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    return promotionsAsync.when(
-      data: (result) {
-        final activePromotions = result.data ?? [];
-        final isPromoted = activePromotions.isNotEmpty;
-
-        if (isPromoted) {
-          // Show promoted badge with remaining time
-          return _buildPromotedBadge(context, activePromotions.first);
-        }
-
-        // Show promote button
-        return SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () => _openPromotionScreen(context, ref),
-            icon: const Icon(Icons.campaign, size: 18),
-            label: const Text('Promosikan Fixed-Price Sale'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isDark
-                  ? AppColors.darkGray700
-                  : AppColors.neutralGray100,
-              foregroundColor: isDark
-                  ? AppColors.neutralWhite
-                  : AppColors.neutralGray900,
-              elevation: 0,
-            ),
-          ),
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-    );
-  }
-
-  Widget _buildPromotedBadge(BuildContext context, promotion) {
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primaryRed.withValues(alpha: 0.8),
-            AppColors.primaryRed.withValues(alpha: 0.6),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+      child: ElevatedButton.icon(
+        onPressed: () => context.push(RoutePaths.sellerCanonicalPromotions),
+        icon: const Icon(Icons.campaign, size: 18),
+        label: const Text('Promosikan Fixed-Price Sale'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isDark
+              ? AppColors.darkGray700
+              : AppColors.neutralGray100,
+          foregroundColor: isDark
+              ? AppColors.neutralWhite
+              : AppColors.neutralGray900,
+          elevation: 0,
         ),
-        borderRadius: BorderRadius.circular(8),
       ),
-      child: Row(
-        children: [
-          const Icon(Icons.star, color: Colors.white, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Sedang Dipromosikan',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Listing Anda sedang muncul di prioritas',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _openPromotionScreen(BuildContext context, WidgetRef ref) {
-    // Get listing title from the forSale detail provider
-    final listingAsync = ref.read(forSaleDetailProvider(forSaleId));
-    listingAsync.when(
-      data: (listing) {
-        if (listing != null) {
-          context.push(
-            RoutePaths.sellerPromotionActivate,
-            extra: {
-              'preselectedTargetType': TargetType.forSale,
-              'preselectedTargetId': forSaleId,
-              'preselectedTargetTitle': listing.title,
-            },
-          );
-        }
-      },
-      loading: () {},
-      error: (_, _) {},
     );
   }
 }

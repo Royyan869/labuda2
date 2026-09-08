@@ -118,8 +118,6 @@ Balance di `user_coin_balance` selalu sinkron dengan ledger melalui setiap write
 Semua refund coins mengalir melalui **satu entry point**:
 `coins.refund_required` outbox event → `CoinsRefundRequiredHandler`
 
-Lihat [COINS_REFUND_ARCHITECTURE.md](COINS_REFUND_ARCHITECTURE.md) untuk detail.
-
 ---
 
 ## 10. Enforcement Rules (System-Level)

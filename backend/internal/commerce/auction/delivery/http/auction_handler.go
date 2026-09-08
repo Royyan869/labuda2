@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -312,16 +313,22 @@ func isAuctionTimingValidationError(err error) bool {
 
 // UpdateAuctionRequest holds the request body for updating an auction.
 //
-// Canonical update contract (F2.2B):
-//   Draft:     title, description, start_price, bid_increment, buy_now_price, start_at, end_at
-//   Scheduled: title, description, start_at, end_at
-// Product content (title/description) is persisted via ProductRepository;
-// Auction surface (pricing/timing) via AuctionRepository — ONE transaction.
-// Unsupported fields (images/category/condition/auto_extend*) are NOT bound
-// and are explicitly rejected when present (see UpdateAuction guard).
+// Canonical update contract:
+//   Draft:     title, description, media_urls, variety, size_cm, age_months, gender, breeder, bloodline, certificates, preparation_time/note, start_price, bid_increment, buy_now_price, start_at, end_at
+//   Scheduled: title, description, start_at, end_at only
 type UpdateAuctionRequest struct {
-	Title       *string `json:"title" binding:"omitempty,min=1,max=200"`
-	Description *string `json:"description" binding:"omitempty,max=5000"`
+	Title           *string   `json:"title" binding:"omitempty,min=1,max=200"`
+	Description     *string   `json:"description" binding:"omitempty,max=5000"`
+	MediaURLs       *[]string `json:"media_urls"`
+	Variety         *string   `json:"variety"`
+	SizeCM          *int      `json:"size_cm"`
+	AgeMonths       *int      `json:"age_months"`
+	Gender          *string   `json:"gender"`
+	Breeder         *string   `json:"breeder"`
+	Bloodline       *string   `json:"bloodline"`
+	Certificates    *[]string `json:"certificates"`
+	PreparationTime *string   `json:"preparation_time" binding:"omitempty,oneof=immediate short medium long"`
+	PreparationNote *string   `json:"preparation_note"`
 	StartPrice   *int64  `json:"start_price" binding:"omitempty,min=0"`
 	BidIncrement *int64  `json:"bid_increment" binding:"omitempty,min=1"`
 	BuyNowPrice  *int64  `json:"buy_now_price" binding:"omitempty,min=0"`
@@ -422,10 +429,20 @@ func (h *AuctionHandler) UpdateAuction(c *gin.Context) {
 			}
 
 			return h.auctionService.UpdateDraft(ctx, tx, auctionApp.UpdateDraftInput{
-				AuctionID:   auctionID,
-				CallerID:    callerID,
-				Title:       req.Title,
-				Description: req.Description,
+				AuctionID:       auctionID,
+				CallerID:        callerID,
+				Title:           req.Title,
+				Description:     req.Description,
+				MediaURLs:       req.MediaURLs,
+				Variety:         req.Variety,
+				SizeCM:          req.SizeCM,
+				AgeMonths:       req.AgeMonths,
+				Gender:          req.Gender,
+				Breeder:         req.Breeder,
+				Bloodline:       req.Bloodline,
+				Certificates:    req.Certificates,
+				PreparationTime: req.PreparationTime,
+				PreparationNote: req.PreparationNote,
 				StartPrice:   startPrice,
 				BidIncrement: bidIncrement,
 				BuyNowPrice:  buyNowPrice,
@@ -434,6 +451,13 @@ func (h *AuctionHandler) UpdateAuction(c *gin.Context) {
 			})
 
 		} else if auction.Status == entity.StatusScheduled {
+			// Scheduled: only title/description/start_at/end_at allowed — reject draft-only fields explicitly
+			if req.MediaURLs != nil || req.Variety != nil || req.SizeCM != nil || req.AgeMonths != nil || req.Gender != nil || req.Breeder != nil || req.Bloodline != nil || req.Certificates != nil || req.PreparationTime != nil || req.PreparationNote != nil {
+				return &entity.InvalidOperationError{Status: auction.Status, Reason: "media/variety/size/age/gender/breeder/bloodline/certificates/preparation not editable in scheduled status"}
+			}
+			if req.StartPrice != nil || req.BidIncrement != nil || req.BuyNowPrice != nil {
+				return &entity.InvalidOperationError{Status: auction.Status, Reason: "pricing not editable in scheduled status"}
+			}
 			startAt := auction.StartAt
 			endAt := auction.EndAt
 
@@ -472,6 +496,10 @@ func (h *AuctionHandler) UpdateAuction(c *gin.Context) {
 			zap.Error(err),
 		)
 		if isAuctionTimingValidationError(err) {
+			response.BadRequest(c, err.Error())
+			return
+		}
+		if strings.Contains(err.Error(), "title must be") || strings.Contains(err.Error(), "description must be") || strings.Contains(err.Error(), "certificate") || strings.Contains(err.Error(), "preparation_time") {
 			response.BadRequest(c, err.Error())
 			return
 		}
@@ -882,6 +910,7 @@ func buildClaimPricingSnapshot(token *pricingtokenentity.PricingToken) *orderApp
 		ShippingSource:         shippingSource,
 		ShippingQuoteID:        token.ShippingQuoteID,
 		AuctionID:              token.AuctionID,
+		NegotiationID:          token.NegotiationID,
 		TokenID:                token.Token,
 		PaymentMethod:          "default",
 	}
@@ -1304,7 +1333,7 @@ func auctionToResponseWithSeller(
 //     read path and is not part of the public bid history contract.
 //   - "bidder_username" (flat scalar) — superseded by the nested
 //     `bidder` UserCard whose `username` field is the canonical
-//     identity surface per public-card-boundary.md.
+//     identity surface.
 func bidToResponse(b *entity.AuctionBid) map[string]interface{} {
 	return bidToResponseWithBidderCard(b, publiccard.UserCard{})
 }

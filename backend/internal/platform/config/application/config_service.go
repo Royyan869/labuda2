@@ -29,6 +29,13 @@ func NewConfigService(repo repository.Repository) *ConfigService {
 const (
 	KeyForSaleCommissionPercent = "for_sale_commission_percent"
 	KeyAuctionCommissionPercent = "auction_commission_percent"
+
+	// Promotion config keys (PROMOTION_FINANCIAL_FOUNDATION, migration 000064).
+	// Delivery is DISABLED by default: these values are inert until a later
+	// phase enables promotion delivery.
+	KeyPromotionCPM             = "promotion_cpm"
+	KeyPromotionMinDailyBudget  = "promotion_min_daily_budget"
+	KeyPromotionDeliveryEnabled = "promotion_delivery_enabled"
 )
 
 // ============================================================================
@@ -60,6 +67,57 @@ func (s *ConfigService) GetOrderAuctionCommission(ctx context.Context, tx db.Tx)
 }
 
 // ============================================================================
+// PROMOTION CONFIG GETTERS
+// ============================================================================
+
+// GetPromotionCPM returns the promotion CPM as a whole-Rupiah price per 1000
+// Qualified Impressions. Consumption uses the canonical cumulative integer
+// arithmetic in finance.PromotionCumulativeSpend / PromotionCharge, so a CPM
+// that does not divide evenly into 1000 never drifts.
+// Panics if config is missing or has the wrong type - fail fast.
+func (s *ConfigService) GetPromotionCPM(ctx context.Context, tx db.Tx) int64 {
+	value := s.getNumeric(ctx, tx, KeyPromotionCPM)
+	if value.IsNegative() {
+		panic(fmt.Sprintf("platform config invalid cpm for %s: %s (must be >= 0)", KeyPromotionCPM, value.String()))
+	}
+	return value.IntPart()
+}
+
+// GetPromotionMinDailyBudget returns the minimum daily budget (Rupiah) a
+// seller promotion must carry. Panics if config is missing/wrong type.
+func (s *ConfigService) GetPromotionMinDailyBudget(ctx context.Context, tx db.Tx) int64 {
+	value := s.getNumeric(ctx, tx, KeyPromotionMinDailyBudget)
+	if value.IsNegative() {
+		panic(fmt.Sprintf("platform config invalid minimum daily budget for %s: %s (must be >= 0)", KeyPromotionMinDailyBudget, value.String()))
+	}
+	return value.IntPart()
+}
+
+// IsPromotionDeliveryEnabled reports whether platform promotion delivery is
+// enabled. Promotion delivery is DISABLED by default (migration 000064 seeds
+// value_text = 'disabled'); the flag gates delivery workers, never financial
+// accounting. Panics if config is missing/wrong type.
+func (s *ConfigService) IsPromotionDeliveryEnabled(ctx context.Context, tx db.Tx) bool {
+	enabled, err := s.IsPromotionDeliveryEnabledResult(ctx, tx)
+	if err != nil {
+		panic(err)
+	}
+	return enabled
+}
+
+func (s *ConfigService) IsPromotionDeliveryEnabledResult(ctx context.Context, tx db.Tx) (bool, error) {
+	config, err := s.repo.Get(ctx, tx, KeyPromotionDeliveryEnabled)
+	if err != nil {
+		return false, err
+	}
+	value, err := config.TextValue()
+	if err != nil {
+		return false, err
+	}
+	return value == "enabled", nil
+}
+
+// ============================================================================
 // GENERIC GETTERS
 // ============================================================================
 
@@ -79,6 +137,22 @@ func (s *ConfigService) getNumeric(ctx context.Context, tx db.Tx, key string) de
 		panic(fmt.Sprintf("platform config type error for %s: %v", key, err))
 	}
 
+	return value
+}
+
+// getText retrieves a text config value, panicking on error (fail fast).
+func (s *ConfigService) getText(ctx context.Context, tx db.Tx, key string) string {
+	config, err := s.repo.Get(ctx, tx, key)
+	if err != nil {
+		if _, ok := err.(*entity.ConfigNotFoundError); ok {
+			panic(fmt.Sprintf("platform config missing: %s", key))
+		}
+		panic(fmt.Sprintf("platform config error for %s: %v", key, err))
+	}
+	value, err := config.TextValue()
+	if err != nil {
+		panic(fmt.Sprintf("platform config type error for %s: %v", key, err))
+	}
 	return value
 }
 

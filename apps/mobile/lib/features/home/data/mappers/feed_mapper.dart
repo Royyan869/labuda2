@@ -119,7 +119,7 @@ extension PromotedFeedItemMapper on PromotedFeedItemDto {
     final sellerLabel = _formatSellerLabel(sellerUsername, sellerFarmName);
 
     return FeedItem(
-      id: promotionInstanceId,
+      id: contractId,
       content: title ?? '',
       authorId: '',
       authorUsername: sellerUsername ?? '',
@@ -128,7 +128,8 @@ extension PromotedFeedItemMapper on PromotedFeedItemDto {
       additionalData: {
         'isPromoted': true,
         'targetType': targetType,
-        'promotionInstanceId': promotionInstanceId,
+        'contractId': contractId,
+        'canonicalExposureId': canonicalExposureId,
         'title': title,
         'imageUrl': imageUrl,
         'sellerUsername': sellerUsername,

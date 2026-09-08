@@ -26,8 +26,8 @@ const (
 // EvaluateWSSubscribe is the pure WS subscribe governance gate.
 //
 // Inputs are caller-hydrated; this function performs no IO.
-// Fail-CLOSED per governance-constitution.md §5: DENY on any non-active lifecycle
-// or when room membership is not granted.
+// Fail-CLOSED: DENY on any non-active lifecycle or when room membership is
+// not granted.
 //
 // Caller hydration sequence (in subscribe_gate.go):
 //  1. roomAuth.CanSubscribeToRoom() → membershipGranted
@@ -69,13 +69,13 @@ const (
 // EvaluateWSBroadcast is the pure per-subscriber WS broadcast governance gate.
 //
 // Inputs are caller-hydrated; this function performs no IO.
-// Fail-CLOSED per governance-constitution.md §5: DROP on any non-active lifecycle.
+// Fail-CLOSED: DROP on any non-active lifecycle.
 // The Dispatcher constructs a fresh lifecycle per subscriber at broadcast time;
 // subscribe-time lifecycle MUST NOT be reused here (ADR-005).
 //
 // Block overlay at broadcast time is CHAT-4 scope. The minimal-envelope WS frame
 // carries no message payload; the client re-fetches via REST which applies block
-// enforcement canonically (governance-constitution.md §2.2 interim relaxation).
+// enforcement canonically.
 func EvaluateWSBroadcast(lifecycle viewercontext.PublicLifecycleState) WSBroadcastDecision {
 	if lifecycle == viewercontext.PublicLifecycleStateActive {
 		return WSBroadcastAllow

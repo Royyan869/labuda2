@@ -43,24 +43,6 @@ type Repository interface {
 		resourceID, buyerID uuid.UUID,
 	) (*entity.NegotiationSession, error)
 
-	// GetAcceptedSessionByChatRoomID retrieves an accepted negotiation session for a given chat room.
-	// Returns nil if no accepted session exists.
-	// Used for chat-centric order creation.
-	GetAcceptedSessionByChatRoomID(
-		ctx context.Context,
-		tx db.Tx,
-		chatRoomID uuid.UUID,
-	) (*entity.NegotiationSession, error)
-
-	// GetAcceptedSessionByChatRoomIDForUpdate retrieves an accepted negotiation session with FOR UPDATE lock.
-	// Used for chat-centric order creation to prevent race conditions.
-	// Returns nil if no accepted session exists.
-	GetAcceptedSessionByChatRoomIDForUpdate(
-		ctx context.Context,
-		tx db.Tx,
-		chatRoomID uuid.UUID,
-	) (*entity.NegotiationSession, error)
-
 	// GetLatestSessionByChatRoomID retrieves the most recently updated negotiation session
 	// for a given chat room, regardless of status. Returns nil if no session exists.
 	// Used for chat-centric negotiation status queries.
@@ -71,11 +53,9 @@ type Repository interface {
 	) (*entity.NegotiationSession, error)
 
 	// UpdateSession persists session changes within a transaction.
+	// Canonical settlement writes OrderID on the locked session via UpdateSession;
+	// there is no separate UpdateOrderID authority.
 	UpdateSession(ctx context.Context, tx db.Tx, session *entity.NegotiationSession) error
-
-	// UpdateOrderID sets the order_id for a negotiation within a transaction.
-	// This is called during order creation to prevent double-order race condition.
-	UpdateOrderID(ctx context.Context, tx db.Tx, negotiationID, orderID uuid.UUID) error
 
 	// GetExpiredSessions retrieves active negotiations that have passed their expires_at time.
 	// Uses FOR UPDATE SKIP LOCKED for concurrent worker support.

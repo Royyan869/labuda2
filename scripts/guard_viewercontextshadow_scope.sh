@@ -4,12 +4,11 @@ set -e
 # B4.2 / G5 — evaluator.ViewerContextShadow and evaluator.TargetContextShadow
 # MUST NOT be referenced outside the evaluator package itself.
 #
-# Doctrine: docs/contracts/governance-constitution.md §3 F5 / F18 +
-# §8.1 G5. The shadow type is TRANSITIONAL DEBT bounded to
+# Doctrine: The shadow type is TRANSITIONAL DEBT bounded to
 # backend/internal/governance/evaluator/* until pilots are rebuilt on
-# the canonical viewercontext.ViewerContext (constitution §9 batches
-# C1 and D1). Any new cross-package consumer is a forbidden spread of
-# the transitional type into runtime authority.
+# the canonical viewercontext.ViewerContext (G5, batches C1 and D1).
+# Any new cross-package consumer is a forbidden spread of the
+# transitional type into runtime authority.
 #
 # Detection strategy: the type is qualified `evaluator.ViewerContextShadow`
 # (and `evaluator.TargetContextShadow`) only when referenced from
@@ -34,7 +33,6 @@ if [ -n "$VIOLATIONS" ]; then
   echo "consumed by a non-evaluator package. The shadow type is"
   echo "transitional debt scoped to backend/internal/governance/evaluator/*"
   echo "until pilot rebuilds (C1, D1)."
-  echo "See: docs/contracts/governance-constitution.md §3 F5, §8.1 G5"
   echo ""
   echo "Offending references:"
   echo "$VIOLATIONS"

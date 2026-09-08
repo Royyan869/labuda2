@@ -1,7 +1,7 @@
 package main
 
-// Governance content scenario — official-HTTP-only harness for /search/content
-// enforce observation. See docs/operations or the B6.3 task for the doctrine.
+// Governance content scenario — official-HTTP-only harness that drives
+// /search/content and records enforce-observation evidence.
 //
 // CONSTITUTIONAL POSTURE:
 //   - Pure HTTP. The scenario does NOT use serverboot.InitServices, does NOT

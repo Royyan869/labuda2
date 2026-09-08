@@ -4,7 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/api/api_client.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/data/dto/external_product_dto.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/promotion_repository_impl.dart';
+import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/external_product_repository.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_review_status.dart';
 
 class _MapResponse<T> extends Response<T> with MapMixin<String, dynamic> {
@@ -272,7 +272,7 @@ void main() {
   group('External product repository endpoint contract', () {
     test('all 9 endpoints use canonical paths', () async {
       final client = _RecordingApiClient();
-      final repo = PromotionRepositoryImpl(client);
+      final repo = ExternalProductRepositoryImpl(client);
 
       // 1. POST /promotions/external-products (create draft)
       client.postPayload = _externalProductPayload(id: 'ep-new');

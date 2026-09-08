@@ -437,3 +437,170 @@ func TestUpdateScheduled_WithoutContent_OnlyTimingPersists(t *testing.T) {
 	assert.Equal(t, 0, productRepo.updateCalls, "no product call when title/description not provided")
 	assert.NotEmpty(t, tx.execSQL)
 }
+
+func TestUpdateDraft_FullProductFieldsPersists(t *testing.T) {
+	sellerID := uuid.New()
+	auction := newConvergenceAuction(entity.StatusDraft, sellerID)
+	// Seed product with variety etc.
+	productRepo := newConvergenceProductRepo(sellerID, auction.ProductID, "Original Title", "Original desc")
+	// Add full product fields to repo's product
+	p := productRepo.products[auction.ProductID]
+	p.MediaURLs = []string{"https://old.jpg"}
+	p.Variety = "Kohaku"
+	p.Certificates = []string{"breeder"}
+	p.PreparationTime = "immediate"
+	tx := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction}}
+	svc := &AuctionService{
+		auctionRepo: &auctionRepo.AuctionRepository{},
+		productRepo: productRepo,
+		ownership:   auth.NewOwnershipValidator(),
+		log:         zap.NewNop(),
+	}
+	media := []string{"https://new1.jpg", "https://new2.mp4"}
+	variety := "Showa"
+	size := 45
+	age := 12
+	gender := "male"
+	breeder := "Sakai"
+	bloodline := "Matsunosuke"
+	certs := []string{"contest", "health"}
+	prep := "short"
+	note := "handle with care"
+	newTitle := "New Title Full"
+	newDesc := "New Desc Full"
+	err := svc.UpdateDraft(context.Background(), tx, UpdateDraftInput{
+		AuctionID:       auction.ID,
+		CallerID:        sellerID,
+		Title:           &newTitle,
+		Description:     &newDesc,
+		MediaURLs:       &media,
+		Variety:         &variety,
+		SizeCM:          &size,
+		AgeMonths:       &age,
+		Gender:          &gender,
+		Breeder:         &breeder,
+		Bloodline:       &bloodline,
+		Certificates:    &certs,
+		PreparationTime: &prep,
+		PreparationNote: &note,
+		StartPrice:   auction.StartPrice,
+		BidIncrement: auction.BidIncrement,
+		BuyNowPrice:  auction.BuyNowPrice,
+		StartAt:      auction.StartAt,
+		EndAt:        auction.EndAt,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, productRepo.lastUpdated)
+	assert.Equal(t, newTitle, productRepo.lastUpdated.Title)
+	assert.Equal(t, newDesc, productRepo.lastUpdated.Description)
+	assert.Equal(t, media, productRepo.lastUpdated.MediaURLs)
+	assert.Equal(t, variety, productRepo.lastUpdated.Variety)
+	assert.Equal(t, size, *productRepo.lastUpdated.SizeCm)
+	assert.Equal(t, age, *productRepo.lastUpdated.AgeMonths)
+	assert.Equal(t, gender, *productRepo.lastUpdated.Gender)
+	assert.Equal(t, breeder, *productRepo.lastUpdated.Breeder)
+	assert.Equal(t, bloodline, *productRepo.lastUpdated.Bloodline)
+	assert.Equal(t, certs, productRepo.lastUpdated.Certificates)
+	assert.Equal(t, prep, productRepo.lastUpdated.PreparationTime)
+	assert.Equal(t, note, *productRepo.lastUpdated.PreparationNote)
+}
+
+func TestUpdateDraft_GuardOrder_NoProductWriteWhenNotDraft(t *testing.T) {
+	sellerID := uuid.New()
+	auction := newConvergenceAuction(entity.StatusScheduled, sellerID)
+	productRepo := newConvergenceProductRepo(sellerID, auction.ProductID, "Original Title", "Original desc")
+	tx := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction}}
+	svc := &AuctionService{
+		auctionRepo: &auctionRepo.AuctionRepository{},
+		productRepo: productRepo,
+		ownership:   auth.NewOwnershipValidator(),
+		log:         zap.NewNop(),
+	}
+	title := "Should Not Persist"
+	err := svc.UpdateDraft(context.Background(), tx, UpdateDraftInput{
+		AuctionID:    auction.ID,
+		CallerID:     sellerID,
+		Title:        &title,
+		StartPrice:   auction.StartPrice,
+		BidIncrement: auction.BidIncrement,
+		StartAt:      auction.StartAt,
+		EndAt:        auction.EndAt,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "can only update draft auctions")
+	assert.Equal(t, 0, productRepo.updateCalls, "ProductRepository.Update must NOT be called when lifecycle guard fails")
+	assert.Empty(t, tx.execSQL, "Auction UPDATE must not be executed")
+}
+
+func TestUpdateScheduled_GuardOrder_NoProductWriteWhenNotScheduled(t *testing.T) {
+	sellerID := uuid.New()
+	auction := newConvergenceAuction(entity.StatusDraft, sellerID)
+	productRepo := newConvergenceProductRepo(sellerID, auction.ProductID, "Original Title", "Original desc")
+	tx := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction}}
+	svc := &AuctionService{
+		auctionRepo: &auctionRepo.AuctionRepository{},
+		productRepo: productRepo,
+		ownership:   auth.NewOwnershipValidator(),
+		log:         zap.NewNop(),
+	}
+	title := "Should Not Persist"
+	err := svc.UpdateScheduled(context.Background(), tx, UpdateScheduledInput{
+		AuctionID:   auction.ID,
+		CallerID:    sellerID,
+		Title:       &title,
+		StartAt:     auction.StartAt,
+		EndAt:       auction.EndAt,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "can only update scheduled auctions")
+	assert.Equal(t, 0, productRepo.updateCalls)
+	assert.Empty(t, tx.execSQL)
+}
+
+func TestUpdateDraft_Certificates_Validation(t *testing.T) {
+	sellerID := uuid.New()
+	auction := newConvergenceAuction(entity.StatusDraft, sellerID)
+	productRepo := newConvergenceProductRepo(sellerID, auction.ProductID, "Original Title", "Original desc")
+	tx := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction}}
+	svc := &AuctionService{
+		auctionRepo: &auctionRepo.AuctionRepository{},
+		productRepo: productRepo,
+		ownership:   auth.NewOwnershipValidator(),
+		log:         zap.NewNop(),
+	}
+	valid := []string{"breeder", "health"}
+	invalid := []string{"fake"}
+	// valid
+	err := svc.UpdateDraft(context.Background(), tx, UpdateDraftInput{
+		AuctionID:    auction.ID,
+		CallerID:     sellerID,
+		Certificates: &valid,
+		StartPrice:   auction.StartPrice,
+		BidIncrement: auction.BidIncrement,
+		StartAt:      auction.StartAt,
+		EndAt:        auction.EndAt,
+	})
+	require.NoError(t, err)
+	// invalid
+	auction2 := newConvergenceAuction(entity.StatusDraft, sellerID)
+	tx2 := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction2}}
+	productRepo2 := newConvergenceProductRepo(sellerID, auction2.ProductID, "Original Title", "Original desc")
+	svc2 := &AuctionService{
+		auctionRepo: &auctionRepo.AuctionRepository{},
+		productRepo: productRepo2,
+		ownership:   auth.NewOwnershipValidator(),
+		log:         zap.NewNop(),
+	}
+	err = svc2.UpdateDraft(context.Background(), tx2, UpdateDraftInput{
+		AuctionID:    auction2.ID,
+		CallerID:     sellerID,
+		Certificates: &invalid,
+		StartPrice:   auction2.StartPrice,
+		BidIncrement: auction2.BidIncrement,
+		StartAt:      auction2.StartAt,
+		EndAt:        auction2.EndAt,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "certificate")
+	assert.Equal(t, 0, productRepo2.updateCalls)
+}

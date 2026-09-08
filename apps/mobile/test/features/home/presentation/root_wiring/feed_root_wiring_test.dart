@@ -26,8 +26,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/app.dart';
 import 'package:labuda/core/core.dart' hide NotificationEntity;
 import 'package:labuda/domains/commerce/catalog/auction/auction.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/promotion_providers.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/promotion_instance.dart';
 import 'package:labuda/domains/social/content/content.dart';
 import 'package:labuda/domains/social/follow/data/follow_providers.dart';
 import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
@@ -744,12 +742,6 @@ Future<ProviderContainer> _buildContainer({
     // == COMMERCE AUCTION PREVIEW ======================================
     exploreAuctionsStreamProvider.overrideWith((ref) {
       return Stream.value(const <Auction>[]);
-    }),
-    fixedPriceSaleActivePromotionsProvider.overrideWith((
-      ref,
-      fixedPriceSaleId,
-    ) async {
-      return Result.success(const <PromotionInstance>[]);
     }),
     getUserRatingSummaryProvider.overrideWith((ref, userId) async {
       return Result.success(const RatingSummary(

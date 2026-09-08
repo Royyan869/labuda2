@@ -9,8 +9,6 @@ import 'package:labuda/domains/system/support/presentation/screens/help_center_s
 import 'package:labuda/domains/system/support/presentation/widgets/pre_chat_form_sheet.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
 import 'package:labuda/domains/chat/chat/presentation/screens/chat_list_screen.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/instance_status.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/promotion_providers.dart';
 import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
 
@@ -1738,22 +1736,6 @@ class _QuickActionsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final instancesAsync = ref.watch(myInstancesProvider);
-    final promotionBadge = instancesAsync.maybeWhen(
-      data: (result) {
-        if (!result.isSuccess) return null;
-        final instances = result.data ?? [];
-        final activeCount = instances
-            .where((i) => i.status == InstanceStatus.active)
-            .length;
-        final pausedCount = instances
-            .where((i) => i.status == InstanceStatus.paused)
-            .length;
-        return '${activeCount + pausedCount}';
-      },
-      orElse: () => null,
-    );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1802,18 +1784,21 @@ class _QuickActionsSection extends ConsumerWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _QuickActionCard(
-                icon: Icons.campaign_outlined,
-                label: 'My Promotions',
+                icon: Icons.manage_search_outlined,
+                label: 'Kelola Promosi',
                 color: AppColors.primaryBlue,
                 isDark: isDark,
-                badgeText: promotionBadge,
-                onTap: () => _navigateToPromotions(context),
+                onTap: () => _navigateToCanonicalPromotions(context),
               ),
             ),
           ],
         ),
       ],
     );
+  }
+
+  void _navigateToCanonicalPromotions(BuildContext context) {
+    context.push(RoutePaths.sellerCanonicalPromotions);
   }
 
   void _navigateToShipping(BuildContext context) {
@@ -1831,10 +1816,6 @@ class _QuickActionsSection extends ConsumerWidget {
 
   void _navigateToListings(BuildContext context) {
     Navigator.pushNamed(context, RoutePaths.sellerForSales);
-  }
-
-  void _navigateToPromotions(BuildContext context) {
-    context.push(RoutePaths.sellerPromotions);
   }
 }
 

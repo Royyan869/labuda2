@@ -82,31 +82,6 @@ WHERE status = 'pending'
 
 ---
 
-## 📚 DETAILED DOCUMENTATION
-
-### Full Audit Report
-📄 **[ORDER_LIFECYCLE_AUDIT.md](./ORDER_LIFECYCLE_AUDIT.md)**
-- Complete analysis methodology
-- Detailed findings with code examples
-- Money flow diagrams
-- Safety mechanisms documentation
-
-### Visual Diagrams
-📊 **[ORDER_STATE_MACHINE_DIAGRAM.md](./ORDER_STATE_MACHINE_DIAGRAM.md)**
-- Mermaid diagrams for state transitions
-- Timeline visualizations
-- Race condition analysis
-- Money flow diagrams
-
-### Actionable Recommendations
-🚀 **[ORDER_LIFECYCLE_RECOMMENDATIONS.md](./ORDER_LIFECYCLE_RECOMMENDATIONS.md)**
-- Prioritized fix list
-- Implementation code examples
-- Testing strategy
-- Success metrics
-
----
-
 ## 🔍 QUICK REFERENCE DIAGRAMS
 
 ### Order Status Flow

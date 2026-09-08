@@ -12,7 +12,6 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/utils/media_extensions.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/target_type.dart';
 
 /// My ForSales Screen
 ///
@@ -566,15 +565,17 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit, size: 18),
-                        SizedBox(width: 12),
-                        Text('Edit'),
-                      ],
-                    ),
+                  // Canonical: seller edit allowed IFF status == draft (active/sold/withdrawn are immutable)
+                  if (listing.status == ForSaleStatus.draft)
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 18),
+                          SizedBox(width: 12),
+                          Text('Edit'),
+                        ],
+                      ),
                   ),
                   if (listing.status != ForSaleStatus.active)
                     const PopupMenuItem(
@@ -670,14 +671,10 @@ class _SellerForSaleManagementCard extends StatelessWidget {
   }
 
   void _navigateToPromotion(BuildContext context, ForSale listing) {
-    context.push(
-      RoutePaths.sellerPromotionActivate,
-      extra: {
-        'preselectedTargetType': TargetType.forSale,
-        'preselectedTargetId': listing.forSaleId,
-        'preselectedTargetTitle': listing.title,
-      },
-    );
+    // Canonical era: promotion is contract-based; seller manages contracts
+    // (create + queue targets) from the canonical promotion list screen.
+    // The legacy activation flow is purged.
+    context.push(RoutePaths.sellerCanonicalPromotions);
   }
 }
 

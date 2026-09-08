@@ -36,6 +36,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Set global callback untuk refresh feed dari mana saja
     setGlobalFeedRefreshCallback(() {
       if (mounted) {
+        resetPromotionExposureAttempts();
         ref.invalidate(feedProvider);
       }
     });
@@ -150,6 +151,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return RefreshIndicator(
       onRefresh: () async {
+        resetPromotionExposureAttempts();
         ref.invalidate(feedProvider);
         await Future.delayed(const Duration(milliseconds: 100));
       },

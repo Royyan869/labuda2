@@ -147,14 +147,15 @@ func (h *SearchHandler) SearchForSales(c *gin.Context) {
 		return
 	}
 
-	// P3B — Build promoted sidecar for forSale search.
+	// P3B — Build promoted sidecar for forSale search — geo-aware (primary address).
 	organicIDs := make([]uuid.UUID, 0, len(forSales))
 	organicSellerIDs := make([]uuid.UUID, 0, len(forSales))
 	for _, l := range forSales {
 		organicIDs = append(organicIDs, l.ID)
 		organicSellerIDs = append(organicSellerIDs, l.SellerID)
 	}
-	promotedSidecar := h.promotionInjector.GetPromotedSidecar(ctx, organicIDs, organicSellerIDs)
+	geo := viewercontext.ResolveViewerGeography(ctx, h.db.Pool(), viewerID)
+	promotedSidecar := h.promotionInjector.GetPromotedSidecarWithGeography(ctx, organicIDs, organicSellerIDs, geo.CityID, geo.HasPrimary)
 
 	responseData := gin.H{
 		"query":    req.Query,
@@ -535,14 +536,15 @@ func (h *SearchHandler) SearchAuctions(c *gin.Context) {
 		return
 	}
 
-	// P3B — Build promoted sidecar for auction search.
+	// P3B — Build promoted sidecar for auction search — geo-aware.
 	organicAuctionIDs := make([]uuid.UUID, 0, len(auctions))
 	organicAuctionSellerIDs := make([]uuid.UUID, 0, len(auctions))
 	for _, a := range auctions {
 		organicAuctionIDs = append(organicAuctionIDs, a.ID)
 		organicAuctionSellerIDs = append(organicAuctionSellerIDs, a.SellerID)
 	}
-	auctionPromotedSidecar := h.promotionInjector.GetPromotedSidecar(ctx, organicAuctionIDs, organicAuctionSellerIDs)
+	geo2 := viewercontext.ResolveViewerGeography(ctx, h.db.Pool(), viewerID)
+	auctionPromotedSidecar := h.promotionInjector.GetPromotedSidecarWithGeography(ctx, organicAuctionIDs, organicAuctionSellerIDs, geo2.CityID, geo2.HasPrimary)
 
 	auctionResponseData := gin.H{
 		"query":    req.Query,

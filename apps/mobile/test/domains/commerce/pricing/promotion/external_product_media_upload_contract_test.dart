@@ -15,7 +15,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/api/api_client.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/data/dto/external_product_dto.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/promotion_repository_impl.dart';
+import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/external_product_repository.dart';
 
 class _MapResponse<T> extends Response<T> with MapMixin<String, dynamic> {
   final Map<String, dynamic> _map;
@@ -144,7 +144,7 @@ void main() {
       'attachExternalProductMedia sends storageKey and url to correct endpoint',
       () async {
         final client = _RecordingApiClient();
-        final repo = PromotionRepositoryImpl(client);
+        final repo = ExternalProductRepositoryImpl(client);
         client.postPayload = _mediaPayload();
 
         const s3Key = 'images/1749600000000_photo.jpg';
@@ -171,7 +171,7 @@ void main() {
       'attachExternalProductMedia serializes storageKey and url independently (key != url)',
       () async {
         final client = _RecordingApiClient();
-        final repo = PromotionRepositoryImpl(client);
+        final repo = ExternalProductRepositoryImpl(client);
         client.postPayload = _mediaPayload();
 
         const s3Key = 'images/1749600000000_photo.jpg'; // raw S3 object key
@@ -206,7 +206,7 @@ void main() {
       'attachExternalProductMedia omits null thumbnailUrl from body',
       () async {
         final client = _RecordingApiClient();
-        final repo = PromotionRepositoryImpl(client);
+        final repo = ExternalProductRepositoryImpl(client);
         client.postPayload = _mediaPayload();
 
         const s3Url = 'https://cdn.example.com/images/1234_photo.jpg';
@@ -228,7 +228,7 @@ void main() {
       'attachExternalProductMedia video type sends correct mediaType',
       () async {
         final client = _RecordingApiClient();
-        final repo = PromotionRepositoryImpl(client);
+        final repo = ExternalProductRepositoryImpl(client);
         client.postPayload = {
           ..._mediaPayload(),
           'media_type': 'video',

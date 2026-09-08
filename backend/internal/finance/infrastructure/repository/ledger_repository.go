@@ -325,6 +325,96 @@ func (r *LedgerRepository) GetOrCreateUserAccount(
 	return uuid.Nil, err
 }
 
+// GetHolderAccountID retrieves a holder-scoped user account by account type,
+// owner and holder. Holder-scoped rows (e.g. PROMOTION_ALLOCATION per
+// promotion contract) are unique on (user_id, account_type, holder_id) via
+// uniq_financial_accounts_promotion_allocation_holder.
+func (r *LedgerRepository) GetHolderAccountID(
+	ctx context.Context,
+	tx db.Tx,
+	accountType string,
+	userID uuid.UUID,
+	holderID uuid.UUID,
+) (uuid.UUID, error) {
+	var accountID uuid.UUID
+	err := tx.QueryRow(ctx, `
+		SELECT id FROM financial_accounts
+		WHERE account_type = $1 AND user_id = $2 AND holder_id = $3
+	`, accountType, userID, holderID).Scan(&accountID)
+
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return uuid.Nil, fmt.Errorf("ledger: holder account not found: type=%s, user_id=%s, holder_id=%s",
+				accountType, userID, holderID)
+		}
+		return uuid.Nil, fmt.Errorf("ledger: get holder account failed: %w", err)
+	}
+
+	return accountID, nil
+}
+
+// GetOrCreateHolderAccount retrieves or creates a holder-scoped user account.
+// The holder scope (holderType + holderID) is REQUIRED and immutable for the
+// account's lifetime; it is enforced at the DB level by the
+// financial_accounts_promotion_scope_check CHECK constraint.
+func (r *LedgerRepository) GetOrCreateHolderAccount(
+	ctx context.Context,
+	tx db.Tx,
+	accountType string,
+	holderType string,
+	userID uuid.UUID,
+	holderID uuid.UUID,
+) (uuid.UUID, error) {
+	// Try to get existing account first
+	accountID, err := r.GetHolderAccountID(ctx, tx, accountType, userID, holderID)
+	if err == nil {
+		return accountID, nil
+	}
+
+	// If error is "not found", create new account
+	errStr := err.Error()
+	if contains(errStr, "not found") {
+		newID := uuid.New()
+		_, err = tx.Exec(ctx, `
+			INSERT INTO financial_accounts (id, user_id, account_type, holder_type, holder_id, balance, currency, name, is_active, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+		`, newID, userID, accountType, holderType, holderID, 0, "IDR", accountType+" Account", true)
+
+		if err != nil {
+			if IsUniqueViolation(err) {
+				// Concurrent insert - retry get
+				return r.GetHolderAccountID(ctx, tx, accountType, userID, holderID)
+			}
+			return uuid.Nil, fmt.Errorf("ledger: create holder account failed: %w", err)
+		}
+		return newID, nil
+	}
+
+	return uuid.Nil, err
+}
+
+// TransactionExistsByKey reports whether a ledger transaction with the given
+// idempotency key already exists. Used by FinanceService promotion operations
+// to skip balance pre-checks on idempotent replays before CreateTransaction.
+// CreateTransaction remains the concurrency-safe authority (UNIQUE on
+// idempotency_key); this helper is observability/guard-only.
+func (r *LedgerRepository) TransactionExistsByKey(
+	ctx context.Context,
+	tx db.Tx,
+	idempotencyKey string,
+) (bool, error) {
+	var exists bool
+	err := tx.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM ledger_transactions WHERE idempotency_key = $1
+		)
+	`, idempotencyKey).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("ledger: idempotency key check failed: %w", err)
+	}
+	return exists, nil
+}
+
 // IsUniqueViolation checks if error is PostgreSQL unique constraint violation (23505).
 func IsUniqueViolation(err error) bool {
 	if err == nil || err.Error() == "no rows in result set" {
@@ -390,6 +480,8 @@ const (
 	AccountBuyerRefundable = finance.AccountBuyerRefundable
 	AccountPlatformRevenue = finance.AccountPlatformRevenue
 	AccountBankSettlement  = finance.AccountBankSettlement
+	AccountPromoteBalance      = finance.AccountPromoteBalance
+	AccountPromotionAllocation = finance.AccountPromotionAllocation
 )
 
 // CountTransactionsByEntityID returns the number of ledger transactions for a given entity ID.

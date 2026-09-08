@@ -1,9 +1,10 @@
-// STAGE 3B: locks the API base-URL convergence.
+// STAGE 3B / CANONICAL FIX: API base-URL convergence.
 //
-// The hard-coded dev LAN IP (192.168.1.8:8080) is no longer an authority.
-// Dev defaults are platform-aware (Android emulator -> 10.0.2.2, everything
-// else -> localhost) and an explicit --dart-define=API_BASE_URL /
-// API_WS_URL override takes precedence for physical devices / other hosts.
+// All dev platforms use localhost:8080.  The Android emulator alias
+// 10.0.2.2 has been removed — it silently broke physical devices.
+// Physical devices use `adb reverse tcp:8080 tcp:8080` so localhost works.
+// An explicit --dart-define=API_BASE_URL / API_WS_URL override takes
+// precedence when the default is unsuitable.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/api/config/api_config.dart';
 
@@ -20,20 +21,16 @@ void main() {
       expect(ApiConfig.wsUrl.contains('192.168.1.8'), isFalse);
     });
 
-    test('dev default is a localhost:8080 base URL on non-Android', () {
+    test('dev default no longer uses emulator-only 10.0.2.2', () {
       ApiConfig.setEnvironment(ApiEnvironment.dev);
-      // The Android emulator host mapping (10.0.2.2) is decided by
-      // defaultTargetPlatform at runtime; the non-Android shape must be
-      // the plain localhost form.
-      expect(
-        ApiConfig.baseUrl,
-        anyOf(
-          equals('http://10.0.2.2:8080/api/v1'),
-          equals('http://localhost:8080/api/v1'),
-        ),
-      );
-      expect(ApiConfig.baseUrlIOS, equals('http://localhost:8080/api/v1'));
-      expect(ApiConfig.wsUrlIOS, equals('ws://localhost:8080/api/v1/ws'));
+      expect(ApiConfig.baseUrl.contains('10.0.2.2'), isFalse);
+      expect(ApiConfig.wsUrl.contains('10.0.2.2'), isFalse);
+    });
+
+    test('dev default is localhost:8080 on all platforms', () {
+      ApiConfig.setEnvironment(ApiEnvironment.dev);
+      expect(ApiConfig.baseUrl, equals('http://localhost:8080/api/v1'));
+      expect(ApiConfig.wsUrl, equals('ws://localhost:8080/api/v1/ws'));
     });
 
     test('prod and staging URLs unchanged', () {
@@ -41,7 +38,10 @@ void main() {
       expect(ApiConfig.baseUrl, equals('https://api.labuda.com/api/v1'));
 
       ApiConfig.setEnvironment(ApiEnvironment.staging);
-      expect(ApiConfig.baseUrl, equals('https://staging-api.labuda.com/api/v1'));
+      expect(
+        ApiConfig.baseUrl,
+        equals('https://staging-api.labuda.com/api/v1'),
+      );
     });
   });
 }

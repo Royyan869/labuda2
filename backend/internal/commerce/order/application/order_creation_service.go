@@ -219,15 +219,6 @@ func (s *OrderCreationService) getOriginRequestTargetID(ctx context.Context, tx 
 	return targetID
 }
 
-// GetForSaleByID loads a fixed-price sale by ID for checkout handoff logic.
-func (s *OrderCreationService) GetForSaleByID(
-	ctx context.Context,
-	tx db.Tx,
-	forSaleID uuid.UUID,
-) (*entity.ForSale, error) {
-	return s.forSaleRepo.GetByID(ctx, tx, forSaleID)
-}
-
 // emitChatLinkRequestedEvent inserts an order.chat_link_requested outbox event
 // in the order's canonical transaction. The chat domain consumes this event
 // asynchronously and idempotently establishes the buyer↔seller direct room and
@@ -1166,6 +1157,7 @@ type PricingSnapshot struct {
 	ShippingQuoteID        *uuid.UUID                     // TASK A-G: Set when using shipping quote
 	ChatID                 *uuid.UUID                     // TASK A-G: Chat context for validation
 	AuctionID              *uuid.UUID                     // TASK A: Auction ID for auction quotes
+	NegotiationID          *uuid.UUID                     // N8-B: Negotiation ID from pricing token (direct==nil)
 	TokenID                uuid.UUID                      // Pricing token ID (prevents double-ordering)
 	PaymentMethod          string                         // PHASE 2: Payment method (instant, va, retail, default)
 }
@@ -1460,29 +1452,38 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 	}
 
 	// ============================================================
-	// STEP 3.5: NEGOTIATION VALIDATION (OPTIONAL PRICE OVERRIDE)
+	// STEP 3.5: NEGOTIATION SETTLEMENT BINDING (N8-B CANONICAL)
 	// ============================================================
-	// If negotiation_id is provided, validate the negotiation and apply price override
-	// This allows negotiation to act as a price modifier without being a separate order creation path
+	// Canonical invariant:
+	//   DIRECT:      snapshot.NegotiationID==nil && input.NegotiationID==nil
+	//   NEGOTIATION: snapshot.NegotiationID !=nil && input.NegotiationID !=nil
+	//                && *snapshot.NegotiationID == *input.NegotiationID == lockedSession.ID
+	// All mismatched combinations are rejected here. Lock order remains
+	// for_sale FOR UPDATE (above) before negotiation FOR UPDATE (here).
+	// ============================================================
+	// Token↔request binding (structural, not handler-only)
+	snapshotNegotiationID := snapshot.NegotiationID
+	if (snapshotNegotiationID == nil) != (input.NegotiationID == nil) {
+		return nil, fmt.Errorf("negotiation binding mismatch: token negotiation_id=%v, request negotiation_id=%v", snapshotNegotiationID, input.NegotiationID)
+	}
+	if snapshotNegotiationID != nil && input.NegotiationID != nil && *snapshotNegotiationID != *input.NegotiationID {
+		return nil, fmt.Errorf("negotiation binding mismatch: token=%s request=%s", snapshotNegotiationID.String(), input.NegotiationID.String())
+	}
 	var negotiatedPrice money.Money
 	var hasNegotiation bool
+	var lockedNegotiationSession *negotiationEntity.NegotiationSession
 	if input.NegotiationID != nil {
-		// Step 1: Fetch negotiation session
-		session, err := s.negotiationRepo.GetSession(ctx, tx, *input.NegotiationID)
+		// Step 1: Lock negotiation row FOR UPDATE before any settlement validation
+		session, err := s.negotiationRepo.GetSessionForUpdate(ctx, tx, *input.NegotiationID)
 		if err != nil {
 			return nil, fmt.Errorf("negotiation session not found: %w", err)
 		}
+		lockedNegotiationSession = session
 
-		// Step 2: Validate negotiation state
-		if session.Status != negotiationEntity.NegotiationStatusAccepted {
-			return nil, fmt.Errorf("negotiation is not accepted: current_status=%s", session.Status)
-		}
-
-		if session.IsExpired() {
-			return nil, fmt.Errorf("negotiation expired: session_id=%s", session.ID)
-		}
-
-		// Step 3: Validate ownership
+		// Step 2: Validate ownership — runs BEFORE the settlement gate so a
+		// non-owner can never observe a session's settlement state (OrderID).
+		// (Handler-level pricing-token validation already binds the buyer to
+		// this negotiation; the checks here are defense in depth.)
 		if session.BuyerID != input.BuyerID {
 			return nil, fmt.Errorf("negotiation buyer mismatch: session_buyer=%s, requester=%s",
 				session.BuyerID, input.BuyerID)
@@ -1493,7 +1494,7 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 				session.SellerID, forSale.SellerID)
 		}
 
-		// Step 4: Validate identity match for the locked fixed-price sale and canonical product
+		// Step 3: Validate identity match for the locked fixed-price sale and canonical product
 		if session.ForSaleID != forSale.ID {
 			return nil, fmt.Errorf("negotiation sale mismatch: session_for_sale_id=%s, for_sale_id=%s",
 				session.ForSaleID, forSale.ID)
@@ -1503,20 +1504,37 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 				input.ProductID, forSale.ProductID)
 		}
 
-		// Step 5: Validate not already used
-		if session.OrderID != nil {
-			return nil, &negotiationEntity.ErrNegotiationAlreadySettled{
-				SessionID: session.ID,
-				OrderID:   *session.OrderID,
+		// Step 4: Lifecycle settlement eligibility — one canonical entity
+		// predicate (accepted AND not expired AND not settled). The switch below
+		// only maps the failure to a distinct actionable error; the eligibility
+		// decision itself lives in NegotiationSession.CanSettle.
+		if !session.CanSettle() {
+			switch {
+			case session.Status != negotiationEntity.NegotiationStatusAccepted:
+				return nil, fmt.Errorf("negotiation is not accepted: current_status=%s", session.Status)
+			case session.IsExpired():
+				return nil, fmt.Errorf("negotiation expired: session_id=%s", session.ID)
+			default:
+				// Status accepted + not expired + CanSettle false ⇒ already settled
+				// (OrderID != nil && != uuid.Nil) — dereference is safe here.
+				return nil, &negotiationEntity.ErrNegotiationAlreadySettled{
+					SessionID: session.ID,
+					OrderID:   *session.OrderID,
+				}
 			}
 		}
 
-		// Step 6: Validate accepted_price is set
+		// Step 5: Validate accepted_price is set
 		if session.AcceptedPrice == nil {
 			return nil, fmt.Errorf("negotiation accepted_price not set: session_id=%s", session.ID)
 		}
 
-		// Step 7: Apply negotiated price
+		// Step 5.5: N8-B price agreement — snapshot unit price must equal locked accepted_price
+		if snapshot.UnitPrice.Int64() != *session.AcceptedPrice {
+			return nil, fmt.Errorf("negotiation price mismatch: token unit_price=%d accepted_price=%d", snapshot.UnitPrice.Int64(), *session.AcceptedPrice)
+		}
+
+		// Step 6: Apply negotiated price
 		negotiatedPrice = money.New(*session.AcceptedPrice)
 		hasNegotiation = true
 	}
@@ -1778,20 +1796,13 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 	// ============================================================
 	// MARK NEGOTIATION AS SETTLED (DUPLICATE PREVENTION)
 	// ============================================================
-	// If this order was created from a negotiation, mark the negotiation as settled
-	// to prevent the same negotiation from being used multiple times.
-	if hasNegotiation && input.NegotiationID != nil {
-		// Fetch session again (within same transaction) with lock
-		session, err := s.negotiationRepo.GetSessionForUpdate(ctx, tx, *input.NegotiationID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch negotiation for update: %w", err)
-		}
+	// N4 CONVERGENCE: reuse already-locked negotiation row — no second SELECT FOR UPDATE.
+	// The row has been locked since step 3.5 and validated; assign order_id on that canonical entity.
+	if hasNegotiation && lockedNegotiationSession != nil {
+		lockedNegotiationSession.OrderID = &finalized.ID
+		lockedNegotiationSession.UpdatedAt = time.Now()
 
-		// Mark as settled
-		session.OrderID = &finalized.ID
-		session.UpdatedAt = time.Now()
-
-		if err := s.negotiationRepo.UpdateSession(ctx, tx, session); err != nil {
+		if err := s.negotiationRepo.UpdateSession(ctx, tx, lockedNegotiationSession); err != nil {
 			return nil, fmt.Errorf("failed to mark negotiation as settled: %w", err)
 		}
 	}

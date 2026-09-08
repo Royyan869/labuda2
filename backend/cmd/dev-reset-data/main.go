@@ -195,7 +195,8 @@ func main() {
 	}
 	if len(kept) != 3 {
 		log.Fatalf("--keep-email must specify exactly 3 owner-test accounts (got %d); "+
-			"this tool is scoped to the 3 canonical owner-test accounts per docs/owner-test-runtime.md", len(kept))
+			"this tool is scoped to the 3 canonical owner-test accounts "+
+			"(buyer@test.local, seller@test.local, admin@test.local)", len(kept))
 	}
 
 	cfg, err := config.Load()

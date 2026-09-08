@@ -1044,6 +1044,16 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		// This snapshot is the ONLY source of truth for order pricing
 		pricingSnapshot = buildPricingSnapshotFromToken(validatedToken)
 
+		// N8-B defense-in-depth: fail fast if token↔request negotiation binding mismatched
+		// Canonical enforcement remains in OrderCreationService after rows are locked.
+		tokenNegID := validatedToken.NegotiationID
+		if (tokenNegID == nil) != (negotiationID == nil) {
+			return fmt.Errorf("negotiation binding mismatch: token negotiation_id=%v, request negotiation_id=%v", tokenNegID, negotiationID)
+		}
+		if tokenNegID != nil && negotiationID != nil && *tokenNegID != *negotiationID {
+			return fmt.Errorf("negotiation binding mismatch: token=%s request=%s", tokenNegID.String(), negotiationID.String())
+		}
+
 		switch sourceType {
 		case orderEntity.OrderSourceForSale:
 			// Step 3: Prepare input with pricing snapshot
@@ -1624,6 +1634,7 @@ func buildPricingSnapshotFromToken(token *pricingtokenentity.PricingToken) *orde
 		ShippingQuoteID:        token.ShippingQuoteID,
 		ChatID:                 nil, // Set during chat checkout if needed
 		AuctionID:              token.AuctionID,
+		NegotiationID:          token.NegotiationID,
 		TokenID:                token.Token, // Store token ID to prevent double-ordering
 		PaymentMethod:          "default",   // TODO: Add payment method to token
 	}

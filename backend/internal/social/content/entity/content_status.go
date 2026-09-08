@@ -52,9 +52,8 @@ func (s Status) IsActive() bool {
 }
 
 // PublicLifecycle maps the internal content status onto the coarsened public
-// lifecycle vocabulary defined by the public-card-boundary contract
-// (docs/contracts/public-card-boundary.md §field-categories: coarsened
-// lifecycle is { active, unavailable, removed }).
+// lifecycle vocabulary defined by the public-card-boundary contract:
+// { active, unavailable, removed }.
 //
 // Internal moderation vocabulary is NEVER leaked to the wire — every public
 // response that needs to surface content state MUST go through this projection.

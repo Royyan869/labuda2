@@ -31,7 +31,13 @@ type BillingTransaction struct {
 type Type string
 
 const (
-	TypePromotionPackage Type = "promotion_package" // Duration-based promotion package purchase
+	TypePromotionPackage Type = "promotion_package" // Duration-based promotion package purchase (LEGACY authority)
+
+	// TypePromoteBalanceTopUp is a verified seller top-up into PROMOTE_BALANCE.
+	// Canonical funding: the settled payment credits the seller's Promote
+	// Balance via FinanceService.RecordPromoteBalanceFunding. It is NOT a
+	// service purchase — PLATFORM_REVENUE must never be credited by a top-up.
+	TypePromoteBalanceTopUp Type = "promote_balance_top_up"
 )
 
 // Status represents the billing transaction status.
@@ -56,7 +62,7 @@ func (e *InvalidTransitionError) Error() string {
 // IsValidType returns true if the type is valid.
 func IsValidType(t Type) bool {
 	switch t {
-	case TypePromotionPackage:
+	case TypePromotionPackage, TypePromoteBalanceTopUp:
 		return true
 	default:
 		return false

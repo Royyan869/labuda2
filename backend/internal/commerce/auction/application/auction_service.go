@@ -67,6 +67,7 @@ type AuctionService struct {
 	configService  *platformconfigApp.ConfigService
 	productRepo    ProductCreator
 	commerceGovRepo commercegov.Repository // COMMERCE RESTRICTION: canonical restriction checker
+	shippingQuoteInvalidator ShippingQuoteInvalidator // CROSS-LIFECYCLE: invalidate stale quotes on settlement failure
 	log            *zap.Logger
 }
 
@@ -119,6 +120,19 @@ func (s *AuctionService) SetProductRepo(repo ProductCreator) {
 // same transaction as the mutation (TOCTOU prevention).
 func (s *AuctionService) SetCommerceGovRepository(repo commercegov.Repository) {
 	s.commerceGovRepo = repo
+}
+
+// ShippingQuoteInvalidator marks ACTIVE shipping quotes for a product as INVALID.
+// Used during settlement failure (return-to-draft) to prevent stale quotes from
+// being usable in the next settlement lifecycle.
+type ShippingQuoteInvalidator interface {
+	InvalidateQuotesByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) error
+}
+
+// SetShippingQuoteInvalidator wires the shipping quote invalidation capability
+// for cross-lifecycle isolation on settlement failure.
+func (s *AuctionService) SetShippingQuoteInvalidator(invalidator ShippingQuoteInvalidator) {
+	s.shippingQuoteInvalidator = invalidator
 }
 
 // requireSellerNotRestricted checks whether the given seller has an active
@@ -327,6 +341,23 @@ func (s *AuctionService) CreateDraft(
 		}
 		productID = existing.ID
 	} else {
+		// Canonical Product validation for mint
+		if err := productEntity.ValidateTitle(&input.Title); err != nil {
+			return nil, err
+		}
+		if err := productEntity.ValidateDescription(&input.Description); err != nil {
+			return nil, err
+		}
+		if input.Certificates != nil {
+			if err := productEntity.ValidateCertificates(&input.Certificates); err != nil {
+				return nil, err
+			}
+		}
+		if pt := string(input.PreparationTime); pt != "" {
+			if err := productEntity.ValidatePreparationTime(&pt); err != nil {
+				return nil, err
+			}
+		}
 		product := &productEntity.Product{
 			SellerID:        input.SellerID,
 			Title:           input.Title,
@@ -559,38 +590,26 @@ func (s *AuctionService) ensureShippingCoverage(
 	return shippingApp.ErrShippingNotConfigured
 }
 
-// validateProductContentUpdate validates title/description when provided
-// for auction draft/scheduled edits. Uses canonical Product bounds:
-// title 1-200 chars, description max 5000 chars. Matches
-// CreateAuctionRequest binding ("required,min=1,max=200" / "required,max=5000").
-func validateProductContentUpdate(title, description *string) error {
-	if title != nil {
-		trimmed := strings.TrimSpace(*title)
-		if trimmed == "" {
-			return fmt.Errorf("title is required")
-		}
-		if len(trimmed) < 1 || len(trimmed) > 200 {
-			return fmt.Errorf("title must be between 1 and 200 characters")
-		}
-	}
-	if description != nil {
-		if len(*description) > 5000 {
-			return fmt.Errorf("description must be at most 5000 characters")
-		}
-	}
-	return nil
-}
-
 // UpdateDraftInput contains parameters for updating a draft auction.
 //
-// Canonical flow: Product content (title/description) → products,
+// Canonical flow: Product content (full editable Product) → products,
 // Auction surface (pricing/timing) → auctions — in ONE transaction.
 type UpdateDraftInput struct {
 	AuctionID   uuid.UUID
 	CallerID    uuid.UUID
-	Title       *string
-	Description *string
-	StartPrice  int64
+	Title              *string
+	Description        *string
+	MediaURLs          *[]string
+	Variety            *string
+	SizeCM             *int
+	AgeMonths          *int
+	Gender             *string
+	Breeder            *string
+	Bloodline          *string
+	Certificates       *[]string
+	PreparationTime    *string
+	PreparationNote    *string
+	StartPrice   int64
 	BidIncrement int64
 	BuyNowPrice *int64
 	StartAt     time.Time
@@ -599,10 +618,7 @@ type UpdateDraftInput struct {
 
 // UpdateDraft updates a draft auction and its Product content atomically.
 //
-// ONE DB TRANSACTION:
-//   ProductRepository.UpdateTx → products
-//   AuctionRepository.UpdateTx → auctions
-// Both commit or both rollback.
+// Canonical order: GetForUpdate → ownership → lifecycle guard → validation → mutate → persist.
 func (s *AuctionService) UpdateDraft(
 	ctx context.Context,
 	tx db.Tx,
@@ -619,13 +635,33 @@ func (s *AuctionService) UpdateDraft(
 		return auth.ErrSellerRequired
 	}
 
-	// Validate Product content before any mutation
-	if err := validateProductContentUpdate(input.Title, input.Description); err != nil {
+	// Lifecycle guard before any Product mutation (self-contained authority)
+	if auction.Status != entity.StatusDraft {
+		return &entity.InvalidOperationError{Status: auction.Status, Reason: "can only update draft auctions"}
+	}
+
+	// Canonical Product validation (reusable)
+	patch := productEntity.ProductContentPatch{
+		Title:           input.Title,
+		Description:     input.Description,
+		MediaURLs:       input.MediaURLs,
+		Variety:         input.Variety,
+		SizeCM:          input.SizeCM,
+		AgeMonths:       input.AgeMonths,
+		Gender:          input.Gender,
+		Breeder:         input.Breeder,
+		Bloodline:       input.Bloodline,
+		Certificates:    input.Certificates,
+		PreparationTime: input.PreparationTime,
+		PreparationNote: input.PreparationNote,
+	}
+	if err := patch.Validate(); err != nil {
 		return err
 	}
 
-	// Product content authority: update products.title/description when provided.
-	if input.Title != nil || input.Description != nil {
+	// Product content authority: update products when any product field provided.
+	hasProductContent := input.Title != nil || input.Description != nil || input.MediaURLs != nil || input.Variety != nil || input.SizeCM != nil || input.AgeMonths != nil || input.Gender != nil || input.Breeder != nil || input.Bloodline != nil || input.Certificates != nil || input.PreparationTime != nil || input.PreparationNote != nil
+	if hasProductContent {
 		if s.productRepo == nil {
 			return fmt.Errorf("product repo not wired for auction draft update")
 		}
@@ -633,16 +669,10 @@ func (s *AuctionService) UpdateDraft(
 		if err != nil {
 			return fmt.Errorf("failed to load product for auction update: %w", err)
 		}
-		// Ownership defense: product must belong to the same seller
 		if product.SellerID != auction.SellerID {
 			return fmt.Errorf("product ownership mismatch")
 		}
-		if input.Title != nil {
-			product.Title = strings.TrimSpace(*input.Title)
-		}
-		if input.Description != nil {
-			product.Description = *input.Description
-		}
+		patch.ApplyTo(product)
 		product.UpdatedAt = time.Now()
 		if err := s.productRepo.Update(ctx, tx, product); err != nil {
 			return fmt.Errorf("failed to update product: %w", err)
@@ -698,8 +728,17 @@ func (s *AuctionService) UpdateScheduled(
 		return auth.ErrSellerRequired
 	}
 
-	// Validate Product content before any mutation
-	if err := validateProductContentUpdate(input.Title, input.Description); err != nil {
+	// Lifecycle guard before any Product mutation
+	if auction.Status != entity.StatusScheduled {
+		return &entity.InvalidOperationError{Status: auction.Status, Reason: "can only update scheduled auctions"}
+	}
+
+	// Canonical Product validation (title/description only for scheduled)
+	patch := productEntity.ProductContentPatch{
+		Title:       input.Title,
+		Description: input.Description,
+	}
+	if err := patch.Validate(); err != nil {
 		return err
 	}
 
@@ -715,12 +754,7 @@ func (s *AuctionService) UpdateScheduled(
 		if product.SellerID != auction.SellerID {
 			return fmt.Errorf("product ownership mismatch")
 		}
-		if input.Title != nil {
-			product.Title = strings.TrimSpace(*input.Title)
-		}
-		if input.Description != nil {
-			product.Description = *input.Description
-		}
+		patch.ApplyTo(product)
 		product.UpdatedAt = time.Now()
 		if err := s.productRepo.Update(ctx, tx, product); err != nil {
 			return fmt.Errorf("failed to update product: %w", err)
@@ -1111,6 +1145,14 @@ func (s *AuctionService) ReturnToDraftOnSettlementFailure(
 ) error {
 	if err := auction.TransitionToDraftOnSettlementFailure(); err != nil {
 		return err
+	}
+	// CROSS-LIFECYCLE ISOLATION: invalidate all ACTIVE shipping quotes
+	// for this product so no stale quote from the previous settlement
+	// lifecycle can be used in the next lifecycle.
+	if s.shippingQuoteInvalidator != nil {
+		if err := s.shippingQuoteInvalidator.InvalidateQuotesByProduct(ctx, tx, auction.ProductID); err != nil {
+			return fmt.Errorf("failed to invalidate shipping quotes on settlement failure: %w", err)
+		}
 	}
 	if err := s.auctionRepo.UpdateTx(ctx, tx, auction); err != nil {
 		return fmt.Errorf("failed to persist auction return to draft: %w", err)

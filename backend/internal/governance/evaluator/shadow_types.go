@@ -23,7 +23,6 @@ const (
 	// shadow_× cells — the legacy handler has explicit deny logic
 	// (IsHidden / StatusDeleted gated on IsAdmin) that the shadow can
 	// compare against, so denominators are well-defined on both sides.
-	// See docs/contracts/content-detail-visibility-doctrine.md §8.
 	SurfaceContentDetail SurfaceLabel = "content_detail"
 )
 

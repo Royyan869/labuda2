@@ -60,7 +60,7 @@
       "type": "shell",
       "command": "docker-compose up -d",
       "options": {
-        "cwd": "${workspaceFolder}/infra/docker"
+        "cwd": "${workspaceFolder}"
       },
       "problemMatcher": []
     },
@@ -69,7 +69,7 @@
       "type": "shell",
       "command": "docker-compose down",
       "options": {
-        "cwd": "${workspaceFolder}/infra/docker"
+        "cwd": "${workspaceFolder}"
       },
       "problemMatcher": []
     },

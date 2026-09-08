@@ -88,9 +88,12 @@ class RoutePaths {
   static const String sellerShippingSetupCityRules =
       '/seller/shipping/setup/city-rules';
   static const String sellerBankAccounts = '/seller/bank-accounts';
-  static const String sellerPromotions = '/seller/promotions';
-  static const String sellerPromotionDetail = '/seller/promotions/:instanceId';
-  static const String sellerPromotionActivate = '/seller/promotions/activate';
+  static const String sellerCanonicalPromotionAnalytics = '/seller/promotions/:contractId/analytics';
+  static String sellerCanonicalPromotionAnalyticsPath(String contractId) =>
+      '/seller/promotions/$contractId/analytics';
+  // Canonical promotion management list (seller self-service).
+  static const String sellerCanonicalPromotions = '/seller/canonical-promotions';
+  static const String sellerPromotionContractCreate = '/seller/canonical-promotions/create';
   static const String sellerExternalProducts =
       '/seller/promotions/external-products';
   static const String sellerExternalProductDetail =
@@ -168,12 +171,11 @@ class RouteNames {
   static const String sellerVerification = 'sellerVerification';
   static const String sellerEarnings = 'sellerEarnings';
   static const String sellerBankAccounts = 'sellerBankAccounts';
-  static const String sellerPromotions = 'sellerPromotions';
-  static const String sellerPromotionDetail = 'sellerPromotionDetail';
-  static const String sellerPromotionActivate = 'sellerPromotionActivate';
   static const String sellerExternalProducts = 'sellerExternalProducts';
   static const String sellerExternalProductDetail =
       'sellerExternalProductDetail';
+  static const String sellerCanonicalPromotionAnalytics = 'sellerCanonicalPromotionAnalytics';
+  static const String sellerCanonicalPromotions = 'sellerCanonicalPromotions';
 
   // Checkout route names
   static const String checkout = 'checkout';
