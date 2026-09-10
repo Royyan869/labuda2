@@ -213,6 +213,7 @@ Widget _wrap({
   required AuthState authState,
   ForSale Function()? listingLoader,
   ThemeData? theme,
+  _FakeNavigationHandler? navigationHandler,
 }) {
   return ProviderScope(
     overrides: [
@@ -224,7 +225,9 @@ Widget _wrap({
         listing.forSaleId,
       ).overrideWith((ref) async => listingLoader?.call() ?? listing),
       userDataProvider.overrideWith((ref, userId) async => _authUser(id: userId)),
-      navigationHandlerProvider.overrideWithValue(_FakeNavigationHandler()),
+      navigationHandlerProvider.overrideWithValue(
+        navigationHandler ?? _FakeNavigationHandler(),
+      ),
     ],
     child: MaterialApp(
       theme: theme,
@@ -279,6 +282,43 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('seller identity tap navigates by durable seller id', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 640));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final nav = _FakeNavigationHandler();
+    final listing = _listing(
+      id: 'listing-nav',
+      sellerId: 'seller-nav-1',
+      capabilities: _buyerCaps,
+      media: _detailMedia(),
+    );
+
+    await tester.pumpWidget(
+      _wrap(
+        listing: listing,
+        authState: AuthState.authenticated(
+          _authUser(id: 'buyer-nav'),
+          emailVerified: true,
+        ),
+        navigationHandler: nav,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('@seller_user'), findsOneWidget);
+
+    await tester.tap(find.text('@seller_user'));
+    await tester.pumpAndSettle();
+
+    expect(nav.lastUserId, 'seller-nav-1');
+    expect(nav.lastUserId, isNot('seller_user'));
+    expect(nav.lastUserId, isNot(contains('@')));
+  });
 
   testWidgets('buyer without negotiation capability sees Chat + Buy Now only', (
     tester,
