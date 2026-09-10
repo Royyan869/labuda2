@@ -79,7 +79,7 @@ Map<String, dynamic> _baseAuctionJson({Map<String, dynamic>? auction}) {
 /// influence this gate.
 String? _renderSubtitle(SearchResult r) {
   final isSellerSurface =
-      r.type == SearchResultType.listing || r.type == SearchResultType.auction;
+      r.type == SearchResultType.forSale || r.type == SearchResultType.auction;
   final lifecycle = isSellerSurface
       ? ContentLifecycleParse.fromWire(r.metadata['sellerLifecycle'] as String?)
       : ContentLifecycle.active;
@@ -98,15 +98,15 @@ void main() {
   // 1) Listing DTO wire extraction
   // -------------------------------------------------------------------------
   group(
-    'E8.4 — ListingSearchResultDto.sellerUserLifecycle wire extraction',
+    'E8.4 — ForSaleSearchResultDto.sellerUserLifecycle wire extraction',
     () {
       test('absent listing block → sellerUserLifecycle null (pre-E8.1)', () {
-        final dto = ListingSearchResultDto.fromJson(_baseListingJson());
+        final dto = ForSaleSearchResultDto.fromJson(_baseListingJson());
         expect(dto.sellerUserLifecycle, isNull);
       });
 
       test('missing nested seller.user → null (defaults to active)', () {
-        final dto = ListingSearchResultDto.fromJson(
+        final dto = ForSaleSearchResultDto.fromJson(
           _baseListingJson(
             listing: {
               'id': '00000000-0000-0000-0000-000000000001',
@@ -118,7 +118,7 @@ void main() {
       });
 
       test('nested user.lifecycle="active" → "active"', () {
-        final dto = ListingSearchResultDto.fromJson(
+        final dto = ForSaleSearchResultDto.fromJson(
           _baseListingJson(
             listing: {
               'id': '00000000-0000-0000-0000-000000000001',
@@ -138,7 +138,7 @@ void main() {
       });
 
       test('nested user.lifecycle="unavailable" → "unavailable"', () {
-        final dto = ListingSearchResultDto.fromJson(
+        final dto = ForSaleSearchResultDto.fromJson(
           _baseListingJson(
             listing: {
               'id': '00000000-0000-0000-0000-000000000001',
@@ -156,7 +156,7 @@ void main() {
       });
 
       test('nested user.lifecycle="removed" → "removed"', () {
-        final dto = ListingSearchResultDto.fromJson(
+        final dto = ForSaleSearchResultDto.fromJson(
           _baseListingJson(
             listing: {
               'id': '00000000-0000-0000-0000-000000000001',
@@ -174,7 +174,7 @@ void main() {
       });
 
       test('empty-string user.lifecycle → null (rollback-safe)', () {
-        final dto = ListingSearchResultDto.fromJson(
+        final dto = ForSaleSearchResultDto.fromJson(
           _baseListingJson(
             listing: {
               'id': '00000000-0000-0000-0000-000000000001',
@@ -197,7 +197,7 @@ void main() {
           // Even if the backend (in violation of doctrine) emitted a non-nil
           // top-level seller.lifecycle, the DTO must NEVER consume it. The
           // walker only reaches user.lifecycle; top-level is ignored.
-          final dto = ListingSearchResultDto.fromJson(
+          final dto = ForSaleSearchResultDto.fromJson(
             _baseListingJson(
               listing: {
                 'id': '00000000-0000-0000-0000-000000000001',
@@ -224,7 +224,7 @@ void main() {
           // Hypothetical flat scalar — must be IGNORED by the nested walker.
           json['seller_lifecycle'] = 'unavailable';
           json['seller_status'] = 'banned';
-          final dto = ListingSearchResultDto.fromJson(json);
+          final dto = ForSaleSearchResultDto.fromJson(json);
           expect(dto.sellerUserLifecycle, isNull);
         },
       );
@@ -236,13 +236,13 @@ void main() {
   // -------------------------------------------------------------------------
   group('E8.4 — Listing mapper threads sellerUserLifecycle into entity', () {
     test('null wire → ContentLifecycle.unavailable (FAIL CLOSED)', () {
-      final dto = ListingSearchResultDto.fromJson(_baseListingJson());
+      final dto = ForSaleSearchResultDto.fromJson(_baseListingJson());
       final entity = dto.toDomain();
       expect(entity.sellerUserLifecycle, ContentLifecycle.unavailable);
     });
 
     test('"active" wire → ContentLifecycle.active', () {
-      final dto = ListingSearchResultDto.fromJson(
+      final dto = ForSaleSearchResultDto.fromJson(
         _baseListingJson(
           listing: {
             'id': '00000000-0000-0000-0000-000000000001',
@@ -256,7 +256,7 @@ void main() {
     });
 
     test('"unavailable" wire → ContentLifecycle.unavailable', () {
-      final dto = ListingSearchResultDto.fromJson(
+      final dto = ForSaleSearchResultDto.fromJson(
         _baseListingJson(
           listing: {
             'id': '00000000-0000-0000-0000-000000000001',
@@ -270,7 +270,7 @@ void main() {
     });
 
     test('"removed" wire → ContentLifecycle.removed', () {
-      final dto = ListingSearchResultDto.fromJson(
+      final dto = ForSaleSearchResultDto.fromJson(
         _baseListingJson(
           listing: {
             'id': '00000000-0000-0000-0000-000000000001',
@@ -284,7 +284,7 @@ void main() {
     });
 
     test('unknown wire → ContentLifecycle.unavailable (FAIL CLOSED)', () {
-      final dto = ListingSearchResultDto.fromJson(
+      final dto = ForSaleSearchResultDto.fromJson(
         _baseListingJson(
           listing: {
             'id': '00000000-0000-0000-0000-000000000001',
@@ -403,7 +403,7 @@ void main() {
     SearchResult listingResult(String? lifecycle) {
       return SearchResult(
         id: 'l1',
-        type: SearchResultType.listing,
+        type: SearchResultType.forSale,
         title: 'Showa Koi 30cm',
         subtitle: '@bob\nAcme Farm', // owner-truth handle + store subtitle
         metadata: {

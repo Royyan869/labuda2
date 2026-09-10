@@ -9,13 +9,19 @@ import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
 
 /// Handlers for auction detail actions
+///
+/// NOTE: There is intentionally NO delete affordance on this surface. The
+/// backend exposes no DELETE endpoint for auctions (lifecycle is
+/// draft/scheduled → active → ended/cancelled via dedicated transitions), so
+/// a dialog-only "delete" that pops the screen without a backend call would be
+/// phantom UI. Only the legitimate Cancel lifecycle path is wired.
 class AuctionDetailHandlers {
   final WidgetRef ref;
   final BuildContext context;
   final Auction auction;
   final String auctionId;
   final VoidCallback onEditSuccess;
-  final VoidCallback onDeleteSuccess;
+  final VoidCallback onCancelSuccess;
 
   AuctionDetailHandlers({
     required this.ref,
@@ -23,33 +29,8 @@ class AuctionDetailHandlers {
     required this.auction,
     required this.auctionId,
     required this.onEditSuccess,
-    required this.onDeleteSuccess,
+    required this.onCancelSuccess,
   });
-
-  /// Handle delete auction
-  Future<void> handleDelete() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Hapus Lelang'),
-        content: const Text('Apakah Anda yakin ingin menghapus lelang ini?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      onDeleteSuccess();
-    }
-  }
 
   /// Handle cancel auction
   ///
@@ -86,7 +67,7 @@ class AuctionDetailHandlers {
       );
 
       if (success && context.mounted) {
-        onDeleteSuccess();
+        onCancelSuccess();
       }
     }
   }

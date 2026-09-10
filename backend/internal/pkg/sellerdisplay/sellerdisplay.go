@@ -37,10 +37,8 @@ import (
 type Info struct {
 	Username      string
 	FarmName      string
-	AvatarURL        string
-	StoreImageURL    string
-	PublicOriginLine string
-	AccountStatus    string // raw users.account_status — service-internal only
+	AvatarURL     string
+	AccountStatus string // raw users.account_status — service-internal only
 	IsDeleted     bool   // (users.deleted_at IS NOT NULL) — service-internal only
 
 	// Seller-trust axis (subscription) — populated from latest
@@ -107,8 +105,6 @@ func FetchMany(
 		       COALESCE(up.username, '')   AS seller_username,
 		       COALESCE(sp.store_name, '') AS seller_farm_name,
 		       COALESCE(up.avatar_url, '') AS seller_avatar_url,
-		       '' AS store_image_url,
-		       '' AS public_origin_line,
 		       u.account_status,
 		       (u.deleted_at IS NOT NULL)  AS is_deleted,
 		       COALESCE(ss.status::text, '') AS subscription_status,
@@ -136,21 +132,17 @@ func FetchMany(
 			username           string
 			farmName           string
 			avatarURL          string
-			storeImageURL      string
-			publicOriginLine   string
 			accountStatus      string
 			isDeleted          bool
 			subscriptionStatus string
 			tier               string
 		)
-		if err := rows.Scan(&id, &username, &farmName, &avatarURL, &storeImageURL, &publicOriginLine, &accountStatus, &isDeleted, &subscriptionStatus, &tier); err != nil {
+		if err := rows.Scan(&id, &username, &farmName, &avatarURL, &accountStatus, &isDeleted, &subscriptionStatus, &tier); err != nil {
 			return out, err
 		}
 		out[id] = Info{
-			Username:         username,
-			FarmName:         farmName,
-			StoreImageURL:    storeImageURL,
-			PublicOriginLine: publicOriginLine,
+			Username:           username,
+			FarmName:           farmName,
 			AvatarURL:          avatarURL,
 			AccountStatus:      accountStatus,
 			IsDeleted:          isDeleted,
@@ -180,5 +172,3 @@ func FetchOne(
 	}
 	return Info{}, nil
 }
-
-

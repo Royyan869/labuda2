@@ -1,10 +1,14 @@
 /// Auction Bid History
 ///
-/// Shows list of bids for the auction
+/// Shows list of bids for the auction.
+/// Bidder identity is redacted when [AuctionBid.bidderLifecycle] is
+/// degraded (unavailable/removed), providing parity with other seller/
+/// bidder identity surfaces (E8.4).
 library;
 
 import 'package:flutter/material.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_bid.dart';
+import 'package:labuda/shared/governance/content_lifecycle.dart';
 
 /// Bid history widget for auction detail
 class AuctionBidHistory extends StatelessWidget {
@@ -35,11 +39,16 @@ class AuctionBidHistory extends StatelessWidget {
               separatorBuilder: (_, _) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final bid = bids[index];
-                // Owner Truth: bidderUsername is the public bidder identity.
-                // No fake fallback ('Anonymous', 'Bidder', 'User'): when the
-                // username is empty, the avatar shows a generic person icon
-                // and the title is hidden — bid amount still renders.
-                final hasName = bid.bidderUsername.isNotEmpty;
+                final lifecycle = ContentLifecycleParse.fromWire(
+                  bid.bidderLifecycle,
+                );
+                final isDegraded = lifecycle.isDegraded;
+                final hasName = bid.bidderUsername.isNotEmpty && !isDegraded;
+                final displayName = isDegraded
+                    ? lifecycle.publicRedactionLabel
+                    : (bid.bidderUsername.isNotEmpty
+                        ? '@${bid.bidderUsername}'
+                        : null);
                 return ListTile(
                   dense: true,
                   leading: CircleAvatar(
@@ -48,7 +57,14 @@ class AuctionBidHistory extends StatelessWidget {
                         ? Text(bid.bidderUsername[0].toUpperCase())
                         : const Icon(Icons.person, size: 16),
                   ),
-                  title: hasName ? Text('@${bid.bidderUsername}') : null,
+                  title: displayName != null
+                      ? Text(
+                          displayName,
+                          style: isDegraded
+                              ? const TextStyle(fontStyle: FontStyle.italic)
+                              : null,
+                        )
+                      : null,
                   trailing: Text(
                     'Rp ${bid.amount.toStringAsFixed(0)}',
                     style: const TextStyle(

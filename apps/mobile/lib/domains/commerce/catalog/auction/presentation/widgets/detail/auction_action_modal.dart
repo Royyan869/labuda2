@@ -166,6 +166,16 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
     final sellerInactive =
         widget.auction.sellerTrustLifecycle != ContentLifecycle.active;
 
+    // Canonical per-viewer authority for the buy-now affordance. When the
+    // detail wire carries viewer_capabilities, `can_buy_now` decides
+    // (authenticated buyer + active + seller-trust + buy-now price evaluated
+    // server-side). Absence path (non-detail payload): fall back to the
+    // price-presence presentation check.
+    final caps = widget.auction.viewerCapabilities;
+    final showBuyNow = caps == null
+        ? widget.auction.buyNowPrice != null
+        : caps.canBuyNow;
+
     return Container(
       padding: EdgeInsets.only(
         left: 16,
@@ -279,8 +289,8 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
-          // Buy now button
-          if (widget.auction.buyNowPrice != null) ...[
+          // Buy now button — canonical capability (can_buy_now) when present.
+          if (showBuyNow) ...[
             const SizedBox(height: 12),
             OutlinedButton(
               onPressed: sellerInactive

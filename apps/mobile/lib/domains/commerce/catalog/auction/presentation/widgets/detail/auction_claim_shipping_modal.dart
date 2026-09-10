@@ -100,10 +100,11 @@ class _AuctionClaimShippingModalState
     });
 
     try {
-      final authService = ref.read(authServiceProvider);
-      final userResult = await authService.getCurrentUser();
+      // AUTH-2 (CANONICAL AUTHORITY): hydrated current user from the canonical
+      // authenticatedUserProvider instead of legacy authServiceProvider.
+      final user = ref.read(authenticatedUserProvider);
 
-      if (userResult.isError || userResult.data == null) {
+      if (user == null) {
         setState(() {
           _isLoadingAddresses = false;
           _error = 'Gagal memuat alamat. Silakan coba lagi.';
@@ -111,7 +112,6 @@ class _AuctionClaimShippingModalState
         return;
       }
 
-      final user = userResult.data!;
       final addressRepository = ref.read(addressRepositoryProvider);
       final addressesResult = await addressRepository.getAddressesByPurpose(
         user.id,

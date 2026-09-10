@@ -6,17 +6,16 @@ import 'package:labuda/shared/utils/commerce_seller_identity.dart';
 
 class _FakeOrganicSearchApiService implements SearchApiService {
   @override
-  Future<ListingSearchResponseDto> searchListings({
+  Future<ForSaleSearchResponseDto> searchForSale({
     required String query,
+    String? cursor,
     int limit = 20,
-    int offset = 0,
     String sortBy = 'relevance',
     String sortDir = 'desc',
   }) async {
-    return ListingSearchResponseDto(
-      query: query,
-      listings: [
-        ListingSearchResultDto(
+    return ForSaleSearchResponseDto(
+      forSales: [
+        ForSaleSearchResultDto(
           id: 'l1',
           title: 'Showa Koi 30cm',
           description: 'Beautiful showa',
@@ -30,9 +29,8 @@ class _FakeOrganicSearchApiService implements SearchApiService {
           sellerAvatarUrl: 'https://example.com/avatar.jpg',
         ),
       ],
-      total: 1,
-      limit: limit,
-      offset: offset,
+      nextCursor: null,
+      hasMore: false,
     );
   }
 
@@ -115,7 +113,7 @@ void main() {
     () async {
       final repository = SearchRepositoryImpl(_FakeOrganicSearchApiService());
 
-      final listings = await repository.searchListings(query: 'koi');
+      final listings = await repository.searchForSale(query: 'koi');
       final auctions = await repository.searchAuctions(query: 'koi');
 
       expect(listings.error, isNull);
@@ -143,7 +141,7 @@ void main() {
       _FakeOrganicSearchApiServiceMissingFarm(),
     );
 
-    final listings = await repository.searchListings(query: 'koi');
+    final listings = await repository.searchForSale(query: 'koi');
 
     expect(listings.error, isNull);
     expect(listings.data, hasLength(1));
@@ -157,17 +155,16 @@ void main() {
 
 class _FakeOrganicSearchApiServiceMissingFarm implements SearchApiService {
   @override
-  Future<ListingSearchResponseDto> searchListings({
+  Future<ForSaleSearchResponseDto> searchForSale({
     required String query,
+    String? cursor,
     int limit = 20,
-    int offset = 0,
     String sortBy = 'relevance',
     String sortDir = 'desc',
   }) async {
-    return ListingSearchResponseDto(
-      query: query,
-      listings: [
-        ListingSearchResultDto(
+    return ForSaleSearchResponseDto(
+      forSales: [
+        ForSaleSearchResultDto(
           id: 'l1',
           title: 'Showa Koi 30cm',
           description: 'Beautiful showa',
@@ -181,9 +178,8 @@ class _FakeOrganicSearchApiServiceMissingFarm implements SearchApiService {
           sellerAvatarUrl: 'https://example.com/avatar.jpg',
         ),
       ],
-      total: 1,
-      limit: limit,
-      offset: offset,
+      nextCursor: null,
+      hasMore: false,
     );
   }
 

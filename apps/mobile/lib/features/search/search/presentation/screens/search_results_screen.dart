@@ -5,6 +5,7 @@ import 'package:labuda/features/search/search/presentation/providers/search_noti
 import 'package:labuda/features/search/search/presentation/providers/search_state.dart';
 import 'package:labuda/features/search/search/domain/entities/search_result.dart';
 import 'package:labuda/features/search/search/presentation/utils/search_result_type_helper.dart';
+import 'package:labuda/features/search/search/presentation/widgets/all_tab_results_view.dart';
 import 'package:labuda/features/search/search/presentation/widgets/global_search_bar.dart';
 import 'package:labuda/features/search/search/presentation/widgets/search_result_item.dart';
 import 'package:labuda/shared/widgets/external_link_interstitial.dart';
@@ -28,7 +29,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
 
   final _tabs = const [
     Tab(text: 'All'),
-    Tab(text: 'Listings'),
+    Tab(text: 'For Sale'),
     Tab(text: 'Auctions'),
     Tab(text: 'User'),
     Tab(text: 'Content'),
@@ -48,8 +49,6 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
       ref.read(searchProvider.notifier).setSelectedType(widget.initialType);
     }
 
-    _tabController.addListener(_onTabChanged);
-
     // Execute initial search
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _executeSearch();
@@ -58,18 +57,23 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
 
   @override
   void dispose() {
-    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
   }
 
-  void _onTabChanged() {
-    if (!_tabController.indexIsChanging) {
-      final type = SearchResultTypeHelper.getTypeFromIndex(
-        _tabController.index,
-      );
-      ref.read(searchProvider.notifier).setSelectedType(type);
-    }
+  /// Explicit user-tab selection. Tab presentation only: it switches which
+  /// projection of the canonical result state is shown, never a new search.
+  void _onTabSelected(int index) {
+    final type = SearchResultTypeHelper.getTypeFromIndex(index);
+    ref.read(searchProvider.notifier).setSelectedType(type);
+  }
+
+  /// "Lihat Semua" — switches to the domain tab. Same query, same canonical
+  /// result state; no new search is fired (the tab shows the full canonical
+  /// domain collection already held in state).
+  void _onSeeAll(SearchResultType type) {
+    _onTabSelected(SearchResultTypeHelper.getTabIndex(type));
+    _tabController.animateTo(SearchResultTypeHelper.getTabIndex(type));
   }
 
   void _executeSearch() {
@@ -101,6 +105,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
         elevation: 0,
         bottom: TabBar(
           controller: _tabController,
+          onTap: _onTabSelected,
           isScrollable: true,
           labelColor: AppColors.primary,
           unselectedLabelColor: isDark
@@ -139,11 +144,28 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
       return _buildError(state.error!);
     }
 
-    final results = state.displayResults;
-
-    if (results.isEmpty) {
+    final results = state.results;
+    if (results == null || results.isEmpty) {
       return _buildEmptyState();
     }
+
+    // All tab: section-based multi-domain overview over the canonical
+    // domain collections (empty domains are omitted). Preview caps live in
+    // AllTabPreviewLimits and never truncate the per-type tab collections.
+    if (state.selectedType == null) {
+      return AllTabResultsView(
+        results: results,
+        onSeeAll: _onSeeAll,
+        onItemTap: _onResultTap,
+      );
+    }
+
+    // Per-type tab: canonical domain collection, no All preview truncation.
+    return _buildTypeResults(state);
+  }
+
+  Widget _buildTypeResults(SearchState state) {
+    final results = state.selectedDomainResults;
 
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -254,7 +276,7 @@ Future<void> handleSearchResultTap(
     case SearchResultType.user:
       navHandler.navigateToUserProfile(result.id);
       return;
-    case SearchResultType.listing:
+    case SearchResultType.forSale:
       navHandler.navigateToForSaleDetail(result.id);
       return;
     case SearchResultType.externalProduct:

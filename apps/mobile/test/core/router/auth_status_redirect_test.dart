@@ -210,14 +210,44 @@ void main() {
       );
       expect(result, equals('/welcome'));
     });
+  });
 
-    test('/home → redirects to /welcome', () {
+  group('Unauthenticated guest may open canonical Home (GUEST HOME)', () {
+    // Owner canonical truth: guests on the Welcome Screen may tap Home and
+    // must land on the canonical Home (/home). Home intent must NEVER
+    // resolve to /for-sale (For Sale) or any legacy listing destination.
+    const unauthPlaceholder = AuthStateUnauthenticated();
+
+    test('/home → no redirect (guest reaches canonical Home)', () {
       final result = handleAuthRedirectForTest(
         unauthPlaceholder,
         AppAuthStatus.unauthenticated,
         '/home',
       );
-      expect(result, equals('/welcome'));
+      expect(result, isNull);
+    });
+
+    test('guest Home never maps to the For Sale catalog route', () {
+      // The Home action resolves to /home, not /for-sale. This locks the
+      // canonical invariant: HOME ACTION = /home, HOME ACTION ≠ /for-sale.
+      expect(
+        handleAuthRedirectForTest(
+          unauthPlaceholder,
+          AppAuthStatus.unauthenticated,
+          '/home',
+        ),
+        isNot(equals('/for-sale')),
+      );
+      expect(
+        handleAuthRedirectForTest(
+          unauthPlaceholder,
+          AppAuthStatus.unauthenticated,
+          '/for-sale',
+        ),
+        isNull,
+        reason: '/for-sale stays independently guest-browsable, but it is '
+            'never the destination of the Home action.',
+      );
     });
   });
 

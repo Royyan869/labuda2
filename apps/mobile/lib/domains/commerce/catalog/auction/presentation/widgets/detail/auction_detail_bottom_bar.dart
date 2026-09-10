@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
+import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_watcher.dart';
 
@@ -64,6 +65,33 @@ class AuctionDetailBottomBar extends StatelessWidget {
   /// underlying calls regardless; this is a UX short-circuit.
   bool get _isSellerInactive =>
       auction.sellerTrustLifecycle != ContentLifecycle.active;
+
+  /// Canonical per-viewer action authority from the detail wire
+  /// (`viewer_capabilities`). Null only on non-detail payloads
+  /// (list/discovery) that do not carry viewer-scoped capabilities.
+  CommerceViewerCapabilities? get _capabilities => auction.viewerCapabilities;
+
+  /// Whether the primary bid CTA may open the action modal.
+  ///
+  /// Canonical authority when present: the backend evaluator's `can_bid`
+  /// (buyer + active + seller-trust). Absence path (non-detail payload):
+  /// keep the legacy status/trust presentation gate so the shared read
+  /// model stays consistent.
+  bool get _canPlaceBid {
+    final caps = _capabilities;
+    if (caps != null) {
+      return caps.role == 'buyer' && caps.canBid;
+    }
+    return auction.status == AuctionStatus.active && !_isSellerInactive;
+  }
+
+  /// Whether the chat action is available for this viewer. Canonical
+  /// authority when present (`can_chat`); otherwise keep the current
+  /// always-visible behavior for non-detail payloads.
+  bool get _showChat {
+    final caps = _capabilities;
+    return caps == null || caps.canChat;
+  }
 
   /// Get the main action button label
   String get _mainActionLabel {
@@ -133,7 +161,11 @@ class AuctionDetailBottomBar extends StatelessWidget {
       return null;
     }
 
-    // Active auction - allow bidding
+    // Active auction — bidding only when the canonical per-viewer capability
+    // allows it (buyer + can_bid). Owner/guest/seller-inactive → disabled.
+    if (!_canPlaceBid) {
+      return null;
+    }
     return onAction;
   }
 
@@ -217,13 +249,15 @@ class AuctionDetailBottomBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        // Chat button
-        _buildActionButton(
-          icon: Icons.chat_bubble_outline,
-          label: 'Chat',
-          onTap: onChat,
-        ),
-        const SizedBox(width: 12),
+        // Chat button — canonical viewer capability (can_chat) when present.
+        if (_showChat) ...[
+          _buildActionButton(
+            icon: Icons.chat_bubble_outline,
+            label: 'Chat',
+            onTap: onChat,
+          ),
+          const SizedBox(width: 12),
+        ],
         // Main action button (disabled, shows terminal state)
         Expanded(
           child: ElevatedButton(
@@ -290,13 +324,15 @@ class AuctionDetailBottomBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        // Chat button
-        _buildActionButton(
-          icon: Icons.chat_bubble_outline,
-          label: 'Chat',
-          onTap: onChat,
-        ),
-        const SizedBox(width: 12),
+        // Chat button — canonical viewer capability (can_chat) when present.
+        if (_showChat) ...[
+          _buildActionButton(
+            icon: Icons.chat_bubble_outline,
+            label: 'Chat',
+            onTap: onChat,
+          ),
+          const SizedBox(width: 12),
+        ],
         // Main action button
         Expanded(
           child: ElevatedButton(

@@ -20,8 +20,14 @@ import 'auction_condition.dart';
 // Import MediaEntity
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 
+// Shipping readiness vocabulary (canonical shared core type).
+import 'package:labuda/core/common/types/preparation_time.dart';
+
 // Canonical governance lifecycle vocabulary (E8.2 seller user-axis).
 import 'package:labuda/shared/governance/content_lifecycle.dart';
+
+// Canonical commerce detail action authority (per-viewer capabilities).
+import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
 
 // ============================================================
 // P11 PHASE 2: DECISION CONTRACT (Backend is Authority)
@@ -255,6 +261,21 @@ class Auction {
   /// (expired subscription) — see AuctionSellerCard for enforcement.
   final String? sellerTier;
 
+  /// Canonical per-viewer action authority for the auction detail surface.
+  ///
+  /// Populated from the wire's `viewer_capabilities` slot emitted by
+  /// `auctionToDetailResponseWithSeller` →
+  /// `commerceshared.EvaluateAuctionViewerCapabilities` (viewer identity,
+  /// status, seller-trust, buy-now price evaluated server-side). The detail
+  /// UI reads [canBid]/[canBuyNow]/[canChat]/[role] from here instead of
+  /// re-inferring transaction permission locally.
+  ///
+  /// Null on list/discovery payloads (no viewer-scoped capability is emitted
+  /// there). The detail screen always receives it via the detail endpoint;
+  /// when null, callers keep the pre-convergence presentation gating so the
+  /// shared read model stays consistent across surfaces.
+  final CommerceViewerCapabilities? viewerCapabilities;
+
   final String title;
   final String description;
 
@@ -272,6 +293,13 @@ class Auction {
 
   // Item details (backend-aligned)
   final AuctionCondition? condition; // Item condition from backend
+
+  // Shipping Readiness — preparation time before the item can ship.
+  // Read-only Product content carried on the auction detail wire
+  // (preparation_time / preparation_note). Mirrors the ForSale surface read
+  // model. Null when the backend Product carries no preparation value.
+  final PreparationTime? preparationTime;
+  final String? preparationNote;
 
   // Timing (backend authority)
   final DateTime startTime;
@@ -316,6 +344,7 @@ class Auction {
     this.sellerUserLifecycle = ContentLifecycle.active,
     this.sellerTrustLifecycle = ContentLifecycle.active,
     this.sellerTier,
+    this.viewerCapabilities,
     required this.title,
     required this.description,
     this.media = const [],
@@ -325,6 +354,8 @@ class Auction {
     required this.bidIncrement,
     this.buyNowPrice,
     this.condition,
+    this.preparationTime,
+    this.preparationNote,
     required this.startTime,
     required this.endTime,
     this.startedAt,
@@ -420,6 +451,7 @@ class Auction {
     ContentLifecycle? sellerUserLifecycle,
     ContentLifecycle? sellerTrustLifecycle,
     String? sellerTier,
+    CommerceViewerCapabilities? viewerCapabilities,
     String? title,
     String? description,
     List<MediaEntity>? media,
@@ -429,6 +461,8 @@ class Auction {
     double? bidIncrement,
     double? buyNowPrice,
     AuctionCondition? condition,
+    PreparationTime? preparationTime,
+    String? preparationNote,
     DateTime? startTime,
     DateTime? endTime,
     DateTime? startedAt,
@@ -459,6 +493,7 @@ class Auction {
       sellerUserLifecycle: sellerUserLifecycle ?? this.sellerUserLifecycle,
       sellerTrustLifecycle: sellerTrustLifecycle ?? this.sellerTrustLifecycle,
       sellerTier: sellerTier ?? this.sellerTier,
+      viewerCapabilities: viewerCapabilities ?? this.viewerCapabilities,
       title: title ?? this.title,
       description: description ?? this.description,
       media: media ?? this.media,
@@ -468,6 +503,8 @@ class Auction {
       bidIncrement: bidIncrement ?? this.bidIncrement,
       buyNowPrice: buyNowPrice ?? this.buyNowPrice,
       condition: condition ?? this.condition,
+      preparationTime: preparationTime ?? this.preparationTime,
+      preparationNote: preparationNote ?? this.preparationNote,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
       startedAt: startedAt ?? this.startedAt,

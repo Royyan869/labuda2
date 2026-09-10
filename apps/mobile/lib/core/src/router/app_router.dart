@@ -46,7 +46,8 @@ Future<void> initializeRouterModules() async {
 /// - Router watches AuthController state and reacts via redirect callback
 ///
 /// **FINAL AUTH FLOW (LOCKED - DO NOT CHANGE):**
-/// if not authenticated → /welcome
+/// if not authenticated → /welcome (guest entry default; guests MAY open the
+///     canonical Home route /home directly — GUEST HOME exception below)
 /// if profile not complete (username only) → /auth/complete-profile
 /// else → /home
 ///
@@ -198,6 +199,12 @@ String? _authRedirectForLocation(
       if (location.startsWith('/auth')) return null;
       if (location == '/welcome') return null;
       const publicBrowsePrefixes = [
+        // GUEST HOME (Owner canonical truth): guests may open the canonical
+        // Home (/home) directly — e.g. the Welcome Screen Home action.
+        // /home is the canonical Home destination and must never alias or
+        // fall back to /for-sale (For Sale catalog) — i.e. no legacy
+        // "listing as Home" mapping may ever return.
+        '/home',
         '/for-sale',
         '/auction',
         '/search',
@@ -354,7 +361,8 @@ String? _sellerRouteGuardCore(AuthUser? authenticatedUser, String location) {
 /// 1️⃣ AuthStateRequiresProfileCompletion → /auth/complete-profile
 /// 2️⃣ AppAuthStatus.authenticated → /home
 /// 3️⃣ AppAuthStatus.initializing → /splash
-/// 4️⃣ AppAuthStatus.unauthenticated → /welcome
+/// 4️⃣ AppAuthStatus.unauthenticated → /welcome (guest default; guest may
+///     open canonical Home /home directly — GUEST HOME exception)
 /// 5️⃣ AppAuthStatus.degraded → NO redirect (stay on current route)
 String? _handleAuthenticationRedirect(
   AuthState authState,
@@ -371,12 +379,12 @@ String? _handleAuthenticationRedirect(
   return _authRedirectForLocation(authState, authStatus, state.uri.path);
 }
 
-/// AppRouter sebagai delegation ke RouterNavigationImpl
+/// AppRouter — concrete [NavigationHandler] that drives the Riverpod-managed
+/// GoRouter (goRouterProvider) through the global [navigatorKey].
 ///
-/// Class ini tetap ada untuk backward compatibility dengan kode
-/// yang menggunakan AppRouter singleton. Namun sekarang ini
-/// hanya wrapper untuk RouterNavigationImpl yang mendapatkan
-/// router dari goRouterProvider.
+/// Navigation flows:
+/// UI → canonical navigationHandlerProvider → NavigationHandler → AppRouter
+/// → GoRouter → route.
 class AppRouter implements NavigationHandler {
   static final AppRouter _instance = AppRouter._internal();
   factory AppRouter() => _instance;
@@ -395,23 +403,6 @@ class AppRouter implements NavigationHandler {
       return null;
     }
     return GoRouter.of(context);
-  }
-
-  /// Initialize router - now no-op since router is managed by Riverpod
-  ///
-  /// Method ini tetap ada untuk backward compatibility.
-  /// Modules initialization sekarang dilakukan melalui initializeRouterModules()
-  Future<void> initialize() async {
-    _logger.info(
-      'AppRouter.initialize() called - now no-op, router managed by Riverpod',
-    );
-  }
-
-  /// Dispose - now no-op since router is managed by Riverpod
-  void dispose() {
-    _logger.info(
-      'AppRouter.dispose() called - now no-op, router managed by Riverpod',
-    );
   }
 
   // NavigationHandler interface implementations - using GoRouter directly
@@ -498,7 +489,7 @@ class AppRouter implements NavigationHandler {
   void navigateToReport(String targetId, String targetType) =>
       _currentRouter?.push('/report/$targetType/$targetId');
 
-  // Additional helper method used by AppNavigationHandler
+  // Named-route navigation (used by notification/deep-link flows)
   void navigateTo(String route, {Map<String, String>? parameters}) {
     try {
       if (parameters != null && parameters.isNotEmpty) {
@@ -551,7 +542,7 @@ class AppRouter implements NavigationHandler {
   @override
   void navigateToCheckout() {
     _logger.warning(
-      'navigateToCheckout requires a listing context; no bare route emitted',
+      'navigateToCheckout requires a For Sale context; no bare route emitted',
     );
   }
 

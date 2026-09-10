@@ -1,9 +1,11 @@
 import 'package:equatable/equatable.dart';
 
-/// Sort options for search results
-enum SearchSortBy { relevance, newest, oldest, priceAsc, priceDesc, popularity }
-
 /// Filters that can be applied to search queries
+///
+/// SECTION-BASED ALL (canonical): there is no mobile-side sort authority.
+/// Every domain orders its own results by its canonical backend ranking
+/// (`relevance` for for-sale/auction/content/user search). No
+/// cross-domain relevance sort enum exists here anymore.
 class SearchFilters extends Equatable {
   // Price filters (for collections/auctions)
   final double? minPrice;

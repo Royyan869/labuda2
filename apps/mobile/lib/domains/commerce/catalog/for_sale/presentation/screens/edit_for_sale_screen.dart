@@ -204,7 +204,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
         return;
       }
 
-      // Phase 2: only call PUT /listings/:id/shipping when the seller actually
+      // Phase 2: only call PUT /products/:id/shipping when the seller actually
       // re-picked. Leaving the section untouched preserves the existing
       // server-side subset (avoids accidentally clearing all options).
       if (_shippingSelectionDirty) {

@@ -37,7 +37,7 @@ package mediaref
 
 // MediaRef is the canonical additive media reference. It is the
 // SECOND real horizontal-convergence layer between discovery
-// surfaces; the three search surfaces (/search/listings,
+// surfaces; the three search surfaces (/search/for-sale,
 // /search/content, /search/auctions) emit a `[]MediaRef` under
 // the JSON key "media" alongside their existing flat fields
 // (media_urls, thumbnail_url).

@@ -55,7 +55,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
   PreparationTime _preparationTime = PreparationTime.immediate;
 
   // Phase 2: shipping option IDs the seller selects to apply to this listing.
-  // Drives the post-create PUT /listings/:id/shipping call.
+  // Drives the post-create PUT /products/:id/shipping call.
   List<String> _selectedShippingSetupIds = const [];
 
   bool _isSubmitting = false;

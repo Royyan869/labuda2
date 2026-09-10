@@ -339,7 +339,7 @@ void main() {
               body: SearchResultItem(
                 result: SearchResult(
                   id: 'l1',
-                  type: SearchResultType.listing,
+                  type: SearchResultType.forSale,
                   title: 'Koi Fish Premium',
                   subtitle: '@seller\nFarm Name',
                   imageUrl: 'https://example.com/koi.jpg',

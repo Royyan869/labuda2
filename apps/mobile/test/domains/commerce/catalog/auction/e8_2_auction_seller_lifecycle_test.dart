@@ -35,8 +35,6 @@ Map<String, dynamic> _baseAuctionJson({Map<String, dynamic>? auction}) {
     'remaining_extensions': 3,
     'views_count': 0,
     'watchers_count': 0,
-    'can_bid': true,
-    'can_buy_now': false,
     'created_at': '2026-01-01T00:00:00.000Z',
     'updated_at': '2026-01-01T00:00:00.000Z',
     'seller_username': 'alice',

@@ -127,26 +127,6 @@ class FakeStorage implements ILocalStorageService {
   @override
   Future<Result<void>> initialize() async => Result.success(null);
   @override
-  Future<Result<void>> setAuthToken(String token) async {
-    access = token;
-    return Result.success(null);
-  }
-
-  @override
-  Future<Result<String?>> getAuthToken() async => Result.success(access);
-  @override
-  Future<Result<void>> setRefreshToken(String token) async {
-    refresh = token;
-    return Result.success(null);
-  }
-
-  @override
-  Future<Result<String?>> getRefreshToken() async => Result.success(refresh);
-  @override
-  Future<Result<void>> setUserSession(Map<String, dynamic> s) async => Result.success(null);
-  @override
-  Future<Result<Map<String, dynamic>?>> getUserSession() async => Result.success(null);
-  @override
   Future<Result<void>> setRestrictedToken(String token) async => Result.success(null);
   @override
   Future<Result<String?>> getRestrictedToken() async => Result.success(null);

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 // PHASE 7-8 CUTOVER: Using chat_refactor screens
 import 'package:labuda/domains/chat/chat/chat.dart';
 import 'package:labuda/core/src/router/route_paths.dart';
+import 'package:labuda/shared/attachment/entities/share_reference.dart';
 import 'base_module.dart';
 
 /// Chat Module - Routes dan dependencies untuk fitur chat
@@ -57,13 +58,20 @@ class ChatModule implements BaseModule {
             );
           }
 
-          // Extract initialMessage from extra data if provided
+          // Extract route extras from commerce detail entry points
           final extra = state.extra as Map<String, dynamic>?;
           final initialMessage = extra?['initialMessage'] as String?;
+          // Canonical commerce chat opener (openCommerceChat) delivers the
+          // pending product reference + optional auto-open negotiation here.
+          final pendingReference = extra?['pendingReference'] as ShareReference?;
+          final autoOpenNegotiation =
+              (extra?['autoOpenNegotiation'] as bool?) ?? false;
 
           return ChatDetailScreen(
             chatId: conversationId,
             initialMessage: initialMessage,
+            pendingReference: pendingReference,
+            autoOpenNegotiation: autoOpenNegotiation,
           );
         },
       ),

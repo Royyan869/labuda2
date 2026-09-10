@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 
 /// Welcome screen dengan professional branding dan smooth animations.
@@ -188,13 +187,9 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
         : AppColors.neutralGray600;
 
     return IconButton(
-      onPressed: () {
-        // Use context.go with for-sale route for guest browsing
-        // ${RoutePaths.forSales} is a public route that allows unauthenticated access
-        context.go(RoutePaths.forSales);
-      },
+      onPressed: _navigateToHome,
       icon: Icon(Icons.home_outlined, color: iconColor),
-      tooltip: 'Explore as Guest',
+      tooltip: 'Home',
     );
   }
 
@@ -493,6 +488,10 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
         fontStyle: FontStyle.italic,
       ),
     );
+  }
+
+  void _navigateToHome() {
+    ref.navigation.navigateToHome();
   }
 
   void _navigateToSignUp() {

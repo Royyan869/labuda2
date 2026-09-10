@@ -27,6 +27,7 @@ import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/det
 import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_seller_card.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_seller_settlement_monitor.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_claim_shipping_modal.dart';
+import 'package:labuda/domains/chat/chat/presentation/utils/commerce_chat_navigation.dart';
 import 'package:labuda/domains/social/share/share.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
@@ -261,7 +262,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
         ref.invalidate(auctionDetailProvider(widget.auctionId));
         ref.invalidate(auctionStreamProvider(widget.auctionId));
       },
-      onDeleteSuccess: () => Navigator.pop(context),
+      onCancelSuccess: () => Navigator.pop(context),
     );
 
     return Scaffold(
@@ -294,7 +295,9 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
             isDeleting: false,
             contentType: PopupMoreOptionsContentType.auction,
             onEdit: null, // Disabled - auction editing is desktop-only
-            onDelete: () => handlers.handleDelete(),
+            // No onDelete: the backend exposes no auction DELETE endpoint;
+            // a dialog-only fake delete is phantom UI. Cancel is the only
+            // owner lifecycle action on this surface.
             onReport: !_isCurrentUserTheCreator(auction)
                 ? () => _handleReportAuction(context, auction)
                 : null,
@@ -487,10 +490,26 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
     }
   }
 
-  void _handleChat(Auction auction) {
-    // HONEST MINIMAL: Navigate to new chat screen (existing real route)
-    // The fake ChatNavigationHelper.navigateToAuctionChat did not exist
-    Navigator.of(context).pushNamed(RoutePaths.newChat);
+  Future<void> _handleChat(Auction auction) async {
+    // Canonical commerce chat flow: opens/creates the buyer-seller room,
+    // carries the auction as a pending product reference (server-backed
+    // objectReference on send), and handles the guest auth boundary
+    // internally (guest → canonical sign-in route).
+    await openCommerceChat(
+      context: context,
+      ref: ref,
+      reference: ShareReference.auction(
+        auctionId: auction.id,
+        title: auction.title,
+        imageUrl: auction.media.isNotEmpty
+            ? (auction.media.first.thumbnailUrl ??
+                  auction.media.first.originalUrl)
+            : null,
+        isAvailable: auction.status == AuctionStatus.active,
+        isClosed: auction.hasEnded,
+      ),
+      sellerId: auction.sellerId,
+    );
   }
 
   void _showUnifiedActionModal(BuildContext context, Auction auction) {
@@ -517,10 +536,13 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
     Auction auction,
     double amount,
   ) async {
-    final authService = ref.read(authServiceProvider);
-    final userResult = await authService.getCurrentUser();
+    // AUTH-2 (CANONICAL AUTHORITY): read the hydrated current user from the
+    // canonical authenticatedUserProvider instead of the legacy
+    // authServiceProvider.getCurrentUser() wrapper — this removes the last
+    // production consumer keeping the legacy IAuthenticationService alive.
+    final currentUser = ref.read(authenticatedUserProvider);
 
-    if (userResult.isError || userResult.data == null) {
+    if (currentUser == null) {
       if (!mounted) return;
       AppSnackBar.showError(
         this.context,
@@ -529,7 +551,6 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       return;
     }
 
-    final currentUser = userResult.data!;
     if (!mounted) {
       return;
     }
@@ -624,10 +645,11 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
   }
 
   Future<void> _handleBuyNow(BuildContext context, Auction auction) async {
-    final authService = ref.read(authServiceProvider);
-    final userResult = await authService.getCurrentUser();
+    // AUTH-2 (CANONICAL AUTHORITY): hydrated current user from the canonical
+    // authenticatedUserProvider instead of legacy authServiceProvider.
+    final currentUser = ref.read(authenticatedUserProvider);
 
-    if (userResult.isError || userResult.data == null) {
+    if (currentUser == null) {
       if (!mounted) return;
       AppSnackBar.showError(
         this.context,
@@ -647,7 +669,6 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       return;
     }
 
-    final currentUser = userResult.data!;
     if (currentUser.id == auction.sellerId) {
       if (!mounted) return;
       AppSnackBar.showError(this.context, 'You cannot buy your own auction');
@@ -732,16 +753,15 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       return;
     }
 
-    final authService = ref.read(authServiceProvider);
-    final userResult = await authService.getCurrentUser();
+    // AUTH-2 (CANONICAL AUTHORITY): hydrated current user from the canonical
+    // authenticatedUserProvider instead of legacy authServiceProvider.
+    final currentUser = ref.read(authenticatedUserProvider);
 
-    if (userResult.isError || userResult.data == null) {
+    if (currentUser == null) {
       if (!mounted) return;
       AppSnackBar.showError(this.context, 'You must be logged in to proceed');
       return;
     }
-
-    final currentUser = userResult.data!;
 
     // Verify user is the winner
     if (!_isUserWinner(auction, currentUser.id)) {

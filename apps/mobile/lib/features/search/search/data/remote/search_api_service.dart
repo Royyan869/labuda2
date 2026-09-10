@@ -6,13 +6,13 @@ import 'package:labuda/features/search/search/data/dto/search_dto.dart';
 ///
 /// FEDERATED SEARCH CONTRACT:
 /// - Content search: GET /api/v1/search/content
-/// - Listing search: GET /api/v1/search/listings
+/// - For Sale search: GET /api/v1/search/for-sale
 /// - User search: GET /api/v1/search/users
 /// - Auction search: GET /api/v1/search/auctions
 /// - Search history: GET/POST/DELETE /api/v1/search/history
 ///
 /// SEARCH CONTRACT:
-/// - Supports: Listing, Auction, User, Content
+/// - Supports: For Sale, Auction, User, Content
 /// - No AI/semantic search
 /// - No hashtag search
 ///
@@ -96,34 +96,33 @@ class SearchApiService {
   }
 
   // =====================
-  // Listing Search (REAL LISTINGS TAB)
+  // For Sale Search (REAL FOR SALE TAB)
   // =====================
 
-  /// Search listings with full-text search
+  /// Search for-sale items with full-text search
   ///
-  /// GET /api/v1/search/listings?q={query}&limit={limit}&offset={offset}&sort={sort}&sort_dir={sort_dir}
+  /// GET /api/v1/search/for-sale?q={query}&limit={limit}&offset={offset}&sort={sort}&sort_dir={sort_dir}
   ///
   /// Backend search-handler-bound parameters:
   /// - sort_by: "relevance" | "created_at"
   /// - sort_dir: "asc" | "desc"
   ///
   /// IMPORTANT: This is the discovery endpoint — it does NOT reuse the
-  /// listing-detail datasource (ListingRemoteDatasource.searchListings)
-  /// which returns the full ListingResponseDto and fabricates fields the
-  /// search surface never emits.
-  Future<ListingSearchResponseDto> searchListings({
+  /// For Sale detail datasource (full item DTO), which fabricates fields
+  /// the search surface never emits.
+  Future<ForSaleSearchResponseDto> searchForSale({
     required String query,
+    String? cursor,
     int limit = 20,
-    int offset = 0,
     String sortBy = 'relevance',
     String sortDir = 'desc',
   }) async {
-    _logger?.info('Searching listings: query=$query');
+    _logger?.info('Searching for-sale: query=$query');
 
     final queryParams = {
       'q': query,
       'limit': limit.toString(),
-      'offset': offset.toString(),
+      'cursor': ?cursor,
       if (sortBy != 'relevance') 'sort': sortBy,
       if (sortDir != 'desc') 'sort_dir': sortDir,
     };
@@ -133,7 +132,7 @@ class SearchApiService {
       queryParameters: queryParams,
     );
 
-    return ListingSearchResponseDto.fromJson(
+    return ForSaleSearchResponseDto.fromJson(
       response.data['data'] as Map<String, dynamic>,
     );
   }

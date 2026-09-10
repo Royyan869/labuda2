@@ -47,12 +47,8 @@ class AuthModule extends BaseModule {
 
   @override
   Future<void> initialize() async {
-    // Register Authentication Service
-    // Note: FirebaseAuthenticationService akan diregister di main.dart
-    // karena memerlukan Firebase initialization terlebih dahulu
-
-    // Register authentication-related providers atau services lain
-    // yang specific untuk auth module bisa ditambahkan disini
+    // Register authentication-related providers or services lain
+    // yang specific untuk auth module bisa ditambahkan disini.
 
     // Contoh:
     // sl.registerLazySingleton<IAuthValidationService>(

@@ -37,19 +37,17 @@ class _FakeSearchApiService implements SearchApiService {
   }
 
   @override
-  Future<ListingSearchResponseDto> searchListings({
+  Future<ForSaleSearchResponseDto> searchForSale({
     required String query,
+    String? cursor,
     int limit = 20,
-    int offset = 0,
     String sortBy = 'relevance',
     String sortDir = 'desc',
   }) async {
-    return ListingSearchResponseDto(
-      query: query,
-      listings: const [],
-      total: 0,
-      limit: limit,
-      offset: offset,
+    return ForSaleSearchResponseDto(
+      forSales: const [],
+      nextCursor: null,
+      hasMore: false,
       promotedItems: const [
         PromotedSearchItemDto(
           type: 'promoted_for_sale',
@@ -137,6 +135,13 @@ void main() {
 
     expect(promotedForSale.subtitle, '@seller_user');
     expect(promotedAuction.subtitle, '@seller_user');
-    expect(data.allResults.where((item) => item.isPromoted).length, 2);
+    // No flat allResults authority: promoted items are counted across the
+    // canonical domain collections that back the All sections.
+    final promotedAcrossDomains =
+        data.listings.where((item) => item.isPromoted).length +
+        data.auctions.where((item) => item.isPromoted).length +
+        data.users.where((item) => item.isPromoted).length +
+        data.contents.where((item) => item.isPromoted).length;
+    expect(promotedAcrossDomains, 2);
   });
 }

@@ -2,12 +2,17 @@ import 'package:labuda/features/search/search/domain/entities/search_filters.dar
 import 'package:labuda/features/search/search/domain/entities/search_result.dart';
 
 /// Search State
+///
+/// SECTION-BASED ALL (canonical): [results] holds separate canonical domain
+/// collections. When [selectedType] is null the UI renders the All overview
+/// (independent sections, each capped at its own preview limit); otherwise
+/// the selected domain collection is shown as-is — never truncated by the
+/// All preview limits.
 class SearchState {
   final UnifiedSearchResults? results;
   final String query;
   final SearchResultType? selectedType;
   final SearchFilters filters;
-  final SearchSortBy sortBy;
   final bool isSearching;
   final String? error;
 
@@ -16,7 +21,6 @@ class SearchState {
     this.query = '',
     this.selectedType,
     this.filters = const SearchFilters(),
-    this.sortBy = SearchSortBy.relevance,
     this.isSearching = false,
     this.error,
   });
@@ -26,41 +30,41 @@ class SearchState {
     String? query,
     SearchResultType? selectedType,
     SearchFilters? filters,
-    SearchSortBy? sortBy,
     bool? isSearching,
     String? error,
   }) {
     return SearchState(
       results: results ?? this.results,
       query: query ?? this.query,
-      selectedType: selectedType ?? this.selectedType,
+      // selectedType and error are nullable on purpose: passing null CLEARS
+      // them (selectedType null = All tab; error null = no error). The
+      // `?? this.x` pattern would silently keep the previous value and make
+      // "back to All" impossible.
+      selectedType: selectedType,
       filters: filters ?? this.filters,
-      sortBy: sortBy ?? this.sortBy,
       isSearching: isSearching ?? this.isSearching,
-      error: error ?? this.error,
-    );
-  }
-
-  /// Clear type filter
-  SearchState clearTypeFilter() {
-    return SearchState(
-      results: results,
-      query: query,
-      selectedType: null,
-      filters: filters,
-      sortBy: sortBy,
-      isSearching: isSearching,
       error: error,
     );
   }
 
-  /// Check if there are results
-  bool get hasResults => results != null && results!.isNotEmpty;
-
-  /// Get results for selected type or all
-  List<SearchResult> get displayResults {
-    if (results == null) return [];
-    if (selectedType == null) return results!.allResults;
-    return results!.getByType(selectedType!);
+  /// Domain collection backing the currently selected per-type tab.
+  ///
+  /// All is not a domain collection — when [selectedType] is null (All tab)
+  /// this returns an empty list and the UI renders the section overview
+  /// from [results] instead. `externalProduct` rows live on the For Sale
+  /// (listing) surface and share its collection.
+  List<SearchResult> get selectedDomainResults {
+    if (results == null || selectedType == null) return const [];
+    switch (selectedType!) {
+      case SearchResultType.user:
+        return results!.users;
+      case SearchResultType.forSale:
+      case SearchResultType.externalProduct:
+        return results!.listings;
+      case SearchResultType.auction:
+        return results!.auctions;
+      case SearchResultType.content:
+        return results!.contents;
+    }
   }
 }

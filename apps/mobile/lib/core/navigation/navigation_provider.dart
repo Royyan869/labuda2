@@ -4,10 +4,13 @@ import 'package:labuda/core/core.dart';
 
 /// Provider untuk NavigationHandler
 ///
-/// Dependency injection pattern untuk navigation service
+/// CANONICAL navigation provider — SINGLE declaration for
+/// `navigationHandlerProvider` in the app.
+///
+/// Dependency injection pattern untuk navigation service.
+/// AppRouter drives the active Riverpod-managed GoRouter via the global
+/// navigatorKey (see core/src/router/app_router.dart).
 final navigationHandlerProvider = Provider<NavigationHandler>((ref) {
-  // Return singleton AppRouter instance
-  // AppRouter is now a wrapper that delegates to RouterNavigationImpl
   return AppRouter();
 });
 
@@ -16,10 +19,11 @@ extension NavigationExtension on WidgetRef {
   NavigationHandler get navigation => read(navigationHandlerProvider);
 }
 
-/// Helper untuk setup NavigationHandler tanpa context dependency
+/// Helper untuk binding NavigationHandler di dalam subtree app.
 ///
-/// UPDATED: Router is now managed by Riverpod, no need to fetch from ServiceLocator
-/// NavigationScope simply provides the AppRouter singleton which is already available
+/// [NavigationScope] provides the canonical [navigationHandlerProvider] to the
+/// whole router subtree (see app.dart) so every screen resolves the same
+/// AppRouter-backed handler regardless of the surrounding ProviderScope.
 class NavigationScope extends ConsumerWidget {
   final Widget child;
 
@@ -27,9 +31,6 @@ class NavigationScope extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // NavigationHandler is provided via navigationHandlerProvider
-    // which returns the AppRouter singleton
-    // No need to fetch from ServiceLocator anymore
     return ProviderScope(
       overrides: [navigationHandlerProvider.overrideWithValue(AppRouter())],
       child: child,

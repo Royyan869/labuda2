@@ -13,7 +13,6 @@
 // **USE THESE INSTEAD:**
 // - `ref.watch(apiClientProvider)` for ApiClient
 // - `ref.read(loggerServiceProvider)` for ILoggerService
-// - `ref.watch(authServiceProvider)` for IAuthenticationService
 // - `ref.read(localStorageServiceProvider)` for ILocalStorageService
 // - etc.
 //
@@ -34,7 +33,6 @@
 /// All feature code SHOULD use these providers via ref.watch() or ref.read():
 /// - apiClientProvider for ApiClient
 /// - loggerServiceProvider for ILoggerService
-/// - authServiceProvider for IAuthenticationService
 /// - localStorageServiceProvider for ILocalStorageService
 /// - etc.
 ///
@@ -57,8 +55,6 @@ library;
 // Imports
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/navigation/navigation_handler.dart';
-import 'package:labuda/core/src/interfaces/services/i_authentication_service.dart';
 import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 import 'package:labuda/core/src/interfaces/services/i_presence_service.dart';
@@ -73,7 +69,6 @@ import 'package:labuda/core/services/s3_service.dart';
 // Re-exports for convenience
 export 'package:labuda/core/api/api_client.dart';
 export 'package:labuda/core/navigation/navigation_handler.dart';
-export 'package:labuda/core/src/interfaces/services/i_authentication_service.dart';
 export 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
 export 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 export 'package:labuda/core/src/interfaces/services/i_presence_service.dart';
@@ -113,16 +108,6 @@ final loggerServiceProvider = Provider<ILoggerService>((ref) {
   );
 });
 
-/// Provider for IAuthenticationService
-///
-/// This must be overridden in main.dart with the actual auth service instance.
-final authServiceProvider = Provider<IAuthenticationService>((ref) {
-  throw UnimplementedError(
-    'IAuthenticationService must be provided externally. '
-    'Override authServiceProvider in main.dart.',
-  );
-});
-
 /// Provider for ILocalStorageService
 ///
 /// This must be overridden in main.dart with the actual storage instance.
@@ -150,16 +135,6 @@ final presenceServiceProvider = Provider<IPresenceService>((ref) {
   throw UnimplementedError(
     'IPresenceService must be provided externally. '
     'Override presenceServiceProvider in main.dart.',
-  );
-});
-
-/// Provider for NavigationHandler
-///
-/// This must be overridden in main.dart with the actual navigation handler.
-final navigationHandlerProvider = Provider<NavigationHandler>((ref) {
-  throw UnimplementedError(
-    'NavigationHandler must be provided externally. '
-    'Override navigationHandlerProvider in main.dart.',
   );
 });
 

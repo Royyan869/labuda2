@@ -16,6 +16,3 @@ library;
 // Screens
 export 'presentation/screens/splash_screen.dart';
 export 'presentation/screens/welcome_screen.dart';
-
-// Providers (for DI if needed)
-export 'presentation/providers/onboarding_providers.dart';

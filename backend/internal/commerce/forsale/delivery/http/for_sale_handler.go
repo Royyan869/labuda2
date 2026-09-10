@@ -281,6 +281,7 @@ func (h *ForSaleHandler) CreateForSale(c *gin.Context) {
 // Quantity is intentionally excluded — stock mutations follow canonical paths:
 //   - ReduceQuantity: order creation (via OrderCreationService)
 //   - RestoreQuantity: order cancel/expire (via OrderCompletionService)
+//
 // The handler does NOT bypass domain authority for quantity.
 type UpdateForSaleRequest struct {
 	Title              *string `json:"title"`
@@ -528,7 +529,6 @@ func (h *ForSaleHandler) GetForSale(c *gin.Context) {
 
 	var for_sale *entity.ForSale
 	var sellerInfo sellerdisplay.Info
-	var publicOriginLine string
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
 		for_sale, err = h.for_saleService.GetByID(ctx, tx, for_saleID)
@@ -551,9 +551,6 @@ func (h *ForSaleHandler) GetForSale(c *gin.Context) {
 		// (seller_username/seller_farm_name/seller_avatar_url) inside
 		// the same transaction. Single query; no N+1.
 		sellerInfo, _ = sellerdisplay.FetchOne(ctx, tx, for_sale.SellerID)
-
-		// Derive public origin line from the product's farm_address_id → addresses
-		publicOriginLine = h.for_saleService.DerivePublicOriginLine(ctx, tx, productFarmAddressID(for_sale))
 
 		return nil
 	})
@@ -579,25 +576,8 @@ func (h *ForSaleHandler) GetForSale(c *gin.Context) {
 		}
 	}
 
-	resp := for_saleToResponseWithSeller(for_sale, sellerInfo)
-	if publicOriginLine != "" {
-		sellerIdentity := map[string]interface{}{
-			"store_name":         sellerInfo.FarmName,
-			"username":           sellerInfo.Username,
-			"avatar_url":         sellerInfo.AvatarURL,
-			"public_origin_line": publicOriginLine,
-		}
-		resp["seller_identity"] = sellerIdentity
-	}
+	resp := forSaleToDetailResponseWithViewerCapabilities(for_sale, sellerInfo, callerID)
 	response.Success(c, resp)
-}
-
-// productFarmAddressID extracts the product's farm_address_id from a for_sale entity.
-func productFarmAddressID(l *entity.ForSale) *uuid.UUID {
-	if l.Product != nil {
-		return l.Product.FarmAddressID
-	}
-	return nil
 }
 
 // DeleteForSale handles DELETE /api/v1/for_sales/:id
@@ -745,7 +725,6 @@ func (h *ForSaleHandler) ListForSales(c *gin.Context) {
 	// Execute query within transaction
 	var for_sales []*entity.ForSale
 	var sellerInfoByID map[uuid.UUID]sellerdisplay.Info
-	var originBySaleID map[uuid.UUID]string
 	var total int
 	var err error
 
@@ -803,12 +782,6 @@ func (h *ForSaleHandler) ListForSales(c *gin.Context) {
 		}
 		sellerInfoByID, _ = sellerdisplay.FetchMany(ctx, tx, sellerIDs)
 
-		// Derive public origin lines from each product's farm_address_id → addresses
-		originBySaleID = make(map[uuid.UUID]string, len(for_sales))
-		for _, l := range for_sales {
-			originBySaleID[l.ID] = h.for_saleService.DerivePublicOriginLine(ctx, tx, productFarmAddressID(l))
-		}
-
 		return nil
 	})
 
@@ -824,14 +797,6 @@ func (h *ForSaleHandler) ListForSales(c *gin.Context) {
 	items := make([]map[string]interface{}, 0, len(for_sales))
 	for _, for_sale := range for_sales {
 		resp := for_saleToResponseWithSeller(for_sale, sellerInfoByID[for_sale.SellerID])
-		if origin := originBySaleID[for_sale.ID]; origin != "" {
-			resp["seller_identity"] = map[string]interface{}{
-				"store_name":         sellerInfoByID[for_sale.SellerID].FarmName,
-				"username":           sellerInfoByID[for_sale.SellerID].Username,
-				"avatar_url":         sellerInfoByID[for_sale.SellerID].AvatarURL,
-				"public_origin_line": origin,
-			}
-		}
 		items = append(items, resp)
 	}
 
@@ -937,7 +902,6 @@ func (h *ForSaleHandler) SearchForSales(c *gin.Context) {
 	// Execute search within transaction
 	var result *for_saleApp.SearchResult
 	var sellerInfoByID map[uuid.UUID]sellerdisplay.Info
-	var originBySaleID map[uuid.UUID]string
 	txErr := h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
 		result, err = h.for_saleService.Search(ctx, tx, filters)
@@ -952,12 +916,6 @@ func (h *ForSaleHandler) SearchForSales(c *gin.Context) {
 			sellerIDs = append(sellerIDs, l.SellerID)
 		}
 		sellerInfoByID, _ = sellerdisplay.FetchMany(ctx, tx, sellerIDs)
-
-		// Derive public origin lines from each product's farm_address_id → addresses
-		originBySaleID = make(map[uuid.UUID]string, len(result.ForSales))
-		for _, l := range result.ForSales {
-			originBySaleID[l.ID] = h.for_saleService.DerivePublicOriginLine(ctx, tx, productFarmAddressID(l))
-		}
 
 		return nil
 	})
@@ -974,14 +932,6 @@ func (h *ForSaleHandler) SearchForSales(c *gin.Context) {
 	items := make([]map[string]interface{}, 0, len(result.ForSales))
 	for _, for_sale := range result.ForSales {
 		resp := for_saleToResponseWithSeller(for_sale, sellerInfoByID[for_sale.SellerID])
-		if origin := originBySaleID[for_sale.ID]; origin != "" {
-			resp["seller_identity"] = map[string]interface{}{
-				"store_name":         sellerInfoByID[for_sale.SellerID].FarmName,
-				"username":           sellerInfoByID[for_sale.SellerID].Username,
-				"avatar_url":         sellerInfoByID[for_sale.SellerID].AvatarURL,
-				"public_origin_line": origin,
-			}
-		}
 		items = append(items, resp)
 	}
 

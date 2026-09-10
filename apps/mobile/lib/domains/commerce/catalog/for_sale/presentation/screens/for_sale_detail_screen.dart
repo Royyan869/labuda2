@@ -11,6 +11,7 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
+import 'package:labuda/domains/chat/chat/presentation/utils/commerce_chat_navigation.dart';
 import 'package:labuda/domains/user/profile/profile.dart' show userDataProvider;
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/governance/seller_tier_badge.dart';
@@ -87,7 +88,7 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
         error: (error, _) =>
             const Center(child: Text('Data belum bisa dimuat.')),
       ),
-      bottomNavigationBar: _BuyNowBottomBar(forSaleId: widget.forSaleId),
+      bottomNavigationBar: _ForSaleDetailActionBar(forSaleId: widget.forSaleId),
     );
   }
 
@@ -699,93 +700,235 @@ class _SellerInactiveBanner extends StatelessWidget {
   }
 }
 
-/// Buy Now Bottom Bar — shown for non-owner authenticated users when listing is available
-class _BuyNowBottomBar extends ConsumerWidget {
+/// For Sale Detail Action Bar — canonical viewer-capability driven.
+///
+/// Action authority comes exclusively from the detail wire's
+/// `viewer_capabilities` slot (backend EvaluateForSaleViewerCapabilities):
+/// can_chat / can_negotiate / can_buy. The bar no longer re-derives
+/// transaction permission from raw status/stock/seller-lifecycle locally.
+///
+/// - Guest (Model B): affordances stay visible; any CTA routes to the
+///   canonical sign-in flow.
+/// - Owner: buyer action bar not applicable (owner actions live elsewhere).
+/// - Buyer: Chat/Nego/Buy Now per capability; an all-false capability set
+///   (seller-trust inactive) renders the explanatory inactive banner.
+class _ForSaleDetailActionBar extends ConsumerWidget {
   final String forSaleId;
 
-  const _BuyNowBottomBar({required this.forSaleId});
+  const _ForSaleDetailActionBar({required this.forSaleId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authControllerProvider);
     final listingAsync = ref.watch(forSaleDetailProvider(forSaleId));
     final listing = listingAsync.value;
+    if (listing == null) return const SizedBox.shrink();
 
-    // Hide for unauthenticated, owner, or unavailable listing
-    if (listing == null || authState is! AuthStateAuthenticated) {
+    final isAuthenticated = authState is AuthStateAuthenticated;
+
+    // Owner: buyer action bar not applicable.
+    if (isAuthenticated && listing.sellerId == authState.user.id) {
       return const SizedBox.shrink();
     }
-    final isOwner = listing.sellerId == authState.user.id;
-    if (isOwner || !listing.isAvailable) {
-      return const SizedBox.shrink();
-    }
 
-    // Seller trust gate — show explanatory banner instead of hiding silently.
-    if (listing.sellerTrustLifecycle != ContentLifecycle.active) {
-      return const _SellerInactiveBanner();
-    }
-
-    final productId = listing.productId;
-    if (productId == null || productId.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          border: Border(top: BorderSide(color: AppColors.neutralGray200)),
-        ),
-        child: SafeArea(
-          child: Row(
-            children: [
-              Icon(
-                Icons.info_outline,
-                size: 20,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'ID produk belum tersedia dari backend. Checkout belum bisa dibuka.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+    // Guest (Model B): affordances visible; the auth boundary redirects to
+    // the canonical login flow on tap. Nego/Buy affordance uses raw facts
+    // for PRESENTATION only (permission is never granted locally).
+    if (!isAuthenticated) {
+      return _ForSaleActionBar(
+        listing: listing,
+        guest: true,
+        canChat: true,
+        canNegotiate: listing.isNegotiable,
+        canBuy: listing.productId != null && listing.stock > 0,
+        unavailable: false,
       );
     }
 
+    final caps = listing.viewerCapabilities;
+    // Non-detail payload safety: no viewer-scoped capability slot on
+    // list/search payloads → no transaction CTA.
+    if (caps == null) return const SizedBox.shrink();
+
+    // Buyer with no available action (seller-trust inactive) → banner.
+    if (!caps.canChat && !caps.canNegotiate && !caps.canBuy) {
+      return const _SellerInactiveBanner();
+    }
+
+    final unavailable = caps.canChat && !caps.canBuy && !caps.canNegotiate;
+    return _ForSaleActionBar(
+      listing: listing,
+      guest: false,
+      canChat: caps.canChat,
+      canNegotiate: caps.canNegotiate,
+      canBuy: caps.canBuy,
+      unavailable: unavailable,
+    );
+  }
+}
+
+/// Renders the buyer action row(s) from canonical capability facts.
+class _ForSaleActionBar extends ConsumerWidget {
+  final ForSale listing;
+  final bool guest;
+  final bool canChat;
+  final bool canNegotiate;
+  final bool canBuy;
+  final bool unavailable;
+
+  const _ForSaleActionBar({
+    required this.listing,
+    required this.guest,
+    required this.canChat,
+    required this.canNegotiate,
+    required this.canBuy,
+    required this.unavailable,
+  });
+
+  void _requireLogin(BuildContext context) {
+    context.push(RoutePaths.signIn);
+  }
+
+  Future<void> _openChat(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool negotiate,
+  }) async {
+    await openCommerceChat(
+      context: context,
+      ref: ref,
+      reference: ShareReference.forSale(
+        forSaleId: listing.forSaleId,
+        title: listing.title,
+        imageUrl: listing.media.isNotEmpty
+            ? (listing.media.first.thumbnailUrl ??
+                  listing.media.first.originalUrl)
+            : null,
+        isAvailable: listing.isAvailable,
+        isSold: listing.stock == 0,
+      ),
+      sellerId: listing.sellerId,
+      autoOpenNegotiation: negotiate,
+    );
+  }
+
+  void _buyNow(BuildContext context) {
+    if (guest) {
+      _requireLogin(context);
+      return;
+    }
+    final productId = listing.productId;
+    if (productId == null || productId.isEmpty) return;
+    final uri = Uri(
+      path: '/checkout/${listing.forSaleId}',
+      queryParameters: {'product_id': productId},
+    );
+    context.push(uri.toString());
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final showSecondary = canChat || canNegotiate;
+    final showPrimary = canBuy;
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
+        color: theme.scaffoldBackgroundColor,
         border: Border(top: BorderSide(color: AppColors.neutralGray200)),
       ),
       child: SafeArea(
-        child: SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton(
-            onPressed: () {
-              final uri = Uri(
-                path: '/checkout/$forSaleId',
-                queryParameters: {'product_id': productId},
-              );
-              context.push(uri.toString());
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryRed,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (unavailable)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Item sudah tidak tersedia untuk dibeli',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ),
-            ),
-            child: const Text(
-              'Beli Sekarang',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
+            if (showSecondary)
+              Row(
+                children: [
+                  if (canChat)
+                    Expanded(
+                      child: _secondaryActionButton(
+                        context,
+                        icon: Icons.chat_bubble_outline,
+                        label: 'Chat',
+                        onTap: () =>
+                            _openChat(context, ref, negotiate: false),
+                      ),
+                    ),
+                  if (canChat && canNegotiate) const SizedBox(width: 8),
+                  if (canNegotiate)
+                    Expanded(
+                      child: _secondaryActionButton(
+                        context,
+                        icon: Icons.handshake_outlined,
+                        label: 'Ajukan Penawaran',
+                        onTap: () =>
+                            _openChat(context, ref, negotiate: true),
+                      ),
+                    ),
+                ],
+              ),
+            if (showSecondary && showPrimary) const SizedBox(height: 8),
+            if (showPrimary)
+              SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () => _buyNow(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryRed,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Beli Sekarang',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _secondaryActionButton(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(44),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
     );

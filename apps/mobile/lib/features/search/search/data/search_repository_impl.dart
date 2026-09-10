@@ -16,17 +16,20 @@ import 'package:labuda/shared/utils/commerce_seller_identity.dart';
 /// - Content search: /api/v1/search/content
 /// - Auction search: /api/v1/search/auctions (PHASE 3.5 - authoritative)
 /// - User search: /api/v1/search/users
-/// - Listing search: /api/v1/search/listings (via FixedPriceSaleHandler)
+/// - For Sale search: /api/v1/search/for-sale (via FixedPriceSaleHandler)
 /// - Search history: /api/v1/search/history
 ///
 /// SEARCH CONTRACT:
-/// - Supports: Listing, Auction, User, Content
+/// - Supports: For Sale, Auction, User, Content
 /// - No AI/semantic search
 /// - No hashtag search
 ///
-/// PHASE 3.5 - AUCTION SEARCH TRUTH COMPLETION:
-/// - Replaced workaround auction search (via content search filter)
-/// - Now uses authoritative auction search endpoint
+/// SECTION-BASED ALL (canonical):
+/// [searchAll] executes the four canonical domain searches in parallel and
+/// keeps the results as separate domain collections. Each collection keeps
+/// its canonical backend ordering. There is NO flattening into a
+/// cross-domain list, NO client-side relevance sort, and NO unified
+/// ranking — the All tab renders these collections as independent sections.
 class SearchRepositoryImpl implements SearchRepository {
   final SearchApiService _apiService;
 
@@ -55,18 +58,18 @@ class SearchRepositoryImpl implements SearchRepository {
   }
 
   @override
-  Future<ApiResult<List<ListingSearchResult>>> searchListings({
+  Future<ApiResult<List<ForSaleSearchResult>>> searchForSale({
     required String query,
-    int page = 1,
-    int pageSize = 20,
+    String? cursor,
+    int limit = 20,
     String sortBy = 'relevance',
     String sortDir = 'desc',
   }) async {
     try {
-      final bundleResult = await _fetchListingSearchBundle(
+      final bundleResult = await _fetchForSaleSearchBundle(
         query: query,
-        page: page,
-        pageSize: pageSize,
+        cursor: cursor,
+        limit: limit,
         sortBy: sortBy,
         sortDir: sortDir,
       );
@@ -75,7 +78,7 @@ class SearchRepositoryImpl implements SearchRepository {
       }
       return (data: bundleResult.data!.items, error: null);
     } catch (e) {
-      return (data: null, error: 'Failed to search listings: ${e.toString()}');
+      return (data: null, error: 'Failed to search for-sale: ${e.toString()}');
     }
   }
 
@@ -130,36 +133,28 @@ class SearchRepositoryImpl implements SearchRepository {
   Future<ApiResult<UnifiedSearchResults>> searchAll({
     required String query,
     SearchFilters? filters,
-    SearchSortBy sortBy = SearchSortBy.relevance,
     int limit = 20,
   }) async {
     try {
       final stopwatch = Stopwatch()..start();
-      final limitPerType = (limit / 4).ceil();
 
-      // Execute searches in parallel.
+      // Execute the canonical domain searches in parallel — the single
+      // execution authority for a query. [limit] is the per-domain page
+      // size; each domain response keeps its canonical backend ordering.
       // Promoted sidecar stays tied to the same response bundle that
       // produced the organic items.
       final results = await Future.wait<Object?>([
-        searchUsers(query: query, pageSize: limitPerType),
-        _fetchListingSearchBundle(
-          query: query,
-          pageSize: limitPerType,
-          sortBy: _mapSearchSortByToBackendSortBy(sortBy),
-        ),
-        _fetchAuctionSearchBundle(
-          query: query,
-          pageSize: limitPerType,
-          sortBy: _mapSearchSortByToBackendSortBy(sortBy),
-        ),
-        searchContents(query: query, pageSize: limitPerType),
+        searchUsers(query: query, pageSize: limit),
+        _fetchForSaleSearchBundle(query: query, limit: limit),
+        _fetchAuctionSearchBundle(query: query, pageSize: limit),
+        searchContents(query: query, pageSize: limit),
       ]);
 
       stopwatch.stop();
 
       final usersResult = results[0] as ApiResult<List<UserSearchResult>>;
       final listingsBundleResult =
-          results[1] as ApiResult<_SearchResultBundle<ListingSearchResult>>;
+          results[1] as ApiResult<_SearchResultBundle<ForSaleSearchResult>>;
       final auctionsBundleResult =
           results[2] as ApiResult<_SearchResultBundle<AuctionSearchResult>>;
       final contentsResult = results[3] as ApiResult<List<ContentSearchResult>>;
@@ -178,7 +173,8 @@ class SearchRepositoryImpl implements SearchRepository {
         return (data: null, error: contentsResult.error);
       }
 
-      // Convert domain results to generic SearchResults, merge promoted sidecar
+      // Convert domain results to generic SearchResults, merge promoted
+      // sidecar. Each collection keeps its canonical domain order.
       final users = _mapUserResultsToGeneric(usersResult.data!);
       final listings = _mergePromotedSidecar(
         _mapListingResultsToGeneric(listingsBundleResult.data!.items),
@@ -190,25 +186,14 @@ class SearchRepositoryImpl implements SearchRepository {
       );
       final contents = _mapContentResultsToGeneric(contentsResult.data!);
 
-      // Merge all results
-      final allResults = <SearchResult>[
-        ...users,
-        ...listings,
-        ...auctions,
-        ...contents,
-      ];
-
-      // Sort by relevance or other criteria
-      _sortResults(allResults, sortBy);
-
       return (
         data: UnifiedSearchResults(
-          allResults: allResults.take(limit).toList(),
           users: users,
           listings: listings,
           auctions: auctions,
           contents: contents,
-          totalCount: allResults.length,
+          totalCount:
+              users.length + listings.length + auctions.length + contents.length,
           query: query,
           searchDuration: stopwatch.elapsed,
         ),
@@ -219,122 +204,33 @@ class SearchRepositoryImpl implements SearchRepository {
     }
   }
 
-  @override
-  Future<ApiResult<List<SearchResult>>> searchByType({
-    required String query,
-    required SearchResultType type,
-    SearchFilters? filters,
-    SearchSortBy sortBy = SearchSortBy.relevance,
-    int limit = 20,
-    String? cursor,
-  }) async {
-    try {
-      final ApiResult<List<SearchResult>> result;
-
-      switch (type) {
-        case SearchResultType.user:
-          final userResult = await searchUsers(query: query, pageSize: limit);
-          if (userResult.error != null) {
-            return (data: null, error: userResult.error);
-          }
-          result = (
-            data: _mapUserResultsToGeneric(userResult.data!),
-            error: null,
-          );
-          break;
-
-        case SearchResultType.listing:
-        case SearchResultType.externalProduct:
-          final listingBundleResult = await _fetchListingSearchBundle(
-            query: query,
-            pageSize: limit,
-            sortBy: _mapSearchSortByToBackendSortBy(sortBy),
-          );
-          if (listingBundleResult.error != null) {
-            return (data: null, error: listingBundleResult.error);
-          }
-          result = (
-            data: _mergePromotedSidecar(
-              _mapListingResultsToGeneric(listingBundleResult.data!.items),
-              listingBundleResult.data!.promotedItems,
-            ),
-            error: null,
-          );
-          break;
-
-        case SearchResultType.auction:
-          final auctionBundleResult = await _fetchAuctionSearchBundle(
-            query: query,
-            pageSize: limit,
-            sortBy: _mapSearchSortByToBackendSortBy(sortBy),
-          );
-          if (auctionBundleResult.error != null) {
-            return (data: null, error: auctionBundleResult.error);
-          }
-          result = (
-            data: _mergePromotedSidecar(
-              _mapAuctionResultsToGeneric(auctionBundleResult.data!.items),
-              auctionBundleResult.data!.promotedItems,
-            ),
-            error: null,
-          );
-          break;
-
-        case SearchResultType.content:
-          final contentResult = await searchContents(
-            query: query,
-            pageSize: limit,
-          );
-          if (contentResult.error != null) {
-            return (data: null, error: contentResult.error);
-          }
-          result = (
-            data: _mapContentResultsToGeneric(contentResult.data!),
-            error: null,
-          );
-          break;
-      }
-
-      final results = result.data!;
-      _sortResults(results, sortBy);
-
-      return (data: results, error: null);
-    } catch (e) {
-      return (
-        data: null,
-        error: 'Failed to search ${type.name}: ${e.toString()}',
-      );
-    }
-  }
-
   // Helper methods
 
-  Future<ApiResult<_SearchResultBundle<ListingSearchResult>>>
-  _fetchListingSearchBundle({
+  Future<ApiResult<_SearchResultBundle<ForSaleSearchResult>>>
+  _fetchForSaleSearchBundle({
     required String query,
-    int page = 1,
-    int pageSize = 20,
+    String? cursor,
+    int limit = 20,
     String sortBy = 'relevance',
     String sortDir = 'desc',
   }) async {
     try {
-      final offset = (page - 1) * pageSize;
-      final response = await _apiService.searchListings(
+      final response = await _apiService.searchForSale(
         query: query,
-        limit: pageSize,
-        offset: offset,
+        cursor: cursor,
+        limit: limit,
         sortBy: sortBy,
         sortDir: sortDir,
       );
       return (
         data: _SearchResultBundle(
-          items: response.listings.map((dto) => dto.toDomain()).toList(),
+          items: response.forSales.map((dto) => dto.toDomain()).toList(),
           promotedItems: response.promotedItems,
         ),
         error: null,
       );
     } catch (e) {
-      return (data: null, error: 'Failed to search listings: ${e.toString()}');
+      return (data: null, error: 'Failed to search for-sale: ${e.toString()}');
     }
   }
 
@@ -383,7 +279,7 @@ class SearchRepositoryImpl implements SearchRepository {
         .toList();
   }
 
-  /// REAL LISTINGS TAB: map ListingSearchResult to generic SearchResult.
+  /// REAL LISTINGS TAB: map ForSaleSearchResult to generic SearchResult.
   ///
   /// Owner Truth: subtitle prefers farmName, falling back to @username.
   /// When neither is present, subtitle is null (hide rather than fabricate).
@@ -395,15 +291,15 @@ class SearchRepositoryImpl implements SearchRepository {
   /// - metadata ← {'price': ...} ONLY when price is non-null;
   ///              {'sellerId': ...} for downstream consumers.
   ///   No quantity / status / visibility / listing_type / engagement
-  ///   are emitted by /search/listings, so none are added here.
+  ///   are emitted by /search/for-sale, so none are added here.
   List<SearchResult> _mapListingResultsToGeneric(
-    List<ListingSearchResult> data,
+    List<ForSaleSearchResult> data,
   ) {
     return data
         .map(
           (r) => SearchResult(
             id: r.id,
-            type: SearchResultType.listing,
+            type: SearchResultType.forSale,
             title: r.title,
             subtitle: buildCommerceSellerIdentity(
               username: r.sellerUsername,
@@ -540,55 +436,6 @@ class SearchRepositoryImpl implements SearchRepository {
     );
   }
 
-  /// PHASE 3.5: Map SearchSortBy to backend sort_by parameter
-  String _mapSearchSortByToBackendSortBy(SearchSortBy sortBy) {
-    switch (sortBy) {
-      case SearchSortBy.relevance:
-        return 'relevance';
-      case SearchSortBy.newest:
-      case SearchSortBy.oldest:
-        return 'created_at';
-      case SearchSortBy.priceAsc:
-      case SearchSortBy.priceDesc:
-        return 'relevance'; // Use relevance for auctions (price sorting not supported)
-      case SearchSortBy.popularity:
-        return 'relevance'; // Use relevance (bid_count is already part of relevance)
-    }
-  }
-
-  void _sortResults(List<SearchResult> results, SearchSortBy sortBy) {
-    switch (sortBy) {
-      case SearchSortBy.relevance:
-        results.sort((a, b) => b.relevanceScore.compareTo(a.relevanceScore));
-      case SearchSortBy.newest:
-        results.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      case SearchSortBy.oldest:
-        results.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-      case SearchSortBy.priceAsc:
-        results.sort((a, b) {
-          final priceA = a.metadata['price'] as num? ?? 0;
-          final priceB = b.metadata['price'] as num? ?? 0;
-          return priceA.compareTo(priceB);
-        });
-      case SearchSortBy.priceDesc:
-        results.sort((a, b) {
-          final priceA = a.metadata['price'] as num? ?? 0;
-          final priceB = b.metadata['price'] as num? ?? 0;
-          return priceB.compareTo(priceA);
-        });
-      case SearchSortBy.popularity:
-        results.sort((a, b) {
-          final popA =
-              (a.metadata['followersCount'] as int? ?? 0) +
-              (a.metadata['likesCount'] as int? ?? 0);
-          final popB =
-              (b.metadata['followersCount'] as int? ?? 0) +
-              (b.metadata['likesCount'] as int? ?? 0);
-          return popB.compareTo(popA);
-        });
-    }
-  }
-
   // =====================
   // P3B — Server-side promoted sidecar merge
   // =====================
@@ -599,7 +446,7 @@ class SearchRepositoryImpl implements SearchRepository {
     final String id;
     switch (dto.targetType) {
       case 'for_sale':
-        type = SearchResultType.listing;
+        type = SearchResultType.forSale;
         id = dto.forSaleId ?? dto.contractId;
       case 'auction':
         type = SearchResultType.auction;

@@ -93,28 +93,20 @@ type GetFeedRequest struct {
 func (h *FeedHandler) GetFeed(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// F1-W3A — Pattern A ViewerContext construction at the HTTP
-	// boundary. The pre-tx invocation passes nil tx for the cheap
-	// anonymous-reject path; the post-tx re-invocation (inside the
-	// transaction below) wires inline viewer-lifecycle hydration. The
-	// shape mirrors /search/content's two-phase derivation
-	// (constructSearchContentViewerContext inside WithTx) — see
-	// search_viewercontext.go:46. F8 closed: raw c.Get("userID") is
-	// no longer the visibility authority; the explicit AnonymousViewer
-	// check at the boundary is.
+	// GUEST HOME (Owner canonical): /feed serves BOTH anonymous and
+	// authenticated viewers through ONE authority — the ViewerContext
+	// decides the policy:
+	//   - AnonymousViewer  → global public content discovery only
+	//     (repository visibility clause: public content, no follow graph,
+	//     no blocks/mutes; Priority Group 1).
+	//   - Authenticated    → follow/own + public discovery (Priority 0 + 1).
+	// F1-W3A Pattern A construction stays at the HTTP boundary; the post-tx
+	// re-invocation (inside WithTx below) wires inline viewer-lifecycle
+	// hydration. F8 closed: raw c.Get("userID") is never the visibility
+	// authority — the ViewerContext is.
 	vc := constructFeedViewerContext(c, nil)
-	if vc.IsAnonymous() {
-		response.Unauthorized(c, "User not authenticated")
-		return
-	}
-	callerID := vc.Identity().CanonicalUserID
-	if callerID == uuid.Nil {
-		// Defensive: constructFeedViewerContext returns AnonymousViewer
-		// when the UUID is nil, so reaching this branch indicates a
-		// constructor bug rather than a missing-auth condition.
-		response.InternalServerError(c, "Invalid user ID in context")
-		return
-	}
+	isAnonymous := vc.IsAnonymous()
+	callerID := vc.Identity().CanonicalUserID // uuid.Nil for anonymous
 
 	// Parse query parameters
 	var req GetFeedRequest
@@ -159,14 +151,24 @@ func (h *FeedHandler) GetFeed(c *gin.Context) {
 	var origAuthorLifecycles map[uuid.UUID]string // FIX-3: original-author lifecycle map for reposts
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
 		vc = constructFeedViewerContext(c, tx)
-		vc = vc.WithGeography(viewercontext.ResolveViewerGeography(ctx, tx, callerID))
+		isAnonymous = vc.IsAnonymous()
+		// Geography is an authenticated-viewer overlay; anonymous viewers
+		// have no primary address.
+		if !isAnonymous {
+			vc = vc.WithGeography(viewercontext.ResolveViewerGeography(ctx, tx, callerID))
+		}
 		var err error
 		result, err = h.feedService.GetFeed(ctx, tx, callerID, cursor, limit)
 		if err != nil {
 			return err
 		}
 		tc = hydrateFeedTargetContext(ctx, tx, result.Items)
-		vc = hydrateFeedRelationship(ctx, tx, vc, result.Items)
+		// Relationship/block overlay is authenticated-only — an anonymous
+		// viewer has no social graph (the repository already excludes
+		// blocks/mutes through the $1 = nil clause).
+		if !isAnonymous {
+			vc = hydrateFeedRelationship(ctx, tx, vc, result.Items)
+		}
 		// FIX-3 — batch-hydrate original-author lifecycle for reposts.
 		origAuthorLifecycles = hydrateOriginalAuthorLifecycles(ctx, tx, result.Items)
 		return nil
@@ -224,8 +226,10 @@ func (h *FeedHandler) GetFeed(c *gin.Context) {
 	// shadow mode and when no row took the override path; the renderer
 	// short-circuits cleanly in both cases.
 	projections := make(map[uuid.UUID]*contentApp.ContentResourceProjection)
-	if len(result.Items) > 0 {
-		if loaded, projErr := loadFeedContentResourceProjections(ctx, h.db, vc.Identity().CanonicalUserID, result.Items); projErr == nil {
+	// Anonymous viewers skip commerce-resource projection hydration — the
+	// Guest Home feed is a public content discovery feed.
+	if !isAnonymous && len(result.Items) > 0 {
+		if loaded, projErr := loadFeedContentResourceProjections(ctx, h.db, callerID, result.Items); projErr == nil {
 			projections = loaded
 		} else {
 			h.log.Warn("failed to load feed content resource projections", zap.Error(projErr))
@@ -256,11 +260,14 @@ func (h *FeedHandler) GetFeed(c *gin.Context) {
 	// P3A — Promotion injection. Fetch active promoted items, hydrate
 	// card data, and interleave into the organic feed at slot positions.
 	// FAIL-OPEN: if anything errors, items stays unchanged. viewerID is the
-	// audience fact carried into canonical delivery measurement (a canonical
-	// card included in this response is recorded as an 'included'
-	// observation bound to this viewer). Geography is canonical viewer primary address.
-	geo := vc.Geography()
-	items = h.promotionInjector.InjectPromotionsWithGeography(ctx, callerID, geo.CityID, geo.HasPrimary, items)
+	// audience fact carried into canonical delivery measurement; geography
+	// is the canonical viewer primary address. Anonymous Guest Home stays a
+	// pure public content discovery feed (no viewer-audience measurement) —
+	// commerce discovery lives on the Explore/For Sale surfaces.
+	if !isAnonymous {
+		geo := vc.Geography()
+		items = h.promotionInjector.InjectPromotionsWithGeography(ctx, callerID, geo.CityID, geo.HasPrimary, items)
+	}
 
 	// Re-encode the next cursor at the HTTP boundary. nil cursor →
 	// JSON null (json.Marshal renders the typed *string nil as null).

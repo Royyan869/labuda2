@@ -150,20 +150,11 @@ class _RecordingLocalStorageService extends Fake
     return Result.success(null);
   }
 
+  // AUTH-2 (CREDENTIAL AUTHORITY): observe the canonical credential write so
+  // the "no credential on stale sync" assertions are meaningful.
   @override
-  Future<Result<String?>> getAuthToken() async => Result.success(null);
-
-  @override
-  Future<Result<String?>> getRefreshToken() async => Result.success(null);
-
-  @override
-  Future<Result<void>> setAuthToken(String token) async {
+  Future<Result<void>> saveLabudaCredential(String access, String refresh) async {
     setAuthTokenCalls++;
-    return Result.success(null);
-  }
-
-  @override
-  Future<Result<void>> setRefreshToken(String token) async {
     setRefreshTokenCalls++;
     return Result.success(null);
   }

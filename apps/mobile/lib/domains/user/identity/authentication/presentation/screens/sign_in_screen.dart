@@ -178,6 +178,26 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
     if (mounted) AppSnackBar.showError(context, message);
   }
 
+  /// AUTH-2 (FAILURE VISIBILITY): Map backend terminal auth states to a
+  /// user-visible message.
+  ///
+  /// The login controller never sets these states itself; they come from
+  /// [AuthController._syncWithBackend] after an explicit login. Without this
+  /// the UI would show a stopped loading spinner and no error — the "logged in
+  /// but nothing happens" symptom. Returning a message here lets the screen
+  /// render an inline error banner and keep the retry path available.
+  String? _backendFailureMessage(AuthState authState) {
+    if (authState is AuthStateBackendFailure) {
+      return authState.message.isNotEmpty
+          ? authState.message
+          : 'Login failed. Please check your credentials and try again.';
+    }
+    if (authState is AuthStateBackendUnavailable) {
+      return 'Cannot reach the server. Please check your connection and try again.';
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -188,6 +208,13 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
     final isAuthLoading =
         authState is AuthStateLoading ||
         authState is AuthStateSyncingWithBackend;
+
+    // AUTH-2 (FAILURE VISIBILITY): Backend terminal failures must NEVER be a
+    // silent "login succeeded but nothing happens" state. Derive a visible
+    // message from the explicit backend states and surface it inline with a
+    // working retry (the login button stays enabled). This is state-driven —
+    // no manual navigation to /home.
+    final backendErrorMessage = _backendFailureMessage(authState);
 
     return Scaffold(
       body: Container(
@@ -297,6 +324,49 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
                     ),
 
                     const SizedBox(height: 32),
+
+                    // AUTH-2 (FAILURE VISIBILITY): Render backend errors inline
+                    // so a failed login is never a silent "stuck on Login".
+                    // Retry stays available: the Sign In button remains enabled.
+                    if (backendErrorMessage != null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? AppColors.darkGray700
+                              : AppColors.primaryRed.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.primaryRed,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: AppColors.primaryRed,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                backendErrorMessage,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: isDark
+                                          ? AppColors.neutralGray100
+                                          : AppColors.neutralGray800,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
 
                     // Sign in button (shared widget)
                     AuthButton.primary(

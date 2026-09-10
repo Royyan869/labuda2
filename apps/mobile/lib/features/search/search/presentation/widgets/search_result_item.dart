@@ -48,7 +48,7 @@ class SearchResultItem extends ConsumerWidget {
   /// row type stays `active` so the seller-axis branch never fires.
   ContentLifecycle get _sellerUserLifecycle {
     final isSellerSurface =
-        result.type == SearchResultType.listing ||
+        result.type == SearchResultType.forSale ||
         result.type == SearchResultType.auction;
     if (!isSellerSurface) return ContentLifecycle.active;
     return ContentLifecycleParse.fromWire(
@@ -69,7 +69,7 @@ class SearchResultItem extends ConsumerWidget {
   /// Any other row type stays active so this branch never fires.
   ContentLifecycle get _sellerTrustLifecycle {
     final isSellerSurface =
-        result.type == SearchResultType.listing ||
+        result.type == SearchResultType.forSale ||
         result.type == SearchResultType.auction;
     if (!isSellerSurface) return ContentLifecycle.active;
     return ContentLifecycleParse.fromWire(
@@ -142,7 +142,7 @@ class SearchResultItem extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final extraInfo = SearchResultExtraInfo(result: result);
     final sellerSurface =
-        result.type == SearchResultType.listing ||
+        result.type == SearchResultType.forSale ||
         result.type == SearchResultType.auction;
     final subtitleMaxLines = sellerSurface ? 2 : 1;
     // E8.4 — seller user-axis subtitle redaction (listing/auction only).

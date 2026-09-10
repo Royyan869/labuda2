@@ -126,10 +126,23 @@ class ChatDetailScreen extends ConsumerStatefulWidget {
   final String chatId;
   final String? initialMessage;
 
+  /// Pending commerce reference delivered by the canonical detail Chat CTA
+  /// (openCommerceChat). Rendered as a send-chip above the input area; the
+  /// user explicitly sends it through the canonical chat send flow so the
+  /// product card becomes a persisted server-backed message.
+  final ShareReference? pendingReference;
+
+  /// When true (Nego CTA), the pending reference is sent through the
+  /// canonical send flow and the negotiation dialog auto-opens for it
+  /// once the room is loaded.
+  final bool autoOpenNegotiation;
+
   const ChatDetailScreen({
     super.key,
     required this.chatId,
     this.initialMessage,
+    this.pendingReference,
+    this.autoOpenNegotiation = false,
   });
 
   @override
@@ -144,6 +157,10 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   bool _isLoadingData = false;
   bool _isLoadingMore = false;
   bool _isSendingMessage = false;
+
+  // Pending commerce reference lifecycle (detail Chat/Nego CTA entry)
+  bool _pendingReferenceSent = false;
+  bool _negotiationOpened = false;
 
   @override
   void initState() {
@@ -241,6 +258,14 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     } finally {
       _isLoadingData = false;
     }
+
+    // Pending commerce reference (detail CTA entry): once the room is
+    // loaded, auto-open negotiation for the Nego CTA path.
+    if (widget.pendingReference != null && widget.autoOpenNegotiation) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _maybeAutoOpenNegotiation();
+      });
+    }
   }
 
   Future<void> _loadMoreMessages() async {
@@ -308,6 +333,11 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           if (isUserBlocked) _buildBlockedUserBanner(context, otherUserId),
           Expanded(child: _buildMessagesList(context, chatDetailState)),
           if (typingIndicatorEnabled) _buildTypingIndicator(context),
+          // Pending commerce reference chip (detail Chat CTA entry)
+          if (!isUserBlocked &&
+              widget.pendingReference != null &&
+              !_pendingReferenceSent)
+            _buildPendingReferenceChip(context),
           // Disable input when user is blocked
           if (!isUserBlocked) _buildInputArea(context),
         ],
@@ -588,6 +618,100 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   String _getCurrentUserName() {
     // TODO: Get from auth provider
     return 'User';
+  }
+
+  /// Pending commerce reference send chip — delivered by the canonical
+  /// detail Chat CTA (openCommerceChat). Sending goes through the canonical
+  /// send flow (objectReference) so the card persists server-side and
+  /// reloads as a real message.
+  Widget _buildPendingReferenceChip(BuildContext context) {
+    final reference = widget.pendingReference!;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Material(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: Row(
+            children: [
+              Icon(
+                Icons.inventory_2_outlined,
+                size: 20,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  reference.preview.title.isEmpty
+                      ? reference.displayName
+                      : reference.preview.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: _sendPendingReference,
+                child: const Text('Kirim'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Sends the pending commerce reference through the canonical chat send
+  /// flow (message-level objectReference), persisting it as a real message.
+  Future<void> _sendPendingReference({bool silent = false}) async {
+    final reference = widget.pendingReference;
+    if (reference == null) return;
+    final authState = ref.read(authControllerProvider);
+    if (authState is! AuthStateAuthenticated) return;
+
+    final result = await ref
+        .read(chatDetailProvider(widget.chatId).notifier)
+        .sendMessage(
+          senderId: authState.user.id,
+          senderName: authState.user.username.isNotEmpty
+              ? authState.user.username
+              : 'User',
+          content: 'Mengirimkan ${reference.displayName} untuk Anda',
+          objectReference: reference,
+        );
+
+    if (result != null && mounted) {
+      setState(() => _pendingReferenceSent = true);
+      _scrollToBottom();
+    } else if (mounted && !silent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal mengirim produk. Coba lagi.')),
+      );
+    }
+  }
+
+  /// Auto-opens the negotiation dialog when the Nego CTA delivered a
+  /// pending for-sale reference (canonical capability can_negotiate path).
+  /// The reference is anchored in the chat first via the canonical send
+  /// flow, then the dialog opens for the same reference.
+  Future<void> _maybeAutoOpenNegotiation() async {
+    final reference = widget.pendingReference;
+    if (reference == null ||
+        !widget.autoOpenNegotiation ||
+        _negotiationOpened) {
+      return;
+    }
+    if (reference.targetType != ShareTargetType.forSale) return;
+    if (!mounted) return;
+    _negotiationOpened = true;
+
+    if (!_pendingReferenceSent) {
+      await _sendPendingReference(silent: true);
+    }
+    if (!mounted) return;
+    _showNegotiationDialogForShareReference(context, reference);
   }
 
   void _handleAttachmentTap() {

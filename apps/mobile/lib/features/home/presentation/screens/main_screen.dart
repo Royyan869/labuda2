@@ -161,15 +161,16 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   Widget _buildDrawer(BuildContext context, bool isDark) {
     final handler = MainScreenNavigationHandler(ref: ref, context: context);
+    final navigation = ref.read(navigationHandlerProvider);
 
     return MainDrawer(
       onTabChanged: (index) => setState(() => _currentIndex = index),
-      onNavigateToMessages: handler.navigateToMessages,
-      onNavigateToNotifications: handler.navigateToNotifications,
-      onHandleSignIn: handler.handleSignIn,
-      onHandleSignUp: handler.handleSignUp,
+      onNavigateToMessages: () => navigation.navigateToChat(),
+      onNavigateToNotifications: () => navigation.navigateToNotifications(),
+      onHandleSignIn: () => navigation.navigateToSignIn(),
+      onHandleSignUp: () => navigation.navigateToSignUp(),
       onHandleSignOut: handler.handleSignOut,
-      onHandleSettings: handler.handleSettings,
+      onHandleSettings: () => navigation.navigateToSettings(),
       onHandleProfile: handler.handleProfile,
       onHandleComingSoon: handler.handleComingSoon,
     );
@@ -185,36 +186,51 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       showMultiFAB: false,
       tabs: tabs,
       onTap: (index) {
+        final navigation = ref.read(navigationHandlerProvider);
+        final isGuest = ref.read(authControllerProvider) is! AuthStateAuthenticated;
+
+        // GUEST POLICY (Owner canonical): auth-required affordances
+        // (Create/Orders/Settings) use an explicit Sign In gate instead of
+        // navigating to a private route that bounces back to /welcome.
         if (index == 2) {
-          // Create tab (center position) - show modal bottom sheet
-          _showCreateContentModal(context);
-        } else {
-          // Calculate total number of nav items (tabs + Create + Orders + Settings)
-          final totalNavItems =
-              tabs.length + 3; // +1 for Create, +1 for Orders, +1 for Settings
-
-          // Check if this is Settings button (hardcoded at last position)
-          if (index == totalNavItems - 1) {
-            // Settings button tapped - navigate to Settings screen
-            final handler = MainScreenNavigationHandler(
-              ref: ref,
-              context: context,
-            );
-            handler.handleSettings(closeDrawer: false);
+          // Create tab (center position)
+          if (isGuest) {
+            navigation.navigateToSignIn();
+            return;
           }
-          // Check if this is Orders button (second to last position)
-          else if (index == totalNavItems - 2) {
-            // Orders button tapped - navigate to Orders screen
-            ref.read(navigationHandlerProvider).navigateToOrders();
-          } else {
-            // Regular tab - calculate actual tab index
-            final actualIndex = index > 2 ? index - 1 : index;
+          _showCreateContentModal(context);
+          return;
+        }
 
-            if (actualIndex >= 0 && actualIndex < tabs.length) {
-              setState(() {
-                _currentIndex = actualIndex;
-              });
-            }
+        // Calculate total number of nav items (tabs + Create + Orders + Settings)
+        final totalNavItems =
+            tabs.length + 3; // +1 for Create, +1 for Orders, +1 for Settings
+
+        // Check if this is Settings button (hardcoded at last position)
+        if (index == totalNavItems - 1) {
+          // Settings button tapped
+          if (isGuest) {
+            navigation.navigateToSignIn();
+            return;
+          }
+          navigation.navigateToSettings();
+        }
+        // Check if this is Orders button (second to last position)
+        else if (index == totalNavItems - 2) {
+          // Orders button tapped
+          if (isGuest) {
+            navigation.navigateToSignIn();
+            return;
+          }
+          navigation.navigateToOrders();
+        } else {
+          // Regular tab - calculate actual tab index
+          final actualIndex = index > 2 ? index - 1 : index;
+
+          if (actualIndex >= 0 && actualIndex < tabs.length) {
+            setState(() {
+              _currentIndex = actualIndex;
+            });
           }
         }
       },

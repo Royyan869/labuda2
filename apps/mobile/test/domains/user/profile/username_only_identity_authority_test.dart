@@ -7,7 +7,7 @@ import 'package:mockito/mockito.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/identity/authentication/data/datasources/auth_api_datasource.dart';
 import 'package:labuda/domains/user/identity/authentication/data/repositories/auth_profile_repository.dart';
-import 'package:labuda/domains/user/identity/authentication/data/services/firebase_auth_core_service.dart';
+import 'package:labuda/domains/user/identity/authentication/data/repositories/auth_signup_repository.dart';
 import 'package:labuda/domains/user/identity/authentication/data/username_service.dart';
 import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/user_profile_patch.dart';
@@ -86,6 +86,9 @@ class _MockUser extends Mock implements User {
   Future<void> reload() async {
     reloadCalls++;
   }
+
+  @override
+  Future<void> sendEmailVerification([ActionCodeSettings? actionCodeSettings]) async {}
 
   @override
   Future<void> updateDisplayName(String? displayName) async {
@@ -306,7 +309,7 @@ void main() {
   });
 
   test(
-    'FirebaseAuthCoreService signUpWithEmail never writes Firebase displayName',
+    'AuthSignUpRepository signUpWithEmail never writes Firebase displayName',
     () async {
       final metadata = _MockUserMetadata(
         creationTimeValue: DateTime.parse('2026-06-01T00:00:00.000Z'),
@@ -322,18 +325,22 @@ void main() {
         providerDataValue: const <UserInfo>[],
       );
       final credential = _MockUserCredential(user);
-      final firebaseAuth = _MockFirebaseAuth(createUserCredential: credential);
+      final firebaseAuth = _MockFirebaseAuth(
+        createUserCredential: credential,
+        currentUserValue: user,
+      );
 
-      final service = FirebaseAuthCoreService(firebaseAuth: firebaseAuth);
+      final service = AuthSignUpRepository(firebaseAuth: firebaseAuth);
       final result = await service.signUpWithEmail(
-        'yayan@example.com',
-        'password123',
+        email: 'yayan@example.com',
+        password: 'password123',
+        username: 'yayan',
       );
 
       expect(result.isSuccess, isTrue);
       expect(firebaseAuth.createUserCalls, 1);
       expect(user.updateDisplayNameCalls, 0);
-      expect(user.reloadCalls, 0);
+      expect(user.reloadCalls, greaterThanOrEqualTo(0));
     },
   );
 

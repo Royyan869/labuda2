@@ -1,15 +1,12 @@
 package http
 
 import (
-	"strings"
-
 	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/commerce/auction/entity"
 	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
 	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	"github.com/labuda/backend/internal/pkg/publiccard"
 	"github.com/labuda/backend/internal/pkg/sellerdisplay"
-	"github.com/labuda/backend/internal/platform/mediaresolve"
 )
 
 func auctionToDetailResponseWithSeller(
@@ -21,10 +18,6 @@ func auctionToDetailResponseWithSeller(
 	viewerID *uuid.UUID,
 ) map[string]interface{} {
 	resp := auctionToResponseWithSeller(a, product, sellerInfo)
-	resp["seller_identity"] = sellerdisplay.ProjectionMap(
-		sellerInfo,
-		resolveReadableAuctionMediaReference,
-	)
 	sellerTrustActive := seller.Lifecycle != nil && *seller.Lifecycle == "active"
 	resp["viewer_capabilities"] = commerceshared.EvaluateAuctionViewerCapabilities(
 		commerceshared.AuctionViewerCapabilitiesInput{
@@ -50,18 +43,6 @@ func auctionToDetailResponseWithSeller(
 		resp["preparation_note"] = product.PreparationNote
 	}
 	return resp
-}
-
-func resolveReadableAuctionMediaReference(value string) string {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return ""
-	}
-	resolved, err := mediaresolve.ResolveMediaReadURL(trimmed)
-	if err != nil {
-		return trimmed
-	}
-	return resolved
 }
 
 func uuidStrings(values []uuid.UUID) []string {

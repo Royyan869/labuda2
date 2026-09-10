@@ -355,13 +355,14 @@ func (r *SearchRepositoryImpl) SearchContent(ctx context.Context, tx db.Tx, filt
 		    )
 		  )
 		  -- FIX-4 (2026-05-28): auction-type reposts — exclude when auction is terminal
+		  -- Canonical auction lifecycle is status-only (scheduled/active eligible, no deleted_at).
 		  AND NOT (
 		    c.original_author_id IS NOT NULL
 		    AND occ.auction_source_id IS NOT NULL
 		    AND EXISTS (
 		      SELECT 1 FROM auctions a
 		      WHERE a.id = occ.auction_source_id
-		        AND (a.deleted_at IS NOT NULL OR a.status NOT IN ('scheduled', 'active'))
+		        AND a.status NOT IN ('scheduled', 'active')
 		    )
 		  )
 	`
@@ -371,7 +372,7 @@ func (r *SearchRepositoryImpl) SearchContent(ctx context.Context, tx db.Tx, filt
 
 	// Add full-text search on caption/body
 	if filters.Query != "" {
-		baseQuery += fmt.Sprintf(" AND (c.search_vector @@ plainto_tsquery($%d)", argIdx)
+		baseQuery += fmt.Sprintf(" AND (c.search_vector @@ plainto_tsquery('simple', $%d)", argIdx)
 		args = append(args, filters.Query)
 		argIdx++
 
@@ -399,7 +400,7 @@ func (r *SearchRepositoryImpl) SearchContent(ctx context.Context, tx db.Tx, filt
 	switch sortBy {
 	case "relevance":
 		if filters.Query != "" {
-			baseQuery += fmt.Sprintf(" ORDER BY ts_rank(c.search_vector, plainto_tsquery($%d)) %s", argIdx, sortDir)
+			baseQuery += fmt.Sprintf(" ORDER BY ts_rank(c.search_vector, plainto_tsquery('simple', $%d)) %s", argIdx, sortDir)
 			args = append(args, filters.Query)
 			argIdx++
 		}
@@ -484,7 +485,7 @@ func (r *SearchRepositoryImpl) SearchContent(ctx context.Context, tx db.Tx, filt
 		    AND EXISTS (
 		      SELECT 1 FROM auctions a
 		      WHERE a.id = occ.auction_source_id
-		        AND (a.deleted_at IS NOT NULL OR a.status NOT IN ('scheduled', 'active'))
+		        AND a.status NOT IN ('scheduled', 'active')
 		    )
 		  )
 	`
@@ -492,7 +493,7 @@ func (r *SearchRepositoryImpl) SearchContent(ctx context.Context, tx db.Tx, filt
 	countArgIdx := 1
 
 	if filters.Query != "" {
-		countQuery += fmt.Sprintf(" AND (c.search_vector @@ plainto_tsquery($%d)", countArgIdx)
+		countQuery += fmt.Sprintf(" AND (c.search_vector @@ plainto_tsquery('simple', $%d)", countArgIdx)
 		countArgs = append(countArgs, filters.Query)
 		countArgIdx++
 
@@ -638,7 +639,7 @@ func (r *SearchRepositoryImpl) SearchAuctions(ctx context.Context, tx db.Tx, fil
 	//   - seller_farm_name  ← sp.store_name  (NEVER username)
 	//   - seller_avatar_url ← p.avatar_url
 	baseQuery := `
-		SELECT DISTINCT
+		SELECT
 			a.id, a.seller_id, a.product_id, prod.title, prod.description,
 			a.start_price, a.current_bid, a.buy_now_price,
 			a.start_at, a.end_at, a.status, a.created_at,

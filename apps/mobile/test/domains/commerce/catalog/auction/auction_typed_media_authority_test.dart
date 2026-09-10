@@ -45,102 +45,78 @@ Map<String, dynamic> _auctionJson() {
     'remaining_extensions': 3,
     'views_count': 0,
     'watchers_count': 0,
-    'can_bid': true,
-    'can_buy_now': false,
     'created_at': '2026-07-28T00:00:00.000Z',
     'updated_at': '2026-07-28T00:00:00.000Z',
   };
 }
 
 void main() {
-  test('AuctionDto prefers typed media over legacy media_urls', () {
+  test('AuctionDto prefers flat media_urls over typed media rows', () {
+    // The auction wire carries NO typed media authority: the backend
+    // projects flat media_urls (product.MediaURLs), and AuctionDto
+    // normalizes any media-shaped rows into a flat string list
+    // (`images`) with media_urls taking priority when both are present.
+    // There is no `dto.media` typed getter.
     final dto = AuctionDto.fromJson(_auctionJson());
 
-    expect(dto.media, hasLength(2));
-    expect(dto.media[0].id, 'media-image-a');
-    expect(dto.media[0].type, 'image');
-    expect(dto.media[1].id, 'media-video-b');
-    expect(dto.media[1].type, 'video');
     expect(dto.images, [
-      'https://cdn.example.com/auctions/image-a.jpg',
-      'https://cdn.example.com/auctions/video-b.mp4',
+      'https://legacy.example.com/legacy-first.jpg',
+      'https://legacy.example.com/legacy-second.mp4',
     ]);
   });
 
-  test('AuctionMapper preserves typed media ordering and entity types', () {
+  test('AuctionMapper converts flat images into MediaEntity list', () {
     final dto = AuctionDto.fromJson(_auctionJson());
     final entity = AuctionMapper.toEntity(dto);
 
     expect(entity.media, hasLength(2));
     expect(
       entity.media[0].originalUrl,
-      'https://cdn.example.com/auctions/image-a.jpg',
+      'https://legacy.example.com/legacy-first.jpg',
     );
     expect(entity.media[0].type, MediaType.image);
     expect(
-      entity.media[0].createdAt,
-      DateTime.parse('2026-07-28T00:00:00.000Z'),
-    );
-
-    expect(
       entity.media[1].originalUrl,
-      'https://cdn.example.com/auctions/video-b.mp4',
+      'https://legacy.example.com/legacy-second.mp4',
     );
-    expect(entity.media[1].type, MediaType.video);
-    expect(
-      entity.media[1].createdAt,
-      DateTime.parse('2026-07-28T00:00:00.000Z'),
-    );
-    expect(
-      entity.media[1].posterUrl,
-      'https://cdn.example.com/auctions/video-b-poster.jpg',
-    );
-    expect(
-      entity.media[1].variants['thumbnail'],
-      'https://cdn.example.com/auctions/video-b-poster.jpg',
-    );
+    // Flat URLs carry no typed metadata; mapper does not fabricate
+    // video type / poster variants / wire timestamps on the auction side.
+    expect(entity.media[1].type, MediaType.image);
+    expect(entity.media[1].variants, isEmpty);
   });
 
-  test(
-    'AuctionDto falls back to legacy media_urls when typed media is absent',
-    () {
-      final dto = AuctionDto.fromJson(<String, dynamic>{
-        'id': 'auction-legacy-media',
-        'seller_id': 'seller-1',
-        'title': 'Legacy auction',
-        'description': 'Legacy media only',
-        'media_urls': <String>[
-          'https://legacy.example.com/image-a.jpg',
-          'https://legacy.example.com/video-b.mp4',
-        ],
-        'start_price': 1500000,
-        'bid_increment': 50000,
-        'current_highest_bid': 1500000,
-        'total_bids': 0,
-        'minimum_bid': 1500000,
-        'start_at': '2026-07-28T00:00:00.000Z',
-        'end_at': '2026-07-29T00:00:00.000Z',
-        'time_remaining_seconds': 86400,
-        'status': 'active',
-        'auto_extend': false,
-        'auto_extend_minutes': 10,
-        'auto_extend_count': 0,
-        'remaining_extensions': 3,
-        'views_count': 0,
-        'watchers_count': 0,
-        'can_bid': true,
-        'can_buy_now': false,
-        'created_at': '2026-07-28T00:00:00.000Z',
-        'updated_at': '2026-07-28T00:00:00.000Z',
-      });
-
-      expect(dto.media, hasLength(2));
-      expect(dto.media[0].type, 'image');
-      expect(dto.media[1].type, 'video');
-      expect(dto.images, [
+  test('AuctionDto falls back to legacy media_urls when media rows absent', () {
+    final dto = AuctionDto.fromJson(<String, dynamic>{
+      'id': 'auction-legacy-media',
+      'seller_id': 'seller-1',
+      'title': 'Legacy auction',
+      'description': 'Legacy media only',
+      'media_urls': <String>[
         'https://legacy.example.com/image-a.jpg',
         'https://legacy.example.com/video-b.mp4',
-      ]);
-    },
-  );
-}
+      ],
+      'start_price': 1500000,
+      'bid_increment': 50000,
+      'current_highest_bid': 1500000,
+      'total_bids': 0,
+      'minimum_bid': 1500000,
+      'start_at': '2026-07-28T00:00:00.000Z',
+      'end_at': '2026-07-29T00:00:00.000Z',
+      'time_remaining_seconds': 86400,
+      'status': 'active',
+      'auto_extend': false,
+      'auto_extend_minutes': 10,
+      'auto_extend_count': 0,
+      'remaining_extensions': 3,
+      'views_count': 0,
+      'watchers_count': 0,
+      'created_at': '2026-07-28T00:00:00.000Z',
+      'updated_at': '2026-07-28T00:00:00.000Z',
+    });
+
+    expect(dto.images, [
+      'https://legacy.example.com/image-a.jpg',
+      'https://legacy.example.com/video-b.mp4',
+    ]);
+  });
+}

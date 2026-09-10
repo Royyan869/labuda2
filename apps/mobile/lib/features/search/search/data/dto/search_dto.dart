@@ -607,64 +607,49 @@ class AuctionSearchResultDto extends Equatable {
 }
 
 // =====================
-// Listing Search DTOs (REAL LISTINGS TAB - /search/listings)
+// For Sale Search DTOs (REAL FOR SALE TAB - /search/for-sale)
 // =====================
 //
 // SEMANTIC CONTRACT:
-// - Listings tab = REAL commerce listings only.
+// - For Sale tab = REAL commerce For Sale items only.
 // - These DTOs parse ONLY the fields actually emitted by
-//   GET /api/v1/search/listings (see backend
-//   internal/discovery/search/delivery/http/search_handler.go
-//   fixedPriceSalePreviewsToResponse).
-// - DO NOT reuse ListingResponseDto / ListingDtoMapper from
-//   listing-detail: those fabricate quantity/status/visibility/
-//   listing_type which the search surface never emits.
+//   GET /api/v1/search/for-sale.
+// - DO NOT reuse For Sale detail DTOs/mappers: those fabricate
+//   quantity/status/visibility fields the search surface never emits.
 // - Optional `author`, `media`, `listing` blocks are tolerated
 //   (Phase C horizontal additive refs) but never depended on.
 
-/// Listing search response from backend
-///
-/// Aligned with backend /api/v1/search/listings response format
-/// {
-///   "query": "...",
-///   "listings": [...],
-///   "total": 123,
-///   "limit": 20,
-///   "offset": 0
-/// }
-class ListingSearchResponseDto {
-  final String query;
-  final List<ListingSearchResultDto> listings;
-  final int total;
-  final int limit;
-  final int offset;
+/// For Sale search response — canonical backend contract for
+/// GET /api/v1/search/for-sale: { for_sales, next_cursor, has_more }.
+class ForSaleSearchResponseDto {
+  final List<ForSaleSearchResultDto> forSales;
 
   /// P3B — Promoted items sidecar from backend.
   final List<PromotedSearchItemDto> promotedItems;
 
-  const ListingSearchResponseDto({
-    required this.query,
-    required this.listings,
-    required this.total,
-    required this.limit,
-    required this.offset,
+  /// Opaque backend cursor; null on the first page.
+  final String? nextCursor;
+
+  /// Backend-driven continuation flag (single pagination authority).
+  final bool hasMore;
+
+  const ForSaleSearchResponseDto({
+    required this.forSales,
     this.promotedItems = const [],
+    this.nextCursor,
+    this.hasMore = false,
   });
 
-  factory ListingSearchResponseDto.fromJson(Map<String, dynamic> json) {
-    return ListingSearchResponseDto(
-      query: json['query'] as String? ?? '',
-      listings:
-          (json['listings'] as List<dynamic>?)
+  factory ForSaleSearchResponseDto.fromJson(Map<String, dynamic> json) {
+    return ForSaleSearchResponseDto(
+      forSales:
+          (json['for_sales'] as List<dynamic>?)
               ?.map(
                 (e) =>
-                    ListingSearchResultDto.fromJson(e as Map<String, dynamic>),
+                    ForSaleSearchResultDto.fromJson(e as Map<String, dynamic>),
               )
               .toList() ??
           [],
-      total: (json['total'] as num?)?.toInt() ?? 0,
-      limit: (json['limit'] as num?)?.toInt() ?? 20,
-      offset: (json['offset'] as num?)?.toInt() ?? 0,
       promotedItems:
           (json['promoted_items'] as List<dynamic>?)
               ?.map(
@@ -673,25 +658,19 @@ class ListingSearchResponseDto {
               )
               .toList() ??
           [],
+      nextCursor: json['next_cursor'] as String?,
+      hasMore: json['has_more'] as bool? ?? false,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'query': query,
-    'listings': listings.map((e) => e.toJson()).toList(),
-    'total': total,
-    'limit': limit,
-    'offset': offset,
+    'for_sales': forSales.map((e) => e.toJson()).toList(),
+    if (nextCursor != null) 'next_cursor': nextCursor,
+    'has_more': hasMore,
   };
-
-  /// Helper to get page number from offset/limit
-  int get page => (offset / limit).floor() + 1;
-
-  /// Helper to check if there are more results
-  bool get hasMore => offset + listings.length < total;
 }
 
-/// Listing search result DTO
+/// For Sale search result DTO
 ///
 /// SKINNY TRUTHFUL DTO — only parses fields the backend ACTUALLY emits.
 ///
@@ -713,7 +692,7 @@ class ListingSearchResponseDto {
 /// DELIBERATELY NOT PARSED (backend does not emit on this surface):
 /// - quantity, status, visibility, listing_type, updated_at
 /// - engagement counts
-class ListingSearchResultDto extends Equatable {
+class ForSaleSearchResultDto extends Equatable {
   final String id;
   final String title;
   final String description;
@@ -743,7 +722,7 @@ class ListingSearchResultDto extends Equatable {
   /// NewSellerCardWithBothLifecycles (search_handler.go). Null → active.
   final String? sellerTrustLifecycle;
 
-  const ListingSearchResultDto({
+  const ForSaleSearchResultDto({
     required this.id,
     required this.title,
     required this.description,
@@ -759,8 +738,8 @@ class ListingSearchResultDto extends Equatable {
     this.sellerTrustLifecycle,
   });
 
-  factory ListingSearchResultDto.fromJson(Map<String, dynamic> json) {
-    return ListingSearchResultDto(
+  factory ForSaleSearchResultDto.fromJson(Map<String, dynamic> json) {
+    return ForSaleSearchResultDto(
       id: json['id'] as String,
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',

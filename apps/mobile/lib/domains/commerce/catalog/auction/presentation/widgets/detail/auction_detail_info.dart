@@ -6,8 +6,16 @@ library;
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_common_product_detail_section.dart';
 
 /// Detail info widget for auction
+///
+/// Canonical Product content from the detail wire (variety, size_cm,
+/// age_months, gender, breeder, bloodline, certificates, preparation_time,
+/// preparation_note, description) is consumed through the shared
+/// [CommerceCommonProductDetailSection] — the same section the Listing/ForSale
+/// sibling uses, so no canonical value preserved in the Auction read model is
+/// left dead. 'Bid Increment' remains the auction-specific row.
 class AuctionDetailInfo extends StatelessWidget {
   final Auction auction;
 
@@ -63,20 +71,19 @@ class AuctionDetailInfo extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          _buildInfoRow('Kelamin', auction.koiDetails.gender),
-          _buildInfoRow('Ukuran', '${auction.koiDetails.sizeInCm} cm'),
-          _buildInfoRow('Varietas', auction.koiDetails.variety),
+          // Canonical shared product detail section — renders only the rows
+          // whose canonical value is present (variety/size/age/gender/
+          // breeder/bloodline/certificates/preparation/description). When the
+          // payload carries none of them it collapses to nothing.
+          CommerceCommonProductDetailSection(
+            title: '',
+            data: CommerceCommonProductDetailsData.fromAuction(auction),
+          ),
+          const SizedBox(height: 12),
           _buildInfoRow(
             'Bid Increment',
             'Rp ${auction.bidIncrement.toStringAsFixed(0)}',
           ),
-          const SizedBox(height: 12),
-          const Text(
-            'Deskripsi',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(auction.description),
         ],
       ),
     );
@@ -94,4 +101,4 @@ class AuctionDetailInfo extends StatelessWidget {
       ),
     );
   }
-}
+}

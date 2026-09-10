@@ -1,9 +1,15 @@
 import 'package:equatable/equatable.dart';
 
 /// Type of searchable content in the platform
-enum SearchResultType { user, listing, externalProduct, auction, content }
+enum SearchResultType { user, forSale, externalProduct, auction, content }
 
-/// Polymorphic search result that can represent any searchable entity
+/// Polymorphic search result that can represent any searchable entity.
+///
+/// SECTION-BASED ALL (canonical): each search domain keeps its own
+/// backend-ordered result list. There is deliberately NO cross-domain
+/// relevance score — no producer ever filled one and no consumer may
+/// rank domains against each other — so [SearchResult] carries no
+/// relevance field.
 class SearchResult extends Equatable {
   final String id;
   final SearchResultType type;
@@ -12,7 +18,6 @@ class SearchResult extends Equatable {
   final String? imageUrl;
   final String? description;
   final Map<String, dynamic> metadata;
-  final double relevanceScore;
   final DateTime createdAt;
 
   /// PROMOTION PHASE 4: Whether this result is promoted
@@ -32,7 +37,6 @@ class SearchResult extends Equatable {
     this.imageUrl,
     this.description,
     this.metadata = const {},
-    this.relevanceScore = 0.0,
     required this.createdAt,
     this.isPromoted = false,
     this.contractId,
@@ -47,7 +51,6 @@ class SearchResult extends Equatable {
     imageUrl,
     description,
     metadata,
-    relevanceScore,
     createdAt,
     isPromoted,
     contractId,
@@ -61,7 +64,6 @@ class SearchResult extends Equatable {
     String? imageUrl,
     String? description,
     Map<String, dynamic>? metadata,
-    double? relevanceScore,
     DateTime? createdAt,
     bool? isPromoted,
     String? contractId,
@@ -74,7 +76,6 @@ class SearchResult extends Equatable {
       imageUrl: imageUrl ?? this.imageUrl,
       description: description ?? this.description,
       metadata: metadata ?? this.metadata,
-      relevanceScore: relevanceScore ?? this.relevanceScore,
       createdAt: createdAt ?? this.createdAt,
       isPromoted: isPromoted ?? this.isPromoted,
       contractId: contractId ?? this.contractId,
@@ -82,9 +83,26 @@ class SearchResult extends Equatable {
   }
 }
 
-/// Unified search results containing results from all types
+/// Results of one canonical search execution, held as separate domain
+/// collections.
+///
+/// The All tab is a SECTION-BASED multi-domain overview projected from
+/// these collections — it never flattens them into one cross-domain list
+/// and never applies a unified ranking:
+///
+/// ```text
+/// SEARCH RESULTS
+/// └── ALL
+///     ├── Users    → max 3 preview (canonical User ordering)
+///     ├── For Sale → max 5 preview (canonical For Sale ordering)
+///     ├── Auctions → max 5 preview (canonical Auction ordering)
+///     └── Content  → max 5 preview (canonical Content ordering)
+/// ```
+///
+/// Each per-type tab reads the same domain collection; the All preview
+/// caps are a rendering projection only and never truncate the collection
+/// that backs a per-type tab.
 class UnifiedSearchResults extends Equatable {
-  final List<SearchResult> allResults;
   final List<SearchResult> users;
   final List<SearchResult> listings;
   final List<SearchResult> auctions;
@@ -94,7 +112,6 @@ class UnifiedSearchResults extends Equatable {
   final Duration searchDuration;
 
   const UnifiedSearchResults({
-    required this.allResults,
     this.users = const [],
     this.listings = const [],
     this.auctions = const [],
@@ -106,7 +123,6 @@ class UnifiedSearchResults extends Equatable {
 
   @override
   List<Object?> get props => [
-    allResults,
     users,
     listings,
     auctions,
@@ -116,27 +132,13 @@ class UnifiedSearchResults extends Equatable {
     searchDuration,
   ];
 
-  /// Get results by type
-  List<SearchResult> getByType(SearchResultType type) {
-    switch (type) {
-      case SearchResultType.user:
-        return users;
-      case SearchResultType.listing:
-        return listings;
-      case SearchResultType.externalProduct:
-        return allResults
-            .where((result) => result.type == SearchResultType.externalProduct)
-            .toList();
-      case SearchResultType.auction:
-        return auctions;
-      case SearchResultType.content:
-        return contents;
-    }
-  }
+  /// Check if there are no results in any domain
+  bool get isEmpty =>
+      users.isEmpty &&
+      listings.isEmpty &&
+      auctions.isEmpty &&
+      contents.isEmpty;
 
-  /// Check if there are no results
-  bool get isEmpty => allResults.isEmpty;
-
-  /// Check if there are results
-  bool get isNotEmpty => allResults.isNotEmpty;
+  /// Check if any domain has results
+  bool get isNotEmpty => !isEmpty;
 }

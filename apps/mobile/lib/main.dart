@@ -23,7 +23,6 @@ import 'domains/system/notification/services/fcm_service.dart';
 import 'domains/system/notification/services/in_app_banner_service.dart';
 import 'domains/system/notification/services/local_notification_service.dart';
 import 'domains/system/notification/services/notification_trigger_impl.dart';
-import 'domains/user/identity/authentication/data/services/firebase_authentication_service.dart';
 import 'features/explore/explore.dart';
 import 'features/home/home.dart';
 import 'firebase_options.dart';
@@ -36,10 +35,8 @@ import 'shared/services/local_storage_service.dart';
 class _AppBootstrap {
   final ApiClient apiClient;
   final ILoggerService logger;
-  final IAuthenticationService authService;
   final ILocalStorageService localStorage;
   final IValidationService validation;
-  final NavigationHandler navigationHandler;
   final INavigationRegistry navigationRegistry;
   final IPresenceService presenceService;
   final WebSocketService webSocketService;
@@ -51,10 +48,8 @@ class _AppBootstrap {
   _AppBootstrap({
     required this.apiClient,
     required this.logger,
-    required this.authService,
     required this.localStorage,
     required this.validation,
-    required this.navigationHandler,
     required this.navigationRegistry,
     required this.presenceService,
     required this.webSocketService,
@@ -82,15 +77,11 @@ void main() {
           overrides: [
             core_providers.apiClientProvider.overrideWithValue(b.apiClient),
             core_providers.loggerServiceProvider.overrideWithValue(b.logger),
-            core_providers.authServiceProvider.overrideWithValue(b.authService),
             core_providers.localStorageServiceProvider.overrideWithValue(
               b.localStorage,
             ),
             core_providers.validationServiceProvider.overrideWithValue(
               b.validation,
-            ),
-            core_providers.navigationHandlerProvider.overrideWithValue(
-              b.navigationHandler,
             ),
             core_providers.navigationRegistryProvider.overrideWithValue(
               b.navigationRegistry,
@@ -175,7 +166,6 @@ Future<_AppBootstrap> _initServices() async {
   await localStorage.initialize();
   logger.info('[BOOTSTRAP] LocalStorage.initialize() done ✓');
   final navigationRegistry = NavigationRegistryImpl();
-  final authService = FirebaseAuthenticationService();
   final apiClient = ApiClient(logger: logger, localStorage: localStorage);
 
   // ── Notification stack ─────────────────────────────────────────────────────
@@ -219,7 +209,6 @@ Future<_AppBootstrap> _initServices() async {
   );
 
   // ── Navigation ─────────────────────────────────────────────────────────────
-  final navigationHandler = AppRouter();
   logger.info('[BOOTSTRAP] initializeRouterModules() start');
   await initializeRouterModules();
   logger.info('[BOOTSTRAP] initializeRouterModules() done ✓');
@@ -231,10 +220,8 @@ Future<_AppBootstrap> _initServices() async {
   return _AppBootstrap(
     apiClient: apiClient,
     logger: logger,
-    authService: authService,
     localStorage: localStorage,
     validation: validation,
-    navigationHandler: navigationHandler,
     navigationRegistry: navigationRegistry,
     presenceService: presenceService,
     webSocketService: webSocketService,

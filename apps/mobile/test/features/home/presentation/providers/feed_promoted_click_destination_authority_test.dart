@@ -37,7 +37,6 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/auction.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
-import 'package:labuda/domains/commerce/catalog/shared/shared.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
 import 'package:labuda/domains/social/like/domain/entities/like.dart';
 import 'package:labuda/domains/social/like/domain/repositories/like_repository.dart';

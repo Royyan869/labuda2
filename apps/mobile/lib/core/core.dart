@@ -18,7 +18,6 @@ export 'src/navigation/i_navigation_registry.dart';
 export 'src/navigation/navigation_registry_impl.dart';
 
 // Interface exports - Only core business interfaces, module-specific interfaces di module masing-masing
-export 'src/interfaces/services/i_authentication_service.dart';
 export 'src/interfaces/services/i_payment_service.dart';
 export 'src/interfaces/services/i_notification_service.dart';
 export 'src/interfaces/services/i_local_storage_service.dart';
@@ -66,7 +65,6 @@ export 'services/s3_service.dart';
 
 // Navigation exports
 export 'navigation/navigation_handler.dart';
-export 'navigation/app_navigation_handler.dart';
 export 'navigation/navigation_provider.dart';
 
 // Quick Actions Service exports
@@ -83,7 +81,7 @@ export 'api/models/common_api_models.dart';
 
 // Core Providers (ApiClient, ILoggerService, etc.)
 // New Riverpod providers - replacing GetIt/ServiceLocator gradually
-export 'providers/core_providers.dart' hide navigationHandlerProvider;
+export 'providers/core_providers.dart';
 // Legacy bridge - TODO: Remove after migration complete
 export '../../shared/providers/core_providers.dart';
 

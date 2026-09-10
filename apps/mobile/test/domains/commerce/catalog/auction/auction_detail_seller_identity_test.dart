@@ -1,148 +1,117 @@
+// Auction detail seller identity — SINGLE AUTHORITY proof.
+//
+// Backend authority (GET /api/v1/auctions/:id):
+//   auctionToDetailResponseWithSeller emits BOTH flat identity scalars
+//   (seller_username / seller_farm_name / seller_avatar_url from
+//   sellerdisplay.Info) AND a nested `seller_identity` projection
+//   ({store_name, store_image_url, username, avatar_url, public_origin_line?}).
+//
+// Audit verdict: on the auction detail wire `seller_identity` is DUPLICATE
+// TRANSPORT — username == seller_username, store_name == seller_farm_name,
+// avatar_url == resolved(seller_avatar_url), and store_image_url +
+// public_origin_line are structurally empty on this path (the sellerdisplay
+// query hardcodes '' for both). The flat scalars are the single identity
+// source that is present on EVERY auction surface (list AND detail), so the
+// Auction read model consumes exactly those — never a second identity model,
+// never a seller_identity fallback.
+//
+// These tests pin that decision: flat scalars are the authority, and a
+// wire-carrying `seller_identity` block neither overrides nor substitutes for
+// them.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/mappers/auction_mapper.dart';
 
-Map<String, dynamic> _baseAuctionPayload({
-  required Map<String, dynamic> sellerIdentity,
-  required Map<String, dynamic> legacySeller,
-}) {
+Map<String, dynamic> _basePayload() {
   return {
     'id': 'auction-1',
     'seller_id': 'seller-1',
     'product_id': 'product-1',
     'title': 'Auction title',
     'description': 'Auction description',
-    'images': const ['images/auction/item.jpg'],
-    'category': null,
-    'condition': null,
+    'media_urls': <String>['https://cdn.example.com/koi.jpg'],
     'start_price': 100000,
     'bid_increment': 5000,
-    'buy_now_price': null,
-    'current_highest_bid': 100000,
-    'highest_bidder_id': null,
-    'total_bids': 0,
-    'minimum_bid': 100000,
+    'current_bid': 100000,
     'start_at': '2026-07-26T12:20:13+07:00',
     'end_at': '2026-07-31T12:20:13+07:00',
-    'time_remaining_seconds': 0,
     'status': 'active',
-    'auto_extend': false,
-    'auto_extend_minutes': 10,
-    'auto_extend_count': 0,
-    'remaining_extensions': 3,
-    'views_count': 0,
-    'watchers_count': 0,
-    'can_bid': true,
-    'can_buy_now': false,
     'created_at': '2026-07-26T12:20:13+07:00',
     'updated_at': '2026-07-26T12:20:13+07:00',
-    'seller_identity': sellerIdentity,
-    'auction': {
-      'id': 'auction-1',
-      'title': 'Auction title',
-      'thumbnail_url': null,
-      'current_bid': null,
-      'buy_now_price': null,
-      'end_at': '2026-07-31T12:20:13+07:00',
-      'lifecycle': 'active',
-      'seller': legacySeller,
-    },
+    'seller_username': 'qiqijho',
+    'seller_farm_name': 'Qiqi Store',
+    'seller_avatar_url': 'https://cdn.example.com/avatar.jpg',
+  };
+}
+
+Map<String, dynamic> _duplicateTransportSellerIdentity() {
+  return {
+    // Same values as the flat scalars — the only values the current auction
+    // backend can emit (store_image_url / public_origin_line are hardcoded ''
+    // by the sellerdisplay query on this path).
+    'store_name': 'Qiqi Store',
+    'store_image_url': '',
+    'username': 'qiqijho',
+    'avatar_url': 'https://cdn.example.com/avatar-resolved.jpg',
   };
 }
 
 void main() {
-  test('Auction detail canonical seller_identity survives DTO and mapper', () {
-    final dto = AuctionDto.fromJson(
-      _baseAuctionPayload(
-        sellerIdentity: {
-          'store_name': 'Qiqi Store',
-          'store_image_url': 'images/stores/store.jpg',
-          'username': 'qiqijho',
-          'avatar_url': 'images/avatars/user.jpg',
-          'public_origin_line': 'Magelang, Jawa Tengah',
-        },
-        legacySeller: {
-          'user': {
-            'id': 'seller-1',
-            'username': 'legacy_user',
-            'avatar_url': 'images/avatars/legacy-user.jpg',
-            'lifecycle': 'active',
-          },
-          'farm_name': 'Legacy Store',
-          'avatar_url': 'images/stores/legacy-store.jpg',
-          'lifecycle': 'active',
-        },
-      ),
-    );
+  test('flat seller scalars are the single identity authority', () {
+    final dto = AuctionDto.fromJson(_basePayload());
     final entity = AuctionMapper.toEntity(dto);
 
-    expect(dto.sellerIdentity, isNotNull);
-    expect(dto.sellerIdentity!.storeName, 'Qiqi Store');
-    expect(dto.sellerIdentity!.storeImageUrl, 'images/stores/store.jpg');
-    expect(dto.sellerIdentity!.username, 'qiqijho');
-    expect(dto.sellerIdentity!.avatarUrl, 'images/avatars/user.jpg');
-    expect(dto.sellerIdentity!.publicOriginLine, 'Magelang, Jawa Tengah');
-    expect(dto.sellerIdentity!.storeName, isNot('Legacy Store'));
-    expect(
-      dto.sellerIdentity!.storeImageUrl,
-      isNot('images/stores/legacy-store.jpg'),
-    );
-    expect(
-      dto.sellerIdentity!.avatarUrl,
-      isNot('images/avatars/legacy-user.jpg'),
-    );
+    // DTO reads the flat canonical scalars.
+    expect(dto.sellerUsername, 'qiqijho');
+    expect(dto.sellerFarmName, 'Qiqi Store');
+    expect(dto.sellerAvatarUrl, 'https://cdn.example.com/avatar.jpg');
 
-    expect(entity.sellerIdentity, isNotNull);
-    expect(entity.sellerIdentity!.storeName, 'Qiqi Store');
-    expect(
-      entity.sellerIdentity!.normalizedStoreImageUrl,
-      'images/stores/store.jpg',
-    );
-    expect(
-      entity.sellerIdentity!.normalizedAvatarUrl,
-      'images/avatars/user.jpg',
-    );
-    expect(entity.sellerIdentity!.username, 'qiqijho');
-    expect(entity.sellerIdentity!.handle, '@qiqijho');
-    expect(entity.sellerIdentity!.publicOriginLine, 'Magelang, Jawa Tengah');
+    // Entity identity comes from exactly those scalars — the same values the
+    // AuctionSellerCard renders.
+    expect(entity.sellerUsername, 'qiqijho');
+    expect(entity.sellerFarmName, 'Qiqi Store');
+    expect(entity.sellerAvatar, 'https://cdn.example.com/avatar.jpg');
   });
 
-  test('Auction detail canonical seller_identity keeps null visuals null', () {
-    final dto = AuctionDto.fromJson(
-      _baseAuctionPayload(
-        sellerIdentity: {
-          'store_name': 'Qiqi Store',
-          'store_image_url': null,
-          'username': 'qiqijho',
-          'avatar_url': null,
-          'public_origin_line': 'Magelang, Jawa Tengah',
-        },
-        legacySeller: {
-          'user': {
-            'id': 'seller-1',
-            'username': 'legacy_user',
-            'avatar_url': 'images/avatars/legacy-user.jpg',
-            'lifecycle': 'active',
-          },
-          'farm_name': 'Legacy Store',
-          'avatar_url': 'images/stores/legacy-store.jpg',
-          'lifecycle': 'active',
-        },
-      ),
-    );
-    final entity = AuctionMapper.toEntity(dto);
+  test(
+    'a structurally present seller_identity block never overrides flat scalars',
+    () {
+      final payload = _basePayload()
+        ..['seller_identity'] = _duplicateTransportSellerIdentity();
+      final dto = AuctionDto.fromJson(payload);
+      final entity = AuctionMapper.toEntity(dto);
 
-    expect(dto.sellerIdentity, isNotNull);
-    expect(dto.sellerIdentity!.storeName, 'Qiqi Store');
-    expect(dto.sellerIdentity!.storeImageUrl, isNull);
-    expect(dto.sellerIdentity!.avatarUrl, isNull);
-    expect(dto.sellerIdentity!.publicOriginLine, 'Magelang, Jawa Tengah');
-    expect(entity.sellerIdentity, isNotNull);
-    expect(entity.sellerIdentity!.storeName, 'Qiqi Store');
-    expect(entity.sellerIdentity!.normalizedStoreImageUrl, isNull);
-    expect(entity.sellerIdentity!.normalizedAvatarUrl, isNull);
-    expect(dto.sellerCard?.farmName, 'Legacy Store');
-    expect(dto.sellerCard?.user.avatarUrl, 'images/avatars/legacy-user.jpg');
-    expect(entity.sellerIdentity!.publicOriginLine, 'Magelang, Jawa Tengah');
-  });
-}
+      // The duplicate-transport projection does not become a second identity
+      // source: flat-scalar identity is preserved verbatim.
+      expect(entity.sellerUsername, 'qiqijho');
+      expect(entity.sellerFarmName, 'Qiqi Store');
+      expect(entity.sellerAvatar, 'https://cdn.example.com/avatar.jpg');
+      expect(dto.sellerUsername, 'qiqijho');
+      expect(dto.sellerFarmName, 'Qiqi Store');
+    },
+  );
+
+  test(
+    'seller_identity never substitutes for absent flat scalars (no phantom fallback)',
+    () {
+      // Hypothetical payload carrying ONLY the nested projection — this is
+      // not what the current auction backend emits (flat scalars are always
+      // present), but even so the read model must NOT fall back to it.
+      final payload = _basePayload()
+        ..remove('seller_username')
+        ..remove('seller_farm_name')
+        ..remove('seller_avatar_url')
+        ..['seller_identity'] = {
+          'store_name': 'Only Store',
+          'username': 'only_user',
+          'avatar_url': 'https://cdn.example.com/only.jpg',
+        };
+
+      final entity = AuctionMapper.toEntity(AuctionDto.fromJson(payload));
+
+      expect(entity.sellerUsername, isNull);
+      expect(entity.sellerFarmName, isNull);
+      expect(entity.sellerAvatar, isNull);
+    },
+  );
+}

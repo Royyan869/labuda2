@@ -402,7 +402,7 @@ class AuthInterceptor extends Interceptor {
     for (final p in exactPaths) {
       if (n == p) return true;
     }
-    const browsePrefixes = ['/listings', '/auctions', '/search/listings', '/search/auctions', '/search/content', '/search/users', '/likes/stats'];
+    const browsePrefixes = ['/for-sale', '/auctions', '/search/for-sale', '/search/auctions', '/search/content', '/search/users', '/likes/stats'];
     for (final p in browsePrefixes) {
       if (n.startsWith(p)) return true;
     }
@@ -425,7 +425,7 @@ class AuthInterceptor extends Interceptor {
       for (final p in exactPaths) {
         if (normalized == p) return 'public';
       }
-      const browsePrefixes = ['/listings', '/auctions', '/search/listings', '/search/auctions', '/search/content', '/search/users', '/likes/stats'];
+      const browsePrefixes = ['/for-sale', '/auctions', '/search/for-sale', '/search/auctions', '/search/content', '/search/users', '/likes/stats'];
       for (final p in browsePrefixes) {
         if (normalized.startsWith(p)) return 'public';
       }

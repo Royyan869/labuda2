@@ -37,7 +37,7 @@ class RouterModulesManager {
     SearchModule(), // Global & hybrid search functionality
     ReportModule(), // User reports & appeals
     SupportModule(), // Customer support & help
-    SavedItemModule(), // Unified saved items (saved listings + watched auctions)
+    SavedItemModule(), // Unified saved items (saved For Sale items + watched auctions)
     SellerModule(), // Seller dashboard & management
     ForSaleModule(), // For Sale fixed-price commerce
     CheckoutModule(), // Direct buy checkout flow

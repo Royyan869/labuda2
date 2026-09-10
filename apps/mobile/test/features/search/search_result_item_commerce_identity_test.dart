@@ -15,7 +15,7 @@ Widget _wrap(SearchResult result) {
 SearchResult _listingResult({required String subtitle}) {
   return SearchResult(
     id: 'l1',
-    type: SearchResultType.listing,
+    type: SearchResultType.forSale,
     title: 'Showa Koi 30cm',
     subtitle: subtitle,
     metadata: {

@@ -202,17 +202,8 @@ class _FakeAnalyticsRepository extends Fake implements IAnalyticsRepository {
 
 class _FakeLocalStorageService extends Fake implements ILocalStorageService {
   @override
-  Future<Result<void>> setAuthToken(String token) async => Result.success(null);
-
-  @override
-  Future<Result<void>> setRefreshToken(String token) async =>
+  Future<Result<void>> setRestrictedToken(String token) async =>
       Result.success(null);
-
-  @override
-  Future<Result<String?>> getAuthToken() async => Result.success(null);
-
-  @override
-  Future<Result<String?>> getRefreshToken() async => Result.success(null);
 }
 
 class _TestAuthController extends AuthController {

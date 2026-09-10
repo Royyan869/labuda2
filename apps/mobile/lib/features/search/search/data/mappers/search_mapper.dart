@@ -2,7 +2,7 @@ import 'package:labuda/features/search/search/data/dto/search_dto.dart';
 import 'package:labuda/features/search/search/domain/entities/search_history.dart';
 import 'package:labuda/features/search/search/domain/entities/user_search.dart';
 import 'package:labuda/features/search/search/domain/repositories/search_repository.dart'
-    show ContentSearchResult, ListingSearchResult, UserSearchResult;
+    show ContentSearchResult, ForSaleSearchResult, UserSearchResult;
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 
 /// Extension to convert ContentSearchResultDto to domain entity
@@ -67,18 +67,18 @@ extension ContentSearchResultDtoX on ContentSearchResultDto {
   }
 }
 
-/// Extension to convert ListingSearchResultDto to domain entity
+/// Extension to convert ForSaleSearchResultDto to domain entity
 ///
 /// SKINNY TRUTHFUL MAPPER — passes through ONLY fields the
-/// /search/listings endpoint emits. No fabricated quantity / status /
+/// /search/for-sale endpoint emits. No fabricated quantity / status /
 /// visibility / listing_type / updated_at.
 ///
 /// Owner Truth: username / farmName / fullName(KYC). Backend identity
 /// scalars (`seller_username`, `seller_farm_name`, `seller_avatar_url`)
 /// are passed straight through to the domain. No fullName fallback.
-extension ListingSearchResultDtoX on ListingSearchResultDto {
-  ListingSearchResult toDomain() {
-    return ListingSearchResult(
+extension ForSaleSearchResultDtoX on ForSaleSearchResultDto {
+  ForSaleSearchResult toDomain() {
+    return ForSaleSearchResult(
       id: id,
       title: title,
       description: description,

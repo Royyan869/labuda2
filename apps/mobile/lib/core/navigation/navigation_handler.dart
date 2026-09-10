@@ -40,8 +40,8 @@ abstract class NavigationHandler {
   void navigateToCreateContent();
 
   // ============================================================================
-  // PUBLIC PRODUCT CREATION - Use this for creating products/listings
-  // This is the PRIMARY entry point for sellers to list items for sale
+  // PUBLIC PRODUCT CREATION - Use this for creating For Sale products
+  // This is the PRIMARY entry point for sellers to offer items for sale
   // ============================================================================
   void navigateToCreateForSale();
 

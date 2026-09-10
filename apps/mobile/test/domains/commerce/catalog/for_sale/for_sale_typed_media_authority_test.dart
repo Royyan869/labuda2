@@ -41,17 +41,18 @@ Map<String, dynamic> _listingJson() {
 }
 
 void main() {
-  test('ForSaleResponseDto prefers typed media over legacy media_urls', () {
+  test('ForSaleResponseDto parses typed media items and preserves legacy media_urls', () {
     final dto = ForSaleResponseDto.fromJson(_listingJson());
 
-    expect(dto.media, hasLength(2));
-    expect(dto.media[0].id, 'media-image-a');
-    expect(dto.media[0].type, 'image');
-    expect(dto.media[1].id, 'media-video-b');
-    expect(dto.media[1].type, 'video');
+    expect(dto.mediaItems, hasLength(2));
+    expect(dto.mediaItems[0].id, 'media-image-a');
+    expect(dto.mediaItems[0].type, 'image');
+    expect(dto.mediaItems[1].id, 'media-video-b');
+    expect(dto.mediaItems[1].type, 'video');
+    // mediaUrls preserves the legacy media_urls field independently.
     expect(dto.mediaUrls, [
-      'https://cdn.example.com/products/image-a.jpg',
-      'https://cdn.example.com/products/video-b.mp4',
+      'https://legacy.example.com/legacy-first.jpg',
+      'https://legacy.example.com/legacy-second.mp4',
     ]);
   });
 
@@ -89,8 +90,49 @@ void main() {
     );
   });
 
+  test('empty-string thumbnail_url normalizes to null and does not shadow originalUrl', () {
+    // Backend renders thumbnail_url as "" when the media row has no
+    // thumbnail (stringValue(nil)). The DTO must normalize empty → null
+    // and the mapper must not synthesize a blank 'thumbnail' variant that
+    // would shadow originalUrl via variants['thumbnail'] ?? originalUrl.
+    final dto = ForSaleResponseDto.fromJson(<String, dynamic>{
+      'id': 'listing-empty-thumb',
+      'seller_id': 'seller-1',
+      'title': 'No thumb',
+      'description': '',
+      'media': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 'media-no-thumb',
+          'url': 'https://cdn.example.com/products/no-thumb.jpg',
+          'type': 'image',
+          'position': 0,
+          'created_at': '2026-07-28T00:00:00.000Z',
+          'thumbnail_url': '',
+        },
+      ],
+      'price': 1500000,
+      'quantity': 1,
+      'visibility': 'public',
+      'status': 'active',
+      'created_at': '2026-07-28T00:00:00.000Z',
+      'updated_at': '2026-07-28T00:00:00.000Z',
+    });
+
+    expect(dto.mediaItems, hasLength(1));
+    expect(dto.mediaItems[0].thumbnailUrl, isNull);
+
+    final entity = ForSaleDtoMapper.toEntity(dto);
+    expect(entity.media, hasLength(1));
+    expect(entity.media[0].variants, isEmpty);
+    // thumbnailUrl falls back to originalUrl instead of the blank string.
+    expect(
+      entity.media[0].thumbnailUrl,
+      'https://cdn.example.com/products/no-thumb.jpg',
+    );
+  });
+
   test(
-    'ForSaleResponseDto falls back to legacy media_urls when typed media is absent',
+    'ForSaleResponseDto preserves legacy media_urls separately from typed mediaItems',
     () {
       final dto = ForSaleResponseDto.fromJson(<String, dynamic>{
         'id': 'listing-legacy-media',
@@ -109,9 +151,9 @@ void main() {
         'updated_at': '2026-07-28T00:00:00.000Z',
       });
 
-      expect(dto.media, hasLength(2));
-      expect(dto.media[0].type, 'image');
-      expect(dto.media[1].type, 'video');
+      // When no typed 'media' array is present, mediaItems stays empty.
+      expect(dto.mediaItems, isEmpty);
+      // Legacy media_urls are preserved in the mediaUrls field.
       expect(dto.mediaUrls, [
         'https://legacy.example.com/image-a.jpg',
         'https://legacy.example.com/video-b.mp4',

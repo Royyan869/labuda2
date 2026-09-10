@@ -1,3 +1,9 @@
+// MainScreenNavigationHandler orchestration test.
+//
+// Retained orchestration is verified against the canonical
+// navigationHandlerProvider: own-profile navigation must be gated on
+// authenticated state and must go through the provider (single authority).
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -32,7 +38,7 @@ class _FakeAuthController extends AuthController {
   }
 }
 
-class _RecordingAppRouter implements NavigationHandler {
+class _RecordingNavigationHandler implements NavigationHandler {
   int profileCalls = 0;
   int userProfileCalls = 0;
 
@@ -54,13 +60,14 @@ void main() {
   testWidgets('drawer profile action uses own-profile authority', (
     tester,
   ) async {
-    final router = _RecordingAppRouter();
+    final navigation = _RecordingNavigationHandler();
     var invoked = false;
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           authControllerProvider.overrideWith(_FakeAuthController.new),
+          navigationHandlerProvider.overrideWithValue(navigation),
         ],
         child: MaterialApp(
           home: Consumer(
@@ -71,7 +78,6 @@ void main() {
                   final handler = MainScreenNavigationHandler(
                     ref: ref,
                     context: context,
-                    appRouter: router,
                   );
                   handler.handleProfile();
                 });
@@ -86,7 +92,7 @@ void main() {
     await tester.pump();
     await tester.pumpAndSettle();
 
-    expect(router.profileCalls, 1);
-    expect(router.userProfileCalls, 0);
+    expect(navigation.profileCalls, 1);
+    expect(navigation.userProfileCalls, 0);
   });
 }

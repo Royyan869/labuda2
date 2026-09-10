@@ -23,7 +23,8 @@ import 'package:labuda/core/src/websocket/chat_websocket_handler.dart';
 // **USE THESE INSTEAD (Riverpod Providers):**
 // - `apiClientProvider` for ApiClient
 // - `loggerServiceProvider` for ILoggerService
-// - `authServiceProvider` for IAuthenticationService
+// Legacy GetIt service locator - auth moved to Riverpod providers
+// - Use authControllerProvider / authenticatedUserProvider (domain/user/identity)
 // - `localStorageServiceProvider` for ILocalStorageService
 // - etc.
 //

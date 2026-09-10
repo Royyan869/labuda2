@@ -43,17 +43,16 @@ class _ExternalProductSearchApiService implements SearchApiService {
   }
 
   @override
-  Future<ListingSearchResponseDto> searchListings({
+  Future<ForSaleSearchResponseDto> searchForSale({
     required String query,
+    String? cursor,
     int limit = 20,
-    int offset = 0,
     String sortBy = 'relevance',
     String sortDir = 'desc',
   }) async {
-    return ListingSearchResponseDto(
-      query: query,
-      listings: [
-        ListingSearchResultDto(
+    return ForSaleSearchResponseDto(
+      forSales: [
+        ForSaleSearchResultDto(
           id: 'listing-1',
           title: 'Showa Koi 30cm',
           description: 'Organic listing',
@@ -67,9 +66,8 @@ class _ExternalProductSearchApiService implements SearchApiService {
           sellerAvatarUrl: 'https://example.com/avatar.jpg',
         ),
       ],
-      total: 1,
-      limit: limit,
-      offset: offset,
+      nextCursor: null,
+      hasMore: false,
       promotedItems: const [
         PromotedSearchItemDto(
           type: 'promoted_external',
@@ -144,10 +142,9 @@ void main() {
       expect(external.title, 'Promoted external product');
       expect(external.imageUrl, 'https://example.com/external.jpg');
       expect(external.metadata['externalUrl'], 'https://example.com/product');
-      expect(
-        result.data!.getByType(SearchResultType.listing),
-        contains(external),
-      );
+      // The For Sale tab reads the listing-surface domain collection
+      // directly (no flat allResults scan needed for external products).
+      expect(result.data!.listings, contains(external));
     },
   );
 

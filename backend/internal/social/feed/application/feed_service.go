@@ -12,7 +12,10 @@ import (
 
 // FeedService handles feed read operations.
 //
-// Feed is a read model that shows content from followed users.
+// Feed is a single canonical read authority for GET /api/v1/feed:
+//   - authenticated viewer → follow/own + global public discovery
+//   - anonymous viewer (callerID == uuid.Nil) → global public discovery
+//
 // No mutations, no transactions required.
 type FeedService struct {
 	feedRepo feedrepo.FeedRepository
@@ -25,15 +28,18 @@ func NewFeedService(feedRepo feedrepo.FeedRepository) *FeedService {
 	}
 }
 
-// GetFeed retrieves content for the user's feed.
+// GetFeed retrieves content for the viewer's feed.
 //
-// AUTHORIZATION: Any active user can view their feed.
+// AUTHORIZATION: anonymous viewers (uuid.Nil) and active authenticated
+// users may read the feed. Viewer policy is decided by the repository
+// visibility clause:
+//   - anonymous → public content only (no follow/own group, no blocks/mutes)
+//   - authenticated → followed + own content first, public discovery second
 //
 // Returns:
-// - Content from followed users
-// - Excludes blocked users (both directions)
+// - Content from followed users (authenticated) + public discovery
 // - Excludes deleted/non-active content
-// - Cursor-based pagination over (created_at DESC, id DESC)
+// - Cursor-based pagination over (feed_priority, created_at DESC, id DESC)
 // - Limit capped at 50
 //
 // `cursor` is the decoded FeedCursor from the previous page; nil for
@@ -48,9 +54,12 @@ func (s *FeedService) GetFeed(
 	cursor *entity.FeedCursor,
 	limit int,
 ) (*entity.FeedResult, error) {
-	// Validate caller
-	if err := auth.ValidateCaller(callerID); err != nil {
-		return nil, err
+	// Validate caller when authenticated; uuid.Nil is the canonical
+	// anonymous viewer and is allowed (global public discovery).
+	if callerID != uuid.Nil {
+		if err := auth.ValidateCaller(callerID); err != nil {
+			return nil, err
+		}
 	}
 
 	// Validate and sanitize limit

@@ -14,10 +14,10 @@ import (
 	auctionApp "github.com/labuda/backend/internal/commerce/auction/application"
 	"github.com/labuda/backend/internal/commerce/auction/entity"
 	forSaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	productRepo "github.com/labuda/backend/internal/commerce/product/repository"
 	orderApp "github.com/labuda/backend/internal/commerce/order/application"
 	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	productRepo "github.com/labuda/backend/internal/commerce/product/repository"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	"github.com/labuda/backend/internal/governance/viewercontext"
 	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
@@ -69,17 +69,17 @@ type CreateAuctionRequest struct {
 	// Product is minted inline from the item fields below.
 	ProductID *string `json:"product_id"`
 	// Product fields (inline — created atomically with the auction unless reused)
-	Title             string   `json:"title" binding:"required,min=1,max=200"`
-	Description       string   `json:"description" binding:"required,max=5000"`
-	MediaURLs         []string `json:"media_urls"`
-	Variety           string   `json:"variety"`
-	SizeCM            *int     `json:"size_cm"`
-	AgeMonths         *int     `json:"age_months"`
-	Gender            *string  `json:"gender"`
-	Breeder           *string  `json:"breeder"`
-	Bloodline         *string  `json:"bloodline"`
-	Certificates      []string `json:"certificates"`
-	FarmAddressID     *string  `json:"farm_address_id"`
+	Title            string   `json:"title" binding:"required,min=1,max=200"`
+	Description      string   `json:"description" binding:"required,max=5000"`
+	MediaURLs        []string `json:"media_urls"`
+	Variety          string   `json:"variety"`
+	SizeCM           *int     `json:"size_cm"`
+	AgeMonths        *int     `json:"age_months"`
+	Gender           *string  `json:"gender"`
+	Breeder          *string  `json:"breeder"`
+	Bloodline        *string  `json:"bloodline"`
+	Certificates     []string `json:"certificates"`
+	FarmAddressID    *string  `json:"farm_address_id"`
 	ShippingSetupIDs []string `json:"shipping_option_ids" binding:"required,min=1"`
 	// Auction-specific fields
 	StartPrice   int64  `json:"start_price" binding:"required,min=0"`
@@ -227,17 +227,17 @@ func (h *AuctionHandler) CreateAuction(c *gin.Context) {
 			// Product identity reuse (optional)
 			ProductID: productID,
 			// Product fields
-			Title:             req.Title,
-			Description:       req.Description,
-			MediaURLs:         req.MediaURLs,
-			Variety:           req.Variety,
-			SizeCM:            req.SizeCM,
-			AgeMonths:         req.AgeMonths,
-			Gender:            req.Gender,
-			Breeder:           req.Breeder,
-			Bloodline:         req.Bloodline,
-			Certificates:      req.Certificates,
-			FarmAddressID:     farmAddressID,
+			Title:            req.Title,
+			Description:      req.Description,
+			MediaURLs:        req.MediaURLs,
+			Variety:          req.Variety,
+			SizeCM:           req.SizeCM,
+			AgeMonths:        req.AgeMonths,
+			Gender:           req.Gender,
+			Breeder:          req.Breeder,
+			Bloodline:        req.Bloodline,
+			Certificates:     req.Certificates,
+			FarmAddressID:    farmAddressID,
 			ShippingSetupIDs: shippingSetupIDs,
 			// Auction-specific fields
 			StartPrice:   req.StartPrice,
@@ -314,8 +314,9 @@ func isAuctionTimingValidationError(err error) bool {
 // UpdateAuctionRequest holds the request body for updating an auction.
 //
 // Canonical update contract:
-//   Draft:     title, description, media_urls, variety, size_cm, age_months, gender, breeder, bloodline, certificates, preparation_time/note, start_price, bid_increment, buy_now_price, start_at, end_at
-//   Scheduled: title, description, start_at, end_at only
+//
+//	Draft:     title, description, media_urls, variety, size_cm, age_months, gender, breeder, bloodline, certificates, preparation_time/note, start_price, bid_increment, buy_now_price, start_at, end_at
+//	Scheduled: title, description, start_at, end_at only
 type UpdateAuctionRequest struct {
 	Title           *string   `json:"title" binding:"omitempty,min=1,max=200"`
 	Description     *string   `json:"description" binding:"omitempty,max=5000"`
@@ -329,11 +330,11 @@ type UpdateAuctionRequest struct {
 	Certificates    *[]string `json:"certificates"`
 	PreparationTime *string   `json:"preparation_time" binding:"omitempty,oneof=immediate short medium long"`
 	PreparationNote *string   `json:"preparation_note"`
-	StartPrice   *int64  `json:"start_price" binding:"omitempty,min=0"`
-	BidIncrement *int64  `json:"bid_increment" binding:"omitempty,min=1"`
-	BuyNowPrice  *int64  `json:"buy_now_price" binding:"omitempty,min=0"`
-	StartAt      *string `json:"start_at" binding:"omitempty"` // RFC3339
-	EndAt        *string `json:"end_at" binding:"omitempty"`   // RFC3339
+	StartPrice      *int64    `json:"start_price" binding:"omitempty,min=0"`
+	BidIncrement    *int64    `json:"bid_increment" binding:"omitempty,min=1"`
+	BuyNowPrice     *int64    `json:"buy_now_price" binding:"omitempty,min=0"`
+	StartAt         *string   `json:"start_at" binding:"omitempty"` // RFC3339
+	EndAt           *string   `json:"end_at" binding:"omitempty"`   // RFC3339
 }
 
 // UpdateAuction handles PATCH /api/v1/auctions/:id
@@ -443,11 +444,11 @@ func (h *AuctionHandler) UpdateAuction(c *gin.Context) {
 				Certificates:    req.Certificates,
 				PreparationTime: req.PreparationTime,
 				PreparationNote: req.PreparationNote,
-				StartPrice:   startPrice,
-				BidIncrement: bidIncrement,
-				BuyNowPrice:  buyNowPrice,
-				StartAt:      startAt,
-				EndAt:        endAt,
+				StartPrice:      startPrice,
+				BidIncrement:    bidIncrement,
+				BuyNowPrice:     buyNowPrice,
+				StartAt:         startAt,
+				EndAt:           endAt,
 			})
 
 		} else if auction.Status == entity.StatusScheduled {
@@ -479,8 +480,8 @@ func (h *AuctionHandler) UpdateAuction(c *gin.Context) {
 				CallerID:    callerID,
 				Title:       req.Title,
 				Description: req.Description,
-				StartAt:   startAt,
-				EndAt:     endAt,
+				StartAt:     startAt,
+				EndAt:       endAt,
 			})
 
 		} else {
@@ -695,10 +696,10 @@ func (h *AuctionHandler) PlaceBid(c *gin.Context) {
 // BuyNowRequest holds the request body for buy now.
 // ClaimAuctionRequest holds the request body for the canonical claim endpoint.
 type ClaimAuctionRequest struct {
-	AddressID        uuid.UUID `json:"address_id" binding:"required"`
+	AddressID       uuid.UUID `json:"address_id" binding:"required"`
 	ShippingSetupID uuid.UUID `json:"shipping_option_id" binding:"required"`
-	DiscountCode     *string   `json:"discount_code"`
-	UseCoins         *bool     `json:"use_coins,omitempty"` // Optional: buyer coin-use intent; backend decides actual amount
+	DiscountCode    *string   `json:"discount_code"`
+	UseCoins        *bool     `json:"use_coins,omitempty"` // Optional: buyer coin-use intent; backend decides actual amount
 }
 
 // ClaimAuction handles POST /api/v1/auctions/:id/claim
@@ -751,9 +752,9 @@ func (h *AuctionHandler) ClaimAuction(c *gin.Context) {
 		// Step 1: Validate winner, deadline, not-settled, not-resolved.
 		// Locks auction FOR UPDATE.
 		auction, err := h.auctionService.GeneratePricingTokenForAuctionClaim(ctx, tx, auctionApp.GeneratePricingTokenForAuctionInput{
-			AuctionID:        auctionID,
-			WinnerID:         winnerID,
-			AddressID:        req.AddressID,
+			AuctionID:       auctionID,
+			WinnerID:        winnerID,
+			AddressID:       req.AddressID,
 			ShippingSetupID: req.ShippingSetupID,
 		})
 		if err != nil {
@@ -769,12 +770,12 @@ func (h *AuctionHandler) ClaimAuction(c *gin.Context) {
 		// Step 2: Generate pricing token within the same transaction.
 		useCoins := req.UseCoins != nil && *req.UseCoins
 		tokenResp, err := h.pricingTokenService.GenerateForAuction(ctx, tx, &pricingtokenapp.GenerateForAuctionRequest{
-			UserID:           winnerID,
-			AuctionID:        auctionID,
-			AddressID:        req.AddressID,
+			UserID:          winnerID,
+			AuctionID:       auctionID,
+			AddressID:       req.AddressID,
 			ShippingSetupID: req.ShippingSetupID,
-			DiscountCode:     req.DiscountCode,
-			UseCoins:         useCoins,
+			DiscountCode:    req.DiscountCode,
+			UseCoins:        useCoins,
 		})
 		if err != nil {
 			return fmt.Errorf("pricing token generation failed: %w", err)
@@ -811,7 +812,7 @@ func (h *AuctionHandler) ClaimAuction(c *gin.Context) {
 			BuyerID:               winnerID,
 			WinningBid:            *auction.CurrentBid,
 			AddressID:             req.AddressID,
-			ShippingSetupID:      req.ShippingSetupID,
+			ShippingSetupID:       req.ShippingSetupID,
 			AuctionSettlementType: settlementType,
 			PricingSnapshot:       pricingSnapshot,
 			UseCoins:              useCoins,
@@ -892,27 +893,27 @@ func buildClaimPricingSnapshot(token *pricingtokenentity.PricingToken) *orderApp
 	}
 
 	return &orderApp.PricingSnapshot{
-		UnitPrice:              token.UnitPrice,
-		Subtotal:               token.Subtotal,
-		ShippingTotal:          token.ShippingTotal,
-		CommissionPercent:      token.CommissionPercent,
-		CommissionAmount:       token.CommissionAmount,
-		EscrowAmount:           token.EscrowAmount,
-		ServiceFeeAmount:       token.ServiceFeeAmount,
-		TotalPayableAmount:     token.TotalPayableAmount,
-		DiscountAmount:         token.DiscountAmount,
-		MaxCoinsAllowed:        token.MaxCoinsAllowed,
-		CoinsUsed:              token.CoinsUsed,
-		OrderValueForCoins:     token.OrderValueForCoins,
-		ShippingSetupName:    token.ShippingSetupName,
+		UnitPrice:             token.UnitPrice,
+		Subtotal:              token.Subtotal,
+		ShippingTotal:         token.ShippingTotal,
+		CommissionPercent:     token.CommissionPercent,
+		CommissionAmount:      token.CommissionAmount,
+		EscrowAmount:          token.EscrowAmount,
+		ServiceFeeAmount:      token.ServiceFeeAmount,
+		TotalPayableAmount:    token.TotalPayableAmount,
+		DiscountAmount:        token.DiscountAmount,
+		MaxCoinsAllowed:       token.MaxCoinsAllowed,
+		CoinsUsed:             token.CoinsUsed,
+		OrderValueForCoins:    token.OrderValueForCoins,
+		ShippingSetupName:     token.ShippingSetupName,
 		ShippingTransportType: token.ShippingTransportType,
 		ShippingDestination:   addressSnapshot,
-		ShippingSource:         shippingSource,
-		ShippingQuoteID:        token.ShippingQuoteID,
-		AuctionID:              token.AuctionID,
-		NegotiationID:          token.NegotiationID,
-		TokenID:                token.Token,
-		PaymentMethod:          "default",
+		ShippingSource:        shippingSource,
+		ShippingQuoteID:       token.ShippingQuoteID,
+		AuctionID:             token.AuctionID,
+		NegotiationID:         token.NegotiationID,
+		TokenID:               token.Token,
+		PaymentMethod:         "default",
 	}
 }
 
@@ -1124,7 +1125,8 @@ func (h *AuctionHandler) GetAuction(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, auctionToResponseWithSeller(auction, auction.Product, sellerInfo))
+	// Canonical detail projection — full Product content from auction.Product.
+	response.Success(c, h.auctionDetailResponse(auction, sellerInfo, viewerID))
 }
 
 // ListBidsRequest holds query parameters for forSale bids.
@@ -1227,6 +1229,57 @@ func (h *AuctionHandler) ListBids(c *gin.Context) {
 	})
 }
 
+// auctionDetailResponse builds the canonical detail response for
+// GET /api/v1/auctions/:id. It is the ONLY serializer wired to the detail
+// route and carries the full Product content (title, description, media,
+// koi attributes, certificates, preparation) read from auction.Product,
+// plus viewer_capabilities for the current viewer
+// (nil viewerID = anonymous).
+func (h *AuctionHandler) auctionDetailResponse(
+	a *entity.Auction,
+	seller sellerdisplay.Info,
+	viewerID uuid.UUID,
+) map[string]interface{} {
+	var viewerIDPtr *uuid.UUID
+	if viewerID != uuid.Nil {
+		viewerIDPtr = &viewerID
+	}
+	return auctionToDetailResponseWithSeller(
+		a,
+		*buildAuctionSellerCard(a, seller),
+		seller,
+		nil, // media list is read from the Product (product.MediaURLs)
+		a.Product,
+		viewerIDPtr,
+	)
+}
+
+// buildAuctionSellerCard constructs the canonical seller PublicCard for an
+// auction. Lifecycle coarsening (user-identity axis from account_status /
+// deleted_at, seller-trust axis from subscription_status) and tier gating
+// live here so every auction read surface hydrating sellerdisplay.Info
+// produces an identical card.
+func buildAuctionSellerCard(
+	a *entity.Auction,
+	seller sellerdisplay.Info,
+) *publiccard.SellerCard {
+	var auctionSellerAvatar *string
+	if seller.AvatarURL != "" {
+		av := seller.AvatarURL
+		auctionSellerAvatar = &av
+	}
+	auctionUserLifecycle := string(viewercontext.CoarsenLifecycle(seller.AccountStatus, seller.IsDeleted))
+	auctionSellerTrustLifecycle := string(viewercontext.CoarsenSellerTrust(seller.SubscriptionStatus))
+	card := publiccard.NewSellerCardWithBothLifecycles(
+		a.SellerID, seller.Username, auctionSellerAvatar,
+		seller.FarmName,
+		auctionUserLifecycle,
+		auctionSellerTrustLifecycle,
+		seller.Tier,
+	)
+	return &card
+}
+
 // auctionToResponse converts an auction entity to API response.
 // Used for create/update/cancel responses. Caller is responsible for
 // passing the associated Product entity so title/description/media are
@@ -1236,8 +1289,11 @@ func auctionToResponse(a *entity.Auction, product *productEntity.Product) map[st
 }
 
 // auctionToResponseWithSeller renders auction JSON with seller display
-// fields hydrated from sellerdisplay.Info. Used by detail/list endpoints
-// that batch-fetch seller info to avoid N+1.
+// fields hydrated from sellerdisplay.Info. Used by list/discovery and
+// write (create/update/cancel) endpoints that batch-fetch seller info to
+// avoid N+1. The detail endpoint (GET /api/v1/auctions/:id) uses the
+// canonical superset auctionToDetailResponseWithSeller via
+// (*AuctionHandler).auctionDetailResponse.
 //
 // Product content (title, description, media) is read from the Product
 // entity — the auction entity no longer carries duplicate content fields.
@@ -1246,20 +1302,7 @@ func auctionToResponseWithSeller(
 	product *productEntity.Product,
 	seller sellerdisplay.Info,
 ) map[string]interface{} {
-	var auctionSellerAvatar *string
-	if seller.AvatarURL != "" {
-		av := seller.AvatarURL
-		auctionSellerAvatar = &av
-	}
-	auctionUserLifecycle := string(viewercontext.CoarsenLifecycle(seller.AccountStatus, seller.IsDeleted))
-	auctionSellerTrustLifecycle := string(viewercontext.CoarsenSellerTrust(seller.SubscriptionStatus))
-	auctionSellerCard := publiccard.NewSellerCardWithBothLifecycles(
-		a.SellerID, seller.Username, auctionSellerAvatar,
-		seller.FarmName,
-		auctionUserLifecycle,
-		auctionSellerTrustLifecycle,
-		seller.Tier,
-	)
+	auctionSellerCard := buildAuctionSellerCard(a, seller)
 
 	title := ""
 	description := ""
@@ -1281,7 +1324,7 @@ func auctionToResponseWithSeller(
 		a.BuyNowPrice,
 		a.EndAt.Format(time.RFC3339),
 		a.Status.PublicLifecycle(),
-		&auctionSellerCard,
+		auctionSellerCard,
 	)
 
 	resp := map[string]interface{}{
@@ -1303,14 +1346,14 @@ func auctionToResponseWithSeller(
 			}
 			return nil
 		}(),
-		"status":     string(a.Status),
-		"lifecycle":  a.Status.PublicLifecycle(),
-		"created_at": a.CreatedAt.Format(time.RFC3339),
-		"updated_at": a.UpdatedAt.Format(time.RFC3339),
+		"status":            string(a.Status),
+		"lifecycle":         a.Status.PublicLifecycle(),
+		"created_at":        a.CreatedAt.Format(time.RFC3339),
+		"updated_at":        a.UpdatedAt.Format(time.RFC3339),
 		"seller_username":   seller.Username,
 		"seller_farm_name":  seller.FarmName,
 		"seller_avatar_url": seller.AvatarURL,
-		"auction": auctionCard,
+		"auction":           auctionCard,
 	}
 	return resp
 }

@@ -61,7 +61,7 @@ class SearchModule extends BaseModule {
       case 'user':
         return SearchResultType.user;
       case 'listing':
-        return SearchResultType.listing;
+        return SearchResultType.forSale;
       case 'auction':
         return SearchResultType.auction;
       case 'content':

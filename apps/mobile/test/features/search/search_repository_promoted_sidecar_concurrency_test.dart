@@ -44,10 +44,10 @@ class _OverlappingPromotedSearchApiService implements SearchApiService {
   }
 
   @override
-  Future<ListingSearchResponseDto> searchListings({
+  Future<ForSaleSearchResponseDto> searchForSale({
     required String query,
+    String? cursor,
     int limit = 20,
-    int offset = 0,
     String sortBy = 'relevance',
     String sortDir = 'desc',
   }) async {
@@ -59,12 +59,10 @@ class _OverlappingPromotedSearchApiService implements SearchApiService {
       seen.complete();
     }
 
-    return ListingSearchResponseDto(
-      query: query,
-      listings: const [],
-      total: 0,
-      limit: limit,
-      offset: offset,
+    return ForSaleSearchResponseDto(
+      forSales: const [],
+      nextCursor: null,
+      hasMore: false,
       promotedItems: [
         PromotedSearchItemDto(
           type: 'promoted_for_sale',

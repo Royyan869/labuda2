@@ -19,6 +19,7 @@
 library;
 
 import 'package:equatable/equatable.dart';
+import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
 
 // =============================================================================
 // Request DTOs
@@ -302,6 +303,24 @@ class AuctionDto extends Equatable {
   final List<String> images;
   final String? category;
   final String? condition;
+
+  // =========================================================================
+  // CANONICAL DETAIL CONTENT (backend Product projection on the detail wire)
+  // =========================================================================
+  // Present on GET /api/v1/auctions/:id (auctionToDetailResponseWithSeller);
+  // absent/empty on list payloads — tolerated as null/[] so the parser is
+  // shape-agnostic. Parsed here and mapped into the Auction read model so no
+  // canonical Product content is dropped or replaced by synthetic defaults.
+  final String? variety;
+  final int? sizeCm;
+  final int? ageMonths;
+  final String? gender;
+  final String? breeder;
+  final String? bloodline;
+  final List<String> certificates;
+  final String? preparationTime;
+  final String? preparationNote;
+
   final double startPrice;
   final double bidIncrement;
   final double? buyNowPrice;
@@ -321,8 +340,6 @@ class AuctionDto extends Equatable {
   final int remainingExtensions;
   final int viewsCount;
   final int watchersCount;
-  final bool canBid;
-  final bool canBuyNow;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? startedAt;
@@ -373,6 +390,15 @@ class AuctionDto extends Equatable {
   /// Values: "pro", "elite". Null when gated out or flag disabled.
   final String? sellerTier;
 
+  // =========================================================================
+  // CANONICAL DETAIL ACTION AUTHORITY — viewer_capabilities
+  // =========================================================================
+  // Present on GET /api/v1/auctions/:id (auctionToDetailResponseWithSeller →
+  // commerceshared.EvaluateAuctionViewerCapabilities). Absent on list/discovery
+  // payloads — tolerated as null so the parser stays shape-agnostic and the
+  // shared Auction read model keeps working on list surfaces.
+  final CommerceViewerCapabilities? viewerCapabilities;
+
   const AuctionDto({
     required this.id,
     required this.sellerId,
@@ -382,6 +408,15 @@ class AuctionDto extends Equatable {
     this.images = const [],
     this.category,
     this.condition,
+    this.variety,
+    this.sizeCm,
+    this.ageMonths,
+    this.gender,
+    this.breeder,
+    this.bloodline,
+    this.certificates = const [],
+    this.preparationTime,
+    this.preparationNote,
     required this.startPrice,
     required this.bidIncrement,
     this.buyNowPrice,
@@ -401,8 +436,6 @@ class AuctionDto extends Equatable {
     required this.remainingExtensions,
     required this.viewsCount,
     required this.watchersCount,
-    required this.canBid,
-    required this.canBuyNow,
     required this.createdAt,
     required this.updatedAt,
     this.startedAt,
@@ -423,6 +456,8 @@ class AuctionDto extends Equatable {
     this.sellerTrustLifecycle,
     // Stage 2 seller tier badge.
     this.sellerTier,
+    // Canonical detail action authority.
+    this.viewerCapabilities,
   });
 
   factory AuctionDto.fromJson(Map<String, dynamic> json) {
@@ -459,6 +494,17 @@ class AuctionDto extends Equatable {
       images: normalizedImages,
       category: json['category'] as String?,
       condition: json['condition'] as String?,
+      variety: json['variety'] as String?,
+      sizeCm: (json['size_cm'] as num?)?.toInt(),
+      ageMonths: (json['age_months'] as num?)?.toInt(),
+      gender: json['gender'] as String?,
+      breeder: json['breeder'] as String?,
+      bloodline: json['bloodline'] as String?,
+      certificates:
+          (json['certificates'] as List?)?.whereType<String>().toList() ??
+          const [],
+      preparationTime: json['preparation_time'] as String?,
+      preparationNote: json['preparation_note'] as String?,
       startPrice: (json['start_price'] as num).toDouble(),
       bidIncrement: (json['bid_increment'] as num).toDouble(),
       buyNowPrice: (json['buy_now_price'] as num?)?.toDouble(),
@@ -482,8 +528,6 @@ class AuctionDto extends Equatable {
       remainingExtensions: json['remaining_extensions'] as int? ?? 3,
       viewsCount: json['views_count'] as int? ?? 0,
       watchersCount: json['watchers_count'] as int? ?? 0,
-      canBid: json['can_bid'] as bool? ?? false,
-      canBuyNow: json['can_buy_now'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
       startedAt: json['started_at'] != null
@@ -520,6 +564,14 @@ class AuctionDto extends Equatable {
       sellerTrustLifecycle: _readAuctionSellerTrustLifecycle(json),
       // Stage 2 — seller reputation tier badge from `auction.seller.tier`.
       sellerTier: _readAuctionSellerTier(json),
+      // Canonical detail action authority. Null when the payload is a
+      // list/discovery item that does not carry viewer-scoped capabilities.
+      viewerCapabilities: json['viewer_capabilities']
+              is Map<String, dynamic>
+          ? CommerceViewerCapabilities.fromJson(
+              json['viewer_capabilities'] as Map<String, dynamic>,
+            )
+          : null,
     );
   }
 

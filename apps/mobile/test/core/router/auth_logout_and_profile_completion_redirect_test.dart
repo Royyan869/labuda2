@@ -87,14 +87,20 @@ void main() {
         },
       );
 
-      test('/home → /welcome (regression lock, already covered elsewhere)', () {
-        final result = handleAuthRedirectForTest(
-          _unauthenticated,
-          AppAuthStatus.unauthenticated,
-          '/home',
-        );
-        expect(result, equals('/welcome'));
-      });
+      test(
+        '/home stays reachable after logout (GUEST HOME — no /welcome bounce)',
+        () {
+          // Owner canonical truth: guests may open the canonical Home.
+          // After logout the user is a guest; /home must not bounce them
+          // back to /welcome.
+          final result = handleAuthRedirectForTest(
+            _unauthenticated,
+            AppAuthStatus.unauthenticated,
+            '/home',
+          );
+          expect(result, isNull);
+        },
+      );
     },
   );
 

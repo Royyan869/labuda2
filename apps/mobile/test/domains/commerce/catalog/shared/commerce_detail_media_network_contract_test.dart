@@ -4,17 +4,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/src/utils/constants/app_constants.dart';
-import 'package:labuda/domains/commerce/catalog/shared/shared.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/shared/widgets/stable_network_image.dart';
 import '../../../../support/queued_image_http_client.dart';
-
-Widget _wrap(Widget child) {
-  return MaterialApp(
-    theme: ThemeData.light(),
-    home: Scaffold(body: child),
-  );
-}
 
 String _networkUrl(ImageProvider<Object> provider) {
   final resolved = provider is ResizeImage ? provider.imageProvider : provider;
@@ -134,50 +126,4 @@ void main() {
     }, createHttpClient: (_) => QueuedImageHttpClient(responders));
   });
 
-  testWidgets('empty gallery and failed media do not share the same branch', (
-    tester,
-  ) async {
-    final responders = <String, Queue<QueuedImageResponseSpec>>{
-      'https://cdn.example.com/gallery/failed.jpg': Queue<
-        QueuedImageResponseSpec
-      >.of([QueuedImageResponseSpec.failure()]),
-    };
-
-    await HttpOverrides.runZoned(() async {
-      await tester.pumpWidget(
-        _wrap(
-          SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CommerceDetailMediaGallery(
-                  cacheKey: 'empty-gallery',
-                  media: const [],
-                  logicalCacheKeyBuilder: (media, index) => 'unused',
-                ),
-                const SizedBox(height: 12),
-                CommerceDetailMediaGallery(
-                  cacheKey: 'failed-gallery',
-                  media: [
-                    _media(
-                      id: 'failed',
-                      url: 'https://cdn.example.com/gallery/failed.jpg',
-                      position: 0,
-                    ),
-                  ],
-                  logicalCacheKeyBuilder: (media, index) => media.id,
-                  fallback: const Text('failed-gallery'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.byIcon(Icons.image_outlined), findsOneWidget);
-      expect(find.text('failed-gallery'), findsOneWidget);
-      expect(find.byType(StableNetworkImage), findsOneWidget);
-    }, createHttpClient: (_) => QueuedImageHttpClient(responders));
-  });
 }

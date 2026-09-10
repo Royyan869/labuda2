@@ -342,36 +342,10 @@ class LocalStorageService implements ILocalStorageService {
     }
   }
 
-  // Auth-specific operations
-  @override
-  Future<Result<void>> setAuthToken(String token) async {
-    return await setSecureString(StorageKeys.authToken, token);
-  }
-
-  @override
-  Future<Result<String?>> getAuthToken() async {
-    return await getSecureString(StorageKeys.authToken);
-  }
-
-  @override
-  Future<Result<void>> setRefreshToken(String token) async {
-    return await setSecureString(StorageKeys.refreshToken, token);
-  }
-
-  @override
-  Future<Result<String?>> getRefreshToken() async {
-    return await getSecureString(StorageKeys.refreshToken);
-  }
-
-  @override
-  Future<Result<void>> setUserSession(Map<String, dynamic> session) async {
-    return await setObject(StorageKeys.userSession, session);
-  }
-
-  @override
-  Future<Result<Map<String, dynamic>?>> getUserSession() async {
-    return await getObject(StorageKeys.userSession);
-  }
+  // (AUTH-2 PURGE) Legacy token APIs removed:
+  // setAuthToken / getAuthToken / setRefreshToken / getRefreshToken /
+  // setUserSession / getUserSession. The canonical Labuda credential
+  // boundary below replaces them.
 
   // Restricted profile-completion credential (isolated from normal access token)
   @override

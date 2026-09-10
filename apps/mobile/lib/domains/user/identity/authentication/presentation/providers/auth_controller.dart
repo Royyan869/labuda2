@@ -595,11 +595,25 @@ class AuthController extends Notifier<AuthState> {
               return;
             }
             _setState(AuthState.firebaseAuthenticated(refreshedUser.uid, principal: FirebasePrincipal.fromFirebaseUser(refreshedUser)));
+            // AUTH-2 (CANONICAL COMPLETION): During an EXPLICIT login the
+            // initiating method owns the backend sync and its deterministic
+            // completion (login must not depend on listener timing). The listener
+            // is used for session lifecycle / external auth changes only. When an
+            // explicit login is in progress, defer the backend sync to it so we
+            // never produce a duplicate exchange or a conflicting terminal state.
             final isEmailSignupFlow = _isInitiatingEmailSignup;
+            if (_isExplicitLoginInProgress || _isInitiatingEmailSignup) {
+              _logger.debug('[AUTH] Explicit login in progress — deferring sync to initiator');
+              return;
+            }
             _syncWithBackend(refreshedUser.uid, refreshedUser, isEmailSignup: isEmailSignupFlow);
           } catch (e) {
             _logger.error('Failed to reload Firebase user', extra: {'error': e.toString()});
             _setState(AuthState.firebaseAuthenticated(user.uid, principal: principal));
+            if (_isExplicitLoginInProgress || _isInitiatingEmailSignup) {
+              _logger.debug('[AUTH] Explicit login in progress — deferring sync to initiator (after reload failure)');
+              return;
+            }
             final isEmailSignupFlow = _isInitiatingEmailSignup;
             _syncWithBackend(user.uid, user, isEmailSignup: isEmailSignupFlow);
           }
@@ -1303,15 +1317,25 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
-  /// Sign in dengan email dan password
+/// Sign in dengan email dan password
   ///
-  /// ðŸ”’ DETERMINISTIC FLOW: Firebase auth listener handles backend sync
-  /// This method only initiates Firebase login, listener will trigger
-  /// and call _syncWithBackend() with mutex protection.
+  /// 🔒 DETERMINISTIC FLOW (AUTH-2): Explicit login CANONICAL COMPLETION.
   ///
-  /// âš ï¸ CRITICAL: Do NOT overwrite state after successful Firebase login.
-  /// The Firebase listener may have already triggered and set Authenticated state.
-  /// Overwriting would cause UI to get stuck in non-authenticated state.
+  /// This is the SINGLE canonical login-completion authority for email.
+  /// Instead of relying solely on the Firebase `authStateChanges` listener
+  /// (which may be late, guarded, or re-ordered and leave the user stranded
+  /// on a non-reactive Login screen), the explicit success path calls the
+  /// canonical backend sync directly. The Firebase listener is still used
+  /// for session lifecycle / external auth changes, but it DEDUPES against
+  /// the same `_syncedUserId` / `_syncInProgress` guards, so:
+  ///   - explicit completion + listener event  → single backend exchange
+  ///   - no double credential write
+  ///   - no stale state overwrite
+  ///   - no stranded login
+  ///
+  /// Terminal failure (backendFailure / backendUnavailable) is surfaced as an
+  /// explicit AuthState so the UI can render a visible error + retry instead
+  /// of silently stopping on the Login screen.
   Future<void> signInWithEmail({
     required String email,
     required String password,
@@ -1327,10 +1351,24 @@ class AuthController extends Notifier<AuthState> {
     if (result.isError) {
       _isExplicitLoginInProgress = false;
       _setState(AuthState.error(result.error!));
+      return;
     }
-    // If success: DO NOT set state here — Firebase listener will handle
-    // and _isExplicitLoginInProgress allows the listener to perform exchange.
-    // Flag cleared after sync (see _syncWithBackend finally).
+
+    // Success: complete login through the canonical backend sync authority.
+    // Do NOT navigate manually — the router reacts to the resulting AuthState.
+    final firebaseUser = activeFirebaseUser;
+    if (firebaseUser == null) {
+      _isExplicitLoginInProgress = false;
+      _setState(const AuthState.unauthenticated());
+      return;
+    }
+
+    await _syncWithBackend(
+      firebaseUser.uid,
+      firebaseUser,
+      isEmailSignup: false,
+    );
+    // _isExplicitLoginInProgress cleared in _syncWithBackend finally.
   }
 
   /// Sign in dengan Google
@@ -1369,11 +1407,24 @@ class AuthController extends Notifier<AuthState> {
         // Only set error state if login failed
         _isExplicitLoginInProgress = false;
         _setState(AuthState.error(result.error!));
+        return;
       }
-      // If success: DO NOT set state here
-      // Firebase listener will handle state transition:
-      // firebaseAuthenticated â†’ syncingWithBackend â†’ authenticated
-      // This prevents premature routing and state overwrite race condition
+
+      // Success: complete login through the canonical backend sync authority.
+      // Do NOT navigate manually - the router reacts to the resulting AuthState.
+      final firebaseUser = activeFirebaseUser;
+      if (firebaseUser == null) {
+        _isExplicitLoginInProgress = false;
+        _setState(const AuthState.unauthenticated());
+        return;
+      }
+
+      await _syncWithBackend(
+        firebaseUser.uid,
+        firebaseUser,
+        isEmailSignup: false,
+      );
+      // _isExplicitLoginInProgress cleared in _syncWithBackend finally.
     } finally {
       _isGoogleSigningIn = false;
     }
@@ -1522,7 +1573,9 @@ class AuthController extends Notifier<AuthState> {
     // 1. Attempt backend logout BEFORE any local cleanup removes tokens.
     if (currentState is AuthStateAuthenticated) {
       try {
-        final refreshResult = await _localStorage.getRefreshToken();
+        // AUTH-2 (CREDENTIAL AUTHORITY): read via the canonical credential
+        // boundary (readLabudaRefreshToken), not the legacy getRefreshToken().
+        final refreshResult = await _localStorage.readLabudaRefreshToken();
         final refreshToken = refreshResult.data?.trim();
         final fcmService = ref.read(fcmServiceProvider);
         final fcmToken = fcmService.fcmToken?.trim();

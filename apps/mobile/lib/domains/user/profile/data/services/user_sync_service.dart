@@ -133,15 +133,18 @@ class UserSyncService {
       );
     }
 
+    // Persist platform tokens via the canonical credential boundary
+    // (ILocalStorageService — the single authority for secure credential
+    // storage). This happens IMMEDIATELY after the exchange returns a token
+    // pair, BEFORE the /users/me fetch, so a transient profile failure does
+    // not lose the freshly issued credentials (session stays restorable/retry).
     _logger?.info('[SYNC] Success');
     _logger?.info(
       'User synced successfully: ${result.data?.userId}, created: ${result.data?.created}, profileComplete: ${!(result.data?.requiresProfileCompletion ?? false)}',
     );
 
-    // Persist platform tokens via canonical credential store (fire-and-forget;
-    // Firebase token remains authoritative for API calls until request migration).
+    final response = result.data!;
     if (result.isSuccess) {
-      final response = result.data!;
       final storage = _localStorage;
       if (storage != null) {
         if (response.accessToken.isNotEmpty) {
@@ -159,7 +162,6 @@ class UserSyncService {
       }
     }
 
-    final response = result.data!;
     if (response.requiresProfileCompletion) {
       return Result.success(
         SyncUserResult(

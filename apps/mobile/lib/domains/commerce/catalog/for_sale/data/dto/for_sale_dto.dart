@@ -18,6 +18,7 @@
 library;
 
 import 'package:equatable/equatable.dart';
+import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
 
 // =============================================================================
 // Response DTOs
@@ -37,6 +38,7 @@ class ForSaleMediaItemDto {
   final int? width;
   final int? height;
   final int? duration;
+  final DateTime? createdAt;
 
   const ForSaleMediaItemDto({
     required this.id,
@@ -47,18 +49,28 @@ class ForSaleMediaItemDto {
     this.width,
     this.height,
     this.duration,
+    this.createdAt,
   });
 
   factory ForSaleMediaItemDto.fromJson(Map<String, dynamic> json) {
+    final thumbnail = json['thumbnail_url'];
     return ForSaleMediaItemDto(
       id: json['id'] as String? ?? '',
       type: json['type'] as String? ?? 'image',
       url: json['url'] as String? ?? '',
       position: json['position'] as int? ?? 0,
-      thumbnailUrl: json['thumbnail_url'] as String?,
+      // Backend renders thumbnail_url as "" when absent (stringValue of
+      // nil) — normalize empty → null so the mapper never synthesizes a
+      // blank 'thumbnail' variant that would shadow originalUrl.
+      thumbnailUrl: thumbnail is String && thumbnail.isNotEmpty
+          ? thumbnail
+          : null,
       width: json['width'] as int?,
       height: json['height'] as int?,
       duration: json['duration'] as int?,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'] as String)
+          : null,
     );
   }
 }
@@ -127,6 +139,16 @@ class ForSaleResponseDto extends Equatable {
   /// Values: "pro", "elite". Null when gated out or flag disabled.
   final String? sellerTier;
 
+  /// Canonical per-viewer action authority for the detail surface.
+  ///
+  /// Present on GET /api/v1/for-sale/:id
+  /// (forSaleToDetailResponseWithViewerCapabilities →
+  /// commerceshared.EvaluateForSaleViewerCapabilities). Absent on
+  /// list/search/write payloads — tolerated as null so the shared parser
+  /// stays shape-agnostic. The detail UI reads canChat/canNegotiate/canBuy
+  /// from here instead of re-inferring transaction permission locally.
+  final CommerceViewerCapabilities? viewerCapabilities;
+
   const ForSaleResponseDto({
     required this.id,
     this.productId,
@@ -162,6 +184,8 @@ class ForSaleResponseDto extends Equatable {
     this.sellerTrustLifecycle,
     // Stage 2 seller tier badge.
     this.sellerTier,
+    // Canonical detail action authority.
+    this.viewerCapabilities,
   });
 
   factory ForSaleResponseDto.fromJson(Map<String, dynamic> json) {
@@ -216,6 +240,13 @@ class ForSaleResponseDto extends Equatable {
       sellerTrustLifecycle: _readForSaleSellerTrustLifecycle(json),
       // Stage 2 — seller reputation tier badge from `for_sale.seller.tier`.
       sellerTier: _readForSaleSellerTier(json),
+      // Canonical detail action authority. Null on list/search payloads
+      // that do not carry viewer-scoped capabilities.
+      viewerCapabilities: json['viewer_capabilities'] is Map<String, dynamic>
+          ? CommerceViewerCapabilities.fromJson(
+              json['viewer_capabilities'] as Map<String, dynamic>,
+            )
+          : null,
     );
   }
 

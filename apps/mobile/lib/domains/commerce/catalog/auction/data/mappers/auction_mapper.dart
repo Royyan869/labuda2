@@ -12,6 +12,7 @@ library;
 import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
+import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 
 /// Mapper for Auction-related conversions
@@ -68,6 +69,9 @@ class AuctionMapper {
       // Stage 2 — seller reputation tier badge. Pass-through; SellerTierBadge
       // handles null/basic/unknown gracefully (renders nothing).
       sellerTier: dto.sellerTier,
+      // Canonical per-viewer detail action authority. Null on list/discovery
+      // payloads; present on the detail wire (viewer_capabilities).
+      viewerCapabilities: dto.viewerCapabilities,
       title: dto.title,
       description: dto.description ?? '',
       media: media,
@@ -79,6 +83,14 @@ class AuctionMapper {
       condition: dto.condition != null
           ? parseAuctionCondition(dto.condition)
           : null,
+      // Shipping readiness — canonical Product content from the detail wire.
+      // Null/empty wire value stays null (absence is NOT defaulted to
+      // immediate) so no canonical absence is masked.
+      preparationTime: (dto.preparationTime == null ||
+              dto.preparationTime!.isEmpty)
+          ? null
+          : PreparationTime.fromJson(dto.preparationTime),
+      preparationNote: dto.preparationNote,
       startTime: dto.startTime,
       endTime: dto.endTime,
       startedAt: dto.startedAt,
@@ -194,17 +206,29 @@ class AuctionMapper {
     return status.apiValue;
   }
 
-  /// Create default KoiDetails when API doesn't provide full koi info
+  /// Map koi content from the canonical detail wire into [KoiDetails].
+  ///
+  /// Canonical values (variety/size_cm/age_months/gender/breeder/bloodline/
+  /// certificates) are mapped verbatim. The 'Unknown' / 0 / 'unknown' /
+  /// empty placeholders are LEGITIMATE ABSENCE DEFAULTS applied ONLY when the
+  /// wire truly omits a value (list payloads, non-koi products) — they never
+  /// replace a canonical value that is present.
   static KoiDetails _createKoiDetails(AuctionDto dto) {
-    // Category could be variety in some cases
+    final variety = dto.variety;
+    final gender = dto.gender;
+    final legacyVariety = dto.category;
     return KoiDetails(
-      variety: dto.category ?? 'Unknown',
-      sizeInCm: 0,
-      ageInMonths: 0,
-      gender: 'unknown',
-      certificates: const [],
-      breeder: null,
-      bloodline: null,
+      variety: (variety == null || variety.isEmpty)
+          ? ((legacyVariety == null || legacyVariety.isEmpty)
+                ? 'Unknown'
+                : legacyVariety)
+          : variety,
+      sizeInCm: (dto.sizeCm ?? 0).toDouble(),
+      ageInMonths: dto.ageMonths ?? 0,
+      gender: (gender == null || gender.isEmpty) ? 'unknown' : gender,
+      certificates: dto.certificates,
+      breeder: dto.breeder,
+      bloodline: dto.bloodline,
     );
   }
 

@@ -130,7 +130,7 @@ class _GlobalSearchBarState extends ConsumerState<GlobalSearchBar> {
         children: [
           _buildChip(context, null, 'Semua', isDark),
           const SizedBox(width: 8),
-          _buildChip(context, SearchResultType.listing, 'Listing', isDark),
+          _buildChip(context, SearchResultType.forSale, 'For Sale', isDark),
           const SizedBox(width: 8),
           _buildChip(context, SearchResultType.auction, 'Lelang', isDark),
           const SizedBox(width: 8),

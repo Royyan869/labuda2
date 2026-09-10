@@ -11,6 +11,13 @@ import 'package:labuda/domains/user/preference/saved_item/saved_item.dart';
 /// Compact design dengan search bar, hamburger menu, dan action buttons.
 /// Shows badges for Chat and Notifications.
 ///
+/// GUEST POLICY (Owner canonical): guest Home keeps public surfaces
+/// (Home feed, search) usable. Auth-required actions (Saved, Chat,
+/// Notifications) are NOT auto-triggered for guests — badge providers are
+/// skipped (no unauthorized fetch / 401 noise) and a tap routes the guest
+/// to the explicit Sign In flow instead of bouncing through a private
+/// route redirect.
+///
 /// NOTE: Uses navigationHandlerProvider directly (not MainScreenNavigationHandler)
 /// because AppBar actions should NOT call Navigator.pop() - that's for drawer only.
 class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
@@ -29,6 +36,17 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
     if (authState is AuthStateAuthenticated) {
       userId = authState.user.id;
     }
+    final isGuest = userId.isEmpty;
+
+    // Auth-required affordances: guest is sent to the explicit Sign In
+    // flow (never to a private route that bounces back to /welcome).
+    void guardedAction(VoidCallback authenticatedAction) {
+      if (isGuest) {
+        navigationHandler.navigateToSignIn();
+        return;
+      }
+      authenticatedAction();
+    }
 
     return AppBar(
       backgroundColor: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
@@ -45,45 +63,69 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
       ),
       title: _buildSearchBar(context, isDark, navigationHandler),
       actions: [
-        // Saved Items button (saved items + watched auctions) with badge
+        // Saved Items button (saved For Sale items + watched auctions) with
+        // badge. Guest sees the icon without badge fetch and gets the Sign
+        // In gate on tap.
         IconButton(
-          onPressed: () => navigationHandler.navigateToSavedItems(),
-          icon: SavedItemBadgeWidget(
-            child: Icon(
-              Icons.bookmark_border_outlined,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray900,
-            ),
-          ),
+          onPressed: () => guardedAction(navigationHandler.navigateToSavedItems),
+          icon: isGuest
+              ? Icon(
+                  Icons.bookmark_border_outlined,
+                  color: isDark
+                      ? AppColors.neutralGray400
+                      : AppColors.neutralGray900,
+                )
+              : SavedItemBadgeWidget(
+                  child: Icon(
+                    Icons.bookmark_border_outlined,
+                    color: isDark
+                        ? AppColors.neutralGray400
+                        : AppColors.neutralGray900,
+                  ),
+                ),
           tooltip:
-              'Disimpan (Listing & Lelang)', // "Saved (Listings & Auctions)"
+              'Disimpan (For Sale & Lelang)', // "Saved (For Sale & Auctions)"
         ),
         // Messages with badge
         IconButton(
-          onPressed: () => navigationHandler.navigateToChat(),
-          icon: ChatBadgeWidget(
-            child: Icon(
-              Icons.chat_bubble_outline,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray900,
-            ),
-          ),
+          onPressed: () => guardedAction(navigationHandler.navigateToChat),
+          icon: isGuest
+              ? Icon(
+                  Icons.chat_bubble_outline,
+                  color: isDark
+                      ? AppColors.neutralGray400
+                      : AppColors.neutralGray900,
+                )
+              : ChatBadgeWidget(
+                  child: Icon(
+                    Icons.chat_bubble_outline,
+                    color: isDark
+                        ? AppColors.neutralGray400
+                        : AppColors.neutralGray900,
+                  ),
+                ),
           tooltip: 'Messages',
         ),
         // Notifications with badge
         IconButton(
-          onPressed: () => navigationHandler.navigateToNotifications(),
-          icon: NotificationBadgeWidget(
-            userId: userId,
-            child: Icon(
-              Icons.notifications_outlined,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray900,
-            ),
-          ),
+          onPressed: () =>
+              guardedAction(navigationHandler.navigateToNotifications),
+          icon: isGuest
+              ? Icon(
+                  Icons.notifications_outlined,
+                  color: isDark
+                      ? AppColors.neutralGray400
+                      : AppColors.neutralGray900,
+                )
+              : NotificationBadgeWidget(
+                  userId: userId,
+                  child: Icon(
+                    Icons.notifications_outlined,
+                    color: isDark
+                        ? AppColors.neutralGray400
+                        : AppColors.neutralGray900,
+                  ),
+                ),
           tooltip: 'Notifications',
         ),
         const SizedBox(width: 8),

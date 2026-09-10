@@ -154,10 +154,13 @@ class _RecordingLocalStorageService extends Fake
     implements ILocalStorageService {
   String? authToken;
   String? refreshToken;
+  String? restrictedToken;
   int setAuthTokenCalls = 0;
   int setRefreshTokenCalls = 0;
   int clearAuthTokenCalls = 0;
   int clearRefreshTokenCalls = 0;
+  int setRestrictedTokenCalls = 0;
+  int clearRestrictedTokenCalls = 0;
 
   @override
   Future<Result<void>> initialize() async => Result.success(null);
@@ -180,24 +183,63 @@ class _RecordingLocalStorageService extends Fake
     return Result.success(null);
   }
 
+  // AUTH-2 (CREDENTIAL AUTHORITY): back the recording fields via the canonical
+  // credential boundary; the counters keep meaning so the login/session tests
+  // observe the same writes as production.
   @override
-  Future<Result<String?>> getAuthToken() async => Result.success(authToken);
-
-  @override
-  Future<Result<String?>> getRefreshToken() async =>
-      Result.success(refreshToken);
-
-  @override
-  Future<Result<void>> setAuthToken(String token) async {
+  Future<Result<void>> saveLabudaCredential(String access, String refresh) async {
     setAuthTokenCalls++;
-    authToken = token;
+    setRefreshTokenCalls++;
+    authToken = access;
+    refreshToken = refresh;
     return Result.success(null);
   }
 
   @override
-  Future<Result<void>> setRefreshToken(String token) async {
-    setRefreshTokenCalls++;
-    refreshToken = token;
+  Future<Result<String?>> readLabudaAccessToken() async =>
+      Result.success(authToken);
+
+  @override
+  Future<Result<String?>> readLabudaRefreshToken() async =>
+      Result.success(refreshToken);
+
+  @override
+  Future<Result<bool>> hasLabudaCredential() async => Result.success(
+        authToken != null &&
+            authToken!.isNotEmpty &&
+            refreshToken != null &&
+            refreshToken!.isNotEmpty,
+      );
+
+  @override
+  Future<Result<void>> clearLabudaCredential() async {
+    clearAuthTokenCalls++;
+    clearRefreshTokenCalls++;
+    authToken = null;
+    refreshToken = null;
+    return Result.success(null);
+  }
+
+  // AUTH-2 (CREDENTIAL AUTHORITY): the restricted-completion credential lives
+  // on its own isolated key (canonical contract). completeProfile reads it,
+  // consumes it via clearRestrictedToken, and persists the full credential via
+  // saveLabudaCredential. Back these with the dedicated field so the
+  // session-hydration tests observe the real production path.
+  @override
+  Future<Result<void>> setRestrictedToken(String token) async {
+    setRestrictedTokenCalls++;
+    restrictedToken = token;
+    return Result.success(null);
+  }
+
+  @override
+  Future<Result<String?>> getRestrictedToken() async =>
+      Result.success(restrictedToken);
+
+  @override
+  Future<Result<void>> clearRestrictedToken() async {
+    clearRestrictedTokenCalls++;
+    restrictedToken = null;
     return Result.success(null);
   }
 
@@ -886,7 +928,7 @@ void main() {
           }),
         );
       final localStorage = _RecordingLocalStorageService()
-        ..authToken = 'restricted-token';
+        ..restrictedToken = 'restricted-token';
       final repository = AuthProfileRepository(
         firebaseAuth: _MockFirebaseAuth(
           currentUserValue: _MockFirebaseUser(idToken: 'firebase-token'),
@@ -926,7 +968,7 @@ void main() {
           statusCode: 503,
         );
       final localStorage = _RecordingLocalStorageService()
-        ..authToken = 'restricted-token';
+        ..restrictedToken = 'restricted-token';
       final repository = AuthProfileRepository(
         firebaseAuth: _MockFirebaseAuth(
           currentUserValue: _MockFirebaseUser(idToken: 'firebase-token'),

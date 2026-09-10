@@ -352,7 +352,7 @@ void main() {
     test('listing row IGNORES authorLifecycle', () {
       final listing = SearchResult(
         id: 'l1',
-        type: SearchResultType.listing,
+        type: SearchResultType.forSale,
         title: 'Listing',
         subtitle: 'Acme Farm',
         metadata: {'authorLifecycle': 'removed', 'sellerLifecycle': 'active'},
@@ -394,7 +394,7 @@ void main() {
         // but authorLifecycle is never consumed on a listing row.
         final listing = SearchResult(
           id: 'l2',
-          type: SearchResultType.listing,
+          type: SearchResultType.forSale,
           title: 'Koi',
           subtitle: 'Acme Farm',
           metadata: {

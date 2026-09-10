@@ -188,7 +188,7 @@ void main() {
       );
 
       await dio.post<dynamic>(
-        '/api/v1/listings',
+        '/api/v1/for-sale',
         data: {'title': 'hello'},
         queryParameters: {'page': 2},
         options: Options(
@@ -210,14 +210,14 @@ void main() {
         AuthInterceptor(labudaTokenFetcher: () async => 'labuda-jwt'),
       );
 
-      await dio.get<dynamic>('/api/v1/listings');
+      await dio.get<dynamic>('/api/v1/for-sale');
       expect(adapter.lastAuth, isNull);
 
       await dio.get<dynamic>('/api/v1/users/some-uuid');
       expect(adapter.lastAuth, isNull);
 
       // POST to public prefix is NOT public — must attach
-      await dio.post<dynamic>('/api/v1/listings');
+      await dio.post<dynamic>('/api/v1/for-sale');
       expect(adapter.lastAuth, equals('Bearer labuda-jwt'));
     });
 

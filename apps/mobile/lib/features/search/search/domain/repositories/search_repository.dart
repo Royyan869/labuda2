@@ -49,20 +49,20 @@ abstract class SearchRepository {
   });
 
   // =====================
-  // Listing Search (REAL LISTINGS TAB)
+  // For Sale Search (REAL FOR SALE TAB)
   // =====================
 
-  /// Search listings with full-text search
+  /// Search for-sale items with full-text search
   ///
   /// Uses the discovery endpoint:
-  /// GET /api/v1/search/listings
+  /// GET /api/v1/search/for-sale
   ///
-  /// Returns ONLY the fields actually emitted by /search/listings —
+  /// Returns ONLY the fields actually emitted by /search/for-sale —
   /// no fabricated quantity / status / visibility / listing_type.
-  Future<ApiResult<List<ListingSearchResult>>> searchListings({
+  Future<ApiResult<List<ForSaleSearchResult>>> searchForSale({
     required String query,
-    int page = 1,
-    int pageSize = 20,
+    String? cursor,
+    int limit = 20,
     String sortBy = 'relevance',
     String sortDir = 'desc',
   });
@@ -82,22 +82,20 @@ abstract class SearchRepository {
   // Unified Search (All Types)
   // =====================
 
-  /// Unified search across all content types
+  /// Unified search across all content types.
+  ///
+  /// SECTION-BASED ALL (canonical): this is the single execution authority
+  /// for a search query. It runs each canonical domain search in parallel
+  /// and returns the results as separate domain collections ([users],
+  /// [listings], [auctions], [contents]), each in its own canonical backend
+  /// order. There is no cross-domain flattening and no unified relevance
+  /// ranking.
+  ///
+  /// [limit] is the per-domain page size (default 20).
   Future<ApiResult<UnifiedSearchResults>> searchAll({
     required String query,
     SearchFilters? filters,
-    SearchSortBy sortBy = SearchSortBy.relevance,
     int limit = 20,
-  });
-
-  /// Search by specific type
-  Future<ApiResult<List<SearchResult>>> searchByType({
-    required String query,
-    required SearchResultType type,
-    SearchFilters? filters,
-    SearchSortBy sortBy = SearchSortBy.relevance,
-    int limit = 20,
-    String? cursor,
   });
 }
 
@@ -170,11 +168,12 @@ class UserSearchResult {
   });
 }
 
-/// Listing search result (from /api/v1/search/listings)
+/// For Sale search result (from /api/v1/search/for-sale)
 ///
 /// SKINNY TRUTHFUL ENTITY — only fields the discovery endpoint emits.
-/// DO NOT ADD: quantity, status, visibility, listing_type, updated_at,
-/// engagement counts — none of these are emitted by /search/listings.
+/// DO NOT ADD: quantity, status, visibility, or any fabricated type field,
+/// updated_at, engagement counts — none of these are emitted by
+/// /search/for-sale.
 ///
 /// Owner-truth identity (`sellerUsername`, `sellerFarmName`,
 /// `sellerAvatarUrl`) is the public seller identity surface.
@@ -182,7 +181,7 @@ class UserSearchResult {
 /// `sellerUserLifecycle` is the user-identity axis (E8.4). It is
 /// SEPARATE from any seller-trust axis (`seller.lifecycle` is reserved
 /// and never consumed). Default = active for pre-E8.1 payloads.
-class ListingSearchResult {
+class ForSaleSearchResult {
   final String id;
   final String title;
   final String description;
@@ -205,7 +204,7 @@ class ListingSearchResult {
   // active when wire omits the field (pre-convergence / unknown values).
   final ContentLifecycle sellerTrustLifecycle;
 
-  const ListingSearchResult({
+  const ForSaleSearchResult({
     required this.id,
     required this.title,
     required this.description,

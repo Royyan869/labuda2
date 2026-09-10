@@ -91,53 +91,53 @@ void main() {
   });
 
   // ------------------------------------------------------------------
-  // 1. GET /api/v1/listings → public (no token attached to request)
+  // 1. GET /api/v1/for-sale → public (no token attached to request)
   // ------------------------------------------------------------------
   test(
-    '1. GET /api/v1/listings is public — no Authorization header attached',
+    '1. GET /api/v1/for-sale is public — no Authorization header attached',
     () async {
       final adapter = _CaptureAdapter();
       final dio = _buildDio(adapter);
 
-      await dio.get<dynamic>('/api/v1/listings');
+      await dio.get<dynamic>('/api/v1/for-sale');
 
       expect(
         adapter.capturedAuth,
         isNull,
         reason:
-            'GET /api/v1/listings is a public browse endpoint; no token should be sent',
+            'GET /api/v1/for-sale is a public browse endpoint; no token should be sent',
       );
     },
   );
 
   // ------------------------------------------------------------------
-  // 2. POST /api/v1/listings is NOT public
+  // 2. POST /api/v1/for-sale is NOT public
   // ------------------------------------------------------------------
   test(
-    '2. POST /api/v1/listings is auth-required — Authorization header attached',
+    '2. POST /api/v1/for-sale is auth-required — Authorization header attached',
     () async {
       final adapter = _CaptureAdapter();
       final dio = _buildDio(adapter);
 
-      await dio.post<dynamic>('/api/v1/listings');
+      await dio.post<dynamic>('/api/v1/for-sale');
 
       expect(
         adapter.capturedAuth,
         equals('Bearer stub-token'),
         reason:
-            'POST /api/v1/listings is auth-required; token must be attached',
+            'POST /api/v1/for-sale is auth-required; token must be attached',
       );
     },
   );
 
   // ------------------------------------------------------------------
-  // 3. GET /api/v1/listings/some-id → public
+  // 3. GET /api/v1/for-sale/some-id → public
   // ------------------------------------------------------------------
-  test('3. GET /api/v1/listings/some-id is public', () async {
+  test('3. GET /api/v1/for-sale/some-id is public', () async {
     final adapter = _CaptureAdapter();
     final dio = _buildDio(adapter);
 
-    await dio.get<dynamic>('/api/v1/listings/some-id');
+    await dio.get<dynamic>('/api/v1/for-sale/some-id');
 
     expect(adapter.capturedAuth, isNull);
   });
@@ -262,7 +262,7 @@ void main() {
         ),
       );
 
-      await dio.get<dynamic>('/api/v1/listings');
+      await dio.get<dynamic>('/api/v1/for-sale');
 
       expect(
         sessionExpiredFired,
@@ -276,11 +276,11 @@ void main() {
   );
 
   // ------------------------------------------------------------------
-  // Extra: GET /api/v1/search/listings, /search/auctions, /search/content, /search/users → public
+  // Extra: GET /api/v1/search/for-sale, /search/auctions, /search/content, /search/users → public
   // ------------------------------------------------------------------
   test('12. GET /api/v1/search/* browse routes are public', () async {
     final paths = [
-      '/api/v1/search/listings',
+      '/api/v1/search/for-sale',
       '/api/v1/search/auctions',
       '/api/v1/search/content',
       '/api/v1/search/users',

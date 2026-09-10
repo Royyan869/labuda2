@@ -13,7 +13,7 @@ import 'package:labuda/features/home/presentation/widgets/commerce_preview_secti
 /// PRODUCT CONTRACT:
 /// - Home Feed is a SOCIAL-first timeline
 /// - Displays: Universal content, reposts, and commerce previews
-/// - NO commerce objects (listings, auctions, contests) - those belong in Explore
+/// - NO commerce objects (For Sale items, auctions, contests) - those belong in Explore
 /// - Reposts are clearly distinguished with canonical RepostAttributionBar
 /// - No fake engagement counts (hidden instead of showing "0")
 class HomeScreen extends ConsumerStatefulWidget {
@@ -172,7 +172,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const SliverToBoxAdapter(child: UploadProgressWidget()),
 
             // COMMERCE PREVIEW: Sedang Laku Hari Ini
-            // Shows active listings/auctions to demonstrate marketplace activity
+            // Shows active For Sale items/auctions to demonstrate marketplace
+            // activity
             const SliverToBoxAdapter(child: CommercePreviewSection()),
 
             // Feed items
@@ -331,7 +332,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _navigateToExplore(BuildContext context) {
-    // Navigate to listings (marketplace browse)
+    // Navigate to the For Sale catalog (marketplace browse)
     // push() preserves back-stack so Android Back returns to Home
     context.push(RoutePaths.forSales);
   }

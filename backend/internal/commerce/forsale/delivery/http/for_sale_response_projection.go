@@ -9,7 +9,23 @@ import (
 	mediaentity "github.com/labuda/backend/internal/commerce/media/entity"
 	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	"github.com/labuda/backend/internal/pkg/sellerdisplay"
-	"github.com/labuda/backend/internal/platform/mediaresolve")
+	"github.com/labuda/backend/internal/platform/mediaresolve"
+)
+
+// forSaleToDetailResponseWithViewerCapabilities renders the canonical
+// GET /api/v1/for-sale/:id detail response: the shared sale serializer PLUS
+// the viewer-scoped capability block. The capability block is intentionally
+// detail-only — list/search/write responses use for_saleToResponseWithSeller
+// without it so generic cache/list contracts stay viewer-agnostic.
+func forSaleToDetailResponseWithViewerCapabilities(
+	l *entity.ForSale,
+	seller sellerdisplay.Info,
+	viewerID *uuid.UUID,
+) map[string]interface{} {
+	resp := for_saleToResponseWithSeller(l, seller)
+	resp["viewer_capabilities"] = buildForSaleViewerCapabilities(l, seller, viewerID)
+	return resp
+}
 
 func buildForSaleViewerCapabilities(
 	l *entity.ForSale,

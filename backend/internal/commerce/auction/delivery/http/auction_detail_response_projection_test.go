@@ -13,7 +13,11 @@ import (
 	"github.com/labuda/backend/internal/pkg/sellerdisplay"
 )
 
-func TestAuctionToDetailResponseWithSeller_EmitsCanonicalSellerIdentity(t *testing.T) {
+// TestAuctionToDetailResponseWithSeller_SellerIdentityAbsent locks the
+// canonical detail contract: seller identity is carried by the flat
+// seller_username / seller_farm_name / seller_avatar_url scalars, and the
+// seller_identity block (duplicate + dead transport) MUST NOT be emitted.
+func TestAuctionToDetailResponseWithSeller_SellerIdentityAbsent(t *testing.T) {
 	auction := &entity.Auction{
 		ID:           uuid.New(),
 		SellerID:     uuid.New(),
@@ -34,11 +38,12 @@ func TestAuctionToDetailResponseWithSeller_EmitsCanonicalSellerIdentity(t *testi
 		},
 	}
 	sellerInfo := sellerdisplay.Info{
-		Username:         "  user_deadbeef  ",
-		FarmName:         "  Acme Farm  ",
-		StoreImageURL:    "  https://example.com/store.jpg  ",
-		AvatarURL:        "  https://example.com/avatar.jpg  ",
-		PublicOriginLine: "  Magelang, Jawa Tengah  ",
+		Username:           "  user_deadbeef  ",
+		FarmName:           "  Acme Farm  ",
+		AvatarURL:          "  https://example.com/avatar.jpg  ",
+		AccountStatus:      "active",
+		SubscriptionStatus: "active",
+		Tier:               "pro",
 	}
 
 	viewerID := auction.SellerID
@@ -53,33 +58,20 @@ func TestAuctionToDetailResponseWithSeller_EmitsCanonicalSellerIdentity(t *testi
 		t.Fatalf("unmarshal failed: %v", err)
 	}
 
-	sellerIdentity, ok := decoded["seller_identity"].(map[string]interface{})
-	if !ok {
-		t.Fatalf("seller_identity = %#v, want object", decoded["seller_identity"])
+	if _, ok := decoded["seller_identity"]; ok {
+		t.Fatalf("seller_identity unexpectedly present: %#v", decoded["seller_identity"])
 	}
-	if sellerIdentity["store_name"] != "Acme Farm" {
-		t.Fatalf("store_name = %v, want Acme Farm", sellerIdentity["store_name"])
+
+	// Canonical seller identity authority = flat scalars (raw passthrough
+	// from sellerdisplay.Info — identical to the list/write surface).
+	if decoded["seller_username"] != "  user_deadbeef  " {
+		t.Fatalf("seller_username = %v, want raw user_deadbeef", decoded["seller_username"])
 	}
-	if sellerIdentity["store_image_url"] != "https://example.com/store.jpg" {
-		t.Fatalf(
-			"store_image_url = %v, want https://example.com/store.jpg",
-			sellerIdentity["store_image_url"],
-		)
+	if decoded["seller_farm_name"] != "  Acme Farm  " {
+		t.Fatalf("seller_farm_name = %v, want raw Acme Farm", decoded["seller_farm_name"])
 	}
-	if sellerIdentity["username"] != "user_deadbeef" {
-		t.Fatalf("username = %v, want user_deadbeef", sellerIdentity["username"])
-	}
-	if sellerIdentity["avatar_url"] != "https://example.com/avatar.jpg" {
-		t.Fatalf(
-			"avatar_url = %v, want https://example.com/avatar.jpg",
-			sellerIdentity["avatar_url"],
-		)
-	}
-	if sellerIdentity["public_origin_line"] != "Magelang, Jawa Tengah" {
-		t.Fatalf(
-			"public_origin_line = %v, want Magelang, Jawa Tengah",
-			sellerIdentity["public_origin_line"],
-		)
+	if decoded["seller_avatar_url"] != "  https://example.com/avatar.jpg  " {
+		t.Fatalf("seller_avatar_url = %v, want raw avatar url", decoded["seller_avatar_url"])
 	}
 
 	requireAuctionViewerCapabilitiesMap(t, decoded, commerceshared.EvaluateAuctionViewerCapabilities(commerceshared.AuctionViewerCapabilitiesInput{
@@ -120,10 +112,14 @@ func TestAuctionToDetailResponseWithSeller_EmitsCanonicalProductFields(t *testin
 		Tier:               "pro",
 	}
 	product := &productEntity.Product{
-		ID:              uuid.New(),
-		SellerID:        auction.SellerID,
-		Title:           "Showa Koi 30cm",
-		Description:     "Premium showa",
+		ID:          uuid.New(),
+		SellerID:    auction.SellerID,
+		Title:       "Showa Koi 30cm",
+		Description: "Premium showa",
+		MediaURLs: []string{
+			"https://cdn.example.com/koi-1.jpg",
+			"https://cdn.example.com/koi-2.jpg",
+		},
 		Variety:         "Showa",
 		SizeCm:          ptrInt(30),
 		AgeMonths:       ptrInt(8),
@@ -172,6 +168,26 @@ func TestAuctionToDetailResponseWithSeller_EmitsCanonicalProductFields(t *testin
 	}
 	if decoded["preparation_note"] != "Pack carefully" {
 		t.Fatalf("preparation_note = %v, want Pack carefully", decoded["preparation_note"])
+	}
+	mediaURLs, ok := decoded["media_urls"].([]interface{})
+	if !ok || len(mediaURLs) != 2 {
+		t.Fatalf("media_urls = %#v, want 2 items", decoded["media_urls"])
+	}
+	if mediaURLs[0] != "https://cdn.example.com/koi-1.jpg" || mediaURLs[1] != "https://cdn.example.com/koi-2.jpg" {
+		t.Fatalf("media_urls = %#v, want both CDN urls", mediaURLs)
+	}
+	if decoded["gender"] != "female" {
+		t.Fatalf("gender = %v, want female", decoded["gender"])
+	}
+	if decoded["breeder"] != "Acme Farm" {
+		t.Fatalf("breeder = %v, want Acme Farm", decoded["breeder"])
+	}
+	if decoded["bloodline"] != "Ogata" {
+		t.Fatalf("bloodline = %v, want Ogata", decoded["bloodline"])
+	}
+	certificates, ok := decoded["certificates"].([]interface{})
+	if !ok || len(certificates) != 1 || certificates[0] != "cert-a" {
+		t.Fatalf("certificates = %#v, want [cert-a]", decoded["certificates"])
 	}
 }
 

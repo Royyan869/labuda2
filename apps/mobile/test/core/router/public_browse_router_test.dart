@@ -1,8 +1,14 @@
-// Public browse router guard tests.
+// Public browse + guest Home router guard tests.
 //
-// Verifies that unauthenticated users can reach public browse routes without
-// being redirected to /welcome, and that private routes (orders, checkout,
-// home, etc.) are still gated.
+// Verifies that unauthenticated users (guests) can reach public browse
+// routes AND the canonical Home (/home) without being redirected to
+// /welcome, and that private routes (orders, checkout, chat, etc.) are
+// still gated.
+//
+// Canonical terminology: the commerce discovery surface is For Sale
+// (routes /for-sale...). The legacy "listing" route vocabulary (/listing...)
+// is NOT registered anywhere in the router and is NOT public — guests
+// hitting it are redirected to /welcome like any unknown private location.
 //
 // Uses the [handleAuthRedirectForTest] seam instead of a full GoRouter stack
 // to keep these tests fast and dependency-free.
@@ -34,85 +40,96 @@ void main() {
     // ------------------------------------------------------------------
     // Public browse routes: no redirect (null)
     // ------------------------------------------------------------------
-    test('11. /listing/:id → no redirect (allowed for guest)', () {
-      expect(_redirect('/listing/some-listing-id'), isNull);
+    test('1. /for-sale → no redirect (guest For Sale catalog)', () {
+      expect(_redirect('/for-sale'), isNull);
     });
 
-    test('12. /auction/:id → no redirect (allowed for guest)', () {
+    test('2. /for-sale/:id → no redirect (guest For Sale detail)', () {
+      expect(_redirect('/for-sale/some-for-sale-id'), isNull);
+    });
+
+    test('3. /auction/:id → no redirect (allowed for guest)', () {
       expect(_redirect('/auction/some-auction-id'), isNull);
     });
 
-    test('13. /search → no redirect (allowed for guest)', () {
+    test('4. /search → no redirect (allowed for guest)', () {
       expect(_redirect('/search'), isNull);
     });
 
-    test('14. /search/results → no redirect (allowed for guest)', () {
+    test('5. /search/results → no redirect (allowed for guest)', () {
       expect(_redirect('/search/results'), isNull);
     });
 
-    test('15. /content/:id → no redirect (allowed for guest)', () {
+    test('6. /content/:id → no redirect (allowed for guest)', () {
       expect(_redirect('/content/some-content-id'), isNull);
     });
 
-    test('16. /user/:id → no redirect (allowed for guest)', () {
+    test('7. /user/:id → no redirect (allowed for guest)', () {
       expect(_redirect('/user/some-user-id'), isNull);
     });
 
-    test('17. /welcome → no redirect (landing page)', () {
+    // ------------------------------------------------------------------
+    // Guest Home: canonical Home destination must be reachable by guests.
+    // Home intent = /home = canonical Home. It is NOT a For Sale route and
+    // must never resolve to /for-sale (or any legacy listing destination).
+    // ------------------------------------------------------------------
+    test('8. /home → no redirect (GUEST HOME — canonical Home reachable)', () {
+      expect(_redirect('/home'), isNull);
+    });
+
+    test('9. /welcome → no redirect (landing page)', () {
       expect(_redirect('/welcome'), isNull);
     });
 
-    test('18. /auth/sign-in → no redirect (auth flow)', () {
+    test('10. /auth/sign-in → no redirect (auth flow)', () {
       expect(_redirect('/auth/sign-in'), isNull);
     });
 
-    test('19. /auth/sign-up → no redirect (auth flow)', () {
+    test('11. /auth/sign-up → no redirect (auth flow)', () {
       expect(_redirect('/auth/sign-up'), isNull);
     });
 
     // ------------------------------------------------------------------
     // Private routes: must redirect to /welcome
     // ------------------------------------------------------------------
-    test('20. /orders → redirect to /welcome', () {
+    test('12. /orders → redirect to /welcome', () {
       expect(_redirect('/orders'), equals('/welcome'));
     });
 
-    test('21. /orders/:id → redirect to /welcome', () {
+    test('13. /orders/:id → redirect to /welcome', () {
       expect(_redirect('/orders/some-order-id'), equals('/welcome'));
     });
 
-    test('22. /checkout/... → redirect to /welcome', () {
+    test('14. /checkout/... → redirect to /welcome', () {
       expect(_redirect('/checkout/some-id'), equals('/welcome'));
     });
 
-    test('23. /home → redirect to /welcome', () {
-      expect(_redirect('/home'), equals('/welcome'));
-    });
-
-    test('24. /seller → redirect to /welcome', () {
+    test('15. /seller → redirect to /welcome', () {
       expect(_redirect('/seller'), equals('/welcome'));
     });
 
-    test('25. /chat → redirect to /welcome', () {
+    test('16. /chat → redirect to /welcome', () {
       expect(_redirect('/chat'), equals('/welcome'));
     });
 
-    test('26. /notifications → redirect to /welcome', () {
+    test('17. /notifications → redirect to /welcome', () {
       expect(_redirect('/notifications'), equals('/welcome'));
     });
 
-    test('27. /saved-items → redirect to /welcome', () {
+    test('18. /saved-items → redirect to /welcome', () {
       expect(_redirect('/saved-items'), equals('/welcome'));
     });
 
-    test('28. /profile → redirect to /welcome', () {
+    test('19. /profile → redirect to /welcome', () {
       expect(_redirect('/profile'), equals('/welcome'));
     });
+
     test('profile ingress /profile/<id> normalizes to /user/<id>', () {
       expect(_normalize('/profile/alice-123'), equals('/user/alice-123'));
       expect(_redirect('/profile/alice-123'), equals('/user/alice-123'));
       expect(_redirect('/user/alice-123'), isNull);
     });
+
     test('reserved /profile/* routes are not treated as user IDs', () {
       expect(_normalize('/profile/edit'), isNull);
       expect(_normalize('/profile/personal-info'), isNull);
@@ -123,17 +140,26 @@ void main() {
     });
 
     // ------------------------------------------------------------------
-    // Edge cases: prefix collision guard
+    // Edge cases: exact-prefix collision guard
     // ------------------------------------------------------------------
-    test('29. /listing (bare, no id) → no redirect', () {
-      // /listing == /listing → publicBrowsePrefixes contains '/listing'
-      expect(_redirect('/listing'), isNull);
+    test('20. legacy /listing vocabulary is NOT public browse → /welcome', () {
+      // Canonical commerce browse vocabulary is /for-sale. The legacy
+      // "listing" route/prefix was removed; it must not be treated as a
+      // guest destination.
+      expect(_redirect('/listing'), equals('/welcome'));
+      expect(_redirect('/listing/some-listing-id'), equals('/welcome'));
     });
 
-    test('30. /userinfo (non-matching prefix) → redirect to /welcome', () {
+    test('21. /userinfo (non-matching prefix) → redirect to /welcome', () {
       // "/userinfo".startsWith("/user/") is false; "/userinfo" != "/user"
       // So it should be gated.
       expect(_redirect('/userinfo'), equals('/welcome'));
+    });
+
+    test('22. /home-something does not match /home → redirect to /welcome', () {
+      // The guest-home exemption is exact (/home or /home/*); lookalike
+      // paths must not leak through.
+      expect(_redirect('/homepage'), equals('/welcome'));
     });
   });
 

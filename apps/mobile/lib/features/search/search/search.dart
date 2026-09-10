@@ -12,12 +12,12 @@
 /// Migration Status: ✅ MIGRATED to pure Riverpod
 /// - Uses core.providers.apiClientProvider
 /// - Uses core.providers.loggerServiceProvider
-/// - Uses core.providers.navigationHandlerProvider
+/// - Uses core.navigation.navigationHandlerProvider (canonical)
 /// - Uses shared.providers.currentUserIdProvider
 library;
 
 // Domain Layer
-export 'domain/entities/search_filters.dart' show SearchFilters, SearchSortBy;
+export 'domain/entities/search_filters.dart' show SearchFilters;
 export 'domain/entities/search_result.dart'
     show SearchResult, SearchResultType, UnifiedSearchResults;
 export 'domain/entities/search_history.dart' show SearchHistory;

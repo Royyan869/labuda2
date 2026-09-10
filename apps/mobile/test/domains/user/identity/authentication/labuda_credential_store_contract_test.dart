@@ -98,21 +98,6 @@ class MockCredentialStore implements ILocalStorageService {
   Future<Result<bool>> containsKey(String key) async => Result.success(_secure.containsKey(key));
   @override
   Future<Result<Set<String>>> getKeys() async => Result.success(_secure.keys.toSet());
-  @override
-  Future<Result<void>> setAuthToken(String token) async => Result.success(null);
-  @override
-  Future<Result<String?>> getAuthToken() async => Result.success(null);
-  Future<Result<void>> clearAuthToken() async => Result.success(null);
-  @override
-  Future<Result<void>> setRefreshToken(String token) async => Result.success(null);
-  @override
-  Future<Result<String?>> getRefreshToken() async => Result.success(null);
-  Future<Result<void>> clearRefreshToken() async => Result.success(null);
-  @override
-  Future<Result<void>> setUserSession(Map<String, dynamic> session) async => Result.success(null);
-  @override
-  Future<Result<Map<String, dynamic>?>> getUserSession() async => Result.success(null);
-  Future<Result<void>> clearUserSession() async => Result.success(null);
 
   // Restricted token uses isolated key
   @override

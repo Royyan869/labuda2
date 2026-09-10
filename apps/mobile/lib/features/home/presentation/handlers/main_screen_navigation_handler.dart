@@ -1,6 +1,14 @@
-/// Main Screen Navigation Handler
+/// Main Screen local navigation orchestration
 ///
-/// Navigation handler khusus untuk Main Screen dan drawer actions
+/// CONVERGED (single navigation authority = navigationHandlerProvider):
+/// Pure delegation methods were removed — MainScreen/drawer now call the
+/// canonical [navigationHandlerProvider] directly (same pattern already used
+/// by MainAppBar).
+///
+/// This class retains ONLY orchestration that is local to the MainScreen UI:
+/// - sign out (auth controller side effect)
+/// - own-profile navigation gated on authenticated state
+/// - "coming soon" drawer feedback
 library;
 
 import 'package:flutter/material.dart';
@@ -8,109 +16,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 
-/// Navigation handler untuk Main Screen
-///
-/// Menangani navigasi terkait dengan main screen seperti:
-/// - Tab switching
-/// - Bottom navigation
-/// - Drawer actions (sign in/out, settings, profile, etc.)
+/// Main Screen local navigation orchestration (drawer actions and auth gates).
 class MainScreenNavigationHandler {
   final WidgetRef ref;
   final BuildContext context;
-  final NavigationHandler _appRouter;
 
-  MainScreenNavigationHandler({
-    required this.ref,
-    required this.context,
-    NavigationHandler? appRouter,
-  }) : _appRouter = appRouter ?? AppRouter();
+  MainScreenNavigationHandler({required this.ref, required this.context});
 
-  /// Navigate to home tab
-  void navigateToHome() {
-    _appRouter.navigateToHome();
-  }
-
-  /// Navigate to explore/search tab
-  void navigateToExplore() {
-    _appRouter.navigateToSearch();
-  }
-
-  /// Navigate to create content
-  void navigateToCreate() => _appRouter.navigateToCreateContent();
-
-  /// Navigate to notifications
-  VoidCallback get navigateToNotifications => () {
-    _appRouter.navigateToNotifications();
-  };
-
-  /// Navigate to messages/chat
-  VoidCallback get navigateToMessages => () {
-    _appRouter.navigateToChat();
-  };
-
-  /// Handle sign in
-  VoidCallback get handleSignIn => () {
-    _appRouter.navigateToSignIn();
-  };
-
-  /// Handle sign up
-  VoidCallback get handleSignUp => () {
-    _appRouter.navigateToSignUp();
-  };
-
-  /// Handle sign out
+  /// Handle sign out — auth side effect only.
+  /// Route outcome after sign-out is decided by the router redirect.
   VoidCallback get handleSignOut => () {
-    // Sign out logic
-    final authController = ref.read(authControllerProvider.notifier);
-    authController.signOut();
+    ref.read(authControllerProvider.notifier).signOut();
   };
 
-  /// Handle settings navigation
-  void handleSettings({bool closeDrawer = true}) {
-    _appRouter.navigateToSettings();
-  }
-
-  /// Handle profile navigation
+  /// Handle profile — own profile is only reachable when authenticated.
   VoidCallback get handleProfile => () {
     final authState = ref.read(authControllerProvider);
     if (authState is AuthStateAuthenticated) {
-      _appRouter.navigateToProfile();
+      ref.read(navigationHandlerProvider).navigateToProfile();
     }
   };
 
-  /// Handle coming soon features
+  /// Handle coming-soon features — closes the drawer and shows feedback.
   void Function(BuildContext, String) get handleComingSoon => (ctx, feature) {
     Navigator.pop(ctx); // Close drawer
     AppSnackBar.showInfo(ctx, '$feature coming soon');
   };
-
-  /// Navigate to profile
-  void navigateToProfile() {
-    _appRouter.navigateToProfile();
-  }
-
-  /// Navigate to chat
-  void navigateToChat() {
-    _appRouter.navigateToChat();
-  }
-
-  /// Navigate to specific content detail
-  void navigateToContentDetail(String contentId) {
-    _appRouter.navigateToContentDetail(contentId);
-  }
-
-  /// Navigate to For Sale detail (PUBLIC - use this for product browsing)
-  void navigateToForSaleDetail(String fixedPriceSaleId) {
-    _appRouter.navigateToForSaleDetail(fixedPriceSaleId);
-  }
-
-  /// Navigate to auction detail
-  void navigateToAuction(String auctionId) {
-    _appRouter.navigateToAuction(auctionId);
-  }
-
-  /// Navigate back
-  void navigateBack() {
-    _appRouter.navigateBack();
-  }
 }

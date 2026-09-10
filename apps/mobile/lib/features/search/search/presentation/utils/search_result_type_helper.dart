@@ -9,7 +9,7 @@ class SearchResultTypeHelper {
     switch (type) {
       case SearchResultType.user:
         return Icons.person;
-      case SearchResultType.listing:
+      case SearchResultType.forSale:
       case SearchResultType.externalProduct:
         return Icons.shopping_bag;
       case SearchResultType.auction:
@@ -24,7 +24,7 @@ class SearchResultTypeHelper {
     switch (type) {
       case SearchResultType.user:
         return AppColors.primaryBlue;
-      case SearchResultType.listing:
+      case SearchResultType.forSale:
       case SearchResultType.externalProduct:
         return AppColors.primary;
       case SearchResultType.auction:
@@ -39,9 +39,9 @@ class SearchResultTypeHelper {
     switch (type) {
       case SearchResultType.user:
         return 'User';
-      case SearchResultType.listing:
+      case SearchResultType.forSale:
       case SearchResultType.externalProduct:
-        return 'Listing';
+        return 'For Sale';
       case SearchResultType.auction:
         return 'Lelang';
       case SearchResultType.content:
@@ -52,7 +52,7 @@ class SearchResultTypeHelper {
   /// Get tab index for result type
   static int getTabIndex(SearchResultType? type) {
     switch (type) {
-      case SearchResultType.listing:
+      case SearchResultType.forSale:
       case SearchResultType.externalProduct:
         return 1;
       case SearchResultType.auction:
@@ -70,7 +70,7 @@ class SearchResultTypeHelper {
   static SearchResultType? getTypeFromIndex(int index) {
     switch (index) {
       case 1:
-        return SearchResultType.listing;
+        return SearchResultType.forSale;
       case 2:
         return SearchResultType.auction;
       case 3:

@@ -93,20 +93,8 @@ class _FakeFirebaseAuth extends Fake implements FirebaseAuth {
 }
 
 class _RecordingLocalStorage extends Fake implements ILocalStorageService {
-  int setAuthTokenCalls = 0;
-  int setRefreshTokenCalls = 0;
-
-  @override
-  Future<Result<void>> setAuthToken(String token) async {
-    setAuthTokenCalls++;
-    return Result.success(null);
-  }
-
-  @override
-  Future<Result<void>> setRefreshToken(String token) async {
-    setRefreshTokenCalls++;
-    return Result.success(null);
-  }
+  // AUTH-2: UserSyncService no longer writes credentials (moved to the canonical
+  // auth persistence boundary), so there are no legacy setAuth/setRefresh hooks.
 }
 
 void main() {

@@ -42,7 +42,10 @@ class ForSaleDtoMapper {
               type: item.type == 'video' ? MediaType.video : MediaType.image,
               position: item.position,
               duration: item.duration,
-              createdAt: DateTime.now(),
+              createdAt: item.createdAt ?? DateTime.now(),
+              variants: {
+                if (item.thumbnailUrl != null) 'thumbnail': item.thumbnailUrl!,
+              },
             ),
           )
           .toList();
@@ -94,6 +97,9 @@ class ForSaleDtoMapper {
       // Stage 2 — seller reputation tier badge. Pass-through; SellerTierBadge
       // handles null/basic/unknown gracefully (renders nothing).
       sellerTier: dto.sellerTier,
+      // Canonical per-viewer detail action authority. Null on list/search
+      // payloads; present on the detail wire (viewer_capabilities).
+      viewerCapabilities: dto.viewerCapabilities,
       status: _mapStatus(dto.status),
       visibility: _mapVisibility(dto.visibility),
       isNegotiable: dto.negotiationEnabled,

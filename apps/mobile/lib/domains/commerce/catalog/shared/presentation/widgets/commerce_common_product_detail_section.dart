@@ -55,8 +55,11 @@ class CommerceCommonProductDetailsData {
       breeder: auction.koiDetails.breeder,
       bloodline: auction.koiDetails.bloodline,
       certificates: auction.koiDetails.certificates,
-      preparationTime: null,
-      preparationNote: null,
+      // Shipping readiness is canonical Product content on the auction detail
+      // wire (preparation_time / preparation_note) and is preserved on the
+      // Auction read model — never dropped here.
+      preparationTime: auction.preparationTime,
+      preparationNote: auction.preparationNote,
       description: auction.description,
     );
   }

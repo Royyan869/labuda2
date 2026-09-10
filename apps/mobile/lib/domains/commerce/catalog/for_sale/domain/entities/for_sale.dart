@@ -51,6 +51,9 @@ import 'package:labuda/shared/governance/content_lifecycle.dart';
 // Import PreparationTime
 import 'package:labuda/core/common/types/preparation_time.dart';
 
+// Canonical commerce detail action authority (per-viewer capabilities).
+import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
+
 // =============================================================================
 // Enums
 // =============================================================================
@@ -162,6 +165,21 @@ class ForSale extends Equatable {
   /// (expired subscription) — see _ListingSellerCard for enforcement.
   final String? sellerTier;
 
+  /// Canonical per-viewer action authority for the detail surface.
+  ///
+  /// Populated from the wire's `viewer_capabilities` slot emitted by
+  /// `forSaleToDetailResponseWithViewerCapabilities` →
+  /// `commerceshared.EvaluateForSaleViewerCapabilities` (viewer identity,
+  /// status, stock, negotiation flag, seller-trust evaluated server-side).
+  /// The detail CTA bar reads [canChat]/[canNegotiate]/[canBuy]/[role] from
+  /// here instead of re-inferring transaction permission from raw
+  /// status/stock/seller-lifecycle locally.
+  ///
+  /// Null on list/search payloads (no viewer-scoped capability is emitted
+  /// there). The detail screen always receives it via the detail endpoint;
+  /// when null, transaction CTAs are not rendered.
+  final CommerceViewerCapabilities? viewerCapabilities;
+
   final ForSaleStatus status;
   final ForSaleVisibility visibility;
   final bool isNegotiable;
@@ -192,6 +210,7 @@ class ForSale extends Equatable {
     this.sellerUserLifecycle = ContentLifecycle.active,
     this.sellerTrustLifecycle = ContentLifecycle.active,
     this.sellerTier,
+    this.viewerCapabilities,
     required this.status,
     this.visibility = ForSaleVisibility.public,
     this.isNegotiable = false,
@@ -277,6 +296,7 @@ class ForSale extends Equatable {
     ContentLifecycle? sellerUserLifecycle,
     ContentLifecycle? sellerTrustLifecycle,
     String? sellerTier,
+    CommerceViewerCapabilities? viewerCapabilities,
     ForSaleStatus? status,
     ForSaleVisibility? visibility,
     bool? isNegotiable,
@@ -307,6 +327,7 @@ class ForSale extends Equatable {
       sellerUserLifecycle: sellerUserLifecycle ?? this.sellerUserLifecycle,
       sellerTrustLifecycle: sellerTrustLifecycle ?? this.sellerTrustLifecycle,
       sellerTier: sellerTier ?? this.sellerTier,
+      viewerCapabilities: viewerCapabilities ?? this.viewerCapabilities,
       status: status ?? this.status,
       visibility: visibility ?? this.visibility,
       isNegotiable: isNegotiable ?? this.isNegotiable,
@@ -340,6 +361,7 @@ class ForSale extends Equatable {
     sellerUserLifecycle,
     sellerTrustLifecycle,
     sellerTier,
+    viewerCapabilities,
     status,
     visibility,
     isNegotiable,

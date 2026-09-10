@@ -5,17 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/commerce/forsale/entity"
 	"github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	for_saleRepo "github.com/labuda/backend/internal/commerce/forsale/repository"
+	"github.com/labuda/backend/internal/commerce/governance/commercegov"
 	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
 	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	productRepo "github.com/labuda/backend/internal/commerce/product/repository"
-	"github.com/labuda/backend/internal/commerce/governance/commercegov"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	shippingRepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
 	shippingquoteRepo "github.com/labuda/backend/internal/commerce/shipping/quote/repository"
@@ -600,46 +599,6 @@ func (s *ForSaleService) EnsureFarmAddressValid(
 	}
 
 	return nil
-}
-
-// DerivePublicOriginLine resolves the public seller origin string from a
-// product's farm_address_id. Returns the canonical "{city_name}, {province_name}"
-// projection from the addresses table, or empty string when the address is
-// absent/unresolvable.
-//
-// The origin is product-specific: different products from the same seller
-// may ship from different farms. This method uses the EXACT product's
-// farm_address_id — never a fallback or approximation.
-func (s *ForSaleService) DerivePublicOriginLine(
-	ctx context.Context,
-	tx db.Tx,
-	farmAddressID *uuid.UUID,
-) string {
-	if farmAddressID == nil || *farmAddressID == uuid.Nil {
-		return ""
-	}
-	address, err := s.addressRepo.GetByID(ctx, tx, *farmAddressID)
-	if err != nil {
-		return ""
-	}
-	return formatOriginLine(address.CityName, address.ProvinceName)
-}
-
-// formatOriginLine builds the public origin string from city and province
-// names. Empty string when both are absent.
-func formatOriginLine(cityName, provinceName string) string {
-	city := strings.TrimSpace(cityName)
-	province := strings.TrimSpace(provinceName)
-	if city == "" && province == "" {
-		return ""
-	}
-	if city == "" {
-		return province
-	}
-	if province == "" {
-		return city
-	}
-	return city + ", " + province
 }
 
 // Publish publishes a for_sale from draft to active (market-visible).

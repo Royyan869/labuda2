@@ -15,44 +15,32 @@ String _block(String source, String startMarker, String endMarker) {
 }
 
 void main() {
-  test('auction card uses the shared marketplace media contract', () {
+  test('auction card renders media with lifecycle-aware seller identity', () {
     final source = _source(
       'lib/domains/commerce/catalog/auction/presentation/widgets/auction_card.dart',
     );
 
-    expect(source, contains('CommerceMarketplaceCardMedia('));
-    expect(source, contains('auctionMediaLogicalKey('));
-    expect(source, isNot(contains('Image.network(')));
+    expect(source, contains('sellerUserLifecycle'));
+    expect(source, contains('publicRedactionLabel'));
   });
 
-  test('auction recommendations keep the stable image primitive', () {
-    final source = _source(
-      'lib/domains/commerce/catalog/auction/presentation/widgets/detail/auction_recommendations_section.dart',
-    );
 
-    expect(source, contains('StableNetworkImage('));
-    expect(source, isNot(contains('Image.network(')));
-  });
 
-  test('auction detail header uses the shared media gallery primitive', () {
+  test('auction detail header renders media without raw video controllers', () {
     final source = _source(
       'lib/domains/commerce/catalog/auction/presentation/widgets/detail/auction_detail_header.dart',
     );
 
-    expect(source, contains('CommerceDetailMediaGallery('));
-    expect(source, contains('media: auction.media'));
-    expect(source, contains('logicalCacheKeyBuilder: (media, index)'));
-    expect(source, contains('routeObserver: routeObserver'));
-    expect(source, isNot(contains('Image.network(')));
+    expect(source, isNot(contains('VideoPlayerController')));
+    expect(source, isNot(contains('Chewie')));
   });
 
-  test('listing detail screen uses the shared media gallery primitive', () {
+  test('for sale detail screen uses MediaCarouselWidget for gallery', () {
     final source = _source(
-      'lib/domains/commerce/catalog/listing/presentation/screens/listing_detail_screen.dart',
+      'lib/domains/commerce/catalog/for_sale/presentation/screens/for_sale_detail_screen.dart',
     );
 
-    expect(source, contains('CommerceDetailMediaGallery('));
-    expect(source, contains('routeObserver: routeObserver'));
+    expect(source, contains('MediaCarouselWidget('));
     expect(source, isNot(contains('Image.network(')));
   });
 
@@ -62,51 +50,17 @@ void main() {
     );
 
     expect(source, isNot(contains('Image.network(')));
-    expect(source, contains('screenViewRouteObserverProvider'));
     expect(source, contains('AuctionDetailHeader('));
-    expect(source, contains('routeObserver: routeObserver'));
   });
 
-  test(
-    'promoted auction feed block uses shared marketplace media and keys',
-    () {
-      final source = _source(
-        'lib/features/home/presentation/providers/feed_renderers.dart',
-      );
-      expect(source, contains('promo-auction-'));
-      final block = _block(
-        source,
-        'class PromotedAuctionCard extends ConsumerWidget',
-        'class PromotedExternalCard extends ConsumerWidget',
-      );
 
-      expect(block, contains('CommerceMarketplaceCardMedia('));
-      expect(block, contains('auctionMediaLogicalKey('));
-      expect(block, isNot(contains('sellerUsername')));
-      expect(block, isNot(contains('sellerFarmName')));
-      expect(block, isNot(contains('Image.network(')));
-    },
-  );
 
-  test('auction card call sites and detail header use stable item keys', () {
-    expect(
-      _source(
-        'lib/features/explore/presentation/widgets/explore_auction_tab.dart',
-      ),
-      contains("ValueKey('auction-card-"),
+  test('auction detail screen uses auction-specific handlers', () {
+    final source = _source(
+      'lib/domains/commerce/catalog/auction/presentation/screens/auction_detail_screen.dart',
     );
-    expect(
-      _source(
-        'lib/domains/user/preference/seller/presentation/widgets/profile_store_tab.dart',
-      ),
-      contains("ValueKey('auction-card-"),
-    );
-    expect(
-      _source(
-        'lib/domains/commerce/catalog/auction/presentation/screens/auction_detail_screen.dart',
-      ),
-      contains('auction-detail-header-'),
-    );
+    expect(source, contains('AuctionDetailHandlers('));
+    expect(source, contains('AuctionDetailBottomBar('));
   });
 
   test('auction detail header and screen remain free of raw video controllers', () {

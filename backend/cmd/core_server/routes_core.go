@@ -148,7 +148,9 @@ func SetupRoutes(
 	//   - Valid token → authenticated viewer with full context injected
 	//
 	// DO NOT move POST/PUT/DELETE routes here.
-	// DO NOT move /api/v1/feed here (FeedHandler explicitly rejects anonymous).
+	// GET /api/v1/feed lives here (Guest Home public content discovery):
+	// FeedHandler builds an explicit AnonymousViewer or authenticated
+	// ViewerContext, and the feed SQL enforces visibility per viewer.
 	v1Browse := router.Group("/api/v1")
 	v1Browse.Use(middleware.ErrorHandler(log.Logger))
 	v1Browse.Use(middleware.StrictBrowseLabudaAuthMiddleware(labudaTokenService))
@@ -180,6 +182,11 @@ func SetupRoutes(
 
 		// Like stats (public, viewer-optional)
 		v1Browse.GET("/likes/stats", deps.LikeHandler.GetLikeStats)
+
+		// Home feed (Guest Home canonical): GET /api/v1/feed
+		// - anonymous viewer → global public content discovery
+		// - authenticated viewer → follow/own + public discovery
+		v1Browse.GET("/feed", deps.FeedHandler.GetFeed)
 	}
 
 	// ===== GLOBAL MIDDLEWARE CHAIN FOR /api/v1 =====
@@ -1197,11 +1204,8 @@ func SetupRoutes(
 		// Accessible by any authenticated user for client-side feature availability
 		v1.GET("/config/feature/:key", deps.PlatformConfigHandler.GetFeatureFlag)
 
-		// Feed domain routes (CORE - Home Feed)
-		// Social-first timeline: posts, requests, and reposts only
-		// Does NOT include commerce objects (for_sale items, auctions) directly
-		feedRoutes := v1.Group("/feed")
-		feedRoutes.GET("", deps.FeedHandler.GetFeed)
+		// Home Feed route moved to v1Browse (public browse group): Guest Home
+		// canonical public content discovery + authenticated follow/own feed.
 
 		// Like domain routes (CORE - Content and Comment Engagement)
 		// Like system for: content (post/request), comment

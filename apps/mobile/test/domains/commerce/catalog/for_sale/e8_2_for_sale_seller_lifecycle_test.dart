@@ -19,14 +19,13 @@ import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/for_sale_dto.d
 import 'package:labuda/domains/commerce/catalog/for_sale/data/mappers/for_sale_dto_mapper.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 
-Map<String, dynamic> _baseListingJson({Map<String, dynamic>? listing}) {
+Map<String, dynamic> _baseListingJson({Map<String, dynamic>? forSale}) {
   return <String, dynamic>{
     'id': '00000000-0000-0000-0000-000000000001',
     'seller_id': '00000000-0000-0000-0000-000000000002',
     'title': 'Showa Koi 30cm',
     'description': 'Premium showa',
     'media_urls': <String>[],
-    'listing_type': 'fixed_price',
     'price': 1500000,
     'quantity': 1,
     'negotiation_enabled': false,
@@ -37,7 +36,7 @@ Map<String, dynamic> _baseListingJson({Map<String, dynamic>? listing}) {
     'seller_username': 'alice',
     'seller_farm_name': 'Acme Farm',
     'seller_avatar_url': null,
-    if (listing != null) 'listing': listing,
+    if (forSale != null) 'for_sale': forSale,
   };
 }
 
@@ -51,7 +50,7 @@ void main() {
     test('nested user.lifecycle="active" → "active"', () {
       final dto = ForSaleResponseDto.fromJson(
         _baseListingJson(
-          listing: {
+          forSale: {
             'id': '00000000-0000-0000-0000-000000000001',
             'title': 'Showa Koi 30cm',
             'seller': {
@@ -72,7 +71,7 @@ void main() {
     test('nested user.lifecycle="unavailable" → "unavailable"', () {
       final dto = ForSaleResponseDto.fromJson(
         _baseListingJson(
-          listing: {
+          forSale: {
             'id': '00000000-0000-0000-0000-000000000001',
             'title': 'Showa Koi 30cm',
             'seller': {
@@ -93,7 +92,7 @@ void main() {
     test('nested user.lifecycle="removed" → "removed"', () {
       final dto = ForSaleResponseDto.fromJson(
         _baseListingJson(
-          listing: {
+          forSale: {
             'id': '00000000-0000-0000-0000-000000000001',
             'title': 'Showa Koi 30cm',
             'seller': {
@@ -114,7 +113,7 @@ void main() {
     test('empty-string user.lifecycle → null (rollback-safe)', () {
       final dto = ForSaleResponseDto.fromJson(
         _baseListingJson(
-          listing: {
+          forSale: {
             'id': '00000000-0000-0000-0000-000000000001',
             'title': 'Showa Koi 30cm',
             'seller': {
@@ -137,7 +136,7 @@ void main() {
       // The walker only reaches user.lifecycle; top-level is ignored.
       final dto = ForSaleResponseDto.fromJson(
         _baseListingJson(
-          listing: {
+          forSale: {
             'id': '00000000-0000-0000-0000-000000000001',
             'title': 'Showa Koi 30cm',
             'seller': {
@@ -168,7 +167,7 @@ void main() {
     test('"active" wire → ContentLifecycle.active', () {
       final dto = ForSaleResponseDto.fromJson(
         _baseListingJson(
-          listing: {
+          forSale: {
             'id': '00000000-0000-0000-0000-000000000001',
             'title': 'Showa Koi 30cm',
             'seller': {
@@ -188,7 +187,7 @@ void main() {
     test('"unavailable" wire → ContentLifecycle.unavailable', () {
       final dto = ForSaleResponseDto.fromJson(
         _baseListingJson(
-          listing: {
+          forSale: {
             'id': '00000000-0000-0000-0000-000000000001',
             'title': 'Showa Koi 30cm',
             'seller': {
@@ -208,7 +207,7 @@ void main() {
     test('"removed" wire → ContentLifecycle.removed', () {
       final dto = ForSaleResponseDto.fromJson(
         _baseListingJson(
-          listing: {
+          forSale: {
             'id': '00000000-0000-0000-0000-000000000001',
             'title': 'Showa Koi 30cm',
             'seller': {
@@ -228,7 +227,7 @@ void main() {
     test('unknown wire → ContentLifecycle.unavailable (FAIL CLOSED)', () {
       final dto = ForSaleResponseDto.fromJson(
         _baseListingJson(
-          listing: {
+          forSale: {
             'id': '00000000-0000-0000-0000-000000000001',
             'title': 'Showa Koi 30cm',
             'seller': {

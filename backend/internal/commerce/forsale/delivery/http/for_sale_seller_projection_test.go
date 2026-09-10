@@ -249,6 +249,12 @@ func TestForSaleToResponseWithSellerProjection_SerializesCanonicalSellerIdentity
 	require.Equal(t, "  Acme Farm  ", decoded["seller_farm_name"])
 	require.Equal(t, "  https://example.com/avatar.jpg  ", decoded["seller_avatar_url"])
 
+	// seller_identity is duplicate/dead transport — never emitted by the
+	// canonical serializer. The flat scalars above are the single identity
+	// authority; the nested for_sale card carries lifecycle/tier only.
+	_, hasSellerIdentity := decoded["seller_identity"]
+	require.False(t, hasSellerIdentity, "seller_identity must be absent")
+
 	forSale, ok := decoded["for_sale"].(map[string]interface{})
 	require.True(t, ok)
 	seller, ok := forSale["seller"].(map[string]interface{})
@@ -267,11 +273,9 @@ func TestForSaleToResponseWithSellerProjection_SerializesCanonicalSellerIdentity
 func TestForSaleToDetailResponseWithSellerProjection_EmitsCanonicalSellerIdentity(t *testing.T) {
 	for_sale := testForSale(uuid.New())
 	sellerInfo := sellerdisplay.Info{
-		Username:         "  user_deadbeef  ",
-		FarmName:         "  Acme Farm  ",
-		StoreImageURL:    "  https://example.com/store.jpg  ",
-		AvatarURL:        "  https://example.com/avatar.jpg  ",
-		PublicOriginLine: "  Magelang, Jawa Tengah  ",
+		Username:  "  user_deadbeef  ",
+		FarmName:  "  Acme Farm  ",
+		AvatarURL: "  https://example.com/avatar.jpg  ",
 	}
 
 	resp := for_saleToResponseWithSeller(for_sale, sellerInfo)
@@ -289,18 +293,18 @@ func TestForSaleToDetailResponseWithSellerProjection_EmitsCanonicalSellerIdentit
 func TestForSaleToDetailResponseWithSellerProjection_EmitsCanonicalProductFields(t *testing.T) {
 	for_sale := testForSale(uuid.New())
 	for_sale.Product = &productEntity.Product{
-		ID:          uuid.New(),
-		SellerID:    for_sale.SellerID,
-		Title:       "Showa Koi 30cm",
-		Description: "Premium showa",
-		MediaURLs:   []string{"https://example.com/thumb.jpg"},
-		Variety:     "Showa",
-		SizeCm:      ptrInt(30),
-		AgeMonths:   ptrInt(8),
-		Gender:      ptrString("female"),
-		Breeder:     ptrString("Acme Farm"),
-		Bloodline:   ptrString("Ogata"),
-		Certificates: []string{"cert-a"},
+		ID:              uuid.New(),
+		SellerID:        for_sale.SellerID,
+		Title:           "Showa Koi 30cm",
+		Description:     "Premium showa",
+		MediaURLs:       []string{"https://example.com/thumb.jpg"},
+		Variety:         "Showa",
+		SizeCm:          ptrInt(30),
+		AgeMonths:       ptrInt(8),
+		Gender:          ptrString("female"),
+		Breeder:         ptrString("Acme Farm"),
+		Bloodline:       ptrString("Ogata"),
+		Certificates:    []string{"cert-a"},
 		PreparationTime: "short",
 		PreparationNote: ptrString("Pack carefully"),
 	}
@@ -545,21 +549,76 @@ func testForSale(sellerID uuid.UUID) *entity.ForSale {
 		CreatedAt:          now,
 		UpdatedAt:          now,
 		Product: &productEntity.Product{
-			ID:          uuid.New(),
-			SellerID:    sellerID,
-			Title:       "Showa Koi 30cm",
-			Description: "Premium showa",
-			MediaURLs:   []string{"https://example.com/thumb.jpg"},
-			Variety:     "Showa",
+			ID:           uuid.New(),
+			SellerID:     sellerID,
+			Title:        "Showa Koi 30cm",
+			Description:  "Premium showa",
+			MediaURLs:    []string{"https://example.com/thumb.jpg"},
+			Variety:      "Showa",
 			Certificates: []string{"cert-1"},
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			CreatedAt:    now,
+			UpdatedAt:    now,
 		},
 	}
 }
 
 func ptrInt(v int) *int {
 	return &v
+}
+
+// TestForSaleToDetailResponseWithViewerCapabilities locks the canonical
+// detail contract: GET /for-sale/:id carries viewer_capabilities (the
+// per-viewer action authority) alongside the flat seller scalars and the
+// nested for_sale card. The base serializer used by list/search/write must
+// stay capability-free so generic cache/list contracts are viewer-agnostic.
+func TestForSaleToDetailResponseWithViewerCapabilities(t *testing.T) {
+	for_sale := testForSale(uuid.New())
+	for_sale.NegotiationEnabled = true
+	for_sale.Product = &productEntity.Product{
+		ID:          uuid.New(),
+		SellerID:    for_sale.SellerID,
+		Title:       "Showa Koi 30cm",
+		Description: "Premium showa",
+		MediaURLs:   []string{"https://example.com/thumb.jpg"},
+	}
+	sellerInfo := sellerdisplay.Info{
+		Username:           "seller_user",
+		FarmName:           "Acme Farm",
+		AvatarURL:          "https://example.com/avatar.jpg",
+		AccountStatus:      "active",
+		IsDeleted:          false,
+		SubscriptionStatus: "active",
+		Tier:               "pro",
+	}
+	viewerID := uuid.New()
+
+	detailResp := forSaleToDetailResponseWithViewerCapabilities(for_sale, sellerInfo, &viewerID)
+	detailRaw, err := json.Marshal(detailResp)
+	require.NoError(t, err)
+	var detailDecoded map[string]interface{}
+	require.NoError(t, json.Unmarshal(detailRaw, &detailDecoded))
+
+	caps, ok := detailDecoded["viewer_capabilities"].(map[string]interface{})
+	require.True(t, ok, "viewer_capabilities missing from detail response")
+	require.Equal(t, "buyer", caps["role"])
+	require.Equal(t, true, caps["can_chat"])
+	require.Equal(t, true, caps["can_negotiate"])
+	require.Equal(t, true, caps["can_buy"])
+	require.Equal(t, false, caps["can_bid"])
+	require.Equal(t, false, caps["can_buy_now"])
+
+	// Flat scalars + nested card preserved alongside the capability block.
+	require.Equal(t, "seller_user", detailDecoded["seller_username"])
+	_, hasForSale := detailDecoded["for_sale"].(map[string]interface{})
+	require.True(t, hasForSale)
+
+	// List/search/write base serializer must NOT carry viewer capabilities.
+	baseResp := for_saleToResponseWithSeller(for_sale, sellerInfo)
+	baseRaw, err := json.Marshal(baseResp)
+	require.NoError(t, err)
+	var baseDecoded map[string]interface{}
+	require.NoError(t, json.Unmarshal(baseRaw, &baseDecoded))
+	require.NotContains(t, baseDecoded, "viewer_capabilities")
 }
 
 func ptrString(v string) *string {
