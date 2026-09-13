@@ -70,7 +70,7 @@ type NotificationEventHandler struct {
 	accountStatusChecker AccountStatusChecker
 	policyFilter         *policy.AccountStatusFilter
 	policyBlock          *policy.BlockPolicy
-	policyMute           *policy.MutePolicy // Optional: CHAT-5 shadow-first mute gate
+	policyMute           *policy.MutePolicy // Optional: mute enforcement gate for chat notifications
 	deliveryLogger       DeliveryLogger     // Optional: for audit trail
 	capabilityLister     CapabilityLister   // Optional: for capability-based fanout
 	log                  *zap.Logger
@@ -143,8 +143,8 @@ func (h *NotificationEventHandler) SetCapabilityLister(lister CapabilityLister) 
 }
 
 // SetMutePolicy sets the mute policy for chat notification governance.
-// Shadow-first by default (MuteShadow): evaluate mute, emit telemetry, always deliver.
-// Promote to MuteEnforce via MUTE_CHAT_NOTIFICATION_ENFORCE=true to suppress delivery.
+// Mute is enforced: a recipient who muted the sender receives neither in-app
+// nor push notifications for chat messages.
 // Scope: chat_message notification type only. REST and WebSocket are unaffected.
 func (h *NotificationEventHandler) SetMutePolicy(p *policy.MutePolicy) {
 	h.policyMute = p

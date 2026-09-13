@@ -239,6 +239,11 @@ FROM contents c
 JOIN users u ON u.id = c.author_id
 LEFT JOIN user_profiles up ON up.user_id = u.id
 WHERE c.id = $1
+  -- OG preview is an unauthenticated embedding surface with no viewer
+  -- identity, so it may only project public content. Without this the
+  -- caption/media/author of a private or followers_only row leaked to any
+  -- anonymous caller able to guess the content id.
+  AND c.visibility = 'public'
   AND c.status = 'active'
   AND c.is_hidden = false
   AND c.deleted_at IS NULL

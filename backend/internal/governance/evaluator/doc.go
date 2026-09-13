@@ -1,45 +1,41 @@
-// Package evaluator hosts the canonical visibility / governance evaluator and
-// its shadow observability seams.
+// Package evaluator hosts the canonical visibility / governance evaluator
+// and its observability seams for three surfaces: Feed, Content Detail,
+// and Search Content.
 //
-// PHASE C — FEED EVALUATOR SHADOW OBSERVABILITY
+// Business authority:
 //
-// This package currently implements only the shadow seam for the feed
-// surface (Pattern A in docs/03-architecture/viewer-context-contract.md).
-// It is observability-only and never affects runtime authority.
+//   - EnforceFeed synchronously filters the /feed page slice. DENY rows
+//     are dropped; TOMBSTONE / REDACT rows are kept with lifecycle
+//     overrides; UNKNOWN rows are kept (fail-open).
+//   - EnforceContentDetail synchronously gates /contents/:id. Any non-ALLOW
+//     decision causes HTTP 404 (fail-CLOSED).
+//   - EnforceSearchContent synchronously filters the /search/content page
+//     slice. DENY rows are dropped; TOMBSTONE / REDACT rows are kept with
+//     lifecycle overrides; UNKNOWN/input_invalid rows are dropped
+//     (fail-CLOSED).
 //
-// Doctrine references:
-//   - docs/FOUNDATION.md (Canonical Authorities — Visibility, Public Exposure)
-//   - docs/DOCTRINE.md (Shadow Mode Doctrine, Observability Before Authority)
-//   - docs/ADR.md (ADR-003 Governance Evaluator)
-//   - docs/03-architecture/viewer-context-contract.md (Pattern A; partial-
-//     ViewerContext §7.2; UNKNOWN semantics §6 / §8.2)
-//   - docs/03-architecture/public-card-boundary-contract.md (separation of
-//     evaluator decision from exposure rendering)
-//   - docs/05-rollout/convergence-sequencing-addendum-viewercontext-evaluator.md
-//     (feed-first SHADOW; not feed-first authority)
-//   - docs/05-rollout/blocker-registry.md (BLOCKER-002, BLOCKER-004 —
-//     observability-only, no closure, no severity reduction)
+// All three enforce functions are unconditional — there is no mode
+// parameter, no feature flag, no environment variable, and no
+// constructor argument that can select an alternate business behavior.
+// The handler always calls the enforce function; the business decision
+// is deterministic from the pre-hydrated ViewerContext + TargetContext
+// + entity inputs.
 //
-// Strict shadow rules enforced by this package:
+// Observability:
 //
-//   - Legacy runtime remains the sole visibility authority on every surface.
-//   - The shadow evaluator is pure: it performs no IO and no DB reads.
-//     All inputs are hydrated by the caller (ViewerContext Contract §2.4).
-//   - Missing inputs surface as UNKNOWN with a classified reason; the
-//     evaluator never synthesizes fallback truth (ViewerContext Contract
-//     §8.5).
-//   - Shadow execution is asynchronous and fire-and-forget. It must not
-//     change the runtime response bytes, latency envelope, or pagination.
-//   - Per Shadow Mode Doctrine — Undefined Denominator Rule, divergence
-//     categories that require observation of legacy-denied items
-//     (LegacyDenyShadow*) are unobservable on this surface stage and are
-//     never emitted from this package.
+//   - FeedShadowRunner, ContentDetailShadowRunner, and
+//     SearchContentShadowRunner are fire-and-forget goroutines dispatched
+//     AFTER the handler writes the response. They emit bounded Prometheus
+//     telemetry (decision distribution, divergence classification, overlay
+//     completeness, latency). They never mutate the response, never
+//     restore dropped rows, never change lifecycle overrides, and never
+//     affect HTTP status codes. A nil runner is a documented no-op at
+//     every call site.
 //
-// Implementation gate citation (Convergence Constitution §22):
+// Precedence model:
 //
-//   This module is the materialized observability seam for BLOCKER-002 and
-//   BLOCKER-004. It does not close those blockers, does not lower their
-//   severity, and does not enable evaluator authority.
+//   - Actor lifecycle → target lifecycle → relationship → moderation →
+//     visibility scope → public allow.
+//   - Content Detail additionally evaluates admin/moderator bypass
+//     (capability-gated) and block override.
 package evaluator
-
-

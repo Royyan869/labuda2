@@ -61,9 +61,9 @@ class CreateAuctionDto {
   /// Required — backend rejects creation without at least one option.
   final List<String> shippingSetupIds;
 
-  final double startPrice;
-  final double? bidIncrement;
-  final double? buyNowPrice;
+  final int startPrice;
+  final int? bidIncrement;
+  final int? buyNowPrice;
 
   /// "now" (immediate start) or "scheduled" (custom future start).
   final String startMode;
@@ -110,7 +110,7 @@ class CreateAuctionDto {
     if (bloodline != null) 'bloodline': bloodline,
     if (certificates != null) 'certificates': certificates,
     if (farmAddressId != null) 'farm_address_id': farmAddressId,
-    'shipping_setup_ids': shippingSetupIds,
+    'shipping_option_ids': shippingSetupIds,
     'start_price': startPrice,
     if (bidIncrement != null) 'bid_increment': bidIncrement,
     if (buyNowPrice != null) 'buy_now_price': buyNowPrice,
@@ -134,9 +134,9 @@ class CreateAuctionDto {
 class UpdateAuctionDto {
   final String? title;
   final String? description;
-  final double? startPrice;
-  final double? bidIncrement;
-  final double? buyNowPrice;
+  final int? startPrice;
+  final int? bidIncrement;
+  final int? buyNowPrice;
   final DateTime? startTime;
   final DateTime? endTime;
 
@@ -165,7 +165,7 @@ class UpdateAuctionDto {
 
 /// Request to place a bid
 class PlaceBidDto {
-  final double amount;
+  final int amount;
   final String? idempotencyKey;
 
   const PlaceBidDto({required this.amount, this.idempotencyKey});
@@ -237,44 +237,6 @@ class UserBriefDto extends Equatable {
   List<Object?> get props => [id, username, avatarUrl, lifecycle];
 }
 
-/// Auction winner response
-class AuctionWinnerDto extends Equatable {
-  final String id;
-  final String auctionId;
-  final String winnerId;
-  final double winningBid;
-  final String winMethod;
-  final DateTime wonAt;
-  final UserBriefDto? winner;
-
-  const AuctionWinnerDto({
-    required this.id,
-    required this.auctionId,
-    required this.winnerId,
-    required this.winningBid,
-    required this.winMethod,
-    required this.wonAt,
-    this.winner,
-  });
-
-  factory AuctionWinnerDto.fromJson(Map<String, dynamic> json) {
-    return AuctionWinnerDto(
-      id: json['id'] as String,
-      auctionId: json['auction_id'] as String,
-      winnerId: json['winner_id'] as String,
-      winningBid: (json['winning_bid'] as num).toDouble(),
-      winMethod: json['win_method'] as String,
-      wonAt: DateTime.parse(json['won_at'] as String),
-      winner: json['winner'] != null
-          ? UserBriefDto.fromJson(json['winner'])
-          : null,
-    );
-  }
-
-  @override
-  List<Object?> get props => [id, auctionId, winnerId, winningBid];
-}
-
 /// Auction response from API
 ///
 /// SAFETY: productId is OPTIONAL metadata-only field.
@@ -321,13 +283,18 @@ class AuctionDto extends Equatable {
   final String? preparationTime;
   final String? preparationNote;
 
-  final double startPrice;
-  final double bidIncrement;
-  final double? buyNowPrice;
-  final double currentHighestBid;
-  final String? highestBidderId;
+  // Canonical numeric read representation: backend emits int64/bigint JSON
+  // integer literals (auctionToResponseWithSeller); int is the single
+  // canonical representation — no double conversion on this chain.
+  // currentBid is nullable — null means no bids yet (backend current_bid null).
+  // Presentation fallback to startPrice is derived explicitly in the mapper from
+  // factual fields, not hidden in DTO wire parsing.
+  final int startPrice;
+  final int bidIncrement;
+  final int? buyNowPrice;
+  final int? currentBid;
+  final String? currentWinnerId;
   final int totalBids;
-  final double minimumBid;
   final DateTime startTime;
   final DateTime endTime;
   final DateTime? originalEndTime;
@@ -339,15 +306,12 @@ class AuctionDto extends Equatable {
   final int autoExtendCount;
   final int remainingExtensions;
   final int viewsCount;
-  final int watchersCount;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? startedAt;
   final DateTime? endedAt;
   final UserBriefDto? seller;
   final UserBriefDto? highestBidder;
-  final AuctionWinnerDto? winner;
-  final bool isWatching;
   final BidDto? userBid;
 
   // ===========================================================================
@@ -420,10 +384,9 @@ class AuctionDto extends Equatable {
     required this.startPrice,
     required this.bidIncrement,
     this.buyNowPrice,
-    required this.currentHighestBid,
-    this.highestBidderId,
+    this.currentBid,
+    this.currentWinnerId,
     required this.totalBids,
-    required this.minimumBid,
     required this.startTime,
     required this.endTime,
     this.originalEndTime,
@@ -435,15 +398,12 @@ class AuctionDto extends Equatable {
     required this.autoExtendCount,
     required this.remainingExtensions,
     required this.viewsCount,
-    required this.watchersCount,
     required this.createdAt,
     required this.updatedAt,
     this.startedAt,
     this.endedAt,
     this.seller,
     this.highestBidder,
-    this.winner,
-    this.isWatching = false,
     this.userBid,
     // Stage 2 identity parse-only fields
     this.sellerUsername,
@@ -463,13 +423,12 @@ class AuctionDto extends Equatable {
   factory AuctionDto.fromJson(Map<String, dynamic> json) {
     final startAtRaw = json['start_at'] ?? json['start_time'];
     final endAtRaw = json['end_at'] ?? json['end_time'];
-    final currentBidRaw =
-        json['current_bid'] ??
-        json['current_highest_bid'] ??
-        json['start_price'];
-    final winnerRaw = json['current_winner_id'] ?? json['highest_bidder_id'];
-    final minimumBidRaw =
-        json['minimum_bid'] ?? json['start_price'] ?? currentBidRaw;
+    // Canonical: only backend-emitted keys. No phantom fallback.
+    // current_bid is nullable — null means no bids yet; presentation
+    // derivation lives in mapper from factual fields.
+    final currentBidRaw = json['current_bid'];
+    // Canonical winner authority is current_winner_id only.
+    final winnerRaw = json['current_winner_id'];
     final imagesRaw = json['images'] as List<dynamic>?;
     final mediaUrlsRaw = json['media_urls'] as List<dynamic>?;
     final mediaRaw = json['media'] as List<dynamic>?;
@@ -505,13 +464,12 @@ class AuctionDto extends Equatable {
           const [],
       preparationTime: json['preparation_time'] as String?,
       preparationNote: json['preparation_note'] as String?,
-      startPrice: (json['start_price'] as num).toDouble(),
-      bidIncrement: (json['bid_increment'] as num).toDouble(),
-      buyNowPrice: (json['buy_now_price'] as num?)?.toDouble(),
-      currentHighestBid: (currentBidRaw as num).toDouble(),
-      highestBidderId: winnerRaw as String?,
+      startPrice: (json['start_price'] as num).toInt(),
+      bidIncrement: (json['bid_increment'] as num).toInt(),
+      buyNowPrice: (json['buy_now_price'] as num?)?.toInt(),
+      currentBid: (currentBidRaw as num?)?.toInt(),
+      currentWinnerId: winnerRaw as String?,
       totalBids: json['total_bids'] as int? ?? 0,
-      minimumBid: (minimumBidRaw as num).toDouble(),
       startTime: DateTime.parse(startAtRaw as String),
       endTime: DateTime.parse(endAtRaw as String),
       originalEndTime: json['original_end_time'] != null
@@ -527,7 +485,6 @@ class AuctionDto extends Equatable {
       autoExtendCount: json['auto_extend_count'] as int? ?? 0,
       remainingExtensions: json['remaining_extensions'] as int? ?? 3,
       viewsCount: json['views_count'] as int? ?? 0,
-      watchersCount: json['watchers_count'] as int? ?? 0,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
       startedAt: json['started_at'] != null
@@ -542,10 +499,6 @@ class AuctionDto extends Equatable {
       highestBidder: json['highest_bidder'] != null
           ? UserBriefDto.fromJson(json['highest_bidder'])
           : null,
-      winner: json['winner'] is Map<String, dynamic>
-          ? AuctionWinnerDto.fromJson(json['winner'] as Map<String, dynamic>)
-          : null,
-      isWatching: json['is_watching'] as bool? ?? false,
       userBid: json['user_bid'] != null
           ? BidDto.fromJson(json['user_bid'])
           : null,
@@ -566,8 +519,7 @@ class AuctionDto extends Equatable {
       sellerTier: _readAuctionSellerTier(json),
       // Canonical detail action authority. Null when the payload is a
       // list/discovery item that does not carry viewer-scoped capabilities.
-      viewerCapabilities: json['viewer_capabilities']
-              is Map<String, dynamic>
+      viewerCapabilities: json['viewer_capabilities'] is Map<String, dynamic>
           ? CommerceViewerCapabilities.fromJson(
               json['viewer_capabilities'] as Map<String, dynamic>,
             )
@@ -639,7 +591,7 @@ class BidDto extends Equatable {
   final String id;
   final String auctionId;
   final String bidderId;
-  final double amount;
+  final int amount;
   final bool isWinning;
   final bool isOutbid;
   final DateTime bidTime;
@@ -676,7 +628,7 @@ class BidDto extends Equatable {
       id: json['id'] as String,
       auctionId: json['auction_id'] as String,
       bidderId: json['bidder_id'] as String,
-      amount: (json['amount'] as num).toDouble(),
+      amount: (json['amount'] as num).toInt(),
       isWinning: json['is_winning'] as bool? ?? false,
       isOutbid: json['is_outbid'] as bool? ?? false,
       bidTime: DateTime.parse(createdAtString),
@@ -692,46 +644,4 @@ class BidDto extends Equatable {
 
   @override
   List<Object?> get props => [id, auctionId, bidderId, amount];
-}
-
-/// Current bid info response
-class CurrentBidDto extends Equatable {
-  final String auctionId;
-  final double currentHighestBid;
-  final String? highestBidderId;
-  final double minimumBid;
-  final int totalBids;
-  final int timeRemainingSeconds;
-  final DateTime endTime;
-  final bool isExtended;
-  final String status;
-
-  const CurrentBidDto({
-    required this.auctionId,
-    required this.currentHighestBid,
-    this.highestBidderId,
-    required this.minimumBid,
-    required this.totalBids,
-    required this.timeRemainingSeconds,
-    required this.endTime,
-    required this.isExtended,
-    required this.status,
-  });
-
-  factory CurrentBidDto.fromJson(Map<String, dynamic> json) {
-    return CurrentBidDto(
-      auctionId: json['auction_id'] as String,
-      currentHighestBid: (json['current_highest_bid'] as num).toDouble(),
-      highestBidderId: json['highest_bidder_id'] as String?,
-      minimumBid: (json['minimum_bid'] as num).toDouble(),
-      totalBids: json['total_bids'] as int? ?? 0,
-      timeRemainingSeconds: json['time_remaining_seconds'] as int? ?? 0,
-      endTime: DateTime.parse(json['end_time'] as String),
-      isExtended: json['is_extended'] as bool? ?? false,
-      status: json['status'] as String,
-    );
-  }
-
-  @override
-  List<Object?> get props => [auctionId, currentHighestBid, status];
 }

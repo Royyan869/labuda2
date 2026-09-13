@@ -54,10 +54,7 @@ class AuctionFormValidator {
   }
 
   // Step 2 validation for create auction screen
-  bool validateStep2({
-    required double? openingBid,
-    required double? bidIncrement,
-  }) {
+  bool validateStep2({required int? openingBid, required int? bidIncrement}) {
     if (openingBid == null || openingBid <= 0) return false;
     if (bidIncrement == null || bidIncrement <= 0) return false;
     return true;

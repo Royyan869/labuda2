@@ -54,7 +54,6 @@ Auction _auction({
     endTime: DateTime.now().add(const Duration(days: 1)),
     status: AuctionStatus.active,
     totalBidders: 0,
-    totalWatchers: 0,
     totalViews: 0,
     createdAt: DateTime.now(),
   );

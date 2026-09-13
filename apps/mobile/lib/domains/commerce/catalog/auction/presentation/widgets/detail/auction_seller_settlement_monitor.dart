@@ -137,8 +137,8 @@ class _AuctionSellerSettlementMonitorState
   }
 
   Widget _buildWinnerInfo() {
-    final winnerUsername = widget.auction.winnerUsername ?? 'Pemenang';
-    final winningBid = widget.auction.winningBid ?? widget.auction.currentBid;
+    final winnerUsername = 'Pemenang';
+    final winningBid = widget.auction.currentBid;
 
     return Container(
       padding: const EdgeInsets.all(12),

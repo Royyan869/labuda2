@@ -47,6 +47,10 @@ class AuctionMapper {
     //   sellerFarmName  ← seller_farm_name
     //   sellerAvatar    ← seller_avatar_url
     // No fullName fallback (KYC field).
+    // Phantom purge: currentBid is nullable factual (current_bid null = no bids).
+    // Presentation fallback to startPrice is explicit derivation from factual
+    // fields, not a hidden DTO wire fallback.
+    final factualCurrentBid = dto.currentBid ?? dto.startPrice;
     return Auction(
       id: dto.id,
       sellerId: dto.sellerId,
@@ -77,7 +81,7 @@ class AuctionMapper {
       media: media,
       koiDetails: _createKoiDetails(dto),
       openingBid: dto.startPrice,
-      currentBid: dto.currentHighestBid,
+      currentBid: factualCurrentBid,
       bidIncrement: dto.bidIncrement,
       buyNowPrice: dto.buyNowPrice,
       condition: dto.condition != null
@@ -86,8 +90,8 @@ class AuctionMapper {
       // Shipping readiness — canonical Product content from the detail wire.
       // Null/empty wire value stays null (absence is NOT defaulted to
       // immediate) so no canonical absence is masked.
-      preparationTime: (dto.preparationTime == null ||
-              dto.preparationTime!.isEmpty)
+      preparationTime:
+          (dto.preparationTime == null || dto.preparationTime!.isEmpty)
           ? null
           : PreparationTime.fromJson(dto.preparationTime),
       preparationNote: dto.preparationNote,
@@ -98,11 +102,10 @@ class AuctionMapper {
       settlementDeadline: dto.settlementDeadline,
       isScheduled: dto.status == 'scheduled',
       status: parseAuctionStatus(dto.status),
-      winnerId: dto.winner?.winnerId,
-      winnerUsername: dto.winner?.winner?.username,
-      winningBid: dto.winner?.winningBid,
+      // Canonical winner authority is current_winner_id only — phantom winner
+      // object purged.
+      winnerId: dto.currentWinnerId,
       totalBidders: dto.totalBids,
-      totalWatchers: dto.watchersCount,
       totalViews: dto.viewsCount,
       createdAt: dto.createdAt,
       updatedAt: dto.updatedAt,
@@ -157,7 +160,7 @@ class AuctionMapper {
   /// backend key names (media_urls, variety, size_cm, age_months, ...).
   /// Previously `koiDetails` and `shippingSetupIds` were silently dropped
   /// here, so mobile auction creation either 400'd (missing required
-  /// shipping_setup_ids) or created a product with no photos/variety.
+  /// shipping_option_ids) or created a product with no photos/variety.
   static CreateAuctionDto toCreateDto(CreateAuctionParams params) {
     final koi = params.koiDetails;
     return CreateAuctionDto(
@@ -192,9 +195,9 @@ class AuctionMapper {
     return UpdateAuctionDto(
       title: updates['title'] as String?,
       description: updates['description'] as String?,
-      startPrice: (updates['startPrice'] as num?)?.toDouble(),
-      bidIncrement: (updates['bidIncrement'] as num?)?.toDouble(),
-      buyNowPrice: (updates['buyNowPrice'] as num?)?.toDouble(),
+      startPrice: (updates['startPrice'] as num?)?.toInt(),
+      bidIncrement: (updates['bidIncrement'] as num?)?.toInt(),
+      buyNowPrice: (updates['buyNowPrice'] as num?)?.toInt(),
       startTime: updates['startTime'] as DateTime?,
       endTime: updates['endTime'] as DateTime?,
     );

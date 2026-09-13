@@ -46,6 +46,14 @@ func (m *mockAdminRepo) UpdateUserStatus(ctx context.Context, tx interface{}, us
 	return nil
 }
 
+// UpdateUserStatusGuarded mirrors UpdateUserStatus: the invariant itself is
+// enforced in SQL and is proven by the real-Postgres integration test.
+func (m *mockAdminRepo) UpdateUserStatusGuarded(ctx context.Context, tx interface{}, userID uuid.UUID, status string) error {
+	m.updateCalled = true
+	m.updatedStatus = status
+	return nil
+}
+
 func (m *mockAdminRepo) ListUsers(ctx context.Context, tx interface{}, filters repository.UserListFilters) ([]repository.UserSummary, error) {
 	return nil, nil
 }

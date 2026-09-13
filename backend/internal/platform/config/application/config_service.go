@@ -30,6 +30,11 @@ const (
 	KeyForSaleCommissionPercent = "for_sale_commission_percent"
 	KeyAuctionCommissionPercent = "auction_commission_percent"
 
+	// KeySellerWithdrawalFeeRupiah is the canonical admin-configurable seller
+	// withdrawal fee, in Rupiah. Owner decision: default Rp5,000 baseline,
+	// Rp0 allowed, no hardcoded runtime authority.
+	KeySellerWithdrawalFeeRupiah = "seller_withdrawal_fee_rupiah"
+
 	// Promotion config keys (PROMOTION_FINANCIAL_FOUNDATION, migration 000064).
 	// Delivery is DISABLED by default: these values are inert until a later
 	// phase enables promotion delivery.
@@ -64,6 +69,24 @@ func (s *ConfigService) GetOrderForSaleCommission(ctx context.Context, tx db.Tx)
 // Panics if config is missing or has wrong type - fail fast for misconfiguration.
 func (s *ConfigService) GetOrderAuctionCommission(ctx context.Context, tx db.Tx) decimal.Decimal {
 	return s.GetAuctionCommission(ctx, tx)
+}
+
+// ============================================================================
+// SELLER WITHDRAWAL FEE GETTER
+// ============================================================================
+
+// GetSellerWithdrawalFee returns the canonical configured seller withdrawal
+// fee (Rupiah) inside an existing transaction. The fee is snapshotted at
+// withdrawal request time and deducted from the requested amount at final
+// settlement (net_payout = amount - fee).
+// Rp0 is valid (free withdrawal). Negative values are invalid and panic
+// (fail-fast, canonical codebase behavior).
+func (s *ConfigService) GetSellerWithdrawalFee(ctx context.Context, tx db.Tx) int64 {
+	value := s.getNumeric(ctx, tx, KeySellerWithdrawalFeeRupiah)
+	if value.IsNegative() {
+		panic(fmt.Sprintf("platform config invalid withdrawal fee for %s: %s (must be >= 0)", KeySellerWithdrawalFeeRupiah, value.String()))
+	}
+	return value.IntPart()
 }
 
 // ============================================================================

@@ -249,7 +249,7 @@ func (s *ContentService) CreateContentWithResourceOccurrence(
 					return nil, err
 				}
 			case entity.ContentResourceOccurrenceResourceTypeContent:
-				if err := s.validateContentTarget(ctx, tx, occurrence.ResourceID.String()); err != nil {
+				if err := s.validateContentTarget(ctx, tx, callerID, occurrence.ResourceID.String()); err != nil {
 					return nil, err
 				}
 			case entity.ContentResourceOccurrenceResourceTypeProfile:
@@ -265,7 +265,7 @@ func (s *ContentService) CreateContentWithResourceOccurrence(
 				// types use their own validation.
 				switch occurrence.ResourceType {
 				case entity.ContentResourceOccurrenceResourceTypeContent:
-					if err := s.validateContentTarget(ctx, tx, occurrence.ResourceID.String()); err != nil {
+					if err := s.validateContentTarget(ctx, tx, callerID, occurrence.ResourceID.String()); err != nil {
 						return nil, err
 					}
 				case entity.ContentResourceOccurrenceResourceTypeForSale:
@@ -288,7 +288,6 @@ func (s *ContentService) CreateContentWithResourceOccurrence(
 
 	content := entity.NewContent(callerID, caption)
 	content.Visibility = visibility
-	content.IsHidden = visibility == entity.VisibilityPrivate
 	content.City = city
 	content.Province = province
 	// Repost attribution: share_to_feed of content must carry original_author_id for feed governance.
@@ -369,10 +368,13 @@ func (s *ContentService) CreateContentWithResourceOccurrence(
 	return content, nil
 }
 
-// validateContentTarget validates that content exists and is in a shareable state
+// validateContentTarget validates that the caller's viewer is authorized to ACCESS the source content.
+// Viewer-aware: follows canonical access authority (visibility + hidden/deleted + author lifecycle + block).
+// YOU CANNOT CREATE A REFERENCE TO A CONTENT RESOURCE YOU CANNOT ACCESS.
 func (s *ContentService) validateContentTarget(
 	ctx context.Context,
 	tx db.Tx,
+	viewerID uuid.UUID,
 	contentID string,
 ) error {
 	targetID, err := uuid.Parse(contentID)
@@ -380,9 +382,22 @@ func (s *ContentService) validateContentTarget(
 		return fmt.Errorf("invalid target_id for content: %w", err)
 	}
 
-	_, err = s.GetContentPublic(ctx, tx, targetID)
-	if err != nil {
+	// Viewer-aware check: reuse canonical visibility gate.
+	if _, err := s.GetContentVisibleToViewer(ctx, tx, viewerID, targetID); err != nil {
 		return fmt.Errorf("content not found: %w", err)
+	}
+	// Block parity: if viewer blocked source author or vice versa, deny reference creation.
+	// Use repo to fetch author (fail-open if tx is nil or repo unavailable).
+	if viewerID != uuid.Nil {
+		if src, sErr := s.contentRepo.GetByID(ctx, tx, targetID); sErr == nil && src != nil && src.AuthorID != viewerID {
+			var blocked bool
+			if tx != nil {
+				_ = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM user_blocks WHERE (blocker_id=$1 AND blocked_id=$2) OR (blocker_id=$2 AND blocked_id=$1))`, viewerID, src.AuthorID).Scan(&blocked)
+			}
+			if blocked {
+				return fmt.Errorf("content not found: blocked")
+			}
+		}
 	}
 
 	return nil
@@ -451,7 +466,9 @@ func (s *ContentService) validateProfileTarget(
 }
 
 // DeleteContent soft-deletes content.
-// AUTHORIZATION: Only the author can delete their content (admin can override).
+// AUTHORIZATION: Owner-only. There is no admin override path on content
+// mutation; privileged content-state changes flow through the governance
+// moderation pipeline (Case → Decision → Enforcement), never this service.
 // ENFORCES: Deleted content cannot transition back (terminal state).
 func (s *ContentService) DeleteContent(
 	ctx context.Context,
@@ -470,7 +487,8 @@ func (s *ContentService) DeleteContent(
 		return err
 	}
 
-	// AUTHORIZATION: Only author or admin can delete
+	// AUTHORIZATION: Owner-only (system caller aside). No admin override
+	// exists on content mutation.
 	if !auth.IsSystemCaller(callerID) && content.AuthorID != callerID {
 		return auth.ErrOwnerRequired
 	}
@@ -489,7 +507,7 @@ func (s *ContentService) DeleteContent(
 }
 
 // HideContent marks content as hidden without changing status.
-// AUTHORIZATION: Only the author can hide their content (admin can override).
+// AUTHORIZATION: Owner-only (same canonical rule as DeleteContent).
 func (s *ContentService) HideContent(
 	ctx context.Context,
 	tx db.Tx,
@@ -507,7 +525,8 @@ func (s *ContentService) HideContent(
 		return err
 	}
 
-	// AUTHORIZATION: Only author or admin can hide
+	// AUTHORIZATION: Owner-only (system caller aside). No admin override
+	// exists on content mutation.
 	if !auth.IsSystemCaller(callerID) && content.AuthorID != callerID {
 		return auth.ErrOwnerRequired
 	}
@@ -526,7 +545,7 @@ func (s *ContentService) HideContent(
 }
 
 // UnhideContent marks content as visible without changing status.
-// AUTHORIZATION: Only the author can unhide their content (admin can override).
+// AUTHORIZATION: Owner-only (same canonical rule as DeleteContent).
 func (s *ContentService) UnhideContent(
 	ctx context.Context,
 	tx db.Tx,
@@ -544,7 +563,8 @@ func (s *ContentService) UnhideContent(
 		return err
 	}
 
-	// AUTHORIZATION: Only author or admin can unhide
+	// AUTHORIZATION: Owner-only (system caller aside). No admin override
+	// exists on content mutation.
 	if !auth.IsSystemCaller(callerID) && content.AuthorID != callerID {
 		return auth.ErrOwnerRequired
 	}
@@ -696,10 +716,11 @@ func (s *ContentService) GetContentVisibleToViewer(
 	if content.AuthorID == viewerID {
 		return content, nil
 	}
-	if content.Visibility == entity.VisibilityPublic {
+	vis := content.Visibility.Normalize()
+	if vis == entity.VisibilityPublic {
 		return content, nil
 	}
-	if content.Visibility == entity.VisibilityFollowersOnly && viewerID != uuid.Nil {
+	if vis == entity.VisibilityFollowersOnly && viewerID != uuid.Nil {
 		var isFollower bool
 		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = $2)`, viewerID, content.AuthorID).Scan(&isFollower); err != nil {
 			return nil, fmt.Errorf("visibility follower check failed: %w", err)
@@ -1003,15 +1024,9 @@ func (s *ContentService) UpdateCaptionAndVisibility(
 		content.Caption = caption
 	}
 
-	// Update visibility/hide status
+	// Update visibility only — is_hidden is pure moderation authority, never synced with visibility.
 	if visibility != nil {
 		content.Visibility = entity.Visibility(*visibility).Normalize()
-		switch content.Visibility {
-		case entity.VisibilityPrivate:
-			content.IsHidden = true
-		default:
-			content.IsHidden = false
-		}
 	}
 
 	// Persist changes
@@ -1287,7 +1302,7 @@ func (s *ContentService) CreateContentWithResourceOccurrenceIdempotent(
 					return nil, false, err
 				}
 			case entity.ContentResourceOccurrenceResourceTypeContent:
-				if err := s.validateContentTarget(ctx, tx, occurrence.ResourceID.String()); err != nil {
+				if err := s.validateContentTarget(ctx, tx, callerID, occurrence.ResourceID.String()); err != nil {
 					return nil, false, err
 				}
 			case entity.ContentResourceOccurrenceResourceTypeProfile:
@@ -1298,7 +1313,7 @@ func (s *ContentService) CreateContentWithResourceOccurrenceIdempotent(
 		} else {
 			switch occurrence.ResourceType {
 			case entity.ContentResourceOccurrenceResourceTypeContent:
-				if err := s.validateContentTarget(ctx, tx, occurrence.ResourceID.String()); err != nil {
+				if err := s.validateContentTarget(ctx, tx, callerID, occurrence.ResourceID.String()); err != nil {
 					return nil, false, err
 				}
 			case entity.ContentResourceOccurrenceResourceTypeForSale:
@@ -1338,7 +1353,6 @@ func (s *ContentService) CreateContentWithResourceOccurrenceIdempotent(
 	content := entity.NewContent(callerID, caption)
 	content.ID = contentID
 	content.Visibility = visibility
-	content.IsHidden = visibility == entity.VisibilityPrivate
 	content.City = city
 	content.Province = province
 	if occurrence != nil && occurrence.Operation == entity.ContentResourceOccurrenceOperationShareToFeed && occurrence.ResourceType == entity.ContentResourceOccurrenceResourceTypeContent {

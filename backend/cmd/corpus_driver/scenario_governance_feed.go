@@ -64,7 +64,7 @@ type feedSummary struct {
 	Keyword       string       `json:"keyword"`
 	RunID         string       `json:"run_id"`
 	Verdict       string       `json:"verdict"`
-	EvaluatorMode string       `json:"evaluator_mode_observed,omitempty"`
+	EnforcementObserved string       `json:"enforcement_observed,omitempty"`
 	Steps         []stepResult `json:"steps"`
 
 	ActiveFeedObservation    *feedObservation `json:"active_feed_observation,omitempty"`
@@ -115,7 +115,7 @@ func runScenarioGovernanceFeed(cfg governanceFeedConfig) error {
 
 	// ─── metrics baseline ─────────────────────────────────────────────────
 	sum.Steps = append(sum.Steps, feedCaptureMetrics(ctx, client, cfg, "metrics_before.txt"))
-	sum.EvaluatorMode = sniffFeedEvaluatorMode(filepath.Join(cfg.OutputDir, "metrics_before.txt"))
+	sum.EnforcementObserved = sniffFeedEnforcement(filepath.Join(cfg.OutputDir, "metrics_before.txt"))
 
 	// ─── auth: author ─────────────────────────────────────────────────────
 	// IMPORTANT - downstream auth uses the access_token returned by the
@@ -186,8 +186,8 @@ func runScenarioGovernanceFeed(cfg governanceFeedConfig) error {
 	sum.Steps = append(sum.Steps, feedCaptureMetrics(ctx, client, cfg, "metrics_after_feed_deleted.txt"))
 
 	// ─── post-run observation synthesis ───────────────────────────────────
-	if late := sniffFeedEvaluatorMode(filepath.Join(cfg.OutputDir, "metrics_after_feed_deleted.txt")); late != "" {
-		sum.EvaluatorMode = late
+	if late := sniffFeedEnforcement(filepath.Join(cfg.OutputDir, "metrics_after_feed_deleted.txt")); late != "" {
+		sum.EnforcementObserved = late
 	}
 	sum.EnforcementAppliedTicked, sum.EnforcementAppliedNote = sniffFeedEnforcementApplied(
 		filepath.Join(cfg.OutputDir, "metrics_before.txt"),
@@ -233,9 +233,9 @@ func feedCaptureMetrics(ctx context.Context, client *http.Client, cfg governance
 	return stepResult{Step: "metrics:" + filename, Status: "ok", HTTP: res.StatusCode, Artifact: filename}
 }
 
-// sniffFeedEvaluatorMode reads labuda_evaluator_feed_enforce_mode_total
+// sniffFeedEnforcement reads labuda_evaluator_feed_enforce_mode_total
 // label out of a metrics scrape.
-func sniffFeedEvaluatorMode(metricsPath string) string {
+func sniffFeedEnforcement(metricsPath string) string {
 	b, err := os.ReadFile(metricsPath)
 	if err != nil {
 		return ""
@@ -638,7 +638,7 @@ func finishFeedSummary(sum *feedSummary, cfg governanceFeedConfig, errMsg string
 	fmt.Fprintf(&readme, "  keyword:     %s\n", sum.Keyword)
 	fmt.Fprintf(&readme, "  started:     %s\n", sum.Started)
 	fmt.Fprintf(&readme, "  finished:    %s\n", sum.Finished)
-	fmt.Fprintf(&readme, "  evaluator:   %s\n", sum.EvaluatorMode)
+	fmt.Fprintf(&readme, "  evaluator:   %s\n", sum.EnforcementObserved)
 	fmt.Fprintf(&readme, "  verdict:     %s\n\n", sum.Verdict)
 	fmt.Fprintf(&readme, "steps:\n")
 	for _, s := range sum.Steps {

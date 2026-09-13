@@ -224,7 +224,7 @@ func TestUpdateCaptionAndVisibility_TransitionsVisibilityWithoutTouchingIsHidden
 					return loadErr
 				}
 				require.Equal(t, string(tc.to), string(updated.Visibility))
-				require.Equal(t, tc.to == contententity.VisibilityPrivate, updated.IsHidden)
+				require.Equal(t, content.IsHidden, updated.IsHidden, "visibility transition must not touch moderation is_hidden")
 
 				resp := contenthttp.ToContentResponse(updated, nil)
 				require.Equal(t, string(tc.to), string(resp.Visibility))
@@ -240,7 +240,7 @@ func TestUpdateCaptionAndVisibility_TransitionsVisibilityWithoutTouchingIsHidden
 				WHERE id = $1
 			`, contentID).Scan(&storedVisibility, &isHidden))
 			require.Equal(t, string(tc.to), storedVisibility)
-			require.Equal(t, tc.to == contententity.VisibilityPrivate, isHidden)
+			require.False(t, isHidden, "visibility transition must not touch moderation is_hidden")
 		})
 	}
 }
@@ -282,6 +282,72 @@ func TestListByAuthor_RespectsVisibilityAndExcludesHiddenAndDeleted(t *testing.T
 		require.Equal(t, publicID, got[0].ID)
 		require.Equal(t, followersOnlyID, got[1].ID)
 		require.Equal(t, privateID, got[2].ID)
+
+		return nil
+	})
+	require.NoError(t, err)
+}
+
+// TestListByAuthor_ViewerAwareVisibilityMatrix proves, with real rows and the
+// exact returned content ids, the canonical viewer-aware authority of the
+// profile listing (GET /users/:id/contents → ListByAuthor):
+//
+//	author   -> public + followers_only + private
+//	follower -> public + followers_only (private excluded)
+//	stranger -> public only (followers_only and private excluded)
+func TestListByAuthor_ViewerAwareVisibilityMatrix(t *testing.T) {
+	tdb, cleanup := testdb.SetupDB(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	service := newVisibilityService()
+
+	authorID := seedVisibilityUser(t, ctx, tdb.Pool(), "active")
+	followerID := seedVisibilityUser(t, ctx, tdb.Pool(), "active")
+	strangerID := seedVisibilityUser(t, ctx, tdb.Pool(), "active")
+	seedVisibilityFollow(t, ctx, tdb.Pool(), followerID, authorID)
+
+	base := time.Date(2026, time.July, 23, 12, 0, 0, 0, time.UTC)
+	idsOf := func(items []*contententity.Content) []uuid.UUID {
+		ids := make([]uuid.UUID, 0, len(items))
+		for _, item := range items {
+			ids = append(ids, item.ID)
+		}
+		return ids
+	}
+
+	err := tdb.WithTx(ctx, func(tx db.Tx) error {
+		mustInsert := func(visibility contententity.Visibility, createdAt time.Time, caption string) uuid.UUID {
+			t.Helper()
+			contentID := uuid.New()
+			_, err := tx.Exec(ctx, `
+				INSERT INTO contents (
+					id, author_id, status, caption, visibility, is_hidden, created_at, updated_at
+				)
+				VALUES ($1, $2, 'active', $3, $4, false, $5, $5)
+			`, contentID, authorID, caption, string(visibility), createdAt)
+			require.NoError(t, err)
+			return contentID
+		}
+
+		publicID := mustInsert(contententity.VisibilityPublic, base, "profile public")
+		followersOnlyID := mustInsert(contententity.VisibilityFollowersOnly, base.Add(-1*time.Minute), "profile followers only")
+		privateID := mustInsert(contententity.VisibilityPrivate, base.Add(-2*time.Minute), "profile private")
+
+		ownerItems, _, err := service.ListByAuthor(ctx, tx, authorID, authorID, 20, "")
+		require.NoError(t, err)
+		require.Equal(t, []uuid.UUID{publicID, followersOnlyID, privateID}, idsOf(ownerItems),
+			"the author must see own public + followers_only + private rows")
+
+		followerItems, _, err := service.ListByAuthor(ctx, tx, authorID, followerID, 20, "")
+		require.NoError(t, err)
+		require.Equal(t, []uuid.UUID{publicID, followersOnlyID}, idsOf(followerItems),
+			"a follower must see public + followers_only and must NOT see private")
+
+		strangerItems, _, err := service.ListByAuthor(ctx, tx, authorID, strangerID, 20, "")
+		require.NoError(t, err)
+		require.Equal(t, []uuid.UUID{publicID}, idsOf(strangerItems),
+			"a non-follower must see public only")
 
 		return nil
 	})

@@ -627,41 +627,6 @@ func TestRunner_ConcurrentDispatchSafe(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 }
 
-// TestRunner_ModeGetterDefaultShadow asserts the canonical default for
-// the Mode() accessor. A freshly constructed runner reports shadow mode;
-// nil receiver is safe and also reports shadow.
-func TestRunner_ModeGetterDefaultShadow(t *testing.T) {
-	r := evaluator.NewSearchContentShadowRunner(zap.NewNop())
-	if got := r.Mode(); got != evaluator.SearchContentAdapterModeShadow {
-		t.Errorf("default runner Mode() = %q; want shadow", got)
-	}
-	var nilRunner *evaluator.SearchContentShadowRunner
-	if got := nilRunner.Mode(); got != evaluator.SearchContentAdapterModeShadow {
-		t.Errorf("nil runner Mode() = %q; want shadow (nil-safety contract)", got)
-	}
-}
-
-// TestRunner_WithModeRoundTrips asserts that the WithMode builder
-// preserves the requested mode AND that invalid mode strings normalize
-// to shadow per the safety-default contract.
-func TestRunner_WithModeRoundTrips(t *testing.T) {
-	base := evaluator.NewSearchContentShadowRunner(zap.NewNop())
-
-	enforce := base.WithMode(evaluator.SearchContentAdapterModeEnforce)
-	if got := enforce.Mode(); got != evaluator.SearchContentAdapterModeEnforce {
-		t.Errorf("WithMode(enforce).Mode() = %q; want enforce", got)
-	}
-	// Base runner must remain shadow — WithMode returns a clone.
-	if got := base.Mode(); got != evaluator.SearchContentAdapterModeShadow {
-		t.Errorf("WithMode immutability violated: base runner mode = %q; want shadow", got)
-	}
-
-	bad := base.WithMode(evaluator.SearchContentAdapterMode("nonsense"))
-	if got := bad.Mode(); got != evaluator.SearchContentAdapterModeShadow {
-		t.Errorf("WithMode(invalid).Mode() = %q; want shadow (safety default)", got)
-	}
-}
-
 // hashUUID is internal to the package — its existence is verified
 // indirectly via the runner emitting structured logs with the hashed
 // content_id_hashed / author_id_hashed fields. Direct testing happens

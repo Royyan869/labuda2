@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 
+	forsaleapp "github.com/labuda/backend/internal/commerce/forsale/application"
 	contentapp "github.com/labuda/backend/internal/social/content/application"
 	contententity "github.com/labuda/backend/internal/social/content/entity"
 	contentrepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
@@ -80,15 +81,15 @@ func newQcEnv(t *testing.T) *qcEnv {
 	commentService := contentapp.NewCommentService(
 		contentrepo.NewContentRepository(),
 		contentrepo.NewCommentRepository(),
-		nil, // fpsValidator
-		nil, // auctionValidator
-		nil, // visibilityChecker
-		nil, // outboxRepo
-		nil, // idempotencyRepo
-		nil, // blockChecker
-		nil, // invariantLogger
+		forsaleapp.NewForSaleService(), // forSaleService — live for_sale previews
+		nil,                            // auctionValidator
+		nil,                            // visibilityChecker
+		nil,                            // outboxRepo
+		nil,                            // idempotencyRepo
+		nil,                            // blockChecker
+		nil,                            // invariantLogger
 	)
-	handler := NewCommentHandler(commentService, contentService, tracedDB, zap.NewNop())
+	handler := NewCommentHandler(commentService, contentService, forsaleapp.NewForSaleService(), nil, tracedDB, zap.NewNop())
 
 	env := &qcEnv{
 		t: t,

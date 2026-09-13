@@ -24,7 +24,33 @@ The admin uses **Firebase Authentication** for identity. On login the Firebase I
 
 The Go backend validates the token against Firebase and checks that the user has admin capability (`HasAdminCapability`). There is no separate admin credential store — access control is backend-enforced.
 
-**First admin setup:** The first admin user cannot be created through the panel — no admin exists yet to grant capabilities. Bootstrap it in the database: the backend seeder (`go run ./cmd/seed` in `backend/`) creates `admin@test.local` with the minimal capabilities, and `backend/cmd/seed` shows the exact `users`/`user_capabilities` insert pattern to replicate for other environments.
+**First admin setup (canonical):** The first admin cannot be created through the panel — no admin exists yet to grant capabilities. The only canonical production mechanism is the out-of-band CLI (atomic, idempotent, no HTTP endpoint, no SystemCaller):
+
+```bash
+cd backend
+go run ./cmd/bootstrap-admin --user-id <uuid>
+# or
+go run ./cmd/bootstrap-admin --email <email>
+# optional validation only:
+go run ./cmd/bootstrap-admin --user-id <uuid> --dry-run
+```
+
+The target must already be an existing verified active human user (`deleted_at IS NULL`, `account_status=active`, `email_verified_at IS NOT NULL`). The CLI promotes `role=admin` and grants exactly `governance.dashboard.view`, `governance.role.assign`, `governance.capability.assign` in one atomic transaction with audit. Rerun is safe. `backend/cmd/seed` is a dev fixture only and must not be used as production bootstrap.
+
+**Local development login:** signing in here uses real Firebase Authentication, so the seeded
+Labuda admin DB row (`admin@test.local`) also needs a matching Firebase Auth account. Provision it
+once with the dev-only backend command (it refuses to run outside `ENV=development` and never
+touches Labuda roles/capabilities):
+
+```bash
+cd backend
+read -s PW   # silent: not echoed, not in shell history
+printf '%s' "$PW" | go run ./cmd/dev-firebase-admin --email admin@test.local --password-stdin
+```
+
+Then sign in normally on this login page with that email/password: Firebase issues the ID token,
+`/api/v1/auth/firebase/exchange` links it to the seeded admin row by email, and the canonical
+admin session + capability authority take over. No mock or bypass is involved.
 
 ---
 

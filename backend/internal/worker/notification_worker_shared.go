@@ -524,8 +524,8 @@ func (h *NotificationEventHandler) applyPolicyLayer(
 			}
 		}
 
-		// STEP 3C: Mute policy — chat notification surface only, shadow-first.
-		// Recipient-muted-sender: emit telemetry in shadow mode; suppress in enforce mode.
+		// STEP 3C: Mute policy — chat notification surface only.
+		// Recipient-muted-sender suppresses delivery on every channel.
 		// Sender-muted-recipient has no delivery effect (direction-specific).
 		// Block (STEP 3) always wins before mute is evaluated.
 		if h.policyMute != nil && notifyType == "chat_message" {
@@ -535,18 +535,13 @@ func (h *NotificationEventHandler) applyPolicyLayer(
 					zap.String("notify_type", notifyType),
 					zap.String("reason", muteAction.Reason),
 				)
-			} else if muteAction.WouldSuppress {
-				// Emit divergence telemetry whether shadow or enforce.
-				h.log.Info("mute.notification.evaluated",
-					zap.String("event", muteAction.Reason),
-					zap.String("notify_type", notifyType),
-					zap.String("mute_mode", string(h.policyMute.Mode())),
-					zap.Bool("would_suppress", muteAction.WouldSuppress),
-					zap.Bool("suppressed", muteAction.Suppressed),
-				)
 			}
 			if muteAction.Suppressed {
-				// Enforce mode: suppress both in-app and push.
+				h.log.Info("mute.notification.suppressed",
+					zap.String("notify_type", notifyType),
+					zap.String("reason", muteAction.Reason),
+				)
+				// Mute enforced: suppress both in-app and push.
 				return notificationInfo{
 					notificationID: uuid.Nil,
 					recipientID:    recipientID,
@@ -561,7 +556,7 @@ func (h *NotificationEventHandler) applyPolicyLayer(
 					filterReason:   muteAction.Reason,
 				}
 			}
-			// Shadow mode or not muted: continue delivery unchanged.
+			// Not muted: continue delivery unchanged.
 		}
 	} else if category == policy.CommerceCritical || category == policy.Moderation {
 		// STEP 4: Block bypass with anonymization for commerce/moderation

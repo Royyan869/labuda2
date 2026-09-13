@@ -28,7 +28,7 @@ import { useUserDetail, useUserActions } from '@/hooks/useUsers'
 import { formatDate, formatRupiah } from '@/lib/utils'
 import { hasCapability } from '@/lib/permissions'
 import { useAuth } from '@/hooks/useAuth'
-import { api, resetBNRByUser, recoverSellerSubscription } from '@/lib/api'
+import { api, recoverSellerSubscription } from '@/lib/api'
 import type {
   UserListItem,
   UserRole,
@@ -53,12 +53,12 @@ type ActionState =
   | 'confirm-ban'
   | 'confirm-unban'
   | 'confirm-role-change'
-  | 'confirm-bnr-reset'
   | 'confirm-subscription-recover'
 
+// Canonical roles only. There is no 'seller' role — seller authority is a
+// seller_profiles + active subscription concern, not a role.
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'user', label: 'User' },
-  { value: 'seller', label: 'Seller' },
   { value: 'admin', label: 'Admin' },
 ]
 
@@ -126,20 +126,13 @@ const ACTION_CONFIRMATIONS = {
     message: (
       <>
         <p className="font-semibold text-lg mb-2">You are about to change this user&apos;s role.</p>
-        <p className="text-sm">This will change the user&apos;s permissions and access level on the platform.</p>
-      </>
-    ),
-  },
-  'confirm-bnr-reset': {
-    title: 'Reset BNR Strikes',
-    icon: Activity,
-    iconColor: 'text-orange-600',
-    bgColor: 'bg-orange-50',
-    borderColor: 'border-orange-200',
-    message: (
-      <>
-        <p className="font-semibold text-lg mb-2">You are about to reset all active BNR strikes for this buyer.</p>
-        <p className="text-sm">This will clear active BNR restrictions. Audit trail remains.</p>
+        <p className="text-sm">
+          Promoting to Admin grants admin membership only. Capabilities are granted separately, and only an
+          admin with full capability coverage counts as a full-access admin.
+        </p>
+        <p className="text-sm mt-2">
+          Demoting the last full-access admin is refused by the system.
+        </p>
       </>
     ),
   },
@@ -184,10 +177,8 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
   const canUnbanUsers = hasCapability(capabilities, 'governance.user.unban')
   const canAssignRoles = hasCapability(capabilities, 'governance.role.assign')
   const canReadUsers = hasCapability(capabilities, 'governance.user.read')
-  const canResetBNR = hasCapability(capabilities, 'governance.bnr.reset')
   const canRecoverSubscription = hasCapability(capabilities, 'seller.subscription.recover')
 
-  const [bnrResetting, setBnrResetting] = useState(false)
   const [subscriptionRecovering, setSubscriptionRecovering] = useState(false)
 
   // Fetch block list on demand
@@ -238,27 +229,6 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
     setIsDataStale(false)
     await refetch()
     setActionState(`confirm-${action}`)
-  }
-
-  const prepareBNRReset = async () => {
-    setError(null)
-    await refetch()
-    setActionState('confirm-bnr-reset')
-  }
-
-  const handleConfirmBNRReset = async () => {
-    if (!userData?.id) return
-    setError(null)
-    setBnrResetting(true)
-    try {
-      await resetBNRByUser(userData.id)
-      await refetch()
-      setActionState('idle')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to reset BNR strikes')
-    } finally {
-      setBnrResetting(false)
-    }
   }
 
   const prepareSubscriptionRecover = async () => {
@@ -375,7 +345,6 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
   const isActive = displayData.account_status === 'active'
   const confirmConfig = actionState !== 'idle' ? ACTION_CONFIRMATIONS[actionState] : undefined
   const isSubmitting = actionLoading
-    || (actionState === 'confirm-bnr-reset' && bnrResetting)
     || (actionState === 'confirm-subscription-recover' && subscriptionRecovering)
 
   // Determine which confirm handler to call
@@ -385,7 +354,6 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
     'confirm-ban': handleConfirmBan,
     'confirm-unban': handleConfirmUnban,
     'confirm-role-change': handleConfirmRoleChange,
-    'confirm-bnr-reset': handleConfirmBNRReset,
     'confirm-subscription-recover': handleConfirmSubscriptionRecover,
   }
 
@@ -541,17 +509,6 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                         disabled={isSubmitting || user?.role === selectedRole}
                       >
                         Confirm Role Change
-                      </Button>
-                    )}
-                    {actionState === 'confirm-bnr-reset' && (
-                      <Button
-                        variant="warning"
-                        onClick={handleConfirmBNRReset}
-                        isLoading={isSubmitting}
-                        disabled={isSubmitting}
-                      >
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Reset BNR Strikes
                       </Button>
                     )}
                     {actionState === 'confirm-subscription-recover' && (
@@ -1004,22 +961,6 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                         </div>
                       )}
                     </div>
-                    {(user?.total_bnr ?? 0) > 0 && canResetBNR && (
-                      <div className="mt-4 pt-4 border-t border-gray-100">
-                        <Button
-                          size="sm"
-                          variant="warning"
-                          onClick={prepareBNRReset}
-                          disabled={loading}
-                        >
-                          <RotateCcw className="h-3 w-3 mr-1" />
-                          Reset All BNR Strikes
-                        </Button>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Clears active restrictions. Audit trail remains.
-                        </p>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               )}

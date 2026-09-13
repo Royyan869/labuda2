@@ -121,25 +121,24 @@ var (
 	searchEvaluatorWouldEnforceDecisionTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: searchShadowMetricNamespace,
 		Name:      "would_enforce_decision_total",
-		Help:      "Per-row count of how the adapter WOULD classify the decision if /search/content were running in enforce mode. Emitted unconditionally in shadow mode for promotion safety telemetry (Batch 3A). Labels are bounded to the SearchContentDecisionReason enum.",
+		Help:      "Per-row adapter classification emitted by the /search/content observability runner. Labels are bounded to the SearchContentDecisionReason enum.",
 	}, []string{"surface", "endpoint", "candidate_set_option", "adapter_reason"})
 
 	searchEvaluatorEnforceModeTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: searchShadowMetricNamespace,
 		Name:      "enforce_mode_total",
-		Help:      "Per-request count of the operating mode (shadow|enforce) of the /search/content evaluator integration. Used to correlate would_enforce_decision_total rates with the route's current operating mode (Batch 3A).",
+		Help:      "Per-request count of the /search/content evaluator integration. Always labeled mode=enforce.",
 	}, []string{"surface", "endpoint", "candidate_set_option", "mode"})
 
-	// BATCH 3B — Per-row enforcement action counter. Fires ONLY from the
-	// synchronous EnforceSearchContent helper when the handler is in
-	// enforce mode AND the adapter decision required an action
-	// ("drop" — row excluded; "lifecycle_override" — card lifecycle
-	// coarsened). The dominant pass-through case is intentionally NOT
-	// counted (it equals decision_total{semantic=allow}).
+	// BATCH 3B — Per-row enforcement action counter. Fires from the
+	// synchronous EnforceSearchContent helper when the adapter decision
+	// required an action ("drop" — row excluded; "lifecycle_override" —
+	// card lifecycle coarsened). The dominant pass-through case is
+	// intentionally NOT counted (it equals decision_total{semantic=allow}).
 	searchEvaluatorEnforcementAppliedTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: searchShadowMetricNamespace,
 		Name:      "enforcement_applied_total",
-		Help:      "Per-row count of enforcement actions taken by the handler synchronous pass in /search/content enforce mode. Bounded labels: action in {drop, lifecycle_override}. Pass-through (no action) is intentionally not counted.",
+		Help:      "Per-row count of enforcement actions taken by the synchronous /search/content pass. Bounded labels: action in {drop, lifecycle_override}. Pass-through (no action) is intentionally not counted.",
 	}, []string{"surface", "endpoint", "candidate_set_option", "action"})
 )
 
@@ -208,9 +207,12 @@ func (m *searchShadowMetrics) recordWouldEnforceDecision(endpoint SearchEndpoint
 }
 
 // recordEnforceMode emits the per-request operating-mode label
-// (enforce_mode_total). Called once per shadow run from runShadow.
-func (m *searchShadowMetrics) recordEnforceMode(endpoint SearchEndpoint, opt CandidateSetOption, mode SearchContentAdapterMode) {
-	searchEvaluatorEnforceModeTotal.WithLabelValues(string(SurfaceSearch), string(endpoint), string(opt), string(mode)).Inc()
+// (enforce_mode_total). Called once per shadow run from runShadow. The
+// canonical business mode is always enforce.
+func (m *searchShadowMetrics) recordEnforceMode(endpoint SearchEndpoint, opt CandidateSetOption) {
+	searchEvaluatorEnforceModeTotal.WithLabelValues(
+		string(SurfaceSearch), string(endpoint), string(opt), "enforce",
+	).Inc()
 }
 
 // recordEnforcementApplied emits enforcement_applied_total for one

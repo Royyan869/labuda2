@@ -4,7 +4,7 @@ library;
 
 // Re-export repository providers from data layer
 export 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart'
-    show auctionRepositoryProvider, auctionWatchRepositoryProvider;
+    show auctionRepositoryProvider;
 
 // Re-export all presentation providers from auction_notifier.dart
 export 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart'
@@ -15,7 +15,5 @@ export 'package:labuda/domains/commerce/catalog/auction/presentation/providers/a
         myAuctionsStreamProvider,
         auctionStreamProvider,
         auctionBidsStreamProvider,
-        watchStatsStreamProvider,
         auctionDetailProvider,
-        auctionBidsProvider,
-        watchedAuctionsProvider;
+        auctionBidsProvider;

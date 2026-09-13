@@ -1,5 +1,8 @@
 export type AccountStatus = 'active' | 'suspended' | 'banned'
-export type UserRole = 'user' | 'seller' | 'admin'
+// Canonical role authority is users.role and admits exactly two values.
+// There is no 'seller' role: seller authority is a seller_profiles + active
+// subscription concern, never a role.
+export type UserRole = 'user' | 'admin'
 
 export const ACCOUNT_STATUS = {
   ACTIVE: 'active',
@@ -166,7 +169,7 @@ export interface UserDetail extends UserListItem {
  */
 export interface UsersQueryParams {
   status?: AccountStatus | ''
-  role?: 'buyer' | 'seller' | 'admin' | ''
+  role?: 'user' | 'admin' | ''
   is_verified?: 'true' | 'false' | ''
   search?: string
   page?: number

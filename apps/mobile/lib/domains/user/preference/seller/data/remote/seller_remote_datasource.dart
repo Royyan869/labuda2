@@ -301,22 +301,69 @@ class SellerRemoteDatasource {
     }
   }
 
+  /// Get the canonical enabled payment methods for a seller subscription
+  /// payment.
+  /// GET /seller/subscription/payment-methods
+  ///
+  /// Each option already carries the backend-calculated payment-method fee F
+  /// and the resulting gross A + F for the active subscription principal A.
+  ///
+  /// PMF-02: every payment flow carries a payment-method fee, so the seller must
+  /// explicitly select a method before initiation. The backend is the sole fee
+  /// authority — the client never computes a fee or a gross amount, it only
+  /// renders the numbers returned here.
+  ///
+  /// Rethrows [ApiException] so callers can handle specific error codes:
+  /// - `NO_ACTIVE_CONFIG` (503): No subscription config available
+  Future<SellerSubscriptionPaymentMethodsDto>
+  getSubscriptionPaymentMethods() async {
+    try {
+      final response = await _apiClient.get(
+        '/seller/subscription/payment-methods',
+      );
+      _throwIfApiError(response);
+
+      final data = response.data['data'] as Map<String, dynamic>?;
+      if (data == null) {
+        throw Exception('No data in response');
+      }
+
+      return SellerSubscriptionPaymentMethodsDto.fromJson(data);
+    } on DioException catch (e) {
+      if (e.error is ApiException) {
+        throw e.error as ApiException;
+      }
+      rethrow;
+    }
+  }
+
   /// Initiate subscription payment via Midtrans Snap.
   /// POST /seller/subscription/initiate
+  ///
+  /// [paymentMethodCode] is REQUIRED and must be one of the codes returned by
+  /// [getSubscriptionPaymentMethods]. The backend looks the method up, validates
+  /// it is enabled, and calculates the payment-method fee itself (PMF-02) — the
+  /// client sends only the code.
   ///
   /// Returns a map containing:
   /// - `payment_id`: UUID of the created payment
   /// - `payment_url`: Midtrans Snap redirect URL
-  /// - `gross_amount`: Payment amount in cents
+  /// - `gross_amount`: Rupiah integer the gateway will charge (A + F)
   /// - `expired_at`: ISO 8601 payment expiry timestamp
   ///
   /// Rethrows [ApiException] so callers can handle specific error codes:
   /// - `NO_ACTIVE_CONFIG` (503): No subscription config available
   /// - `TOO_EARLY_RENEWAL` (409): Subscription still active
   /// - `MISSING_REQUIREMENTS` (400): Onboarding incomplete
-  Future<Map<String, dynamic>> initiateSubscriptionPayment() async {
+  /// - `BAD_REQUEST` (400): Unknown or disabled payment_method_code
+  Future<Map<String, dynamic>> initiateSubscriptionPayment({
+    required String paymentMethodCode,
+  }) async {
     try {
-      final response = await _apiClient.post('/seller/subscription/initiate');
+      final response = await _apiClient.post(
+        '/seller/subscription/initiate',
+        data: {'payment_method_code': paymentMethodCode},
+      );
       _throwIfApiError(response);
 
       final data = response.data['data'] as Map<String, dynamic>?;

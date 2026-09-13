@@ -47,8 +47,8 @@ class AuctionBidHistory extends StatelessWidget {
                 final displayName = isDegraded
                     ? lifecycle.publicRedactionLabel
                     : (bid.bidderUsername.isNotEmpty
-                        ? '@${bid.bidderUsername}'
-                        : null);
+                          ? '@${bid.bidderUsername}'
+                          : null);
                 return ListTile(
                   dense: true,
                   leading: CircleAvatar(

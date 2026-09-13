@@ -17,6 +17,9 @@ import (
 	commerceResponse "github.com/labuda/backend/internal/commerce/response"
 	forsalerepo "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	"github.com/labuda/backend/internal/governance/evaluator"
+	capabilityctx "github.com/labuda/backend/internal/platform/capability"
+	idempotencyRepo "github.com/labuda/backend/internal/platform/idempotency/repository"
+	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
 	contentapp "github.com/labuda/backend/internal/social/content/application"
 	contententity "github.com/labuda/backend/internal/social/content/entity"
 	contentrepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
@@ -92,12 +95,17 @@ func newVisibilityHTTPHandlerFromPool(pool *db.DB) *ContentHandler {
 			repository.NewAuctionRepository(),
 		),
 	)
+	// Wire the canonical idempotency repository (production-shaped). Every
+	// create POST /contents requires an Idempotency-Key and the service
+	// fails closed ("idempotency repository not configured") without it, so
+	// an unwired harness turns a genuine create into a 500.
+	contentService.SetIdempotencyRepository(idempotencyRepo.NewRepository())
 	return NewContentHandler(
 		contentService,
 		visibilityHTTPRoleChecker{},
 		pool,
 		zap.NewNop(),
-		evaluator.NewContentDetailShadowRunner(zap.NewNop()).WithMode(evaluator.ContentDetailEvaluatorModeEnforce),
+		evaluator.NewContentDetailShadowRunner(zap.NewNop()),
 	)
 }
 
@@ -113,7 +121,7 @@ func newProfileEngagementHTTPHandlerFromPool(pool *db.DB) *ContentHandler {
 		visibilityHTTPRoleChecker{},
 		pool,
 		zap.NewNop(),
-		evaluator.NewContentDetailShadowRunner(zap.NewNop()).WithMode(evaluator.ContentDetailEvaluatorModeEnforce),
+		evaluator.NewContentDetailShadowRunner(zap.NewNop()),
 	)
 }
 
@@ -1087,4 +1095,211 @@ func TestCreateContent_RejectedForMissingOrWrongSaleTarget(t *testing.T) {
 			require.Contains(t, w.Body.String(), "not found")
 		})
 	}
+}
+
+// ============================================================================
+// CONTENT UPDATE OWNER-ONLY AUTHORITY MATRIX (ADMIN-AUTHORITY follow-up)
+// ============================================================================
+//
+// Locked owner decision: UpdateContent has NO admin path — the previous
+// membership-only branch was dead code (service rejected every non-owner
+// with ErrOwnerRequired → 500) and no existing capability represents
+// "edit another user's content". The handler now enforces owner-only at
+// the gate; the service re-enforces the same rule.
+//
+// These HTTP-level tests prove the effective matrix:
+//
+//	CASE 1  owner                                   → 200
+//	CASE 2  non-owner normal user                   → 403
+//	CASE 3  admin member (no capability)            → 403
+//	CASE 4  admin member + capability               → 403 (no admin path exists)
+//	CASE 5  normal user + capability                → 403 (capability ≠ authority)
+//
+// The admin role checker and capability-bearing actors are simulated in
+// full: the request carries an admin-resolving RoleChecker (IsAdmin=true)
+// and, for CASE 4/5, an Actor with the capability in request context —
+// exactly what the canonical middleware pipeline would inject. The handler
+// gate must still deny every non-owner.
+
+// visibilityAdminHTTPRoleChecker resolves IsAdmin=true so the handler
+// receives an admin member — the gate must deny them anyway.
+type visibilityAdminHTTPRoleChecker struct{}
+
+func (visibilityAdminHTTPRoleChecker) IsAdmin(ctx context.Context, userID uuid.UUID) (bool, error) {
+	return true, nil
+}
+
+func (visibilityAdminHTTPRoleChecker) HasActiveSellerCapability(ctx context.Context, userID uuid.UUID) (bool, error) {
+	return false, nil
+}
+
+func (visibilityAdminHTTPRoleChecker) HasSellerProfile(ctx context.Context, userID uuid.UUID) (bool, error) {
+	return false, nil
+}
+
+func newVisibilityHTTPAdminHandlerFromPool(pool *db.DB) *ContentHandler {
+	contentService := contentapp.NewContentService(
+		contentrepo.NewContentRepository(),
+		visibilityHTTPLikeRepository{},
+		visibilityAdminHTTPRoleChecker{},
+		visibilityHTTPAccountChecker{},
+		nil,
+	)
+	contentService.SetCommerceReferenceValidator(
+		commerceResponse.NewValidator(
+			forsalerepo.NewForSaleRepository(),
+			repository.NewAuctionRepository(),
+		),
+	)
+	return NewContentHandler(
+		contentService,
+		visibilityAdminHTTPRoleChecker{},
+		pool,
+		zap.NewNop(),
+		evaluator.NewContentDetailShadowRunner(zap.NewNop()),
+	)
+}
+
+func seedVisibilityHTTPContent(t *testing.T, ctx context.Context, handler *ContentHandler, ownerID uuid.UUID, caption string) uuid.UUID {
+	t.Helper()
+	var contentID uuid.UUID
+	err := handler.db.WithTx(ctx, func(tx db.Tx) error {
+		content, createErr := handler.contentService.CreateContent(
+			ctx,
+			tx,
+			ownerID,
+			caption,
+			contententity.VisibilityPublic,
+			nil,
+			nil,
+			nil,
+			nil,
+			nil,
+		)
+		if createErr != nil {
+			return createErr
+		}
+		contentID = content.ID
+		return nil
+	})
+	require.NoError(t, err)
+	return contentID
+}
+
+func TestUpdateContent_OwnerOnly_AuthorityMatrix(t *testing.T) {
+	tdb, cleanup := testdb.SetupDB(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	appDB := db.NewFromPool(tdb.Pool())
+	handler := newVisibilityHTTPAdminHandlerFromPool(appDB)
+	ownerID := seedVisibilityHTTPUser(t, ctx, appDB, "active")
+	contentID := seedVisibilityHTTPContent(t, ctx, handler, ownerID, "original caption")
+
+	capabilityName := "governance.capability.assign"
+	adminActor := &capabilityEntity.Actor{
+		ID:           uuid.New(),
+		Role:         "admin",
+		Capabilities: []string{capabilityName},
+	}
+	normalUserWithCap := &capabilityEntity.Actor{
+		ID:           uuid.New(),
+		Role:         "user",
+		Capabilities: []string{capabilityName},
+	}
+
+	cases := []struct {
+		name       string
+		actor      *capabilityEntity.Actor
+		actorID    uuid.UUID
+		wantStatus int
+	}{
+		{
+			name:       "CASE1_owner_allowed",
+			actorID:    ownerID,
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "CASE2_non_owner_normal_user_denied",
+			actor:      &capabilityEntity.Actor{ID: uuid.New(), Role: "user"},
+			actorID:    uuid.New(),
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "CASE3_admin_member_no_capability_denied",
+			actor:      &capabilityEntity.Actor{ID: uuid.New(), Role: "admin"},
+			actorID:    uuid.New(),
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "CASE4_admin_member_with_capability_denied",
+			actor:      adminActor,
+			actorID:    adminActor.ID,
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "CASE5_normal_user_with_capability_denied",
+			actor:      normalUserWithCap,
+			actorID:    normalUserWithCap.ID,
+			wantStatus: http.StatusForbidden,
+		},
+	}
+
+	gin.SetMode(gin.TestMode)
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			body := `{"caption":"attacker caption"}`
+			req := httptest.NewRequest(http.MethodPut, "/api/v1/contents/"+contentID.String(), strings.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Idempotency-Key", "matrix-"+tc.name)
+
+			// Simulate the canonical pipeline: actor injected into request
+			// context (ActorContextInject) + userID in gin context (UserLookup).
+			if tc.actor != nil {
+				req = req.WithContext(capabilityctx.WithActor(req.Context(), tc.actor))
+			}
+			c.Request = req
+			c.Params = gin.Params{{Key: "id", Value: contentID.String()}}
+			c.Set("userID", tc.actorID)
+
+			handler.UpdateContent(c)
+
+			require.Equal(t, tc.wantStatus, w.Code, "body: %s", w.Body.String())
+		})
+	}
+}
+
+// TestUpdateContent_NonOwnerAdmin_CannotMutate proves the denied non-owner
+// never mutates the row: the caption stays at the owner's original value.
+func TestUpdateContent_NonOwnerAdmin_CannotMutate(t *testing.T) {
+	tdb, cleanup := testdb.SetupDB(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	appDB := db.NewFromPool(tdb.Pool())
+	handler := newVisibilityHTTPAdminHandlerFromPool(appDB)
+	ownerID := seedVisibilityHTTPUser(t, ctx, appDB, "active")
+	contentID := seedVisibilityHTTPContent(t, ctx, handler, ownerID, "original caption")
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	body := `{"caption":"admin overwrite attempt"}`
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/contents/"+contentID.String(), strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Idempotency-Key", "non-owner-admin-mutation")
+	c.Request = req
+	c.Params = gin.Params{{Key: "id", Value: contentID.String()}}
+	c.Set("userID", uuid.New()) // non-owner admin identity
+
+	handler.UpdateContent(c)
+	require.Equal(t, http.StatusForbidden, w.Code)
+
+	// Verify the row is untouched.
+	var caption string
+	require.NoError(t, tdb.Pool().QueryRow(ctx, "SELECT caption FROM contents WHERE id = $1", contentID).Scan(&caption))
+	require.Equal(t, "original caption", caption)
 }

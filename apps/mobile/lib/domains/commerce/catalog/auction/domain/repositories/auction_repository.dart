@@ -27,9 +27,9 @@ abstract class AuctionRepository {
     required List<String> mediaUrls,
     required List<AuctionMediaType> mediaTypes,
     required KoiDetails koiDetails,
-    required double openingBid,
-    required double bidIncrement,
-    double? buyNowPrice,
+    required int openingBid,
+    required int bidIncrement,
+    int? buyNowPrice,
     required String startMode,
     DateTime? scheduledStartAt,
     required int durationHours,
@@ -96,7 +96,7 @@ abstract class AuctionRepository {
   Future<RepositoryResult<AuctionBid>> placeBid({
     required String auctionId,
     required String bidderId,
-    required double amount,
+    required int amount,
   });
 
   /// Get auction bids
@@ -162,9 +162,9 @@ class CreateAuctionParams {
   final List<String> mediaUrls;
   final List<AuctionMediaType> mediaTypes;
   final KoiDetails koiDetails;
-  final double openingBid;
-  final double bidIncrement;
-  final double? buyNowPrice;
+  final int openingBid;
+  final int bidIncrement;
+  final int? buyNowPrice;
   final String startMode;
   final DateTime? scheduledStartAt;
   final int durationHours;

@@ -20,6 +20,7 @@ import 'package:labuda/domains/social/share/share.dart';
 import 'package:labuda/shared/utils/commerce_seller_identity.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
 import 'package:labuda/domains/system/report/presentation/dialogs/report_submission_dialog.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_saved_item_action_button.dart';
 
 /// ForSale Detail Screen
 ///
@@ -57,6 +58,16 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Save button — non-owners only.
+                  if (!isOwner)
+                    CommerceSavedItemActionButton(
+                      targetType: 'for_sale',
+                      targetId: listing.forSaleId,
+                      label: 'Simpan',
+                      activeLabel: 'Tersimpan',
+                      icon: Icons.bookmark_border,
+                      activeIcon: Icons.bookmark,
+                    ),
                   // Share button — all authenticated users can share a listing to feed.
                   IconButton(
                     onPressed: () => _handleShareListing(context, listing),
@@ -870,8 +881,7 @@ class _ForSaleActionBar extends ConsumerWidget {
                         context,
                         icon: Icons.chat_bubble_outline,
                         label: 'Chat',
-                        onTap: () =>
-                            _openChat(context, ref, negotiate: false),
+                        onTap: () => _openChat(context, ref, negotiate: false),
                       ),
                     ),
                   if (canChat && canNegotiate) const SizedBox(width: 8),
@@ -881,8 +891,7 @@ class _ForSaleActionBar extends ConsumerWidget {
                         context,
                         icon: Icons.handshake_outlined,
                         label: 'Ajukan Penawaran',
-                        onTap: () =>
-                            _openChat(context, ref, negotiate: true),
+                        onTap: () => _openChat(context, ref, negotiate: true),
                       ),
                     ),
                 ],
@@ -902,10 +911,7 @@ class _ForSaleActionBar extends ConsumerWidget {
                   ),
                   child: const Text(
                     'Beli Sekarang',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -927,9 +933,7 @@ class _ForSaleActionBar extends ConsumerWidget {
       label: Text(label),
       style: OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(44),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

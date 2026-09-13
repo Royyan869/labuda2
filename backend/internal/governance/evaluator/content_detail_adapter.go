@@ -1,7 +1,5 @@
 package evaluator
 
-import "strings"
-
 // D1 — /contents/:id (content detail) governance convergence adapter.
 //
 // This file lands the pure adapter type + mapping function used to translate
@@ -28,53 +26,10 @@ import "strings"
 //   - Pure: no DB reads, no IO, no logging. Caller-side telemetry only.
 //   - Single source of decision truth: the canonical ShadowDecision enum
 //     from shadow_types.go. No new top-level enum is introduced.
-//   - Mode is a passive label. The adapter NEVER conditionally changes its
-//     mapping based on mode; mode is forwarded so callers can emit
-//     content_detail_evaluator_enforce_mode_total / would_enforce_decision_total
-//     telemetry consistently.
+//   - Enforcement is unconditional. The mapping below IS the canonical
+//     business answer; there is no shadow/enforce branch.
 
-// ContentDetailEvaluatorMode is the operating mode of the /contents/:id
-// evaluator integration. shadow keeps current behaviour; enforce activates
-// the synchronous fail-CLOSED-on-non-allow path. Invalid / empty values
-// normalise to shadow via NormalizeContentDetailEvaluatorMode.
-type ContentDetailEvaluatorMode string
 
-const (
-	// ContentDetailEvaluatorModeShadow is the default operating mode. The
-	// enforcement helper short-circuits to allow=true; the legacy handler's
-	// own gate remains the sole visibility authority.
-	ContentDetailEvaluatorModeShadow ContentDetailEvaluatorMode = "shadow"
-
-	// ContentDetailEvaluatorModeEnforce activates the synchronous
-	// fail-CLOSED enforcement. Any non-ALLOW decision (DENY / TOMBSTONE /
-	// REDACT / UNKNOWN) causes the handler to convert its successful
-	// response to a 404. Wire shape is byte-identical to a legacy-gate 404
-	// (no in-wire tombstone payload — preserves existing architectural
-	// truth).
-	ContentDetailEvaluatorModeEnforce ContentDetailEvaluatorMode = "enforce"
-)
-
-// IsValid reports whether m is a recognised mode.
-func (m ContentDetailEvaluatorMode) IsValid() bool {
-	switch m {
-	case ContentDetailEvaluatorModeShadow, ContentDetailEvaluatorModeEnforce:
-		return true
-	}
-	return false
-}
-
-// NormalizeContentDetailEvaluatorMode parses an env / config string into a
-// canonical ContentDetailEvaluatorMode. Any unrecognised or empty value
-// falls safely to shadow — enforce is opt-in only. Mirror of the feed /
-// search normalize helpers.
-func NormalizeContentDetailEvaluatorMode(raw string) ContentDetailEvaluatorMode {
-	switch ContentDetailEvaluatorMode(strings.ToLower(strings.TrimSpace(raw))) {
-	case ContentDetailEvaluatorModeEnforce:
-		return ContentDetailEvaluatorModeEnforce
-	default:
-		return ContentDetailEvaluatorModeShadow
-	}
-}
 
 // ContentDetailDecisionReason is the bounded telemetry-safe reason label
 // emitted on a non-ALLOW adapter outcome. Cardinality is intentionally
@@ -99,13 +54,8 @@ const (
 // package docstring above.
 type ContentDetailDecision struct {
 	// Include reports whether the handler should emit its successful
-	// response. In ContentDetailEvaluatorModeEnforce, Include=false causes
-	// the handler to write HTTP 404 instead of the 200 payload the legacy
-	// gate already approved.
-	//
-	// In ContentDetailEvaluatorModeShadow the caller MUST IGNORE this for
-	// response composition (legacy handler remains authority) but SHOULD
-	// emit would-enforce telemetry from it.
+	// response. Include=false causes the handler to write HTTP 404 instead
+	// of the 200 payload the legacy gate already approved.
 	Include bool
 
 	// Reason is the bounded telemetry-safe label. Empty when the decision
@@ -130,12 +80,10 @@ type ContentDetailDecision struct {
 //	  (DETAIL fail-CLOSED on every UNKNOWN reason — doctrine §8.5. This is
 //	   the documented inversion of feed's fail-OPEN policy.)
 //
-// The mode parameter is a passive label. The mapping above is unconditional;
-// only the caller's reaction to Include changes between shadow and enforce.
+// The mapping above is unconditional.
 func AdaptContentDetailDecision(
 	decision ShadowDecision,
 	_ UnknownReason, // accepted for forward-compat + parity with sibling adapters
-	_ ContentDetailEvaluatorMode, // passive label
 ) ContentDetailDecision {
 	switch decision {
 	case ShadowDecisionAllow:

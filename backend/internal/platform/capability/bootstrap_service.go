@@ -137,102 +137,14 @@ func (s *BootstrapService) AssignInitialCapabilities(
 	return result, nil
 }
 
-// Preset capability sets for common operational roles.
+// PURGED: PresetBootstrapAdmin.
 //
-// PRESETS ARE CONVENIENCE ONLY, NOT ROLE MAPPINGS.
-// They simply group related capabilities for assignment convenience.
-const (
-	// PresetFinanceReviewer grants capabilities for financial operations review
-	PresetFinanceReviewer = "finance_reviewer"
-
-	// PresetGovernanceBasic grants basic governance capabilities
-	PresetGovernanceBasic = "governance_basic"
-
-	// PresetModerationBasic grants basic moderation capabilities
-	PresetModerationBasic = "moderation_basic"
-
-	// PresetSellerVerification grants seller verification review capability
-	PresetSellerVerification = "seller_verification"
-
-	// PresetConfigManager grants configuration management capabilities
-	PresetConfigManager = "config_manager"
-
-	// PresetSupportAdmin grants support ticket management capabilities
-	PresetSupportAdmin = "support_admin"
-)
-
-// GetPresetCapabilities returns the capability list for a given preset.
-//
-// Returns an error if the preset name is unknown.
-// This ensures explicitness - unknown presets are rejected rather than silently ignored.
-func GetPresetCapabilities(preset string) ([]string, error) {
-	switch preset {
-	case PresetFinanceReviewer:
-		return []string{
-			CapFinanceWithdrawRead.String(),
-			CapFinanceWithdrawReview.String(),
-			CapFinanceDisputeResolve.String(),
-		}, nil
-
-	case PresetGovernanceBasic:
-		return []string{
-			CapGovernanceAuditRead.String(),
-			CapGovernanceUserSuspend.String(),
-			CapGovernanceRoleAssign.String(),
-		}, nil
-
-	case PresetModerationBasic:
-		return []string{
-			CapModerationContentView.String(),
-			CapModerationContentRemove.String(),
-			CapModerationCaseResolve.String(),
-		}, nil
-
-	case PresetSellerVerification:
-		return []string{
-			CapSellerVerificationReview.String(),
-		}, nil
-
-	case PresetConfigManager:
-		return []string{
-			CapConfigView.String(),
-			CapConfigUpdateGeneral.String(),
-			CapConfigUpdateFinancial.String(),
-		}, nil
-
-	case PresetSupportAdmin:
-		return []string{
-			CapSupportTicketRespond.String(),
-			CapSupportTicketClaim.String(),
-			CapSupportTicketResolve.String(),
-			CapSupportAdminAssign.String(),
-		}, nil
-
-	default:
-		return nil, fmt.Errorf("unknown preset: %s", preset)
-	}
-}
-
-// AssignInitialCapabilitiesFromPreset grants all capabilities from a preset to a user.
-//
-// This is a convenience method that combines GetPresetCapabilities and AssignInitialCapabilities.
-//
-// Returns an error if the preset name is unknown.
-// The bootstrap result will contain details of the operation.
-func (s *BootstrapService) AssignInitialCapabilitiesFromPreset(
-	ctx context.Context,
-	tx interface{},
-	targetUserID uuid.UUID,
-	preset string,
-	grantedBy *uuid.UUID,
-) (*BootstrapResult, error) {
-	capabilities, err := GetPresetCapabilities(preset)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.AssignInitialCapabilities(ctx, tx, targetUserID, capabilities, grantedBy)
-}
+// There is no "minimum bootstrap" capability model. Bootstrap-admin (initial
+// system setup and disaster recovery) grants the entire canonical universe via
+// capability.AllCapabilityStrings() and therefore yields derived full access.
+// Keeping a second, smaller bootstrap authority would be a hidden alternate
+// model for how an admin gets power — exactly what the canonical authority
+// graph forbids. Do not reintroduce it.
 
 // ValidateCapabilities checks if all capability strings in a list are valid.
 //

@@ -17,14 +17,11 @@ const CHANNEL_VARIANTS: Record<string, 'info' | 'warning' | 'error' | 'success'>
 export function FailedDeliveriesPage() {
   const [sinceHours, setSinceHours] = useState<number>(24)
 
-  const since = (() => {
-    const date = new Date()
-    date.setHours(date.getHours() - sinceHours)
-    return date.toISOString()
-  })()
-
+  // Pass the scalar lookback window through; the hook resolves it to a
+  // timestamp at request time so this page does not create a fresh, unstable
+  // value on every render (which caused an infinite refetch loop).
   const { deliveries, loading, error, total, refetch, page, setPage, totalPages } =
-    useFailedDeliveries({ since })
+    useFailedDeliveries({ sinceHours })
 
   const handleSinceChange = (hours: number) => {
     setSinceHours(hours)

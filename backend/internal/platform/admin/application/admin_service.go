@@ -127,8 +127,11 @@ func (s *AdminService) SuspendUser(
 	}
 
 	return s.db.WithTx(ctx, func(tx db.Tx) error {
-		// Update user status to suspended
-		if err := s.repo.UpdateUserStatus(ctx, tx, targetUserID, "suspended"); err != nil {
+		// Suspending an account can remove the last active full-access admin,
+		// so the mutation goes through the guarded path: it serializes against
+		// the canonical invariant lock, applies the change, and refuses (rolling
+		// back) if the system would be left with zero active full-access admins.
+		if err := s.repo.UpdateUserStatusGuarded(ctx, tx, targetUserID, "suspended"); err != nil {
 			return err
 		}
 
@@ -245,8 +248,11 @@ func (s *AdminService) BanUser(
 			return nil
 		}
 
-		// Update user status to banned
-		if err := s.repo.UpdateUserStatus(ctx, tx, targetUserID, "banned"); err != nil {
+		// Banning an account can remove the last active full-access admin, so the
+		// mutation goes through the guarded path: it serializes against the
+		// canonical invariant lock, applies the change, and refuses (rolling
+		// back) if the system would be left with zero active full-access admins.
+		if err := s.repo.UpdateUserStatusGuarded(ctx, tx, targetUserID, "banned"); err != nil {
 			return err
 		}
 

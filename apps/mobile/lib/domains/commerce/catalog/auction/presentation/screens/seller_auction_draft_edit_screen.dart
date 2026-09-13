@@ -92,8 +92,7 @@ class _SellerAuctionDraftEditScreenState
       return;
     }
 
-    if (buyNowPriceText.isNotEmpty &&
-        buyNowPrice == null) {
+    if (buyNowPriceText.isNotEmpty && buyNowPrice == null) {
       setState(() {
         _errorMessage = 'Buy now price harus berupa angka bila diisi.';
       });
@@ -105,16 +104,15 @@ class _SellerAuctionDraftEditScreenState
       _errorMessage = null;
     });
 
-    final success = await ref.read(auctionNotifierProvider.notifier).updateAuction(
-      widget.auction.id,
-      {
-        'title': title,
-        'description': description,
-        'startPrice': openingBid,
-        'bidIncrement': bidIncrement,
-        'buyNowPrice': buyNowPrice,
-      },
-    );
+    final success = await ref
+        .read(auctionNotifierProvider.notifier)
+        .updateAuction(widget.auction.id, {
+          'title': title,
+          'description': description,
+          'startPrice': openingBid,
+          'bidIncrement': bidIncrement,
+          'buyNowPrice': buyNowPrice,
+        });
 
     if (!mounted) return;
 

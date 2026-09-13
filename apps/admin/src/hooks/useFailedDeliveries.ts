@@ -12,7 +12,15 @@ export interface FailedDelivery {
   created_at: string
 }
 
-export function useFailedDeliveries(params: { since?: string } = {}) {
+export function useFailedDeliveries(params: { sinceHours?: number } = {}) {
+  // The lookback window is a scalar input and is resolved to a timestamp at
+  // request time. It must NOT be computed during render and passed in as an
+  // ISO string: a render-time `new Date()` yields a new value on every
+  // render, which changed fetchDeliveries' identity every render and made the
+  // effect below refetch forever (the "Loading failed deliveries..." spinner
+  // never reached a terminal state).
+  const sinceHours = params.sinceHours ?? 24
+
   const [deliveries, setDeliveries] = useState<FailedDelivery[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -25,10 +33,11 @@ export function useFailedDeliveries(params: { since?: string } = {}) {
     setLoading(true)
     setError(null)
     try {
+      const since = new Date(Date.now() - sinceHours * 60 * 60 * 1000).toISOString()
       const response = await getFailedDeliveries({
         page,
         pageSize,
-        since: params.since,
+        since,
       })
 
       setDeliveries(response.deliveries || [])
@@ -39,7 +48,7 @@ export function useFailedDeliveries(params: { since?: string } = {}) {
     } finally {
       setLoading(false)
     }
-  }, [page, pageSize, params.since])
+  }, [page, pageSize, sinceHours])
 
   useEffect(() => {
     fetchDeliveries()

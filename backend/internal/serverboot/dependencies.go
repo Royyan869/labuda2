@@ -494,6 +494,8 @@ func (a *canonicalPromotionOperabilityAdapterForContract) ValidateOwnership(ctx 
 	return a.checker.ValidateOwnership(ctx, sellerID, promotionEntity.TargetType(targetType), targetID)
 }
 
+
+
 func InitServices(
 	appCtx context.Context,
 	db *database.DB,
@@ -505,6 +507,8 @@ func InitServices(
 	schemaReady bool,
 ) *Dependencies {
 	isProduction := cfg.IsProduction()
+
+
 
 	// workerStartups accumulates deferred worker .Start() closures so the
 	// returned *Dependencies can be re-driven through StartWorkers either
@@ -910,7 +914,6 @@ func InitServices(
 	forSaleService := forSaleApp.NewForSaleService(
 		outboxRepository,
 		roleChecker,
-		actorResolver,
 		productShippingRepo,
 		coverageRepo,
 		shippingQuoteRepository,
@@ -1096,6 +1099,14 @@ func InitServices(
 		cfg.App.FrontendURL,
 		subscriptionPaymentService,
 	)
+
+	// Wire the canonical configured seller withdrawal fee into the seller
+	// earnings surface (same authority as WithdrawService).
+	sellerHandler.SetWithdrawalFeeProvider(configService)
+
+	// Wire the canonical payment method authority into subscription payment
+	// initiation (PMF-02: universal payment-method fee convergence).
+	sellerHandler.SetPaymentMethodRepository(paymentMethodRepository)
 
 	// Admin handler for seller subscription config (singleton row read/update)
 	adminSubscriptionConfigHandler := subscriptionHTTP.NewAdminSubscriptionConfigHandler(
@@ -1341,15 +1352,13 @@ func InitServices(
 	// adapter pattern: policy interface is tx-free; adapter owns db.WithTx boundary.
 	notifMuteChecker := &notificationMuteCheckerAdapter{db: db.Pgx(), repo: blockChecker}
 
-	// CHAT-5 + C6C: Mute governance for chat notification delivery.
-	// Default: enforce mode — suppress muted chat notifications (C6C promotion).
-	// Rollback: set MUTE_CHAT_NOTIFICATION_ENFORCE=false to revert to shadow mode.
-	chatMuteMode := notificationPolicy.MuteEnforce
-	if os.Getenv("MUTE_CHAT_NOTIFICATION_ENFORCE") == "false" {
-		chatMuteMode = notificationPolicy.MuteShadow
-	}
-	chatMutePolicy := notificationPolicy.NewMutePolicy(notifMuteChecker, chatMuteMode)
-	log.Info("Chat mute policy initialized", zap.String("mode", string(chatMuteMode)))
+	// CHAT-5: Mute governance for chat notification delivery.
+	// Mute is canonical business behavior: a recipient who muted the sender
+	// receives neither in-app nor push notifications for chat messages.
+	// There is no shadow/observe mode and no environment knob — enforcement is
+	// the only runtime behavior.
+	chatMutePolicy := notificationPolicy.NewMutePolicy(notifMuteChecker)
+	log.Info("Chat mute policy initialized (enforced)")
 
 	// NOTIFICATION-ACTIVATION-1: Full handler set. All audited groups active.
 	// Dormant by design: SLA handlers (unregistered), order.dispute_open (unregistered),
@@ -2083,6 +2092,10 @@ func InitServices(
 	withdrawAuthFinance.SetDisputeFreezeRepo(financeRepo.NewDisputeFreezeRepository())
 	withdrawService.SetCanonicalAuthority(withdrawAuthFinance)
 
+	// Wire the canonical configured seller withdrawal fee (admin-configurable,
+	// Rp0 allowed) into WithdrawService. No hardcoded fee fallback exists.
+	withdrawService.SetWithdrawalFeeProvider(configService)
+
 	// Wire the unified withdrawal HTTP handler. POST /api/v1/withdraw now
 	// drives the canonical finance-shape lifecycle (status=REQUESTED), which
 	// is consumed end-to-end by AdminPayoutHandler, PayoutWorker, and
@@ -2183,26 +2196,13 @@ func InitServices(
 	// Initialize feed service
 	feedService := feedApp.NewFeedService(feedrepo.NewFeedRepository())
 
-	// PHASE C — Feed evaluator shadow observability (BLOCKER-002, BLOCKER-004
-	// observability only). Disabled by default; enable via
-	// EVALUATOR_SHADOW_FEED_ENABLED=true. Per docs/05-rollout/
-	// convergence-sequencing-addendum-viewercontext-evaluator.md (§3.1, §5),
-	// feed is the canonical first SHADOW surface but never the first
-	// AUTHORITY surface. The runner is fire-and-forget and never affects
-	// the runtime feed response, pagination, or legacy authority.
-	// F1-W3A — NewFeedShadowRunner no longer accepts a *pgxpool.Pool.
-	// Overlay hydration now happens at the handler boundary
-	// (feed_viewercontext.go); the runner is a pure observer.
+	// Feed evaluator — canonical business truth = enforce. The
+	// observability runner is optional (disabled by default) and never
+	// affects the response. Mode validity was already enforced once at
+	// /feed enforcement is unconditional.
 	var feedShadowRunner *evaluator.FeedShadowRunner
 	if strings.EqualFold(os.Getenv("EVALUATOR_SHADOW_FEED_ENABLED"), "true") {
 		feedShadowRunner = evaluator.NewFeedShadowRunner(log.Logger)
-		// BATCH 3M: stamp the configured /feed evaluator operating mode.
-		// FEED_EVALUATOR_MODE is parsed in config.go and normalized
-		// here. Default + invalid input → shadow (safe default; no
-		// runtime visibility change). Enforce flips the handler to the
-		// synchronous further-restrict path (evaluator/feed_enforce.go).
-		feedEvaluatorMode := evaluator.NormalizeFeedEvaluatorMode(cfg.FeatureFlags.FeedEvaluatorMode)
-		feedShadowRunner = feedShadowRunner.WithMode(feedEvaluatorMode)
 	}
 	// P3A — Promotion feed injector. Interleaves active promoted items into
 	// the organic feed. Nil-safe: a nil injector disables injection entirely.
@@ -2247,25 +2247,16 @@ func InitServices(
 	)
 	contentService.SetIdempotencyRepository(idempotencyRepoPkg.NewRepository())
 	contentService.SetOutboxInserter(outboxRepository)
-	// BATCH 3Q — /contents/:id evaluator shadow seam. Gated on env var
-	// EVALUATOR_SHADOW_CONTENT_DETAIL_ENABLED=true. Default off so a
-	// disabled runner returns a nil pointer and the handler short-
-	// circuits dispatch. Mirrors the EVALUATOR_SHADOW_FEED_ENABLED
-	// gating pattern used immediately above.
-	//
-	// D1 — additionally stamp the configured operating mode.
-	// CONTENT_DETAIL_EVALUATOR_MODE is parsed in config.go and normalized
-	// here. Default + invalid input → shadow (safe default; no runtime
-	// visibility change). Enforce flips the handler to the synchronous
-	// fail-CLOSED path (evaluator/content_detail_enforce.go).
+	// Content detail evaluator — canonical business truth = enforce. The
+	// observability runner is optional (disabled by default). Mode
+	// validity was already enforced once at boot via
+	// /contents/:id enforcement is unconditional.
 	// F1-W3B — NewContentDetailShadowRunner no longer accepts a
 	// *pgxpool.Pool. Overlay hydration now happens at the handler
 	// boundary (content_viewercontext.go); the runner is a pure observer.
 	var contentDetailShadowRunner *evaluator.ContentDetailShadowRunner
 	if strings.EqualFold(os.Getenv("EVALUATOR_SHADOW_CONTENT_DETAIL_ENABLED"), "true") {
 		contentDetailShadowRunner = evaluator.NewContentDetailShadowRunner(log.Logger)
-		contentDetailEvaluatorMode := evaluator.NormalizeContentDetailEvaluatorMode(cfg.FeatureFlags.ContentDetailEvaluatorMode)
-		contentDetailShadowRunner = contentDetailShadowRunner.WithMode(contentDetailEvaluatorMode)
 	}
 	contentHandler := contentHTTP.NewContentHandler(
 		contentService,
@@ -2581,30 +2572,19 @@ func InitServices(
 	searchRepository := searchRepo.NewSearchRepository()
 	searchService := searchApp.NewSearchService(searchRepository)
 
-	// PHASE C — search/content shadow seam Stage 1 (telemetry only) per
-	// docs/05-rollout/search-shadow-seam-landing-task-design.md §3.1 /
-	// §4.2. The shadow runner is unconditionally constructed and
-	// dispatched fire-and-forget.
-	//
-	// BATCH 3B — Adapter mode plumbed in from cfg.FeatureFlags. In shadow
-	// mode (default) the runner is observation-only and the /search/
-	// content handler emits its legacy response shape unchanged. In
-	// enforce mode the runner additionally labels its telemetry with
-	// mode="enforce" AND the handler synchronously calls
-	// evaluator.EnforceSearchContent to filter / coarsen rows BEFORE
-	// response serialization. Invalid env values fall safely to shadow
-	// via NormalizeSearchContentAdapterMode — enforce mode is opt-in
-	// only.
-	searchContentEvaluatorMode := evaluator.NormalizeSearchContentAdapterMode(cfg.FeatureFlags.SearchContentEvaluatorMode)
-	searchContentShadowRunner := evaluator.NewSearchContentShadowRunner(log.Logger).
-		WithMode(searchContentEvaluatorMode)
+	// Search content evaluator — canonical business truth = enforce.
+	// Handler always runs synchronous enforcement; runner is
+	// observability-only. Mode validity was already enforced once at boot
+	// Enforcement is unconditional.
+	searchContentShadowRunner := evaluator.NewSearchContentShadowRunner(log.Logger)
 
 	// P3B — Search promotion injector. Canonical contract handoff (feed parity).
 	searchPromotionInjector := searchHTTP.NewSearchPromotionInjector(
 		canonicalDeliveryHandoffService, db.Pgx().Pool(), log.Logger,
 	)
 
-	// Initialize search handler.
+	// Initialize search handler — /search/content enforcement is
+	// unconditional; the shadow runner is observability-only.
 	searchHandler := searchHTTP.NewSearchHandler(
 		searchService,
 		db.Pgx(),
@@ -3255,8 +3235,12 @@ type CreatePaymentRequest struct {
 }
 
 // CreateBillingPaymentRequest holds the request payload for initiating a billing payment.
+//
+// PASS_18V: payment_method_code is required — the backend is the sole authority
+// for the buyer payment fee. The client never submits a fee or gross amount.
 type CreateBillingPaymentRequest struct {
-	BillingID uuid.UUID `json:"billing_id" binding:"required"`
+	BillingID          uuid.UUID `json:"billing_id" binding:"required"`
+	PaymentMethodCode  string    `json:"payment_method_code" binding:"required"`
 }
 
 func (h *CorePaymentHandler) loadOrderPricingTokenSnapshot(
@@ -3825,11 +3809,38 @@ func (h *CorePaymentHandler) CreateBillingPayment(c *gin.Context) {
 		return
 	}
 
+	// PASS_18V: Load the payment method BEFORE the transaction so we can
+	// calculate the fee. The backend is the sole authority for the buyer
+	// payment fee — the client never submits a fee or gross amount.
+	var method *paymentmethodentity.Method
+	var err error
+	err = h.db.WithTx(ctx, func(tx db.Tx) error {
+		var err error
+		method, err = h.paymentMethodRepo.GetByCode(ctx, tx, req.PaymentMethodCode)
+		return err
+	})
+	if err != nil {
+		if errors.Is(err, paymentmethodrepo.ErrMethodNotFound) {
+			response.BadRequest(c, fmt.Sprintf("Unknown payment method: %s", req.PaymentMethodCode))
+			return
+		}
+		h.log.Error("Failed to load payment method",
+			zap.String("method_code", req.PaymentMethodCode),
+			zap.Error(err),
+		)
+		response.InternalServerError(c, "Failed to load payment method")
+		return
+	}
+	if !method.Enabled {
+		response.BadRequest(c, fmt.Sprintf("Payment method is disabled: %s", method.Code))
+		return
+	}
+
 	var (
 		billing *billingentity.BillingTransaction
 		payment *repository.Payment
 	)
-	err := h.db.WithTx(ctx, func(tx db.Tx) error {
+	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var fetchErr error
 		billing, fetchErr = h.billingRepo.GetForUpdate(ctx, tx, req.BillingID)
 		if fetchErr != nil {
@@ -3853,22 +3864,37 @@ func (h *CorePaymentHandler) CreateBillingPayment(c *gin.Context) {
 			return nil
 		}
 
+		// Calculate payment-method fee: F = CalculateFee(billing principal, method)
+		// The billing principal (A) is billing.GrossAmount — the requested top-up amount.
+		// Gateway charge = A + F. Promote Balance receives only A.
+		billingPrincipal := billing.GrossAmount
+		paymentFee, err := paymentmethodentity.CalculateFee(billingPrincipal, *method)
+		if err != nil {
+			return fmt.Errorf("calculate payment fee: %w", err)
+		}
+		grossMoney := billingPrincipal.Add(paymentFee)
+		if grossMoney.Int64() <= 0 {
+			return fmt.Errorf("gross amount must be positive")
+		}
+
 		paymentNumber := fmt.Sprintf("PAY-BILL-%d", time.Now().UnixNano())
 		midtransOrderID := fmt.Sprintf("LAB-BILL-%s", uuid.New().String())
 		expiredAt := time.Now().Add(24 * time.Hour)
 		referenceID := req.BillingID
+		methodCode := method.Code
 
 		created, createErr := h.paymentRepo.CreatePayment(ctx, tx, repository.CreatePaymentInput{
-			UserID:           userID,
-			PaymentNumber:    paymentNumber,
-			MidtransOrderID:  midtransOrderID,
-			GrossAmount:      billing.GrossAmount,
-			ServiceFeeAmount: money.Zero(),
-			CoinsToUse:       0,
-			ReferenceType:    repository.ReferenceTypeBilling,
-			ReferenceID:      &referenceID,
-			PriceSnapshotID:  nil,
-			ExpiredAt:        expiredAt,
+			UserID:            userID,
+			PaymentNumber:     paymentNumber,
+			MidtransOrderID:   midtransOrderID,
+			GrossAmount:       grossMoney,
+			ServiceFeeAmount:  paymentFee,
+			CoinsToUse:        0,
+			ReferenceType:     repository.ReferenceTypeBilling,
+			ReferenceID:       &referenceID,
+			PriceSnapshotID:   nil,
+			ExpiredAt:         expiredAt,
+			PaymentMethodCode: &methodCode,
 		})
 		if createErr != nil {
 			return createErr
@@ -4448,7 +4474,7 @@ func (h *CoreUserHandler) SetRole(c *gin.Context) {
 	// SLICE 5: No self-escalation guard
 	// Users cannot modify their own role to admin
 	if callerID == targetUserID {
-		if req.Role == "admin" {
+		if req.Role == capabilityEntity.AdminRole {
 			h.logError(c, "Self-escalation attempt blocked", nil)
 			response.Forbidden(c, "Cannot assign elevated role to yourself")
 			return

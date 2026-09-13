@@ -30,8 +30,6 @@ import { PlatformConfigPage } from '@/pages/PlatformConfigPage'
 import { PaymentMethodsPage } from '@/pages/PaymentMethodsPage'
 import { SupportOverviewPage } from '@/pages/SupportOverviewPage'
 import { ExternalProductsPage } from '@/pages/ExternalProductsPage'
-import { PromotionPackagesPage } from '@/pages/PromotionPackagesPage'
-import { PromotionCampaignsPage } from '@/pages/PromotionCampaignsPage'
 
 function App() {
   return (
@@ -262,22 +260,6 @@ function App() {
           element={
             <RequireCapability cap="promotion.external_product.review">
               <ExternalProductsPage />
-            </RequireCapability>
-          }
-        />
-        <Route
-          path="/promotions/packages"
-          element={
-            <RequireCapability cap="promotion.package.manage">
-              <PromotionPackagesPage />
-            </RequireCapability>
-          }
-        />
-        <Route
-          path="/promotions/campaigns"
-          element={
-            <RequireCapability cap="promotion.campaign.view">
-              <PromotionCampaignsPage />
             </RequireCapability>
           }
         />

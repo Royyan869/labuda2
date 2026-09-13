@@ -5,13 +5,7 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 
-enum SellerAuctionFilter {
-  all,
-  draft,
-  scheduled,
-  active,
-  finished,
-}
+enum SellerAuctionFilter { all, draft, scheduled, active, finished }
 
 extension SellerAuctionFilterX on SellerAuctionFilter {
   String get label {
@@ -48,10 +42,11 @@ extension SellerAuctionFilterX on SellerAuctionFilter {
   }
 }
 
-final sellerAuctionsPagerProvider = NotifierProvider.autoDispose<
-  SellerAuctionsPagerController,
-  SellerAuctionsPagerState
->(SellerAuctionsPagerController.new);
+final sellerAuctionsPagerProvider =
+    NotifierProvider.autoDispose<
+      SellerAuctionsPagerController,
+      SellerAuctionsPagerState
+    >(SellerAuctionsPagerController.new);
 
 class SellerAuctionsPagerState {
   final SellerAuctionFilter activeFilter;
@@ -101,12 +96,15 @@ class SellerAuctionsPagerState {
   }
 
   bool get canLoadMore =>
-      ownerId != null && hasMore && !isInitialLoading && !isLoadMoreLoading && !isRefreshing;
+      ownerId != null &&
+      hasMore &&
+      !isInitialLoading &&
+      !isLoadMoreLoading &&
+      !isRefreshing;
 
-  List<Auction> get visibleAuctions =>
-      activeFilter == SellerAuctionFilter.all
-          ? auctions
-          : auctions.where(activeFilter.matches).toList(growable: false);
+  List<Auction> get visibleAuctions => activeFilter == SellerAuctionFilter.all
+      ? auctions
+      : auctions.where(activeFilter.matches).toList(growable: false);
 
   bool get hasVisibleAuctions => visibleAuctions.isNotEmpty;
 
@@ -134,16 +132,21 @@ class SellerAuctionsPagerState {
       isInitialLoading: isInitialLoading ?? this.isInitialLoading,
       isLoadMoreLoading: isLoadMoreLoading ?? this.isLoadMoreLoading,
       isRefreshing: isRefreshing ?? this.isRefreshing,
-      initialError: clearInitialError ? null : initialError ?? this.initialError,
-      loadMoreError: clearLoadMoreError ? null : loadMoreError ?? this.loadMoreError,
-      refreshError: clearRefreshError ? null : refreshError ?? this.refreshError,
+      initialError: clearInitialError
+          ? null
+          : initialError ?? this.initialError,
+      loadMoreError: clearLoadMoreError
+          ? null
+          : loadMoreError ?? this.loadMoreError,
+      refreshError: clearRefreshError
+          ? null
+          : refreshError ?? this.refreshError,
       ownerId: ownerId ?? this.ownerId,
     );
   }
 }
 
-class SellerAuctionsPagerController
-    extends Notifier<SellerAuctionsPagerState> {
+class SellerAuctionsPagerController extends Notifier<SellerAuctionsPagerState> {
   static const int _pageSize = 20;
 
   String? _lastOwnerId;
@@ -249,10 +252,7 @@ class SellerAuctionsPagerController
         clearRefreshError: true,
       );
     } else {
-      state = state.copyWith(
-        isLoadMoreLoading: true,
-        clearLoadMoreError: true,
-      );
+      state = state.copyWith(isLoadMoreLoading: true, clearLoadMoreError: true);
     }
 
     final result = await _repository.getUserAuctions(
@@ -290,9 +290,7 @@ class SellerAuctionsPagerController
     }
 
     final incoming = _dedupeById(result.data!);
-    final merged = replaceExisting
-        ? incoming
-        : _mergeById(snapshot, incoming);
+    final merged = replaceExisting ? incoming : _mergeById(snapshot, incoming);
 
     state = state.copyWith(
       auctions: merged,

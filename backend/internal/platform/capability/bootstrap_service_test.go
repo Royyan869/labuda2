@@ -95,6 +95,21 @@ func (m *mockCapabilityRepository) CountActiveCapabilities(ctx context.Context, 
 	return 0, errors.New("not implemented")
 }
 
+// CreateGrant / RevokeGuarded / GetUserRole complete the canonical repository
+// contract. The full-access invariant is a database concern proven against a
+// real database; this mock only mirrors the call shapes.
+func (m *mockCapabilityRepository) CreateGrant(ctx context.Context, cap *entity.UserCapability) error {
+	return m.Create(ctx, nil, cap)
+}
+
+func (m *mockCapabilityRepository) RevokeGuarded(ctx context.Context, id uuid.UUID) error {
+	return m.Revoke(ctx, nil, id, nil)
+}
+
+func (m *mockCapabilityRepository) GetUserRole(_ context.Context, _ uuid.UUID) (string, error) {
+	return "", nil
+}
+
 func (m *mockCapabilityRepository) ListUsersByCapability(ctx context.Context, tx interface{}, capability string) ([]uuid.UUID, error) {
 	var result []uuid.UUID
 	for userID, caps := range m.activeCapabilities {
@@ -305,114 +320,6 @@ func TestBootstrapService_AssignInitialCapabilities_HasCapabilityError(t *testin
 	assert.Equal(t, 0, result.Created)
 	assert.Len(t, result.Errors, 1)
 	assert.Contains(t, result.Errors[0].Reason, "check existing failed")
-}
-
-// Test Presets
-
-func TestGetPresetCapabilities_ValidPresets(t *testing.T) {
-	tests := []struct {
-		name      string
-		preset    string
-		wantCount int
-		wantCaps  []string
-	}{
-		{
-			name:      "finance_reviewer",
-			preset:    capability.PresetFinanceReviewer,
-			wantCount: 3,
-			wantCaps: []string{
-				capability.CapFinanceWithdrawRead.String(),
-				capability.CapFinanceWithdrawReview.String(),
-				capability.CapFinanceDisputeResolve.String(),
-			},
-		},
-		{
-			name:      "governance_basic",
-			preset:    capability.PresetGovernanceBasic,
-			wantCount: 3,
-		},
-		{
-			name:      "moderation_basic",
-			preset:    capability.PresetModerationBasic,
-			wantCount: 3,
-		},
-		{
-			name:      "seller_verification",
-			preset:    capability.PresetSellerVerification,
-			wantCount: 1,
-		},
-		{
-			name:      "config_manager",
-			preset:    capability.PresetConfigManager,
-			wantCount: 3,
-		},
-		{
-			name:      "support_admin",
-			preset:    capability.PresetSupportAdmin,
-			wantCount: 4,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			caps, err := capability.GetPresetCapabilities(tt.preset)
-			require.NoError(t, err)
-			assert.Len(t, caps, tt.wantCount)
-
-			if tt.wantCaps != nil {
-				assert.ElementsMatch(t, tt.wantCaps, caps)
-			}
-		})
-	}
-}
-
-func TestGetPresetCapabilities_UnknownPreset(t *testing.T) {
-	_, err := capability.GetPresetCapabilities("unknown_preset")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "unknown preset")
-}
-
-func TestBootstrapService_AssignInitialCapabilitiesFromPreset(t *testing.T) {
-	// SETUP
-	repo := newMockCapabilityRepository()
-	service := capability.NewBootstrapService(repo)
-	userID := uuid.New()
-
-	// EXECUTE
-	result, err := service.AssignInitialCapabilitiesFromPreset(
-		context.Background(),
-		nil,
-		userID,
-		capability.PresetFinanceReviewer,
-		nil,
-	)
-
-	// ASSERT
-	require.NoError(t, err)
-	assert.Equal(t, 3, result.Created)
-	assert.Equal(t, 0, result.SkippedExisting)
-	assert.Equal(t, 0, result.Invalid)
-	assert.Empty(t, result.Errors)
-}
-
-func TestBootstrapService_AssignInitialCapabilitiesFromPreset_UnknownPreset(t *testing.T) {
-	// SETUP
-	repo := newMockCapabilityRepository()
-	service := capability.NewBootstrapService(repo)
-	userID := uuid.New()
-
-	// EXECUTE
-	_, err := service.AssignInitialCapabilitiesFromPreset(
-		context.Background(),
-		nil,
-		userID,
-		"unknown_preset",
-		nil,
-	)
-
-	// ASSERT
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "unknown preset")
 }
 
 // Test ValidateCapabilities

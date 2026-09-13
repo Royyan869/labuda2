@@ -66,7 +66,7 @@ func TestAdaptFeedDecision_Mapping(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			got := AdaptFeedDecision(tc.decision, tc.reason, FeedEvaluatorModeEnforce)
+			got := AdaptFeedDecision(tc.decision, tc.reason)
 			if got.Include != tc.wantInclude {
 				t.Errorf("Include = %v, want %v", got.Include, tc.wantInclude)
 			}
@@ -88,20 +88,6 @@ func TestAdaptFeedDecision_Mapping(t *testing.T) {
 				t.Errorf("ShadowDecision = %q, want %q", got.ShadowDecision, tc.decision)
 			}
 		})
-	}
-}
-
-// TestAdaptFeedDecision_ModeIsPassive confirms the adapter mapping is the
-// same in shadow and enforce mode. Mode is a passive label; only callers
-// react differently.
-func TestAdaptFeedDecision_ModeIsPassive(t *testing.T) {
-	shadow := AdaptFeedDecision(ShadowDecisionTombstone, UnknownReasonNone, FeedEvaluatorModeShadow)
-	enforce := AdaptFeedDecision(ShadowDecisionTombstone, UnknownReasonNone, FeedEvaluatorModeEnforce)
-	if shadow.Include != enforce.Include ||
-		shadow.Reason != enforce.Reason ||
-		(shadow.LifecycleOverride == nil) != (enforce.LifecycleOverride == nil) ||
-		(shadow.LifecycleOverride != nil && *shadow.LifecycleOverride != *enforce.LifecycleOverride) {
-		t.Errorf("adapter mapping must be mode-invariant; shadow=%+v enforce=%+v", shadow, enforce)
 	}
 }
 

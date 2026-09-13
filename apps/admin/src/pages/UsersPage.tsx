@@ -23,10 +23,12 @@ const USER_STATUSES: { value: AccountStatus | ''; label: string }[] = [
   { value: 'banned', label: 'Banned' },
 ]
 
-const USER_ROLES: { value: 'buyer' | 'seller' | 'admin' | ''; label: string }[] = [
+// Canonical role filter. users.role is exactly user|admin — "buyer" and
+// "seller" are not roles (seller authority is a seller_profiles + active
+// subscription concern), and the backend rejects them.
+const USER_ROLES: { value: 'user' | 'admin' | ''; label: string }[] = [
   { value: '', label: 'All Roles' },
-  { value: 'buyer', label: 'Buyer' },
-  { value: 'seller', label: 'Seller' },
+  { value: 'user', label: 'User' },
   { value: 'admin', label: 'Admin' },
 ]
 
@@ -38,7 +40,7 @@ const VERIFICATION_OPTIONS: { value: 'true' | 'false' | ''; label: string }[] = 
 
 export function UsersPage() {
   const [statusFilter, setStatusFilter] = useState<AccountStatus | ''>('')
-  const [roleFilter, setRoleFilter] = useState<'buyer' | 'seller' | 'admin' | ''>('')
+  const [roleFilter, setRoleFilter] = useState<'user' | 'admin' | ''>('')
   const [verifiedFilter, setVerifiedFilter] = useState<'true' | 'false' | ''>('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedUser, setSelectedUser] = useState<UserListItem | null>(null)
@@ -171,7 +173,7 @@ export function UsersPage() {
               <select
                 id="role-filter"
                 value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value as 'buyer' | 'seller' | 'admin' | '')}
+                onChange={(e) => setRoleFilter(e.target.value as 'user' | 'admin' | '')}
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {USER_ROLES.map((role) => (

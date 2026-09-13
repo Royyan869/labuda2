@@ -576,7 +576,14 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 				return fmt.Errorf("CRITICAL: failed to get billing: %w", err)
 			}
 
-			newlyPaid, err := s.billingService.MarkPaid(ctx, tx, billingID)
+			// PASS_18V: Pass payment-method fee info for fee carving.
+			var paymentMethodCode *string
+			serviceFeeAmount := int64(0)
+			if payment.PaymentMethodCode != nil {
+				paymentMethodCode = payment.PaymentMethodCode
+				serviceFeeAmount = payment.ServiceFeeAmount.Int64()
+			}
+			newlyPaid, err := s.billingService.MarkPaidWithPayment(ctx, tx, billingID, &payment.ID, paymentMethodCode, serviceFeeAmount)
 			if err != nil {
 				s.log.Error("CRITICAL: Failed to mark billing as paid",
 					zap.String("payment_id", payment.ID.String()),

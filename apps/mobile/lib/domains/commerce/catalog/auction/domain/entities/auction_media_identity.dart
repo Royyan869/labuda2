@@ -5,6 +5,7 @@
 library;
 
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
+
 const Set<String> _transientQueryKeys = {
   'x-amz-algorithm',
   'x-amz-credential',
@@ -113,14 +114,8 @@ String auctionSnapshotFingerprint(Auction auction) {
     ..write(auction.status.name)
     ..write('|winnerId:')
     ..write(auction.winnerId ?? '')
-    ..write('|winnerUsername:')
-    ..write(auction.winnerUsername ?? '')
-    ..write('|winningBid:')
-    ..write(auction.winningBid ?? '')
     ..write('|totalBidders:')
     ..write(auction.totalBidders)
-    ..write('|totalWatchers:')
-    ..write(auction.totalWatchers)
     ..write('|totalViews:')
     ..write(auction.totalViews)
     ..write('|productId:')

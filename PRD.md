@@ -324,7 +324,7 @@ follow/unfollow;
 
 block/mute;
 
-bookmark/save;
+saved (save/unsave for later access);
 
 unified sharing;
 

@@ -50,6 +50,27 @@ type CapabilityRepository interface {
 	// are excluded. Banned/suspended users are NOT excluded — the policy
 	// layer handles account status at notification delivery time.
 	ListUsersByCapability(ctx context.Context, tx interface{}, capability string) ([]uuid.UUID, error)
+
+	// CreateGrant persists a new capability grant in its own transaction.
+	//
+	// This is the canonical write path for capability assignment: callers state
+	// the intent ("grant this capability") and the repository owns the
+	// transaction boundary. Do not use the low-level Create with a nil tx —
+	// a grant must be committed atomically.
+	CreateGrant(ctx context.Context, cap *entity.UserCapability) error
+
+	// RevokeGuarded soft-deletes a capability grant in its own transaction that
+	// serializes against the full-access admin invariant and refuses to apply a
+	// change that would leave the system with zero full-access admins.
+	//
+	// Returns invariant.ErrLastFullAccessAdmin when the change is refused, in
+	// which case nothing is written.
+	RevokeGuarded(ctx context.Context, id uuid.UUID) error
+
+	// GetUserRole returns users.role for a user, or "" when the user does not
+	// exist. Used to derive canonical full-access state (role + capability
+	// coverage) from the single canonical authority.
+	GetUserRole(ctx context.Context, userID uuid.UUID) (string, error)
 }
 
 

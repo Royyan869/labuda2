@@ -3,6 +3,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/labuda/backend/internal/audit"
 	"github.com/labuda/backend/internal/platform/capability"
 	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
+	"github.com/labuda/backend/internal/platform/capability/invariant"
 	capabilityRepo "github.com/labuda/backend/internal/platform/capability/repository"
 )
 
@@ -89,213 +91,84 @@ func (e *ErrCapabilityAuthorityRequired) Error() string {
 // SERVICE METHODS
 // ============================================================
 
-// ListAllCapabilities returns all valid capability definitions.
+// ListAllCapabilities returns the canonical capability catalog.
 //
-// This returns a HARDODED list of valid capabilities, NOT from database.
-// This ensures only defined capabilities can be assigned.
+// The catalog is DERIVED from the canonical capability universe
+// (capability.Catalog()), never hand-maintained here. A capability added to the
+// universe therefore appears in the governance API and the admin dashboard
+// automatically — there is no second list to keep in sync.
 func (s *CapabilityService) ListAllCapabilities(ctx context.Context) []CapabilityDefinition {
-	return []CapabilityDefinition{
-		// FINANCE CLUSTER
-		{
-			Capability:  capability.CapFinanceWithdrawRead.String(),
-			Category:    "Finance",
-			Description: "Can view withdrawal requests",
-			Critical:    false,
-		},
-		{
-			Capability:  capability.CapFinanceWithdrawReview.String(),
-			Category:    "Finance",
-			Description: "Can review, approve, or reject withdrawal requests",
-			Critical:    true,
-		},
-		{
-			Capability:  capability.CapFinanceDisputeResolve.String(),
-			Category:    "Finance",
-			Description: "Can resolve financial disputes",
-			Critical:    true,
-		},
-		// GOVERNANCE CLUSTER
-		{
-			Capability:  capability.CapGovernanceDashboardView.String(),
-			Category:    "Governance",
-			Description: "Can view admin dashboard",
-			Critical:    false,
-		},
-		{
-			Capability:  capability.CapGovernanceUserRead.String(),
-			Category:    "Governance",
-			Description: "Can view user details and lists",
-			Critical:    false,
-		},
-		{
-			Capability:  capability.CapGovernanceUserSuspend.String(),
-			Category:    "Governance",
-			Description: "Can suspend user accounts",
-			Critical:    true,
-		},
-		{
-			Capability:  capability.CapGovernanceUserBan.String(),
-			Category:    "Governance",
-			Description: "Can ban user accounts",
-			Critical:    true,
-		},
-		{
-			Capability:  capability.CapGovernanceUserActivate.String(),
-			Category:    "Governance",
-			Description: "Can activate suspended or banned user accounts",
-			Critical:    true,
-		},
-		{
-			Capability:  capability.CapGovernanceRoleAssign.String(),
-			Category:    "Governance",
-			Description: "Can assign roles to users",
-			Critical:    true,
-		},
-		{
-			Capability:  capability.CapGovernanceCapabilityAssign.String(),
-			Category:    "Governance",
-			Description: "Can grant or revoke user capabilities",
-			Critical:    true,
-		},
-		{
-			Capability:  capability.CapGovernanceAuditRead.String(),
-			Category:    "Governance",
-			Description: "Can view audit logs",
-			Critical:    false,
-		},
-
-		// MODERATION CLUSTER
-		{
-			Capability:  capability.CapModerationCaseRead.String(),
-			Category:    "Moderation",
-			Description: "Can view moderation cases and reports",
-			Critical:    false,
-		},
-		{
-			Capability:  capability.CapModerationContentView.String(),
-			Category:    "Moderation",
-			Description: "Can view reported content",
-			Critical:    false,
-		},
-		{
-			Capability:  capability.CapModerationContentRemove.String(),
-			Category:    "Moderation",
-			Description: "Can remove content",
-			Critical:    true,
-		},
-		{
-			Capability:  capability.CapModerationCaseResolve.String(),
-			Category:    "Moderation",
-			Description: "Can resolve moderation cases",
-			Critical:    true,
-		},
-		{
-			Capability:  capability.CapModerationEvidenceRead.String(),
-			Category:    "Moderation",
-			Description: "Can view original hidden moderation evidence",
-			Critical:    true,
-		},
-		{
-			Capability:  capability.CapModerationAppealReview.String(),
-			Category:    "Moderation",
-			Description: "Can review moderation appeals",
-			Critical:    true,
-		},
-
-		// PROMOTION CLUSTER
-		{
-			Capability:  capability.CapPromotionExternalProductReview.String(),
-			Category:    "Promotion",
-			Description: "Can review external product promotions",
-			Critical:    true,
-		},
-		{
-			Capability:  capability.CapPromotionPackageManage.String(),
-			Category:    "Promotion",
-			Description: "Can create, update, enable, and disable promotion packages",
-			Critical:    true,
-		},
-		{
-			Capability:  capability.CapPromotionCampaignView.String(),
-			Category:    "Promotion",
-			Description: "Can view active and historical promotion campaigns",
-			Critical:    false,
-		},
-		{
-			Capability:  capability.CapPromotionCampaignStop.String(),
-			Category:    "Promotion",
-			Description: "Can force-stop a running promotion campaign",
-			Critical:    true,
-		},
-
-		// SELLER CLUSTER
-		{
-			Capability:  capability.CapSellerVerificationReview.String(),
-			Category:    "Seller",
-			Description: "Can review seller verification requests",
-			Critical:    false,
-		},
-
-		// ORDER CLUSTER
-		{
-			Capability:  capability.CapOrderRead.String(),
-			Category:    "Order",
-			Description: "Can view all orders (admin)",
-			Critical:    false,
-		},
-
-		// CONFIG CLUSTER
-		{
-			Capability:  capability.CapConfigView.String(),
-			Category:    "Config",
-			Description: "Can view platform configuration",
-			Critical:    false,
-		},
-		{
-			Capability:  capability.CapConfigUpdateGeneral.String(),
-			Category:    "Config",
-			Description: "Can update platform configuration",
-			Critical:    true,
-		},
-
-		// SUPPORT CLUSTER
-		{
-			Capability:  capability.CapSupportTicketRead.String(),
-			Category:    "Support",
-			Description: "Can view all support tickets",
-			Critical:    false,
-		},
-		{
-			Capability:  capability.CapSupportTicketRespond.String(),
-			Category:    "Support",
-			Description: "Can respond to support tickets",
-			Critical:    false,
-		},
-		{
-			Capability:  capability.CapSupportTicketClaim.String(),
-			Category:    "Support",
-			Description: "Can claim support tickets",
-			Critical:    false,
-		},
-		{
-			Capability:  capability.CapSupportTicketResolve.String(),
-			Category:    "Support",
-			Description: "Can resolve support tickets",
-			Critical:    false,
-		},
-		{
-			Capability:  capability.CapSupportAdminAssign.String(),
-			Category:    "Support",
-			Description: "Can reassign tickets to admins",
-			Critical:    false,
-		},
-		{
-			Capability:  capability.CapSupportAdminRead.String(),
-			Category:    "Support",
-			Description: "Can view support admin statistics and lists",
-			Critical:    false,
-		},
+	descriptors := capability.Catalog()
+	out := make([]CapabilityDefinition, 0, len(descriptors))
+	for _, d := range descriptors {
+		out = append(out, CapabilityDefinition{
+			Capability:  d.Capability,
+			Category:    d.Category,
+			Description: d.Description,
+			Critical:    d.Critical,
+		})
 	}
+	return out
+}
+
+// UserAuthoritySummary is the canonical derived authority view of one user.
+type UserAuthoritySummary struct {
+	// UserID is the target user.
+	UserID uuid.UUID `json:"user_id"`
+
+	// Role is users.role — the canonical admin membership value.
+	Role string `json:"role"`
+
+	// IsAdmin mirrors Role == "admin".
+	IsAdmin bool `json:"is_admin"`
+
+	// Capabilities are the ACTIVE (revoked_at IS NULL) capability grants.
+	Capabilities []UserCapabilityInfo `json:"capabilities"`
+
+	// Total is the number of active capability grants.
+	Total int `json:"total"`
+
+	// FullAccess is the DERIVED canonical state: admin role AND active
+	// capability coverage of the entire canonical universe. It is not stored.
+	FullAccess bool `json:"full_access"`
+
+	// MissingCapabilities lists what prevents full access, in canonical order.
+	MissingCapabilities []string `json:"missing_capabilities"`
+}
+
+// GetUserAuthoritySummary returns the target's role plus their active
+// capabilities and the derived full-access state.
+func (s *CapabilityService) GetUserAuthoritySummary(ctx context.Context, userID uuid.UUID) (*UserAuthoritySummary, error) {
+	role, err := s.capabilityRepo.GetUserRole(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve user role: %w", err)
+	}
+
+	caps, err := s.capabilityRepo.ListActiveCapabilities(ctx, nil, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list user capabilities: %w", err)
+	}
+
+	capInfos := make([]UserCapabilityInfo, 0, len(caps))
+	activeStrings := make([]string, 0, len(caps))
+	for _, c := range caps {
+		capInfos = append(capInfos, UserCapabilityInfo{
+			Capability: c.Capability,
+			GrantedBy:  c.GrantedBy,
+			GrantedAt:  c.GrantedAt,
+		})
+		activeStrings = append(activeStrings, c.Capability)
+	}
+
+	return &UserAuthoritySummary{
+		UserID:              userID,
+		Role:                role,
+		IsAdmin:             role == capabilityEntity.AdminRole,
+		Capabilities:        capInfos,
+		Total:               len(capInfos),
+		FullAccess:          capability.IsFullAccessAdmin(role, activeStrings),
+		MissingCapabilities: capability.MissingCapabilityStrings(activeStrings),
+	}, nil
 }
 
 // GetUserCapabilities retrieves all active capabilities for a user.
@@ -389,8 +262,9 @@ func (s *CapabilityService) AssignCapability(
 	// Create capability grant
 	newCap := capabilityEntity.NewCapabilityGrant(userID, capabilityStr, &grantedBy)
 
-	// Persist to database
-	err = s.capabilityRepo.Create(ctx, nil, newCap)
+	// Persist to database via the canonical grant write path, which owns the
+	// transaction boundary (a grant MUST be committed atomically).
+	err = s.capabilityRepo.CreateGrant(ctx, newCap)
 	if err != nil {
 		// Check for duplicate capability error
 		if _, isDup := err.(*capabilityEntity.ErrDuplicateCapability); isDup {
@@ -489,9 +363,18 @@ func (s *CapabilityService) RevokeCapability(
 		}
 	}
 
-	// Revoke the capability
-	err = s.capabilityRepo.Revoke(ctx, nil, activeCap.ID, nil)
+	// Revoke the capability through the guarded write path. Revocation can drop
+	// an admin's capability coverage below full access, so the repository
+	// serializes the change against the full-access admin invariant and refuses
+	// it if the system would be left with zero full-access admins.
+	err = s.capabilityRepo.RevokeGuarded(ctx, activeCap.ID)
 	if err != nil {
+		if errors.Is(err, invariant.ErrLastFullAccessAdmin) {
+			return &ErrLastFullAccessAdminCapability{
+				UserID:     targetUserID,
+				Capability: capabilityStr,
+			}
+		}
 		return fmt.Errorf("failed to revoke capability: %w", err)
 	}
 
@@ -523,24 +406,11 @@ func (s *CapabilityService) ListUsersByCapability(ctx context.Context, capabilit
 // ============================================================
 
 // isCriticalCapability returns true if the capability is marked as critical.
+//
+// Criticality has exactly one authority (capability.IsCritical); this is a thin
+// adapter so no second criticality list can drift out of sync.
 func isCriticalCapability(capStr string) bool {
-	switch capability.Capability(capStr) {
-	case capability.CapFinanceWithdrawReview,
-		capability.CapFinanceDisputeResolve,
-		capability.CapGovernanceUserSuspend,
-		capability.CapGovernanceUserBan,
-		capability.CapGovernanceUserActivate,
-		capability.CapGovernanceRoleAssign,
-		capability.CapGovernanceCapabilityAssign,
-		capability.CapModerationContentRemove,
-		capability.CapModerationCaseResolve,
-		capability.CapModerationAppealReview,
-		capability.CapConfigUpdateGeneral,
-		capability.CapConfigUpdateFinancial:
-		return true
-	default:
-		return false
-	}
+	return capability.IsCritical(capability.Capability(capStr))
 }
 
 // ============================================================
@@ -574,6 +444,21 @@ type ErrCapabilityNotFound struct {
 
 func (e *ErrCapabilityNotFound) Error() string {
 	return fmt.Sprintf("user does not have capability: %s", e.Capability)
+}
+
+// ErrLastFullAccessAdminCapability is returned when a capability revocation is
+// refused because it would leave the system with zero full-access admins.
+type ErrLastFullAccessAdminCapability struct {
+	UserID     uuid.UUID
+	Capability string
+}
+
+func (e *ErrLastFullAccessAdminCapability) Error() string {
+	return fmt.Sprintf(
+		"cannot revoke %s from %s: it would remove the last full-access admin; "+
+			"grant full access to another admin first",
+		e.Capability, e.UserID,
+	)
 }
 
 // ErrCannotRevokeOwnCriticalCapability is returned when an admin tries to revoke their own critical capability.

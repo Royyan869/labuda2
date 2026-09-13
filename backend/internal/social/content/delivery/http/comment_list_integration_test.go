@@ -60,13 +60,13 @@ func newCommentListHTTPHandler(pool *db.DB) *CommentHandler {
 	commentService := contentapp.NewCommentService(
 		contentrepo.NewContentRepository(),
 		contentrepo.NewCommentRepository(),
-		nil, // fpsValidator
-		nil, // auctionValidator
-		nil, // visibilityChecker
-		nil, // outboxRepo
-		nil, // idempotencyRepo
-		nil, // blockChecker
-		nil, // invariantLogger
+		nil,                     // fpsValidator
+		nil,                     // auctionValidator
+		contentService,          // visibilityChecker — canonical V-VISIBILITY via ContentService
+		commentWireTestOutbox{}, // outboxRepo (no-op)
+		nil,                     // idempotencyRepo
+		nil,                     // blockChecker
+		nil,                     // invariantLogger
 	)
 	return NewCommentHandler(
 		commentService,

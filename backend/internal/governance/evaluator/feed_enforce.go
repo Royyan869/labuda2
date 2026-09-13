@@ -1,8 +1,6 @@
 package evaluator
 
 import (
-	"strings"
-
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -19,8 +17,7 @@ import (
 // + raw legacy FeedItem slice, runs the SAME pure EvaluateFeedItem
 // decision per row, and returns a filtered slice for the handler to
 // serialize. The shadow runner continues to fire AFTER the handler
-// writes the response so the existing shadow telemetry remains
-// comparable across the shadow→enforce flip (dual emission).
+// writes the response as pure observability (dual emission).
 //
 // F1-W3A — the evaluator package no longer holds a DB pool, no longer
 // executes SQL, and no longer owns hydration. The handler boundary
@@ -28,13 +25,10 @@ import (
 // is the sole hydration site; the evaluator reads pre-hydrated inputs
 // only.
 //
-// CANONICAL PILOT CONTRACT (Batch 3M, audit verdict in 3L,
-// re-canonicalized in F1-W3A):
+// CANONICAL CONTRACT:
 //
-//   - Mode-gated. In FeedEvaluatorModeShadow the helper returns the
-//     input slice unchanged and emits no enforcement counters; the
-//     wire shape is byte-identical to the pre-W3A behaviour. Rollback
-//     is a single env-var flip (FEED_EVALUATOR_MODE=shadow).
+//   - Unconditional enforcement. There is no mode parameter: the helper
+//     always runs the further-restrict pass.
 //   - Further-restrict only. The helper NEVER recovers rows the
 //     legacy SQL excluded (follow JOIN + status='active' + bidirectional
 //     block + F1-W1 is_hidden / deleted_at filters remain SQL
@@ -53,47 +47,11 @@ import (
 //   - The shadow runner MUST still be dispatched fire-and-forget AFTER
 //     this helper runs so the existing decision_total /
 //     would_enforce_decision_total / divergence_total telemetry
-//     continues to fire under both modes. The shadow runner receives
+//     continues to fire. The shadow runner receives
 //     the ORIGINAL (pre-filter) item slice and the same hydrated (vc,
 //     tc) so divergence metrics stay denominator-comparable.
 
-// FeedEvaluatorMode is the bounded enforce-mode enum. Defaults safely
-// to shadow via NormalizeFeedEvaluatorMode (safety default).
-type FeedEvaluatorMode string
 
-const (
-	// FeedEvaluatorModeShadow is the default operating mode. The
-	// enforcement helper short-circuits to identity passthrough and
-	// emits no enforcement counters.
-	FeedEvaluatorModeShadow FeedEvaluatorMode = "shadow"
-
-	// FeedEvaluatorModeEnforce activates the synchronous further-
-	// restrict pass. ALLOW rows pass through; DENY / TOMBSTONE /
-	// REDACT rows are dropped or lifecycle-overridden; UNKNOWN rows
-	// are kept (fail-open) and counted.
-	FeedEvaluatorModeEnforce FeedEvaluatorMode = "enforce"
-)
-
-// IsValid reports whether m is a recognized FeedEvaluatorMode.
-func (m FeedEvaluatorMode) IsValid() bool {
-	switch m {
-	case FeedEvaluatorModeShadow, FeedEvaluatorModeEnforce:
-		return true
-	}
-	return false
-}
-
-// NormalizeFeedEvaluatorMode parses an environment / config string into
-// a canonical FeedEvaluatorMode. Any unrecognized or empty value falls
-// safely to FeedEvaluatorModeShadow — enforce mode is opt-in only.
-func NormalizeFeedEvaluatorMode(raw string) FeedEvaluatorMode {
-	switch FeedEvaluatorMode(strings.ToLower(strings.TrimSpace(raw))) {
-	case FeedEvaluatorModeEnforce:
-		return FeedEvaluatorModeEnforce
-	default:
-		return FeedEvaluatorModeShadow
-	}
-}
 
 // FeedEnforcementAction is the bounded label set for the
 // feed_enforcement_applied_total counter. Cardinality is intentionally
@@ -128,13 +86,10 @@ const (
 // canonical PublicLifecycleState strings so the handler can pipe
 // straight to ContentCard.Lifecycle without re-coarsening.
 
-// FeedEnforcementResult is the value returned by EnforceFeed. Shadow-
-// mode callers receive Filtered = input slice unchanged, nil
-// LifecycleOverrides, and zero counts.
+// FeedEnforcementResult is the value returned by EnforceFeed.
 type FeedEnforcementResult struct {
 	// Filtered is the post-enforcement subset of items in the original
-	// order. In shadow mode this is the input slice unchanged (same
-	// backing array, no copy).
+	// order.
 	Filtered []*feedentity.FeedItem
 
 	// LifecycleOverrides maps a FeedItem.ID → coarsened public
@@ -143,8 +98,7 @@ type FeedEnforcementResult struct {
 	// The handler MUST apply the override to the emitted
 	// ContentCard.Lifecycle (and the top-level lifecycle key) for
 	// those rows; rows without a key are emitted with their existing
-	// lifecycle. Nil in shadow mode and when no row took the override
-	// path.
+	// lifecycle. Nil when no row took the override path.
 	LifecycleOverrides map[uuid.UUID]string
 
 	// DroppedCount is the number of items the enforce pass removed
@@ -171,25 +125,24 @@ type FeedEnforcementResult struct {
 var feedEnforcementApplied = promauto.NewCounterVec(prometheus.CounterOpts{
 	Namespace: "labuda_evaluator_feed",
 	Name:      "enforcement_applied_total",
-	Help:      "Per-row enforcement actions taken by the /feed evaluator in enforce mode. Bounded labels: action in {drop, lifecycle_override, unknown_fail_open}. Always zero in shadow mode.",
+	Help:      "Per-row enforcement actions taken by the /feed evaluator's synchronous further-restrict pass. Bounded labels: action in {drop, lifecycle_override, unknown_fail_open}.",
 }, []string{"action"})
 
 // C1 — Feed evaluator promotion-prerequisite counters, mirroring the
 // /search/content adapter telemetry pair (search_shadow_telemetry.go).
 // Both keep cardinality bounded; values come from the small
-// FeedEvaluatorMode + FeedDecisionReason enumerations declared above.
-// Preserved verbatim across the F1-W3A rebuild.
+// FeedDecisionReason enumeration declared above.
 var (
 	feedEvaluatorWouldEnforceDecisionTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "labuda_evaluator_feed",
 		Name:      "would_enforce_decision_total",
-		Help:      "Per-row count of how the adapter WOULD classify the /feed decision if running in enforce mode. Emitted unconditionally in shadow mode for promotion safety telemetry (C1 convergence). Labels are bounded to the FeedDecisionReason enum.",
+		Help:      "Per-row adapter classification emitted by the /feed observability runner. Labels are bounded to the FeedDecisionReason enum.",
 	}, []string{"adapter_reason"})
 
 	feedEvaluatorEnforceModeTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "labuda_evaluator_feed",
 		Name:      "enforce_mode_total",
-		Help:      "Per-request count of the operating mode (shadow|enforce) of the /feed evaluator integration. Used to correlate would_enforce_decision_total rates with the route's current operating mode (C1 convergence).",
+		Help:      "Per-request count of the /feed evaluator integration. Always labeled mode=enforce.",
 	}, []string{"mode"})
 )
 
@@ -206,13 +159,9 @@ func recordFeedWouldEnforceDecision(reason FeedDecisionReason) {
 	feedEvaluatorWouldEnforceDecisionTotal.WithLabelValues(string(reason)).Inc()
 }
 
-// recordFeedEnforceMode emits enforce_mode_total once per shadow run
-// with the configured operating-mode label.
-func recordFeedEnforceMode(mode FeedEvaluatorMode) {
-	if !mode.IsValid() {
-		mode = FeedEvaluatorModeShadow
-	}
-	feedEvaluatorEnforceModeTotal.WithLabelValues(string(mode)).Inc()
+// recordFeedEnforceMode emits enforce_mode_total once per observability run.
+func recordFeedEnforceMode() {
+	feedEvaluatorEnforceModeTotal.WithLabelValues("enforce").Inc()
 }
 
 // EnforceFeed runs the synchronous further-restrict pass over a /feed
@@ -224,12 +173,7 @@ func recordFeedEnforceMode(mode FeedEvaluatorMode) {
 // author lifecycle + per-row content moderation). No DB access, no
 // IO, no pool reference.
 //
-// In FeedEvaluatorModeShadow:
-//   - Returns Filtered = items (input slice, unchanged),
-//     LifecycleOverrides = nil, and zero counts.
-//   - Emits no feed_enforcement_applied_total counters.
-//
-// In FeedEvaluatorModeEnforce:
+// Enforcement is unconditional:
 //   - Runs EvaluateFeedItem + AdaptFeedDecision per row.
 //   - ALLOW       → keep.
 //   - DENY        → drop, emit action="drop".
@@ -245,14 +189,10 @@ func recordFeedEnforceMode(mode FeedEvaluatorMode) {
 // safe-default that preserves the legacy SQL answer if the caller
 // failed to construct the viewer/target context.
 func EnforceFeed(
-	mode FeedEvaluatorMode,
 	vc *viewercontext.ViewerContext,
 	tc *viewercontext.TargetContext,
 	items []*feedentity.FeedItem,
 ) FeedEnforcementResult {
-	if mode != FeedEvaluatorModeEnforce {
-		return FeedEnforcementResult{Filtered: items}
-	}
 	if len(items) == 0 {
 		return FeedEnforcementResult{Filtered: items}
 	}
@@ -265,7 +205,7 @@ func EnforceFeed(
 			continue
 		}
 		decision, reason := EvaluateFeedItem(vc, tc, item)
-		adapted := AdaptFeedDecision(decision, reason, mode)
+		adapted := AdaptFeedDecision(decision, reason)
 		if !adapted.Include {
 			dropped++
 			feedEnforcementApplied.WithLabelValues(string(FeedEnforcementActionDrop)).Inc()
@@ -297,36 +237,6 @@ func EnforceFeed(
 		OverriddenCount:      overridden,
 		UnknownFailOpenCount: unknownKept,
 	}
-}
-
-// WithMode returns a clone of r with the given operating mode applied.
-// Invalid input is silently coerced to FeedEvaluatorModeShadow per the
-// NormalizeFeedEvaluatorMode safety contract. Safe to call on a nil
-// receiver (returns nil) — when the runner is disabled, mode is moot.
-func (r *FeedShadowRunner) WithMode(mode FeedEvaluatorMode) *FeedShadowRunner {
-	if r == nil {
-		return nil
-	}
-	clone := *r
-	if !mode.IsValid() {
-		clone.mode = FeedEvaluatorModeShadow
-	} else {
-		clone.mode = mode
-	}
-	return &clone
-}
-
-// Mode returns the runner's currently-configured operating mode. A nil
-// receiver returns FeedEvaluatorModeShadow (defensive — a disabled
-// runner is treated as shadow, never enforce).
-func (r *FeedShadowRunner) Mode() FeedEvaluatorMode {
-	if r == nil {
-		return FeedEvaluatorModeShadow
-	}
-	if !r.mode.IsValid() {
-		return FeedEvaluatorModeShadow
-	}
-	return r.mode
 }
 
 

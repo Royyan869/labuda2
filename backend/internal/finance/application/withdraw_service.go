@@ -45,11 +45,6 @@ const (
 
 	// MinWithdrawalAmount is the minimum amount for a withdrawal request.
 	MinWithdrawalAmount = 10_000 // Rp 10,000
-
-	// WithdrawalFeeAmount is the fixed seller withdrawal fee, in Rupiah.
-	// Owner policy: net_payout = requested_amount - WithdrawalFeeAmount.
-	// The fee is deducted FROM the requested amount, never added on top of it.
-	WithdrawalFeeAmount int64 = 5_000 // Rp 5,000
 )
 
 // withdrawalCanonicalAuthority is the canonical finance surface used by
@@ -68,6 +63,15 @@ type withdrawalCanonicalAuthority interface {
 // This interface allows both real database.DB and mocks to be used.
 type Transactor interface {
 	WithTx(ctx context.Context, fn func(tx db.Tx) error) error
+}
+
+// WithdrawalFeeProvider returns the canonical configured seller withdrawal
+// fee (Rupiah) inside an existing transaction. Implemented by the platform
+// config authority (ConfigService.GetSellerWithdrawalFee). Missing or
+// negative config fails fast (ConfigService panic) — there is no hardcoded
+// fee fallback.
+type WithdrawalFeeProvider interface {
+	GetSellerWithdrawalFee(ctx context.Context, tx db.Tx) int64
 }
 
 // WithdrawService handles seller withdrawal operations.
@@ -94,6 +98,11 @@ type WithdrawService struct {
 	// reserve (RecordWithdrawalRequest). Wired post-construction via
 	// SetCanonicalAuthority. nil → RequestWithdrawal fail-closes.
 	canonicalAuthority withdrawalCanonicalAuthority
+
+	// withdrawalFeeProvider returns the configured seller withdrawal fee
+	// (admin-configurable, Rp0 allowed). Wired post-construction via
+	// SetWithdrawalFeeProvider. nil → RequestWithdrawal fail-closes.
+	withdrawalFeeProvider WithdrawalFeeProvider
 }
 
 // SetCanonicalAuthority wires the FinanceService that owns the canonical
@@ -102,6 +111,14 @@ type WithdrawService struct {
 // fail-closed configuration error.
 func (s *WithdrawService) SetCanonicalAuthority(fs withdrawalCanonicalAuthority) {
 	s.canonicalAuthority = fs
+}
+
+// SetWithdrawalFeeProvider wires the canonical configured seller withdrawal
+// fee authority. Must be called at boot before RequestWithdrawal is
+// exercised; otherwise the request path returns a fail-closed configuration
+// error. There is deliberately no hardcoded fee fallback.
+func (s *WithdrawService) SetWithdrawalFeeProvider(p WithdrawalFeeProvider) {
+	s.withdrawalFeeProvider = p
 }
 
 // NewWithdrawService creates a new WithdrawService.
@@ -253,6 +270,10 @@ type CanonicalRequestWithdrawalOutput struct {
 // was never called at boot.
 var ErrCanonicalAuthorityNotConfigured = fmt.Errorf("withdraw: canonical authority not configured")
 
+// ErrWithdrawalFeeProviderNotConfigured is returned when SetWithdrawalFeeProvider
+// was never called at boot (fail-closed; no hardcoded fee fallback).
+var ErrWithdrawalFeeProviderNotConfigured = fmt.Errorf("withdraw: withdrawal fee provider not configured")
+
 // ErrSellerNotVerified is returned when a seller without a verified
 // verification record attempts to withdraw.
 type ErrSellerNotVerified struct {
@@ -352,6 +373,9 @@ func (s *WithdrawService) RequestWithdrawal(
 	if s.canonicalAuthority == nil {
 		return nil, ErrCanonicalAuthorityNotConfigured
 	}
+	if s.withdrawalFeeProvider == nil {
+		return nil, ErrWithdrawalFeeProviderNotConfigured
+	}
 	if input.SellerID == uuid.Nil {
 		return nil, fmt.Errorf("withdraw: seller_id required")
 	}
@@ -374,7 +398,10 @@ func (s *WithdrawService) RequestWithdrawal(
 
 	var output *CanonicalRequestWithdrawalOutput
 	err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		feeAmount := WithdrawalFeeAmount
+		// Canonical configured seller withdrawal fee (Rp0 allowed).
+		// Snapshotted onto the withdrawal row; settlement splits
+		// net_payout = amount - fee via RecordWithdrawalComplete.
+		feeAmount := s.withdrawalFeeProvider.GetSellerWithdrawalFee(ctx, tx)
 
 		// GUARD 1 — Verified seller (tx-aware so it serializes against the
 		// SELLER_PAYABLE lock taken in the authority gate below).

@@ -12,6 +12,7 @@ import 'package:labuda/domains/user/identity/authentication/domain/entities/acco
 import 'package:labuda/domains/user/identity/authentication/domain/entities/seller_tier.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/user_profile_patch.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
+import 'package:labuda/domains/user/preference/seller/data/dto/seller_dto.dart';
 import 'package:labuda/domains/user/preference/seller/data/remote/seller_remote_datasource.dart';
 import 'package:labuda/domains/user/preference/seller/data/seller_providers.dart'
     show sellerRemoteDatasourceProvider, sellerRepositoryProvider;
@@ -153,23 +154,45 @@ class _FakeSellerRemoteDatasource extends Mock
   int onboardingCalls = 0;
   int paymentCalls = 0;
   String paymentUrl = '';
+  String? lastPaymentMethodCode;
 
   @override
   Future<void> performOnboarding(String storeName) async {
     onboardingCalls++;
   }
 
+  // PMF-02: the payment step loads the canonical methods, each already carrying
+  // the backend-calculated fee and gross, then sends the chosen code.
   @override
-  Future<Map<String, dynamic>> initiateSubscriptionPayment() async {
+  Future<SellerSubscriptionPaymentMethodsDto>
+  getSubscriptionPaymentMethods() async {
+    return const SellerSubscriptionPaymentMethodsDto(
+      principalAmount: 250000,
+      currency: 'IDR',
+      methods: [
+        SellerSubscriptionPaymentMethodDto(
+          methodCode: 'bca_va',
+          displayName: 'BCA Virtual Account',
+          serviceFeeAmount: 6250,
+          grossAmount: 256250,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<Map<String, dynamic>> initiateSubscriptionPayment({
+    required String paymentMethodCode,
+  }) async {
     paymentCalls++;
+    lastPaymentMethodCode = paymentMethodCode;
     return <String, dynamic>{'payment_url': paymentUrl};
   }
 }
 
 class _FakeSellerRepository implements SellerRepository {
-  _FakeSellerRepository({
-    required SellerSubscription initialSubscription,
-  }) : _subscription = initialSubscription;
+  _FakeSellerRepository({required SellerSubscription initialSubscription})
+    : _subscription = initialSubscription;
 
   int subscriptionCalls = 0;
   SellerSubscription _subscription;
@@ -326,6 +349,43 @@ Future<void> _pumpRegistrationFlow(WidgetTester tester) async {
   await tester.ensureVisible(paymentButton);
   await tester.tap(paymentButton);
   await tester.pumpAndSettle();
+
+  await _selectSubscriptionPaymentMethod(tester);
+}
+
+// PMF-02: the payment step requires an explicit method choice before submit.
+Future<void> _selectSubscriptionPaymentMethod(WidgetTester tester) async {
+  final methodSelector = find.text('Pilih metode pembayaran');
+  await tester.ensureVisible(methodSelector);
+  await tester.pumpAndSettle();
+  await tester.tap(methodSelector);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('BCA Virtual Account'));
+  await tester.pumpAndSettle();
+}
+
+/// Renewal mode: users with an existing seller profile (`hasSellerProfile ==
+/// true`) enter the wizard directly at the canonical renewal entry state, which
+/// is the payment step. Registration-only navigation (step 0 "Lanjut Lengkapi
+/// Data" and the onboarding steps behind it) does not exist for them, so this
+/// helper only performs what the renewal entry state actually requires: the
+/// seller terms consent on the preview step, then the shared PMF-02 payment
+/// method choice.
+Future<void> _pumpRenewalFlow(WidgetTester tester) async {
+  await tester.tap(find.text('Kembali'));
+  await tester.pumpAndSettle();
+
+  final checkbox = find.byType(Checkbox);
+  await tester.ensureVisible(checkbox);
+  await tester.tap(checkbox);
+  await tester.pumpAndSettle();
+
+  final paymentButton = find.text('Lanjut');
+  await tester.ensureVisible(paymentButton);
+  await tester.tap(paymentButton);
+  await tester.pumpAndSettle();
+
+  await _selectSubscriptionPaymentMethod(tester);
 }
 
 List<MethodCall> _mockUrlLauncher(TestWidgetsFlutterBinding binding) {
@@ -499,13 +559,13 @@ void main() {
       expect(find.text('Renewal mode'), findsOneWidget);
       expect(find.text('Perpanjang Seller'), findsOneWidget);
 
-      await _pumpRegistrationFlow(tester);
+      await _pumpRenewalFlow(tester);
 
       await tester.tap(find.text('Bayar Sekarang'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 10));
 
-      expect(authRepository.updateProfileCalls, 1);
+      expect(authRepository.updateProfileCalls, 0);
       expect(sellerRemoteDatasource.onboardingCalls, 0);
       expect(sellerRemoteDatasource.paymentCalls, 1);
     });
@@ -556,7 +616,7 @@ void main() {
 
       expect(find.text('Early renewal mode'), findsOneWidget);
 
-      await _pumpRegistrationFlow(tester);
+      await _pumpRenewalFlow(tester);
 
       await tester.tap(find.text('Bayar Sekarang'));
       await tester.pump();
@@ -638,7 +698,7 @@ void main() {
 
         await tester.pumpAndSettle();
 
-        await _pumpRegistrationFlow(tester);
+        await _pumpRenewalFlow(tester);
 
         await tester.tap(find.text('Bayar Sekarang'));
         await tester.pump();
@@ -659,7 +719,11 @@ void main() {
           findsNothing,
         );
         expect(find.text('Perpanjang Seller'), findsOneWidget);
-        expect(find.text('Lanjut Lengkapi Data'), findsOneWidget);
+        // The new principal already has a seller profile, so the aborted flow
+        // returns to the canonical renewal entry state at the payment step, not
+        // to the registration entry that only exists for never-sellers.
+        expect(find.text('Lanjut Lengkapi Data'), findsNothing);
+        expect(find.text('Bayar Sekarang'), findsOneWidget);
       },
     );
 

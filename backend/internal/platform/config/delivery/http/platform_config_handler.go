@@ -36,10 +36,10 @@ type PlatformConfigHandler struct {
 }
 
 // financialConfigKeys require config.update.financial capability.
-// Only platform commission keys remain editable here.
 var financialConfigKeys = map[string]bool{
 	"for_sale_commission_percent": true,
 	"auction_commission_percent": true,
+	"seller_withdrawal_fee_rupiah": true,
 	"min_withdrawal":             true,
 	"max_withdrawal":             true,
 	"withdrawal_threshold":       true,
@@ -58,6 +58,7 @@ var notEditableConfigKeys = map[string]bool{
 var configValueValidators = map[string]func(decimal.Decimal) error{
 	"for_sale_commission_percent": validatePercent,
 	"auction_commission_percent": validatePercent,
+	"seller_withdrawal_fee_rupiah": validateNonNegativeInt,
 }
 
 // validatePercent accepts decimals in [0, 100].
@@ -80,6 +81,14 @@ func validatePositiveAmount(v decimal.Decimal) error {
 func validatePositiveInt(v decimal.Decimal) error {
 	if !v.IsPositive() || !v.Equal(v.Floor()) {
 		return fmt.Errorf("value must be a positive integer")
+	}
+	return nil
+}
+
+// validateNonNegativeInt accepts whole numbers >= 0 (Rp0 allowed).
+func validateNonNegativeInt(v decimal.Decimal) error {
+	if v.IsNegative() || !v.Equal(v.Floor()) {
+		return fmt.Errorf("value must be a non-negative integer")
 	}
 	return nil
 }

@@ -483,9 +483,15 @@ func (w *SubscriptionReconciliationWorker) checkAndRecoverOrphanedPayments(ctx c
 	}
 }
 
-// validatePaymentForRecovery validates a payment before attempting recovery
+// validatePaymentForRecovery validates a payment before attempting recovery.
 //
-// HARDENING (R7.4): Ensures payment data integrity before processing
+// HARDENING (R7.4): Ensures payment data integrity before processing.
+//
+// PMF-02 SCOPE NOTE: these checks are deliberately non-monetary. The recovery
+// amount authority is the payment's own immutable snapshot — read by
+// SellerSubscriptionPaymentService.ProcessSuccessfulPayment via
+// GetByIDForUpdate — never seller_subscription_configs. See the removal note at
+// the end of this function.
 func (w *SubscriptionReconciliationWorker) validatePaymentForRecovery(ctx context.Context, item orphanedPayment) error {
 	// Validate amount is positive
 	if item.GrossAmount <= 0 {
@@ -507,34 +513,21 @@ func (w *SubscriptionReconciliationWorker) validatePaymentForRecovery(ctx contex
 		return fmt.Errorf("payment date is too old: %s", item.PaidAt.Format(time.RFC3339))
 	}
 
-	// Validate against expected subscription plan amount
-	var expectedYearlyFeeRupiah int64
-	err := w.db.QueryRow(ctx, `
-		SELECT yearly_fee_rupiah
-		FROM seller_subscription_configs
-		WHERE enabled = true
-		ORDER BY created_at DESC
-		LIMIT 1
-	`).Scan(&expectedYearlyFeeRupiah)
-
-	if err != nil {
-		// If no config found, log warning but don't fail
-		w.log.Warn("No active subscription config found for amount validation",
-			zap.Error(err),
-			zap.String("payment_id", item.ID.String()),
-		)
-		return nil
-	}
-
-	// Check if payment amount matches expected yearly fee (with small tolerance)
-	if item.GrossAmount != expectedYearlyFeeRupiah {
-		w.log.Warn("Payment amount does not match expected subscription fee",
-			zap.String("payment_id", item.ID.String()),
-			zap.Int64("expected_amount", expectedYearlyFeeRupiah),
-			zap.Int64("actual_amount", item.GrossAmount),
-		)
-		// Don't fail - just warn, as pricing might have changed
-	}
+	// PMF-02: the former "validate against expected subscription plan amount"
+	// step compared payments.gross_amount (A + F) against the CURRENT
+	// seller_subscription_configs.yearly_fee_rupiah (A) and warned whenever they
+	// differed. That made config a monetary authority for an already-created
+	// payment, which contradicts payment-snapshot authority: a historical
+	// payment's money truth is its own immutable snapshot (gross_amount and
+	// service_fee_amount), and the canonical activation path
+	// (SellerSubscriptionPaymentService.ProcessSuccessfulPayment) derives the
+	// principal from that snapshot, never from config.
+	//
+	// The comparison is removed rather than re-expressed: for a settled payment
+	// there is no independent "expected plan amount" to compare against (the
+	// principal IS gross_amount - service_fee_amount), so any replacement rule
+	// would be a new, unproven authority. The non-monetary checks above (positive
+	// amount, transaction id, timestamp sanity) are unchanged.
 
 	return nil
 }

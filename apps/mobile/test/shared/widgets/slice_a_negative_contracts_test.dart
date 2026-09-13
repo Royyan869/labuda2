@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:labuda/shared/helpers/user_identity_formatter.dart';
 import 'package:labuda/shared/shared.dart';
 
 /// Negative-contract tests for Slice A canonical shared-avatar chain.

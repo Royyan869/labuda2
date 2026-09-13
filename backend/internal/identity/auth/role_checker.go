@@ -25,8 +25,13 @@ var (
 	ErrCommerceRestricted      = errors.New("forbidden: user has an active commerce restriction")
 )
 
-// SystemCallerID is the canonical special UUID used for system-initiated
-// operations.
+// SystemCallerID is the canonical sentinel UUID for system-initiated
+// operations (workers, internal jobs). It denotes "no human actor" for
+// attribution and audit-suppression purposes.
+//
+// It is NOT an authorization identity. It must never confer admin membership,
+// and no users row may carry this UUID (enforced by a DB constraint added in
+// migration 000086) — otherwise a human account would inherit the sentinel.
 var SystemCallerID = audit.SystemCallerID
 
 // IsSystemCaller returns true if the callerID is the system caller.

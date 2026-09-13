@@ -8,6 +8,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/labuda/backend/internal/platform/capability"
+	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
+	capabilityRepoImpl "github.com/labuda/backend/internal/platform/capability/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/testdb"
 	"github.com/stretchr/testify/assert"
@@ -259,4 +262,119 @@ func TestRoleCheckerDB_HasActiveSellerCapability_QueryFailurePropagates(t *testi
 	_, err = checker.HasActiveSellerCapability(ctx, userID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "closed")
+}
+
+// ============================================================================
+// ROLE AUTHORITY — DB-BACKED COVERAGE (real PostgreSQL)
+// ============================================================================
+//
+// These tests close the persistence gap for the role authority itself:
+// RoleCheckerDB.IsAdmin and the DB-backed branches of RoleCheckerDB.SetRole
+// that were previously unproven. They derive full access from the canonical
+// universe (role=admin + coverage of capability.AllCapabilityStrings()) and
+// create grants through the canonical write path; there is no second authority
+// and no hardcoded capability count.
+
+// insertFullAccessAdmin inserts an active, email-verified user with the
+// canonical admin role and grants the entire canonical capability universe via
+// the canonical grant write path. The result is a full-access admin by
+// derivation, which is the backstop the full-access invariant requires.
+func insertFullAccessAdmin(t *testing.T, ctx context.Context, tdb *testdb.TestDB, database *db.DB) uuid.UUID {
+	t.Helper()
+
+	id := uuid.New()
+	_, err := tdb.Pool().Exec(ctx, `
+		INSERT INTO users (id, firebase_uid, email, email_verified_at, account_status, role, created_at, updated_at)
+		VALUES ($1, $2, $3, NOW(), 'active', $4, NOW(), NOW())
+	`, id, id.String(), id.String()+"@role-checker.test", capabilityEntity.AdminRole)
+	require.NoError(t, err, "insert full-access admin user")
+
+	repo := capabilityRepoImpl.NewCapabilityRepository(database)
+	for _, c := range capability.AllCapabilityStrings() {
+		require.NoError(t, repo.CreateGrant(ctx, capabilityEntity.NewCapabilityGrant(id, c, nil)),
+			"grant %s", c)
+	}
+	return id
+}
+
+// persistedRole reads the committed users.role for an id directly from its row.
+func persistedRole(t *testing.T, ctx context.Context, tdb *testdb.TestDB, id uuid.UUID) string {
+	t.Helper()
+	var role string
+	require.NoError(t, tdb.Pool().QueryRow(ctx, `SELECT role FROM users WHERE id = $1`, id).Scan(&role))
+	return role
+}
+
+// TestRoleCheckerDB_IsAdmin_AdminRoleReturnsTrue proves admin membership is
+// resolved from the persisted users.role row.
+func TestRoleCheckerDB_IsAdmin_AdminRoleReturnsTrue(t *testing.T) {
+	tdb, cleanup := testdb.SetupDB(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	database := db.NewFromPool(tdb.Pool())
+	checker := newRoleCheckerWithPool(tdb.Pool())
+
+	adminID := insertFullAccessAdmin(t, ctx, tdb, database)
+
+	got, err := checker.IsAdmin(ctx, adminID)
+	require.NoError(t, err)
+	assert.True(t, got, "a persisted users.role=admin must resolve as admin membership")
+}
+
+// TestRoleCheckerDB_SetRole_PromotionPersistsCanonicalAdminRole proves the
+// user -> admin promotion commits the canonical role value.
+func TestRoleCheckerDB_SetRole_PromotionPersistsCanonicalAdminRole(t *testing.T) {
+	tdb, cleanup := testdb.SetupDB(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	database := db.NewFromPool(tdb.Pool())
+	checker := newRoleCheckerWithPool(tdb.Pool())
+
+	// Backstop: the full-access invariant requires at least one full-access
+	// admin to remain after the mutation.
+	backstop := insertFullAccessAdmin(t, ctx, tdb, database)
+	target := insertUser(t, ctx, tdb, "active", false) // role = 'user'
+
+	require.Equal(t, "user", persistedRole(t, ctx, tdb, target))
+
+	err := checker.SetRole(ctx, backstop, target, capabilityEntity.AdminRole)
+	require.NoError(t, err)
+
+	// Persisted state via the production read path...
+	role, err := checker.GetRole(ctx, target)
+	require.NoError(t, err)
+	assert.Equal(t, capabilityEntity.AdminRole, role)
+
+	// ...and via the committed row itself.
+	assert.Equal(t, capabilityEntity.AdminRole, persistedRole(t, ctx, tdb, target))
+
+	// The backstop's role is untouched.
+	assert.Equal(t, capabilityEntity.AdminRole, persistedRole(t, ctx, tdb, backstop))
+}
+
+// TestRoleCheckerDB_SetRole_NonexistentTarget_RejectedWithoutMutation proves a
+// missing target is rejected and the transaction leaves no trace.
+func TestRoleCheckerDB_SetRole_NonexistentTarget_RejectedWithoutMutation(t *testing.T) {
+	tdb, cleanup := testdb.SetupDB(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	checker := newRoleCheckerWithPool(tdb.Pool())
+
+	caller := uuid.New()  // distinct from target, so the self-escalation guard is not what fires
+	missing := uuid.New() // no users row exists for this id
+
+	err := checker.SetRole(ctx, caller, missing, capabilityEntity.AdminRole)
+	require.Error(t, err, "setting the role of a nonexistent target must fail")
+
+	// Error contract derived from the production source: the current-role read
+	// fails first and is wrapped as "failed to query current role: %w".
+	assert.Contains(t, err.Error(), "failed to query current role")
+
+	// Rollback proof: no user row was created or mutated by the failed call.
+	var count int
+	require.NoError(t, tdb.Pool().QueryRow(ctx, `SELECT count(*) FROM users WHERE id = $1`, missing).Scan(&count))
+	assert.Zero(t, count, "a failed SetRole must not create or mutate any user row")
 }

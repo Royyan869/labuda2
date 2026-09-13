@@ -18,13 +18,10 @@ import (
 // be restricted (DENY → drop) or coarsened (TOMBSTONE/REDACT → lifecycle
 // override) before serialization.
 //
-// CANONICAL PILOT CONTRACT (Batch 3B):
+// CANONICAL CONTRACT (Batch 3B):
 //
-//   - Mode-gated. In SearchContentAdapterModeShadow the helper returns
-//     the input slice unchanged and a nil override map; the handler's
-//     wire shape is byte-identical to the pre-Batch-3B behavior. Roll-
-//     back to shadow is a single env-var flip; no schema rollback, no
-//     migration rollback.
+//   - Unconditional enforcement. There is no mode parameter: the helper
+//     always runs the further-restrict pass.
 //   - Further-restrict only. The helper NEVER recovers rows the legacy
 //     SQL excluded (hidden/deleted are physically absent from the input
 //     slice per search_repository_impl.go projection). Enforcement is
@@ -67,13 +64,10 @@ const (
 
 // SearchContentEnforcementResult is the value returned by
 // EnforceSearchContent. It carries the post-enforcement slice and a
-// per-content-ID lifecycle override map; both are nil-safe for
-// shadow-mode callers (Filtered is the input slice unchanged;
-// LifecycleOverrides is empty).
+// per-content-ID lifecycle override map.
 type SearchContentEnforcementResult struct {
 	// Filtered is the post-enforcement subset of contents in the
-	// original order. In shadow mode this is the input slice unchanged
-	// (same backing array, no copy).
+	// original order.
 	Filtered []*entity.ContentPreview
 
 	// LifecycleOverrides maps a ContentPreview.ID → coarsened public
@@ -97,13 +91,7 @@ type SearchContentEnforcementResult struct {
 // /search/content candidate slice. See the package docstring above for
 // the full contract.
 //
-// In SearchContentAdapterModeShadow:
-//   - Returns Filtered = contents (input slice, unchanged)
-//   - Returns LifecycleOverrides = nil
-//   - Returns DroppedCount = 0, OverriddenCount = 0
-//   - Emits no enforcement_applied_total counters
-//
-// In SearchContentAdapterModeEnforce:
+// Enforcement is unconditional:
 //   - Runs EvaluateSearchContent + AdaptSearchContentDecision per row.
 //   - Drops rows where adapter.Include == false.
 //   - Records lifecycle overrides for rows where adapter.LifecycleOverride != nil.
@@ -116,18 +104,11 @@ type SearchContentEnforcementResult struct {
 // the safe-default behavior; a construction defect in the handler must
 // not silently expose unmoderated content.
 func EnforceSearchContent(
-	mode SearchContentAdapterMode,
 	vc *viewercontext.ViewerContext,
 	tc *viewercontext.TargetContext,
 	contents []*entity.ContentPreview,
 ) SearchContentEnforcementResult {
-	if mode != SearchContentAdapterModeEnforce {
-		return SearchContentEnforcementResult{
-			Filtered: contents,
-		}
-	}
-
-	// Enforce path. Allocate output capacity equal to input length — the
+	// Allocate output capacity equal to input length — the
 	// upper bound on Filtered size.
 	out := make([]*entity.ContentPreview, 0, len(contents))
 	overrides := make(map[uuid.UUID]string)
@@ -139,7 +120,7 @@ func EnforceSearchContent(
 			continue
 		}
 		decision, reason, _, semantic := EvaluateSearchContent(vc, tc, c)
-		adapted := AdaptSearchContentDecision(decision, reason, semantic, mode)
+		adapted := AdaptSearchContentDecision(decision, reason, semantic)
 		if !adapted.Include {
 			dropped++
 			metrics.recordEnforcementApplied(SearchContentEnforcementActionDrop)

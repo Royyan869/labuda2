@@ -161,22 +161,6 @@ class AuctionRemoteDatasource extends BaseApiRepository {
     return result.fold((error) => throw Exception(error), (data) => data);
   }
 
-  /// Get current highest bid info
-  Future<CurrentBidDto> getCurrentBid(String auctionId) async {
-    final auction = await getAuctionById(auctionId);
-    return CurrentBidDto(
-      auctionId: auction.id,
-      currentHighestBid: auction.currentHighestBid,
-      highestBidderId: auction.highestBidderId,
-      minimumBid: auction.minimumBid,
-      totalBids: auction.totalBids,
-      timeRemainingSeconds: auction.timeRemainingSeconds,
-      endTime: auction.endTime,
-      isExtended: false,
-      status: auction.status,
-    );
-  }
-
   // ========== Claim Operations ==========
 
   /// Claim auction - creates order for auction winner

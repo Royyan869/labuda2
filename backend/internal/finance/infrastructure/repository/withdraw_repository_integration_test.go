@@ -265,3 +265,66 @@ func TestWithdrawRepository_ListWithFilters_WithDataNoAmbiguousColumn(t *testing
 		t.Fatalf("expected count >= 1, got %d", total)
 	}
 }
+
+// TestWithdrawRepository_ListWithFilters_StatusFilterNoAmbiguousColumn is the
+// direct regression test for the admin Withdrawals page HTTP 500. The WHERE
+// clause applied an unqualified "status" predicate, but this query LEFT JOINs
+// seller_profiles, which also defines a "status" column, so Postgres rejected
+// the filtered query at parse time with "column reference \"status\" is
+// ambiguous". The admin UI always sends a status filter (default REQUESTED),
+// which is why the page failed on every load even though the unfiltered
+// ListWithFilters regression tests above passed.
+func TestWithdrawRepository_ListWithFilters_StatusFilterNoAmbiguousColumn(t *testing.T) {
+	tdb, repo, cleanup := setupWithdrawTest(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	id := uuid.New()
+	sellerID := uuid.New()
+	if err := tdb.WithTx(ctx, func(tx db.Tx) error {
+		return repo.Create(ctx, tx, id, sellerID, 30000, 1500, financerepo.WithdrawalStatusRequested)
+	}); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	status := string(financerepo.WithdrawalStatusRequested)
+	filters := financerepo.WithdrawalListFilters{
+		Status:   &status,
+		SortBy:   "created_at",
+		SortDesc: true,
+		Page:     1,
+		PageSize: 20,
+	}
+
+	var results []*financerepo.Withdrawal
+	err := tdb.WithTx(ctx, func(tx db.Tx) error {
+		var err error
+		results, err = repo.ListWithFilters(ctx, tx, filters)
+		return err
+	})
+	if err != nil {
+		t.Fatalf("ListWithFilters status=REQUESTED: %v (ambiguous column regression if this mentions status)", err)
+	}
+	found := false
+	for _, w := range results {
+		if w.ID == id {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected withdrawal %s in status-filtered results, got %d rows", id, len(results))
+	}
+
+	var total int64
+	err = tdb.WithTx(ctx, func(tx db.Tx) error {
+		var err error
+		total, err = repo.CountWithFilters(ctx, tx, filters)
+		return err
+	})
+	if err != nil {
+		t.Fatalf("CountWithFilters status=REQUESTED: %v", err)
+	}
+	if total < 1 {
+		t.Fatalf("expected count >= 1 for status=REQUESTED, got %d", total)
+	}
+}

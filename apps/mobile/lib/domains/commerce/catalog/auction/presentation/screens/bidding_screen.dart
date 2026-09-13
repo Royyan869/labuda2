@@ -393,7 +393,7 @@ class BiddingItemCard extends ConsumerWidget {
 /// Bid info widget
 class _BidInfo extends StatelessWidget {
   final String label;
-  final double amount;
+  final int amount;
   final NumberFormat currencyFormat;
   final bool isHighlight;
 

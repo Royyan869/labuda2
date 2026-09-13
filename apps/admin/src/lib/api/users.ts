@@ -68,10 +68,13 @@ export async function unbanUser(userId: string, reason: string) {
 }
 
 /**
- * Set user role
+ * Set user role (promote / demote admin membership)
  * PUT /api/v1/admin/users/:id/role
+ *
+ * Requires governance.role.assign. Canonical roles are exactly user|admin.
+ * Demoting the last full-access admin is refused by the backend invariant.
  */
-export async function setUserRole(userId: string, role: 'user' | 'seller' | 'admin') {
+export async function setUserRole(userId: string, role: 'user' | 'admin') {
   return api.put<{ user_id: string; role: string; message: string }>(
     `/api/v1/admin/users/${userId}/role`,
     { role }
@@ -92,36 +95,3 @@ export async function getUserBlocks(userId: string, params?: { limit?: number; c
   )
 }
 
-// ============================================================================
-// BNR STRIKE ADMIN RESET
-// ============================================================================
-
-/**
- * Reset all active BNR strikes for a buyer.
- * POST /api/v1/admin/users/:id/bnr-strikes/reset
- * Requires: governance.bnr.reset
- *
- * Sets admin_reset = TRUE on all active strikes. Rows are kept for audit.
- */
-export async function resetBNRByUser(userId: string): Promise<{ buyer_id: string; strikes_reset: number }> {
-  const resp = await api.post<{ data: { buyer_id: string; strikes_reset: number } }>(
-    `/api/v1/admin/users/${userId}/bnr-strikes/reset`,
-    {}
-  )
-  return resp.data
-}
-
-/**
- * Reset a single BNR strike by ID.
- * POST /api/v1/admin/bnr-strikes/:strike_id/reset
- * Requires: governance.bnr.reset
- *
- * Returns false if already reset or decayed.
- */
-export async function resetBNRStrike(strikeId: string): Promise<{ strike_id: string; reset: boolean }> {
-  const resp = await api.post<{ data: { strike_id: string; reset: boolean } }>(
-    `/api/v1/admin/bnr-strikes/${strikeId}/reset`,
-    {}
-  )
-  return resp.data
-}

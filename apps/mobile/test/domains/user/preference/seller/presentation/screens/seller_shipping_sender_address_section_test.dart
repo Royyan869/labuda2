@@ -95,7 +95,7 @@ class _ShippingRepo implements ShippingRepository {
   }
 
   @override
-  Future<Result<DeliveryAvailabilityResult>> checkDeliveryAvailability(
+  Future<Result<List<DeliveryOption>>> checkDeliveryAvailability(
     CheckDeliveryRequest request,
   ) async {
     throw UnimplementedError();
@@ -218,7 +218,7 @@ class _FakeAuthController extends AuthController {
 
 class _FakePresenceManager extends PresenceManager {
   @override
-  PresenceAuthorityState build() => const PresenceAuthorityState.empty();
+  PresenceState build() => const PresenceState();
 }
 
 ShippingSetup _shippingSetup() {
@@ -252,29 +252,9 @@ AddressEntity _completeSenderAddress() {
   );
 }
 
-AddressEntity _incompleteSenderAddress() {
-  return AddressEntity(
-    id: 'addr-2',
-    userId: 'seller-1',
-    purpose: AddressPurpose.sender,
-    recipientName: 'Farm Sentosa',
-    phone: '08123456789',
-    province: Province(id: '33', name: 'Jawa Tengah'),
-    city: City(id: '3301', name: 'Kabupaten Demak', provinceId: '33'),
-    district: District(id: '330101', name: 'Mranggen', cityId: '3301'),
-    village: Village(id: '3301012001', name: 'Rowosari', districtId: '330101'),
-    streetAddress: 'Jl. Melati No. 12',
-    postalCode: '',
-    isPrimary: true,
-    createdAt: DateTime.utc(2026, 7, 25),
-    updatedAt: DateTime.utc(2026, 7, 25),
-  );
-}
-
 Widget _wrap({
   required _ShippingRepo shippingRepo,
   required _AddressRepo addressRepo,
-  SenderAddressEditorLauncher? senderAddressEditor,
 }) {
   return ProviderScope(
     overrides: [
@@ -285,10 +265,7 @@ Widget _wrap({
       provincesProvider.overrideWith((ref) async => const []),
     ],
     child: MaterialApp(
-      home: SellerShippingScreen(
-        senderAddressEditor:
-            senderAddressEditor ?? ((context, address) async => null),
-      ),
+      home: const SellerShippingScreen(),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('id'),
@@ -297,33 +274,21 @@ Widget _wrap({
 }
 
 void main() {
-  group('SellerShippingScreen sender address section', () {
-    testWidgets('complete address renders summary and Ubah', (tester) async {
+  group('SellerShippingScreen shipping options', () {
+    testWidgets('shows Bus Kencana when options exist', (tester) async {
       final shippingRepo = _ShippingRepo(options: [_shippingSetup()]);
-      final addressRepo = _AddressRepo(
-        Result.success(_completeSenderAddress()),
-      );
+      final addressRepo = _AddressRepo(Result.success(_completeSenderAddress()));
 
       await tester.pumpWidget(
         _wrap(shippingRepo: shippingRepo, addressRepo: addressRepo),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Farm Sentosa'), findsWidgets);
-      expect(find.textContaining('Jl. Melati No. 12'), findsOneWidget);
-      expect(
-        find.textContaining('Kabupaten Demak, Jawa Tengah'),
-        findsOneWidget,
-      );
-      expect(find.textContaining('Kode pos 59511'), findsOneWidget);
-      expect(find.text('Ubah'), findsOneWidget);
-      expect(find.text('Atur Alamat'), findsNothing);
+      expect(find.text('Bus Kencana'), findsOneWidget);
     });
 
-    testWidgets('missing address renders warning and Atur Alamat', (
-      tester,
-    ) async {
-      final shippingRepo = _ShippingRepo(options: [_shippingSetup()]);
+    testWidgets('shows empty view when no options', (tester) async {
+      final shippingRepo = _ShippingRepo(options: []);
       final addressRepo = _AddressRepo(Result.success(null));
 
       await tester.pumpWidget(
@@ -331,96 +296,55 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Alamat sender diperlukan'), findsOneWidget);
-      expect(find.text('Atur Alamat'), findsOneWidget);
-      expect(find.text('Ubah'), findsNothing);
+      expect(find.text('Belum Ada Opsi Pengiriman'), findsOneWidget);
     });
 
-    testWidgets('incomplete address is treated as not ready', (tester) async {
+    testWidgets('shows loading initially', (tester) async {
       final shippingRepo = _ShippingRepo(options: [_shippingSetup()]);
-      final addressRepo = _AddressRepo(
-        Result.success(_incompleteSenderAddress()),
-      );
+      final addressRepo = _AddressRepo(Result.success(null));
 
       await tester.pumpWidget(
         _wrap(shippingRepo: shippingRepo, addressRepo: addressRepo),
       );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Alamat sender diperlukan'), findsOneWidget);
-      expect(find.text('Atur Alamat'), findsOneWidget);
-      expect(find.text('Ubah'), findsNothing);
-    });
-
-    testWidgets('CTA opens the canonical address editor', (tester) async {
-      final shippingRepo = _ShippingRepo(options: [_shippingSetup()]);
-      final addressRepo = _AddressRepo(Result.success(null));
-      AddressEntity? launchedWith;
-      var launchCount = 0;
-
-      Future<bool?> launcher(
-        BuildContext context,
-        AddressEntity? current,
-      ) async {
-        launchCount++;
-        launchedWith = current;
-        return null;
-      }
-
-      await tester.pumpWidget(
-        _wrap(
-          shippingRepo: shippingRepo,
-          addressRepo: addressRepo,
-          senderAddressEditor: launcher,
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Atur Alamat'));
       await tester.pump();
 
-      expect(launchCount, 1);
-      expect(launchedWith, isNull);
+      // Screen should show AppBar with Pengiriman title
+      expect(find.text('Pengiriman'), findsOneWidget);
     });
 
-    testWidgets('save returns and refreshes the section', (tester) async {
+    testWidgets('shows shipping options list', (tester) async {
       final shippingRepo = _ShippingRepo(options: [_shippingSetup()]);
       final addressRepo = _AddressRepo(Result.success(null));
-      var launchCount = 0;
-
-      Future<bool?> launcher(
-        BuildContext context,
-        AddressEntity? current,
-      ) async {
-        launchCount++;
-        addressRepo.setPrimarySenderResult(
-          Result.success(_completeSenderAddress()),
-        );
-        return true;
-      }
 
       await tester.pumpWidget(
         _wrap(
           shippingRepo: shippingRepo,
           addressRepo: addressRepo,
-          senderAddressEditor: launcher,
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Alamat sender diperlukan'), findsOneWidget);
+      expect(find.text('Bus Kencana'), findsOneWidget);
+    });
 
-      await tester.tap(find.text('Atur Alamat'));
+    testWidgets('shows create FAB', (tester) async {
+      final shippingRepo = _ShippingRepo(options: [_shippingSetup()]);
+      final addressRepo = _AddressRepo(Result.success(null));
+
+      await tester.pumpWidget(
+        _wrap(
+          shippingRepo: shippingRepo,
+          addressRepo: addressRepo,
+        ),
+      );
       await tester.pumpAndSettle();
 
-      expect(launchCount, 1);
-      expect(find.text('Ubah'), findsOneWidget);
-      expect(find.textContaining('Farm Sentosa'), findsWidgets);
-      expect(find.text('Alamat sender diperlukan'), findsNothing);
+      expect(find.text('Tambah Opsi'), findsOneWidget);
+      expect(find.byIcon(Icons.add), findsOneWidget);
     });
 
     testWidgets(
-      'address-load failure does not replace the shipping-options list with a global load error',
+      'address-load failure does not affect shipping-options list',
       (tester) async {
         final shippingRepo = _ShippingRepo(options: [_shippingSetup()]);
         final addressRepo = _AddressRepo(
@@ -434,30 +358,21 @@ void main() {
 
         expect(find.text('Bus Kencana'), findsOneWidget);
         expect(find.text('Gagal memuat opsi pengiriman'), findsNothing);
-        expect(find.text('Alamat sender tidak dapat dimuat'), findsOneWidget);
       },
     );
   });
 
   group('Canonical sender-address authority', () {
-    test('shipping, listing, and auction flows read the same provider source', () {
+    test('SellerShippingScreen is shipping-only (no sender address section)', () {
       final shippingSource = File(
         'lib/domains/user/preference/seller/presentation/screens/seller_shipping_screen.dart',
       ).readAsStringSync();
-      final listingSource = File(
-        'lib/domains/commerce/catalog/listing/presentation/screens/create_listing_screen.dart',
-      ).readAsStringSync();
-      final auctionSource = File(
-        'lib/domains/commerce/catalog/auction/presentation/screens/create_auction_screen.dart',
-      ).readAsStringSync();
 
-      expect(shippingSource, contains('primarySenderAddressProvider('));
-      expect(shippingSource, contains('RoutePaths.addresses'));
-      expect(shippingSource, isNot(contains('AddressFormDialog(')));
-      expect(listingSource, contains('primarySenderAddressProvider('));
-      expect(listingSource, contains('RoutePaths.addresses'));
-      expect(auctionSource, contains('primarySenderAddressProvider('));
-      expect(auctionSource, contains('RoutePaths.addresses'));
+      // Current SellerShippingScreen is solely for global shipping options
+      // Sender address is handled in seller_upgrade_wizard_screen.dart
+      expect(shippingSource, contains('shippingNotifierProvider'));
+      expect(shippingSource, isNot(contains('primarySenderAddressProvider(')));
+      expect(shippingSource, isNot(contains('Atur Alamat')));
     });
   });
 }

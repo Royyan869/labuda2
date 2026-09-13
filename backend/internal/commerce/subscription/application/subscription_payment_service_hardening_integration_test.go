@@ -585,3 +585,66 @@ func TestProcessSuccessfulPaymentTx_HistoricalAndFutureChain(t *testing.T) {
 	require.Len(t, subs, 2)
 	assert.True(t, subs[1].ExpiresAt.Equal(h.chainEnd.Add(730*24*time.Hour)))
 }
+
+// PMF02-A1: principal subscription revenue idempotency is payment-scoped.
+//
+// The recovery entry points (seller sync, admin recovery) pass synthetic
+// per-seller / per-admin provider event identifiers into activation. When the
+// principal ledger key was derived from that caller-supplied identifier, two
+// distinct payments activated through the same entry point produced the same
+// ledger key: the second transaction was treated as an idempotent duplicate and
+// its principal revenue was silently never booked, while its subscription row,
+// amount_paid and entitlement interval were all written.
+//
+// This test drives the real payment, subscription and ledger repositories with
+// one shared synthetic event identifier for two distinct settled payments and
+// requires one principal revenue transaction per payment.
+func TestProcessSuccessfulPaymentTx_SharedRecoveryEventId_BooksPrincipalPerPayment(t *testing.T) {
+	h := newRenewalHarness(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Exactly the shape the sync and admin recovery entries used to pass.
+	sharedRecoveryEventID := "seller_sync_gateway_" + h.userID.String()
+
+	paymentA := h.createSettledPayment(t, h.chainEnd.Add(-2*time.Hour), "shared-event-a", true)
+	paymentB := h.createSettledPayment(t, h.chainEnd.Add(-time.Hour), "shared-event-b", true)
+
+	require.NoError(t, h.svc.ProcessSuccessfulPayment(ctx, paymentA, h.userID, sharedRecoveryEventID))
+	require.NoError(t, h.svc.ProcessSuccessfulPayment(ctx, paymentB, h.userID, sharedRecoveryEventID))
+
+	// Both payments activated as entitlement intervals.
+	assert.Equal(t, 2, countRows(t, h.tdb,
+		`SELECT COUNT(*) FROM seller_subscriptions WHERE user_id = $1 AND status = 'active'`, h.userID))
+
+	// One principal revenue transaction per payment, keyed on the payment identity.
+	assert.Equal(t, 2, countRows(t, h.tdb,
+		`SELECT COUNT(*) FROM ledger_transactions WHERE reference_type = 'seller_subscription_payment'`))
+	for _, paymentID := range []uuid.UUID{paymentA, paymentB} {
+		expectedKey := "seller_subscription_payment_" + paymentID.String()
+		assert.Equal(t, 1, countRows(t, h.tdb,
+			`SELECT COUNT(*) FROM ledger_transactions WHERE idempotency_key = $1`, expectedKey),
+			"each settled payment must own exactly one principal revenue transaction")
+	}
+
+	// No transaction may be keyed on the shared caller-supplied identifier.
+	assert.Equal(t, 0, countRows(t, h.tdb,
+		`SELECT COUNT(*) FROM ledger_transactions WHERE idempotency_key = $1`,
+		"seller_subscription_payment_"+sharedRecoveryEventID))
+
+	// The zero-fee fixture books A = gross = 70000 per payment.
+	var principalTotal int64
+	require.NoError(t, h.tdb.Pool().QueryRow(ctx, `
+		SELECT COALESCE(SUM(total_debit), 0)::bigint
+		FROM ledger_transactions
+		WHERE reference_type = 'seller_subscription_payment'
+	`).Scan(&principalTotal))
+	assert.Equal(t, int64(140000), principalTotal, "principal revenue must be recognized for every settled payment")
+
+	// Replay of an already-activated payment stays idempotent.
+	require.NoError(t, h.svc.ProcessSuccessfulPayment(ctx, paymentA, h.userID, sharedRecoveryEventID))
+	assert.Equal(t, 2, countRows(t, h.tdb,
+		`SELECT COUNT(*) FROM seller_subscriptions WHERE user_id = $1 AND status = 'active'`, h.userID))
+	assert.Equal(t, 2, countRows(t, h.tdb,
+		`SELECT COUNT(*) FROM ledger_transactions WHERE reference_type = 'seller_subscription_payment'`))
+}

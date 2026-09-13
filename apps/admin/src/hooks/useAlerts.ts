@@ -36,6 +36,23 @@ interface UseAlertsResult {
 }
 
 export function useAlerts(params: UseAlertsParams = {}): UseAlertsResult {
+  // Depend on the individual filter values, not on the params object identity.
+  // Callers pass an inline object literal, which is a new object on every
+  // render; using it as the useCallback dependency made fetchAlerts a new
+  // function on every render, so the effect below refetched forever and the
+  // Alerts refresh button never returned to a terminal state.
+  const {
+    status,
+    severity,
+    alert_type,
+    entity_type,
+    entity_id,
+    date_from,
+    date_to,
+    page,
+    page_size,
+  } = params
+
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -46,7 +63,17 @@ export function useAlerts(params: UseAlertsParams = {}): UseAlertsResult {
     setLoading(true)
     setError(null)
     try {
-      const response = await getAlerts(params)
+      const response = await getAlerts({
+        status,
+        severity,
+        alert_type,
+        entity_type,
+        entity_id,
+        date_from,
+        date_to,
+        page,
+        page_size,
+      })
       setAlerts(response.alerts ?? [])
       setCount(response._meta?.total ?? 0)
       setTotalPages(response._meta?.total_pages ?? 0)
@@ -56,7 +83,7 @@ export function useAlerts(params: UseAlertsParams = {}): UseAlertsResult {
     } finally {
       setLoading(false)
     }
-  }, [params])
+  }, [status, severity, alert_type, entity_type, entity_id, date_from, date_to, page, page_size])
 
   useEffect(() => {
     fetchAlerts()

@@ -122,7 +122,7 @@ class _CommerceSavedItemActionButtonState
       AppSnackBar.showError(
         context,
         previousSaved
-            ? 'Gagal menghapus dari shortlist'
+            ? 'Gagal menghapus dari disimpan'
             : 'Gagal menyimpan item',
       );
     } finally {

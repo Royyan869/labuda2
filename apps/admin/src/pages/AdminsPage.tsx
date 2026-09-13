@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table'
 import { useUsers } from '@/hooks/useUsers'
+import { PromoteAdminPanel } from '@/components/users/PromoteAdminPanel'
+import { hasCapability } from '@/lib/permissions'
+import { useAuth } from '@/hooks/useAuth'
 import { formatDate } from '@/lib/utils'
 
 const ADMIN_STATUSES: { value: 'active' | 'suspended' | 'banned' | ''; label: string }[] = [
@@ -18,6 +21,8 @@ const ADMIN_STATUSES: { value: 'active' | 'suspended' | 'banned' | ''; label: st
 export function AdminsPage() {
   const [statusFilter, setStatusFilter] = useState<'active' | 'suspended' | 'banned' | ''>('')
   const [searchQuery, setSearchQuery] = useState('')
+  const { capabilities } = useAuth()
+  const canAssignRoles = hasCapability(capabilities, 'governance.role.assign')
 
   const { users, loading, error, total, refetch } = useUsers(
     statusFilter || searchQuery
@@ -95,6 +100,10 @@ export function AdminsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Canonical admin recruitment: promote an existing user, then grant
+          capabilities on their admin page. Requires governance.role.assign. */}
+      {canAssignRoles && <PromoteAdminPanel onPromoted={refetch} />}
 
       {/* Filters */}
       <Card>

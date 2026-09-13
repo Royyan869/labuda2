@@ -3,6 +3,7 @@ package http
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -14,7 +15,10 @@ import (
 	"github.com/labuda/backend/internal/middleware"
 	"github.com/labuda/backend/internal/platform/admin/application"
 	"github.com/labuda/backend/internal/platform/admin/repository"
+	"github.com/labuda/backend/internal/platform/capability"
 	capabilityApp "github.com/labuda/backend/internal/platform/capability/application"
+	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
+	"github.com/labuda/backend/internal/platform/capability/invariant"
 	"github.com/labuda/backend/internal/platform/response"
 )
 
@@ -101,6 +105,12 @@ type UserSummary struct {
 	// Profile info (nullable)
 	Username   *string `json:"username,omitempty"`
 	IsVerified bool    `json:"is_verified"`
+
+	// FullAccess is DERIVED authority: admin membership AND active coverage of
+	// the entire canonical capability universe. It is never stored, never a
+	// role, and never a capability; it is computed from the canonical authority
+	// (capability.IsFullAccessAdmin) over the user's active capability set.
+	FullAccess bool `json:"full_access"`
 }
 
 // UserDetails represents a complete user with all information.
@@ -165,6 +175,13 @@ type AdminMeResponse struct {
 	Role         string   `json:"role"`
 	IsAdmin      bool     `json:"is_admin"`
 	Capabilities []string `json:"capabilities"`
+
+	// FullAccess is the DERIVED state: admin membership AND active coverage of
+	// the entire canonical capability universe. Not stored, not a role.
+	FullAccess bool `json:"full_access"`
+
+	// MissingCapabilities lists what stands between the actor and full access.
+	MissingCapabilities []string `json:"missing_capabilities"`
 }
 
 // GetAdminMe returns the current admin's identity from request context (zero extra DB calls).
@@ -194,13 +211,18 @@ func (h *AdminHandler) GetAdminMe(c *gin.Context) {
 		caps = []string{}
 	}
 
+	// Full access is DERIVED here from the same canonical authority the
+	// middleware uses: admin membership + active coverage of the whole canonical
+	// capability universe. It is never stored and never granted by a flag.
 	response.Success(c, AdminMeResponse{
-		ID:           actor.ID.String(),
-		Email:        email,
-		Username:     username,
-		Role:         actor.Role,
-		IsAdmin:      actor.IsAdmin(),
-		Capabilities: caps,
+		ID:                  actor.ID.String(),
+		Email:               email,
+		Username:            username,
+		Role:                actor.Role,
+		IsAdmin:             actor.IsAdmin(),
+		Capabilities:        caps,
+		FullAccess:          capability.IsFullAccessAdmin(actor.Role, caps),
+		MissingCapabilities: capability.MissingCapabilityStrings(caps),
 	})
 }
 
@@ -421,6 +443,12 @@ func (h *AdminHandler) SuspendUser(c *gin.Context) {
 	}
 
 	if err := h.service.SuspendUser(ctx, actorID, targetUserID, suspendReq); err != nil {
+		// Canonical invariant refusal: maps to the same conflict contract the
+		// capability revocation path uses for ErrLastFullAccessAdmin.
+		if errors.Is(err, invariant.ErrLastFullAccessAdmin) {
+			response.Conflict(c, "Cannot suspend the last full-access admin; grant full access to another admin first")
+			return
+		}
 		response.InternalServerError(c, "Failed to suspend user")
 		return
 	}
@@ -496,6 +524,12 @@ func (h *AdminHandler) BanUser(c *gin.Context) {
 		// Check if it's a BanSelfError
 		if _, isBanSelf := err.(*application.BanSelfError); isBanSelf {
 			response.BadRequest(c, "Cannot ban yourself")
+			return
+		}
+		// Canonical invariant refusal: maps to the same conflict contract the
+		// capability revocation path uses for ErrLastFullAccessAdmin.
+		if errors.Is(err, invariant.ErrLastFullAccessAdmin) {
+			response.Conflict(c, "Cannot ban the last full-access admin; grant full access to another admin first")
 			return
 		}
 		response.InternalServerError(c, "Failed to ban user")
@@ -780,10 +814,13 @@ func userSummaryFromRepo(u repository.UserSummary) UserSummary {
 		Username:      u.Username,
 		IsVerified:    u.IsVerified,
 		CoinBalance:   u.CoinBalance,
-		IsAdmin:       u.Role == "admin",
+		IsAdmin:       u.Role == capabilityEntity.AdminRole,
 		IsSuspended:   u.AccountStatus == "suspended",
-		CreatedAt:     toTime(u.CreatedAt),
-		UpdatedAt:     toTime(u.UpdatedAt),
+		// Full access is derived from the single canonical authority — the same
+		// predicate used by the admin-me surface and the middleware.
+		FullAccess: capability.IsFullAccessAdmin(u.Role, u.ActiveCapabilities),
+		CreatedAt:  toTime(u.CreatedAt),
+		UpdatedAt:  toTime(u.UpdatedAt),
 	}
 }
 
@@ -807,7 +844,7 @@ func userDetailsFromRepo(u repository.UserDetails, capabilities []string) UserDe
 		City:               u.City,
 		Province:           u.Province,
 		CoinBalance:        u.CoinBalance,
-		IsAdmin:            u.Role == "admin",
+		IsAdmin:            u.Role == capabilityEntity.AdminRole,
 		IsSeller:           u.HasSellerProfile,
 		IsSuspended:        u.AccountStatus == "suspended",
 		CreatedAt:          toTime(u.CreatedAt),

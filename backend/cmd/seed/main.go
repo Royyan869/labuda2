@@ -1,19 +1,23 @@
 package main
 
-// ⚠️ THIS SCRIPT BYPASSES BUSINESS LOGIC AND EVENT SYSTEM
-// ⚠️ IT DOES NOT TRIGGER OUTBOX, EVENTS, OR DOMAIN RULES
-// ⚠️ DO NOT USE FOR SYSTEM VALIDATION
+// DEV FIXTURE ONLY — NOT A PRODUCTION BOOTSTRAP.
+// This seeder populates local development data via direct SQL and bypasses
+// business logic, outbox, and audit invariants. Do NOT use as a production
+// admin bootstrap. Canonical production first-admin creation is:
+//
+//	go run ./cmd/bootstrap-admin --user-id <uuid>
+//	go run ./cmd/bootstrap-admin --email <email>
+//
+// See backend/cmd/bootstrap-admin for the only supported production path.
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/labuda/backend/internal/audit"
 	orderApp "github.com/labuda/backend/internal/commerce/order/application"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
@@ -24,6 +28,7 @@ import (
 	"github.com/labuda/backend/internal/identity/auth"
 	coinsApp "github.com/labuda/backend/internal/incentive/coins/application"
 	coinsRepo2 "github.com/labuda/backend/internal/incentive/coins/infrastructure/repository"
+	"github.com/labuda/backend/internal/platform/capability"
 	paymentSettlementRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
 	platformconfigApp "github.com/labuda/backend/internal/platform/config/application"
 	platformconfigRepo "github.com/labuda/backend/internal/platform/config/infrastructure/repository"
@@ -114,13 +119,6 @@ func main() {
 
 // initSeeder initializes the seeder with all required dependencies
 func initSeeder(db *database.DB, cfg *config.Config, log *zap.Logger) (*Seeder, error) {
-	ctx := context.Background()
-
-	// Ensure role column exists in users table
-	if err := ensureRoleColumn(ctx, db, log); err != nil {
-		log.Warn("Could not verify role column", zap.Error(err))
-	}
-
 	// Initialize auth components
 	adminAuditLogger := audit.NewAdminAuditLoggerDB(db.Pgx().Pool())
 	roleChecker := auth.NewRoleCheckerDB(db.Pgx(), adminAuditLogger)
@@ -212,40 +210,6 @@ func initSeeder(db *database.DB, cfg *config.Config, log *zap.Logger) (*Seeder, 
 	}, nil
 }
 
-// ensureRoleColumn ensures the role column exists in the users table
-func ensureRoleColumn(ctx context.Context, db *database.DB, log *zap.Logger) error {
-	// Check if role column exists
-	var columnName string
-	err := db.Pgx().Pool().QueryRow(ctx, `
-		SELECT column_name
-		FROM information_schema.columns
-		WHERE table_name = 'users' AND column_name = 'role'
-	`).Scan(&columnName)
-
-	if err == nil {
-		return nil // Column exists
-	}
-
-	if !errors.Is(err, pgx.ErrNoRows) {
-		return fmt.Errorf("failed to check for role column: %w", err)
-	}
-
-	// Column doesn't exist, add it
-	log.Info("Adding role column to users table")
-	_, err = db.Pgx().Pool().Exec(ctx, `
-		ALTER TABLE users
-		ADD COLUMN role TEXT NOT NULL DEFAULT 'user',
-		ADD CONSTRAINT users_role_check
-		CHECK (role IN ('user', 'admin'))
-	`)
-	if err != nil {
-		return fmt.Errorf("failed to add role column: %w", err)
-	}
-
-	log.Info("Role column added successfully")
-	return nil
-}
-
 // Run executes the seeding process
 func (s *Seeder) Run(cleanMode bool) error {
 	ctx := context.Background()
@@ -331,17 +295,16 @@ func (s *Seeder) cleanTables(ctx context.Context) error {
 	return nil
 }
 
-// seedUsers creates 3 test users with different roles
-// IMPORTANT: Uses fixed UUIDs to match middleware local auth bypass
-// These UUIDs MUST match the constants in internal/middleware/auth.go
+// seedUsers creates 3 test users with canonical dev fixture identities.
+// UUIDs are deliberately away from SystemCallerID (000...0001) to avoid privilege collision.
+// There is no role='seller'; seller authority is represented by seller_profiles.
 func (s *Seeder) seedUsers(ctx context.Context) (buyerID, sellerID, adminID uuid.UUID, err error) {
-	s.log.Info("Seeding users with FIXED UUIDs for local auth bypass")
+	s.log.Info("Seeding users with FIXED UUIDs (dev fixture only)")
 
-	// FIXED UUIDs - MUST match middleware MockBuyerUID, MockSellerUID, MockAdminUID
-	// See: internal/middleware/auth.go
-	buyerID, _ = uuid.Parse("00000000-0000-0000-0000-000000000001")
-	sellerID, _ = uuid.Parse("00000000-0000-0000-0000-000000000002")
-	adminID, _ = uuid.Parse("00000000-0000-0000-0000-000000000003")
+	// FIXED UUIDs — dev-only, never SystemCallerID (audit.SystemCallerID = 000...0001).
+	buyerID, _ = uuid.Parse("00000000-0000-0000-0000-000000000011")
+	sellerID, _ = uuid.Parse("00000000-0000-0000-0000-000000000012")
+	adminID, _ = uuid.Parse("00000000-0000-0000-0000-000000000013")
 
 	users := []struct {
 		id    uuid.UUID
@@ -349,7 +312,7 @@ func (s *Seeder) seedUsers(ctx context.Context) (buyerID, sellerID, adminID uuid
 		role  string
 	}{
 		{buyerID, "buyer@test.local", "user"},
-		{sellerID, "seller@test.local", "seller"},
+		{sellerID, "seller@test.local", "user"},
 		{adminID, "admin@test.local", "admin"},
 	}
 
@@ -375,23 +338,34 @@ func (s *Seeder) seedUsers(ctx context.Context) (buyerID, sellerID, adminID uuid
 		s.log.Debug("Created user", zap.String("email", u.email), zap.String("role", u.role))
 	}
 
-	// Seed admin capabilities: minimum set for admin UI access.
-	// governance.capability.assign: lets admin grant further caps via admin panel.
-	// governance.dashboard.view: lets admin reach the admin dashboard route.
-	adminCaps := []string{
-		"governance.capability.assign",
-		"governance.dashboard.view",
+	// Create seller profile for seller@test.local (canonical seller authority is profile, not role).
+	if _, err := s.db.Pgx().Pool().Exec(ctx, `
+		INSERT INTO seller_profiles (id, user_id, store_name, tier, status, created_at, updated_at)
+		VALUES ($1, $2, $3, 'basic', 'active', NOW(), NOW())
+		ON CONFLICT (user_id) DO NOTHING
+	`, uuid.New(), sellerID, "Seller Test Store"); err != nil {
+		return uuid.Nil, uuid.Nil, uuid.Nil, fmt.Errorf("failed to insert seller profile for seller: %w", err)
 	}
-	for _, cap := range adminCaps {
+
+	// Seed admin capabilities: the ENTIRE canonical universe, so the fixture
+	// admin has canonical derived full access (admin role + coverage of
+	// capability.AllCapabilities()). Derived — never a hand-maintained list, so
+	// a capability added later is picked up automatically.
+	//
+	// ON CONFLICT DO NOTHING now actually fires: migration 000086 adds the
+	// partial unique index on (user_id, capability) for active unscoped grants,
+	// which the old UNIQUE (user_id, capability, resource_id) could not enforce
+	// while resource_id was NULL.
+	for _, capStr := range capability.AllCapabilityStrings() {
 		_, err := s.db.Pgx().Pool().Exec(ctx, `
 			INSERT INTO user_capabilities (id, user_id, capability, granted_by, granted_at)
 			VALUES ($1, $2, $3, NULL, NOW())
 			ON CONFLICT DO NOTHING
-		`, uuid.New(), adminID, cap)
+		`, uuid.New(), adminID, capStr)
 		if err != nil {
-			return uuid.Nil, uuid.Nil, uuid.Nil, fmt.Errorf("failed to seed capability %s for admin: %w", cap, err)
+			return uuid.Nil, uuid.Nil, uuid.Nil, fmt.Errorf("failed to seed capability %s for admin: %w", capStr, err)
 		}
-		s.log.Debug("Seeded admin capability", zap.String("capability", cap))
+		s.log.Debug("Seeded admin capability", zap.String("capability", capStr))
 	}
 
 	return buyerID, sellerID, adminID, nil
@@ -568,11 +542,11 @@ func (s *Seeder) seedFollows(ctx context.Context, buyerID, sellerID uuid.UUID) e
 // printSummary prints the seeding summary
 func printSummary() {
 	fmt.Println("\n" + strings.Repeat("=", 50))
-	fmt.Println("Seeding complete:")
+	fmt.Println("DEV SEED complete (not production bootstrap):")
 	fmt.Println("  Users: 3")
-	fmt.Println("    - buyer@test.local (user)")
-	fmt.Println("    - seller@test.local (seller)")
-	fmt.Println("    - admin@test.local (admin)")
+	fmt.Println("    - buyer@test.local (user, 000...0011)")
+	fmt.Println("    - seller@test.local (user + seller_profiles, 000...0012)")
+	fmt.Println("    - admin@test.local (admin, 000...0013, every canonical capability -> full access)")
 	fmt.Println("  Contents: 25")
 	fmt.Println("    - 20 normal (active, visible)")
 	fmt.Println("    - 3 hidden (is_hidden = true)")

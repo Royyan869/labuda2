@@ -7,9 +7,15 @@ import 'package:labuda/core/config/seller_upgrade_config_entity.dart';
 import 'package:labuda/core/config/seller_upgrade_config_provider.dart'
     as config;
 import 'package:labuda/core/core.dart';
+import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment.dart'
+    show PaymentMethodOption;
+import 'package:labuda/domains/finance/transaction/payment/presentation/widgets/payment_method_picker_sheet.dart';
 import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
+import 'package:labuda/domains/user/preference/seller/data/dto/seller_dto.dart';
 import 'package:labuda/domains/user/preference/seller/data/seller_providers.dart'
-    show sellerRemoteDatasourceProvider, sellerRepositoryProvider,
+    show
+        sellerRemoteDatasourceProvider,
+        sellerRepositoryProvider,
         storePhotoUploadServiceProvider;
 import 'package:labuda/domains/user/preference/seller/domain/entities/seller_subscription.dart';
 import 'package:labuda/domains/user/preference/seller/domain/repositories/seller_repository.dart';
@@ -92,6 +98,14 @@ class _SellerUpgradeWizardScreenState
   bool _agreeToTerms = false;
   bool _isSubmitting = false;
 
+  // PMF-02: the seller must explicitly choose a payment method, and the backend
+  // is the sole fee authority. The methods payload carries the canonical
+  // principal A plus, per method, the fee F and the gross A + F.
+  SellerSubscriptionPaymentMethodsDto? _subscriptionPaymentMethods;
+  SellerSubscriptionPaymentMethodDto? _selectedSubscriptionMethod;
+  bool _isLoadingSubscriptionMethods = false;
+  String? _subscriptionMethodsError;
+
   ProviderSubscription<AuthState>? _authSubscription;
   ProviderSubscription<AsyncValue<ProfileEntity?>>? _profileSubscription;
 
@@ -110,7 +124,16 @@ class _SellerUpgradeWizardScreenState
       _phoneController,
       _farmNameController,
     ]) {
-      controller.addListener(_markDirty); } WidgetsBinding.instance.addPostFrameCallback((_) { final auth = ref.read(authControllerProvider); final user = ref.read(authenticatedUserProvider); if (_wizardModeFrom(auth, user) == _SellerUpgradeWizardMode.renewal) { _goToStep(4); } }); }
+      controller.addListener(_markDirty);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = ref.read(authControllerProvider);
+      final user = ref.read(authenticatedUserProvider);
+      if (_wizardModeFrom(auth, user) == _SellerUpgradeWizardMode.renewal) {
+        _goToStep(4);
+      }
+    });
+  }
 
   void _markDirty() {
     if (mounted) setState(() {});
@@ -183,7 +206,16 @@ class _SellerUpgradeWizardScreenState
       _isSubmitting = false;
     });
 
-    if (_pageController.hasClients) { _pageController.jumpToPage(0); } WidgetsBinding.instance.addPostFrameCallback((_) { final auth = ref.read(authControllerProvider); final user = ref.read(authenticatedUserProvider); if (_wizardModeFrom(auth, user) == _SellerUpgradeWizardMode.renewal) { _goToStep(4); } });
+    if (_pageController.hasClients) {
+      _pageController.jumpToPage(0);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = ref.read(authControllerProvider);
+      final user = ref.read(authenticatedUserProvider);
+      if (_wizardModeFrom(auth, user) == _SellerUpgradeWizardMode.renewal) {
+        _goToStep(4);
+      }
+    });
   }
 
   void _bindProfileListener(String userId) {
@@ -820,7 +852,10 @@ class _SellerUpgradeWizardScreenState
                       1 => _isAccountStepValid,
                       2 => _isStoreStepValid,
                       3 => _agreeToTerms,
-                      4 => _canSubmit && canAdvanceFromPackage,
+                      4 =>
+                        _canSubmit &&
+                            canAdvanceFromPackage &&
+                            _selectedSubscriptionMethod != null,
                       _ => false,
                     },
                     canSubmit: _canSubmit && canAdvanceFromPackage,
@@ -1587,6 +1622,17 @@ class _SellerUpgradeWizardScreenState
     SellerUpgradeConfigEntity upgradeConfig,
     bool isDark,
   ) {
+    // PMF-02: once the canonical methods payload is loaded it is the money
+    // authority for the whole summary — principal A, fee F per method, and the
+    // gross A + F. The config disclosure value is only a placeholder while the
+    // methods are still loading.
+    final methods = _subscriptionPaymentMethods;
+    final principalAmount =
+        (methods?.principalAmount ?? upgradeConfig.yearlyFee.round())
+            .toDouble();
+    final selectedMethod = _selectedSubscriptionMethod;
+    final feeAmount = (selectedMethod?.serviceFeeAmount ?? 0).toDouble();
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1610,15 +1656,19 @@ class _SellerUpgradeWizardScreenState
             ),
           ),
           const SizedBox(height: 16),
-          _buildPaymentRow(
-            'Yearly subscription',
-            upgradeConfig.yearlyFee,
-            isDark,
-          ),
+          _buildPaymentRow('Yearly subscription', principalAmount, isDark),
+          const SizedBox(height: 12),
+          _buildSubscriptionMethodSelector(isDark),
+          if (selectedMethod != null) ...[
+            const SizedBox(height: 12),
+            _buildPaymentRow('Payment method fee', feeAmount, isDark),
+          ],
           const Divider(height: 24),
-          _buildPaymentRow(
+          _buildPaymentRowText(
             'Total',
-            upgradeConfig.yearlyFee,
+            selectedMethod == null
+                ? 'Belum dipilih'
+                : 'Rp ${AppFormatters.formatCurrency(selectedMethod.grossAmount.toDouble())}',
             isDark,
             isBold: true,
           ),
@@ -1656,9 +1706,84 @@ class _SellerUpgradeWizardScreenState
     );
   }
 
-  Widget _buildPaymentRow(
+  /// PMF-02: the seller must explicitly choose a payment method. The picker
+  /// renders only backend-calculated fee and gross values (see
+  /// GET /seller/subscription/payment-methods); this widget never computes them.
+  Widget _buildSubscriptionMethodSelector(bool isDark) {
+    final methods = _subscriptionPaymentMethods?.methods ?? const [];
+    final selected = _selectedSubscriptionMethod;
+    final isLoading = _isLoadingSubscriptionMethods;
+    final error = _subscriptionMethodsError;
+
+    final label = isLoading
+        ? 'Memuat metode pembayaran...'
+        : methods.isEmpty
+        ? (error ?? 'Tidak ada metode pembayaran tersedia')
+        : (selected?.displayName ?? 'Pilih metode pembayaran');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Payment method',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+          ),
+        ),
+        const SizedBox(height: 6),
+        InkWell(
+          onTap: isLoading
+              ? null
+              : methods.isEmpty
+              ? () => unawaited(_ensureSubscriptionPaymentMethodsLoaded())
+              : () => unawaited(_selectSubscriptionPaymentMethod()),
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isDark
+                    ? AppColors.darkGray600
+                    : AppColors.neutralGray300,
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: methods.isEmpty && !isLoading
+                          ? AppColors.statusError
+                          : (isDark
+                                ? AppColors.neutralGray200
+                                : AppColors.neutralGray900),
+                    ),
+                  ),
+                ),
+                if (!isLoading)
+                  Icon(
+                    Icons.chevron_right,
+                    size: 20,
+                    color: isDark
+                        ? AppColors.neutralGray400
+                        : AppColors.neutralGray600,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPaymentRowText(
     String label,
-    double amount,
+    String amountText,
     bool isDark, {
     bool isBold = false,
   }) {
@@ -1680,7 +1805,7 @@ class _SellerUpgradeWizardScreenState
         ),
         const SizedBox(width: 8),
         Text(
-          'Rp ${AppFormatters.formatCurrency(amount)}',
+          amountText,
           style: TextStyle(
             fontSize: isBold ? 16 : 14,
             fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
@@ -1688,6 +1813,20 @@ class _SellerUpgradeWizardScreenState
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPaymentRow(
+    String label,
+    double amount,
+    bool isDark, {
+    bool isBold = false,
+  }) {
+    return _buildPaymentRowText(
+      label,
+      'Rp ${AppFormatters.formatCurrency(amount)}',
+      isDark,
+      isBold: isBold,
     );
   }
 
@@ -1759,6 +1898,12 @@ class _SellerUpgradeWizardScreenState
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
+
+    if (step == _totalSteps - 1) {
+      // PMF-02: the payment step cannot render without the canonical methods
+      // (each carries the backend fee and gross), so load them on entry.
+      unawaited(_ensureSubscriptionPaymentMethodsLoaded());
+    }
   }
 
   Future<bool> _saveAccountPrerequisites() async {
@@ -1909,6 +2054,13 @@ class _SellerUpgradeWizardScreenState
       return;
     }
 
+    // PMF-02: every payment flow carries a payment-method fee, so an explicit
+    // method choice is a prerequisite, not a defaulted detail.
+    if (_selectedSubscriptionMethod == null) {
+      AppSnackBar.showError(context, 'Please select a payment method');
+      return;
+    }
+
     final authState = ref.read(authControllerProvider);
     final authenticatedUser = ref.read(authenticatedUserProvider);
     final wizardMode = _wizardModeFrom(authState, authenticatedUser);
@@ -1998,9 +2150,28 @@ class _SellerUpgradeWizardScreenState
         return;
       }
 
+      // PMF-02: the selected method code is the only payment input the client
+      // sends; the backend resolves the method, validates it and calculates the
+      // fee it will snapshot. A pending payment already exists → the backend
+      // reuses its immutable snapshot (Owner decision) rather than superseding it.
+      final selectedMethod = _selectedSubscriptionMethod;
+      if (selectedMethod == null) {
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        if (!mounted) return;
+        AppSnackBar.showError(
+          context,
+          'Pilih metode pembayaran terlebih dahulu',
+        );
+        return;
+      }
+
       final paymentData = await ref
           .read(sellerRemoteDatasourceProvider)
-          .initiateSubscriptionPayment();
+          .initiateSubscriptionPayment(
+            paymentMethodCode: selectedMethod.methodCode,
+          );
 
       if (mounted && Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
@@ -2041,6 +2212,95 @@ class _SellerUpgradeWizardScreenState
   void _showError(String message) {
     if (!mounted) return;
     AppSnackBar.showError(context, message);
+  }
+
+  /// PMF-02: loads the canonical enabled subscription payment methods for the
+  /// payment step. Each option carries the backend-calculated fee F and the
+  /// resulting gross A + F — this client never computes either value.
+  ///
+  /// Idempotent: safe to call on every entry to the payment step, and used as
+  /// the retry path when the first load failed.
+  Future<void> _ensureSubscriptionPaymentMethodsLoaded() async {
+    // Called fire-and-forget from _goToStep, which may resolve after the wizard
+    // has been torn down (e.g. the principal switched mid-flow).
+    if (!mounted) return;
+    if (_isLoadingSubscriptionMethods || _subscriptionPaymentMethods != null) {
+      return;
+    }
+
+    setState(() {
+      _isLoadingSubscriptionMethods = true;
+      _subscriptionMethodsError = null;
+    });
+
+    try {
+      final methods = await ref
+          .read(sellerRemoteDatasourceProvider)
+          .getSubscriptionPaymentMethods();
+      if (!mounted) return;
+
+      // Drop a selection whose method is no longer enabled at the backend.
+      final current = _selectedSubscriptionMethod;
+      final stillAvailable =
+          current != null &&
+          methods.methods.any((m) => m.methodCode == current.methodCode);
+
+      setState(() {
+        _subscriptionPaymentMethods = methods;
+        _selectedSubscriptionMethod = stillAvailable ? current : null;
+        _isLoadingSubscriptionMethods = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingSubscriptionMethods = false;
+        _subscriptionMethodsError = e.code == 'NO_ACTIVE_CONFIG'
+            ? 'Konfigurasi langganan belum tersedia.'
+            : 'Gagal memuat metode pembayaran. Coba lagi.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingSubscriptionMethods = false;
+        _subscriptionMethodsError =
+            'Gagal memuat metode pembayaran. Coba lagi.';
+      });
+    }
+  }
+
+  /// Opens the canonical payment-method picker and records the seller's
+  /// explicit choice. The picker renders backend-calculated fee and total only.
+  Future<void> _selectSubscriptionPaymentMethod() async {
+    final available = _subscriptionPaymentMethods?.methods ?? const [];
+    if (available.isEmpty) return;
+
+    final options = available
+        .map(
+          (m) => PaymentMethodOption(
+            methodCode: m.methodCode,
+            displayName: m.displayName,
+            // The canonical option entity predates PMF-02 and names these
+            // fields for the buyer checkout flow. For a subscription payment
+            // they carry the seller subscription fee F and gross A + F exactly
+            // as the backend calculated them.
+            buyerPaymentFeeAmount: m.serviceFeeAmount,
+            totalPayableAmount: m.grossAmount,
+          ),
+        )
+        .toList();
+
+    final selectedCode = await PaymentMethodPickerSheet.show(
+      context,
+      methods: options,
+    );
+    if (!mounted || selectedCode == null) return;
+
+    for (final method in available) {
+      if (method.methodCode == selectedCode) {
+        setState(() => _selectedSubscriptionMethod = method);
+        return;
+      }
+    }
   }
 
   Future<void> _showPaymentPendingDialog({
@@ -2278,7 +2538,8 @@ class _PaymentPendingDialogState extends ConsumerState<_PaymentPendingDialog> {
           return;
         }
 
-        final baselineSubscription = widget.operationContext.baselineSubscription;
+        final baselineSubscription =
+            widget.operationContext.baselineSubscription;
         if (baselineSubscription == null) {
           return;
         }
@@ -2350,5 +2611,3 @@ class _PaymentPendingDialogState extends ConsumerState<_PaymentPendingDialog> {
     );
   }
 }
-
-

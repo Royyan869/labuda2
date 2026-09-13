@@ -48,9 +48,9 @@ class AuctionRepositoryImpl implements AuctionRepository {
     required List<String> mediaUrls,
     required List<AuctionMediaType> mediaTypes,
     required KoiDetails koiDetails,
-    required double openingBid,
-    required double bidIncrement,
-    double? buyNowPrice,
+    required int openingBid,
+    required int bidIncrement,
+    int? buyNowPrice,
     required String startMode,
     DateTime? scheduledStartAt,
     required int durationHours,
@@ -241,7 +241,7 @@ class AuctionRepositoryImpl implements AuctionRepository {
   Future<RepositoryResult<AuctionBid>> placeBid({
     required String auctionId,
     required String bidderId,
-    required double amount,
+    required int amount,
   }) async {
     try {
       final dto = PlaceBidDto(amount: amount);

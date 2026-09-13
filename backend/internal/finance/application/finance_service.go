@@ -83,7 +83,7 @@ func (s *FinanceService) SetLogger(logger *zap.Logger) {
 	if logger != nil {
 		s.logger = logger
 	}
-}
+}
 
 // ============================================================================
 // SELLER EARNINGS QUERY
@@ -189,7 +189,8 @@ func (s *FinanceService) RecordOrderRelease(
 //
 // Called by: SubscriptionPaymentService.ProcessSuccessfulPayment()
 //
-// Full subscription fee goes to platform revenue immediately.
+// Subscription principal (A) goes to platform revenue immediately.
+// Payment-method fee (F) is recorded separately via RecordSubscriptionPaymentFeeRevenue.
 // These are upfront payments with no escrow holding.
 //
 // Subscription payments do NOT flow through RecordGatewayPaymentSettlement.
@@ -198,12 +199,21 @@ func (s *FinanceService) RecordOrderRelease(
 // Ledger entries (Î£ entries = 0 invariant):
 // - Debit:  PLATFORM_REVENUE (+amount) â€” platform keeps full amount
 // - Credit: BANK_SETTLEMENT  (-amount) â€” reserve drains
+//
+// IDEMPOTENCY (PMF02-A1): idempotency_key = "seller_subscription_payment_<payment_id>".
+//
+// The immutable payment snapshot is the canonical settlement operation identity,
+// so one settled subscription payment books exactly one principal revenue
+// transaction, regardless of which activation entry point delivers it (webhook,
+// webhook replay repair, seller sync, reconciliation worker, admin recovery).
+// Caller-supplied event identifiers are deliberately NOT key inputs: synthetic
+// per-seller or per-admin recovery identifiers would otherwise collide across
+// distinct payments and silently suppress a later payment's principal revenue.
 func (s *FinanceService) RecordSubscriptionRevenue(
 	ctx context.Context,
 	tx db.Tx,
 	paymentID uuid.UUID,
 	amount int64,
-	providerEventID string,
 ) error {
 	// Get system account IDs
 	platformRevenueID, err := s.ledgerRepo.GetSystemAccountID(ctx, tx, ledgerepo.AccountPlatformRevenue)
@@ -217,7 +227,7 @@ func (s *FinanceService) RecordSubscriptionRevenue(
 	}
 
 	// Build idempotency key
-	idempotencyKey := fmt.Sprintf("seller_subscription_payment_%s", providerEventID)
+	idempotencyKey := fmt.Sprintf("seller_subscription_payment_%s", paymentID.String())
 
 	// Build ledger entries
 	// DR PLATFORM_REVENUE (positive = debit, revenue increases)
@@ -231,6 +241,71 @@ func (s *FinanceService) RecordSubscriptionRevenue(
 		return fmt.Errorf("create subscription revenue transaction: %w", err)
 	}
 
+	return nil
+}
+
+// RecordSubscriptionPaymentFeeRevenue realizes the payment-method fee
+// for a seller subscription payment as platform revenue (PMF-02).
+//
+// Context: Subscription payments do NOT flow through GATEWAY_CLEARING.
+// The full gateway gross goes to BANK_SETTLEMENT. RecordSubscriptionRevenue
+// credits PLATFORM_REVENUE with the principal (A) only. This method carves
+// the fee (F) from BANK_SETTLEMENT into PLATFORM_REVENUE.
+//
+// Ledger movements (Σ entries = 0 invariant):
+//   - BANK_SETTLEMENT   balance -= fee (entry amount = -fee, credit)
+//   - PLATFORM_REVENUE  balance += fee (entry amount = +fee, debit)
+//
+// A zero fee is a no-op, not an error.
+//
+// IDEMPOTENCY: idempotency_key = "subscription_fee_revenue_<payment_id>". Safe to
+// call on webhook replay — ledgerRepo.CreateTransaction no-ops on duplicate.
+func (s *FinanceService) RecordSubscriptionPaymentFeeRevenue(
+	ctx context.Context,
+	tx db.Tx,
+	paymentID uuid.UUID,
+	subID uuid.UUID,
+	buyerPaymentFee int64,
+) error {
+	if paymentID == uuid.Nil {
+		return fmt.Errorf("RecordSubscriptionPaymentFeeRevenue: payment_id required")
+	}
+	if subID == uuid.Nil {
+		return fmt.Errorf("RecordSubscriptionPaymentFeeRevenue: subscription_id required")
+	}
+	if buyerPaymentFee < 0 {
+		return fmt.Errorf("RecordSubscriptionPaymentFeeRevenue: fee must not be negative (got %d)", buyerPaymentFee)
+	}
+	if buyerPaymentFee == 0 {
+		return nil
+	}
+
+	bankSettlementID, err := s.ledgerRepo.GetSystemAccountID(ctx, tx, finance.AccountBankSettlement)
+	if err != nil {
+		return fmt.Errorf("get bank settlement account: %w", err)
+	}
+	platformRevenueID, err := s.ledgerRepo.GetSystemAccountID(ctx, tx, finance.AccountPlatformRevenue)
+	if err != nil {
+		return fmt.Errorf("get platform revenue account: %w", err)
+	}
+
+	idempotencyKey := fmt.Sprintf("subscription_fee_revenue_%s", paymentID.String())
+
+	entries := []ledgerepo.Entry{
+		{AccountID: bankSettlementID, Amount: money.New(-buyerPaymentFee)}, // CR -fee
+		{AccountID: platformRevenueID, Amount: money.New(buyerPaymentFee)}, // DR +fee
+	}
+
+	if err := s.ledgerRepo.CreateTransaction(ctx, tx, idempotencyKey, "subscription_fee_revenue", paymentID, &subID, &paymentID, entries); err != nil {
+		return fmt.Errorf("record subscription fee revenue ledger: %w", err)
+	}
+
+	s.logger.Info("finance_subscription_fee_revenue_recorded",
+		zap.String("payment_id", paymentID.String()),
+		zap.String("subscription_id", subID.String()),
+		zap.Int64("fee", buyerPaymentFee),
+		zap.String("idempotency_key", idempotencyKey),
+	)
 	return nil
 }
 
@@ -416,6 +491,77 @@ func (s *FinanceService) RecordBuyerPaymentFeeRevenue(
 	s.logger.Info("finance_buyer_payment_fee_revenue_recorded",
 		zap.String("payment_id", paymentID.String()),
 		zap.String("order_id", orderID.String()),
+		zap.Int64("buyer_payment_fee", buyerPaymentFee),
+		zap.String("idempotency_key", idempotencyKey),
+	)
+	return nil
+}
+
+// RecordBillingPaymentFeeRevenue realizes the buyer payment method fee
+// for a billing (Promote Balance top-up) payment as platform revenue.
+//
+// Context: Unlike order payments, billing payments do NOT flow through
+// GATEWAY_CLEARING. The full gateway gross goes to BANK_SETTLEMENT, and
+// RecordPromoteBalanceFunding credits PROMOTE_BALANCE with the principal
+// (A) only. This method carves the fee (F) from BANK_SETTLEMENT into
+// PLATFORM_REVENUE.
+//
+// Ledger movements (Σ entries = 0 invariant):
+//   - BANK_SETTLEMENT   balance -= buyerPaymentFee (entry amount = -fee, credit)
+//   - PLATFORM_REVENUE  balance += buyerPaymentFee (entry amount = +fee, debit)
+//
+// A zero fee is a no-op, not an error.
+//
+// IDEMPOTENCY: idempotency_key = "billing_fee_revenue_<payment_id>". Safe to
+// call on webhook replay — ledgerRepo.CreateTransaction no-ops on duplicate.
+//
+// CALLER: BillingService.processPromoteBalanceTopUp, after calling
+// RecordPromoteBalanceFunding, in the same tx as MarkPaid.
+func (s *FinanceService) RecordBillingPaymentFeeRevenue(
+	ctx context.Context,
+	tx db.Tx,
+	paymentID uuid.UUID,
+	billingID uuid.UUID,
+	buyerPaymentFee int64,
+) error {
+	if paymentID == uuid.Nil {
+		return fmt.Errorf("RecordBillingPaymentFeeRevenue: payment_id required")
+	}
+	if billingID == uuid.Nil {
+		return fmt.Errorf("RecordBillingPaymentFeeRevenue: billing_id required")
+	}
+	if buyerPaymentFee < 0 {
+		return fmt.Errorf("RecordBillingPaymentFeeRevenue: buyer payment fee must not be negative (got %d)", buyerPaymentFee)
+	}
+	if buyerPaymentFee == 0 {
+		return nil
+	}
+
+	bankSettlementID, err := s.ledgerRepo.GetSystemAccountID(ctx, tx, finance.AccountBankSettlement)
+	if err != nil {
+		return fmt.Errorf("get bank settlement account: %w", err)
+	}
+	platformRevenueID, err := s.ledgerRepo.GetSystemAccountID(ctx, tx, finance.AccountPlatformRevenue)
+	if err != nil {
+		return fmt.Errorf("get platform revenue account: %w", err)
+	}
+
+	idempotencyKey := fmt.Sprintf("billing_fee_revenue_%s", paymentID.String())
+
+	entries := []ledgerepo.Entry{
+		{AccountID: bankSettlementID, Amount: money.New(-buyerPaymentFee)}, // CR -fee
+		{AccountID: platformRevenueID, Amount: money.New(buyerPaymentFee)}, // DR +fee
+	}
+
+	if err := s.ledgerRepo.CreateTransaction(
+		ctx, tx, idempotencyKey, "billing_fee_revenue", paymentID, &billingID, &paymentID, entries,
+	); err != nil {
+		return fmt.Errorf("record billing payment fee revenue ledger: %w", err)
+	}
+
+	s.logger.Info("finance_billing_payment_fee_revenue_recorded",
+		zap.String("payment_id", paymentID.String()),
+		zap.String("billing_id", billingID.String()),
 		zap.Int64("buyer_payment_fee", buyerPaymentFee),
 		zap.String("idempotency_key", idempotencyKey),
 	)

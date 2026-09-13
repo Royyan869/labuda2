@@ -23,12 +23,9 @@ package evaluator
 //     doctrine declared in feed_enforce.go §41-43 ("hydration outage must
 //     not blank Home"). This is the documented inversion of
 //     /search/content's fail-closed-on-input-invalid.
-//   - Mode is a passive label. The adapter NEVER conditionally changes its
-//     mapping based on mode; mode is forwarded so callers can emit
-//     feed_evaluator_enforce_mode_total / would_enforce_decision_total
-//     telemetry consistently. The handler reads Include / LifecycleOverride
-//     and applies them to the response in enforce mode; shadow mode
-//     observes only.
+//   - Enforcement is unconditional. The mapping below IS the canonical
+//     business answer; there is no shadow/enforce branch. The handler
+//     reads Include / LifecycleOverride and applies them to the response.
 
 // FeedLifecycleActive / FeedLifecycleUnavailable / FeedLifecycleRemoved
 // are the canonical Public Lifecycle State strings the adapter emits when
@@ -62,20 +59,15 @@ const (
 // EvaluateFeedItem. It carries no pointers into any DB row or overlay
 // struct; it is safe to log fields directly into bounded metrics labels.
 type FeedDecision struct {
-	// Include reports whether the row should appear in the response when
-	// the route is operating in FeedEvaluatorModeEnforce. In
-	// FeedEvaluatorModeShadow the caller MUST IGNORE this for response
-	// composition (legacy SQL remains authority) but SHOULD emit
-	// would-enforce telemetry from it.
+	// Include reports whether the row should appear in the enforced
+	// response. The handler drops rows with Include=false and applies
+	// LifecycleOverride to the surviving rows.
 	Include bool
 
 	// LifecycleOverride, when non-nil, is the coarsened public lifecycle
 	// string the card should adopt instead of the lifecycle the surface
 	// would normally emit. Vocabulary: {active, unavailable, removed}.
 	// Nil means "do not override."
-	//
-	// In FeedEvaluatorModeShadow the override is observation only
-	// (telemetry); the actual response card is unchanged.
 	LifecycleOverride *string
 
 	// Reason is the bounded telemetry-safe label that explains why the
@@ -103,13 +95,10 @@ type FeedDecision struct {
 //	   per feed_enforce.go §41-43. /search/content's fail-closed branch
 //	   on input_invalid is intentionally not replicated here.)
 //
-// The mode parameter is a passive label carried by the caller so its
-// telemetry can correlate with the request's operating mode. The adapter
-// itself NEVER conditionalizes its mapping on mode.
+// The mapping above is unconditional.
 func AdaptFeedDecision(
 	decision ShadowDecision,
 	_ UnknownReason, // accepted for forward-compat + parity with search/content; unused under fail-open
-	_ FeedEvaluatorMode, // passive label; see docstring
 ) FeedDecision {
 	switch decision {
 	case ShadowDecisionAllow:

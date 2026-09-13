@@ -44,7 +44,6 @@ Auction _auction({
     endTime: DateTime.parse('2026-01-02T00:00:00.000Z'),
     status: AuctionStatus.active,
     totalBidders: 0,
-    totalWatchers: 0,
     totalViews: 0,
     createdAt: DateTime.parse('2026-01-01T00:00:00.000Z'),
   );

@@ -9,6 +9,7 @@ import 'package:labuda/domains/user/preference/seller/data/repositories/seller_r
 class _RecordingApiClient implements ApiClient {
   String? lastGetPath;
   String? lastPostPath;
+  dynamic lastPostData;
   Map<String, dynamic>? lastGetQuery;
   int responseStatusCode = 200;
 
@@ -40,6 +41,7 @@ class _RecordingApiClient implements ApiClient {
     CancelToken? cancelToken,
   }) async {
     lastPostPath = path;
+    lastPostData = data;
     return Response<T>(
       requestOptions: RequestOptions(path: path),
       data: postPayload as T,
@@ -122,9 +124,42 @@ void main() {
           'expired_at': '2026-01-01T00:00:00Z',
         },
       };
-      await ds.initiateSubscriptionPayment();
+      await ds.initiateSubscriptionPayment(paymentMethodCode: 'bca_va');
       expect(client.lastPostPath, '/seller/subscription/initiate');
+      // PMF-02: the seller's explicit method choice is the only payment input
+      // the client sends — never a fee or a gross amount.
+      expect(client.lastPostData, {'payment_method_code': 'bca_va'});
     });
+
+    test(
+      'subscription payment methods use the canonical disclosure route',
+      () async {
+        final client = _RecordingApiClient()
+          ..getPayload = {
+            'data': {
+              'principal_amount': 150000,
+              'currency': 'IDR',
+              'methods': [
+                {
+                  'method_code': 'bca_va',
+                  'display_name': 'BCA Virtual Account',
+                  'service_fee_amount': 3750,
+                  'gross_amount': 153750,
+                },
+              ],
+            },
+          };
+        final ds = SellerRemoteDatasource(apiClient: client);
+
+        final methods = await ds.getSubscriptionPaymentMethods();
+
+        expect(client.lastGetPath, '/seller/subscription/payment-methods');
+        expect(methods.principalAmount, 150000);
+        expect(methods.methods.single.methodCode, 'bca_va');
+        expect(methods.methods.single.serviceFeeAmount, 3750);
+        expect(methods.methods.single.grossAmount, 153750);
+      },
+    );
 
     test(
       'seller onboarding 400 becomes typed exception and blocks payment',

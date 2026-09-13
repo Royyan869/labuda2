@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
-    show avatarCacheServiceProvider;
-import 'package:labuda/domains/user/profile/data/services/avatar_cache_service.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/generated/app_localizations.dart';
 import 'package:labuda/features/home/presentation/widgets/main_drawer/main_drawer.dart';
+import 'package:labuda/shared/widgets/seller_identity_view.dart';
+import 'package:labuda/shared/widgets/hybrid_avatar.dart';
+import 'package:labuda/shared/widgets/seller_dual_avatar.dart';
+import 'package:labuda/domains/user/profile/presentation/providers/profile_stream_provider.dart';
+import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
 
 class _FakeAuthController extends AuthController {
   _FakeAuthController(this._state);
@@ -24,35 +25,14 @@ class _FakeAuthController extends AuthController {
   }
 }
 
-class _NoOpAvatarCacheService extends AvatarCacheService {
-  _NoOpAvatarCacheService() : super(datasource: _NoOpDatasource());
-
+class _NoopApiClient implements ApiClient {
   @override
-  Future<String?> getUserAvatarUrl(String userId) async => null;
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class _NoOpDatasource extends Fake implements UserApiDatasource {}
-
-class _NoOpPresenceRegistry extends PresenceSubscriptionRegistry {
+class _NoopLogger implements ILoggerService {
   @override
-  PresenceSubscriptionHandle acquire(Set<String> userIds) {
-    return PresenceSubscriptionHandle(() async {});
-  }
-
-  @override
-  Future<void> prepareForLogout() async {}
-
-  @override
-  PresenceState? lookup(String userId) => null;
-
-  @override
-  Map<String, PresenceState?> lookupMany(Iterable<String> userIds) => {};
-
-  @override
-  Future<void> publishSelfPresence({required bool isOnline}) async {}
-
-  @override
-  Future<void> setForeground(bool isForeground) async {}
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 const _userAId = '123e4567-e89b-12d3-a456-426614174010';
@@ -63,8 +43,7 @@ AuthUser _user({
   required String username,
   String? avatarUrl,
   bool hasSellerProfile = false,
-  String storeName = '',
-  String? storeImageUrl,
+  bool hasMarketAuthority = false,
 }) {
   return AuthUser(
     id: id,
@@ -75,23 +54,36 @@ AuthUser _user({
     avatarUrl: avatarUrl,
     isEmailVerified: true,
     hasSellerProfile: hasSellerProfile,
-    storeName: storeName,
-    storeImageUrl: storeImageUrl,
+    hasMarketAuthority: hasMarketAuthority,
     roles: const [UserRole.user],
     provider: AuthProvider.email,
   );
 }
 
-Widget _wrap(AuthController controller) {
+ProfileEntity _profileForSeller(String userId, String storeName, {String? storeImageUrl}) {
+  return ProfileEntity(
+    id: 'profile-$userId',
+    userId: userId,
+    joinedAt: DateTime(2025),
+    stats: const ProfileStats(followersCount: 0, followingCount: 0),
+    verification: const UserVerificationInfo(isPhoneVerified: false, isEmailVerified: true, isIdVerified: false, isFarmVerified: false, badges: []),
+    farmInfo: FarmInfo(farmName: storeName, farmPhotoUrl: storeImageUrl),
+  );
+}
+
+Widget _wrap(AuthController controller, {ProfileEntity? profileForA, ProfileEntity? profileForB}) {
   return ProviderScope(
     overrides: [
       authControllerProvider.overrideWith(() => controller),
-      avatarCacheServiceProvider.overrideWithValue(_NoOpAvatarCacheService()),
-      presenceSubscriptionRegistryProvider.overrideWithValue(
-        _NoOpPresenceRegistry(),
-      ),
-      userOnlineStatusProvider(_userAId).overrideWithValue(false),
-      userOnlineStatusProvider(_userBId).overrideWithValue(false),
+      apiClientProvider.overrideWithValue(_NoopApiClient()),
+      loggerServiceProvider.overrideWithValue(_NoopLogger()),
+      webSocketServiceProvider.overrideWithValue(WebSocketService(baseUrl: 'ws://localhost')),
+      userOnlineStatusProvider(_userAId).overrideWith((ref) => Stream.value(false)),
+      userOnlineStatusProvider(_userBId).overrideWith((ref) => Stream.value(false)),
+      if (profileForA != null) profileStreamProvider(_userAId).overrideWith((ref) => Stream.value(profileForA)),
+      if (profileForB != null) profileStreamProvider(_userBId).overrideWith((ref) => Stream.value(profileForB)),
+      if (profileForA == null) profileStreamProvider(_userAId).overrideWith((ref) => Stream.value(null)),
+      if (profileForB == null) profileStreamProvider(_userBId).overrideWith((ref) => Stream.value(null)),
     ],
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -115,7 +107,7 @@ Widget _wrap(AuthController controller) {
 
 void main() {
   group('MainDrawer B1 canonical avatar', () {
-    testWidgets('shared ProfileAvatar is used for personal avatar', (
+    testWidgets('shared HybridAvatar is used for personal avatar', (
       tester,
     ) async {
       final user = _user(id: _userAId, username: 'testuser');
@@ -126,9 +118,8 @@ void main() {
       await tester.pumpWidget(_wrap(controller));
       await tester.pump();
 
-      // Shared ProfileAvatar rendered — verify it's in the tree.
-      // ProfileAvatar wraps CachedNetworkImage or fallback initials.
-      expect(find.byType(ProfileAvatar), findsOneWidget);
+      // For non-seller, drawer shows HybridAvatar via SellerIdentityView
+      expect(find.byType(HybridAvatar), findsOneWidget);
     });
 
     testWidgets('no image + valid username renders initials', (tester) async {
@@ -140,15 +131,14 @@ void main() {
       await tester.pumpWidget(_wrap(controller));
       await tester.pump();
 
-      final avatar = tester.widget<ProfileAvatar>(find.byType(ProfileAvatar));
-
-      // The drawer must pass the canonical username through to the shared
-      // avatar primitive and avoid falling back to the generic person icon.
-      expect(avatar.username, 'john_doe');
+      final avatar = tester.widget<HybridAvatar>(find.byType(HybridAvatar));
+      expect(avatar.userId, _userAId);
+      // UserInitialsHelper.fromName('john_doe') single word → 'JO' (first 2 chars)
+      expect(avatar.initials, 'JO');
       expect(find.byIcon(Icons.person), findsNothing);
     });
 
-    testWidgets('numeric-only username renders person icon', (tester) async {
+    testWidgets('numeric-only username renders initials 12', (tester) async {
       final user = _user(id: _userAId, username: '12345');
       final controller = _FakeAuthController(
         AuthState.authenticated(user, emailVerified: true),
@@ -157,8 +147,9 @@ void main() {
       await tester.pumpWidget(_wrap(controller));
       await tester.pump();
 
-      // Numeric-only username has no safe initials → generic person icon.
-      expect(find.byIcon(Icons.person), findsOneWidget);
+      final avatar = tester.widget<HybridAvatar>(find.byType(HybridAvatar));
+      expect(avatar.initials, '12');
+      expect(find.text('12'), findsOneWidget);
     });
 
     testWidgets(
@@ -169,20 +160,19 @@ void main() {
           username: 'testuser',
           avatarUrl: 'https://example.com/avatar.png',
           hasSellerProfile: true,
-          storeName: 'Qiqi Store',
-          storeImageUrl: 'https://example.com/store.png',
+          hasMarketAuthority: true,
         );
         final controller = _FakeAuthController(
           AuthState.authenticated(user, emailVerified: true),
         );
 
-        await tester.pumpWidget(_wrap(controller));
+        await tester.pumpWidget(_wrap(controller, profileForA: _profileForSeller(_userAId, 'Qiqi Store', storeImageUrl: 'https://example.com/store.png')));
         await tester.pump();
 
         expect(find.byType(SellerIdentityView), findsOneWidget);
         expect(find.text('Qiqi Store'), findsOneWidget);
         expect(find.text('@testuser'), findsOneWidget);
-        expect(find.byType(ProfileAvatar), findsOneWidget);
+        expect(find.byType(SellerDualAvatar), findsOneWidget);
       },
     );
 
@@ -194,13 +184,13 @@ void main() {
           username: 'testuser',
           avatarUrl: 'https://example.com/avatar.png',
           hasSellerProfile: true,
-          storeName: 'Qiqi Store',
+          hasMarketAuthority: true,
         );
         final controller = _FakeAuthController(
           AuthState.authenticated(user, emailVerified: true),
         );
 
-        await tester.pumpWidget(_wrap(controller));
+        await tester.pumpWidget(_wrap(controller, profileForA: _profileForSeller(_userAId, 'Qiqi Store')));
         await tester.pump();
 
         expect(find.byType(SellerIdentityView), findsOneWidget);
@@ -248,8 +238,6 @@ void main() {
     });
 
     testWidgets('null username shows no handle text', (tester) async {
-      // AuthUser with empty username — guaranteed because AuthUser.username
-      // is non-nullable String, but the drawer receives the raw value.
       final user = _user(id: _userAId, username: '   ');
       final controller = _FakeAuthController(
         AuthState.authenticated(user, emailVerified: true),
@@ -258,9 +246,9 @@ void main() {
       await tester.pumpWidget(_wrap(controller));
       await tester.pump();
 
-      // Whitespace-only: formatHandle returns null → no handle displayed.
-      // Person icon for avatar fallback, name shows 'User' (no username).
-      expect(find.byIcon(Icons.person), findsOneWidget);
+      // Whitespace-only: normalizedUsername is null → handle null → SellerIdentityView is SizedBox.shrink()
+      expect(find.text('U'), findsNothing);
+      expect(find.byType(HybridAvatar), findsNothing);
     });
 
     testWidgets('principal switch removes old handle and displays new', (
@@ -290,17 +278,17 @@ void main() {
       tester,
     ) async {
       final seller = _user(
-        id: 'u-1',
+        id: _userAId,
         username: 'seller_user',
         hasSellerProfile: true,
-        storeName: 'Qiqi Store',
+        hasMarketAuthority: true,
       );
-      final buyer = _user(id: 'u-2', username: 'buyer_user');
+      final buyer = _user(id: _userBId, username: 'buyer_user');
       final controller = _FakeAuthController(
         AuthState.authenticated(seller, emailVerified: true),
       );
 
-      await tester.pumpWidget(_wrap(controller));
+      await tester.pumpWidget(_wrap(controller, profileForA: _profileForSeller(_userAId, 'Qiqi Store')));
       await tester.pump();
       expect(find.text('Qiqi Store'), findsOneWidget);
 

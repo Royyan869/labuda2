@@ -51,11 +51,13 @@ func newCommentWireTestHandler(appDB *db.DB) *CommentHandler {
 	commentService := contentapp.NewCommentService(
 		contentrepo.NewContentRepository(),
 		contentrepo.NewCommentRepository(),
-		nil,                             // fpsValidator
+		nil,                             // forSaleService
+		nil,                             // auctionValidator
+		contentService,                  // visibilityChecker — canonical V-VISIBILITY
 		commentWireTestOutbox{},         // outboxRepo (no-op)
+		idempotencyRepo.NewRepository(), // idempotencyRepo — wired (C-IPC)
 		nil,                             // blockChecker
 		nil,                             // invariantLogger
-		idempotencyRepo.NewRepository(), // idempotencyRepo — wired (C-IPC)
 	)
 	return NewCommentHandler(commentService, contentService, appDB, zap.NewNop())
 }

@@ -15,16 +15,16 @@ import (
 //
 // This is the canonical test for the subscription payment → ledger path.
 // RecordSubscriptionRevenue is called by ProcessSuccessfulPayment during
-// webhook-triggered subscription activation.
+// subscription activation, and its idempotency key is derived from the
+// immutable payment identity (PMF02-A1), never from a caller-supplied event id.
 func TestRecordSubscriptionRevenue_BalancedEntries(t *testing.T) {
 	mock := &mockBillingLedgerRepo{}
 	svc := &FinanceService{ledgerRepo: mock}
 
 	paymentID := uuid.New()
 	amount := int64(500000) // 500,000 IDR yearly fee
-	providerEventID := "midtrans-event-123"
 
-	err := svc.RecordSubscriptionRevenue(context.Background(), nil, paymentID, amount, providerEventID)
+	err := svc.RecordSubscriptionRevenue(context.Background(), nil, paymentID, amount)
 	if err != nil {
 		t.Fatalf("RecordSubscriptionRevenue returned error: %v", err)
 	}
@@ -68,8 +68,8 @@ func TestRecordSubscriptionRevenue_BalancedEntries(t *testing.T) {
 		t.Errorf("entry[1] amount: got %d, want -500000 (credit)", crEntry.Amount.Int64())
 	}
 
-	// Verify idempotency key format
-	expectedKey := "seller_subscription_payment_" + providerEventID
+	// Verify idempotency key format: one key per payment identity
+	expectedKey := "seller_subscription_payment_" + paymentID.String()
 	if mock.lastIdempotencyKey != expectedKey {
 		t.Errorf("idempotency key: got %q, want %q", mock.lastIdempotencyKey, expectedKey)
 	}
@@ -80,7 +80,7 @@ func TestRecordSubscriptionRevenue_ZeroAmount(t *testing.T) {
 	mock := &mockBillingLedgerRepo{}
 	svc := &FinanceService{ledgerRepo: mock}
 
-	err := svc.RecordSubscriptionRevenue(context.Background(), nil, uuid.New(), 0, "evt-0")
+	err := svc.RecordSubscriptionRevenue(context.Background(), nil, uuid.New(), 0)
 	if err != nil {
 		t.Fatalf("RecordSubscriptionRevenue returned error: %v", err)
 	}
@@ -101,7 +101,7 @@ func TestRecordSubscriptionRevenue_LargeAmount(t *testing.T) {
 	svc := &FinanceService{ledgerRepo: mock}
 
 	amount := int64(10_000_000) // 10M IDR
-	err := svc.RecordSubscriptionRevenue(context.Background(), nil, uuid.New(), amount, "evt-large")
+	err := svc.RecordSubscriptionRevenue(context.Background(), nil, uuid.New(), amount)
 	if err != nil {
 		t.Fatalf("RecordSubscriptionRevenue returned error: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestRecordSubscriptionRevenue_ReferenceType(t *testing.T) {
 	mock := &mockSubscriptionLedgerRepo{}
 	svc := &FinanceService{ledgerRepo: mock}
 
-	err := svc.RecordSubscriptionRevenue(context.Background(), nil, uuid.New(), 500000, "evt-ref")
+	err := svc.RecordSubscriptionRevenue(context.Background(), nil, uuid.New(), 500000)
 	if err != nil {
 		t.Fatalf("RecordSubscriptionRevenue returned error: %v", err)
 	}

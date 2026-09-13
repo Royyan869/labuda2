@@ -42,14 +42,9 @@ type FeedHandler struct {
 	promotionInjector *FeedPromotionInjector      // optional; nil disables promotion injection
 }
 
-// NewFeedHandler creates a new FeedHandler.
-//
-// shadowRunner is optional. When non-nil, the handler dispatches a
-// fire-and-forget feed evaluator shadow run after each request — strictly
-// observability-only per docs/03-architecture/viewer-context-contract.md
-// (Pattern A) and docs/05-rollout/convergence-sequencing-addendum-viewercontext-evaluator.md
-// (feed-first SHADOW; not feed-first authority). The shadow path never
-// modifies the response.
+// NewFeedHandler creates a new FeedHandler. /feed enforcement is
+// unconditional. shadowRunner is observability-only and never gates
+// business enforcement.
 func NewFeedHandler(
 	feedService *feedApp.FeedService,
 	database *db.DB,
@@ -192,13 +187,15 @@ func (h *FeedHandler) GetFeed(c *gin.Context) {
 
 	// BATCH 3M / C1 / F1-W3A — synchronous further-restrict enforcement.
 	//
-	// In FeedEvaluatorModeEnforce the handler runs EvaluateFeedItem +
-	// AdaptFeedDecision over the legacy SQL result. C1 convergence: the
-	// adapter coarsens TOMBSTONE → "removed" and REDACT → "unavailable"
-	// into a LifecycleOverrides map (mirror of /search/content's
-	// enforcement.LifecycleOverrides). DENY rows drop; UNKNOWN rows fail
-	// OPEN (kept). The mode is read off the runner (nil receiver →
-	// shadow), so a disabled runner skips enforce entirely.
+	// Enforcement is unconditional and independent of shadowRunner
+	// existence. h.shadowRunner is observability-only and never gates
+	// business enforcement.
+	//
+	// The handler runs EvaluateFeedItem + AdaptFeedDecision over the
+	// legacy SQL result. C1 convergence: the adapter coarsens TOMBSTONE →
+	// "removed" and REDACT → "unavailable" into a LifecycleOverrides map
+	// (mirror of /search/content's enforcement.LifecycleOverrides). DENY
+	// rows drop; UNKNOWN rows fail OPEN (kept).
 	//
 	// F1-W3A — the enforcement helper consumes the same pre-hydrated
 	// (vc, tc) the handler built inside WithTx. The evaluator package
@@ -210,21 +207,13 @@ func (h *FeedHandler) GetFeed(c *gin.Context) {
 	// may carry fewer than `limit` rows with has_more=true; the mobile
 	// client's cursor-stall + has_more handling (Batch 3G) tolerates
 	// that without infinite-loop risk.
-	var lifecycleOverrides map[uuid.UUID]string
-	if h.shadowRunner.Mode() == evaluator.FeedEvaluatorModeEnforce {
-		enf := evaluator.EnforceFeed(
-			evaluator.FeedEvaluatorModeEnforce,
-			vc,
-			tc,
-			originalItems,
-		)
-		result.Items = enf.Filtered
-		lifecycleOverrides = enf.LifecycleOverrides
-	}
+	enf := evaluator.EnforceFeed(vc, tc, originalItems)
+	result.Items = enf.Filtered
+	lifecycleOverrides := enf.LifecycleOverrides
 
-	// Convert feed items to response format. lifecycleOverrides is nil in
-	// shadow mode and when no row took the override path; the renderer
-	// short-circuits cleanly in both cases.
+	// Convert feed items to response format. lifecycleOverrides is nil
+	// when no row took the override path; the renderer short-circuits
+	// cleanly in that case.
 	projections := make(map[uuid.UUID]*contentApp.ContentResourceProjection)
 	// Anonymous viewers skip commerce-resource projection hydration — the
 	// Guest Home feed is a public content discovery feed.
@@ -252,9 +241,9 @@ func (h *FeedHandler) GetFeed(c *gin.Context) {
 	// nil-safe: when shadow is disabled, this is a no-op.
 	//
 	// IMPORTANT (Batch 3M): passes the ORIGINAL pre-filter slice so
-	// shadow divergence cells stay denominator-consistent under both
-	// FEED_EVALUATOR_MODE=shadow and =enforce. F1-W3A: also passes the
-	// pre-hydrated (vc, tc) so the goroutine no longer touches the DB.
+	// shadow divergence cells stay denominator-consistent with what the
+	// legacy SQL allowed. F1-W3A: also passes the pre-hydrated (vc, tc)
+	// so the goroutine no longer touches the DB.
 	h.shadowRunner.Run(vc, tc, originalItems)
 
 	// P3A — Promotion injection. Fetch active promoted items, hydrate

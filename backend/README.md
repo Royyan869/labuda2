@@ -81,11 +81,37 @@ go run ./cmd/seed
 ### 5. Create admin user
 
 The admin panel cannot create an admin itself. For local development the seeder creates
-`admin@test.local` (with `buyer@test.local` and `seller@test.local`) and grants the minimal
-admin capabilities `governance.capability.assign` and `governance.dashboard.view`, so further
-capabilities can be granted through the panel. In environments where the seeder is not run,
-bootstrap the first admin directly in SQL using the same `users` + `user_capabilities` insert
-pattern that `cmd/seed` applies.
+`admin@test.local` (with `buyer@test.local` and `seller@test.local`) and grants the entire
+canonical capability universe (`capability.AllCapabilityStrings()`), so the fixture admin has
+derived full access (`capability.IsFullAccessAdmin`) and further capabilities can be managed
+through the panel. In environments where the seeder is not run, bootstrap the first admin with
+the canonical out-of-band CLI `go run ./cmd/bootstrap-admin --user-id <uuid>` (or
+`--email <email>`), which promotes one existing verified active user to the canonical admin
+role and grants that same entire universe.
+
+#### Provision the Firebase identity for the dev admin (Admin dashboard login)
+
+The seeder creates the Labuda **DB** admin identity only. To sign in to the Admin dashboard you
+also need a real **Firebase Auth** account whose email matches that Labuda admin
+(`admin@test.local`), because `/api/v1/auth/firebase/exchange` resolves an unknown Firebase UID by
+email and links it to the existing DB row. Without it, the normal Firebase login cannot succeed.
+
+```bash
+cd backend
+read -s PW   # silent: not echoed, not in shell history
+printf '%s' "$PW" | go run ./cmd/dev-firebase-admin --email admin@test.local --password-stdin
+```
+
+- **Development only.** The command refuses to run unless `ENV=development` (an unset `ENV`
+  defaults to `production`, so it fails closed).
+- **Provisioning only.** It creates (or reports) the Firebase Auth user. It never creates a
+  Labuda DB user, never grants capabilities or roles, never issues session tokens, and never
+  bypasses Firebase login or the exchange. Login still goes through the normal Firebase flow.
+- **Idempotent.** If the Firebase user already exists it is left untouched (`already_exists`,
+  password preserved). A disabled user is reported (`exists_disabled`), never silently enabled.
+- **Password handling.** The password is read from stdin only (`--password-stdin`); it is never
+  accepted as an argument, logged, printed, or stored. Prerequisite: a valid
+  `FIREBASE_SERVICE_ACCOUNT_KEY_PATH` and `FIREBASE_PROJECT_ID` (see the env table above).
 
 ### 6. Run the server
 

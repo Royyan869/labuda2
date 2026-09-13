@@ -2541,7 +2541,7 @@ ALTER TABLE withdrawals ADD CONSTRAINT withdrawals_amount_check CHECK ((amount >
 
 -- platform_configs
 INSERT INTO platform_configs (key, value_numeric, value_text, updated_by, updated_at) VALUES ('auction_commission_percent', 4, NULL, NULL, 1782127557) ON CONFLICT (key) DO NOTHING;
-INSERT INTO platform_configs (key, value_numeric, value_text, updated_by, updated_at) VALUES ('listing_commission_percent', 4, NULL, NULL, 1782127536) ON CONFLICT (key) DO NOTHING;
+INSERT INTO platform_configs (key, value_numeric, value_text, updated_by, updated_at) VALUES ('for_sale_commission_percent', 4, NULL, NULL, 1782127536) ON CONFLICT (key) DO NOTHING;
 
 -- actors: NOT seeded (rows depend on runtime user UUIDs)
 

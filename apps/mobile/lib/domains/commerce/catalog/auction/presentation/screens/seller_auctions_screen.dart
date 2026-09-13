@@ -76,53 +76,45 @@ class SellerAuctionsScreen extends ConsumerWidget {
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final auction = visibleAuctions[index];
-                      return Padding(
-                        padding: EdgeInsets.only(
-                          bottom: index == visibleAuctions.length - 1 ? 0 : 12,
-                        ),
-                        child: _SellerAuctionCard(
-                          auction: auction,
-                          currentUserId: currentUser.id,
-                          onOpenDetail: () => context.push(
-                            RoutePaths.auctionDetail(auction.id),
-                          ),
-                          onEditDraft: auction.status == AuctionStatus.draft &&
-                                  auction.sellerId == currentUser.id
-                              ? () => unawaited(
-                                  _openDraftEdit(
-                                    context,
-                                    pager,
-                                    auction,
-                                  ),
-                                )
-                              : null,
-                          onCancel: (auction.status == AuctionStatus.draft ||
-                                  auction.status == AuctionStatus.scheduled ||
-                                  auction.status == AuctionStatus.active) &&
-                                  auction.sellerId == currentUser.id
-                              ? () => unawaited(
-                                  _cancelAuction(
-                                    context,
-                                    ref,
-                                    pager,
-                                    auction,
-                                    currentUser.id,
-                                  ),
-                                )
-                              : null,
-                        ),
-                      );
-                    },
-                    childCount: visibleAuctions.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final auction = visibleAuctions[index];
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        bottom: index == visibleAuctions.length - 1 ? 0 : 12,
+                      ),
+                      child: _SellerAuctionCard(
+                        auction: auction,
+                        currentUserId: currentUser.id,
+                        onOpenDetail: () =>
+                            context.push(RoutePaths.auctionDetail(auction.id)),
+                        onEditDraft:
+                            auction.status == AuctionStatus.draft &&
+                                auction.sellerId == currentUser.id
+                            ? () => unawaited(
+                                _openDraftEdit(context, pager, auction),
+                              )
+                            : null,
+                        onCancel:
+                            (auction.status == AuctionStatus.draft ||
+                                    auction.status == AuctionStatus.scheduled ||
+                                    auction.status == AuctionStatus.active) &&
+                                auction.sellerId == currentUser.id
+                            ? () => unawaited(
+                                _cancelAuction(
+                                  context,
+                                  ref,
+                                  pager,
+                                  auction,
+                                  currentUser.id,
+                                ),
+                              )
+                            : null,
+                      ),
+                    );
+                  }, childCount: visibleAuctions.length),
                 ),
               ),
-            SliverToBoxAdapter(
-              child: _buildFooter(pagerState, pager),
-            ),
+            SliverToBoxAdapter(child: _buildFooter(pagerState, pager)),
           ],
         ),
       ),
@@ -172,7 +164,9 @@ class SellerAuctionsScreen extends ConsumerWidget {
     );
     if (confirmed != true || !context.mounted) return;
 
-    final success = await ref.read(auctionNotifierProvider.notifier).cancelAuction(
+    final success = await ref
+        .read(auctionNotifierProvider.notifier)
+        .cancelAuction(
           auctionId: auction.id,
           sellerId: currentUserId,
           reason: 'Seller cancelled from inventory',
@@ -405,9 +399,7 @@ class _SellerAuctionCard extends StatelessWidget {
               if (auction.status == AuctionStatus.waitingSettlement) ...[
                 const SizedBox(height: 8),
                 Text(
-                  auction.winnerUsername == null
-                      ? 'Menunggu penyelesaian dari pemenang'
-                      : 'Pemenang: ${auction.winnerUsername}',
+                  'Menunggu penyelesaian dari pemenang',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -502,10 +494,7 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
-      label: Text(label),
-      visualDensity: VisualDensity.compact,
-    );
+    return Chip(label: Text(label), visualDensity: VisualDensity.compact);
   }
 }
 
@@ -569,10 +558,7 @@ class _ErrorState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: compact ? 32 : 48,
-          ),
+          Icon(Icons.error_outline, size: compact ? 32 : 48),
           const SizedBox(height: 12),
           Text(title, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),

@@ -51,6 +51,10 @@ export function useUserCapabilities(userId: string | null) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
   const [total, setTotal] = useState(0)
+  const [role, setRole] = useState<'user' | 'admin'>('user')
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [fullAccess, setFullAccess] = useState(false)
+  const [missingCapabilities, setMissingCapabilities] = useState<string[]>([])
 
   const fetchUserCapabilities = useCallback(async () => {
     if (!userId) return
@@ -61,6 +65,10 @@ export function useUserCapabilities(userId: string | null) {
       const response = await getUserCapabilities(userId)
       setUserCapabilities(response.capabilities || [])
       setTotal(response.total || 0)
+      setRole(response.role ?? 'user')
+      setIsAdmin(response.is_admin ?? false)
+      setFullAccess(response.full_access ?? false)
+      setMissingCapabilities(response.missing_capabilities ?? [])
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch user capabilities'))
     } finally {
@@ -77,6 +85,11 @@ export function useUserCapabilities(userId: string | null) {
     loading,
     error,
     total,
+    role,
+    isAdmin,
+    // Derived by the backend from the single canonical authority.
+    fullAccess,
+    missingCapabilities,
     refetch: fetchUserCapabilities,
   }
 }

@@ -83,7 +83,6 @@ class DisplayHints {
   final String? warning;
   final String? info;
   final int? timeRemainingSeconds;
-  final double? minimumNextBid;
 
   const DisplayHints({
     this.badge,
@@ -92,7 +91,6 @@ class DisplayHints {
     this.warning,
     this.info,
     this.timeRemainingSeconds,
-    this.minimumNextBid,
   });
 
   factory DisplayHints.fromJson(Map<String, dynamic> json) {
@@ -103,7 +101,6 @@ class DisplayHints {
       warning: json['warning'] as String?,
       info: json['info'] as String?,
       timeRemainingSeconds: json['time_remaining_seconds'] as int?,
-      minimumNextBid: json['minimum_next_bid'] as double?,
     );
   }
 
@@ -114,7 +111,6 @@ class DisplayHints {
     'warning': warning,
     'info': info,
     'time_remaining_seconds': timeRemainingSeconds,
-    'minimum_next_bid': minimumNextBid,
   };
 }
 
@@ -285,11 +281,12 @@ class Auction {
   // Koi Details
   final KoiDetails koiDetails;
 
-  // Pricing
-  final double openingBid; // OB - Opening Bid
-  final double currentBid;
-  final double bidIncrement; // KB - Kelipatan Bid
-  final double? buyNowPrice; // BIN - Buy It Now (optional)
+  // Pricing — canonical int read representation (backend int64/bigint wire;
+  // nullable fields follow factual backend nullability).
+  final int openingBid; // OB - Opening Bid
+  final int currentBid;
+  final int bidIncrement; // KB - Kelipatan Bid
+  final int? buyNowPrice; // BIN - Buy It Now (optional)
 
   // Item details (backend-aligned)
   final AuctionCondition? condition; // Item condition from backend
@@ -311,13 +308,10 @@ class Auction {
   settlementDeadline; // Deadline for winner to complete purchase (waiting_settlement state only)
   final bool isScheduled;
 
-  // Auction State
+  // Auction State — canonical winner authority is winnerId (current_winner_id).
   final AuctionStatus status;
   final String? winnerId;
-  final String? winnerUsername;
-  final double? winningBid;
   final int totalBidders;
-  final int totalWatchers;
   final int totalViews;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -364,10 +358,7 @@ class Auction {
     this.isScheduled = false,
     required this.status,
     this.winnerId,
-    this.winnerUsername,
-    this.winningBid,
     this.totalBidders = 0,
-    this.totalWatchers = 0,
     this.totalViews = 0,
     required this.createdAt,
     this.updatedAt,
@@ -409,9 +400,9 @@ class Auction {
   bool get isTerminal =>
       status == AuctionStatus.ended || status == AuctionStatus.cancelled;
 
-  /// Calculate minimum next bid amount (display only)
-  /// BOUNDARY NORMALIZATION: Use decision.display.minimumNextBid for business logic
-  double get minimumNextBid => currentBid + bidIncrement;
+  /// Calculate minimum next bid amount (display only) — factual derivation
+  /// from currentBid + bidIncrement. No wire phantom.
+  int get minimumNextBid => currentBid + bidIncrement;
 
   /// DERIVED PRESENTATION STATE (NOT a backend canonical state)
   /// True if auction ended with a winner (sold)
@@ -426,21 +417,9 @@ class Auction {
   /// Check if current user is the winner (requires winnerId comparison)
   bool isUserWinner(String userId) => winnerId != null && winnerId == userId;
 
-  // P11 Phase 2: Business logic computed properties removed
-  // BEFORE: bool get isActive => status == AuctionStatus.active (kept for BC);
-  // AFTER: Use decision.state == 'active' or decision.allowed_actions.contains('bid')
-  //
-  // BEFORE: bool get hasEnded => DateTime.now().isAfter(endTime) (kept for BC);
-  // AFTER: Use decision.state from backend
-  //
-  // BEFORE: double get minimumNextBid => currentBid + bidIncrement (kept for BC);
-  // AFTER: Use decision.display.minimumNextBid from backend
-
   // Safe computed properties (data display only, no business logic)
   bool get hasBuyNow => buyNowPrice != null;
-  double get startingBid => openingBid;
-
-  // P11 Phase 2: minimumNextBid removed - use decision.display.minimumNextBid instead
+  int get startingBid => openingBid;
 
   Auction copyWith({
     String? id,
@@ -456,10 +435,10 @@ class Auction {
     String? description,
     List<MediaEntity>? media,
     KoiDetails? koiDetails,
-    double? openingBid,
-    double? currentBid,
-    double? bidIncrement,
-    double? buyNowPrice,
+    int? openingBid,
+    int? currentBid,
+    int? bidIncrement,
+    int? buyNowPrice,
     AuctionCondition? condition,
     PreparationTime? preparationTime,
     String? preparationNote,
@@ -471,10 +450,7 @@ class Auction {
     bool? isScheduled,
     AuctionStatus? status,
     String? winnerId,
-    String? winnerUsername,
-    double? winningBid,
     int? totalBidders,
-    int? totalWatchers,
     int? totalViews,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -513,10 +489,7 @@ class Auction {
       isScheduled: isScheduled ?? this.isScheduled,
       status: status ?? this.status,
       winnerId: winnerId ?? this.winnerId,
-      winnerUsername: winnerUsername ?? this.winnerUsername,
-      winningBid: winningBid ?? this.winningBid,
       totalBidders: totalBidders ?? this.totalBidders,
-      totalWatchers: totalWatchers ?? this.totalWatchers,
       totalViews: totalViews ?? this.totalViews,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

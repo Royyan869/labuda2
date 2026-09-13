@@ -15,27 +15,22 @@
 // fields origin / shippingSetups / shippingSetupIds / sellerIdentity, the
 // app-bar watch button ('Pantau'), 'Ajukan Bid' / 'Kelola Lelang' labels,
 // and CommerceDetailMediaGallery. The factual screen renders the header
-// PageView, bottom-bar watch ('Simpan'/'Tersimpan') + 'Chat' + 'Pasang Bid'.
+// PageView, bottom-bar 'Chat' + 'Pasang Bid'. Save is in AppBar.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart'
-    show auctionWatchRepositoryProvider;
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_bid.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_watcher.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/repositories/auction_watch_repository.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_recommendation_providers.dart'
     show ownerOtherAuctionsProvider, similarAuctionsProvider;
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_state.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/auction_detail_screen.dart';
 import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/core/common/types/preparation_time.dart';
@@ -65,109 +60,6 @@ class _FakeAuctionNotifier extends AuctionNotifier {
 }
 
 class _FakeNavigationHandler extends Fake implements NavigationHandler {}
-
-/// Watch repository fake with mutable watched state for the toggle scenario.
-class _FakeAuctionWatchRepository implements AuctionWatchRepository {
-  bool watched = false;
-
-  @override
-  Future<RepositoryResult<AuctionWatcher>> watchAuction({
-    required String auctionId,
-    required String userId,
-    bool notifyOnBid = true,
-    bool notifyOnEndingSoon = true,
-    bool notifyOnEnded = true,
-  }) async {
-    watched = true;
-    return RepositoryResult.success(
-      AuctionWatcher(
-        id: '${auctionId}_$userId',
-        auctionId: auctionId,
-        userId: userId,
-        createdAt: DateTime.utc(2026, 1, 1),
-        notifyOnBid: notifyOnBid,
-        notifyOnEndingSoon: notifyOnEndingSoon,
-        notifyOnEnded: notifyOnEnded,
-      ),
-    );
-  }
-
-  @override
-  Future<RepositoryResult<void>> unwatchAuction({
-    required String auctionId,
-    required String userId,
-  }) async {
-    watched = false;
-    return RepositoryResult.success(null);
-  }
-
-  @override
-  Future<RepositoryResult<bool>> isWatching({
-    required String auctionId,
-    required String userId,
-  }) async {
-    return RepositoryResult.success(watched);
-  }
-
-  @override
-  Future<RepositoryResult<AuctionWatchStats>> getWatchStats({
-    required String auctionId,
-    required String currentUserId,
-  }) async {
-    return RepositoryResult.success(
-      AuctionWatchStats(
-        auctionId: auctionId,
-        totalWatchers: 2,
-        isWatchedByCurrentUser: watched,
-      ),
-    );
-  }
-
-  @override
-  Future<RepositoryResult<int>> getWatchCount(String auctionId) async {
-    return RepositoryResult.success(2);
-  }
-
-  @override
-  Future<RepositoryResult<List<Auction>>> getWatchedAuctions({
-    required String userId,
-    int limit = 20,
-    String? lastAuctionId,
-  }) async {
-    return RepositoryResult.success(const []);
-  }
-
-  @override
-  Future<RepositoryResult<List<AuctionWatcher>>> getAuctionWatchers({
-    required String auctionId,
-    int limit = 100,
-  }) async {
-    return RepositoryResult.success(const []);
-  }
-
-  @override
-  Stream<AuctionWatchStats> watchWatchStats({
-    required String auctionId,
-    required String currentUserId,
-  }) {
-    return Stream.value(
-      AuctionWatchStats(
-        auctionId: auctionId,
-        totalWatchers: 2,
-        isWatchedByCurrentUser: watched,
-      ),
-    );
-  }
-
-  @override
-  Future<RepositoryResult<bool>> toggleWatch({
-    required String auctionId,
-    required String userId,
-  }) async {
-    watched = !watched;
-    return RepositoryResult.success(watched);
-  }
-}
 
 AuthUser _authUser({required String id}) {
   final now = DateTime.utc(2026, 1, 1);
@@ -242,8 +134,6 @@ Auction _auction({
   return Auction(
     id: id,
     sellerId: sellerId,
-    // Single identity authority — flat scalars (seller_username /
-    // seller_farm_name / seller_avatar_url). No second identity model.
     sellerUsername: 'seller_user',
     sellerFarmName: 'Acme Farm',
     sellerAvatar: null,
@@ -275,7 +165,6 @@ Auction _auction({
     endTime: now.add(const Duration(days: 1)),
     status: status,
     totalBidders: 2,
-    totalWatchers: 0,
     totalViews: 10,
     createdAt: now,
     updatedAt: now,
@@ -289,16 +178,11 @@ Widget _wrap({
   AuctionNotifierState? auctionNotifierState,
   Stream<Auction?>? auctionStream,
   Stream<List<AuctionBid>>? auctionBidsStream,
-  Stream<AuctionWatchStats>? watchStatsStream,
-  AuctionWatchRepository? watchRepository,
 }) {
   final notifier =
       auctionNotifierState == null
           ? null
           : _FakeAuctionNotifier(auctionNotifierState);
-  final currentUserId = authState is AuthStateAuthenticated
-      ? authState.user.id
-      : '';
   return ProviderScope(
     overrides: [
       authControllerProvider.overrideWith(() => _FakeAuthController(authState)),
@@ -315,19 +199,6 @@ Widget _wrap({
       auctionBidsStreamProvider(auction.id).overrideWith(
         (ref) => auctionBidsStream ?? Stream.value(const <AuctionBid>[]),
       ),
-      watchStatsStreamProvider(
-        (auctionId: auction.id, currentUserId: currentUserId),
-      ).overrideWith(
-        (ref) =>
-            watchStatsStream ??
-            Stream.value(
-              AuctionWatchStats(
-                auctionId: auction.id,
-                totalWatchers: 2,
-                isWatchedByCurrentUser: false,
-              ),
-            ),
-      ),
       ownerOtherAuctionsProvider(
         auction.id,
       ).overrideWith((ref) async => const <Auction>[]),
@@ -335,8 +206,6 @@ Widget _wrap({
         auction.id,
       ).overrideWith((ref) async => const <Auction>[]),
       navigationHandlerProvider.overrideWithValue(_FakeNavigationHandler()),
-      if (watchRepository != null)
-        auctionWatchRepositoryProvider.overrideWithValue(watchRepository),
     ],
     child: MaterialApp(home: AuctionDetailScreen(auctionId: auction.id)),
   );
@@ -412,7 +281,6 @@ void main() {
 
     // Bottom actions: buyer can_bid + can_chat → bid enabled, chat visible.
     expect(find.text('Chat'), findsOneWidget);
-    expect(find.text('Simpan'), findsOneWidget);
     expect(find.text('Pasang Bid'), findsOneWidget);
     expect(_bidButton(tester).onPressed, isNotNull);
 
@@ -485,8 +353,6 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(800, 2400));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      // Backend EvaluateAuctionViewerCapabilities folds seller-trust into
-      // can_chat/can_bid — a buyer of an inactive seller gets canBid=false.
       const inactiveBuyer = CommerceViewerCapabilities(
         role: 'buyer',
         canManage: false,
@@ -602,57 +468,4 @@ void main() {
     expect(find.text('Pasang Bid'), findsNothing);
     expect(tester.takeException(), isNull);
   });
-
-  testWidgets('watch toggle switches the bottom-bar label', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(800, 2400));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-
-    final auction = _auction(
-      id: 'auction-watch',
-      sellerId: 'seller-watch',
-      capabilities: _buyerCapabilities,
-    );
-    final watchRepository = _FakeAuctionWatchRepository();
-    final statsController = StreamController<AuctionWatchStats>.broadcast();
-    addTearDown(statsController.close);
-
-    await tester.pumpWidget(
-      _wrap(
-        auction: auction,
-        authState: AuthState.authenticated(
-          _authUser(id: 'buyer-watch'),
-          emailVerified: true,
-        ),
-        watchRepository: watchRepository,
-        watchStatsStream: statsController.stream,
-      ),
-    );
-    statsController.add(
-      AuctionWatchStats(
-        auctionId: auction.id,
-        totalWatchers: 2,
-        isWatchedByCurrentUser: false,
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Simpan'), findsOneWidget);
-    expect(find.text('Tersimpan'), findsNothing);
-
-    await tester.tap(find.text('Simpan'));
-    await tester.pumpAndSettle();
-
-    statsController.add(
-      AuctionWatchStats(
-        auctionId: auction.id,
-        totalWatchers: 2,
-        isWatchedByCurrentUser: true,
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Tersimpan'), findsOneWidget);
-    expect(find.text('Simpan'), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
-}
+}

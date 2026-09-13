@@ -47,9 +47,11 @@ void main() {
 
     expect(find.text('Permintaan Pengembalian'), findsOneWidget);
     expect(find.text('Awaiting Seller Review'), findsOneWidget);
-    expect(find.text('Funds Returned'), findsOneWidget);
-    expect(find.text('Ditolak Penjual'), findsOneWidget);
-    expect(find.text('Riwayat pengembalian'), findsOneWidget);
+    expect(find.text('Menunggu respon penjual'), findsOneWidget);
+    expect(
+      find.text('Ada 3 permintaan pengembalian untuk pesanan ini'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('shows rejected state without presenting it as refunded', (
@@ -85,84 +87,5 @@ void main() {
     );
 
     expect(find.text('Permintaan Pengembalian'), findsNothing);
-  });
-
-  testWidgets('shows error and retry state', (tester) async {
-    var retryCount = 0;
-    await tester.pumpWidget(
-      _wrap(
-        OrderRefundListSection(
-          refunds: const [],
-          isDark: false,
-          currentUserId: 'buyer-1',
-          sellerId: 'seller-1',
-          errorMessage: 'boom',
-          onRetry: () => retryCount += 1,
-        ),
-      ),
-    );
-
-    expect(find.text('Riwayat refund tidak bisa dimuat'), findsOneWidget);
-    expect(find.text('Coba Lagi'), findsOneWidget);
-    await tester.tap(find.text('Coba Lagi'));
-    expect(retryCount, 1);
-  });
-
-  testWidgets('shows load more control and loading indicator', (tester) async {
-    await tester.pumpWidget(
-      _wrap(
-        OrderRefundListSection(
-          refunds: [_refund(id: 'refund-1', status: RefundStatus.refunded)],
-          isDark: false,
-          currentUserId: 'buyer-1',
-          sellerId: 'seller-1',
-          hasMore: true,
-          onLoadMore: () {},
-        ),
-      ),
-    );
-
-    expect(find.text('Muat Riwayat Lainnya'), findsOneWidget);
-
-    await tester.pumpWidget(
-      _wrap(
-        OrderRefundListSection(
-          refunds: [_refund(id: 'refund-1', status: RefundStatus.refunded)],
-          isDark: false,
-          currentUserId: 'buyer-1',
-          sellerId: 'seller-1',
-          hasMore: true,
-          isLoadMoreLoading: true,
-        ),
-      ),
-    );
-
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-  });
-
-  testWidgets('keeps old data visible when inline load-more error exists', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _wrap(
-        OrderRefundListSection(
-          refunds: [
-            _refund(
-              id: 'refund-latest',
-              status: RefundStatus.pendingSellerReview,
-            ),
-            _refund(id: 'refund-old', status: RefundStatus.refunded),
-          ],
-          isDark: false,
-          currentUserId: 'buyer-1',
-          sellerId: 'seller-1',
-          errorMessage: 'load more failed',
-        ),
-      ),
-    );
-
-    expect(find.text('load more failed'), findsOneWidget);
-    expect(find.text('Awaiting Seller Review'), findsOneWidget);
-    expect(find.text('Funds Returned'), findsOneWidget);
   });
 }

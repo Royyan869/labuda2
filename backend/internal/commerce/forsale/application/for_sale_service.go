@@ -21,7 +21,6 @@ import (
 	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
 	addressRepoInterface "github.com/labuda/backend/internal/identity/address/repository"
 	"github.com/labuda/backend/internal/identity/auth"
-	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
 	"github.com/labuda/backend/internal/platform/events"
 	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
@@ -56,7 +55,6 @@ type ForSaleService struct {
 	productRepo         productRepo.ProductRepository
 	outboxRepo          *outboxRepo.OutboxRepository
 	roleChecker         auth.RoleChecker
-	actorResolver       capabilityEntity.ActorResolver
 	productShippingRepo shippingRepo.ProductShippingSetupRepository
 	coverageRepo        shippingRepo.ShippingCoverageRepository
 	shippingQuoteRepo   shippingquoteRepo.ShippingQuoteRepository
@@ -77,8 +75,6 @@ func NewForSaleService(args ...any) *ForSaleService {
 			svc.outboxRepo = v
 		case auth.RoleChecker:
 			svc.roleChecker = v
-		case capabilityEntity.ActorResolver:
-			svc.actorResolver = v
 		case shippingRepo.ProductShippingSetupRepository:
 			svc.productShippingRepo = v
 		case shippingRepo.ShippingCoverageRepository:
@@ -119,6 +115,48 @@ func (s *ForSaleService) requireSellerNotRestricted(ctx context.Context, tx db.T
 	}
 	if restricted {
 		return auth.ErrCommerceRestricted
+	}
+	return nil
+}
+
+// ensureWorkspaceAuthorityTx enforces workspace authority for private/draft creation:
+// active account (not suspended/banned/removed) + verified email + seller profile exists.
+// Uses tx for TOCTOU safety; does NOT require active subscription.
+func (s *ForSaleService) ensureWorkspaceAuthorityTx(ctx context.Context, tx db.Tx, sellerID uuid.UUID) error {
+	if sellerID == uuid.Nil {
+		return auth.ErrInvalidCaller
+	}
+	var accountStatus string
+	var deletedAt *time.Time
+	var emailVerifiedAt *time.Time
+	err := tx.QueryRow(ctx, `SELECT account_status, deleted_at, email_verified_at FROM users WHERE id = $1`, sellerID).Scan(&accountStatus, &deletedAt, &emailVerifiedAt)
+	if err != nil {
+		return fmt.Errorf("failed to verify account: %w", err)
+	}
+	if deletedAt != nil {
+		return auth.ErrAccountRemoved
+	}
+	switch accountStatus {
+	case "active":
+	default:
+		if accountStatus == "suspended" {
+			return auth.ErrAccountSuspended
+		}
+		if accountStatus == "banned" {
+			return auth.ErrAccountBanned
+		}
+		return auth.ErrAccountInactive
+	}
+	if emailVerifiedAt == nil {
+		return auth.ErrSellerNotReady
+	}
+	var hasProfile bool
+	err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM seller_profiles WHERE user_id = $1)`, sellerID).Scan(&hasProfile)
+	if err != nil {
+		return fmt.Errorf("failed to check seller profile: %w", err)
+	}
+	if !hasProfile {
+		return auth.ErrSellerNotReady
 	}
 	return nil
 }
@@ -183,28 +221,19 @@ type CreateForSaleInput struct {
 
 // Create creates a new for_sale.
 //
-// MARKET AUTHORITY ENFORCEMENT (PHASE 1B):
-// - Public visibility requires active seller subscription (hasMarketAuthority)
-// - Private visibility can be created without active subscription (workspace safety)
-// Expired sellers can create drafts but cannot publish to market.
-//
-// HARD RULE VALIDATION:
-// - New for_sales are always created in draft status
-// - Draft for_sales should be private (workspace-only)
-// - Active + private combination is rejected
+// AUTHORITY MODEL (OWNER CANONICAL):
+// - Private/draft: workspace authority – active account + verified email + seller profile (NO subscription required)
+// - Public/market-visible: canonical market authority – HasActiveSellerCapability (active + not deleted + profile + active subscription interval)
+// Expired sellers can create private drafts but cannot publish to market.
 func (s *ForSaleService) Create(
 	ctx context.Context,
 	tx db.Tx,
 	input CreateForSaleInput,
 ) (*entity.ForSale, error) {
-	// SERVICE LAYER ENFORCEMENT: Check seller can create for_sales
-	// This checks: account active, email verified, seller subscription active
-	actor, err := s.actorResolver.ResolveActor(ctx, input.SellerID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve actor: %w", err)
-	}
-	if !actor.CanCreateForSale() {
-		return nil, auth.ErrSellerNotReady
+	// WORKSPACE AUTHORITY: verified email + active account + seller profile.
+	// Transactional checks via tx (TOCTOU-safe) – not via stale Actor projection.
+	if err := s.ensureWorkspaceAuthorityTx(ctx, tx, input.SellerID); err != nil {
+		return nil, err
 	}
 
 	// COMMERCE RESTRICTION: Reject restricted seller at creation boundary.
@@ -213,7 +242,7 @@ func (s *ForSaleService) Create(
 		return nil, err
 	}
 
-	// MARKET AUTHORITY CHECK: Public for_sales require active seller subscription
+	// MARKET AUTHORITY CHECK: Public for_sales require canonical seller market eligibility
 	if input.Visibility == entity.ForSaleVisibilityPublic {
 		hasCapability, err := s.roleChecker.HasActiveSellerCapability(ctx, input.SellerID)
 		if err != nil {

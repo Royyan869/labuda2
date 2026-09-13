@@ -47,8 +47,18 @@ type DatabaseConfig struct {
 	Password        string
 	Name            string
 	SSLMode         string
-	MaxConnections  int
-	MaxIdle         int
+
+	// MaxConnections is the pgxpool ceiling (MaxConns) for any process using
+	// this config. It MUST stay well below the PostgreSQL server's
+	// max_connections so that CLI tools, migrations, and admin clients keep
+	// connection headroom.
+	MaxConnections int
+
+	// MinConnections is the pgxpool floor (MinConns) the pool maintains even
+	// while idle. It is NOT a cap on idle connections — the previous name
+	// (MaxIdle) implied the opposite of what it did. Keep it small.
+	MinConnections int
+
 	ConnMaxLifetime time.Duration
 	AutoMigrate     bool
 	// Test database configuration (used when TEST_MODE=true)
@@ -234,52 +244,7 @@ type FeatureFlagsConfig struct {
 	// refund UX is validated in staging.
 	GatewayRefundInitiateEnabled bool
 
-	// SearchContentEvaluatorMode controls the /search/content evaluator
-	// integration's operating mode (Batch 3A prerequisite for Batch 3B
-	// authority promotion). Valid values: "shadow" (default) or "enforce".
-	//
-	// Env var: SEARCH_CONTENT_EVALUATOR_MODE. Any unset / empty / invalid
-	// value is normalized to "shadow" at load time — enforce mode is
-	// opt-in only, never reachable by misconfiguration.
-	//
-	// In this batch the value drives only the enforce_mode_total telemetry
-	// label and the shadow runner's WithMode label. The response handler
-	// does NOT yet consume this mode; Batch 3B wires the synchronous
-	// enforcement path on /search/content alone.
-	SearchContentEvaluatorMode string
 
-	// FeedEvaluatorMode controls the /feed evaluator integration's
-	// operating mode. Valid values: "enforce" (default) or "shadow".
-	//
-	// Env var: FEED_EVALUATOR_MODE. Rollback: set to "shadow" to
-	// disable enforcement and revert to shadow-only observability.
-	// Any unrecognized value is normalized to "shadow" at load time
-	// via evaluator.NormalizeFeedEvaluatorMode.
-	//
-	// In enforce mode the handler runs a synchronous further-restrict
-	// pass over the legacy SQL result BEFORE serialization. The shadow
-	// runner continues to fire fire-and-forget AFTER the response is
-	// written, with the ORIGINAL (pre-filter) item set, so existing
-	// shadow telemetry remains comparable across the flip. UNKNOWN
-	// items fail OPEN (kept). See evaluator/feed_enforce.go for the
-	// per-decision semantics.
-	FeedEvaluatorMode string
-
-	// ContentDetailEvaluatorMode controls the /contents/:id evaluator
-	// integration's operating mode (D1 convergence). Valid values:
-	// "shadow" (default) or "enforce".
-	//
-	// Env var: CONTENT_DETAIL_EVALUATOR_MODE. Any unset / empty / invalid
-	// value is normalized to "shadow" at load time via
-	// evaluator.NormalizeContentDetailEvaluatorMode — enforce mode is
-	// opt-in only.
-	//
-	// In enforce mode the handler runs a synchronous fail-CLOSED pass
-	// AFTER the legacy gate. Any non-ALLOW evaluator decision (DENY /
-	// TOMBSTONE / REDACT / UNKNOWN) converts the response to HTTP 404.
-	// UNKNOWN fails CLOSED — doctrine §8.5. See
-	// evaluator/content_detail_enforce.go for the per-decision semantics.
-	ContentDetailEvaluatorMode string
 }
 
 // Load reads configuration from environment variables
@@ -307,8 +272,12 @@ func Load() (*Config, error) {
 			Password:        getEnv("DB_PASSWORD", "labuda123"),
 			Name:            getEnv("DB_NAME", ""), // No default - MUST be set
 			SSLMode:         getEnv("DB_SSLMODE", "disable"),
-			MaxConnections:  getIntEnv("DB_MAX_CONNECTIONS", 200),
-			MaxIdle:         getIntEnv("DB_MAX_IDLE_CONNECTIONS", 40),
+			// Pool sizing. Defaults leave headroom below a typical local
+			// PostgreSQL max_connections (50): the pool may grow to 10 while
+			// holding a 2-connection floor, so a second legitimate client
+			// (bootstrap-admin, migrate, DBeaver, psql) can always connect.
+			MaxConnections: getIntEnv("DB_MAX_CONNECTIONS", 10),
+			MinConnections: getIntEnv("DB_MIN_CONNECTIONS", 2),
 			ConnMaxLifetime: getDurationEnv("DB_CONN_MAX_LIFETIME", 1800) * time.Second,
 			AutoMigrate:     getBoolEnv("AUTO_MIGRATE", false), // Deprecated compatibility flag; ignored by runtime
 			// Test database defaults to same host with different database name
@@ -408,24 +377,7 @@ func Load() (*Config, error) {
 			// Canonical unified withdrawal path assertion. Default TRUE.
 			// Must remain true in staging/production — enforced by ValidateStagingActivation.
 			UseUnifiedWithdrawal: getBoolEnv("USE_UNIFIED_WITHDRAWAL", true),
-			// BATCH 3A: /search/content evaluator integration mode. Parsed
-			// raw here; normalization to the canonical {"shadow","enforce"}
-			// set happens in the consumer via
-			// evaluator.NormalizeSearchContentAdapterMode so unset / empty
-			// / invalid values fall safe to "shadow".
-			SearchContentEvaluatorMode: getEnv("SEARCH_CONTENT_EVALUATOR_MODE", "enforce"),
-			// /feed evaluator integration mode. Default "enforce" — all
-			// three evaluator surfaces now enforce. Rollback:
-			// FEED_EVALUATOR_MODE=shadow. Normalization via
-			// evaluator.NormalizeFeedEvaluatorMode; unrecognized values
-			// fall safe to "shadow".
-			FeedEvaluatorMode: getEnv("FEED_EVALUATOR_MODE", "enforce"),
-			// D1: /contents/:id evaluator integration mode. Parsed raw
-			// here; normalization to the canonical {"shadow","enforce"}
-			// set happens in the consumer via
-			// evaluator.NormalizeContentDetailEvaluatorMode so unset /
-			// empty / invalid values fall safe to "shadow".
-			ContentDetailEvaluatorMode: getEnv("CONTENT_DETAIL_EVALUATOR_MODE", "enforce"),
+
 		},
 	}
 

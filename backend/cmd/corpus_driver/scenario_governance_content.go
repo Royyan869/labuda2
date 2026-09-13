@@ -69,7 +69,7 @@ type summary struct {
 	Keyword       string       `json:"keyword"`
 	RunID         string       `json:"run_id"`
 	Verdict       string       `json:"verdict"`
-	EvaluatorMode string       `json:"evaluator_mode_observed,omitempty"`
+	EnforcementObserved string       `json:"enforcement_observed,omitempty"`
 	Steps         []stepResult `json:"steps"`
 
 	// B6.8 observation block — answers the explicit operator questions.
@@ -122,7 +122,7 @@ func runScenarioGovernanceContent(cfg governanceContentConfig) error {
 
 	// ─── metrics baseline ─────────────────────────────────────────────────
 	sum.Steps = append(sum.Steps, captureMetrics(ctx, client, cfg, "metrics_before.txt"))
-	sum.EvaluatorMode = sniffEvaluatorMode(filepath.Join(cfg.OutputDir, "metrics_before.txt"))
+	sum.EnforcementObserved = sniffSearchEnforcement(filepath.Join(cfg.OutputDir, "metrics_before.txt"))
 
 	// ─── auth: author ─────────────────────────────────────────────────────
 	// `-verified-` in the mock bearer string opts the dev mock Firebase
@@ -229,8 +229,8 @@ func runScenarioGovernanceContent(cfg governanceContentConfig) error {
 	// Update the evaluator-mode sniff against the final scrape (the
 	// pre-search snapshot at B6.6 was always empty because CounterVec
 	// label combinations only appear after their first .Inc()).
-	if late := sniffEvaluatorMode(filepath.Join(cfg.OutputDir, "metrics_after_search_deleted.txt")); late != "" {
-		sum.EvaluatorMode = late
+	if late := sniffSearchEnforcement(filepath.Join(cfg.OutputDir, "metrics_after_search_deleted.txt")); late != "" {
+		sum.EnforcementObserved = late
 	}
 	sum.EnforcementAppliedTicked, sum.EnforcementAppliedNote = sniffEnforcementApplied(
 		filepath.Join(cfg.OutputDir, "metrics_before.txt"),
@@ -283,10 +283,10 @@ func captureMetrics(ctx context.Context, client *http.Client, cfg governanceCont
 	return stepResult{Step: "metrics:" + filename, Status: "ok", HTTP: res.StatusCode, Artifact: filename}
 }
 
-// sniffEvaluatorMode best-effort reads enforce_mode_total label out of a
+// sniffSearchEnforcement best-effort reads enforce_mode_total label out of a
 // metrics scrape so the summary can report the live mode the operator's
 // backend was running in.
-func sniffEvaluatorMode(metricsPath string) string {
+func sniffSearchEnforcement(metricsPath string) string {
 	b, err := os.ReadFile(metricsPath)
 	if err != nil {
 		return ""
@@ -710,7 +710,7 @@ func finishSummary(sum *summary, cfg governanceContentConfig, errMsg string) err
 	fmt.Fprintf(&readme, "  keyword:     %s\n", sum.Keyword)
 	fmt.Fprintf(&readme, "  started:     %s\n", sum.Started)
 	fmt.Fprintf(&readme, "  finished:    %s\n", sum.Finished)
-	fmt.Fprintf(&readme, "  evaluator:   %s\n", sum.EvaluatorMode)
+	fmt.Fprintf(&readme, "  evaluator:   %s\n", sum.EnforcementObserved)
 	fmt.Fprintf(&readme, "  verdict:     %s\n\n", sum.Verdict)
 	fmt.Fprintf(&readme, "steps:\n")
 	for _, s := range sum.Steps {

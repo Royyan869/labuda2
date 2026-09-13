@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
-import 'package:labuda/domains/commerce/catalog/shared/data/dto/commerce_media_request_dto.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/seller_auctions_pager.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/seller_auction_draft_edit_screen.dart';
@@ -29,11 +28,6 @@ class _FakeAuthController extends AuthController {
     _state = state;
     this.state = state;
   }
-}
-
-class _FakeAuctionWatchRepository implements AuctionWatchRepository {
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _FakeLoggerService implements ILoggerService {
@@ -66,7 +60,6 @@ class _FakeAuctionRepository implements AuctionRepository {
     String? sellerAvatar,
     required String title,
     required String description,
-    List<CommerceMediaRequestDto> media = const [],
     required List<String> mediaUrls,
     required List<AuctionMediaType> mediaTypes,
     required KoiDetails koiDetails,
@@ -76,6 +69,7 @@ class _FakeAuctionRepository implements AuctionRepository {
     required String startMode,
     DateTime? scheduledStartAt,
     required int durationHours,
+    String? farmAddressId,
     AuctionLocation? location,
     required List<String> shippingSetupIds,
     String? preparationNote,
@@ -218,7 +212,6 @@ Auction _auction({
   int totalBidders = 0,
   DateTime? settlementDeadline,
   String? winnerId,
-  String? winnerUsername,
   DateTime? startTime,
   DateTime? endTime,
 }) {
@@ -248,7 +241,6 @@ Auction _auction({
     settlementDeadline: settlementDeadline,
     status: status,
     winnerId: winnerId,
-    winnerUsername: winnerUsername,
     totalBidders: totalBidders,
     createdAt: DateTime.utc(2026, 7, 1, 7),
   );
@@ -316,9 +308,6 @@ void main() {
         overrides: [
           authControllerProvider.overrideWith(() => auth),
           auctionRepositoryProvider.overrideWithValue(repo),
-          auctionWatchRepositoryProvider.overrideWithValue(
-            _FakeAuctionWatchRepository(),
-          ),
         ],
       );
       addTearDown(container.dispose);
@@ -363,9 +352,6 @@ void main() {
         overrides: [
           authControllerProvider.overrideWith(() => auth),
           auctionRepositoryProvider.overrideWithValue(repo),
-          auctionWatchRepositoryProvider.overrideWithValue(
-            _FakeAuctionWatchRepository(),
-          ),
         ],
       );
       addTearDown(container.dispose);
@@ -410,9 +396,6 @@ void main() {
         overrides: [
           authControllerProvider.overrideWith(() => auth),
           auctionRepositoryProvider.overrideWithValue(repo),
-          auctionWatchRepositoryProvider.overrideWithValue(
-            _FakeAuctionWatchRepository(),
-          ),
         ],
       );
       addTearDown(container.dispose);
@@ -466,9 +449,6 @@ void main() {
         overrides: [
           authControllerProvider.overrideWith(() => auth),
           auctionRepositoryProvider.overrideWithValue(repo),
-          auctionWatchRepositoryProvider.overrideWithValue(
-            _FakeAuctionWatchRepository(),
-          ),
         ],
       );
       addTearDown(container.dispose);
@@ -505,9 +485,6 @@ void main() {
         overrides: [
           authControllerProvider.overrideWith(() => auth),
           auctionRepositoryProvider.overrideWithValue(repo),
-          auctionWatchRepositoryProvider.overrideWithValue(
-            _FakeAuctionWatchRepository(),
-          ),
         ],
       );
       addTearDown(container.dispose);
@@ -558,9 +535,6 @@ void main() {
         overrides: [
           authControllerProvider.overrideWith(() => auth),
           auctionRepositoryProvider.overrideWithValue(repo),
-          auctionWatchRepositoryProvider.overrideWithValue(
-            _FakeAuctionWatchRepository(),
-          ),
         ],
       );
       addTearDown(container.dispose);
@@ -605,9 +579,6 @@ void main() {
         overrides: [
           authControllerProvider.overrideWith(() => auth),
           auctionRepositoryProvider.overrideWithValue(repo),
-          auctionWatchRepositoryProvider.overrideWithValue(
-            _FakeAuctionWatchRepository(),
-          ),
         ],
       );
       addTearDown(container.dispose);
@@ -648,7 +619,6 @@ void main() {
               status: AuctionStatus.waitingSettlement,
               currentBid: 1500000,
               winnerId: 'buyer-1',
-              winnerUsername: 'buyer_one',
               settlementDeadline: DateTime.utc(2026, 7, 6),
             ),
           ]);
@@ -656,17 +626,14 @@ void main() {
       );
       final auth = _FakeAuthController(AuthState.authenticated(_seller(id: 'seller-1'), emailVerified: true));
       final router = GoRouter(
-        initialLocation: RoutePaths.sellerAuctions,
+        initialLocation: '/seller/auctions',
         routes: [
           GoRoute(
-            path: RoutePaths.sellerAuctions,
+            path: '/seller/auctions',
             builder: (context, state) => ProviderScope(
               overrides: [
                 authControllerProvider.overrideWith(() => auth),
                 auctionRepositoryProvider.overrideWithValue(repo),
-                auctionWatchRepositoryProvider.overrideWithValue(
-                  _FakeAuctionWatchRepository(),
-                ),
                 loggerServiceProvider.overrideWithValue(_FakeLoggerService()),
               ],
               child: const SellerAuctionsScreen(),
@@ -718,17 +685,14 @@ void main() {
       );
       final auth = _FakeAuthController(AuthState.authenticated(_seller(id: 'seller-1'), emailVerified: true));
       final router = GoRouter(
-        initialLocation: RoutePaths.sellerAuctions,
+        initialLocation: '/seller/auctions',
         routes: [
           GoRoute(
-            path: RoutePaths.sellerAuctions,
+            path: '/seller/auctions',
             builder: (context, state) => ProviderScope(
               overrides: [
                 authControllerProvider.overrideWith(() => auth),
                 auctionRepositoryProvider.overrideWithValue(repo),
-                auctionWatchRepositoryProvider.overrideWithValue(
-                  _FakeAuctionWatchRepository(),
-                ),
                 loggerServiceProvider.overrideWithValue(_FakeLoggerService()),
               ],
               child: const SellerAuctionsScreen(),
@@ -780,9 +744,6 @@ void main() {
           overrides: [
             authControllerProvider.overrideWith(() => auth),
             auctionRepositoryProvider.overrideWithValue(repo),
-            auctionWatchRepositoryProvider.overrideWithValue(
-              _FakeAuctionWatchRepository(),
-            ),
             loggerServiceProvider.overrideWithValue(_FakeLoggerService()),
           ],
           child: MaterialApp(

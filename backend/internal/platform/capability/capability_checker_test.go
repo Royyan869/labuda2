@@ -189,6 +189,21 @@ func (m *mockCapabilityRepository) CountActiveCapabilities(ctx context.Context, 
 }
 
 // ListUsersByCapability implements CapabilityRepository.
+// CreateGrant / RevokeGuarded / GetUserRole complete the canonical repository
+// contract. The full-access invariant is a database concern proven against a
+// real database; this mock only mirrors the call shapes.
+func (m *mockCapabilityRepository) CreateGrant(ctx context.Context, cap *entity.UserCapability) error {
+	return m.Create(ctx, nil, cap)
+}
+
+func (m *mockCapabilityRepository) RevokeGuarded(ctx context.Context, id uuid.UUID) error {
+	return m.Revoke(ctx, nil, id, nil)
+}
+
+func (m *mockCapabilityRepository) GetUserRole(_ context.Context, _ uuid.UUID) (string, error) {
+	return "", nil
+}
+
 func (m *mockCapabilityRepository) ListUsersByCapability(ctx context.Context, tx interface{}, capability string) ([]uuid.UUID, error) {
 	seen := make(map[uuid.UUID]bool)
 	var result []uuid.UUID

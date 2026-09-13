@@ -62,7 +62,10 @@ func (h *CapabilityHandler) ListCapabilities(c *gin.Context) {
 
 // GetUserCapabilities handles GET /api/v1/admin/users/:id/capabilities
 //
-// Returns all active capabilities for a specific user.
+// Returns the target's role, active capabilities, and the DERIVED full-access
+// state. Full access is computed by the backend from the canonical authority
+// (role + coverage of the canonical universe) so the dashboard never
+// re-implements the set comparison client-side.
 func (h *CapabilityHandler) GetUserCapabilities(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -73,18 +76,13 @@ func (h *CapabilityHandler) GetUserCapabilities(c *gin.Context) {
 		return
 	}
 
-	// Get user capabilities
-	userCaps, err := h.service.GetUserCapabilities(ctx, targetUserID)
+	summary, err := h.service.GetUserAuthoritySummary(ctx, targetUserID)
 	if err != nil {
 		response.InternalServerError(c, "Failed to fetch user capabilities")
 		return
 	}
 
-	response.Success(c, gin.H{
-		"user_id":      targetUserID,
-		"capabilities": userCaps,
-		"total":        len(userCaps),
-	})
+	response.Success(c, summary)
 }
 
 // AssignCapability handles POST /api/v1/admin/users/:id/capabilities
@@ -179,6 +177,8 @@ func (h *CapabilityHandler) RevokeCapability(c *gin.Context) {
 			response.BadRequest(c, "Invalid capability: "+capabilityStr)
 		case *application.ErrCapabilityNotFound:
 			response.NotFound(c, "User does not have this capability")
+		case *application.ErrLastFullAccessAdminCapability:
+			response.Conflict(c, "Cannot revoke the last full-access admin's capability; grant full access to another admin first")
 		case *application.ErrCannotRevokeOwnCriticalCapability:
 			response.BadRequest(c, "Cannot revoke your own critical capability")
 		default:

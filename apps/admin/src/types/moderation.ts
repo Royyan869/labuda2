@@ -133,8 +133,8 @@ export const warningLevelLabels: Record<WarningLevel, string> = {
   severe: 'Severe',
 }
 
-export const warningLevelVariants: Record<WarningLevel, 'info' | 'pending' | 'error'> = {
+export const warningLevelVariants: Record<WarningLevel, 'info' | 'warning' | 'error'> = {
   info: 'info',
-  pending: 'pending',
+  warning: 'warning',
   severe: 'error',
 }

@@ -7,10 +7,10 @@ import (
 )
 
 // PHASE 3A — adapter mapping tests. These tests pin the
-// AdaptSearchContentDecision mapping table so the future Batch 3B
-// enforcement wiring can rely on it. NONE of these tests exercise IO,
-// DB state, ViewerContext hydration, or response shape — the adapter is
-// strictly pure and operates on the canonical evaluator return tuple.
+// AdaptSearchContentDecision mapping table. NONE of these tests exercise
+// IO, DB state, ViewerContext hydration, or response shape — the adapter
+// is strictly pure and operates on the canonical evaluator return tuple,
+// and its mapping is unconditional (no mode parameter).
 
 func ptr(s string) *string { return &s }
 
@@ -21,7 +21,6 @@ func TestAdapter_AllowPassesThroughClean(t *testing.T) {
 		evaluator.ShadowDecisionAllow,
 		evaluator.SearchUnknownReasonNone,
 		evaluator.SearchExposureSemanticAllow,
-		evaluator.SearchContentAdapterModeShadow,
 	)
 	if !got.Include {
 		t.Errorf("ALLOW: Include = false; want true")
@@ -38,14 +37,13 @@ func TestAdapter_AllowPassesThroughClean(t *testing.T) {
 }
 
 // TestAdapter_DenyExcludesNoOverride asserts that DENY produces an
-// excluded row with no lifecycle override — the row would be dropped
-// from the response in enforce mode.
+// excluded row with no lifecycle override — the row is dropped from the
+// response.
 func TestAdapter_DenyExcludesNoOverride(t *testing.T) {
 	got := evaluator.AdaptSearchContentDecision(
 		evaluator.ShadowDecisionDeny,
 		evaluator.SearchUnknownReasonNone,
 		evaluator.SearchExposureSemanticUnknownShadowOnly,
-		evaluator.SearchContentAdapterModeShadow,
 	)
 	if got.Include {
 		t.Errorf("DENY: Include = true; want false")
@@ -65,7 +63,6 @@ func TestAdapter_TombstoneRemovedLifecycle(t *testing.T) {
 		evaluator.ShadowDecisionTombstone,
 		evaluator.SearchUnknownReasonNone,
 		evaluator.SearchExposureSemanticUnknownShadowOnly,
-		evaluator.SearchContentAdapterModeShadow,
 	)
 	if !got.Include {
 		t.Errorf("TOMBSTONE: Include = false; want true (degraded card path)")
@@ -85,7 +82,6 @@ func TestAdapter_RedactUnavailableLifecycle(t *testing.T) {
 		evaluator.ShadowDecisionRedact,
 		evaluator.SearchUnknownReasonNone,
 		evaluator.SearchExposureSemanticUnknownShadowOnly,
-		evaluator.SearchContentAdapterModeShadow,
 	)
 	if !got.Include {
 		t.Errorf("REDACT: Include = false; want true")
@@ -105,7 +101,7 @@ func TestAdapter_RedactUnavailableLifecycle(t *testing.T) {
 // This is the "incomplete overlay ≠ proof of denial" rule from the
 // Batch 3 audit. Without this fail-open behavior, a transient overlay
 // hydration error would silently exclude legitimate items from search
-// results once Batch 3B flips enforce mode on.
+// results.
 func TestAdapter_UnknownOverlayMissingFailsOpen(t *testing.T) {
 	cases := []struct {
 		name   string
@@ -122,7 +118,6 @@ func TestAdapter_UnknownOverlayMissingFailsOpen(t *testing.T) {
 				evaluator.ShadowDecisionUnknown,
 				tc.reason,
 				evaluator.SearchExposureSemanticUnknownShadowOnly,
-				evaluator.SearchContentAdapterModeShadow,
 			)
 			if !got.Include {
 				t.Errorf("%s: Include = false; want true (fail-open doctrine)", tc.name)
@@ -139,10 +134,9 @@ func TestAdapter_UnknownOverlayMissingFailsOpen(t *testing.T) {
 
 // TestAdapter_UnknownInputInvalidFailsClosed asserts that an UNKNOWN
 // outcome caused by an input-invalid classification (nil ViewerContext
-// or nil row from the handler) is treated as fail-CLOSED — the row
-// would be excluded in enforce mode. Nil ViewerContext is a handler
-// construction defect, NOT a hydration race; promoting authority means
-// surfacing those defects, not silently allowing them past.
+// or nil row from the handler) is treated as fail-CLOSED — the row is
+// excluded. Nil ViewerContext is a handler construction defect, NOT a
+// hydration race.
 //
 // This pairs with viewer-context-contract.md §8.1 — the caller is
 // responsible for constructing ViewerContext; nil at the evaluator
@@ -152,7 +146,6 @@ func TestAdapter_UnknownInputInvalidFailsClosed(t *testing.T) {
 		evaluator.ShadowDecisionUnknown,
 		evaluator.SearchUnknownReasonInputInvalid,
 		evaluator.SearchExposureSemanticUnknownShadowOnly,
-		evaluator.SearchContentAdapterModeShadow,
 	)
 	if got.Include {
 		t.Errorf("UNKNOWN/input_invalid: Include = true; want false (fail-closed doctrine)")
@@ -163,57 +156,6 @@ func TestAdapter_UnknownInputInvalidFailsClosed(t *testing.T) {
 	if got.Reason != evaluator.SearchContentDecisionReasonUnknownFailClosed {
 		t.Errorf("UNKNOWN/input_invalid: Reason = %q; want unknown_fail_closed", got.Reason)
 	}
-}
-
-// TestAdapter_ModeIsPassive asserts the canonical contract that mode
-// NEVER changes the mapping. The adapter's job is to produce a single
-// decision; the caller decides whether to ACT on it based on mode.
-//
-// Failing this test would mean an unsafe mode-conditional path slipped
-// into the adapter — the kind of drift that makes promotion unsafe
-// because the same input could yield different decisions in shadow vs
-// enforce mode.
-func TestAdapter_ModeIsPassive(t *testing.T) {
-	inputs := []struct {
-		name     string
-		decision evaluator.ShadowDecision
-		reason   evaluator.SearchUnknownReason
-	}{
-		{"allow", evaluator.ShadowDecisionAllow, evaluator.SearchUnknownReasonNone},
-		{"deny", evaluator.ShadowDecisionDeny, evaluator.SearchUnknownReasonNone},
-		{"tombstone", evaluator.ShadowDecisionTombstone, evaluator.SearchUnknownReasonNone},
-		{"redact", evaluator.ShadowDecisionRedact, evaluator.SearchUnknownReasonNone},
-		{"unknown_overlay", evaluator.ShadowDecisionUnknown, evaluator.SearchUnknownReasonViewerOverlayMissing},
-		{"unknown_invalid", evaluator.ShadowDecisionUnknown, evaluator.SearchUnknownReasonInputInvalid},
-	}
-	for _, in := range inputs {
-		t.Run(in.name, func(t *testing.T) {
-			shadow := evaluator.AdaptSearchContentDecision(in.decision, in.reason, evaluator.SearchExposureSemanticUnknownShadowOnly, evaluator.SearchContentAdapterModeShadow)
-			enforce := evaluator.AdaptSearchContentDecision(in.decision, in.reason, evaluator.SearchExposureSemanticUnknownShadowOnly, evaluator.SearchContentAdapterModeEnforce)
-			if shadow.Include != enforce.Include {
-				t.Errorf("%s: Include differs across modes (shadow=%v enforce=%v); mapping MUST be mode-independent",
-					in.name, shadow.Include, enforce.Include)
-			}
-			if !equalLifecycleOverride(shadow.LifecycleOverride, enforce.LifecycleOverride) {
-				t.Errorf("%s: LifecycleOverride differs across modes (shadow=%v enforce=%v); mapping MUST be mode-independent",
-					in.name, shadow.LifecycleOverride, enforce.LifecycleOverride)
-			}
-			if shadow.Reason != enforce.Reason {
-				t.Errorf("%s: Reason differs across modes (shadow=%q enforce=%q); mapping MUST be mode-independent",
-					in.name, shadow.Reason, enforce.Reason)
-			}
-		})
-	}
-}
-
-func equalLifecycleOverride(a, b *string) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a == nil || b == nil {
-		return false
-	}
-	return *a == *b
 }
 
 // TestAdapter_ShadowMetricsAreNotProofOfSafety encodes the Batch 3 audit
@@ -238,13 +180,11 @@ func TestAdapter_ShadowMetricsAreNotProofOfSafety(t *testing.T) {
 		evaluator.ShadowDecisionAllow,
 		evaluator.SearchUnknownReasonNone,
 		evaluator.SearchExposureSemanticAllow,
-		evaluator.SearchContentAdapterModeShadow,
 	)
 	failOpen := evaluator.AdaptSearchContentDecision(
 		evaluator.ShadowDecisionUnknown,
 		evaluator.SearchUnknownReasonViewerOverlayMissing,
 		evaluator.SearchExposureSemanticUnknownShadowOnly,
-		evaluator.SearchContentAdapterModeShadow,
 	)
 
 	// Both Include=true today, but the Reason MUST distinguish them so
@@ -264,47 +204,6 @@ func TestAdapter_ShadowMetricsAreNotProofOfSafety(t *testing.T) {
 	}
 	if failOpen.Reason != evaluator.SearchContentDecisionReasonUnknownFailOpen {
 		t.Errorf("fail-open Reason = %q; want unknown_fail_open", failOpen.Reason)
-	}
-}
-
-// TestNormalizeSearchContentAdapterMode asserts the safety-default
-// contract: any unrecognized / empty env value MUST resolve to shadow
-// mode. Enforce mode is opt-in only; a typo or missing env var must
-// never trigger enforcement.
-func TestNormalizeSearchContentAdapterMode(t *testing.T) {
-	cases := []struct {
-		in   string
-		want evaluator.SearchContentAdapterMode
-	}{
-		{"", evaluator.SearchContentAdapterModeShadow},
-		{"shadow", evaluator.SearchContentAdapterModeShadow},
-		{"enforce", evaluator.SearchContentAdapterModeEnforce},
-		{"SHADOW", evaluator.SearchContentAdapterModeShadow}, // case-sensitive — caller must lowercase before passing
-		{"production", evaluator.SearchContentAdapterModeShadow},
-		{"ENFORCE", evaluator.SearchContentAdapterModeShadow},
-		{"true", evaluator.SearchContentAdapterModeShadow},
-	}
-	for _, c := range cases {
-		if got := evaluator.NormalizeSearchContentAdapterMode(c.in); got != c.want {
-			t.Errorf("Normalize(%q) = %q; want %q", c.in, got, c.want)
-		}
-	}
-}
-
-// TestSearchContentAdapterModeIsValid asserts the IsValid predicate
-// recognizes ONLY the two canonical modes.
-func TestSearchContentAdapterModeIsValid(t *testing.T) {
-	if !evaluator.SearchContentAdapterModeShadow.IsValid() {
-		t.Errorf("shadow.IsValid() = false; want true")
-	}
-	if !evaluator.SearchContentAdapterModeEnforce.IsValid() {
-		t.Errorf("enforce.IsValid() = false; want true")
-	}
-	if (evaluator.SearchContentAdapterMode("")).IsValid() {
-		t.Errorf("empty.IsValid() = true; want false")
-	}
-	if (evaluator.SearchContentAdapterMode("ENFORCE")).IsValid() {
-		t.Errorf("uppercase.IsValid() = true; want false")
 	}
 }
 

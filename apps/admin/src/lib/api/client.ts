@@ -1,5 +1,6 @@
 import { auth } from '../firebase'
 import { signOut } from 'firebase/auth'
+import { useAuthStore } from '../../store/authStore'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
@@ -71,6 +72,16 @@ function extractErrorMessage(data: unknown, status: number): string {
     if (typeof d.error === 'string') {
       return d.error
     }
+    // The backend error envelope is { success: false, error: { code, message } }.
+    // Without unwrapping the nested object, every server error surfaced to the
+    // admin as the generic "HTTP <status>: An error occurred" fallback, hiding
+    // the real backend message.
+    if (d.error && typeof d.error === 'object') {
+      const nested = d.error as Record<string, unknown>
+      if (typeof nested.message === 'string') {
+        return nested.message
+      }
+    }
     if (typeof d.detail === 'string') {
       return d.detail
     }
@@ -95,10 +106,15 @@ function extractErrorMessage(data: unknown, status: number): string {
 }
 
 /**
- * Handle auth errors - redirect to login
+ * Handle auth errors - invalidate the canonical session, then redirect to login.
+ *
+ * The invalidation is explicit: it does not depend on the subsequent reload to
+ * make `authStore` correct, so no consumer can keep observing a session whose
+ * credential the backend just rejected.
  */
 function handleAuthError(): never {
   clearAuthToken()
+  useAuthStore.getState().signOut()
   window.location.href = '/login'
   throw new AuthError(null, 'Session expired. Please log in again.')
 }
@@ -213,4 +229,8 @@ export const api = {
 export async function logoutAdmin(): Promise<void> {
   await signOut(auth).catch(() => {})
   clearAuthToken()
+  // Canonical auth-state invalidation: clears user, sessionToken and error, so
+  // the logged-out session cannot be read back from memory even before the
+  // redirect happens.
+  useAuthStore.getState().signOut()
 }

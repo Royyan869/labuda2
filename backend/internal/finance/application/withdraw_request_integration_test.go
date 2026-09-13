@@ -15,6 +15,8 @@ import (
 	financerepo "github.com/labuda/backend/internal/finance/infrastructure/repository"
 	bankaccountrepo "github.com/labuda/backend/internal/finance/bankaccount/infrastructure/repository"
 	ledgerentryrepo "github.com/labuda/backend/internal/finance/repository"
+	platformconfigApp "github.com/labuda/backend/internal/platform/config/application"
+	platformconfigRepo "github.com/labuda/backend/internal/platform/config/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/money"
 	"github.com/labuda/backend/pkg/testdb"
@@ -197,6 +199,12 @@ func setupWithdrawalIntegrationService(
 		outboxRepo: nil,
 	}
 	svc.SetCanonicalAuthority(authority)
+
+	// Wire the REAL platform config authority end-to-end: the migration chain
+	// seeds seller_withdrawal_fee_rupiah = 5000, ConfigService reads it inside
+	// the request transaction, and WithdrawService snapshots it onto the
+	// withdrawal row (default baseline Rp5.000; Rp0 configurable).
+	svc.SetWithdrawalFeeProvider(platformconfigApp.NewConfigService(platformconfigRepo.NewPlatformConfigRepository()))
 
 	return tdb, svc, sellerID, bankID, cleanup
 }

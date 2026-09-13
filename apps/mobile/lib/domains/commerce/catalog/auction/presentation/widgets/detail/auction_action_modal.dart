@@ -5,14 +5,42 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/governance/seller_inactive_badge.dart';
 
-typedef BidCallback = void Function(double amount);
+/// Canonical Place Bid amount representation is integer (backend binds
+/// `amount` to int64 and persists to PostgreSQL bigint; a JSON literal like
+/// `1000000.0` is rejected at the binding). The whole live write chain emits
+/// int only — no double alias, no silent coercion.
+typedef BidCallback = void Function(int amount);
 typedef BuyNowCallback = void Function();
+
+/// Canonical parse for the Place Bid amount input.
+///
+/// Integer is the single numeric representation of the live Place Bid write
+/// chain (backend binds `amount` to int64, persists to PostgreSQL bigint).
+/// Fractional or malformed input parses to null and MUST be rejected
+/// explicitly by the caller — no round/floor/ceil/truncation ever happens
+/// here: "1000000.9" never becomes 1000000 silently.
+int? parseCanonicalBidAmount(String rawInput) {
+  final input = rawInput.trim();
+  if (input.isEmpty) return null;
+  // Thousands-grouped form: strip separators only for strictly valid
+  // grouping ("1,000,000"). Any other comma placement (e.g. "12,5", which
+  // in id-ID locale means 12.5) is REJECTED explicitly — never silently
+  // reinterpreted. Fractional and malformed input likewise return null so
+  // the caller rejects the bid instead of coercing the nominal.
+  final grouped = RegExp(r'^\d{1,3}(,\d{3})+$');
+  final normalized = grouped.hasMatch(input)
+      ? input.replaceAll(',', '')
+      : input;
+  if (normalized.contains(',')) return null;
+  return int.tryParse(normalized);
+}
 
 /// Action modal for auction detail
 class AuctionActionModal extends ConsumerStatefulWidget {
@@ -51,15 +79,15 @@ class AuctionActionModal extends ConsumerStatefulWidget {
 
 class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
   late TextEditingController _bidController;
-  late double _minimumBid;
+  late int _minimumBid;
 
   @override
   void initState() {
     super.initState();
+    // Read entity is canonical int (PASS 1 numeric read convergence) — the
+    // minimum is computed int + int with no conversion bridge of any kind.
     _minimumBid = widget.auction.currentBid + widget.auction.bidIncrement;
-    _bidController = TextEditingController(
-      text: _minimumBid.toStringAsFixed(0),
-    );
+    _bidController = TextEditingController(text: _minimumBid.toString());
   }
 
   @override
@@ -69,12 +97,26 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
   }
 
   void _handlePlaceBid() {
-    final input = _bidController.text.replaceAll(',', '');
-    final amount = double.tryParse(input);
-    if (amount == null || amount < _minimumBid) {
+    // Canonical integer parsing — fractional or malformed input is rejected
+    // explicitly at this boundary. "1000000.9" never reaches the chain as a
+    // coerced 1000000; there is no round/floor/ceil and no double detour
+    // anywhere below this parse.
+    final amount = parseCanonicalBidAmount(_bidController.text);
+    if (amount == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Nominal bid harus bilangan bulat rupiah (tanpa desimal).',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    if (amount < _minimumBid) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Bid minimum: Rp ${_minimumBid.toStringAsFixed(0)}'),
+          content: Text('Bid minimum: Rp $_minimumBid'),
           backgroundColor: Colors.red,
         ),
       );
@@ -93,7 +135,7 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
             const Text('Kamu akan menawar sebesar'),
             const SizedBox(height: 12),
             Text(
-              'Rp ${amount.toStringAsFixed(0)}',
+              'Rp $amount',
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -239,7 +281,7 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
               children: [
                 const Text('Bid Minimum'),
                 Text(
-                  'Rp ${_minimumBid.toStringAsFixed(0)}',
+                  'Rp $_minimumBid',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.blue,
@@ -255,9 +297,13 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
           const SizedBox(height: 8),
           TextField(
             controller: _bidController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            // Canonical integer amount: digits-only input, no decimal keypad,
+            // no thousands separators. Fractions cannot be typed, pasted, or
+            // silently coerced anywhere on the Place Bid path.
+            keyboardType: const TextInputType.numberWithOptions(decimal: false),
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: InputDecoration(
-              hintText: 'Rp ${_minimumBid.toStringAsFixed(0)}',
+              hintText: 'Rp $_minimumBid',
               prefixText: 'Rp ',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),

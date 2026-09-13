@@ -255,3 +255,85 @@ class EarningsDto extends Equatable {
     calculatedAt,
   ];
 }
+
+/// One selectable payment method for a seller subscription payment, as returned
+/// by GET /seller/subscription/payment-methods.
+///
+/// PMF-02: every payment flow carries a payment-method fee, and the backend is
+/// the sole fee authority. [serviceFeeAmount] (F) and [grossAmount] (A + F) are
+/// computed server-side from the active subscription principal A — the client
+/// must never recompute, adjust, or submit either value.
+class SellerSubscriptionPaymentMethodDto extends Equatable {
+  /// Canonical payment_method_code sent back to the initiation endpoint.
+  final String methodCode;
+
+  /// Human-readable method name for the picker.
+  final String displayName;
+
+  /// Payment-method fee F the backend will snapshot for this method.
+  final int serviceFeeAmount;
+
+  /// Total the gateway will charge for this method: A + F.
+  final int grossAmount;
+
+  const SellerSubscriptionPaymentMethodDto({
+    required this.methodCode,
+    required this.displayName,
+    required this.serviceFeeAmount,
+    required this.grossAmount,
+  });
+
+  factory SellerSubscriptionPaymentMethodDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return SellerSubscriptionPaymentMethodDto(
+      methodCode: json['method_code'] as String,
+      displayName: json['display_name'] as String,
+      serviceFeeAmount: (json['service_fee_amount'] as num?)?.toInt() ?? 0,
+      grossAmount: (json['gross_amount'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    methodCode,
+    displayName,
+    serviceFeeAmount,
+    grossAmount,
+  ];
+}
+
+/// Response wrapper for GET /seller/subscription/payment-methods.
+///
+/// [principalAmount] is the active subscription principal A that the backend
+/// will snapshot into the payment; each method's gross is A + its fee.
+class SellerSubscriptionPaymentMethodsDto extends Equatable {
+  final int principalAmount;
+  final String currency;
+  final List<SellerSubscriptionPaymentMethodDto> methods;
+
+  const SellerSubscriptionPaymentMethodsDto({
+    required this.principalAmount,
+    required this.currency,
+    required this.methods,
+  });
+
+  factory SellerSubscriptionPaymentMethodsDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return SellerSubscriptionPaymentMethodsDto(
+      principalAmount: (json['principal_amount'] as num?)?.toInt() ?? 0,
+      currency: json['currency'] as String? ?? 'IDR',
+      methods: (json['methods'] as List<dynamic>? ?? const [])
+          .map(
+            (e) => SellerSubscriptionPaymentMethodDto.fromJson(
+              e as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  @override
+  List<Object?> get props => [principalAmount, currency, methods];
+}

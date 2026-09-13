@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/labuda/backend/internal/platform/capability/entity"
+	"github.com/labuda/backend/internal/platform/capability/invariant"
 	capabilityRepo "github.com/labuda/backend/internal/platform/capability/repository"
 	"github.com/labuda/backend/pkg/db"
 )
@@ -259,6 +260,54 @@ func (r *CapabilityRepositoryImpl) Revoke(
 	}
 
 	return nil
+}
+
+// CreateGrant persists a new capability grant in its own transaction.
+func (r *CapabilityRepositoryImpl) CreateGrant(
+	ctx context.Context,
+	cap *entity.UserCapability,
+) error {
+	return r.db.WithTx(ctx, func(tx db.Tx) error {
+		return r.Create(ctx, tx, cap)
+	})
+}
+
+// RevokeGuarded soft-deletes a capability grant inside a transaction that
+// serializes against the full-access admin invariant and refuses a change that
+// would leave zero full-access admins.
+//
+// The advisory lock is taken BEFORE the update so concurrent reductions cannot
+// interleave; the invariant is re-checked AFTER the update, and a failure rolls
+// the whole transaction (including the update) back.
+func (r *CapabilityRepositoryImpl) RevokeGuarded(
+	ctx context.Context,
+	id uuid.UUID,
+) error {
+	return r.db.WithTx(ctx, func(tx db.Tx) error {
+		if err := invariant.Lock(ctx, tx); err != nil {
+			return err
+		}
+		if err := r.Revoke(ctx, tx, id, nil); err != nil {
+			return err
+		}
+		return invariant.Verify(ctx, tx)
+	})
+}
+
+// GetUserRole returns users.role for a user, or "" when the user does not exist.
+func (r *CapabilityRepositoryImpl) GetUserRole(
+	ctx context.Context,
+	userID uuid.UUID,
+) (string, error) {
+	var role string
+	err := r.db.Pool().QueryRow(ctx, `SELECT role FROM users WHERE id = $1`, userID).Scan(&role)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return "", nil
+		}
+		return "", fmt.Errorf("get user role failed: %w", err)
+	}
+	return role, nil
 }
 
 // HasCapability checks if a user has an active capability.

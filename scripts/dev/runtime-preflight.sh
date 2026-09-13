@@ -33,14 +33,6 @@ probe_http() {
   fi
 }
 
-env_mode() {
-  local f=$1
-  [ -f "$f" ] || { echo "absent"; return; }
-  local v
-  v=$(grep -E '^SEARCH_CONTENT_EVALUATOR_MODE=' "$f" 2>/dev/null | tail -1 | cut -d= -f2-)
-  echo "${v:-unset → defaults to shadow}"
-}
-
 echo "== runtime preflight =="
 echo "[infrastructure]"
 docker info >/dev/null 2>&1 && echo "  OK   docker daemon" || echo "  --   docker daemon (start Docker Desktop)"
@@ -53,13 +45,10 @@ probe_http "http://localhost:8080/health/live"  "/health/live"
 probe_http "http://localhost:8080/health/ready" "/health/ready"
 probe_http "http://localhost:8080/metrics"      "/metrics"
 
-echo "[evaluator mode]"
-echo "  .env             SEARCH_CONTENT_EVALUATOR_MODE=$(env_mode backend/.env)"
-echo "  .env.example     SEARCH_CONTENT_EVALUATOR_MODE=$(env_mode backend/.env.example)"
-
 echo "[hint]"
 echo "  next steps if anything above is '--':"
 echo "    docker daemon  → start Docker Desktop"
 echo "    postgres/redis → docker-compose up -d"
 echo "    backend        → cd backend && go run ./cmd/core_server"
-echo "    enforce mode   → echo SEARCH_CONTENT_EVALUATOR_MODE=enforce >> backend/.env"
+echo "    evaluator mode → enforce is the only valid value (unset → enforce);"
+echo "                     any other value refuses boot. No shadow rollback exists."

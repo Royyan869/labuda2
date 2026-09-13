@@ -44,7 +44,7 @@ func TestEnforceContentDetail_W3B_NilInputsFailClosed(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			res := EnforceContentDetail(ContentDetailEvaluatorModeEnforce, tc.vc, tc.tc, tc.content)
+			res := EnforceContentDetail(tc.vc, tc.tc, tc.content)
 			if res.Allow {
 				t.Errorf("Allow = true, want false (fail-CLOSED on nil input)")
 			}
@@ -52,27 +52,6 @@ func TestEnforceContentDetail_W3B_NilInputsFailClosed(t *testing.T) {
 				t.Errorf("Reason = %q, want unknown_fail_closed", res.Reason)
 			}
 		})
-	}
-}
-
-// TestEnforceContentDetail_W3B_ShadowModeAllowsRegardless pins the
-// rollback contract: shadow mode short-circuits to Allow=true
-// regardless of decision outcome.
-func TestEnforceContentDetail_W3B_ShadowModeAllowsRegardless(t *testing.T) {
-	// Build inputs that WOULD deny in enforce mode (blocked viewer).
-	vc := makeContentDetailVC(cdViewerOpts{
-		lifecycleHydrated:    true,
-		relationshipHydrated: true,
-		blocked:              true,
-	})
-	tc := makeContentDetailTC(cdTargetOpts{ownerHydrated: true, moderationHydrated: true})
-	content := healthyContent()
-	res := EnforceContentDetail(ContentDetailEvaluatorModeShadow, vc, tc, content)
-	if !res.Allow {
-		t.Errorf("shadow mode must short-circuit to Allow=true; got %+v", res)
-	}
-	if res.Reason != ContentDetailDecisionReasonNone {
-		t.Errorf("shadow mode reason = %q, want none", res.Reason)
 	}
 }
 
@@ -168,7 +147,7 @@ func TestEvaluateContentDetail_W3B_BlockOverlayUnhydratedFailsClosed(t *testing.
 	}
 
 	// And the fail-CLOSED adapter converts that UNKNOWN to a 404.
-	res := EnforceContentDetail(ContentDetailEvaluatorModeEnforce, vc, tc, content)
+	res := EnforceContentDetail(vc, tc, content)
 	if res.Allow {
 		t.Errorf("fail-CLOSED on UNKNOWN: Allow=true, want false")
 	}

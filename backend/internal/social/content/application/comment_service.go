@@ -165,13 +165,18 @@ func (s *CommentService) AddComment(
 		return nil, &entity.ErrInvalidComment{Reason: "body cannot be empty"}
 	}
 
-	// Get content to validate status
+	// Canonical: viewer must be able to access parent content — same authority as detail/ list.
+	// Fail-closed: hidden/deleted/author-lifecycle/visibility/block all deny.
+	if _, visErr := s.loadVisibleContentForComment(ctx, tx, callerID, contentID); visErr != nil {
+		// Normalize all visibility/access failures to the same public message to avoid leaking reason.
+		return nil, &entity.ErrInvalidComment{Reason: "cannot comment on this content"}
+	}
 	content, err := s.contentRepo.GetByID(ctx, tx, contentID)
 	if err != nil {
 		return nil, fmt.Errorf("get content failed: %w", err)
 	}
 
-	// Validate: Cannot comment on deleted content
+	// Defensive: also reject if repository row is deleted (belt-and-suspenders with visibility check).
 	if content.Status == entity.StatusDeleted {
 		return nil, &entity.ErrInvalidComment{Reason: "cannot comment on deleted content"}
 	}

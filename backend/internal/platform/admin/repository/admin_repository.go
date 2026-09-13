@@ -35,6 +35,12 @@ type UserSummary struct {
 	CoinBalance   *int64
 	CreatedAt     interface{}
 	UpdatedAt     interface{}
+
+	// ActiveCapabilities is the user's active (revoked_at IS NULL) capability
+	// set, loaded in ONE batch query for the whole list page. It is raw data,
+	// not a stored authority: full access is derived from it by the single
+	// canonical authority (capability.IsFullAccessAdmin) at the DTO boundary.
+	ActiveCapabilities []string
 }
 
 // UserDetails represents a complete user with all information.
@@ -133,6 +139,17 @@ type AdminRepository interface {
 
 	// UpdateUserStatus updates the account_status of a user.
 	UpdateUserStatus(ctx context.Context, tx interface{}, userID uuid.UUID, status string) error
+
+	// UpdateUserStatusGuarded updates the account_status of a user while
+	// serializing against the canonical full-access admin invariant.
+	//
+	// Suspending or banning an account can remove the last active full-access
+	// admin. Unlike UpdateUserStatus (used by additive transitions such as
+	// activate/unban), this path takes the canonical invariant lock, applies the
+	// mutation, then verifies that at least one active full-access admin remains
+	// in the same transaction. It returns invariant.ErrLastFullAccessAdmin when
+	// the change would leave zero, and the caller's transaction rolls back.
+	UpdateUserStatusGuarded(ctx context.Context, tx interface{}, userID uuid.UUID, status string) error
 
 	// GetDashboardMetrics returns platform metrics.
 	GetDashboardMetrics(ctx context.Context, tx interface{}) (*DashboardMetrics, error)

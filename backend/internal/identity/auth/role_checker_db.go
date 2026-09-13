@@ -7,6 +7,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/audit"
+	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
+	"github.com/labuda/backend/internal/platform/capability/invariant"
 	"github.com/labuda/backend/pkg/db"
 )
 
@@ -28,18 +30,21 @@ func NewRoleCheckerDB(database *db.DB, adminAuditLogger audit.AdminAuditLogger) 
 }
 
 // IsAdmin checks if the user has admin role in the database.
+//
+// ADMIN MEMBERSHIP AUTHORITY — users.role is the ONLY source. There is no
+// system/UUID bypass: internal job identity is an attribution concern, not an
+// authorization identity, and must never make role="user" pass this check.
+//
+// This predicate must stay identical to Actor.IsAdmin() (capability/entity),
+// which is used by /admin/me and the capability middleware.
 func (rc *RoleCheckerDB) IsAdmin(ctx context.Context, userID uuid.UUID) (bool, error) {
-	if IsSystemCaller(userID) {
-		return true, nil
-	}
-
 	var role string
 	err := rc.db.Pool().QueryRow(ctx, "SELECT role FROM users WHERE id = $1", userID).Scan(&role)
 	if err != nil {
 		return false, fmt.Errorf("failed to query user role: %w", err)
 	}
 
-	return role == "admin", nil
+	return role == capabilityEntity.AdminRole, nil
 }
 
 // HasActiveSellerCapability checks if the user has active seller capability.
@@ -163,12 +168,19 @@ func (rc *RoleCheckerDB) SetRole(ctx context.Context, callerID uuid.UUID, userID
 	// Users cannot assign the admin role to themselves
 	// This is a safety boundary in case handler check is bypassed
 	if callerID == userID {
-		if role == "admin" {
+		if role == capabilityEntity.AdminRole {
 			return fmt.Errorf("self-escalation blocked: cannot assign elevated role to self")
 		}
 	}
 
 	return rc.db.WithTx(ctx, func(tx db.Tx) error {
+		// Serialize role changes against the full-access admin invariant.
+		// A demotion (admin -> user) removes that admin's full access, so the
+		// invariant check must not race a concurrent demotion.
+		if err := invariant.Lock(ctx, tx); err != nil {
+			return err
+		}
+
 		// Get old role for audit log
 		var oldRole string
 		err := tx.QueryRow(ctx, "SELECT role FROM users WHERE id = $1", userID).Scan(&oldRole)
@@ -198,6 +210,13 @@ func (rc *RoleCheckerDB) SetRole(ctx context.Context, callerID uuid.UUID, userID
 			},
 		); err != nil {
 			return fmt.Errorf("audit log failed: %w", err)
+		}
+
+		// INVARIANT: the system must always retain at least one full-access
+		// admin. Evaluated against this transaction's own visible state, so a
+		// failure rolls back the role change and the audit row together.
+		if err := invariant.Verify(ctx, tx); err != nil {
+			return err
 		}
 
 		return nil

@@ -50,7 +50,7 @@ void main() {
         expect(json['bloodline'], 'Sakai');
         expect(json['certificates'], const ['cert-1']);
         expect(json['farm_address_id'], 'address-1');
-        expect(json['shipping_setup_ids'], const ['option-1', 'option-2']);
+        expect(json['shipping_option_ids'], const ['option-1', 'option-2']);
         expect(json['start_price'], 1000000);
         expect(json['bid_increment'], 50000);
         expect(json['buy_now_price'], 2500000);
@@ -76,7 +76,7 @@ void main() {
     );
 
     test(
-      'CreateAuctionDto requires shipping_setup_ids even when empty (backend rejects empty list too)',
+      'CreateAuctionDto requires shipping_option_ids even when empty (backend rejects empty list too)',
       () {
         final dto = CreateAuctionDto(
           title: 'Showa Auction',
@@ -92,8 +92,8 @@ void main() {
         // test locks that the key is always present so an empty selection
         // fails loudly against the backend's `min=1` binding instead of the
         // field silently vanishing from the payload.
-        expect(dto.toJson()['shipping_setup_ids'], const []);
-        expect(dto.toJson().containsKey('shipping_setup_ids'), isTrue);
+        expect(dto.toJson()['shipping_option_ids'], const []);
+        expect(dto.toJson().containsKey('shipping_option_ids'), isTrue);
       },
     );
 
@@ -158,7 +158,7 @@ void main() {
         expect(json['bloodline'], 'Sakai');
         expect(json['certificates'], const ['cert-1']);
         expect(json['farm_address_id'], 'address-1');
-        expect(json['shipping_setup_ids'], const ['option-1', 'option-2']);
+        expect(json['shipping_option_ids'], const ['option-1', 'option-2']);
         expect(json['media_urls'], const ['https://cdn.example.com/a.jpg']);
         expect(json['preparation_note'], 'Handle with care');
         expect(json.containsKey('product_id'), isFalse);

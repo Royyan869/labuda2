@@ -7,6 +7,9 @@ import 'package:labuda/domains/user/profile/data/profile_providers.dart'
     show avatarCacheServiceProvider;
 import 'package:labuda/domains/user/profile/data/services/avatar_cache_service.dart';
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/shared/widgets/seller_identity_view.dart';
+import 'package:labuda/shared/widgets/profile_avatar.dart';
+import 'package:labuda/shared/models/seller_identity_data.dart';
 
 class _FakeAuthController extends AuthController {
   _FakeAuthController(this._state);
@@ -25,27 +28,6 @@ class _NoOpAvatarCacheService extends AvatarCacheService {
   Future<String?> getUserAvatarUrl(String userId) async => null;
 }
 
-class _FakePresenceRegistry extends PresenceSubscriptionRegistry {
-  @override
-  PresenceSubscriptionHandle acquire(Set<String> userIds) {
-    return PresenceSubscriptionHandle(() async {});
-  }
-
-  @override
-  Future<void> prepareForLogout() async {}
-
-  @override
-  PresenceState? lookup(String userId) => null;
-
-  @override
-  Map<String, PresenceState?> lookupMany(Iterable<String> userIds) => {};
-
-  @override
-  Future<void> publishSelfPresence({required bool isOnline}) async {}
-
-  @override
-  Future<void> setForeground(bool isForeground) async {}
-}
 
 AuthUser _user({
   required String id,
@@ -74,10 +56,7 @@ Widget _wrap({
     overrides: [
       authControllerProvider.overrideWith(() => _FakeAuthController(authState)),
       avatarCacheServiceProvider.overrideWith((_) => _NoOpAvatarCacheService()),
-      presenceSubscriptionRegistryProvider.overrideWithValue(
-        _FakePresenceRegistry(),
-      ),
-      userOnlineStatusProvider(trackedUserId).overrideWithValue(false),
+      userOnlineStatusProvider(trackedUserId).overrideWith((ref) => Stream.value(false)),
     ],
     child: MaterialApp(
       home: Scaffold(body: Center(child: child)),
@@ -137,7 +116,7 @@ void main() {
       'Magelang, Jawa Tengah',
     ]);
     expect(find.text('@Qiqi Store'), findsNothing);
-    expect(find.byType(SellerDualAvatar), findsOneWidget);
+    expect(find.byType(SellerIdentityView), findsOneWidget);
   });
 
   testWidgets(
@@ -175,7 +154,7 @@ void main() {
 
       final avatar = tester.widget<ProfileAvatar>(find.byType(ProfileAvatar));
       expect(avatar.imageUrl, isNull);
-      expect(avatar.username, 'qiqijho');
+      expect(avatar.initials, 'QI');
       expect(find.text('@Qiqi Store'), findsNothing);
     },
   );

@@ -84,28 +84,41 @@ export async function getAdminMe() {
  * GET /api/v1/admin/capabilities
  */
 export async function getCapabilities() {
-  return api.get<{ capabilities: Array<{
+  // Backend responds with the canonical envelope { success, data, timestamp }.
+  // Unwrap `data` at the client boundary so callers receive the payload
+  // directly, matching the rest of this module (getAuditLogs/getPlatformConfigs).
+  const resp = await api.get<{ data: { capabilities: Array<{
     capability: string
     category: string
     description: string
     critical: boolean
-  }>}>('/api/v1/admin/capabilities')
+  }> } }>('/api/v1/admin/capabilities')
+  return resp.data
 }
 
 /**
  * Get user capabilities
  * GET /api/v1/admin/users/:id/capabilities
+ *
+ * Returns the target's canonical role plus the DERIVED full-access state. The
+ * backend owns that derivation; the dashboard only displays it.
  */
 export async function getUserCapabilities(userId: string) {
-  return api.get<{
+  // Same canonical envelope — the authority summary lives under `data`.
+  const resp = await api.get<{ data: {
     user_id: string
+    role: 'user' | 'admin'
+    is_admin: boolean
     capabilities: Array<{
       capability: string
-      granted_by: string
+      granted_by?: string | null
       granted_at: string
     }>
     total: number
-  }>(`/api/v1/admin/users/${userId}/capabilities`)
+    full_access: boolean
+    missing_capabilities: string[]
+  } }>(`/api/v1/admin/users/${userId}/capabilities`)
+  return resp.data
 }
 
 /**

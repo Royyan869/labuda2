@@ -4,21 +4,17 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
 import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_watcher.dart';
 
 /// Bottom bar widget for auction detail actions
 class AuctionDetailBottomBar extends StatelessWidget {
   final Auction auction;
-  final AsyncValue<AuctionWatchStats> watchStatsAsync;
   final String currentUserId;
   final String currentUserName;
-  final VoidCallback onWatch;
   final VoidCallback onChat;
   final VoidCallback onAction;
   final VoidCallback? onWinnerCheckout;
@@ -27,10 +23,8 @@ class AuctionDetailBottomBar extends StatelessWidget {
   const AuctionDetailBottomBar({
     super.key,
     required this.auction,
-    required this.watchStatsAsync,
     required this.currentUserId,
     required this.currentUserName,
-    required this.onWatch,
     required this.onChat,
     required this.onAction,
     this.onWinnerCheckout,
@@ -227,28 +221,6 @@ class AuctionDetailBottomBar extends StatelessWidget {
   Widget _buildTerminalStateLayout() {
     return Row(
       children: [
-        // Watch button
-        watchStatsAsync.when(
-          data: (stats) => _buildActionButton(
-            icon: stats.isWatchedByCurrentUser
-                ? Icons.visibility
-                : Icons.visibility_outlined,
-            label: stats.isWatchedByCurrentUser ? 'Tersimpan' : 'Simpan',
-            onTap: onWatch,
-            color: stats.isWatchedByCurrentUser ? Colors.blue : Colors.grey,
-          ),
-          loading: () => _buildActionButton(
-            icon: Icons.visibility_outlined,
-            label: 'Simpan',
-            onTap: () {},
-          ),
-          error: (_, _) => _buildActionButton(
-            icon: Icons.visibility_outlined,
-            label: 'Simpan',
-            onTap: onWatch,
-          ),
-        ),
-        const SizedBox(width: 12),
         // Chat button — canonical viewer capability (can_chat) when present.
         if (_showChat) ...[
           _buildActionButton(
@@ -302,28 +274,6 @@ class AuctionDetailBottomBar extends StatelessWidget {
   Widget _buildNormalLayout() {
     return Row(
       children: [
-        // Watch button
-        watchStatsAsync.when(
-          data: (stats) => _buildActionButton(
-            icon: stats.isWatchedByCurrentUser
-                ? Icons.visibility
-                : Icons.visibility_outlined,
-            label: stats.isWatchedByCurrentUser ? 'Tersimpan' : 'Simpan',
-            onTap: onWatch,
-            color: stats.isWatchedByCurrentUser ? Colors.blue : Colors.grey,
-          ),
-          loading: () => _buildActionButton(
-            icon: Icons.visibility_outlined,
-            label: 'Simpan',
-            onTap: () {},
-          ),
-          error: (_, _) => _buildActionButton(
-            icon: Icons.visibility_outlined,
-            label: 'Simpan',
-            onTap: onWatch,
-          ),
-        ),
-        const SizedBox(width: 12),
         // Chat button — canonical viewer capability (can_chat) when present.
         if (_showChat) ...[
           _buildActionButton(

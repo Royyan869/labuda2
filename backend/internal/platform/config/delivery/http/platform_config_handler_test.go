@@ -148,6 +148,52 @@ func TestUpdateConfig_CommissionPercent_ValidBoundary(t *testing.T) {
 }
 
 // ============================================================================
+// Seller withdrawal fee tests
+// ============================================================================
+
+// TestUpdateConfig_WithdrawalFee_RequiresFinancialCap verifies the seller
+// withdrawal fee key requires the financial capability.
+func TestUpdateConfig_WithdrawalFee_RequiresFinancialCap(t *testing.T) {
+	actor := makeActor(capability.CapConfigUpdateGeneral.String())
+	h := newTestHandler(t)
+
+	c, w := makeUpdateCtx(t, "seller_withdrawal_fee_rupiah", "5000", actor)
+	h.UpdateConfig(c)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+// TestUpdateConfig_WithdrawalFee_ValidValues accepts 0 (free withdrawal)
+// and a positive baseline.
+func TestUpdateConfig_WithdrawalFee_ValidValues(t *testing.T) {
+	actor := makeActor(capability.CapConfigUpdateFinancial.String())
+	h := newTestHandler(t)
+
+	for _, v := range []string{"0", "5000"} {
+		t.Run(v, func(t *testing.T) {
+			assert.Panics(t, func() {
+				c, _ := makeUpdateCtx(t, "seller_withdrawal_fee_rupiah", v, actor)
+				h.UpdateConfig(c)
+			}, "expected panic at nil db — value %s passed validation", v)
+		})
+	}
+}
+
+// TestUpdateConfig_WithdrawalFee_InvalidValues rejects negative and
+// fractional values (whole Rupiah only).
+func TestUpdateConfig_WithdrawalFee_InvalidValues(t *testing.T) {
+	actor := makeActor(capability.CapConfigUpdateFinancial.String())
+	h := newTestHandler(t)
+
+	for _, v := range []string{"-1", "1.5"} {
+		t.Run(v, func(t *testing.T) {
+			c, w := makeUpdateCtx(t, "seller_withdrawal_fee_rupiah", v, actor)
+			h.UpdateConfig(c)
+			assert.Equal(t, http.StatusBadRequest, w.Code)
+		})
+	}
+}
+
+// ============================================================================
 // Future-only key rejection tests
 // ============================================================================
 

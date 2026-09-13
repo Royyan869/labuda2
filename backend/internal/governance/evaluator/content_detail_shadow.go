@@ -52,10 +52,9 @@ import (
 //  7. Owner lifecycle.
 //  8. ALLOW.
 //
-// Returns (decision, reason). UNKNOWN is only valid in shadow mode and
-// represents missing overlays or invalid input; the fail-CLOSED adapter
-// (content_detail_adapter.go) converts UNKNOWN to 404 in enforce mode
-// per doctrine §8.5.
+// Returns (decision, reason). UNKNOWN represents missing overlays or
+// invalid input; the fail-CLOSED adapter (content_detail_adapter.go)
+// converts UNKNOWN to 404 per doctrine §8.5.
 
 // LegacyContentDetailOutcome captures the response status code the legacy
 // handler actually emitted for the request the shadow is observing. The
@@ -191,13 +190,6 @@ type ContentDetailShadowRunner struct {
 	log     *zap.Logger
 	metrics *shadowMetrics
 	timeout time.Duration
-	// mode is the configured enforce operating mode (D1 convergence).
-	// Defaults to shadow at construction; set explicitly via WithMode at
-	// boot. The async Run path ignores this field for visibility-decision
-	// purposes — it is consumed only by the synchronous EnforceContentDetail
-	// handler path and by the per-request enforce_mode_total telemetry
-	// emission below.
-	mode ContentDetailEvaluatorMode
 }
 
 // NewContentDetailShadowRunner constructs a runner. F1-W3B: the pool
@@ -211,7 +203,6 @@ func NewContentDetailShadowRunner(log *zap.Logger) *ContentDetailShadowRunner {
 		log:     log,
 		metrics: newShadowMetrics(),
 		timeout: 2 * time.Second,
-		mode:    ContentDetailEvaluatorModeShadow, // safe default; flip via WithMode at boot
 	}
 }
 
@@ -264,9 +255,9 @@ func (r *ContentDetailShadowRunner) runShadow(
 
 	r.metrics.recordRequest(SurfaceContentDetail)
 
-	// D1 — per-request operating-mode telemetry. Mirror of the feed
-	// recordFeedEnforceMode emission (feed_shadow.go).
-	recordContentDetailEnforceMode(r.mode)
+	// D1 — per-request operating-mode telemetry. The canonical business
+	// mode is always enforce; the runner is observability-only.
+	recordContentDetailEnforceMode()
 
 	// Overlay completeness telemetry — emitted once per request.
 	// Cardinality preserved across the W3B rebuild: same overlay kinds,
@@ -311,7 +302,7 @@ func (r *ContentDetailShadowRunner) runShadow(
 	// decision_total / divergence_total signals. The adapter mapping is
 	// unconditional; only the caller's reaction to Include changes
 	// between shadow and enforce.
-	adapted := AdaptContentDetailDecision(decision, reason, r.mode)
+	adapted := AdaptContentDetailDecision(decision, reason)
 	recordContentDetailWouldEnforceDecision(adapted.Reason)
 
 	// Divergence classification. Unlike the feed seam, the content-

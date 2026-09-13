@@ -17,7 +17,9 @@ class AuctionBid {
   // D14 — coarsened public lifecycle of the bidder: "active" |
   // "unavailable" | "removed". Null when the backend has not hydrated.
   final String? bidderLifecycle;
-  final double amount;
+  // Canonical int read representation: backend AuctionBid.Amount is int64
+  // and the wire emits an integer JSON literal (bidToResponseWithBidderCard).
+  final int amount;
   final DateTime createdAt;
   final bool isWinning;
   final bool isOutbid;
@@ -42,7 +44,7 @@ class AuctionBid {
     String? bidderUsername,
     String? bidderAvatarUrl,
     String? bidderLifecycle,
-    double? amount,
+    int? amount,
     DateTime? createdAt,
     bool? isWinning,
     bool? isOutbid,
@@ -69,64 +71,6 @@ class AuctionBid {
 
   @override
   int get hashCode => id.hashCode;
-}
-
-/// Current bid summary for an auction
-class CurrentBidSummary {
-  final String auctionId;
-  final double currentHighestBid;
-  final String? highestBidderId;
-  final double minimumBid;
-  final int totalBids;
-  final int timeRemainingSeconds;
-  final DateTime endTime;
-  final bool isExtended;
-  final AuctionBidStatus status;
-
-  const CurrentBidSummary({
-    required this.auctionId,
-    required this.currentHighestBid,
-    this.highestBidderId,
-    required this.minimumBid,
-    required this.totalBids,
-    required this.timeRemainingSeconds,
-    required this.endTime,
-    required this.isExtended,
-    required this.status,
-  });
-
-  CurrentBidSummary copyWith({
-    String? auctionId,
-    double? currentHighestBid,
-    String? highestBidderId,
-    double? minimumBid,
-    int? totalBids,
-    int? timeRemainingSeconds,
-    DateTime? endTime,
-    bool? isExtended,
-    AuctionBidStatus? status,
-  }) {
-    return CurrentBidSummary(
-      auctionId: auctionId ?? this.auctionId,
-      currentHighestBid: currentHighestBid ?? this.currentHighestBid,
-      highestBidderId: highestBidderId ?? this.highestBidderId,
-      minimumBid: minimumBid ?? this.minimumBid,
-      totalBids: totalBids ?? this.totalBids,
-      timeRemainingSeconds: timeRemainingSeconds ?? this.timeRemainingSeconds,
-      endTime: endTime ?? this.endTime,
-      isExtended: isExtended ?? this.isExtended,
-      status: status ?? this.status,
-    );
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is CurrentBidSummary && other.auctionId == auctionId;
-  }
-
-  @override
-  int get hashCode => auctionId.hashCode;
 }
 
 /// Auction bid status

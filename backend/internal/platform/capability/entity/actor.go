@@ -17,22 +17,34 @@ const (
 	SellerStatusNone SellerStatus = "none"
 )
 
+// AdminRole is the single canonical value of admin membership in users.role.
+//
+// It lives in this lowest capability layer (entity) so that BOTH the derived
+// full-access authority (capability.IsFullAccessAdmin) and the Actor authority
+// predicate (Actor.IsAdmin) share exactly one definition without an import
+// cycle. There is no second declaration of this value anywhere.
+const AdminRole = "admin"
+
 // Actor represents an authenticated user with their role, capabilities, and business state.
 //
 // DESIGN PRINCIPLES:
 // - Complete: Contains ID, Role, Capabilities, and Business State
 // - Immutable: All fields are read-only after creation
-// - Foundation: Prepared for context injection in future slices
 //
-// SLICE 2 SCOPE:
-// - Actor is now aware of business state (user + seller)
-// - Actor is the SINGLE SOURCE of capability logic
+// ROLE VS CAPABILITIES (canonical Labuda authority model):
+// - Role ("admin") is the coarse internal membership boundary ONLY. It never
+//   grants capabilities implicitly and never authorizes a privileged
+//   business action by itself.
+// - Capabilities are fine-grained grants independent of role. A privileged
+//   internal business action requires admin membership AND the explicit
+//   required capability.
 type Actor struct {
 	// ID is the user's unique identifier
 	ID uuid.UUID
 
-	// Role is the user's role from users.role (user, admin)
-	// This is kept separate from capabilities for backward compatibility
+	// Role is the user's internal membership role from users.role (user, admin).
+	// It is the coarse internal boundary only — never an implicit capability
+	// source. See the Actor doc comment for the canonical authority model.
 	Role string
 
 	// Capabilities is the list of active capabilities granted to this user
@@ -120,7 +132,7 @@ func (a *Actor) HasAllCapabilities(capabilities ...string) bool {
 
 // IsAdmin returns true if the actor has admin role.
 func (a *Actor) IsAdmin() bool {
-	return a.Role == "admin"
+	return a.Role == AdminRole
 }
 
 // ============================================================================
@@ -151,25 +163,6 @@ func (a *Actor) IsSellerReady() bool {
 // ============================================================================
 // CAPABILITY METHODS
 // ============================================================================
-
-// CanCreateForSale returns true if the actor can create a for_sale item.
-//
-// Requirements:
-// - Account must be active
-// - Email must be verified
-// - Seller subscription must be active (not nil and not expired)
-func (a *Actor) CanCreateForSale() bool {
-	if a.AccountStatus != "active" {
-		return false
-	}
-	if !a.EmailVerified {
-		return false
-	}
-	if !a.IsSellerReady() {
-		return false
-	}
-	return true
-}
 
 // CanCheckout returns true if the actor can checkout.
 //

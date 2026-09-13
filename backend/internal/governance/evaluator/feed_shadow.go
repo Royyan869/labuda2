@@ -35,8 +35,8 @@ import (
 //     Unavailable viewer self as DENY, bringing /feed into alignment
 //     with the constitution §8.4 precedence rule applied on /contents/
 //     :id (`AccountStatus IN {deleted, banned, suspended} → DENY` for
-//     viewer self). The shift is shadow-only (FEED_EVALUATOR_MODE
-//     defaults to shadow); the wire is unchanged.
+//     viewer self). /feed enforces this precedence; the wire is
+//     unchanged.
 func EvaluateFeedItem(
 	vc *viewercontext.ViewerContext,
 	tc *viewercontext.TargetContext,
@@ -146,11 +146,6 @@ type FeedShadowRunner struct {
 	log     *zap.Logger
 	metrics *shadowMetrics
 	timeout time.Duration
-	// mode is the configured enforce operating mode (Batch 3M).
-	// Defaults to shadow at construction; set explicitly via WithMode
-	// at boot. The async Run path ignores this field — it is consumed
-	// only by the synchronous EnforceFeed handler path.
-	mode FeedEvaluatorMode
 }
 
 // NewFeedShadowRunner constructs a runner. F1-W3A: the pool argument
@@ -164,7 +159,6 @@ func NewFeedShadowRunner(log *zap.Logger) *FeedShadowRunner {
 		log:     log,
 		metrics: newShadowMetrics(),
 		timeout: 2 * time.Second,
-		mode:    FeedEvaluatorModeShadow, // safe default; flip via WithMode at boot
 	}
 }
 
@@ -229,11 +223,9 @@ func (r *FeedShadowRunner) runShadow(
 
 	r.metrics.recordRequest(SurfaceFeed)
 
-	// C1 — Per-request operating-mode telemetry. Default
-	// FeedEvaluatorModeShadow when WithMode has not been called,
-	// preserving observe-only semantics. Mirrors the /search/content
-	// seam's recordEnforceMode emission.
-	recordFeedEnforceMode(r.mode)
+	// C1 — Per-request operating-mode telemetry. The canonical business
+	// mode is always enforce; the runner is observability-only.
+	recordFeedEnforceMode()
 
 	// Overlay completeness telemetry — emitted once per request.
 	// Cardinality preserved across the W3A rebuild: same overlay
@@ -282,7 +274,7 @@ func (r *FeedShadowRunner) runShadow(
 		// mapping is unconditional; only the caller's reaction to
 		// Include / LifecycleOverride changes between shadow and
 		// enforce.
-		adapted := AdaptFeedDecision(decision, reason, r.mode)
+		adapted := AdaptFeedDecision(decision, reason)
 		recordFeedWouldEnforceDecision(adapted.Reason)
 
 		// Divergence classification: this seam consumes only legacy-

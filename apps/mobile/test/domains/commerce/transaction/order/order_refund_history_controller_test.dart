@@ -135,7 +135,7 @@ void main() {
               refunds: [newest, middle],
               nextCursor: 'cursor-2',
               hasMore: true,
-              pageSize: params.pageSize,
+              pageSize: params.pageSize!,
             ),
           );
         }
@@ -146,7 +146,7 @@ void main() {
             refunds: [oldest],
             nextCursor: null,
             hasMore: false,
-            pageSize: params.pageSize,
+            pageSize: params.pageSize!,
           ),
         );
       });
@@ -204,7 +204,7 @@ void main() {
                 refunds: [first],
                 nextCursor: 'cursor-2',
                 hasMore: true,
-                pageSize: params.pageSize,
+                pageSize: params.pageSize!,
               ),
             );
           }
@@ -263,7 +263,7 @@ void main() {
                 refunds: currentPage,
                 nextCursor: 'cursor-2',
                 hasMore: true,
-                pageSize: params.pageSize,
+                pageSize: params.pageSize!,
               ),
             );
           }
@@ -279,7 +279,7 @@ void main() {
               ],
               nextCursor: null,
               hasMore: false,
-              pageSize: params.pageSize,
+              pageSize: params.pageSize!,
             ),
           );
         });
@@ -331,7 +331,7 @@ void main() {
       'distinct order and principal keys keep independent history state',
       () async {
         final repo = _FakeRefundRepository((params) async {
-          final suffix = params.orderId.endsWith('1') ? '1' : '2';
+          final suffix = params.orderId!.endsWith('1') ? '1' : '2';
           return RepositoryResult.success(
             RefundHistoryPageResult(
               refunds: [
@@ -343,7 +343,7 @@ void main() {
               ],
               nextCursor: null,
               hasMore: false,
-              pageSize: params.pageSize,
+              pageSize: params.pageSize!,
             ),
           );
         });

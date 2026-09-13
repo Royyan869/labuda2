@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/labuda/backend/internal/platform/admin/repository"
+	"github.com/labuda/backend/internal/platform/capability/invariant"
 	"github.com/labuda/backend/pkg/db"
 )
 
@@ -91,7 +92,62 @@ func (r *AdminRepositoryImpl) ListUsers(
 		return nil, fmt.Errorf("list users scan failed: %w", rows.Err())
 	}
 
+	// Derived full-access authority needs each listed user's active capability
+	// set. Load it for the whole page in ONE batch query so the list endpoint
+	// never degrades to a per-user (N+1) lookup.
+	if err := r.attachActiveCapabilities(ctx, dbTx, users); err != nil {
+		return nil, err
+	}
+
 	return users, nil
+}
+
+// attachActiveCapabilities loads the active (revoked_at IS NULL) capability set
+// for every user in the page with a single batch query and attaches it to each
+// summary. It deliberately returns raw capability strings: full access is a
+// derived state whose single authority remains capability.IsFullAccessAdmin.
+func (r *AdminRepositoryImpl) attachActiveCapabilities(
+	ctx context.Context,
+	tx db.Tx,
+	users []repository.UserSummary,
+) error {
+	if len(users) == 0 {
+		return nil
+	}
+
+	ids := make([]uuid.UUID, len(users))
+	for i := range users {
+		ids[i] = users[i].ID
+	}
+
+	rows, err := tx.Query(ctx, `
+		SELECT user_id, capability
+		FROM user_capabilities
+		WHERE user_id = ANY($1) AND revoked_at IS NULL
+	`, ids)
+	if err != nil {
+		return fmt.Errorf("failed to query active capabilities: %w", err)
+	}
+	defer rows.Close()
+
+	byUser := make(map[uuid.UUID][]string, len(users))
+	for rows.Next() {
+		var userID uuid.UUID
+		var capability string
+		if err := rows.Scan(&userID, &capability); err != nil {
+			return fmt.Errorf("failed to scan active capability row: %w", err)
+		}
+		byUser[userID] = append(byUser[userID], capability)
+	}
+	if rows.Err() != nil {
+		return fmt.Errorf("active capabilities scan failed: %w", rows.Err())
+	}
+
+	for i := range users {
+		users[i].ActiveCapabilities = byUser[users[i].ID]
+	}
+
+	return nil
 }
 
 // CountUsers returns the total count of users matching filters.
@@ -315,6 +371,39 @@ func (r *AdminRepositoryImpl) UpdateUserStatus(
 	}
 
 	return nil
+}
+
+// UpdateUserStatusGuarded applies an account-status mutation that can reduce the
+// number of active full-access admins (suspend/ban), serialized against the
+// canonical full-access admin invariant.
+//
+// The canonical sequence is Lock → mutate → Verify, all inside the caller's
+// transaction. Because the advisory lock is transaction-scoped and the count is
+// recomputed from this transaction's visible state after the UPDATE, concurrent
+// suspend/ban attempts cannot each observe the other as "still there" and
+// together drop the count to zero. A Verify failure returns
+// invariant.ErrLastFullAccessAdmin and rolls the caller's transaction back,
+// leaving account_status unchanged.
+func (r *AdminRepositoryImpl) UpdateUserStatusGuarded(
+	ctx context.Context,
+	tx interface{},
+	userID uuid.UUID,
+	status string,
+) error {
+	dbTx, ok := tx.(db.Tx)
+	if !ok {
+		return fmt.Errorf("invalid transaction type")
+	}
+
+	if err := invariant.Lock(ctx, dbTx); err != nil {
+		return err
+	}
+
+	if err := r.UpdateUserStatus(ctx, dbTx, userID, status); err != nil {
+		return err
+	}
+
+	return invariant.Verify(ctx, dbTx)
 }
 
 // GetDashboardMetrics returns platform metrics.

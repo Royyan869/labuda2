@@ -315,9 +315,8 @@ func TestFeedRepository_GetFeed(t *testing.T) {
 	})
 
 	// F1-W1 — Regression: hidden (moderation-flagged) content must not
-	// surface on the wire, even in default shadow mode. Prior to the
-	// SQL filter addition this row would be selected and the enforce-
-	// mode evaluator was the only thing dropping it.
+	// surface on the wire. Prior to the SQL filter addition this row
+	// would be selected and only the evaluator would drop it.
 	t.Run("excludes hidden content (F1-W1)", func(t *testing.T) {
 		testDB, cleanup := setupTestDB(t)
 		defer cleanup()

@@ -55,10 +55,10 @@ type PaymentRepository interface {
 // 3. Seller-level lock
 // 4. Settled payment validation and activation timestamp lookup
 // 5. Chain-end lookup and interval stacking
-// 6. Ledger entry creation via FinanceService (DR GATEWAY_CLEARING, CR PLATFORM_REVENUE)
+// 6. Ledger entry creation via FinanceService (DR PLATFORM_REVENUE, CR BANK_SETTLEMENT)
+//    + separate payment-method fee revenue entry
 // 7. Subscription row insertion
-// 8. Seller profile creation (business identity only)
-// 9. Outbox event emission
+// 8. Outbox event emission
 //
 // All operations are atomic within a single transaction.
 //
@@ -232,14 +232,26 @@ func (s *SellerSubscriptionPaymentService) ProcessSuccessfulPaymentTx(
 	}
 	newExpiresAt = newStartedAt.Add(duration)
 
-	// Step 8: Create ledger entry FIRST via FinanceService
-	// DR GATEWAY_CLEARING, CR PLATFORM_REVENUE
+	// Step 8: Create ledger entries from payment snapshot (PMF-02).
+	// Principal (A) goes to PLATFORM_REVENUE as subscription revenue.
+	// Fee (F) goes to PLATFORM_REVENUE as payment-method fee revenue.
+	// Both writes are keyed on the payment identity, so one settled payment books
+	// exactly one principal and one fee transaction no matter which activation
+	// entry point settles it (PMF02-A1).
 	// FINANCIAL BOUNDARY: Subscription domain does NOT build ledger entries directly
-	if err := s.financeService.RecordSubscriptionRevenue(ctx, tx, paymentID, config.YearlyFeeRupiah, providerEventID); err != nil {
-		return fmt.Errorf("create ledger entry failed: %w", err)
+	gross := payment.GrossAmount.Int64()
+	fee := payment.ServiceFeeAmount.Int64()
+	principal := gross - fee
+
+	if err := s.financeService.RecordSubscriptionRevenue(ctx, tx, paymentID, principal); err != nil {
+		return fmt.Errorf("create subscription revenue ledger entry failed: %w", err)
+	}
+	if err := s.financeService.RecordSubscriptionPaymentFeeRevenue(ctx, tx, paymentID, paymentID, fee); err != nil {
+		return fmt.Errorf("create subscription fee revenue ledger entry failed: %w", err)
 	}
 
 	// Step 9: Insert subscription row with canonical duration.
+	// AmountPaid = principal only — fee does NOT inflate subscription principal.
 	subscription := &subscriptionEntity.SellerSubscription{
 		ID:           uuid.New(),
 		UserID:       userID,
@@ -247,7 +259,7 @@ func (s *SellerSubscriptionPaymentService) ProcessSuccessfulPaymentTx(
 		StartedAt:    newStartedAt,
 		ExpiresAt:    newExpiresAt,
 		DurationDays: config.DurationDays,
-		AmountPaid:   money.New(config.YearlyFeeRupiah),
+		AmountPaid:   money.New(principal),
 		Currency:     "IDR",
 		PaymentID:    paymentID,
 		CreatedAt:    now,
@@ -258,13 +270,10 @@ func (s *SellerSubscriptionPaymentService) ProcessSuccessfulPaymentTx(
 		return fmt.Errorf("insert subscription failed: %w", err)
 	}
 
-	// Step 10: Ensure seller profile exists (for business identity)
-	_, err = s.sellerRepo.EnsureProfileExistsTx(ctx, tx, userID, "")
-	if err != nil {
-		return fmt.Errorf("ensure seller profile failed: %w", err)
-	}
+	// Seller identity is an onboarding-owned prerequisite (validated at Step 2
+	// and loaded at Step 3). Settlement MUST NOT create a seller profile.
 
-	// Step 11: Emit outbox event
+	// Step 10: Emit outbox event
 	if err := s.emitActivationEvent(ctx, tx, subscription); err != nil {
 		return fmt.Errorf("emit outbox event failed: %w", err)
 	}

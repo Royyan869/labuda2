@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/core/src/providers/presence_provider.dart'
-    as core_presence;
-import 'package:labuda/domains/chat/chat/data/dto/chat_dto.dart';
 import 'package:labuda/domains/chat/chat/data/remote/chat_api_datasource.dart';
 import 'package:labuda/domains/chat/chat/data/repositories/chat_repository_impl.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
@@ -48,36 +45,6 @@ class _FakeAuthController extends AuthController {
     );
     return AuthState.authenticated(user, emailVerified: true);
   }
-}
-
-class _FakePresenceManager extends core_presence.PresenceManager {
-  @override
-  core_presence.PresenceAuthorityState build() =>
-      const core_presence.PresenceAuthorityState.empty();
-
-  @override
-  core_presence.PresenceSubscriptionHandle acquire(Set<String> userIds) {
-    return core_presence.PresenceSubscriptionHandle(() async {});
-  }
-
-  @override
-  Future<void> prepareForLogout() async {}
-
-  @override
-  core_presence.PresenceState? lookup(String userId) => null;
-
-  @override
-  Map<String, core_presence.PresenceState?> lookupMany(
-    Iterable<String> userIds,
-  ) {
-    return {for (final id in userIds) id: null};
-  }
-
-  @override
-  Future<void> publishSelfPresence({required bool isOnline}) async {}
-
-  @override
-  Future<void> setForeground(bool isForeground) async {}
 }
 
 class _FakeNegotiationNotifier extends NegotiationNotifier {
@@ -183,13 +150,7 @@ class _SilentLogger implements ILoggerService {
 }
 
 class _FakeChatApiDatasource extends ChatApiDatasource {
-  final Future<Result<ChatDto>> Function(String chatId) onGetChatById;
-
-  _FakeChatApiDatasource(this.onGetChatById)
-    : super(_NoopApiClient(), logger: _SilentLogger());
-
-  @override
-  Future<Result<ChatDto>> getChatById(String chatId) => onGetChatById(chatId);
+  _FakeChatApiDatasource() : super(_NoopApiClient(), logger: _SilentLogger());
 }
 
 class _NoopApiClient implements ApiClient {
@@ -250,37 +211,20 @@ ProviderScope _buildChatDetailScope({required ChatRepository repository}) {
 void main() {
   group('ChatRepositoryImpl.getChatById', () {
     test(
-      'maps canonical direct-room response and stops returning the stubbed error',
+      'canonical: getChatById is not available via single-room endpoint',
       () async {
-        final dto = ChatDto.fromJson({
-          'id': _chatId,
-          'room_type': 'direct',
-          'other_user_id': _peerUserId,
-          'other_user': {
-            'id': _peerUserId,
-            'username': 'bob',
-            'avatar_url': null,
-          },
-          'created_at': '2026-07-30T00:00:00Z',
-          'updated_at': '2026-07-30T00:00:00Z',
-          'unread_count': 0,
-        });
-
         final repo = ChatRepositoryImpl(
-          apiDatasource: _FakeChatApiDatasource(
-            (_) async => Result.success(dto),
-          ),
+          apiDatasource: _FakeChatApiDatasource(),
           webSocketService: WebSocketService(baseUrl: 'ws://example.invalid'),
           logger: _SilentLogger(),
-          presenceManager: _FakePresenceManager(),
         );
 
         final result = await repo.getChatById(_chatId);
 
-        expect(result.isSuccess, isTrue);
-        expect(result.error, isNull);
-        expect(result.data?.id, _chatId);
-        expect(result.data?.participantNames[_peerUserId], 'bob');
+        // Current canonical: single-room endpoint does not exist, use getUserChats
+        expect(result.isSuccess, isFalse);
+        expect(result.error, contains('not available'));
+        expect(result.data, isNull);
       },
     );
   });
@@ -292,7 +236,7 @@ void main() {
           Chat(
             id: _chatId,
             type: ChatType.private,
-            participantIds: [_peerUserId],
+            participantIds: [_currentUserId, _peerUserId],
             participantNames: const {_peerUserId: 'bob'},
             participantAvatars: const {},
             participantLifecycles: const {_peerUserId: ContentLifecycle.active},
@@ -366,10 +310,15 @@ void main() {
         expect(tester.takeException(), isNull);
         expect(find.text('Loading...'), findsOneWidget);
 
+        // Manually trigger load (screen's initState uses async that may not complete in test pump)
+        final container = ProviderScope.containerOf(tester.element(find.byType(ChatDetailScreen)));
+        await container.read(chatDetailProvider(_chatId).notifier).loadChat(_currentUserId);
+        await container.read(chatDetailProvider(_chatId).notifier).loadMessages(_currentUserId);
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
 
         expect(tester.takeException(), isNull);
+        final chatState = container.read(chatDetailProvider(_chatId));
         expect(find.text('Loading...'), findsNothing);
         expect(find.text('@bob'), findsOneWidget);
         expect(find.text('Failed to load messages'), findsNothing);

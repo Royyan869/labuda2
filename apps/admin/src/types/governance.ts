@@ -112,7 +112,7 @@ export interface GovernanceAuditEvent {
   actor_name?: string
   outcome?: string
   case_id?: string
-  target_type?: string
+  target_type?: GovernanceTargetType
   target_id?: string
   decision_note?: string
   created_at: string

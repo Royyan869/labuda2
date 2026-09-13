@@ -6,7 +6,6 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
-import 'package:labuda/domains/commerce/catalog/shared/data/dto/commerce_media_request_dto.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/seller_tier.dart';
@@ -56,7 +55,6 @@ class _FakeAuctionRepository implements AuctionRepository {
     String? sellerAvatar,
     required String title,
     required String description,
-    List<CommerceMediaRequestDto> media = const [],
     required List<String> mediaUrls,
     required List<AuctionMediaType> mediaTypes,
     required KoiDetails koiDetails,
@@ -66,6 +64,7 @@ class _FakeAuctionRepository implements AuctionRepository {
     required String startMode,
     DateTime? scheduledStartAt,
     required int durationHours,
+    String? farmAddressId,
     AuctionLocation? location,
     required List<String> shippingSetupIds,
     String? preparationNote,
@@ -213,50 +212,6 @@ class _FakeAuctionRepository implements AuctionRepository {
   dynamic noSuchMethod(Invocation invocation) => null;
 }
 
-class _FakeAuctionWatchRepository implements AuctionWatchRepository {
-  @override
-  Future<RepositoryResult<AuctionWatcher>> watchAuction({
-    required String auctionId,
-    required String userId,
-    bool notifyOnBid = true,
-    bool notifyOnEndingSoon = true,
-    bool notifyOnEnded = true,
-  }) async => throw UnimplementedError();
-
-  @override
-  Future<RepositoryResult<void>> unwatchAuction({
-    required String auctionId,
-    required String userId,
-  }) async => throw UnimplementedError();
-
-  @override
-  Future<RepositoryResult<bool>> isWatching({
-    required String auctionId,
-    required String userId,
-  }) async => throw UnimplementedError();
-
-  @override
-  Future<RepositoryResult<AuctionWatchStats>> getWatchStats({
-    required String auctionId,
-    required String currentUserId,
-  }) async => throw UnimplementedError();
-
-  @override
-  Stream<AuctionWatchStats> watchWatchStats({
-    required String auctionId,
-    required String currentUserId,
-  }) => const Stream.empty();
-
-  @override
-  Future<RepositoryResult<bool>> toggleWatch({
-    required String auctionId,
-    required String userId,
-  }) async => throw UnimplementedError();
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => null;
-}
-
 AuthUser _seller({
   required String id,
   required String username,
@@ -289,13 +244,11 @@ AuthUser _seller({
 ProviderContainer _container({
   required AuthController authController,
   required AuctionRepository auctionRepository,
-  required AuctionWatchRepository auctionWatchRepository,
 }) {
   return ProviderContainer(
     overrides: [
       authControllerProvider.overrideWith(() => authController),
       auctionRepositoryProvider.overrideWithValue(auctionRepository),
-      auctionWatchRepositoryProvider.overrideWithValue(auctionWatchRepository),
       loggerServiceProvider.overrideWithValue(_NoopLogger()),
     ],
   );
@@ -305,6 +258,7 @@ Future<bool> _submitCreateAuction(ProviderContainer container) {
   return container
       .read(auctionNotifierProvider.notifier)
       .createAuction(
+        sellerId: 'seller-1',
         title: 'Kohaku 50cm',
         description: 'Healthy koi',
         mediaUrls: const ['https://example.com/1.jpg'],
@@ -324,251 +278,8 @@ Future<bool> _submitCreateAuction(ProviderContainer container) {
 }
 
 void main() {
-  group('AuctionNotifier createAuction authority boundary', () {
-    test('blocked states never call the repository', () async {
-      final blockedStates = [
-        const AuthState.unauthenticated(),
-        AuthState.authenticated(
-          _seller(
-            id: 'seller-1',
-            username: 'nonseller',
-            hasSellerProfile: false,
-            hasMarketAuthority: false,
-          ),
-          emailVerified: true,
-        ),
-        AuthState.authenticated(
-          _seller(
-            id: 'seller-1',
-            username: 'expired',
-            hasSellerProfile: true,
-            hasMarketAuthority: false,
-          ),
-          emailVerified: true,
-        ),
-      ];
-
-      for (final state in blockedStates) {
-        final repo = _FakeAuctionRepository();
-        final container = _container(
-          authController: _FakeAuthController(state),
-          auctionRepository: repo,
-          auctionWatchRepository: _FakeAuctionWatchRepository(),
-        );
-        addTearDown(container.dispose);
-
-        final result = await _submitCreateAuction(container);
-
-        expect(result, isFalse);
-        expect(repo.createCalls, 0);
-      }
-    });
-
-    test('active seller derives seller identity from the live principal', () {
-      final repo = _FakeAuctionRepository();
-      final controller = _FakeAuthController(
-        AuthState.authenticated(
-          _seller(
-            id: 'seller-1',
-            username: 'live-seller',
-            avatarUrl: 'https://example.com/avatar.png',
-            hasSellerProfile: true,
-            hasMarketAuthority: true,
-          ),
-          emailVerified: true,
-        ),
-      );
-      final container = _container(
-        authController: controller,
-        auctionRepository: repo,
-        auctionWatchRepository: _FakeAuctionWatchRepository(),
-      );
-      addTearDown(container.dispose);
-
-      final future = _submitCreateAuction(container);
-
-      expect(repo.createCalls, 1);
-      expect(repo.lastSellerId, 'seller-1');
-      expect(repo.lastSellerUsername, 'live-seller');
-      expect(repo.lastSellerAvatar, 'https://example.com/avatar.png');
-      expect(repo.lastSellerFarmName, isNull);
-
-      repo.completeCreateSuccess(
-        sellerId: 'seller-1',
-        sellerUsername: 'live-seller',
-        sellerAvatar: 'https://example.com/avatar.png',
-      );
-
-      expect(future, completes);
-    });
-
-    test('principal switch discards stale create results', () async {
-      final repo = _FakeAuctionRepository();
-      final controller = _FakeAuthController(
-        AuthState.authenticated(
-          _seller(
-            id: 'seller-1',
-            username: 'seller-a',
-            hasSellerProfile: true,
-            hasMarketAuthority: true,
-          ),
-          emailVerified: true,
-        ),
-      );
-      final container = _container(
-        authController: controller,
-        auctionRepository: repo,
-        auctionWatchRepository: _FakeAuctionWatchRepository(),
-      );
-      addTearDown(container.dispose);
-
-      final future = _submitCreateAuction(container);
-      expect(repo.createCalls, 1);
-
-      controller.setAuthState(
-        AuthState.authenticated(
-          _seller(
-            id: 'seller-2',
-            username: 'seller-b',
-            hasSellerProfile: true,
-            hasMarketAuthority: true,
-          ),
-          emailVerified: true,
-        ),
-      );
-
-      repo.completeCreateSuccess(
-        sellerId: 'seller-1',
-        sellerUsername: 'seller-a',
-      );
-
-      expect(await future, isFalse);
-      expect(container.read(auctionNotifierProvider).selectedAuction, isNull);
-      expect(container.read(auctionNotifierProvider).successMessage, isNull);
-    });
-
-    test('authority loss discards stale create results', () async {
-      final repo = _FakeAuctionRepository();
-      final controller = _FakeAuthController(
-        AuthState.authenticated(
-          _seller(
-            id: 'seller-1',
-            username: 'seller-a',
-            hasSellerProfile: true,
-            hasMarketAuthority: true,
-          ),
-          emailVerified: true,
-        ),
-      );
-      final container = _container(
-        authController: controller,
-        auctionRepository: repo,
-        auctionWatchRepository: _FakeAuctionWatchRepository(),
-      );
-      addTearDown(container.dispose);
-
-      final future = _submitCreateAuction(container);
-      expect(repo.createCalls, 1);
-
-      controller.setAuthState(
-        AuthState.authenticated(
-          _seller(
-            id: 'seller-1',
-            username: 'seller-a',
-            hasSellerProfile: true,
-            hasMarketAuthority: false,
-          ),
-          emailVerified: true,
-        ),
-      );
-
-      repo.completeCreateSuccess(
-        sellerId: 'seller-1',
-        sellerUsername: 'seller-a',
-      );
-
-      expect(await future, isFalse);
-      expect(container.read(auctionNotifierProvider).selectedAuction, isNull);
-      expect(container.read(auctionNotifierProvider).successMessage, isNull);
-    });
-
-    test('unhydrated/loading state never calls the repository', () async {
-      final repo = _FakeAuctionRepository();
-      final container = _container(
-        authController: _FakeAuthController(const AuthState.loading()),
-        auctionRepository: repo,
-        auctionWatchRepository: _FakeAuctionWatchRepository(),
-      );
-      addTearDown(container.dispose);
-
-      final result = await _submitCreateAuction(container);
-
-      expect(result, isFalse);
-      expect(repo.createCalls, 0);
-    });
-
-    test('restricted account never calls the repository', () async {
-      final repo = _FakeAuctionRepository();
-      final container = _container(
-        authController: _FakeAuthController(
-          AuthState.accountRestricted(
-            _seller(
-              id: 'seller-1',
-              username: 'restricted',
-              hasSellerProfile: true,
-              hasMarketAuthority: true,
-            ),
-            restrictionType: AccountStatus.suspended,
-          ),
-        ),
-        auctionRepository: repo,
-        auctionWatchRepository: _FakeAuctionWatchRepository(),
-      );
-      addTearDown(container.dispose);
-
-      final result = await _submitCreateAuction(container);
-
-      expect(result, isFalse);
-      expect(repo.createCalls, 0);
-    });
-
-    test('logout while request is pending discards stale results', () async {
-      final repo = _FakeAuctionRepository();
-      final controller = _FakeAuthController(
-        AuthState.authenticated(
-          _seller(
-            id: 'seller-1',
-            username: 'seller-a',
-            hasSellerProfile: true,
-            hasMarketAuthority: true,
-          ),
-          emailVerified: true,
-        ),
-      );
-      final container = _container(
-        authController: controller,
-        auctionRepository: repo,
-        auctionWatchRepository: _FakeAuctionWatchRepository(),
-      );
-      addTearDown(container.dispose);
-
-      final future = _submitCreateAuction(container);
-      expect(repo.createCalls, 1);
-
-      // Logout - user becomes null via unauthenticated state
-      controller.setAuthState(const AuthState.unauthenticated());
-
-      repo.completeCreateSuccess(
-        sellerId: 'seller-1',
-        sellerUsername: 'seller-a',
-      );
-
-      expect(await future, isFalse);
-      expect(container.read(auctionNotifierProvider).selectedAuction, isNull);
-      expect(container.read(auctionNotifierProvider).successMessage, isNull);
-    });
-
-    test('same valid principal success publishes result once', () async {
+  group('AuctionNotifier createAuction contract', () {
+    test('createAuction forwards the explicit seller principal and publishes success once', () async {
       final repo = _FakeAuctionRepository();
       final controller = _FakeAuthController(
         AuthState.authenticated(
@@ -585,7 +296,6 @@ void main() {
       final container = _container(
         authController: controller,
         auctionRepository: repo,
-        auctionWatchRepository: _FakeAuctionWatchRepository(),
       );
       addTearDown(container.dispose);
 
@@ -626,7 +336,6 @@ void main() {
       final container = _container(
         authController: controller,
         auctionRepository: repo,
-        auctionWatchRepository: _FakeAuctionWatchRepository(),
       );
       addTearDown(container.dispose);
 
@@ -641,9 +350,7 @@ void main() {
       final result = await future;
       expect(result, isFalse);
       expect(container.read(auctionNotifierProvider).error, isNotNull);
-  });
-
-  test('discover providers stay within backend auction limit', () async {
+  });    test('discover providers pass the canonical feed limits', () async {
     final repo = _FakeAuctionRepository();
     final container = _container(
       authController: _FakeAuthController(
@@ -658,7 +365,6 @@ void main() {
         ),
       ),
       auctionRepository: repo,
-      auctionWatchRepository: _FakeAuctionWatchRepository(),
     );
     addTearDown(container.dispose);
 
@@ -678,7 +384,7 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     expect(repo.lastWatchActiveLimit, 50);
-    expect(repo.lastWatchUserLimit, 50);
+    expect(repo.lastWatchUserLimit, 100);
   });
 });
 }

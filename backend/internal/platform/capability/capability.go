@@ -24,6 +24,8 @@
 // - Add policy engine
 package capability
 
+import "sync"
+
 // Capability represents a fine-grained permission string.
 // Format: {cluster}.{resource}.{action}
 type Capability string
@@ -229,106 +231,102 @@ const (
 )
 
 // ============================================================
-// VALIDATION
+// CANONICAL CAPABILITY UNIVERSE
 // ============================================================
+
+// canonicalCapabilities is the ONE AND ONLY canonical capability universe.
+//
+// Every consumer derives from this single list:
+//   - IsValid / AllCapabilities / AllCapabilityStrings
+//   - the governance capability catalog served to the admin dashboard
+//   - capability assignment validation
+//   - full-access derivation (see full_access.go)
+//   - bootstrap-admin initial/recovery grant
+//
+// DO NOT create a second capability list anywhere. Adding a capability here
+// must automatically surface it in the dashboard catalog and in the
+// derived full-access universe. There is no separate catalog to maintain.
+var canonicalCapabilities = []Capability{
+	CapFinanceWithdrawRead,
+	CapFinanceWithdrawReview,
+	CapFinanceDisputeResolve,
+	CapFinanceRefundGatewayInitiate,
+	CapFinancePaymentMethodView,
+	CapFinancePaymentMethodManage,
+	CapGovernanceDashboardView,
+	CapGovernanceAlertRead,
+	CapGovernanceAlertResolve,
+	CapGovernanceUserRead,
+	CapGovernanceUserSuspend,
+	CapGovernanceUserBan,
+	CapGovernanceUserActivate,
+	CapGovernanceUserUnban,
+	CapGovernanceRoleAssign,
+	CapGovernanceCapabilityAssign,
+	CapGovernanceAuditRead,
+	CapGovernanceAuctionCancel,
+	CapModerationCaseRead,
+	CapModerationContentView,
+	CapModerationContentRemove,
+	CapModerationCaseResolve,
+	CapModerationEvidenceRead,
+	CapModerationAppealRead,
+	CapModerationAppealReview,
+	CapPromotionExternalProductReview,
+	CapPromotionPackageManage,
+	CapPromotionCampaignView,
+	CapPromotionCampaignStop,
+	CapSellerVerificationReview,
+	CapSellerSubscriptionRecover,
+	CapOrderRead,
+	CapConfigView,
+	CapConfigUpdateGeneral,
+	CapConfigUpdateFinancial,
+	CapSupportTicketRead,
+	CapSupportTicketRespond,
+	CapSupportTicketClaim,
+	CapSupportTicketResolve,
+	CapSupportAdminAssign,
+	CapSupportAdminRead,
+	CapSupportTicketEscalate,
+}
+
+// AllCapabilities returns the canonical capability universe.
+func AllCapabilities() []Capability {
+	out := make([]Capability, len(canonicalCapabilities))
+	copy(out, canonicalCapabilities)
+	return out
+}
+
+// AllCapabilityStrings returns the canonical capability universe as strings.
+func AllCapabilityStrings() []string {
+	out := make([]string, 0, len(canonicalCapabilities))
+	for _, c := range canonicalCapabilities {
+		out = append(out, c.String())
+	}
+	return out
+}
+
+var (
+	canonicalIndexOnce sync.Once
+	canonicalIndex     map[string]Capability
+)
+
+// canonicalIndexMap lazily builds the string → capability index of the
+// canonical universe. Built once; the universe is a compile-time constant.
+func canonicalIndexMap() map[string]Capability {
+	canonicalIndexOnce.Do(func() {
+		canonicalIndex = make(map[string]Capability, len(canonicalCapabilities))
+		for _, c := range canonicalCapabilities {
+			canonicalIndex[c.String()] = c
+		}
+	})
+	return canonicalIndex
+}
 
 // IsValid checks if a string is a valid capability constant.
 // This is used to ensure only known capabilities are granted.
 func IsValid(cap string) bool {
-	switch Capability(cap) {
-	case CapFinanceWithdrawRead,
-		CapFinanceWithdrawReview,
-		CapFinanceDisputeResolve,
-		CapFinanceRefundGatewayInitiate,
-		CapFinancePaymentMethodView,
-		CapFinancePaymentMethodManage,
-		CapGovernanceDashboardView,
-		CapGovernanceAlertRead,
-		CapGovernanceAlertResolve,
-		CapGovernanceUserRead,
-		CapGovernanceUserSuspend,
-		CapGovernanceUserBan,
-		CapGovernanceUserActivate,
-		CapGovernanceUserUnban,
-		CapGovernanceRoleAssign,
-		CapGovernanceCapabilityAssign,
-		CapGovernanceAuditRead,
-		CapModerationCaseRead,
-		CapModerationContentView,
-		CapModerationContentRemove,
-		CapModerationCaseResolve,
-		CapModerationEvidenceRead,
-		CapModerationAppealRead,
-		CapModerationAppealReview,
-		CapPromotionExternalProductReview,
-		CapPromotionPackageManage,
-		CapPromotionCampaignView,
-		CapPromotionCampaignStop,
-		CapSellerVerificationReview,
-		CapSellerSubscriptionRecover,
-		CapOrderRead,
-		CapConfigView,
-		CapConfigUpdateGeneral,
-		CapConfigUpdateFinancial,
-		CapSupportTicketRead,
-		CapSupportTicketRespond,
-		CapSupportTicketClaim,
-		CapSupportTicketResolve,
-		CapSupportAdminAssign,
-		CapSupportAdminRead,
-		CapSupportTicketEscalate,
-		CapGovernanceAuctionCancel:
-		return true
-	default:
-		return false
-	}
-}
-
-// AllCapabilities returns a list of all defined capabilities.
-// Useful for validation and testing.
-func AllCapabilities() []Capability {
-	return []Capability{
-		CapFinanceWithdrawRead,
-		CapFinanceWithdrawReview,
-		CapFinanceDisputeResolve,
-		CapFinanceRefundGatewayInitiate,
-		CapFinancePaymentMethodView,
-		CapFinancePaymentMethodManage,
-		CapGovernanceDashboardView,
-		CapGovernanceAlertRead,
-		CapGovernanceAlertResolve,
-		CapGovernanceUserRead,
-		CapGovernanceUserSuspend,
-		CapGovernanceUserBan,
-		CapGovernanceUserActivate,
-		CapGovernanceUserUnban,
-		CapGovernanceRoleAssign,
-		CapGovernanceCapabilityAssign,
-		CapGovernanceAuditRead,
-		CapModerationCaseRead,
-		CapModerationContentView,
-		CapModerationContentRemove,
-		CapModerationCaseResolve,
-		CapModerationEvidenceRead,
-		CapModerationAppealRead,
-		CapModerationAppealReview,
-		CapPromotionExternalProductReview,
-		CapPromotionPackageManage,
-		CapPromotionCampaignView,
-		CapPromotionCampaignStop,
-		CapSellerVerificationReview,
-		CapSellerSubscriptionRecover,
-		CapOrderRead,
-		CapConfigView,
-		CapConfigUpdateGeneral,
-		CapConfigUpdateFinancial,
-		CapSupportTicketRead,
-		CapSupportTicketRespond,
-		CapSupportTicketClaim,
-		CapSupportTicketResolve,
-		CapSupportAdminAssign,
-		CapSupportAdminRead,
-		CapSupportTicketEscalate,
-		CapGovernanceAuctionCancel,
-	}
+	_, ok := canonicalIndexMap()[cap]
+	return ok
 }

@@ -1030,14 +1030,21 @@ func (r *WithdrawRepository) ListWithFilters(
 	args := []interface{}{}
 	argPos := 1
 
+	// Predicates are qualified with the "w." alias for the same reason as
+	// the ORDER BY clause below: this query LEFT JOINs seller_profiles,
+	// which also defines a "status" column, so an unqualified "status = $n"
+	// predicate is rejected by Postgres as an ambiguous column reference.
+	// The admin UI always sends a status filter, so the unqualified form
+	// made GET /api/v1/admin/payouts/withdrawals return HTTP 500 on every
+	// page load.
 	if filters.Status != nil && *filters.Status != "" {
-		whereClause += fmt.Sprintf(" AND status = $%d", argPos)
+		whereClause += fmt.Sprintf(" AND w.status = $%d", argPos)
 		args = append(args, *filters.Status)
 		argPos++
 	}
 
 	if filters.SellerID != nil {
-		whereClause += fmt.Sprintf(" AND seller_id = $%d", argPos)
+		whereClause += fmt.Sprintf(" AND w.seller_id = $%d", argPos)
 		args = append(args, *filters.SellerID)
 		argPos++
 	}

@@ -185,6 +185,7 @@ func buildIdempotencyService(tx *requestWithdrawalIdempotencyTx) *WithdrawServic
 		outboxRepo: nil,
 	}
 	svc.SetCanonicalAuthority(noopWithdrawalAuthority{})
+	svc.SetWithdrawalFeeProvider(fixedWithdrawalFeeProvider{fee: 5_000})
 	return svc
 }
 

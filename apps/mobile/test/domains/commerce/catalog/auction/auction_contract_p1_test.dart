@@ -106,7 +106,6 @@ Map<String, dynamic> _auctionPayload() => {
   'current_bid': 1200,
   'current_winner_id': 'u9',
   'total_bids': 2,
-  'minimum_bid': 1300,
   'start_at': '2026-06-01T00:00:00Z',
   'end_at': '2026-06-02T00:00:00Z',
   'status': 'active',
@@ -203,8 +202,8 @@ void main() {
         '2026-06-01T00:00:00.000Z',
       );
       expect(dto.endTime.toUtc().toIso8601String(), '2026-06-02T00:00:00.000Z');
-      expect(dto.currentHighestBid, 1200);
-      expect(dto.highestBidderId, 'u9');
+      expect(dto.currentBid, 1200);
+      expect(dto.currentWinnerId, 'u9');
     });
 
     test('BidDto parses backend created_at and nested bidder', () {

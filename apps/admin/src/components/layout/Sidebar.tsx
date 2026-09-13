@@ -51,8 +51,6 @@ const navItems: NavItem[] = [
   { name: 'Auction Emergency Cancel', path: '/governance/auction-cancel', icon: Gavel, requiredCapability: 'governance.auction.cancel' },
   { name: 'Verifications', path: '/sellers/verifications', icon: BadgeCheck, requiredCapability: 'seller.verification.review' },
   { name: 'Ext. Products', path: '/promotions/external-products', icon: Package, requiredCapability: 'promotion.external_product.review' },
-  { name: 'Promo Packages', path: '/promotions/packages', icon: Package, requiredCapability: 'promotion.package.manage' },
-  { name: 'Campaigns', path: '/promotions/campaigns', icon: Package, requiredCapability: 'promotion.campaign.view' },
   { name: 'Users', path: '/users', icon: Users, requiredCapability: 'governance.user.read' },
   { name: 'Admins', path: '/users/admins', icon: Users, requiredCapability: 'governance.user.read' },
   { name: 'Alerts', path: '/alerts', icon: Bell, requiredCapability: 'governance.alert.read' },

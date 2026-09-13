@@ -38,11 +38,22 @@ function isPercent(v: string): string | null {
 }
 
 /**
+ * Whole Rupiah amount, >= 0. Rp0 is valid (free withdrawal).
+ * Negative and fractional values are rejected (backend is final authority).
+ */
+function isNonNegativeRupiah(v: string): string | null {
+  const n = Number(v)
+  if (isNaN(n) || n < 0) return 'Must be a whole number ≥ 0 (Rupiah)'
+  if (!Number.isInteger(n)) return 'Must be a whole number (Rupiah)'
+  return null
+}
+
+/**
  * Keys that are safe to edit inline.
  * Keys not listed here are shown read-only (dangerous or future-only).
  */
 const EDITABLE_KEYS: Record<string, ConfigMeta> = {
-  listing_commission_percent: {
+  for_sale_commission_percent: {
     cap: 'config.update.financial',
     validate: isPercent,
     hint: 'Percent 0–100',
@@ -53,6 +64,12 @@ const EDITABLE_KEYS: Record<string, ConfigMeta> = {
     validate: isPercent,
     hint: 'Percent 0–100',
     category: 'Financial',
+  },
+  seller_withdrawal_fee_rupiah: {
+    cap: 'config.update.financial',
+    validate: isNonNegativeRupiah,
+    hint: 'Integer IDR, ≥ 0 (0 = free)',
+    category: 'Withdrawal',
   },
 }
 

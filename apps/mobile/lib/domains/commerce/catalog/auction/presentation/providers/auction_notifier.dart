@@ -5,7 +5,7 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart'
-    show auctionRepositoryProvider, auctionWatchRepositoryProvider;
+    show auctionRepositoryProvider;
 import 'auction_state.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 
@@ -18,13 +18,10 @@ import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 /// - CreateAuctionUseCase → createAuction
 /// - UpdateAuctionUseCase → updateAuction
 /// - CancelAuctionUseCase → cancelAuction
-/// - WatchAuctionUseCase → watchAuction, unwatchAuction
-/// - GetWatchStatsUseCase → loadWatchStats
 ///
 /// Uses Riverpod Notifier for state management
 class AuctionNotifier extends Notifier<AuctionNotifierState> {
   late AuctionRepository _auctionRepository;
-  late AuctionWatchRepository _watchRepository;
   late ILoggerService _logger;
 
   // Synchronous double-submit guards for financial operations
@@ -36,7 +33,6 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
     // Dependencies will be injected via provider override
     // This is a placeholder - actual injection happens in provider
     _auctionRepository = ref.watch(auctionRepositoryProvider);
-    _watchRepository = ref.watch(auctionWatchRepositoryProvider);
     _logger = ref.watch(loggerServiceProvider);
 
     return const AuctionNotifierState();
@@ -136,9 +132,6 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
   /// for UX optimization (fail fast). The BACKEND is the FINAL AUTHORITY for all
   /// business decisions. These client-side checks are purely for better UX.
   ///
-  /// FUTURE: Use auction.decision.allowed_actions.contains('bid') and
-  /// auction.decision.display.minimumNextBid from backend decision contract.
-  ///
   /// Business Rules:
   /// - Auction must be active
   /// - Auction must not have ended
@@ -147,7 +140,7 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
   Future<bool> placeBid({
     required String auctionId,
     required String bidderId,
-    required double amount,
+    required int amount,
   }) async {
     // Synchronous guard - prevent double-tap
     if (_isPlacingBid) return false;
@@ -178,7 +171,7 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
           }
 
           // LOCAL COMPUTATION: UX optimization - backend is final authority
-          // FUTURE: Use auction.decision.display.minimumNextBid from backend
+          // Derived from factual fields: currentBid + bidIncrement
           // Validate bid amount
           final minimumBid = auction.currentBid + auction.bidIncrement;
           if (amount < minimumBid) {
@@ -323,9 +316,9 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
     required List<String> mediaUrls,
     required List<AuctionMediaType> mediaTypes,
     required KoiDetails koiDetails,
-    required double openingBid,
-    required double bidIncrement,
-    double? buyNowPrice,
+    required int openingBid,
+    required int bidIncrement,
+    int? buyNowPrice,
     required String startMode,
     DateTime? scheduledStartAt,
     required int durationHours,
@@ -435,102 +428,6 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
     );
   }
 
-  // ========== Watch Operations ==========
-
-  /// Watch an auction
-  Future<bool> watchAuction({
-    required String auctionId,
-    required String userId,
-    bool notifyOnBid = true,
-    bool notifyOnEndingSoon = true,
-    bool notifyOnEnded = true,
-  }) async {
-    final result = await _watchRepository.watchAuction(
-      auctionId: auctionId,
-      userId: userId,
-      notifyOnBid: notifyOnBid,
-      notifyOnEndingSoon: notifyOnEndingSoon,
-      notifyOnEnded: notifyOnEnded,
-    );
-
-    return result.fold(
-      (_) {
-        state = state.copyWith(
-          successMessage: 'Lelang ditambahkan ke watchlist',
-        );
-        return true;
-      },
-      (error) {
-        state = state.copyWith(error: error);
-        return false;
-      },
-    );
-  }
-
-  /// Unwatch an auction
-  Future<bool> unwatchAuction({
-    required String auctionId,
-    required String userId,
-  }) async {
-    final result = await _watchRepository.unwatchAuction(
-      auctionId: auctionId,
-      userId: userId,
-    );
-
-    return result.fold(
-      (_) {
-        state = state.copyWith(successMessage: 'Lelang dihapus dari watchlist');
-        return true;
-      },
-      (error) {
-        state = state.copyWith(error: error);
-        return false;
-      },
-    );
-  }
-
-  /// Toggle watch status
-  Future<bool> toggleWatch({
-    required String auctionId,
-    required String userId,
-  }) async {
-    final result = await _watchRepository.toggleWatch(
-      auctionId: auctionId,
-      userId: userId,
-    );
-
-    return result.fold(
-      (isWatching) {
-        state = state.copyWith(
-          successMessage: isWatching
-              ? 'Lelang ditambahkan ke watchlist'
-              : 'Lelang dihapus dari watchlist',
-        );
-        return isWatching;
-      },
-      (error) {
-        state = state.copyWith(error: error);
-        return false;
-      },
-    );
-  }
-
-  /// Load watch stats
-  Future<void> loadWatchStats({
-    required String auctionId,
-    required String currentUserId,
-  }) async {
-    final result = await _watchRepository.getWatchStats(
-      auctionId: auctionId,
-      currentUserId: currentUserId,
-    );
-
-    result.fold(
-      (stats) => state = state.copyWith(watchStats: stats),
-      (error) => state = state.copyWith(error: error),
-    );
-  }
-
   // ========== Utility Methods ==========
 
   /// Clear error
@@ -548,18 +445,6 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
     state = const AuctionNotifierState();
   }
 }
-
-// ==============================================================================
-// R4.1B DI MIGRATION: Import canonical providers from data layer
-// ==============================================================================
-// The following providers are now imported from data layer and core layer:
-// - auctionRepositoryProvider (from auction/data/auction_providers.dart)
-// - auctionWatchRepositoryProvider (from auction/data/auction_providers.dart)
-// - loggerServiceProvider (from core/providers/core_providers.dart)
-//
-// Previous implementation used sl<>() which violates canonical DI path.
-// These providers are now canonical - imported, not redefined here.
-// ==============================================================================
 
 /// Auction Notifier Provider
 final auctionNotifierProvider =
@@ -629,21 +514,6 @@ final auctionBidsStreamProvider =
       return repository.watchAuctionBids(auctionId, limit: 50);
     });
 
-/// Stream provider for watch stats (real-time updates)
-/// Requires currentUserId to be provided
-final watchStatsStreamProvider =
-    StreamProvider.family<
-      AuctionWatchStats,
-      ({String auctionId, String currentUserId})
-    >((ref, params) {
-      final watchRepository = ref.watch(auctionWatchRepositoryProvider);
-
-      return watchRepository.watchWatchStats(
-        auctionId: params.auctionId,
-        currentUserId: params.currentUserId,
-      );
-    });
-
 // ========== Future Providers (for single fetch) ==========
 
 /// Future provider for auction detail
@@ -667,15 +537,4 @@ final auctionBidsProvider = FutureProvider.family<List<AuctionBid>, String>((
   final result = await repository.getAuctionBids(auctionId: auctionId);
 
   return result.fold((bids) => bids, (error) => throw Exception(error));
-});
-
-/// Future provider for watched auctions
-final watchedAuctionsProvider = FutureProvider.family<List<Auction>, String>((
-  ref,
-  userId,
-) async {
-  final watchRepository = ref.watch(auctionWatchRepositoryProvider);
-  final result = await watchRepository.getWatchedAuctions(userId: userId);
-
-  return result.fold((auctions) => auctions, (error) => throw Exception(error));
 });

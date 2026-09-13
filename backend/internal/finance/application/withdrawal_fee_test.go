@@ -107,11 +107,60 @@ func (r *feeLedgerRepo) GetTotalCreditToUserAccount(_ context.Context, _ db.Tx, 
 
 var _ ledgerepo.LedgerRepository = (*feeLedgerRepo)(nil)
 
-// TestWithdrawalFeeAmount_IsFiveThousandRupiah locks the PASS_18H-corrected
-// fee constant. MU1 regression guard: the fee was previously 500_000 (100x
-// too large under the Rupiah-integer canonical unit).
-func TestWithdrawalFeeAmount_IsFiveThousandRupiah(t *testing.T) {
-	require.Equal(t, int64(5_000), int64(WithdrawalFeeAmount))
+// fixedWithdrawalFeeProvider is a test fake for the canonical withdrawal fee
+// authority (ConfigService.GetSellerWithdrawalFee). fee 0 exercises the
+// free-withdrawal path.
+type fixedWithdrawalFeeProvider struct{ fee int64 }
+
+func (p fixedWithdrawalFeeProvider) GetSellerWithdrawalFee(context.Context, db.Tx) int64 {
+	return p.fee
+}
+
+// TestRequestWithdrawal_ConfiguredFee5000_Applied proves the runtime applies
+// the configured fee (Rp 5.000) at withdrawal request time.
+func TestRequestWithdrawal_ConfiguredFee5000_Applied(t *testing.T) {
+	svc, sellerID := buildBankReviewService(t, true)
+	svc.SetWithdrawalFeeProvider(fixedWithdrawalFeeProvider{fee: 5_000})
+
+	out, err := svc.RequestWithdrawal(context.Background(), CanonicalRequestWithdrawalInput{
+		SellerID: sellerID,
+		Amount:   100_000,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, out)
+	require.Equal(t, int64(5_000), out.FeeAmount)
+	// Money invariant: the full requested amount is reserved; the fee is not
+	// an additional debit (net split happens at settlement).
+	require.Equal(t, int64(100_000), out.TotalDebitAmount)
+}
+
+// TestRequestWithdrawal_ConfiguredFee0_Applied proves Rp0 is applied as-is:
+// fee = 0, total debit still the full requested amount.
+func TestRequestWithdrawal_ConfiguredFee0_Applied(t *testing.T) {
+	svc, sellerID := buildBankReviewService(t, true)
+	svc.SetWithdrawalFeeProvider(fixedWithdrawalFeeProvider{fee: 0})
+
+	out, err := svc.RequestWithdrawal(context.Background(), CanonicalRequestWithdrawalInput{
+		SellerID: sellerID,
+		Amount:   100_000,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, out)
+	require.Equal(t, int64(0), out.FeeAmount)
+	require.Equal(t, int64(100_000), out.TotalDebitAmount)
+}
+
+// TestRequestWithdrawal_FeeProviderMissing_FailClosed proves there is no
+// hardcoded fee fallback when the config authority is not wired at boot.
+func TestRequestWithdrawal_FeeProviderMissing_FailClosed(t *testing.T) {
+	svc, sellerID := buildBankReviewService(t, true)
+	svc.withdrawalFeeProvider = nil
+
+	_, err := svc.RequestWithdrawal(context.Background(), CanonicalRequestWithdrawalInput{
+		SellerID: sellerID,
+		Amount:   100_000,
+	})
+	require.ErrorIs(t, err, ErrWithdrawalFeeProviderNotConfigured)
 }
 
 // PASS_18H MONEY MODEL: the fee is deducted FROM the requested amount, never

@@ -14,6 +14,7 @@ import (
 	forSaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
 	userRepositoryPkg "github.com/labuda/backend/internal/identity/user/repository"
 	moderationRepo "github.com/labuda/backend/internal/governance/moderation/infrastructure/repository"
+	"github.com/labuda/backend/internal/platform/capability/invariant"
 	platformevent "github.com/labuda/backend/internal/platform/event"
 	contentApp "github.com/labuda/backend/internal/social/content/application"
 	"github.com/labuda/backend/pkg/db"
@@ -692,6 +693,15 @@ func (h *ModerationEventHandler) handleUserAction(
 	// Canonical enforcement lifecycle within a single transaction.
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
 		return h.enforceLifecycle(ctx, tx, enforcementID, func() error {
+			// Serialize this suspension against the canonical full-access admin
+			// invariant. The lock is taken BEFORE the read-modify-write so a
+			// moderation suspension cannot interleave with a concurrent
+			// suspend/ban/demotion/capability-revocation and together drop the
+			// full-access admin count to zero.
+			if err := invariant.Lock(ctx, tx); err != nil {
+				return err
+			}
+
 			// Lock user for update
 			user, err := h.userRepo.GetByIDForUpdate(ctx, tx, userID)
 			if err != nil {
@@ -715,7 +725,12 @@ func (h *ModerationEventHandler) handleUserAction(
 				return fmt.Errorf("failed to update user status: %w", err)
 			}
 
-			return nil
+			// INVARIANT: the system must always retain at least one active
+			// full-access admin. Recomputed from this transaction's own visible
+			// state after the suspension, so a failure rolls the whole enforcement
+			// transaction back and surfaces invariant.ErrLastFullAccessAdmin to
+			// the outbox worker.
+			return invariant.Verify(ctx, tx)
 		})
 	})
 

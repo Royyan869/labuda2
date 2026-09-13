@@ -31,7 +31,7 @@ func NewPostgresDB(cfg *config.DatabaseConfig, log *logger.Logger) (*DB, error) 
 	dbCfg := db.Config{
 		ConnString:        dsn,
 		MaxConns:          int32(cfg.MaxConnections),
-		MinConns:          int32(cfg.MaxIdle),
+		MinConns:          int32(cfg.MinConnections),
 		MaxConnLifetime:   cfg.ConnMaxLifetime,
 		MaxConnIdleTime:   5 * time.Minute,
 		HealthCheckPeriod: 30 * time.Second,
@@ -48,8 +48,24 @@ func NewPostgresDB(cfg *config.DatabaseConfig, log *logger.Logger) (*DB, error) 
 	log.Info("Database connected successfully",
 		zap.String("host", cfg.Host),
 		zap.String("database", cfg.Name),
-		zap.Int("max_connections", cfg.MaxConnections),
+		zap.Int("pool_max_conns", cfg.MaxConnections),
+		zap.Int("pool_min_conns", cfg.MinConnections),
 	)
+
+	// POOL CAPACITY GUARD: a pool whose ceiling reaches or exceeds the server's
+	// max_connections leaves no room for other legitimate clients (CLI tools,
+	// migrations, admin tooling) and starves them with "too many clients
+	// already" (SQLSTATE 53300). Surface the misconfiguration loudly at boot
+	// instead of discovering it during an admin operation.
+	var serverMaxConns int
+	if err := pgxDB.Pool().QueryRow(ctx, "SHOW max_connections").Scan(&serverMaxConns); err == nil {
+		if cfg.MaxConnections >= serverMaxConns {
+			log.Warn("Database pool leaves no headroom below server max_connections",
+				zap.Int("pool_max_conns", cfg.MaxConnections),
+				zap.Int("server_max_connections", serverMaxConns),
+			)
+		}
+	}
 
 	return &DB{pgxDB: pgxDB}, nil
 }

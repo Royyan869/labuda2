@@ -14,68 +14,47 @@ type MuteChecker interface {
 	ExistsMute(ctx context.Context, muterID, mutedID uuid.UUID) (bool, error)
 }
 
-// MuteMode controls whether mute suppression is active or shadow-only.
-type MuteMode string
-
-const (
-	// MuteShadow evaluates mute and emits divergence telemetry but always delivers.
-	// This is the safe default — no user-visible behavior change.
-	MuteShadow MuteMode = "shadow"
-
-	// MuteEnforce evaluates mute and suppresses delivery when muted.
-	// Requires explicit opt-in via MUTE_CHAT_NOTIFICATION_ENFORCE=true.
-	MuteEnforce MuteMode = "enforce"
-)
-
 // MuteAction represents the mute policy evaluation result.
 type MuteAction struct {
-	WouldSuppress bool   // true if mute relationship exists and would suppress delivery
-	Suppressed    bool   // true if actually suppressed (enforce mode + muted)
-	PolicyError   bool   // true if mute checker returned an error
-	Reason        string // for telemetry and logging
+	Suppressed  bool   // true if a recipient-muted-sender relationship exists and delivery is suppressed
+	PolicyError bool   // true if the mute checker returned an error
+	Reason      string // for telemetry and logging
 }
 
 // MutePolicy evaluates mute relationships for notification delivery.
 //
-// SHADOW-FIRST: Default mode is MuteShadow. Suppression requires explicit MuteEnforce.
+// CANONICAL BUSINESS TRUTH: mute is ENFORCED. When the recipient has muted
+// the sender, chat notifications are suppressed on every channel (in-app and
+// push). There is no shadow/observe mode and no environment knob — mute is
+// normal business behavior, not a staged rollout.
+//
 // SCOPE: Notification delivery surface only. REST and WebSocket are unaffected.
 // DIRECTION: Only recipient-muted-sender suppresses delivery.
 //
 //	Sender-muted-recipient has no delivery effect.
 type MutePolicy struct {
 	muteChecker MuteChecker
-	mode        MuteMode
 }
 
-// NewMutePolicy creates a new MutePolicy.
-// If mode is empty, it defaults to MuteShadow.
-func NewMutePolicy(checker MuteChecker, mode MuteMode) *MutePolicy {
-	if mode == "" {
-		mode = MuteShadow
-	}
-	return &MutePolicy{muteChecker: checker, mode: mode}
-}
-
-// Mode returns the current enforcement mode.
-func (p *MutePolicy) Mode() MuteMode {
-	return p.mode
+// NewMutePolicy creates a new MutePolicy bound to the given checker.
+// There is a single construction model: enforcement is always on.
+func NewMutePolicy(checker MuteChecker) *MutePolicy {
+	return &MutePolicy{muteChecker: checker}
 }
 
 // ShouldApplyMute evaluates mute policy for notification delivery.
 //
-// Only recipient-muted-sender semantics apply. Sender-muted-recipient has no effect.
+// When the recipient has muted the sender: Suppressed=true → suppress both
+// in-app and push.
 //
-// Shadow mode: WouldSuppress=true, Suppressed=false → deliver + emit divergence telemetry.
-// Enforce mode: WouldSuppress=true, Suppressed=true → suppress both in-app and push.
-//
-// FAIL-OPEN: mute is a preference, not a safety boundary.
-// On checker error: PolicyError=true, deliver (fail-open), telemetry emitted.
+// FAIL-OPEN: mute is a preference, not a safety boundary. A missing checker
+// or a checker error leaves delivery unaffected and reports the reason.
 func (p *MutePolicy) ShouldApplyMute(
 	ctx context.Context,
 	senderID, recipientID uuid.UUID,
 ) MuteAction {
 	if p.muteChecker == nil {
-		return MuteAction{WouldSuppress: false, Suppressed: false, Reason: "no_mute_checker"}
+		return MuteAction{Reason: "no_mute_checker"}
 	}
 
 	// Check only the recipient-muted-sender direction: recipientID is the muter, senderID is muted.
@@ -83,23 +62,14 @@ func (p *MutePolicy) ShouldApplyMute(
 	if err != nil {
 		// FAIL-OPEN: mute is a preference, not a safety boundary — uncertain state means deliver.
 		return MuteAction{
-			WouldSuppress: false,
-			Suppressed:    false,
-			PolicyError:   true,
-			Reason:        fmt.Sprintf("mute_policy_error: %v", err),
+			PolicyError: true,
+			Reason:      fmt.Sprintf("mute_policy_error: %v", err),
 		}
 	}
 
 	if !muted {
-		return MuteAction{WouldSuppress: false, Suppressed: false, Reason: "not_muted"}
+		return MuteAction{Reason: "not_muted"}
 	}
 
-	if p.mode == MuteEnforce {
-		return MuteAction{WouldSuppress: true, Suppressed: true, Reason: "mute_enforced_drop"}
-	}
-
-	// Shadow mode: mute relationship observed but delivery proceeds.
-	return MuteAction{WouldSuppress: true, Suppressed: false, Reason: "mute_shadow_deliver"}
+	return MuteAction{Suppressed: true, Reason: "mute_enforced_drop"}
 }
-
-

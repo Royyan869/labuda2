@@ -218,10 +218,10 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
       return;
     }
 
-    final openingBid = double.tryParse(_openingBidController.text.trim());
-    final bidIncrement = double.tryParse(_bidIncrementController.text.trim());
+    final openingBid = int.tryParse(_openingBidController.text.trim());
+    final bidIncrement = int.tryParse(_bidIncrementController.text.trim());
     final buyNowText = _buyNowPriceController.text.trim();
-    final buyNowPrice = buyNowText.isEmpty ? null : double.tryParse(buyNowText);
+    final buyNowPrice = buyNowText.isEmpty ? null : int.tryParse(buyNowText);
 
     if (openingBid == null || openingBid <= 0) {
       setState(() => _errorMessage = 'Harga awal harus lebih dari 0.');
@@ -260,7 +260,10 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
       // UX guard mirrors backend MaxScheduledStartHorizon (30 days).
       // Backend remains authoritative for manipulated/stale input.
       if (scheduled.isAfter(nowCheck.add(const Duration(days: 30)))) {
-        setState(() => _errorMessage = 'Waktu mulai tidak boleh lebih dari 30 hari dari sekarang.');
+        setState(
+          () => _errorMessage =
+              'Waktu mulai tidak boleh lebih dari 30 hari dari sekarang.',
+        );
         return;
       }
       scheduledStartAt = scheduled;
@@ -323,7 +326,9 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
     if (!success) {
       final notifierState = ref.read(auctionNotifierProvider);
       // Commerce restriction — canonical backend rejection.
-      if (CommerceRestrictionPresenter.isCommerceRestricted(notifierState.errorCode)) {
+      if (CommerceRestrictionPresenter.isCommerceRestricted(
+        notifierState.errorCode,
+      )) {
         setState(() => _isSubmitting = false);
         CommerceRestrictionPresenter.show(
           context,

@@ -19,29 +19,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// requireAnyCapability is a middleware that checks if the actor has ANY of the specified capabilities
-// STEP 2: Helper for split config capabilities
-func requireAnyCapability(caps ...string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		actor := middleware.GetActorFromContext(c)
-		if actor == nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
-			return
-		}
-
-		for _, cap := range caps {
-			if actor.HasCapability(cap) {
-				c.Next()
-				return
-			}
-		}
-
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-			"error": "One of the following capabilities required: " + caps[0] + " or " + caps[1],
-		})
-	}
-}
-
 // SetupRoutes configures all application routes for CORE domains only
 // CORE domains: finance, outbox, payment, user
 func SetupRoutes(
@@ -208,7 +185,7 @@ func SetupRoutes(
 	v1.Use(middleware.LabudaAuthMiddleware(labudaTokenService))
 	v1.Use(middleware.UserLookupMiddleware(middleware.NewDBUserLookupService(db.Pgx())))
 	v1.Use(middleware.RolesLookupMiddleware(db.Pgx()))
-	// SLICE 2+3: Capability-based auth - inject Actor with capabilities into context
+	// CANONICAL AUTHORITY PIPELINE: inject Actor (role + capabilities) into context
 	v1.Use(middleware.ActorContextInject(deps.ActorResolver, middleware.ActorContextInjectOptions{Log: log.Logger}))
 	{
 		// Ping endpoint for testing
@@ -334,24 +311,24 @@ func SetupRoutes(
 		// Seller-only endpoints (for_sale CRUD operations)
 		forSaleSellerRoutes := v1.Group("/for-sale")
 		{
-			// ForSale create gate: verified email + active account + seller authority.
-			// Suspended/banned sellers cannot publish new for_sale items.
+			// ForSale workspace gate: verified email + active account + seller profile.
+			// Private/draft creation is workspace state (no subscription required);
+			// market-visible exposure is gated transactionally by HasActiveSellerCapability.
 			forSaleSellerRoutes.POST("",
 				middleware.RequireActiveAccount(db.Pgx()),
-				middleware.RequireSellerMiddleware(deps.RoleChecker),
+				middleware.RequireSellerProfileMiddleware(deps.RoleChecker),
 				deps.ForSaleHandler.CreateForSale,
 			)
-			// ForSale owner mutations: verified email + active account + seller authority.
-			// Matches the create gate; suspended/banned sellers cannot edit,
-			// delete, or reconfigure shipping on their own for_sale items.
+			// ForSale owner mutations on draft: workspace authority only.
+			// Publish (draft→active) is gated transactionally by HasActiveSellerCapability.
 			forSaleSellerRoutes.PUT("/:id",
 				middleware.RequireActiveAccount(db.Pgx()),
-				middleware.RequireSellerMiddleware(deps.RoleChecker),
+				middleware.RequireSellerProfileMiddleware(deps.RoleChecker),
 				deps.ForSaleHandler.UpdateForSale,
 			)
 			forSaleSellerRoutes.DELETE("/:id",
 				middleware.RequireActiveAccount(db.Pgx()),
-				middleware.RequireSellerMiddleware(deps.RoleChecker),
+				middleware.RequireSellerProfileMiddleware(deps.RoleChecker),
 				deps.ForSaleHandler.DeleteForSale,
 			)
 		}
@@ -484,6 +461,14 @@ func SetupRoutes(
 		// Subscription config disclosure for the seller upgrade/onboarding flow.
 		// This is authenticated-account scoped, not seller-authority scoped.
 		v1.GET("/seller/subscription/config", middleware.RequireActiveAccount(db.Pgx()), deps.SellerHandler.GetSubscriptionConfig)
+
+		// Canonical payment-method disclosure for the seller subscription flow
+		// (PMF-02). Subscription-scoped sibling of GET /payments/methods: the
+		// seller explicitly selects a method here, then sends its code to
+		// /seller/subscription/initiate. The backend stays the sole fee authority.
+		// Gate: active account only (the upgrade wizard renders this before
+		// onboarding completes).
+		v1.GET("/seller/subscription/payment-methods", middleware.RequireActiveAccount(db.Pgx()), deps.SellerHandler.GetSubscriptionPaymentMethods)
 
 		// ===== SELLER MARKET AUTHORITY ROUTES =====
 		// Require active subscription (RequireSellerMiddleware).
@@ -1093,9 +1078,11 @@ func SetupRoutes(
 			// MANAGEMENT PRE-FIX M1: DUAL PROTECTION - RequireAdminMiddleware + RequireCapability
 			// + Audit logging in handler for all mutations
 			// STEP 2: Split capabilities - accepts either config.update.general or config.update.financial
-			// Handler enforces specific capability based on config key type
+			// Handler enforces specific capability based on config key type.
+			// Canonical middleware.RequireAnyCapability: 401 with no actor,
+			// 403 when none of the capabilities is held — never a role fallback.
 			adminRoutes.PUT("/config/:key",
-				requireAnyCapability("config.update.general", "config.update.financial"),
+				middleware.RequireAnyCapability("config.update.general", "config.update.financial"),
 				deps.PlatformConfigHandler.UpdateConfig)
 
 			// ===== SELLER SUBSCRIPTION CONFIG - Admin singleton read/update =====

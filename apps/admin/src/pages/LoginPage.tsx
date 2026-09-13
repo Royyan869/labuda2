@@ -1,28 +1,12 @@
 import { Button } from "@/components/ui/Button";
 import { api, ApiError, setAuthToken } from "@/lib/api";
 import { auth, googleProvider } from "@/lib/firebase";
-import { useAuthStore, type AdminUser } from "@/store/authStore";
+import { useAuthStore } from "@/store/authStore";
+import { ensureSessionValidated } from "@/hooks/useAuth";
 import { FirebaseError } from "firebase/app";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-
-interface AdminMeResponse {
-  id: string;
-  email: string;
-  username: string;
-  role: string;
-  is_admin: boolean;
-  capabilities: string[];
-}
-
-interface UserMeResponse {
-  user: {
-    id: string;
-    email?: string | null;
-    username: string;
-  };
-}
 
 interface FirebaseExchangeData {
   user_id: string;
@@ -44,7 +28,7 @@ const PROFILE_COMPLETION_DENIED_MESSAGE =
   "This account needs profile completion before admin access can be granted.";
 
 export function LoginPage() {
-  const { user, setUser } = useAuthStore();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -76,27 +60,24 @@ export function LoginPage() {
 
     setAuthToken(exchange.access_token);
 
-    // Fetch canonical user identity first, then verify admin capability.
-    const userResp = await api.get<{ data: UserMeResponse }>("/api/v1/users/me");
-    const identity = userResp.data.user;
+    // Delegate session establishment to the single canonical validation
+    // authority: it owns /users/me, /admin/me, the AdminUser mapping and the
+    // publication of user + sessionToken into authStore.
+    const session = await ensureSessionValidated();
 
-    // Fetch admin authorization/capability metadata.
-    const resp = await api.get<{ data: AdminMeResponse }>("/api/v1/admin/me");
-    const me = resp.data;
+    if (session.status !== "validated") {
+      // The credential changed while it was being validated, so no session was
+      // published for this login.
+      throw new Error("INVALID_SESSION");
+    }
 
-    if (!me.is_admin) {
+    // Authorization is still decided here, with the existing user-facing
+    // semantics: a non-admin account must not remain logged in.
+    if (!session.user.isAdmin) {
+      useAuthStore.getState().signOut();
       throw new Error("NOT_ADMIN");
     }
 
-    const adminUser: AdminUser = {
-      id: identity.id,
-      email: identity.email ?? "",
-      username: identity.username,
-      isAdmin: me.is_admin,
-      capabilities: me.capabilities,
-    };
-
-    setUser(adminUser);
     navigate("/", { replace: true });
   };
 

@@ -30,6 +30,7 @@ func (capabilityServiceAuditLogger) LogTx(context.Context, db.Tx, uuid.UUID, str
 type capabilityServiceRepoMock struct {
 	actorCaps   map[uuid.UUID]map[string]bool
 	activeCaps  map[string]*capabilityEntity.UserCapability
+	roles       map[uuid.UUID]string
 	createCalls int
 	revokeCalls int
 }
@@ -38,7 +39,24 @@ func newCapabilityServiceRepoMock() *capabilityServiceRepoMock {
 	return &capabilityServiceRepoMock{
 		actorCaps:  make(map[uuid.UUID]map[string]bool),
 		activeCaps: make(map[string]*capabilityEntity.UserCapability),
+		roles:      make(map[uuid.UUID]string),
 	}
+}
+
+// CreateGrant mirrors the canonical write path (own transaction) on the mock.
+func (m *capabilityServiceRepoMock) CreateGrant(_ context.Context, cap *capabilityEntity.UserCapability) error {
+	return m.Create(context.Background(), nil, cap)
+}
+
+// RevokeGuarded mirrors the canonical guarded write path on the mock. The
+// full-access invariant itself is a database concern and is proven against a
+// real database, not here.
+func (m *capabilityServiceRepoMock) RevokeGuarded(_ context.Context, id uuid.UUID) error {
+	return m.Revoke(context.Background(), nil, id, nil)
+}
+
+func (m *capabilityServiceRepoMock) GetUserRole(_ context.Context, userID uuid.UUID) (string, error) {
+	return m.roles[userID], nil
 }
 
 func (m *capabilityServiceRepoMock) capKey(userID uuid.UUID, capStr string) string {
@@ -136,6 +154,9 @@ type capabilityRepository interface {
 	HasAnyCapability(ctx context.Context, tx interface{}, userID uuid.UUID, capabilities []string) (bool, error)
 	CountActiveCapabilities(ctx context.Context, tx interface{}, userID uuid.UUID) (int, error)
 	ListUsersByCapability(ctx context.Context, tx interface{}, capability string) ([]uuid.UUID, error)
+	CreateGrant(ctx context.Context, cap *capabilityEntity.UserCapability) error
+	RevokeGuarded(ctx context.Context, id uuid.UUID) error
+	GetUserRole(ctx context.Context, userID uuid.UUID) (string, error)
 }
 
 func TestCapabilityService_RequiresAuthority(t *testing.T) {

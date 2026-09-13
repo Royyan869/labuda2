@@ -1,6 +1,6 @@
 // Package middleware provides capability-based authorization middleware.
 //
-// SLICE 2: CAPABILITY MIDDLEWARE FOUNDATION
+// CANONICAL AUTHORITY FOUNDATION
 //
 // This package implements capability enforcement middleware that uses the Actor
 // from the request context (injected by ActorContextInject middleware) to make
@@ -13,12 +13,19 @@
 // - Safe: Returns appropriate error responses without panicking
 //
 // USAGE:
-// These middleware should be placed AFTER ActorContextInject in the middleware chain.
-// They will reject requests that don't have the required capabilities.
+// These middleware must be placed AFTER ActorContextInject in the middleware
+// chain. They reject requests that do not carry the required capabilities.
 //
-// NOTE: This is the foundation for Slice 3 where existing routes will be migrated
-// to use capability-based authorization. In Slice 2, these middleware are prepared
-// and tested but NOT yet applied to production routes.
+// PRIVILEGED INTERNAL BUSINESS ACTIONS:
+// Routes that execute privileged internal business actions are registered in
+// the admin route group (RequireAdminMiddleware = coarse internal membership
+// boundary) AND gated per route with RequireCapability = explicit required
+// capability. The effective predicate is therefore:
+//
+//	authenticated AND admin membership AND explicit required capability
+//
+// Admin membership alone NEVER grants a capability, and a capability alone
+// NEVER bypasses the admin membership boundary.
 package middleware
 
 import (

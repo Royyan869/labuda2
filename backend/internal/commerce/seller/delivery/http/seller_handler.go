@@ -12,6 +12,8 @@ import (
 	orderrepoimpl "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
 	ratingApp "github.com/labuda/backend/internal/commerce/order/rating/application"
 	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
+	paymentmethodentity "github.com/labuda/backend/internal/commerce/paymentmethod/entity"
+	paymentmethodrepo "github.com/labuda/backend/internal/commerce/paymentmethod/infrastructure/repository"
 	"github.com/labuda/backend/internal/commerce/seller/entity"
 	sellerRepo "github.com/labuda/backend/internal/commerce/seller/repository"
 	subscriptionApp "github.com/labuda/backend/internal/commerce/subscription/application"
@@ -50,13 +52,19 @@ type SellerHandler struct {
 	onboardingService   *subscriptionApp.SellerOnboardingService // ← SINGLE SOURCE OF TRUTH
 
 	// Subscription payment initiation deps
-	paymentRepo    subscriptionPaymentRepository
-	midtransClient snapTransactionClient
-	subRepo        subscriptionRepo.SellerSubscriptionRepository
-	frontendURL    string
+	paymentRepo       subscriptionPaymentRepository
+	paymentMethodRepo paymentMethodRepository
+	midtransClient    snapTransactionClient
+	subRepo           subscriptionRepo.SellerSubscriptionRepository
+	frontendURL       string
 
 	// Subscription payment sync — activates settled payments missed by webhook
 	subscriptionPaymentService *subscriptionApp.SellerSubscriptionPaymentService
+
+	// withdrawalFeeProvider returns the canonical configured seller withdrawal
+	// fee (admin-configurable, Rp0 allowed) for the seller earnings display
+	// surface. Wired post-construction via SetWithdrawalFeeProvider.
+	withdrawalFeeProvider financeapp.WithdrawalFeeProvider
 }
 
 type subscriptionPaymentRepository interface {
@@ -64,6 +72,13 @@ type subscriptionPaymentRepository interface {
 	FindLatestSubscriptionPayment(ctx context.Context, tx db.Tx, userID uuid.UUID) (*paymentRepository.Payment, error)
 	CreatePayment(ctx context.Context, tx db.Tx, input paymentRepository.CreatePaymentInput) (*paymentRepository.Payment, error)
 	UpdatePaymentURL(ctx context.Context, tx db.Tx, paymentID uuid.UUID, paymentURL string) error
+}
+
+// paymentMethodRepository defines the canonical payment method lookups
+// required by subscription payment creation (PMF-02).
+type paymentMethodRepository interface {
+	GetByCode(ctx context.Context, tx db.Tx, code string) (*paymentmethodentity.Method, error)
+	ListEnabled(ctx context.Context, tx db.Tx) ([]paymentmethodentity.Method, error)
 }
 
 type snapTransactionClient interface {
@@ -109,6 +124,20 @@ func NewSellerHandler(
 		frontendURL:                frontendURL,
 		subscriptionPaymentService: subscriptionPaymentService,
 	}
+}
+
+// SetPaymentMethodRepository wires the canonical payment method authority
+// into the subscription payment initiation path (PMF-02). Must be called
+// at boot; nil → subscription initiation rejects all requests.
+func (h *SellerHandler) SetPaymentMethodRepository(repo paymentMethodRepository) {
+	h.paymentMethodRepo = repo
+}
+
+// SetWithdrawalFeeProvider wires the canonical configured seller withdrawal
+// fee authority into the seller earnings surface (same authority as
+// WithdrawService). Must be called at boot; nil → earnings fail-closes.
+func (h *SellerHandler) SetWithdrawalFeeProvider(p financeapp.WithdrawalFeeProvider) {
+	h.withdrawalFeeProvider = p
 }
 
 // SellerProfileResponse represents the seller profile response.
@@ -439,6 +468,13 @@ func (h *SellerHandler) GetSubscriptionConfig(c *gin.Context) {
 // SUBSCRIPTION PAYMENT INITIATION
 // ============================================================================
 
+// InitiateSubscriptionPaymentRequest is the request body for subscription
+// payment initiation. payment_method_code is REQUIRED — there is no silent
+// default, no first-enabled-method fallback, and no backend auto-selection.
+type InitiateSubscriptionPaymentRequest struct {
+	PaymentMethodCode string `json:"payment_method_code" binding:"required"`
+}
+
 // InitiateSubscriptionPaymentResponse represents the response for initiating
 // a subscription payment via Midtrans Snap.
 type InitiateSubscriptionPaymentResponse struct {
@@ -457,14 +493,36 @@ func buildInitiateSubscriptionPaymentResponse(payment *paymentRepository.Payment
 	}
 }
 
-func (h *SellerHandler) initiateSubscriptionPaymentTx(c *gin.Context, ctx context.Context, tx db.Tx, userID uuid.UUID) (*InitiateSubscriptionPaymentResponse, error) {
+// writeSubscriptionInitiationError maps canonical subscription-initiation
+// errors to the correct HTTP status. It returns true when it has written a
+// response, and false when the error is not a recognized client-input error
+// (the caller then logs and returns 500).
+//
+// PMF-02: an unknown or disabled payment method is client input and must be
+// 400, mirroring the canonical CreatePayment (PASS_18V) and billing top-up
+// handlers. Before this mapping both cases collapsed into 500 with the
+// sentinel discarded by a non-wrapping error.
+func writeSubscriptionInitiationError(c *gin.Context, err error, paymentMethodCode string) bool {
+	switch {
+	case errors.Is(err, paymentmethodrepo.ErrMethodNotFound):
+		response.BadRequest(c, fmt.Sprintf("Unknown payment method: %s", paymentMethodCode))
+		return true
+	case errors.Is(err, paymentmethodentity.ErrMethodDisabled):
+		response.BadRequest(c, fmt.Sprintf("Payment method is disabled: %s", paymentMethodCode))
+		return true
+	default:
+		return false
+	}
+}
+
+func (h *SellerHandler) initiateSubscriptionPaymentTx(c *gin.Context, ctx context.Context, tx db.Tx, userID uuid.UUID, paymentMethodCode string) (*InitiateSubscriptionPaymentResponse, error) {
 	// Step 1: Validate onboarding — seller_profile must exist.
 	// Mobile calls POST /seller/onboarding first (identity before authority).
 	if err := h.onboardingService.ValidateOnboarding(ctx, tx, userID); err != nil {
 		return nil, err
 	}
 
-	// Step 2: Load active subscription config (admin-seeded fee)
+	// Step 2: Load active subscription config (admin-seeded principal)
 	config, err := h.subRepo.GetActiveConfig(ctx, tx)
 	if err != nil {
 		return nil, fmt.Errorf("get active config: %w", err)
@@ -473,6 +531,33 @@ func (h *SellerHandler) initiateSubscriptionPaymentTx(c *gin.Context, ctx contex
 		response.Error(c, 503, "NO_ACTIVE_CONFIG",
 			"Konfigurasi langganan tidak tersedia")
 		return nil, nil
+	}
+
+	// Step 2b: Load and validate payment method (PMF-02).
+	// payment_method_code is REQUIRED — no silent default, no fallback.
+	// Failures are wrapped with the canonical sentinels so the HTTP layer can
+	// map unknown/disabled methods to 400 (the PMF-01 and PASS_18V pattern)
+	// instead of collapsing every failure into a 500.
+	if h.paymentMethodRepo == nil {
+		return nil, fmt.Errorf("payment method repository not configured")
+	}
+	method, err := h.paymentMethodRepo.GetByCode(ctx, tx, paymentMethodCode)
+	if err != nil {
+		if errors.Is(err, paymentmethodrepo.ErrMethodNotFound) {
+			return nil, fmt.Errorf("%w: %s", paymentmethodrepo.ErrMethodNotFound, paymentMethodCode)
+		}
+		return nil, fmt.Errorf("load payment method: %w", err)
+	}
+	if !method.Enabled {
+		return nil, fmt.Errorf("%w: %s", paymentmethodentity.ErrMethodDisabled, method.Code)
+	}
+
+	// Step 2c: Calculate payment-method fee from canonical authority.
+	// F = CalculateFee(A, method), where A = subscription principal.
+	principal := config.YearlyFeeRupiah
+	fee, err := paymentmethodentity.CalculateFee(money.New(principal), *method)
+	if err != nil {
+		return nil, fmt.Errorf("calculate payment fee: %w", err)
 	}
 
 	// Step 3: Idempotency — return existing pending payment if found.
@@ -486,6 +571,7 @@ func (h *SellerHandler) initiateSubscriptionPaymentTx(c *gin.Context, ctx contex
 			return buildInitiateSubscriptionPaymentResponse(existingPayment, *existingPayment.PaymentURL), nil
 		}
 
+		// Existing pending payment — reuse its immutable snapshot for gateway.
 		amountIDR := float64(existingPayment.GrossAmount.Int64())
 		expiryMinutes := int(time.Until(existingPayment.ExpiredAt).Minutes())
 		if expiryMinutes < 1 {
@@ -531,10 +617,11 @@ func (h *SellerHandler) initiateSubscriptionPaymentTx(c *gin.Context, ctx contex
 		return buildInitiateSubscriptionPaymentResponse(existingPayment, snapResp.RedirectURL), nil
 	}
 
-	// Step 4: Create payment row
+	// Step 4: Create payment row with immutable snapshot (PMF-02).
+	// gross_amount = A + F, service_fee_amount = F, payment_method_code = M.
 	paymentNumber := fmt.Sprintf("PAY-SUB-%d", time.Now().UnixNano())
 	midtransOrderID := fmt.Sprintf("LAB-SUB-%s", uuid.New().String())
-	grossAmount := money.New(config.YearlyFeeRupiah)
+	grossAmount := money.New(principal).Add(fee) // A + F
 	expiredAt := time.Now().Add(24 * time.Hour) // 24h payment window
 
 	refID := userID // reference_id = userID for subscriptions
@@ -543,18 +630,20 @@ func (h *SellerHandler) initiateSubscriptionPaymentTx(c *gin.Context, ctx contex
 		PaymentNumber:    paymentNumber,
 		MidtransOrderID:  midtransOrderID,
 		GrossAmount:      grossAmount,
-		ServiceFeeAmount: money.Zero(),
+		ServiceFeeAmount: fee,
 		CoinsToUse:       0,
 		ReferenceType:    paymentRepository.ReferenceTypeSubscription,
 		ReferenceID:      &refID,
 		ExpiredAt:        expiredAt,
+		PaymentMethodCode: &paymentMethodCode,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create payment: %w", err)
 	}
 
-	// Step 6: Build Midtrans Snap request and get redirect URL
-	amountIDR := float64(config.YearlyFeeRupiah) // Rupiah integer, no conversion
+	// Step 5: Build Midtrans Snap request from payment snapshot (PMF-02).
+	// Gateway gross MUST equal payment.GrossAmount — NOT config directly.
+	amountIDR := float64(payment.GrossAmount.Int64())
 	expiryMinutes := int(time.Until(expiredAt).Minutes())
 	if expiryMinutes < 1 {
 		expiryMinutes = 1
@@ -592,7 +681,7 @@ func (h *SellerHandler) initiateSubscriptionPaymentTx(c *gin.Context, ctx contex
 		return nil, fmt.Errorf("midtrans snap: %w", err)
 	}
 
-	// Step 7: Store redirect URL on payment row
+	// Step 6: Store redirect URL on payment row
 	if err := h.paymentRepo.UpdatePaymentURL(ctx, tx, payment.ID, snapResp.RedirectURL); err != nil {
 		return nil, fmt.Errorf("update payment URL: %w", err)
 	}
@@ -606,10 +695,13 @@ func (h *SellerHandler) initiateSubscriptionPaymentTx(c *gin.Context, ctx contex
 //
 // Flow:
 // 1. Validates onboarding (seller_profile must already exist via POST /seller/onboarding)
-// 2. Loads active subscription config (admin-seeded fee)
-// 3. Returns existing pending payment if found (idempotent)
-// 4. Creates payment row + Midtrans Snap token
-// 5. Returns payment_url for client redirect
+// 2. Loads active subscription config (admin-seeded principal A)
+// 3. Loads and validates the REQUIRED payment_method_code (unknown/disabled → 400)
+// 4. Calculates the canonical payment-method fee F = CalculateFee(A, method)
+// 5. Returns the existing pending payment if one exists (idempotent reuse of its
+//    immutable M1/F1 snapshot — a newly selected method does NOT supersede it)
+// 6. Creates payment row + Midtrans Snap token with the A+F snapshot
+// 7. Returns payment_url for client redirect
 //
 // Renewal is intentionally not window-gated here: the canonical renewal
 // stacking logic lives in SubscriptionPaymentService, which appends the new
@@ -632,10 +724,17 @@ func (h *SellerHandler) InitiateSubscriptionPayment(c *gin.Context) {
 		return
 	}
 
+	// Parse request body — payment_method_code is REQUIRED (PMF-02).
+	var req InitiateSubscriptionPaymentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "payment_method_code is required")
+		return
+	}
+
 	var result *InitiateSubscriptionPaymentResponse
 
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
-		initResult, err := h.initiateSubscriptionPaymentTx(c, ctx, tx, userID)
+		initResult, err := h.initiateSubscriptionPaymentTx(c, ctx, tx, userID, req.PaymentMethodCode)
 		if err != nil {
 			var onboardingErr *subscriptionApp.ErrOnboardingIncomplete
 			if errors.As(err, &onboardingErr) {
@@ -652,6 +751,12 @@ func (h *SellerHandler) InitiateSubscriptionPayment(c *gin.Context) {
 	})
 
 	if err != nil {
+		// Canonical input-validation mapping: an unknown or disabled payment
+		// method is a client error, not a server fault. The sentinels are the
+		// same ones used by the canonical CreatePayment / top-up handlers.
+		if writeSubscriptionInitiationError(c, err, req.PaymentMethodCode) {
+			return
+		}
 		h.log.Error("Failed to initiate subscription payment",
 			zap.String("user_id", userID.String()),
 			zap.Error(err),
@@ -661,6 +766,138 @@ func (h *SellerHandler) InitiateSubscriptionPayment(c *gin.Context) {
 	}
 
 	// If result is nil, the response was already sent inside the tx (error responses)
+	if result != nil {
+		response.Success(c, result)
+	}
+}
+
+// ============================================================================
+// SUBSCRIPTION PAYMENT METHOD DISCLOSURE (PMF-02)
+// ============================================================================
+
+// SubscriptionPaymentMethodOption is one selectable payment method for a
+// subscription payment, carrying the backend-calculated fee and gross amount
+// for the CURRENT active subscription principal A. Vocabulary mirrors the
+// payment snapshot columns (service_fee_amount, gross_amount) so the client
+// renders exactly what will be snapshotted at initiation.
+type SubscriptionPaymentMethodOption struct {
+	MethodCode       string `json:"method_code"`
+	DisplayName      string `json:"display_name"`
+	ServiceFeeAmount int64  `json:"service_fee_amount"`
+	GrossAmount      int64  `json:"gross_amount"`
+}
+
+// SubscriptionPaymentMethodsResponse is the disclosure payload for the seller
+// method picker: the principal A plus every enabled method with F and A+F.
+type SubscriptionPaymentMethodsResponse struct {
+	PrincipalAmount int64                             `json:"principal_amount"`
+	Currency        string                            `json:"currency"`
+	Methods         []SubscriptionPaymentMethodOption `json:"methods"`
+}
+
+// buildSubscriptionPaymentMethodOptions computes, per enabled method, the
+// canonical fee F = CalculateFee(A, method) and the resulting gross A+F for the
+// subscription principal A. Methods with an invalid fee formula are skipped
+// (onInvalid receives the code and cause) rather than failing the whole list,
+// matching GET /payments/methods. Pure function, so the fee math is provable
+// without a database.
+func buildSubscriptionPaymentMethodOptions(
+	principal money.Money,
+	methods []paymentmethodentity.Method,
+	onInvalid func(code string, err error),
+) []SubscriptionPaymentMethodOption {
+	options := make([]SubscriptionPaymentMethodOption, 0, len(methods))
+	for _, m := range methods {
+		fee, err := paymentmethodentity.CalculateFee(principal, m)
+		if err != nil {
+			if onInvalid != nil {
+				onInvalid(m.Code, err)
+			}
+			continue
+		}
+		options = append(options, SubscriptionPaymentMethodOption{
+			MethodCode:       m.Code,
+			DisplayName:      m.DisplayName,
+			ServiceFeeAmount: fee.Int64(),
+			GrossAmount:      principal.Add(fee).Int64(),
+		})
+	}
+	return options
+}
+
+// GetSubscriptionPaymentMethods handles GET /api/v1/seller/subscription/payment-methods
+//
+// This is the subscription-scoped sibling of GET /payments/methods (which is
+// order-scoped and computes the fee on an order's buyer base). The seller must
+// explicitly choose a method before POST /seller/subscription/initiate, and the
+// client never computes a fee — the backend is the sole fee authority.
+//
+// Fee authority: F = CalculateFee(A, method) where A = the active
+// seller_subscription_configs.yearly_fee_rupiah. Disabled methods are excluded
+// by ListEnabled, so a method returned here is always acceptable to initiation.
+//
+// Requires an authenticated account only (no seller authority, no onboarding)
+// so the upgrade wizard can render the picker before onboarding completes.
+func (h *SellerHandler) GetSubscriptionPaymentMethods(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		response.InternalServerError(c, "Invalid user ID in context")
+		return
+	}
+
+	var result *SubscriptionPaymentMethodsResponse
+
+	err := h.db.WithTx(ctx, func(tx db.Tx) error {
+		config, err := h.subRepo.GetActiveConfig(ctx, tx)
+		if err != nil {
+			return fmt.Errorf("get active config: %w", err)
+		}
+		if config == nil {
+			response.Error(c, 503, "NO_ACTIVE_CONFIG",
+				"Konfigurasi langganan tidak tersedia")
+			return nil
+		}
+
+		if h.paymentMethodRepo == nil {
+			return fmt.Errorf("payment method repository not configured")
+		}
+		methods, err := h.paymentMethodRepo.ListEnabled(ctx, tx)
+		if err != nil {
+			return fmt.Errorf("list enabled payment methods: %w", err)
+		}
+
+		principal := money.New(config.YearlyFeeRupiah)
+		options := buildSubscriptionPaymentMethodOptions(principal, methods, func(code string, err error) {
+			h.log.Warn("Skipping payment method with invalid fee formula",
+				zap.String("method_code", code),
+				zap.Error(err),
+			)
+		})
+
+		result = &SubscriptionPaymentMethodsResponse{
+			PrincipalAmount: principal.Int64(),
+			Currency:        "IDR",
+			Methods:         options,
+		}
+		return nil
+	})
+
+	if err != nil {
+		h.log.Error("Failed to list subscription payment methods",
+			zap.String("user_id", userID.String()),
+			zap.Error(err),
+		)
+		response.InternalServerError(c, "Failed to load payment methods")
+		return
+	}
+
 	if result != nil {
 		response.Success(c, result)
 	}
@@ -709,8 +946,16 @@ func (h *SellerHandler) GetEarnings(c *gin.Context) {
 	// Query all data within a single transaction for consistency
 	var availableBalance, pendingBalance, totalWithdrawn, totalEarned int64
 	var grossPayable, activeDisputeFreeze int64
+	var withdrawalFee int64
 
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
+		// 0. Canonical configured seller withdrawal fee (same authority as
+		// WithdrawService; admin-configurable, Rp0 allowed).
+		if h.withdrawalFeeProvider == nil {
+			return fmt.Errorf("seller earnings: withdrawal fee provider not configured")
+		}
+		withdrawalFee = h.withdrawalFeeProvider.GetSellerWithdrawalFee(ctx, tx)
+
 		// 1. Available balance: dispute-aware withdrawable from SELLER_PAYABLE ledger.
 		// This is the same authority used by AssertSellerWithdrawalAllowed at withdrawal time.
 		withdrawable, err := h.financeService.GetSellerWithdrawable(ctx, tx, userID)
@@ -757,7 +1002,7 @@ func (h *SellerHandler) GetEarnings(c *gin.Context) {
 		PendingBalance:      pendingBalance,
 		TotalWithdrawn:      totalWithdrawn,
 		TotalEarned:         totalEarned,
-		WithdrawalFeeAmount: financeapp.WithdrawalFeeAmount,
+		WithdrawalFeeAmount: withdrawalFee,
 
 		// Balance breakdown from SellerWithdrawableSummary.
 		GrossPayable:        grossPayable,

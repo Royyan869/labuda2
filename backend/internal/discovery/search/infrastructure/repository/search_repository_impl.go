@@ -397,14 +397,20 @@ func (r *SearchRepositoryImpl) SearchContent(ctx context.Context, tx db.Tx, filt
 		sortDir = "DESC"
 	}
 
+	// Canonical ordering. The relevance ranking term only exists when a
+	// tsquery exists, so an unranked request must emit "ORDER BY" exactly
+	// once: emitting the ranking term unconditionally produced a leading
+	// comma and a malformed statement whenever the query was empty.
 	switch sortBy {
 	case "relevance":
 		if filters.Query != "" {
 			baseQuery += fmt.Sprintf(" ORDER BY ts_rank(c.search_vector, plainto_tsquery('simple', $%d)) %s", argIdx, sortDir)
 			args = append(args, filters.Query)
 			argIdx++
+			baseQuery += fmt.Sprintf(", c.created_at %s, c.id ASC", sortDir)
+		} else {
+			baseQuery += fmt.Sprintf(" ORDER BY c.created_at %s, c.id ASC", sortDir)
 		}
-		baseQuery += fmt.Sprintf(", c.created_at %s, c.id ASC", sortDir)
 	case "created_at":
 		baseQuery += fmt.Sprintf(" ORDER BY c.created_at %s, c.id ASC", sortDir)
 	default:

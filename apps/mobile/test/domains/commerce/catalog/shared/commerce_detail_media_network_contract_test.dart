@@ -8,6 +8,13 @@ import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/shared/widgets/stable_network_image.dart';
 import '../../../../support/queued_image_http_client.dart';
 
+Widget _wrap(Widget child) {
+  return MaterialApp(
+    theme: ThemeData.light(),
+    home: Scaffold(body: child),
+  );
+}
+
 String _networkUrl(ImageProvider<Object> provider) {
   final resolved = provider is ResizeImage ? provider.imageProvider : provider;
   return (resolved as NetworkImage).url;

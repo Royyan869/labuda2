@@ -13,11 +13,13 @@ import type {
 } from '@/types'
 import {
   appealStatusLabels,
-  moderationCaseStatusLabels,
-  resourceTypeLabels,
   appealStatusVariants,
-  moderationCaseStatusVariants,
 } from '@/types'
+import {
+  caseStatusLabels,
+  targetTypeLabels,
+  caseStatusVariants,
+} from '@/types/governance'
 
 interface AppealDetailModalProps {
   isOpen: boolean
@@ -251,13 +253,13 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Resource Type</p>
-                    <p className="text-sm">{resourceTypeLabels[appealDetail.original_case.resource_type]}</p>
+                    <p className="text-sm">{targetTypeLabels[appealDetail.original_case.resource_type as keyof typeof targetTypeLabels] || appealDetail.original_case.resource_type}</p>
                   </div>
                 </div>                <div className="flex items-center gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Case Status</p>
-                    <Badge variant={moderationCaseStatusVariants[appealDetail.original_case.status]}>
-                      {moderationCaseStatusLabels[appealDetail.original_case.status]}
+                    <Badge variant={caseStatusVariants[appealDetail.original_case.status as keyof typeof caseStatusVariants] || 'info'}>
+                      {caseStatusLabels[appealDetail.original_case.status as keyof typeof caseStatusLabels] || appealDetail.original_case.status}
                     </Badge>
                   </div>
                   <div>

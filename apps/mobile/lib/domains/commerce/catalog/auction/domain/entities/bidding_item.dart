@@ -55,8 +55,8 @@ enum BiddingStatus {
 class BiddingItem extends Equatable {
   final String auctionId;
   final String title;
-  final double yourLastBid;
-  final double currentBid;
+  final int yourLastBid;
+  final int currentBid;
   final BiddingStatus status;
   final DateTime endAt;
   final DateTime updatedAt;
@@ -74,8 +74,8 @@ class BiddingItem extends Equatable {
   BiddingItem copyWith({
     String? auctionId,
     String? title,
-    double? yourLastBid,
-    double? currentBid,
+    int? yourLastBid,
+    int? currentBid,
     BiddingStatus? status,
     DateTime? endAt,
     DateTime? updatedAt,

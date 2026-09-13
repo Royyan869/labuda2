@@ -17,8 +17,9 @@ import (
 //
 // Strict shadow rules enforced by this runner:
 //
-//   - Legacy runtime remains the sole visibility authority on
-//     /search/content. The seam observes; the legacy decides.
+//   - Observability only. The synchronous EnforceSearchContent pass (not
+//     this runner) is the visibility authority; this runner observes and
+//     emits telemetry, and never affects the response.
 //   - The runner is fire-and-forget per the feed-seam pattern at
 //     backend/internal/governance/evaluator/feed_shadow.go:130-141 and
 //     per docs/05-rollout/search-shadow-seam-architecture.md §2.1
@@ -44,23 +45,13 @@ import (
 type SearchContentShadowRunner struct {
 	log     *zap.Logger
 	metrics *searchShadowMetrics
-	// mode is the adapter operating-mode label emitted via
-	// enforce_mode_total once per request. It NEVER changes shadow-runner
-	// behavior — the runner is fire-and-forget telemetry-only regardless
-	// of mode. Batch 3B's handler-side enforcement consumes the same
-	// config-driven mode value through a separate code path.
-	mode SearchContentAdapterMode
 }
 
 // NewSearchContentShadowRunner constructs the search-content shadow
 // runner. Returns a non-nil runner; the runner is unconditionally
 // dispatched per docs/05-rollout/search-shadow-seam-landing-task-
-// design.md §10.1 (no feature flag).
-//
-// Mode defaults to SearchContentAdapterModeShadow. Use WithMode to
-// label requests under SearchContentAdapterModeEnforce once Batch 3B
-// promotes the enforcement path; the shadow runner remains
-// observation-only either way.
+// design.md §10.1 (no feature flag). The runner is observability-only and
+// holds no business-mode state.
 func NewSearchContentShadowRunner(log *zap.Logger) *SearchContentShadowRunner {
 	if log == nil {
 		log = zap.NewNop()
@@ -68,41 +59,7 @@ func NewSearchContentShadowRunner(log *zap.Logger) *SearchContentShadowRunner {
 	return &SearchContentShadowRunner{
 		log:     log,
 		metrics: newSearchShadowMetrics(),
-		mode:    SearchContentAdapterModeShadow,
 	}
-}
-
-// WithMode returns a copy of the runner with the given adapter mode set
-// for telemetry labeling. Invalid mode strings are normalized to
-// SearchContentAdapterModeShadow per NormalizeSearchContentAdapterMode
-// safety contract. Safe to call on a nil receiver (returns nil).
-func (r *SearchContentShadowRunner) WithMode(mode SearchContentAdapterMode) *SearchContentShadowRunner {
-	if r == nil {
-		return nil
-	}
-	clone := *r
-	if !mode.IsValid() {
-		clone.mode = SearchContentAdapterModeShadow
-	} else {
-		clone.mode = mode
-	}
-	return &clone
-}
-
-// Mode exposes the runner's configured adapter mode. Safe on nil receiver
-// (returns SearchContentAdapterModeShadow) so handler code can read the
-// authoritative pilot mode without a nil-check dance. This is the
-// canonical query path for the SearchContent handler enforcement seam in
-// Batch 3B; bypassing it (e.g. reading the env var directly in the
-// handler) would create two sources of truth.
-func (r *SearchContentShadowRunner) Mode() SearchContentAdapterMode {
-	if r == nil {
-		return SearchContentAdapterModeShadow
-	}
-	if !r.mode.IsValid() {
-		return SearchContentAdapterModeShadow
-	}
-	return r.mode
 }
 
 // Run dispatches a fire-and-forget shadow evaluation for the given
@@ -163,10 +120,9 @@ func (r *SearchContentShadowRunner) runShadow(
 
 	r.metrics.recordRequest(SearchEndpointContent, CandidateSetOptionAHandlerPostResponse)
 
-	// BATCH 3A — Per-request operating-mode telemetry. Default
-	// SearchContentAdapterModeShadow when WithMode has not been called,
-	// preserving observe-only semantics.
-	r.metrics.recordEnforceMode(SearchEndpointContent, CandidateSetOptionAHandlerPostResponse, r.mode)
+	// BATCH 3A — Per-request operating-mode telemetry. The canonical
+	// business mode is always enforce; the runner is observability-only.
+	r.metrics.recordEnforceMode(SearchEndpointContent, CandidateSetOptionAHandlerPostResponse)
 
 	if vc == nil {
 		// The handler MUST construct ViewerContext per viewer-context-
@@ -305,7 +261,7 @@ func (r *SearchContentShadowRunner) evaluateRow(
 	// signals. The adapter mapping itself is unconditional; only the caller's
 	// reaction to Include/LifecycleOverride changes between shadow and enforce
 	// modes. See AdaptSearchContentDecision.
-	adapted := AdaptSearchContentDecision(decision, reason, semantic, r.mode)
+	adapted := AdaptSearchContentDecision(decision, reason, semantic)
 	r.metrics.recordWouldEnforceDecision(SearchEndpointContent, CandidateSetOptionAHandlerPostResponse, adapted.Reason)
 
 	// Divergence classification per Option A: this seam consumes only

@@ -44,8 +44,11 @@ type CreatePaymentInput struct {
 	ReferenceID      *uuid.UUID
 	PriceSnapshotID  *uuid.UUID
 	ExpiredAt        time.Time
-	// PaymentMethodCode is the canonical method the buyer selected (order
-	// payments only; nil for billing/subscription payments).
+	// PaymentMethodCode is the canonical method selected for this payment, and
+	// the authority the ServiceFeeAmount snapshot was calculated from. Every
+	// payment flow that carries a payment-method fee sets it: order (PASS_18V),
+	// billing / promote balance top-up (PASS_18V), and seller subscription
+	// (PMF-02). There is no flow for which it is intentionally nil.
 	PaymentMethodCode *string
 }
 

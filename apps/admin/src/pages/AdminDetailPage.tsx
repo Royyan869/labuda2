@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Shield, RefreshCw, AlertTriangle, Check, X, Users } from 'lucide-react'
+import { ArrowLeft, Shield, RefreshCw, AlertTriangle, Check, X, Users, UserCog } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-import { useUserDetail } from '@/hooks/useUsers'
+import { useUserDetail, useUserActions } from '@/hooks/useUsers'
 import { useCapabilities, useUserCapabilities, useCapabilityActions } from '@/hooks/useCapabilities'
-import { CAPABILITY_GROUPS, type CapabilityCategory } from '@/types/capability'
+import { groupCapabilitiesByCategory, capabilityGroupDescription } from '@/types/capability'
 import { formatDate } from '@/lib/utils'
 import { hasCapability } from '@/lib/permissions'
 import { useAuth } from '@/hooks/useAuth'
@@ -16,13 +16,25 @@ export function AdminDetailPage() {
   const navigate = useNavigate()
   const { user: currentUser } = useAuth()
 
-  const { user, loading: userLoading, error: userError } = useUserDetail(userId || null)
+  const { user, loading: userLoading, error: userError, refetch: refetchUser } = useUserDetail(userId || null)
   const { capabilities, loading: capsLoading } = useCapabilities()
-  const { userCapabilities, loading: userCapsLoading, refetch: refetchUserCaps, total } = useUserCapabilities(userId || null)
+  const {
+    userCapabilities,
+    loading: userCapsLoading,
+    refetch: refetchUserCaps,
+    total,
+    role,
+    fullAccess,
+    missingCapabilities,
+  } = useUserCapabilities(userId || null)
   const { assign, revoke, error: actionError, clearError } = useCapabilityActions(userId || null)
+  const { setRole, error: roleError, clearError: clearRoleError } = useUserActions(userId || null)
 
   const [updatingCaps, setUpdatingCaps] = useState<Set<string>>(new Set())
+  const [updatingRole, setUpdatingRole] = useState(false)
   const hasCapabilityAssignPermission = hasCapability(currentUser?.capabilities, 'governance.capability.assign')
+  const hasRoleAssignPermission = hasCapability(currentUser?.capabilities, 'governance.role.assign')
+  const isSelf = currentUser?.id === userId
 
   // Get user's capability strings for quick lookup
   const userCapabilitySet = new Set(userCapabilities.map(uc => uc.capability))
@@ -107,17 +119,23 @@ export function AdminDetailPage() {
     )
   }
 
-  // Group capabilities by category
-  const capabilitiesByCategory: Record<CapabilityCategory, typeof capabilities> = {
-    Finance: capabilities.filter(c => c.category === 'Finance'),
-    Governance: capabilities.filter(c => c.category === 'Governance'),
-    Moderation: capabilities.filter(c => c.category === 'Moderation'),
-    Support: capabilities.filter(c => c.category === 'Support'),
-    Other: capabilities.filter(c => c.category === 'Other'),
-  }
+  // Group capabilities by the cluster the BACKEND reported. Clusters are open
+  // by design: every cluster the canonical universe contains is rendered, so no
+  // cluster can be hidden by a stale frontend list.
+  const groupedCapabilities = groupCapabilitiesByCategory(capabilities)
 
   const isReadOnly = !hasCapabilityAssignPermission
   const isOwnProfile = currentUser?.id === userId
+
+  const handleSetRole = async (next: 'user' | 'admin') => {
+    setUpdatingRole(true)
+    clearRoleError()
+    const result = await setRole(next)
+    if (result) {
+      await Promise.all([refetchUser(), refetchUserCaps()])
+    }
+    setUpdatingRole(false)
+  }
 
   return (
     <div className="space-y-6">
@@ -206,6 +224,80 @@ export function AdminDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Admin authority: role + DERIVED full access. */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Admin Authority</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-500">Role</p>
+                <Badge variant={role === 'admin' ? 'info' : 'default'} className="mt-1">
+                  {role === 'admin' ? 'Admin' : 'User'}
+                </Badge>
+              </div>
+
+              <div className="border-t pt-4">
+                <p className="text-sm text-gray-500">Full access</p>
+                {fullAccess ? (
+                  <Badge variant="success" className="mt-1">Full access</Badge>
+                ) : (
+                  <div className="mt-1">
+                    <Badge variant="warning">Not full access</Badge>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {role !== 'admin'
+                        ? 'Requires admin membership.'
+                        : `${missingCapabilities.length} capability${missingCapabilities.length === 1 ? '' : 'ies'} not granted.`}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {hasRoleAssignPermission && !isSelf && (
+                <div className="border-t pt-4 space-y-2">
+                  {role === 'admin' ? (
+                    <Button
+                      variant="warning"
+                      size="sm"
+                      className="w-full"
+                      disabled={updatingRole}
+                      onClick={() => {
+                        const ok = window.confirm(
+                          'Demote this admin to user? Capabilities stay stored but become inert without admin membership. The system refuses this if it would remove the last full-access admin.'
+                        )
+                        if (ok) void handleSetRole('user')
+                      }}
+                    >
+                      <UserCog className="h-4 w-4 mr-2" />
+                      Demote to User
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      className="w-full"
+                      disabled={updatingRole}
+                      onClick={() => void handleSetRole('admin')}
+                    >
+                      <UserCog className="h-4 w-4 mr-2" />
+                      Promote to Admin
+                    </Button>
+                  )}
+                  <p className="text-xs text-gray-500">
+                    Promoting grants admin membership only. Grant capabilities separately — a new admin starts with
+                    none.
+                  </p>
+                </div>
+              )}
+
+              {isSelf && (
+                <p className="border-t pt-4 text-xs text-blue-700 bg-blue-50 rounded p-2">
+                  This is your own account. Role changes for yourself must be made by another authorized admin.
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* CENTER COLUMN - Capabilities (6 cols) */}
@@ -229,6 +321,21 @@ export function AdminDetailPage() {
             </Card>
           )}
 
+          {/* Role action error */}
+          {roleError && (
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <X className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-red-900">Role change rejected</p>
+                    <p className="text-sm text-red-700">{roleError}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Action Error */}
           {actionError && (
             <Card className="border-red-200 bg-red-50">
@@ -245,15 +352,15 @@ export function AdminDetailPage() {
           )}
 
           {/* Capability Groups */}
-          {Object.entries(capabilitiesByCategory).map(([category, categoryCaps]) => (
+          {groupedCapabilities.map(([category, categoryCaps]) => (
             <Card key={category}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="h-5 w-5" />
-                  {CAPABILITY_GROUPS[category as CapabilityCategory].label}
+                  {category}
                 </CardTitle>
                 <p className="text-sm text-gray-600">
-                  {CAPABILITY_GROUPS[category as CapabilityCategory].description}
+                  {capabilityGroupDescription(category)}
                 </p>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -373,7 +480,7 @@ export function AdminDetailPage() {
               <CardTitle>Capability Stats</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {Object.entries(capabilitiesByCategory).map(([category, categoryCaps]) => {
+              {groupedCapabilities.map(([category, categoryCaps]) => {
                 const assigned = categoryCaps.filter(c => isCapabilityAssigned(c.capability)).length
                 const total = categoryCaps.length
                 return (

@@ -27,19 +27,39 @@ import (
 
 type processLedgerRepo struct {
 	createCalls int
+	calls       []processLedgerTxn
+}
+
+// processLedgerTxn captures one CreateTransaction invocation so PMF-02 tests
+// can prove which accounts moved, by how much, and under which idempotency key.
+type processLedgerTxn struct {
+	idempotencyKey string
+	referenceType  string
+	referenceID    uuid.UUID
+	orderID        *uuid.UUID
+	paymentID      *uuid.UUID
+	entries        []financeRepo.Entry
 }
 
 func (m *processLedgerRepo) CreateTransaction(
 	_ context.Context,
 	_ db.Tx,
-	_ string,
-	_ string,
-	_ uuid.UUID,
-	_ *uuid.UUID,
-	_ *uuid.UUID,
-	_ []financeRepo.Entry,
+	idempotencyKey string,
+	referenceType string,
+	referenceID uuid.UUID,
+	orderID *uuid.UUID,
+	paymentID *uuid.UUID,
+	entries []financeRepo.Entry,
 ) error {
 	m.createCalls++
+	m.calls = append(m.calls, processLedgerTxn{
+		idempotencyKey: idempotencyKey,
+		referenceType:  referenceType,
+		referenceID:    referenceID,
+		orderID:        orderID,
+		paymentID:      paymentID,
+		entries:        entries,
+	})
 	return nil
 }
 
@@ -51,8 +71,11 @@ func (m *processLedgerRepo) GetAccountBalanceForUpdate(context.Context, db.Tx, u
 	return money.Zero(), nil
 }
 
-func (m *processLedgerRepo) GetSystemAccountID(context.Context, db.Tx, string) (uuid.UUID, error) {
-	return uuid.New(), nil
+// GetSystemAccountID returns a deterministic id derived from the canonical
+// account name, so tests can assert exactly which account moved. It previously
+// returned uuid.New() per call, which made account-level assertions impossible.
+func (m *processLedgerRepo) GetSystemAccountID(_ context.Context, _ db.Tx, accountType string) (uuid.UUID, error) {
+	return uuid.NewSHA1(uuid.NameSpaceOID, []byte(accountType)), nil
 }
 
 func (m *processLedgerRepo) GetUserAccountID(context.Context, db.Tx, string, uuid.UUID) (uuid.UUID, error) {
@@ -356,6 +379,7 @@ func newProcessServiceForStacking(
 		ExpiredAt:       paidAt.Add(24 * time.Hour),
 		MidtransOrderID: "LAB-SUB-STACK",
 		GrossAmount:     money.New(70000),
+		ServiceFeeAmount: money.Zero(),
 	}
 
 	subRepo := &processSubscriptionRepo{
@@ -436,6 +460,7 @@ func TestProcessSuccessfulPaymentTx_StacksAtChainEnd(t *testing.T) {
 					ExpiredAt:       tc.paidAt.Add(24 * time.Hour),
 					MidtransOrderID: "LAB-SUB-STACK",
 					GrossAmount:     money.New(70000),
+					ServiceFeeAmount: money.Zero(),
 				},
 			}
 			subRepo.chainEnd = &subscriptionEntity.SellerSubscription{
@@ -451,10 +476,10 @@ func TestProcessSuccessfulPaymentTx_StacksAtChainEnd(t *testing.T) {
 			inserted := subRepo.inserted[0]
 			assert.Equal(t, tc.wantStart, inserted.StartedAt)
 			assert.Equal(t, tc.wantExpiresAt, inserted.ExpiresAt)
-			assert.Equal(t, int64(70000), inserted.AmountPaid.Int64())
+			assert.Equal(t, int64(70000), inserted.AmountPaid.Int64()) // principal only (fee=0)
 			assert.Equal(t, 365, inserted.DurationDays)
 			assert.Equal(t, paymentID, inserted.PaymentID)
-			assert.Equal(t, 1, ledger.createCalls)
+			assert.Equal(t, 1, ledger.createCalls) // subscription revenue only (fee=0 → no-op)
 		})
 	}
 }
@@ -477,13 +502,14 @@ func TestProcessSuccessfulPaymentTx_ReplaySkipsSecondInterval(t *testing.T) {
 			ExpiredAt:       paidAt.Add(24 * time.Hour),
 			MidtransOrderID: "LAB-SUB-REPLAY",
 			GrossAmount:     money.New(70000),
+			ServiceFeeAmount: money.Zero(),
 		},
 	}
 
 	err := svc.ProcessSuccessfulPaymentTx(context.Background(), tx, paymentID, userID, "provider-event-1")
 	require.NoError(t, err)
 	require.Len(t, subRepo.inserted, 1)
-	require.Equal(t, 1, ledger.createCalls)
+	require.Equal(t, 1, ledger.createCalls) // subscription revenue only (fee=0 → no-op)
 
 	err = svc.ProcessSuccessfulPaymentTx(context.Background(), tx, paymentID, userID, "provider-event-1")
 	require.NoError(t, err)

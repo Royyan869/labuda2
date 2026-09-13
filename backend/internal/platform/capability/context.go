@@ -1,6 +1,6 @@
 // Package capability provides context helpers for actor injection and retrieval.
 //
-// SLICE 2: ACTOR CONTEXT INJECTION
+// ACTOR CONTEXT INJECTION
 // - Context helpers are used by ActorContextInject middleware
 // - Actor is injected into request context after authentication
 // - Safe access patterns are enforced at compile time

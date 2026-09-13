@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -436,7 +438,7 @@ func TestChatNotification_Regression_UserFollowed_StillWorks(t *testing.T) {
 }
 
 // =============================================================================
-// CHAT-5: MUTE GOVERNANCE SHADOW ROLLOUT
+// CHAT-5: MUTE GOVERNANCE (ENFORCED)
 // =============================================================================
 
 // mockMuteCheckerChat is a configurable mute checker for CHAT-5 tests.
@@ -476,26 +478,46 @@ func makeMuteDB(dbCalls *int) *mockDBForNotification {
 	}
 }
 
-// Scenario A: recipient muted sender, shadow mode → notification still delivered, telemetry emitted.
-func TestChatMute_RecipientMutedSender_ShadowDeliver(t *testing.T) {
+// countingPushSender records push dispatches. Push is dispatched from a
+// goroutine, so SendNotification also signals done for deterministic waits.
+type countingPushSender struct {
+	count int32
+	done  chan struct{}
+}
+
+func newCountingPushSender() *countingPushSender {
+	return &countingPushSender{done: make(chan struct{}, 1)}
+}
+
+func (m *countingPushSender) SendNotification(_ context.Context, _ interface{}, _ interface{}, _, _ string) error {
+	atomic.AddInt32(&m.count, 1)
+	select {
+	case m.done <- struct{}{}:
+	default:
+	}
+	return nil
+}
+
+func (m *countingPushSender) calls() int32 { return atomic.LoadInt32(&m.count) }
+
+// Scenario A: recipient muted sender → suppressed on BOTH channels (no in-app, no push).
+func TestChatMute_RecipientMutedSender_SuppressesDBAndPush(t *testing.T) {
 	senderID := uuid.New()
 	recipientID := uuid.New()
 	roomID := uuid.New()
 	messageID := uuid.New()
 
 	dbCalls := 0
+	push := newCountingPushSender()
 	handler := NewNotificationEventHandler(
 		makeMuteDB(&dbCalls),
 		&mockBlockCheckerChat{blocked: false},
 		NewNotificationServiceInserter(),
-		&mockPushSenderForNotification{},
+		push,
 		&mockAccountStatusCheckerChat{},
 		zaptest.NewLogger(t),
 	)
-	handler.SetMutePolicy(policy.NewMutePolicy(
-		&mockMuteCheckerChat{muted: true},
-		policy.MuteShadow,
-	))
+	handler.SetMutePolicy(policy.NewMutePolicy(&mockMuteCheckerChat{muted: true}))
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
@@ -506,32 +528,33 @@ func TestChatMute_RecipientMutedSender_ShadowDeliver(t *testing.T) {
 	if err := handler.Handle(context.Background(), event); err != nil {
 		t.Fatalf("Handle() error = %v", err)
 	}
-	// Shadow mode: muted but still delivered.
-	if dbCalls == 0 {
-		t.Error("expected notification delivered in shadow mode, but no DB insert happened")
+	// Mute enforced: suppressed on both channels.
+	if dbCalls > 0 {
+		t.Error("expected no in-app notification for muted sender, but an insert happened")
+	}
+	if got := push.calls(); got != 0 {
+		t.Errorf("expected no push for muted sender, got %d dispatches", got)
 	}
 }
 
-// Scenario B: recipient muted sender, enforce mode → no in-app, no push.
-func TestChatMute_RecipientMutedSender_EnforceSuppress(t *testing.T) {
+// Scenario B: recipient did NOT mute sender → delivered on both channels.
+func TestChatMute_NotMuted_DeliversDBAndPush(t *testing.T) {
 	senderID := uuid.New()
 	recipientID := uuid.New()
 	roomID := uuid.New()
 	messageID := uuid.New()
 
 	dbCalls := 0
+	push := newCountingPushSender()
 	handler := NewNotificationEventHandler(
 		makeMuteDB(&dbCalls),
 		&mockBlockCheckerChat{blocked: false},
 		NewNotificationServiceInserter(),
-		&mockPushSenderForNotification{},
+		push,
 		&mockAccountStatusCheckerChat{},
 		zaptest.NewLogger(t),
 	)
-	handler.SetMutePolicy(policy.NewMutePolicy(
-		&mockMuteCheckerChat{muted: true},
-		policy.MuteEnforce,
-	))
+	handler.SetMutePolicy(policy.NewMutePolicy(&mockMuteCheckerChat{muted: false}))
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
@@ -542,9 +565,13 @@ func TestChatMute_RecipientMutedSender_EnforceSuppress(t *testing.T) {
 	if err := handler.Handle(context.Background(), event); err != nil {
 		t.Fatalf("Handle() error = %v", err)
 	}
-	// Enforce mode: muted → suppressed, no DB insert.
-	if dbCalls > 0 {
-		t.Error("expected suppression in enforce mode, but notification was inserted")
+	if dbCalls == 0 {
+		t.Error("expected in-app notification for non-muted sender, but no insert happened")
+	}
+	select {
+	case <-push.done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("expected push dispatch for non-muted sender, but none arrived")
 	}
 }
 
@@ -567,10 +594,7 @@ func TestChatMute_SenderMutedRecipient_NoEffect(t *testing.T) {
 		&mockAccountStatusCheckerChat{},
 		zaptest.NewLogger(t),
 	)
-	handler.SetMutePolicy(policy.NewMutePolicy(
-		&mockMuteCheckerDirectional{muterID: senderID, mutedID: recipientID},
-		policy.MuteEnforce, // even in enforce mode, wrong direction → no suppression
-	))
+	handler.SetMutePolicy(policy.NewMutePolicy(&mockMuteCheckerDirectional{muterID: senderID, mutedID: recipientID}))
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
@@ -604,10 +628,7 @@ func TestChatMute_MutualMute_RecipientSemanticsApply(t *testing.T) {
 		&mockAccountStatusCheckerChat{},
 		zaptest.NewLogger(t),
 	)
-	handler.SetMutePolicy(policy.NewMutePolicy(
-		&mockMuteCheckerChat{muted: true},
-		policy.MuteEnforce,
-	))
+	handler.SetMutePolicy(policy.NewMutePolicy(&mockMuteCheckerChat{muted: true}))
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
@@ -641,10 +662,7 @@ func TestChatMute_BlockPlusMute_BlockWins(t *testing.T) {
 		zaptest.NewLogger(t),
 	)
 	// Mute also set, but block check (STEP 3) fires before mute (STEP 3C).
-	handler.SetMutePolicy(policy.NewMutePolicy(
-		&mockMuteCheckerChat{muted: true},
-		policy.MuteShadow,
-	))
+	handler.SetMutePolicy(policy.NewMutePolicy(&mockMuteCheckerChat{muted: true}))
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
@@ -680,10 +698,7 @@ func TestChatMute_SuspendedRecipientPlusMute_AccountStatusWins(t *testing.T) {
 		zaptest.NewLogger(t),
 	)
 	// Mute set, but account status (STEP 2) fires before mute (STEP 3C) for Social category.
-	handler.SetMutePolicy(policy.NewMutePolicy(
-		&mockMuteCheckerChat{muted: true},
-		policy.MuteShadow,
-	))
+	handler.SetMutePolicy(policy.NewMutePolicy(&mockMuteCheckerChat{muted: true}))
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
@@ -719,10 +734,7 @@ func TestChatMute_NonChatNotification_MuteSkipped(t *testing.T) {
 		zaptest.NewLogger(t),
 	)
 	// Mute enforce set — but only chat_message type enters STEP 3C.
-	handler.SetMutePolicy(policy.NewMutePolicy(
-		&mockMuteCheckerChat{muted: true},
-		policy.MuteEnforce,
-	))
+	handler.SetMutePolicy(policy.NewMutePolicy(&mockMuteCheckerChat{muted: true}))
 
 	event := platformevent.OutboxEvent{
 		ID:        uuid.New(),
@@ -754,10 +766,7 @@ func TestChatMute_PolicyError_FailOpen(t *testing.T) {
 		&mockAccountStatusCheckerChat{},
 		zaptest.NewLogger(t),
 	)
-	handler.SetMutePolicy(policy.NewMutePolicy(
-		&mockMuteCheckerChat{muted: false, err: errors.New("db timeout")},
-		policy.MuteEnforce,
-	))
+	handler.SetMutePolicy(policy.NewMutePolicy(&mockMuteCheckerChat{muted: false, err: errors.New("db timeout")}))
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
@@ -1354,9 +1363,9 @@ func TestSocialGovernance_SellerResponse_SocialCategory_CanonicalContract(t *tes
 	}
 }
 
-// --- Validation G: mute shadow mode does not suppress non-chat social types ---
+// --- Validation G: mute enforcement does not suppress non-chat social types ---
 
-func TestSocialGovernance_MuteShadow_NoSuppressionForSocialTypes(t *testing.T) {
+func TestSocialGovernance_MuteDoesNotSuppressSocialTypes(t *testing.T) {
 	actorID := uuid.New()
 	recipientID := uuid.New()
 	contentID := uuid.New()
@@ -1373,9 +1382,9 @@ func TestSocialGovernance_MuteShadow_NoSuppressionForSocialTypes(t *testing.T) {
 		},
 	}
 	h := buildSocialGovernanceHandler(t, mockDB, &mockAccountStatusControlled{}, &mockBlockCheckerControlled{}, nil)
-	// Wire mute policy in shadow mode (same as production default).
-	// Use a mute checker that reports a mute relationship to prove mute is not applied.
-	mutePolicy := policy.NewMutePolicy(&mockMuteCheckerAlwaysMuted{}, policy.MuteShadow)
+	// Wire a mute policy whose checker always reports a mute relationship, to
+	// prove mute enforcement is scoped to chat_message and not applied here.
+	mutePolicy := policy.NewMutePolicy(&mockMuteCheckerAlwaysMuted{})
 	h.SetMutePolicy(mutePolicy)
 
 	payload, _ := json.Marshal(ContentLikedPayload{

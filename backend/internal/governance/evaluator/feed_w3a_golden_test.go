@@ -302,7 +302,7 @@ func TestEnforceFeed_W3A_NilTcFailsOpen(t *testing.T) {
 		{ID: uuid.New(), AuthorID: uuid.New(), Status: "active"},
 		{ID: uuid.New(), AuthorID: uuid.New(), Status: "active"},
 	}
-	result := EnforceFeed(FeedEvaluatorModeEnforce, makeViewerContext(viewer), nil, in)
+	result := EnforceFeed(makeViewerContext(viewer), nil, in)
 	if len(result.Filtered) != 2 {
 		t.Fatalf("nil tc must fail-open and keep all items; got %d", len(result.Filtered))
 	}

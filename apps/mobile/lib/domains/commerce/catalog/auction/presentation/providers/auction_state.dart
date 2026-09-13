@@ -37,12 +37,6 @@ class AuctionBidsData extends AuctionState {
   const AuctionBidsData(this.bids);
 }
 
-/// Watch stats loaded state
-class AuctionWatchStatsData extends AuctionState {
-  final AuctionWatchStats stats;
-  const AuctionWatchStatsData(this.stats);
-}
-
 /// Action success state
 class AuctionSuccess extends AuctionState {
   final String? message;
@@ -63,7 +57,6 @@ class AuctionNotifierState {
   final List<Auction> auctions;
   final Auction? selectedAuction;
   final List<AuctionBid> bids;
-  final AuctionWatchStats? watchStats;
   final bool isLoading;
   final bool isPlacingBid;
   final bool isCreating;
@@ -85,7 +78,6 @@ class AuctionNotifierState {
     this.auctions = const [],
     this.selectedAuction,
     this.bids = const [],
-    this.watchStats,
     this.isLoading = false,
     this.isPlacingBid = false,
     this.isCreating = false,
@@ -100,7 +92,6 @@ class AuctionNotifierState {
     List<Auction>? auctions,
     Auction? selectedAuction,
     List<AuctionBid>? bids,
-    AuctionWatchStats? watchStats,
     bool? isLoading,
     bool? isPlacingBid,
     bool? isCreating,
@@ -116,7 +107,6 @@ class AuctionNotifierState {
       auctions: auctions ?? this.auctions,
       selectedAuction: selectedAuction ?? this.selectedAuction,
       bids: bids ?? this.bids,
-      watchStats: watchStats ?? this.watchStats,
       isLoading: isLoading ?? this.isLoading,
       isPlacingBid: isPlacingBid ?? this.isPlacingBid,
       isCreating: isCreating ?? this.isCreating,
@@ -137,7 +127,6 @@ class AuctionNotifierState {
         other.auctions == auctions &&
         other.selectedAuction == selectedAuction &&
         other.bids == bids &&
-        other.watchStats == watchStats &&
         other.isLoading == isLoading &&
         other.isPlacingBid == isPlacingBid &&
         other.isCreating == isCreating &&
@@ -153,7 +142,6 @@ class AuctionNotifierState {
       auctions.hashCode ^
       selectedAuction.hashCode ^
       bids.hashCode ^
-      watchStats.hashCode ^
       isLoading.hashCode ^
       isPlacingBid.hashCode ^
       isCreating.hashCode ^

@@ -357,28 +357,50 @@ func (h *CommentHandler) ListComments(c *gin.Context) {
 	}
 
 	// Execute list within transaction.
-	// SC-3: Before forSale comments, enforce the same parent-content visibility
-	// policy as GET /contents/:id. If the parent is deleted or hidden (moderated),
-	// comments must not be publicly accessible. Admin callers bypass this gate.
+	// Canonical: NO ACCESS TO PARENT = NO ACCESS TO ITS COMMENTS.
+	// Enforce viewer-aware visibility (public/followers_only/private) + hidden/deleted + block + author lifecycle.
+	// Admin moderation bypass only for hidden/deleted moderation gate, not for visibility/block.
 	var parentNotVisible bool
 	var comments []*entity.Comment
 	var nextCursor string
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
-		// Load parent content to check visibility.
-		parentContent, contentErr := h.contentService.GetContent(ctx, tx, contentID)
-		if contentErr != nil {
-			// Content not found at all — treat as not visible.
-			parentNotVisible = true
-			return nil
+		viewerUUID := uuid.Nil
+		if viewerID != nil {
+			viewerUUID = *viewerID
 		}
-		if !isParentContentPubliclyListable(parentContent) {
-			isAdmin := false
-			if viewerID != nil {
-				isAdmin, _ = h.roleChecker.IsAdmin(ctx, *viewerID)
-			}
-			if !isAdmin {
+		// Viewer-aware access check — same authority as GET /contents/:id.
+		// 1) hidden/deleted/author-lifecycle gate via GetContentPublic (fail-closed)
+		// 2) visibility gate via GetContentVisibleToViewer (owner/public/followers_only/private)
+		// 3) block gate via handler parity (feed/profile/detail)
+		if _, visErr := h.contentService.GetContentVisibleToViewer(ctx, tx, viewerUUID, contentID); visErr != nil {
+			// Allow admin to view hidden/deleted parent's comments (moderation surface) but NOT to bypass visibility.
+			// Check if failure is moderation-only (hidden/deleted) and caller is admin.
+			if parentContent, pErr := h.contentService.GetContent(ctx, tx, contentID); pErr == nil && (parentContent.Status == entity.StatusDeleted || parentContent.IsHidden) {
+				isAdmin := false
+				if viewerID != nil {
+					isAdmin, _ = h.roleChecker.IsAdmin(ctx, *viewerID)
+				}
+				if isAdmin {
+					// Admin sees hidden/deleted parent's comments — proceed
+				} else {
+					parentNotVisible = true
+					return nil
+				}
+			} else {
+				// Visibility or block or author lifecycle failure — fail closed for everyone (including admin)
 				parentNotVisible = true
 				return nil
+			}
+		}
+		// Block parity: if viewer blocked author or vice versa, deny comments list.
+		if viewerID != nil {
+			var authorID uuid.UUID
+			if aErr := tx.QueryRow(ctx, `SELECT author_id FROM contents WHERE id=$1`, contentID).Scan(&authorID); aErr == nil && authorID != viewerUUID {
+				var blocked bool
+				if bErr := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM user_blocks WHERE (blocker_id=$1 AND blocked_id=$2) OR (blocker_id=$2 AND blocked_id=$1))`, viewerUUID, authorID).Scan(&blocked); bErr == nil && blocked {
+					parentNotVisible = true
+					return nil
+				}
 			}
 		}
 

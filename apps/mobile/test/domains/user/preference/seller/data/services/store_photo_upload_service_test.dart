@@ -36,11 +36,10 @@ class _RecordingS3Service extends S3Service {
   String? lastKey;
 
   @override
-  Future<Result<String>> uploadImageWithFixedKey(
+  Future<Result<String>> uploadImageWithKey(
     File imageFile,
-    String key, {
-    String mediaLabel = 'gambar',
-  }) async {
+    String key,
+  ) async {
     lastKey = key;
     return Result.success(key);
   }
@@ -48,12 +47,11 @@ class _RecordingS3Service extends S3Service {
 
 class _FailingS3Service extends S3Service {
   @override
-  Future<Result<String>> uploadImageWithFixedKey(
+  Future<Result<String>> uploadImageWithKey(
     File imageFile,
-    String key, {
-    String mediaLabel = 'gambar',
-  }) async {
-    return Result.error('backend refused $mediaLabel');
+    String key,
+  ) async {
+    return Result.error('backend refused gambar');
   }
 }
 

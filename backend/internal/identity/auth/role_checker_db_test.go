@@ -1,195 +1,84 @@
-// Package auth tests for role assignment with capability-based authorization.
+// Package auth tests for the canonical RoleCheckerDB role-write authority.
 //
-// SLICE 5: GOVERNANCE ROLE ASSIGNMENT MIGRATION
+// SCOPE: these tests pin the CURRENT production contract of
+// RoleCheckerDB.SetRole (internal/identity/auth/role_checker_db.go). Production
+// signals rejection with fmt.Errorf message contracts, not sentinel error
+// types, so the assertions below verify the exact messages the production
+// method returns.
 //
-// These tests verify that:
-// - Role assignment requires governance.role.assign capability
-// - Admin without capability is rejected (no admin fallback)
-// - No self-escalation is possible
-// - Invalid role input is rejected
-// - Defense-in-depth works (bypass middleware -> handler/service still reject)
+// SCOPE BOUNDARY: RoleCheckerDB.SetRole does NOT itself check the
+// governance.role.assign capability. That capability gate lives at the
+// route/handler boundary (RequireCapability + CoreUserHandler.SetRole). These
+// tests therefore exercise only the two role-write guards that really live
+// inside the production method — role-vocabulary validation and the
+// self-escalation guard — both of which return before any database access.
 package auth
 
 import (
 	"context"
 	"testing"
 
-	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/google/uuid"
+	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-// TestSetRole_Success_CapabilityGranted documents expected success behavior.
-func TestSetRole_Success_CapabilityGranted(t *testing.T) {
-	t.Run("admin_with_capability_can_assign_role", func(t *testing.T) {
-		// SPECIFICATION: Actor with governance.role.assign capability can set role
-		// Expected flow:
-		// 1. Create admin user with governance.role.assign capability
-		// 2. Call SetRole to change target user's role
-		// 3. Verify role is changed
-		// 4. Verify audit log is created
-	})
+// Compile-time contract: the canonical role authority must satisfy the
+// RoleChecker interface consumed by the middleware and server wiring.
+var _ RoleChecker = (*RoleCheckerDB)(nil)
 
-	t.Run("role_change_is_audit_logged", func(t *testing.T) {
-		// SPECIFICATION: Every role change is logged in admin_audit_logs
-	})
-}
+// TestRoleCheckerDB_SetRole_InvalidRoleRejected verifies that SetRole rejects
+// every role outside the canonical vocabulary {"user", "admin"} with the
+// production "invalid role: <role>" error.
+//
+// The zero-value checker is sufficient and deliberate: the invalid-role branch
+// returns before rc.db is dereferenced, so this test exercises the real
+// production guard without a database.
+func TestRoleCheckerDB_SetRole_InvalidRoleRejected(t *testing.T) {
+	checker := &RoleCheckerDB{}
+	callerID := uuid.New()
+	targetID := uuid.New()
 
-// TestSetRole_Forbidden_CapabilityMissing documents rejection behavior.
-func TestSetRole_Forbidden_CapabilityMissing(t *testing.T) {
-	t.Run("admin_without_capability_rejected", func(t *testing.T) {
-		// SPECIFICATION: Admin role alone is NOT sufficient
-		// User must have governance.role.assign capability explicitly
-	})
-
-	t.Run("unauthenticated_user_rejected", func(t *testing.T) {
-		// SPECIFICATION: Unauthenticated request is rejected
-	})
-}
-
-// TestSetRole_SelfEscalationBlocked documents self-escalation prevention.
-func TestSetRole_SelfEscalationBlocked(t *testing.T) {
-	t.Run("cannot_assign_admin_to_self", func(t *testing.T) {
-		// SPECIFICATION: Attempt to assign admin role to self is blocked
-		// Both at handler level and service level
-	})
-
-	t.Run("can_assign_seller_to_self", func(t *testing.T) {
-		// SPECIFICATION: Non-elevated role change to self is allowed
-		// (user role is not "elevated" in the security sense)
-	})
-}
-
-// TestSetRole_InvalidRoleRejected documents role validation.
-func TestSetRole_InvalidRoleRejected(t *testing.T) {
-	t.Run("invalid_role_string_rejected", func(t *testing.T) {
-		// SPECIFICATION: Arbitrary/unknown role strings are rejected
-		roles := []string{
-			"superadmin",
-			"root",
-			"owner",
-			"god",
-			"hacker",
+	for _, invalidRole := range []string{
+		"superadmin",  // legacy super-admin vocabulary
+		"super_admin", // uppercase-separated variant
+		"root_admin",  // legacy root-admin vocabulary
+		"seller",      // seller authority is a profile, never a role
+		"ADMIN",       // role vocabulary is exact and case-sensitive
+		"",            // empty string is not a role
+	} {
+		name := invalidRole
+		if name == "" {
+			name = "empty"
 		}
-		for _, invalidRole := range roles {
-			t.Run("role_"+invalidRole, func(t *testing.T) {
-				// Each invalid role should be rejected
-				assert.NotEmpty(t, invalidRole, "invalid role should be documented")
-			})
-		}
-		// Test empty string separately (can't use in test name)
-		t.Run("role_empty", func(t *testing.T) {
-			// Empty role string should also be rejected
-			// The assertion below documents that empty role is invalid
-			emptyRole := ""
-			if emptyRole == "" {
-				// Documented: empty role is invalid
-			}
+		t.Run("role_"+name, func(t *testing.T) {
+			err := checker.SetRole(context.Background(), callerID, targetID, invalidRole)
+			require.Error(t, err, "a role outside {user, admin} must be rejected")
+			assert.Equal(t, "invalid role: "+invalidRole, err.Error())
 		})
-	})
-
-	t.Run("only_valid_roles_accepted", func(t *testing.T) {
-		// SPECIFICATION: Only these roles are accepted:
-		// - user
-		// - admin
-		validRoles := []string{"user", "admin"}
-		for _, role := range validRoles {
-			assert.NotEmpty(t, role, "valid role should be defined")
-		}
-	})
+	}
 }
 
-// TestSetRole_DefenseInDepth documents defense-in-depth strategy.
-func TestSetRole_DefenseInDepth(t *testing.T) {
-	t.Run("handler_check_blocks_middleware_bypass", func(t *testing.T) {
-		// SPECIFICATION: Even if RequireCapability middleware is bypassed,
-		// handler-level check still rejects unauthorized requests
-	})
+// TestRoleCheckerDB_SetRole_SelfEscalationBlocked verifies the production
+// service-level self-escalation guard: a caller cannot assign the canonical
+// admin role to themselves, even if handler-level checks are bypassed.
+//
+// The guard returns before any database access, so the zero-value checker is
+// used deliberately.
+func TestRoleCheckerDB_SetRole_SelfEscalationBlocked(t *testing.T) {
+	checker := &RoleCheckerDB{}
+	selfID := uuid.New()
 
-	t.Run("service_check_blocks_handler_bypass", func(t *testing.T) {
-		// SPECIFICATION: Even if handler check is bypassed,
-		// service-level no-self-escalation guard still works
-	})
+	err := checker.SetRole(context.Background(), selfID, selfID, capabilityEntity.AdminRole)
+	require.Error(t, err, "assigning the admin role to self must be blocked")
+	assert.Equal(t, "self-escalation blocked: cannot assign elevated role to self", err.Error())
 }
 
-// TestSetRole_NoAdminFallback verifies no admin fallback.
-func TestSetRole_NoAdminFallback(t *testing.T) {
-	t.Run("admin_without_capability_explicitly_forbidden", func(t *testing.T) {
-		// SPECIFICATION: Admin role WITHOUT governance.role.assign capability
-		// results in 403 Forbidden, NOT success
-		// This tests that there is NO implicit "admin = all capabilities" logic
-	})
-}
-
-// TestSetRole_DuplicatePathCheck verifies single endpoint for role assignment.
-func TestSetRole_DuplicatePathCheck(t *testing.T) {
-	t.Run("only_one_endpoint_for_role_assignment", func(t *testing.T) {
-		// SPECIFICATION: PUT /api/v1/admin/users/:id/role is the ONLY endpoint
-		// that changes user roles
-	})
-
-	t.Run("no_hidden_role_mutation_in_other_endpoints", func(t *testing.T) {
-		// SPECIFICATION: No other endpoint secretly changes user roles
-		// (e.g., user update, profile edit, etc.)
-	})
-}
-
-// ============================================================================
-// ERROR TYPE VALIDATION TESTS
-// ============================================================================
-
-// TestErrorTypes verifies that all error types are properly defined.
-func TestErrorTypes(t *testing.T) {
-	t.Run("ErrSelfEscalation", func(t *testing.T) {
-		// Error for when user attempts to assign elevated role to self
-		err := &ErrSelfEscalation{TargetRole: "admin"}
-		assert.Contains(t, err.Error(), "self-escalation")
-		assert.Contains(t, err.Error(), "admin")
-	})
-
-	t.Run("ErrInvalidRole", func(t *testing.T) {
-		// Error for invalid/unknown role
-		err := &ErrInvalidRole{Role: "superadmin"}
-		assert.Contains(t, err.Error(), "invalid role")
-		assert.Contains(t, err.Error(), "superadmin")
-	})
-}
-
-// Error types
-type ErrSelfEscalation struct {
-	TargetRole string
-}
-
-func (e *ErrSelfEscalation) Error() string {
-	return "self-escalation not allowed: cannot assign elevated role " + e.TargetRole + " to self"
-}
-
-type ErrInvalidRole struct {
-	Role string
-}
-
-func (e *ErrInvalidRole) Error() string {
-	return "invalid role: " + e.Role
-}
-
-// Mock implementations for documentation
-type mockRoleDB struct{}
-
-func (m *mockRoleDB) WithTx(ctx context.Context, fn func(tx mockRoleTx) error) error {
-	return fn(mockRoleTx{})
-}
-
-type mockRoleTx struct{}
-
-func (m *mockRoleTx) Exec(ctx context.Context, sql string, args ...interface{}) (pgconn.CommandTag, error) {
-	return pgconn.NewCommandTag("1"), nil
-}
-
-func (m *mockRoleTx) QueryRow(ctx context.Context, sql string, args ...interface{}) mockRoleRow {
-	return mockRoleRow{}
-}
-
-type mockRoleRow struct{}
-
-func (m *mockRoleRow) Scan(dest ...interface{}) error {
-	return nil
+// TestRoleCheckerDB_RoleVocabulary_MatchesCanonicalAdminRole pins the coupling
+// between SetRole's hardcoded role vocabulary and the single canonical admin
+// role value. If one side changes, this fails instead of silently allowing a
+// mismatch between the write path and the authority constant.
+func TestRoleCheckerDB_RoleVocabulary_MatchesCanonicalAdminRole(t *testing.T) {
+	assert.Equal(t, "admin", capabilityEntity.AdminRole)
 }

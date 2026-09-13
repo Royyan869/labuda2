@@ -58,7 +58,7 @@ type detailSummary struct {
 	Keyword       string       `json:"keyword"`
 	RunID         string       `json:"run_id"`
 	Verdict       string       `json:"verdict"`
-	EvaluatorMode string       `json:"evaluator_mode_observed,omitempty"`
+	EnforcementObserved string       `json:"enforcement_observed,omitempty"`
 	Steps         []stepResult `json:"steps"`
 
 	ActiveDetailObservation  *detailObservation `json:"active_detail_observation,omitempty"`
@@ -110,7 +110,7 @@ func runScenarioGovernanceDetail(cfg governanceDetailConfig) error {
 
 	// ─── metrics baseline ─────────────────────────────────────────────────
 	sum.Steps = append(sum.Steps, detailCaptureMetrics(ctx, client, cfg, "metrics_before.txt"))
-	sum.EvaluatorMode = sniffDetailEvaluatorMode(filepath.Join(cfg.OutputDir, "metrics_before.txt"))
+	sum.EnforcementObserved = sniffDetailEnforcement(filepath.Join(cfg.OutputDir, "metrics_before.txt"))
 
 	// ─── auth: author ─────────────────────────────────────────────────────
 	authorToken := "governance-detail-author-verified-" + runID
@@ -171,8 +171,8 @@ func runScenarioGovernanceDetail(cfg governanceDetailConfig) error {
 	sum.Steps = append(sum.Steps, detailCaptureMetrics(ctx, client, cfg, "metrics_after_detail_deleted.txt"))
 
 	// ─── post-run observation synthesis ───────────────────────────────────
-	if late := sniffDetailEvaluatorMode(filepath.Join(cfg.OutputDir, "metrics_after_detail_deleted.txt")); late != "" {
-		sum.EvaluatorMode = late
+	if late := sniffDetailEnforcement(filepath.Join(cfg.OutputDir, "metrics_after_detail_deleted.txt")); late != "" {
+		sum.EnforcementObserved = late
 	}
 	sum.EnforcementAppliedTicked, sum.EnforcementAppliedNote = sniffDetailEnforcementApplied(
 		filepath.Join(cfg.OutputDir, "metrics_before.txt"),
@@ -217,7 +217,7 @@ func detailCaptureMetrics(ctx context.Context, client *http.Client, cfg governan
 	return stepResult{Step: "metrics:" + filename, Status: "ok", HTTP: res.StatusCode, Artifact: filename}
 }
 
-func sniffDetailEvaluatorMode(metricsPath string) string {
+func sniffDetailEnforcement(metricsPath string) string {
 	b, err := os.ReadFile(metricsPath)
 	if err != nil {
 		return ""
@@ -521,7 +521,7 @@ func finishDetailSummary(sum *detailSummary, cfg governanceDetailConfig, errMsg 
 	fmt.Fprintf(&readme, "  keyword:     %s\n", sum.Keyword)
 	fmt.Fprintf(&readme, "  started:     %s\n", sum.Started)
 	fmt.Fprintf(&readme, "  finished:    %s\n", sum.Finished)
-	fmt.Fprintf(&readme, "  evaluator:   %s\n", sum.EvaluatorMode)
+	fmt.Fprintf(&readme, "  evaluator:   %s\n", sum.EnforcementObserved)
 	fmt.Fprintf(&readme, "  verdict:     %s\n\n", sum.Verdict)
 	fmt.Fprintf(&readme, "steps:\n")
 	for _, s := range sum.Steps {

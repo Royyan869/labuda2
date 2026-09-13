@@ -25,13 +25,8 @@ type SearchHandler struct {
 	db            *db.DB
 	log           *zap.Logger
 
-	// searchContentShadowRunner is the Stage 1 shadow telemetry seam for
-	// /search/content per docs/05-rollout/search-shadow-seam-landing-
-	// task-design.md §3.1 / §4.2. Per §10.1 / §10.7, no feature flag
-	// controls seam emission; the runner is unconditionally constructed
-	// in dependencies_core.go and unconditionally dispatched after the
-	// legacy /search/content response is committed. A nil value disables
-	// the seam (no-op via SearchContentShadowRunner.Run nil receiver).
+	// searchContentShadowRunner is the shadow telemetry seam for
+	// /search/content. Observability-only; never determines business enforcement.
 	searchContentShadowRunner *evaluator.SearchContentShadowRunner
 
 	// P3B — Optional promotion injector. When non-nil, appends a
@@ -40,13 +35,8 @@ type SearchHandler struct {
 	promotionInjector *SearchPromotionInjector
 }
 
-// NewSearchHandler creates a new SearchHandler.
-//
-// searchContentShadowRunner: the Stage 1 shadow telemetry seam runner
-// for /search/content. Per docs/05-rollout/search-shadow-seam-landing-
-// task-design.md, the runner is fire-and-forget; it never affects the
-// response, pagination, or legacy authority. Pass nil to disable the
-// seam (the runner's Run method is nil-safe).
+// NewSearchHandler creates a new SearchHandler. /search/content
+// enforcement is unconditional. shadowRunner is observability-only.
 func NewSearchHandler(
 	searchService *searchApp.SearchService,
 	database *db.DB,
@@ -279,30 +269,17 @@ func (h *SearchHandler) SearchContent(c *gin.Context) {
 
 	// BATCH 3B — Synchronous enforcement pass.
 	//
-	// In SearchContentAdapterModeShadow this is a no-op pass-through:
-	// `enforcement` carries the input slice unchanged and a nil
-	// LifecycleOverrides map. The response wire shape is byte-for-byte
-	// identical to the pre-Batch-3B behavior. Rolling back to shadow is
-	// a single env-var flip (SEARCH_CONTENT_EVALUATOR_MODE=shadow).
-	//
-	// In SearchContentAdapterModeEnforce the helper runs the SAME pure
+	// Enforcement is unconditional. The helper runs the SAME pure
 	// EvaluateSearchContent decision the shadow runner observes; rows
 	// adapter.Include=false are dropped, rows with a LifecycleOverride
 	// have their card.Lifecycle coarsened. The legacy SQL filter at
 	// search_repository_impl.go preserves projection-coupling
 	// invariants (hidden/deleted physically absent), so enforcement is
 	// strictly further-restrict-only — it cannot recover undershare.
-	enforcement := evaluator.EnforceSearchContent(
-		h.searchContentShadowRunner.Mode(),
-		vc, targetCtx, contents,
-	)
+	enforcement := evaluator.EnforceSearchContent(vc, targetCtx, contents)
 
-	// PHASE C — Search shadow seam Stage 1 dispatch (telemetry only) per
-	// docs/05-rollout/search-shadow-seam-landing-task-design.md §3.1 /
-	// §4.2 / §5. Fire-and-forget telemetry runs against the ORIGINAL
-	// contents slice (pre-enforcement) so divergence metrics continue
-	// to reflect what the legacy SQL allowed; the synchronous helper
-	// above is what shapes the response.
+	// Shadow observability — runner is fire-and-forget telemetry only;
+	// never determines the business gate.
 	h.searchContentShadowRunner.Run(vc, targetCtx, contents)
 
 	// BATCH 3E — `has_more` pagination hint.

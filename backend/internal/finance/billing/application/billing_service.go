@@ -96,6 +96,23 @@ func (s *BillingService) MarkPaid(
 	tx db.Tx,
 	billingID uuid.UUID,
 ) (bool, error) {
+	return s.MarkPaidWithPayment(ctx, tx, billingID, nil, nil, 0)
+}
+
+// MarkPaidWithPayment processes a successful billing payment with payment-method fee carving.
+// When paymentID, paymentMethodCode, and serviceFeeAmount are provided, the fee is
+// carved from BANK_SETTLEMENT into PLATFORM_REVENUE after the Promote Balance funding.
+// This implements the Owner's UNIVERSAL_PAYMENT_METHOD_FEE_RULE for billing payments.
+//
+// Returns (newlyMarkedPaid bool, err error).
+func (s *BillingService) MarkPaidWithPayment(
+	ctx context.Context,
+	tx db.Tx,
+	billingID uuid.UUID,
+	paymentID *uuid.UUID,
+	paymentMethodCode *string,
+	serviceFeeAmount int64,
+) (bool, error) {
 	// Lock the billing transaction for update
 	billing, err := s.billingRepo.GetForUpdate(ctx, tx, billingID)
 	if err != nil {
@@ -128,7 +145,9 @@ func (s *BillingService) MarkPaid(
 		// PROMOTE_BALANCE (funding). This is NOT revenue: PLATFORM_REVENUE
 		// receives promotion money only from Qualified Impression
 		// consumption, never from a top-up (canonical promotion contract).
-		if err := s.processPromoteBalanceTopUp(ctx, tx, billing); err != nil {
+		// PASS_18V: If paymentID and serviceFeeAmount are provided, carve the
+		// payment-method fee from BANK_SETTLEMENT into PLATFORM_REVENUE.
+		if err := s.processPromoteBalanceTopUp(ctx, tx, billing, paymentID, serviceFeeAmount); err != nil {
 			return false, err
 		}
 
@@ -151,10 +170,17 @@ func (s *BillingService) MarkPaid(
 // A top-up is a funding event, NOT a service purchase: it must not carry a
 // platform fee (creation must pass platformFeePercent = 0). Fail-closed guard
 // below rejects a mis-configured fee so funding can never become revenue.
+//
+// PASS_18V: When paymentID and serviceFeeAmount > 0, the payment-method fee
+// is carved from BANK_SETTLEMENT into PLATFORM_REVENUE after the funding.
+// The top-up principal (billing.GrossAmount) is credited to PROMOTE_BALANCE;
+// the payment-method fee is NOT credited to Promote Balance.
 func (s *BillingService) processPromoteBalanceTopUp(
 	ctx context.Context,
 	tx db.Tx,
 	billing *entity.BillingTransaction,
+	paymentID *uuid.UUID,
+	serviceFeeAmount int64,
 ) error {
 	if billing == nil {
 		return fmt.Errorf("promote balance top-up: billing is nil")
@@ -166,13 +192,31 @@ func (s *BillingService) processPromoteBalanceTopUp(
 		return fmt.Errorf("promote balance top-up: must not carry a platform fee (percent=%d amount=%d); a top-up is funding, not revenue",
 			billing.PlatformFeePercent, billing.PlatformFeeAmount.Int64())
 	}
-	return s.financeService.RecordPromoteBalanceFunding(
+	// Record the top-up: Promote Balance receives principal only.
+	if err := s.financeService.RecordPromoteBalanceFunding(
 		ctx,
 		tx,
 		billing.ID, // funding reference + idempotency key
 		billing.PayerID,
 		billing.GrossAmount.Int64(),
-	)
+	); err != nil {
+		return err
+	}
+	// PASS_18V: Carve payment-method fee into PLATFORM_REVENUE.
+	// This runs after Promote Balance funding so the fee never touches
+	// the Promote Balance credit.
+	if paymentID != nil && serviceFeeAmount > 0 {
+		if err := s.financeService.RecordBillingPaymentFeeRevenue(
+			ctx,
+			tx,
+			*paymentID,
+			billing.ID,
+			serviceFeeAmount,
+		); err != nil {
+			return fmt.Errorf("record billing payment fee revenue: %w", err)
+		}
+	}
+	return nil
 }
 
 // MarkFailed marks a billing transaction as failed.

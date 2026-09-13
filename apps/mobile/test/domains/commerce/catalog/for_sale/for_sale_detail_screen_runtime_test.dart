@@ -312,8 +312,11 @@ void main() {
 
     expect(find.text('@seller_user'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('@seller_user'));
+    await tester.pump();
     await tester.tap(find.text('@seller_user'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(nav.lastUserId, 'seller-nav-1');
     expect(nav.lastUserId, isNot('seller_user'));

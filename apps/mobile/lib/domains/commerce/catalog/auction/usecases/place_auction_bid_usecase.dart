@@ -25,7 +25,7 @@ class PlaceAuctionBidUseCase {
   Future<Result<void>> execute({
     required String auctionId,
     required String bidderId,
-    required double amount,
+    required int amount,
   }) async {
     try {
       // Get auction first for validation
@@ -49,11 +49,20 @@ class PlaceAuctionBidUseCase {
       }
 
       // LOCAL COMPUTATION: UX optimization - backend is final authority
-      // FUTURE: Use auction.decision.display.minimumNextBid from backend
-      // Validate bid amount
-      final minimumBid = auction.currentBid + auction.bidIncrement;
+      // Derived from factual fields: currentBid + bidIncrement
+      // Validate bid amount against the canonical integer representation.
+      // Read-side entities still carry doubles; a fractional minimum would
+      // contradict the backend bigint contract, so it fails loudly here
+      // rather than truncating silently.
+      final minimumBidDouble = auction.currentBid + auction.bidIncrement;
+      if (minimumBidDouble != minimumBidDouble.toInt()) {
+        return Result.error(
+          'Minimum bid must be integral: Rp ${minimumBidDouble.toStringAsFixed(0)}',
+        );
+      }
+      final minimumBid = minimumBidDouble.toInt();
       if (amount < minimumBid) {
-        return Result.error('Bid minimum: Rp ${minimumBid.toStringAsFixed(0)}');
+        return Result.error('Bid minimum: Rp $minimumBid');
       }
 
       // Validate user is not seller

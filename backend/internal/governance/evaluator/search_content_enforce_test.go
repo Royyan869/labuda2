@@ -23,35 +23,6 @@ func previewRow(authorID, contentID uuid.UUID) *entity.ContentPreview {
 	return &entity.ContentPreview{ID: contentID, AuthorID: authorID}
 }
 
-// TestEnforceSearchContent_ShadowModeIsIdentity asserts the canonical
-// pilot rollback contract: in shadow mode the helper is a no-op pass-
-// through. Filtered = input slice (same backing array), overrides=nil,
-// counts=0. This is what guarantees a clean env-flip rollback.
-func TestEnforceSearchContent_ShadowModeIsIdentity(t *testing.T) {
-	authorID := uuid.New()
-	row1 := previewRow(authorID, uuid.New())
-	row2 := previewRow(authorID, uuid.New())
-
-	// Pass intentionally-incomplete contexts. In shadow mode the helper
-	// MUST NOT call EvaluateSearchContent, so it MUST NOT care that the
-	// contexts would otherwise yield UNKNOWN/input_invalid.
-	res := evaluator.EnforceSearchContent(
-		evaluator.SearchContentAdapterModeShadow,
-		nil, nil,
-		[]*entity.ContentPreview{row1, row2},
-	)
-	if len(res.Filtered) != 2 || res.Filtered[0] != row1 || res.Filtered[1] != row2 {
-		t.Errorf("shadow mode: Filtered slice changed; pilot rollback contract is broken")
-	}
-	if res.LifecycleOverrides != nil {
-		t.Errorf("shadow mode: LifecycleOverrides = %v; want nil", res.LifecycleOverrides)
-	}
-	if res.DroppedCount != 0 || res.OverriddenCount != 0 {
-		t.Errorf("shadow mode: counts = (drop=%d, override=%d); want zero",
-			res.DroppedCount, res.OverriddenCount)
-	}
-}
-
 // TestEnforceSearchContent_EnforceDropsDenyRow asserts that DENY decisions
 // produce row drops in enforce mode. A removed author triggers DENY per
 // the canonical evaluator precedence.
@@ -73,7 +44,6 @@ func TestEnforceSearchContent_EnforceDropsDenyRow(t *testing.T) {
 	)
 
 	res := evaluator.EnforceSearchContent(
-		evaluator.SearchContentAdapterModeEnforce,
 		newAnonVC(), tc,
 		[]*entity.ContentPreview{rowRemoved, rowActive},
 	)
@@ -105,7 +75,6 @@ func TestEnforceSearchContent_EnforceTombstoneOverridesLifecycle(t *testing.T) {
 	)
 
 	res := evaluator.EnforceSearchContent(
-		evaluator.SearchContentAdapterModeEnforce,
 		newAnonVC(), tc,
 		[]*entity.ContentPreview{rowHidden},
 	)
@@ -147,7 +116,6 @@ func TestEnforceSearchContent_EnforceUnknownOverlayFailsOpen(t *testing.T) {
 	)
 
 	res := evaluator.EnforceSearchContent(
-		evaluator.SearchContentAdapterModeEnforce,
 		newAnonVC(), tcEmpty,
 		[]*entity.ContentPreview{row},
 	)
@@ -173,7 +141,6 @@ func TestEnforceSearchContent_EnforceInputInvalidFailsClosed(t *testing.T) {
 	row2 := previewRow(authorID, uuid.New())
 
 	res := evaluator.EnforceSearchContent(
-		evaluator.SearchContentAdapterModeEnforce,
 		nil, nil, // construction defect — nil VC
 		[]*entity.ContentPreview{row1, row2},
 	)
@@ -199,7 +166,6 @@ func TestEnforceSearchContent_EnforceAllowsHappyPath(t *testing.T) {
 	)
 
 	res := evaluator.EnforceSearchContent(
-		evaluator.SearchContentAdapterModeEnforce,
 		newAnonVC(), tc,
 		[]*entity.ContentPreview{row},
 	)
@@ -237,7 +203,6 @@ func TestEnforceSearchContent_EnforceBlockedAuthorDropsRow(t *testing.T) {
 	)
 
 	res := evaluator.EnforceSearchContent(
-		evaluator.SearchContentAdapterModeEnforce,
 		vc, tc,
 		[]*entity.ContentPreview{rowBlocked, rowAllowed},
 	)
@@ -250,49 +215,14 @@ func TestEnforceSearchContent_EnforceBlockedAuthorDropsRow(t *testing.T) {
 }
 
 // TestEnforceSearchContent_NilContents asserts the helper handles a nil
-// or empty contents slice without panic. Both modes should return a
-// zero-value-ish result.
+// or empty contents slice without panic.
 func TestEnforceSearchContent_NilContents(t *testing.T) {
-	shadow := evaluator.EnforceSearchContent(
-		evaluator.SearchContentAdapterModeShadow,
-		newAnonVC(), nil, nil,
-	)
-	if len(shadow.Filtered) != 0 {
-		t.Errorf("shadow/nil contents: Filtered len = %d; want 0", len(shadow.Filtered))
-	}
-
-	enforce := evaluator.EnforceSearchContent(
-		evaluator.SearchContentAdapterModeEnforce,
-		newAnonVC(), nil, nil,
-	)
+	enforce := evaluator.EnforceSearchContent(newAnonVC(), nil, nil)
 	if len(enforce.Filtered) != 0 {
-		t.Errorf("enforce/nil contents: Filtered len = %d; want 0", len(enforce.Filtered))
+		t.Errorf("nil contents: Filtered len = %d; want 0", len(enforce.Filtered))
 	}
 	if enforce.DroppedCount != 0 || enforce.OverriddenCount != 0 {
-		t.Errorf("enforce/nil contents: counts = (%d, %d); want zero", enforce.DroppedCount, enforce.OverriddenCount)
-	}
-}
-
-// TestEnforceSearchContent_InvalidModeFallsToShadow asserts the
-// safety-default: any non-canonical mode string is treated as shadow.
-// This belt-and-suspenders the config-layer NormalizeSearchContentAdapterMode
-// — even if a caller bypasses the normalizer and passes a custom mode
-// string, the helper still defaults to shadow (identity pass-through).
-func TestEnforceSearchContent_InvalidModeFallsToShadow(t *testing.T) {
-	authorID := uuid.New()
-	rowRemoved := previewRow(authorID, uuid.New())
-	tc := newTargetCtx(
-		map[uuid.UUID]viewercontext.PublicLifecycleState{authorID: viewercontext.PublicLifecycleStateRemoved},
-		map[uuid.UUID]viewercontext.ContentModerationState{rowRemoved.ID: viewercontext.ContentModerationStateVisible},
-	)
-
-	res := evaluator.EnforceSearchContent(
-		evaluator.SearchContentAdapterMode("garbage"),
-		newAnonVC(), tc,
-		[]*entity.ContentPreview{rowRemoved},
-	)
-	if len(res.Filtered) != 1 {
-		t.Errorf("invalid mode: expected pass-through (1 row), got %d", len(res.Filtered))
+		t.Errorf("nil contents: counts = (%d, %d); want zero", enforce.DroppedCount, enforce.OverriddenCount)
 	}
 }
 

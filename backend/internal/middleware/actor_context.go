@@ -1,6 +1,6 @@
 // Package middleware provides actor context injection for the capability system.
 //
-// SLICE 2: ACTOR CONTEXT INJECTION MIDDLEWARE
+// ACTOR CONTEXT INJECTION MIDDLEWARE
 //
 // This middleware is responsible for injecting the Actor entity into the request context
 // after authentication has been performed. It works safely with both authenticated and

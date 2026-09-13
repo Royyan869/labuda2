@@ -93,40 +93,6 @@ func makeFeedItem(id, authorID uuid.UUID, status string, isHidden bool) *feedent
 	}
 }
 
-// TestEnforceFeed_ShadowModeIdentityPassthrough — spec §E.1.
-// shadow mode returns the input slice unchanged, with zero counts,
-// regardless of what the items look like.
-func TestEnforceFeed_ShadowModeIdentityPassthrough(t *testing.T) {
-	viewer := uuid.New()
-	authorA := uuid.New()
-	authorB := uuid.New()
-	in := []*feedentity.FeedItem{
-		makeFeedItem(uuid.New(), authorA, "active", true),         // would-DENY/TOMBSTONE in enforce
-		makeFeedItem(uuid.New(), authorB, "deleted", false),       // would-DENY in enforce
-		makeFeedItem(uuid.New(), authorA, "active", false),
-	}
-
-	result := EnforceFeed(
-		FeedEvaluatorModeShadow,
-		makeViewerContext(viewer),
-		makeTargetContext(in...),
-		in,
-	)
-
-	if len(result.Filtered) != len(in) {
-		t.Fatalf("shadow mode must return all items unchanged: got %d, want %d", len(result.Filtered), len(in))
-	}
-	for i := range in {
-		if result.Filtered[i] != in[i] {
-			t.Errorf("shadow mode must preserve slice identity at index %d", i)
-		}
-	}
-	if result.DroppedCount != 0 || result.UnknownFailOpenCount != 0 {
-		t.Errorf("shadow mode must record zero counts; got dropped=%d unknown=%d",
-			result.DroppedCount, result.UnknownFailOpenCount)
-	}
-}
-
 // TestEnforceFeed_EnforceTombstonesHiddenItem — spec §E.2 (C1 convergence).
 // In enforce mode an item with IsHidden=true is TOMBSTONED, not dropped:
 // the row remains in the response with a "removed" lifecycle override so
@@ -145,7 +111,6 @@ func TestEnforceFeed_EnforceTombstonesHiddenItem(t *testing.T) {
 	}
 
 	result := EnforceFeed(
-		FeedEvaluatorModeEnforce,
 		makeViewerContext(viewer),
 		makeTargetContext(in...),
 		in,
@@ -206,7 +171,6 @@ func TestEnforceFeed_EnforceDropsSuspendedBannedDeletedOwners(t *testing.T) {
 	}
 
 	result := EnforceFeed(
-		FeedEvaluatorModeEnforce,
 		makeViewerContext(viewer),
 		makeTargetContextWithAuthors(authorStates, in...),
 		in,
@@ -233,7 +197,6 @@ func TestEnforceFeed_EnforceKeepsAllowedItem(t *testing.T) {
 	}
 
 	result := EnforceFeed(
-		FeedEvaluatorModeEnforce,
 		makeViewerContext(viewer),
 		makeTargetContext(in...),
 		in,
@@ -275,7 +238,6 @@ func TestEnforceFeed_EnforceUnknownFailsOpen(t *testing.T) {
 	}
 
 	result := EnforceFeed(
-		FeedEvaluatorModeEnforce,
 		makeViewerContext(viewer),
 		makeTargetContextWithAuthors(authorStates, in...),
 		in,
@@ -292,50 +254,7 @@ func TestEnforceFeed_EnforceUnknownFailsOpen(t *testing.T) {
 	}
 }
 
-// TestNormalizeFeedEvaluatorMode — spec §E.6.
-// Invalid / empty / case-varied inputs all fall safe to shadow.
-// Only the literal "enforce" (any case, with surrounding whitespace)
-// activates enforce.
-func TestNormalizeFeedEvaluatorMode(t *testing.T) {
-	cases := []struct {
-		in   string
-		want FeedEvaluatorMode
-	}{
-		{"", FeedEvaluatorModeShadow},
-		{"shadow", FeedEvaluatorModeShadow},
-		{"SHADOW", FeedEvaluatorModeShadow},
-		{" shadow ", FeedEvaluatorModeShadow},
-		{"enforce", FeedEvaluatorModeEnforce},
-		{"ENFORCE", FeedEvaluatorModeEnforce},
-		{" enforce ", FeedEvaluatorModeEnforce},
-		{"weird", FeedEvaluatorModeShadow},
-		{"shadowmode", FeedEvaluatorModeShadow},
-		{"true", FeedEvaluatorModeShadow},
-		{"on", FeedEvaluatorModeShadow},
-	}
-	for _, tc := range cases {
-		tc := tc
-		t.Run(tc.in, func(t *testing.T) {
-			if got := NormalizeFeedEvaluatorMode(tc.in); got != tc.want {
-				t.Errorf("NormalizeFeedEvaluatorMode(%q) = %q, want %q", tc.in, got, tc.want)
-			}
-		})
-	}
 
-	// Belt-and-suspenders: a directly-passed invalid mode value into
-	// EnforceFeed must short-circuit to shadow behavior (identity
-	// passthrough). This guards against future drift between the
-	// normalizer and the helper.
-	t.Run("invalid_mode_passed_directly", func(t *testing.T) {
-		in := []*feedentity.FeedItem{
-			makeFeedItem(uuid.New(), uuid.New(), "active", true), // would-DENY in enforce
-		}
-		result := EnforceFeed(FeedEvaluatorMode("garbage"), nil, nil, in)
-		if len(result.Filtered) != 1 || result.Filtered[0] != in[0] {
-			t.Errorf("invalid mode must behave as shadow (identity passthrough)")
-		}
-	})
-}
 
 // TestEnforceFeed_NilEmptyInputSafe — spec §E.7.
 // nil items, empty items, and nil item entries inside the slice are
@@ -344,22 +263,15 @@ func TestEnforceFeed_NilEmptyInputSafe(t *testing.T) {
 	viewer := uuid.New()
 	vc := makeViewerContext(viewer)
 
-	t.Run("nil_items_shadow", func(t *testing.T) {
-		result := EnforceFeed(FeedEvaluatorModeShadow, vc, nil, nil)
+	t.Run("nil_items", func(t *testing.T) {
+		result := EnforceFeed(vc, nil, nil)
 		if len(result.Filtered) != 0 {
 			t.Errorf("expected empty filtered; got %d", len(result.Filtered))
 		}
 	})
 
-	t.Run("nil_items_enforce", func(t *testing.T) {
-		result := EnforceFeed(FeedEvaluatorModeEnforce, vc, nil, nil)
-		if len(result.Filtered) != 0 {
-			t.Errorf("expected empty filtered; got %d", len(result.Filtered))
-		}
-	})
-
-	t.Run("empty_items_enforce", func(t *testing.T) {
-		result := EnforceFeed(FeedEvaluatorModeEnforce, vc, viewercontext.NewTargetContext(), []*feedentity.FeedItem{})
+	t.Run("empty_items", func(t *testing.T) {
+		result := EnforceFeed(vc, viewercontext.NewTargetContext(), []*feedentity.FeedItem{})
 		if len(result.Filtered) != 0 {
 			t.Errorf("expected empty filtered; got %d", len(result.Filtered))
 		}
@@ -374,7 +286,6 @@ func TestEnforceFeed_NilEmptyInputSafe(t *testing.T) {
 			nil,
 		}
 		result := EnforceFeed(
-			FeedEvaluatorModeEnforce,
 			vc,
 			makeTargetContext(in...),
 			in,
@@ -395,7 +306,7 @@ func TestEnforceFeed_NilEmptyInputSafe(t *testing.T) {
 			makeFeedItem(uuid.New(), author, "active", false),
 			makeFeedItem(uuid.New(), author, "active", false),
 		}
-		result := EnforceFeed(FeedEvaluatorModeEnforce, nil, nil, in)
+		result := EnforceFeed(nil, nil, in)
 		if len(result.Filtered) != 2 {
 			t.Errorf("nil vc must fail-open and keep all items; got %d", len(result.Filtered))
 		}
@@ -408,27 +319,11 @@ func TestEnforceFeed_NilEmptyInputSafe(t *testing.T) {
 	})
 }
 
-// TestFeedShadowRunner_ModeNilSafe verifies that the mode accessor is
-// safe to call on a nil receiver (the handler relies on this when the
-// runner is disabled via env: a nil runner is treated as shadow mode
-// and the enforce branch is therefore skipped entirely).
-func TestFeedShadowRunner_ModeNilSafe(t *testing.T) {
-	var r *FeedShadowRunner
-	if got := r.Mode(); got != FeedEvaluatorModeShadow {
-		t.Errorf("nil runner Mode() = %q, want %q", got, FeedEvaluatorModeShadow)
-	}
-	// WithMode on a nil receiver must also be nil-safe — used by
-	// dependency wiring before checking the env-gated enable flag.
-	if got := r.WithMode(FeedEvaluatorModeEnforce); got != nil {
-		t.Errorf("nil runner WithMode must return nil, got %+v", got)
-	}
-}
-
 // ---------------------------------------------------------------------------
 // VIEWER STATUS ALIGNMENT TESTS
 // ---------------------------------------------------------------------------
 //
-// Matrix under test (enforce mode, viewer-side lifecycle gate):
+// Matrix under test (viewer-side lifecycle gate):
 //
 //   viewer_lifecycle     | expected
 //   ────────────────────-┼──────────────────
@@ -436,7 +331,6 @@ func TestFeedShadowRunner_ModeNilSafe(t *testing.T) {
 //   unavailable (banned) | DENY (items dropped)
 //   unavailable (susp.)  | DENY (items dropped)
 //   removed (deleted)    | DENY (items dropped)
-//   shadow rollback      | items preserved (no enforcement)
 
 // makeViewerContextWithLifecycle builds a hydrated ViewerContext with
 // the specified lifecycle state. Used by viewer-status alignment tests.
@@ -463,7 +357,7 @@ func TestEnforceFeed_ActiveViewer_SeesFeed(t *testing.T) {
 	}
 
 	vc := makeViewerContextWithLifecycle(viewer, viewercontext.PublicLifecycleStateActive)
-	result := EnforceFeed(FeedEvaluatorModeEnforce, vc, makeTargetContext(in...), in)
+	result := EnforceFeed(vc, makeTargetContext(in...), in)
 
 	if len(result.Filtered) != 2 {
 		t.Fatalf("active viewer should see all items; got %d, want 2", len(result.Filtered))
@@ -484,7 +378,7 @@ func TestEnforceFeed_SuspendedViewer_Denied(t *testing.T) {
 
 	// Suspended coarsens to PublicLifecycleStateUnavailable
 	vc := makeViewerContextWithLifecycle(viewer, viewercontext.PublicLifecycleStateUnavailable)
-	result := EnforceFeed(FeedEvaluatorModeEnforce, vc, makeTargetContext(in...), in)
+	result := EnforceFeed(vc, makeTargetContext(in...), in)
 
 	if len(result.Filtered) != 0 {
 		t.Fatalf("suspended viewer should see zero items; got %d", len(result.Filtered))
@@ -504,7 +398,7 @@ func TestEnforceFeed_BannedViewer_Denied(t *testing.T) {
 
 	// Banned coarsens to PublicLifecycleStateUnavailable
 	vc := makeViewerContextWithLifecycle(viewer, viewercontext.PublicLifecycleStateUnavailable)
-	result := EnforceFeed(FeedEvaluatorModeEnforce, vc, makeTargetContext(in...), in)
+	result := EnforceFeed(vc, makeTargetContext(in...), in)
 
 	if len(result.Filtered) != 0 {
 		t.Fatalf("banned viewer should see zero items; got %d", len(result.Filtered))
@@ -524,7 +418,7 @@ func TestEnforceFeed_RemovedViewer_Denied(t *testing.T) {
 
 	// Removed (soft-deleted) maps to PublicLifecycleStateRemoved
 	vc := makeViewerContextWithLifecycle(viewer, viewercontext.PublicLifecycleStateRemoved)
-	result := EnforceFeed(FeedEvaluatorModeEnforce, vc, makeTargetContext(in...), in)
+	result := EnforceFeed(vc, makeTargetContext(in...), in)
 
 	if len(result.Filtered) != 0 {
 		t.Fatalf("removed viewer should see zero items; got %d", len(result.Filtered))
@@ -534,26 +428,5 @@ func TestEnforceFeed_RemovedViewer_Denied(t *testing.T) {
 	}
 }
 
-func TestEnforceFeed_ShadowRollback_PreservesItems(t *testing.T) {
-	viewer := uuid.New()
-	author := uuid.New()
-	in := []*feedentity.FeedItem{
-		makeFeedItem(uuid.New(), author, "active", false),
-		makeFeedItem(uuid.New(), author, "active", false),
-	}
-
-	// Viewer is suspended (would be DENY in enforce)
-	vc := makeViewerContextWithLifecycle(viewer, viewercontext.PublicLifecycleStateUnavailable)
-
-	// But mode is shadow — enforcement is disabled (env rollback)
-	result := EnforceFeed(FeedEvaluatorModeShadow, vc, makeTargetContext(in...), in)
-
-	if len(result.Filtered) != 2 {
-		t.Fatalf("shadow mode must preserve all items regardless of viewer status; got %d, want 2", len(result.Filtered))
-	}
-	if result.DroppedCount != 0 {
-		t.Errorf("shadow mode must record zero drops; got %d", result.DroppedCount)
-	}
-}
 
 

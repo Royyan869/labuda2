@@ -175,11 +175,9 @@ type ContentHandler struct {
 	contentDetailShadowRunner *evaluator.ContentDetailShadowRunner
 }
 
-// NewContentHandler creates a new ContentHandler.
-//
-// contentDetailShadowRunner is optional. When non-nil, GetContent
-// dispatches a /contents/:id shadow evaluator run post-response. The
-// shadow path is observability-only and never alters the response.
+// NewContentHandler creates a new ContentHandler. /contents/:id enforcement
+// is unconditional. shadowRunner is observability-only and never determines
+// enforcement.
 func NewContentHandler(
 	contentService *contentApp.ContentService,
 	roleChecker auth.RoleChecker,
@@ -743,13 +741,15 @@ func (h *ContentHandler) UpdateContent(c *gin.Context) {
 		return
 	}
 
-	// Authorization: only author can update
+	// Authorization (canonical): owner-only. There is NO admin override path
+	// on content update — an internal operator acting on another user's
+	// content has no route through this endpoint. The governance moderation
+	// pipeline (Case → Decision → Enforcement) is the canonical privileged
+	// content-state authority; it never calls this handler. The service
+	// re-enforces the same owner-only rule as defense in depth.
 	if content.AuthorID != userID {
-		isAdmin, _ := h.roleChecker.IsAdmin(ctx, userID)
-		if !isAdmin {
-			response.Forbidden(c, "You can only update your own content")
-			return
-		}
+		response.Forbidden(c, "You can only update your own content")
+		return
 	}
 
 	// Validate visibility if provided (nil = omitted = no change).
@@ -767,6 +767,12 @@ func (h *ContentHandler) UpdateContent(c *gin.Context) {
 	})
 
 	if err != nil {
+		// Defense in depth: surface the service-level owner-only rule as a
+		// proper 403 instead of a 500 (mirrors DeleteContent).
+		if errors.Is(err, auth.ErrOwnerRequired) {
+			response.Forbidden(c, "You can only update your own content")
+			return
+		}
 		h.log.Error("Failed to update content",
 			zap.String("content_id", contentID.String()),
 			zap.String("user_id", userID.String()),
@@ -820,7 +826,7 @@ func (h *ContentHandler) UpdateContent(c *gin.Context) {
 // DeleteContent handles DELETE /api/v1/contents/{id}
 //
 // Authorization:
-// - Only author can delete their content (admin can override)
+// - Only author can delete their content
 func (h *ContentHandler) DeleteContent(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -996,38 +1002,34 @@ func (h *ContentHandler) GetContent(c *gin.Context) {
 
 	// D1 / F1-W3B — synchronous fail-CLOSED enforcement.
 	//
-	// After the legacy gate passes, in ContentDetailEvaluatorModeEnforce
-	// the handler runs EvaluateContentDetail + AdaptContentDetailDecision
-	// and converts any non-ALLOW outcome (DENY / TOMBSTONE / REDACT /
-	// UNKNOWN) into HTTP 404. This implements doctrine §8.5 (fail-CLOSED
-	// on UNKNOWN; detail surface never silently passes an unhydrated
-	// decision). In shadow mode the helper short-circuits to allow=true
-	// and the legacy gate (already passed) decides — wire shape is
-	// byte-identical to pre-D1.
+	// Enforcement is unconditional and independent of
+	// contentDetailShadowRunner existence. The shadow runner is
+	// observability-only.
+	//
+	// After the legacy gate passes, the handler runs EvaluateContentDetail
+	// + AdaptContentDetailDecision and converts any non-ALLOW outcome
+	// (DENY / TOMBSTONE / REDACT / UNKNOWN) into HTTP 404. This implements
+	// doctrine §8.5 (fail-CLOSED on UNKNOWN; detail surface never silently
+	// passes an unhydrated decision).
 	//
 	// F1-W3B — the helper consumes the same pre-hydrated canonical
 	// (vc, tc, content) the handler built inside WithTx. The evaluator
 	// package owns NO SQL, NO pool, NO hydration helpers.
-	if h.contentDetailShadowRunner.Mode() == evaluator.ContentDetailEvaluatorModeEnforce {
-		enf := evaluator.EnforceContentDetail(
-			evaluator.ContentDetailEvaluatorModeEnforce, vc, tc, content,
+	enf := evaluator.EnforceContentDetail(vc, tc, content)
+	if !enf.Allow {
+		response.NotFound(c, "Content not found")
+		h.log.Info("content_detail enforce 404",
+			zap.String("content_id", content.ID.String()),
+			zap.String("reason", string(enf.Reason)),
+			zap.String("shadow_decision", string(enf.ShadowDecision)),
 		)
-		if !enf.Allow {
-			response.NotFound(c, "Content not found")
-			h.log.Info("content_detail enforce 404",
-				zap.String("content_id", content.ID.String()),
-				zap.String("reason", string(enf.Reason)),
-				zap.String("shadow_decision", string(enf.ShadowDecision)),
-			)
-			// Dispatch the async shadow runner with LegacyOutcome=200
-			// because the legacy gate authorized the response BEFORE
-			// enforcement converted it to 404. This preserves shadow
-			// telemetry's denominator across the shadow→enforce flip
-			// (the shadow seam continues to observe what the legacy gate
-			// allowed, not what enforce converted).
-			h.contentDetailShadowRunner.Run(vc, tc, content, evaluator.LegacyContentDetailOutcome200)
-			return
-		}
+		// Dispatch the async shadow runner with LegacyOutcome=200
+		// because the legacy gate authorized the response BEFORE
+		// enforcement converted it to 404. This preserves shadow
+		// telemetry's denominator (the shadow seam continues to observe
+		// what the legacy gate allowed, not what enforce converted).
+		h.contentDetailShadowRunner.Run(vc, tc, content, evaluator.LegacyContentDetailOutcome200)
+		return
 	}
 
 	// V-VISIBILITY — Viewer-aware visibility enforcement on content detail.
@@ -1051,6 +1053,27 @@ func (h *ContentHandler) GetContent(c *gin.Context) {
 		if !canSee {
 			response.NotFound(c, "Content not found")
 			return
+		}
+	}
+
+	// BLOCK PARITY — detail must respect same bidirectional block as feed/profile.
+	// No bypass: if viewer blocked author or author blocked viewer, detail is 404
+	// unless caller has explicit block-override capability (admin moderation).
+	if userID != uuid.Nil && content.AuthorID != userID {
+		hasOverride := false
+		if vc != nil && vc.Capability().HasBlockOverrideCapability {
+			hasOverride = true
+		}
+		if !hasOverride {
+			var blocked bool
+			if bErr := h.db.WithTx(ctx, func(tx db.Tx) error {
+				var e error
+				blocked, e = h.checkBidirectionalBlock(ctx, tx, userID, content.AuthorID)
+				return e
+			}); bErr == nil && blocked {
+				response.NotFound(c, "Content not found")
+				return
+			}
 		}
 	}
 

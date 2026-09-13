@@ -11,8 +11,10 @@ import 'package:equatable/equatable.dart';
 class BiddingItemDto extends Equatable {
   final String auctionId;
   final String title;
-  final double yourLastBid;
-  final double currentBid;
+  // Canonical numeric read representation: backend /bidding emits int64
+  // JSON integer literals (bidding_service.go YourLastBid/CurrentBid).
+  final int yourLastBid;
+  final int currentBid;
   final String status; // leading | outbid | won | lost | waiting_claim
   final DateTime endAt;
   final DateTime updatedAt;
@@ -31,8 +33,8 @@ class BiddingItemDto extends Equatable {
     return BiddingItemDto(
       auctionId: json['auction_id'] as String,
       title: json['title'] as String,
-      yourLastBid: (json['your_last_bid'] as num).toDouble(),
-      currentBid: (json['current_bid'] as num).toDouble(),
+      yourLastBid: (json['your_last_bid'] as num).toInt(),
+      currentBid: (json['current_bid'] as num).toInt(),
       status: json['status'] as String,
       endAt: DateTime.parse(json['end_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),

@@ -179,7 +179,7 @@ func setupTestService(mockedDb *mockDB) *WithdrawService {
 	accountStatusChecker := &mockAccountStatusChecker{}
 	adminAuditLogger := &mockAdminAuditLogger{}
 
-	return &WithdrawService{
+	svc := &WithdrawService{
 		db:                   mockedDb,
 		ledgerRepo:           ledgerRepo,
 		withdrawRepo:         withdrawRepo,
@@ -190,6 +190,8 @@ func setupTestService(mockedDb *mockDB) *WithdrawService {
 		verificationService:  nil,
 		outboxRepo:           nil,
 	}
+	svc.SetWithdrawalFeeProvider(fixedWithdrawalFeeProvider{fee: 5_000})
+	return svc
 }
 
 func TestWithdrawService_Simple(t *testing.T) {
@@ -336,6 +338,7 @@ func buildServiceForAccountGateTest(
 	}
 	// Set a non-nil canonicalAuthority so the nil guard passes.
 	svc.canonicalAuthority = &FinanceService{}
+	svc.SetWithdrawalFeeProvider(fixedWithdrawalFeeProvider{fee: 5_000})
 	return svc
 }
 
@@ -557,7 +560,7 @@ func (noopWithdrawalAuthority) RecordWithdrawalComplete(ctx context.Context, tx 
 
 type bankReviewChecker struct {
 	verified bool
-	reviewed  bool
+	reviewed bool
 }
 
 func (c bankReviewChecker) IsSellerVerifiedTx(ctx context.Context, tx db.Tx, sellerID uuid.UUID) (bool, error) {
@@ -625,6 +628,7 @@ func buildBankReviewService(t *testing.T, reviewed bool) (*WithdrawService, uuid
 		outboxRepo: nil,
 	}
 	svc.SetCanonicalAuthority(noopWithdrawalAuthority{})
+	svc.SetWithdrawalFeeProvider(fixedWithdrawalFeeProvider{fee: 5_000})
 	return svc, sellerID
 }
 
@@ -671,6 +675,7 @@ func buildBankNoDefaultService(t *testing.T) (*WithdrawService, uuid.UUID) {
 		outboxRepo: nil,
 	}
 	svc.SetCanonicalAuthority(noopWithdrawalAuthority{})
+	svc.SetWithdrawalFeeProvider(fixedWithdrawalFeeProvider{fee: 5_000})
 	return svc, sellerID
 }
 
@@ -1499,5 +1504,3 @@ func TestMarkProcessed_StatusSemantics_CompletedAndSettledAreDistinct(t *testing
 		t.Errorf("SETTLED wire value = %q, want SETTLED", string(repository.WithdrawalStatusSettled))
 	}
 }
-
-

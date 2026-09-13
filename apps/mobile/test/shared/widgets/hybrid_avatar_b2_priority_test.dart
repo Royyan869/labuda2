@@ -30,31 +30,6 @@ class _SpyAvatarCacheService extends AvatarCacheService {
   }
 }
 
-class _SpyPresenceRegistry extends PresenceSubscriptionRegistry {
-  int acquireCount = 0;
-
-  @override
-  PresenceSubscriptionHandle acquire(Set<String> userIds) {
-    acquireCount++;
-    return PresenceSubscriptionHandle(() async {});
-  }
-
-  @override
-  Future<void> prepareForLogout() async {}
-
-  @override
-  PresenceState? lookup(String userId) => null;
-
-  @override
-  Map<String, PresenceState?> lookupMany(Iterable<String> userIds) => {};
-
-  @override
-  Future<void> publishSelfPresence({required bool isOnline}) async {}
-
-  @override
-  Future<void> setForeground(bool isForeground) async {}
-}
-
 class _NoOpDatasource extends Fake implements UserApiDatasource {}
 
 AuthUser _user({
@@ -78,7 +53,6 @@ AuthUser _user({
 Widget _wrap({
   required _FakeAuthController authController,
   required _SpyAvatarCacheService cacheSpy,
-  required _SpyPresenceRegistry presenceRegistry,
   required String trackedUserId,
   required Widget child,
 }) {
@@ -86,8 +60,7 @@ Widget _wrap({
     overrides: [
       authControllerProvider.overrideWith(() => authController),
       avatarCacheServiceProvider.overrideWith((_) => cacheSpy),
-      presenceSubscriptionRegistryProvider.overrideWithValue(presenceRegistry),
-      userOnlineStatusProvider(trackedUserId).overrideWithValue(false),
+      userOnlineStatusProvider(trackedUserId).overrideWith((ref) => Stream.value(false)),
     ],
     child: MaterialApp(home: Scaffold(body: child)),
   );
@@ -107,13 +80,11 @@ void main() {
         AuthState.authenticated(user, emailVerified: true),
       );
       final cacheSpy = _SpyAvatarCacheService();
-      final presenceRegistry = _SpyPresenceRegistry();
 
       await tester.pumpWidget(
         _wrap(
           authController: authController,
           cacheSpy: cacheSpy,
-          presenceRegistry: presenceRegistry,
           trackedUserId: user.id,
           child: HybridAvatar(
             userId: user.id,
@@ -127,7 +98,6 @@ void main() {
       final avatar = tester.widget<ProfileAvatar>(find.byType(ProfileAvatar));
       expect(avatar.imageUrl, 'https://auth.example/me.png');
       expect(cacheSpy.getUserAvatarUrlCallCount, 0);
-      expect(presenceRegistry.acquireCount, 1);
     });
 
     testWidgets('current principal without saved URL still uses auth state', (
@@ -142,13 +112,11 @@ void main() {
         AuthState.authenticated(user, emailVerified: true),
       );
       final cacheSpy = _SpyAvatarCacheService();
-      final presenceRegistry = _SpyPresenceRegistry();
 
       await tester.pumpWidget(
         _wrap(
           authController: authController,
           cacheSpy: cacheSpy,
-          presenceRegistry: presenceRegistry,
           trackedUserId: user.id,
           child: HybridAvatar(userId: user.id, size: 40),
         ),
@@ -158,7 +126,6 @@ void main() {
       final avatar = tester.widget<ProfileAvatar>(find.byType(ProfileAvatar));
       expect(avatar.imageUrl, 'https://auth.example/me.png');
       expect(cacheSpy.getUserAvatarUrlCallCount, 0);
-      expect(presenceRegistry.acquireCount, 1);
     });
   });
 
@@ -175,15 +142,13 @@ void main() {
           AuthState.authenticated(currentUser, emailVerified: true),
         );
         final cacheSpy = _SpyAvatarCacheService();
-        final presenceRegistry = _SpyPresenceRegistry();
 
         const otherUserId = '123e4567-e89b-12d3-a456-426614174011';
         await tester.pumpWidget(
           _wrap(
-            authController: authController,
-            cacheSpy: cacheSpy,
-            presenceRegistry: presenceRegistry,
-            trackedUserId: otherUserId,
+          authController: authController,
+          cacheSpy: cacheSpy,
+          trackedUserId: otherUserId,
             child: HybridAvatar(
               userId: otherUserId,
               savedAvatarUrl: 'https://saved.example/other.png',
@@ -197,7 +162,6 @@ void main() {
         expect(avatar.imageUrl, 'https://cache.example/stale.png');
         expect(cacheSpy.getUserAvatarUrlCallCount, 1);
         expect(cacheSpy.getUserAvatarUrlCalls, contains(otherUserId));
-        expect(presenceRegistry.acquireCount, 1);
       },
     );
 
@@ -213,14 +177,12 @@ void main() {
         AuthState.authenticated(currentUser, emailVerified: true),
       );
       final cacheSpy = _SpyAvatarCacheService();
-      final presenceRegistry = _SpyPresenceRegistry();
 
       const otherUserId = '123e4567-e89b-12d3-a456-426614174011';
       await tester.pumpWidget(
         _wrap(
           authController: authController,
           cacheSpy: cacheSpy,
-          presenceRegistry: presenceRegistry,
           trackedUserId: otherUserId,
           child: HybridAvatar(
             userId: otherUserId,
@@ -233,7 +195,6 @@ void main() {
       final avatar = tester.widget<ProfileAvatar>(find.byType(ProfileAvatar));
       expect(avatar.imageUrl, 'https://cache.example/stale.png');
       expect(cacheSpy.getUserAvatarUrlCallCount, 1);
-      expect(presenceRegistry.acquireCount, 1);
     });
   });
 }

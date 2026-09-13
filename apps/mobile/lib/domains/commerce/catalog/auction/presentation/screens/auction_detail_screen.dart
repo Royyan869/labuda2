@@ -30,6 +30,7 @@ import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/det
 import 'package:labuda/domains/chat/chat/presentation/utils/commerce_chat_navigation.dart';
 import 'package:labuda/domains/social/share/share.dart';
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_saved_item_action_button.dart';
 import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
 import 'package:labuda/domains/system/report/presentation/dialogs/report_submission_dialog.dart';
@@ -246,13 +247,6 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       similarAuctionsProvider(widget.auctionId),
     );
 
-    final watchStatsAsync = ref.watch(
-      watchStatsStreamProvider((
-        auctionId: auction.id,
-        currentUserId: currentUserId,
-      )),
-    );
-
     final handlers = AuctionDetailHandlers(
       ref: ref,
       context: context,
@@ -281,6 +275,16 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               },
               icon: const Icon(Icons.campaign_outlined),
               tooltip: 'Promote',
+            ),
+          // Save button — non-owners only.
+          if (!_isCurrentUserTheCreator(auction) && currentUserId.isNotEmpty)
+            CommerceSavedItemActionButton(
+              targetType: 'auction',
+              targetId: auction.id,
+              label: 'Simpan',
+              activeLabel: 'Tersimpan',
+              icon: Icons.bookmark_border,
+              activeIcon: Icons.bookmark,
             ),
           // Share button — authenticated users only; anonymous viewers
           // cannot post to feed and have no interaction authority.
@@ -374,10 +378,8 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       ),
       bottomNavigationBar: AuctionDetailBottomBar(
         auction: auction,
-        watchStatsAsync: watchStatsAsync,
         currentUserId: currentUserId,
         currentUserName: currentUserName,
-        onWatch: () => _handleWatch(auction, currentUserId),
         onChat: () => _handleChat(auction),
         onAction: () => _showUnifiedActionModal(context, auction),
         onWinnerCheckout: _shouldShowWinnerCheckout(auction, currentUserId)
@@ -443,53 +445,6 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
     );
   }
 
-  Future<void> _handleWatch(Auction auction, String currentUserId) async {
-    if (currentUserId.isEmpty) {
-      AppSnackBar.showError(context, 'You must be logged in to watch auction');
-      return;
-    }
-
-    try {
-      final repository = ref.read(auctionWatchRepositoryProvider);
-      final isWatchingResult = await repository.isWatching(
-        auctionId: auction.id,
-        userId: currentUserId,
-      );
-
-      if (isWatchingResult.isError) {
-        if (!mounted) return;
-        AppSnackBar.showError(
-          context,
-          isWatchingResult.error ?? 'An error occurred',
-        );
-        return;
-      }
-
-      final isCurrentlyWatching = isWatchingResult.data ?? false;
-      if (isCurrentlyWatching) {
-        await repository.unwatchAuction(
-          auctionId: auction.id,
-          userId: currentUserId,
-        );
-      } else {
-        await repository.watchAuction(
-          auctionId: auction.id,
-          userId: currentUserId,
-        );
-      }
-
-      ref.invalidate(
-        watchStatsStreamProvider((
-          auctionId: auction.id,
-          currentUserId: currentUserId,
-        )),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      AppSnackBar.showError(context, 'Terjadi kesalahan. Coba lagi.');
-    }
-  }
-
   Future<void> _handleChat(Auction auction) async {
     // Canonical commerce chat flow: opens/creates the buyer-seller room,
     // carries the auction as a pending product reference (server-backed
@@ -534,7 +489,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
   Future<void> _handlePlaceBid(
     BuildContext context,
     Auction auction,
-    double amount,
+    int amount,
   ) async {
     // AUTH-2 (CANONICAL AUTHORITY): read the hydrated current user from the
     // canonical authenticatedUserProvider instead of the legacy
@@ -572,10 +527,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
     Navigator.of(this.context).pop();
 
     if (success) {
-      AppSnackBar.showSuccess(
-        this.context,
-        'Bid successful! Rp ${amount.toStringAsFixed(0)}',
-      );
+      AppSnackBar.showSuccess(this.context, 'Bid successful! Rp $amount');
     } else {
       final notifierState = ref.read(auctionNotifierProvider);
       // Inline gate: backend rejected because the user's email is not
@@ -589,7 +541,9 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
         );
         return;
       }
-      if (CommerceRestrictionPresenter.isCommerceRestricted(notifierState.errorCode)) {
+      if (CommerceRestrictionPresenter.isCommerceRestricted(
+        notifierState.errorCode,
+      )) {
         if (!mounted) return;
         CommerceRestrictionPresenter.show(
           this.context,
@@ -839,7 +793,9 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               if (!mounted) return null;
               final state = ref.read(auctionNotifierProvider);
               // Commerce restriction — canonical backend rejection.
-              if (CommerceRestrictionPresenter.isCommerceRestricted(state.errorCode)) {
+              if (CommerceRestrictionPresenter.isCommerceRestricted(
+                state.errorCode,
+              )) {
                 CommerceRestrictionPresenter.show(
                   this.context,
                   actionDescription: 'mengklaim lelang',
