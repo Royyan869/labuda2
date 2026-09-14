@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/commerce/order/entity"
-	walletApp "github.com/labuda/backend/internal/core/wallet/application"
+	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
 	financeApp "github.com/labuda/backend/internal/finance/application"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/money"
@@ -21,18 +21,16 @@ func TestReleaseGatewayEscrowRollsBackWhenFinanceAccountMissingRealDB(t *testing
 	ctx := context.Background()
 	tdb, cleanup := testdb.SetupDB(t)
 	defer cleanup()
-	buyerID, sellerID, orderID, walletID, escrowID := uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	buyerID, sellerID, orderID, escrowID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
 	_, err := tdb.Pool().Exec(ctx, `INSERT INTO users (id,firebase_uid,email) VALUES ($1,$2,$3),($4,$5,$6)`, buyerID, buyerID.String(), buyerID.String()+"@proof.test", sellerID, sellerID.String(), sellerID.String()+"@proof.test")
-	require.NoError(t, err)
-	_, err = tdb.Pool().Exec(ctx, `INSERT INTO wallets (id,user_id,available_balance,held_balance) VALUES ($1,$2,0,0)`, walletID, buyerID)
 	require.NoError(t, err)
 	_, err = tdb.Pool().Exec(ctx, `INSERT INTO orders (id,buyer_id,seller_id,source_type,source_id,quantity,unit_price,subtotal,shipping_total,commission_percent,commission_amount,escrow_amount,total_payable_amount,status,escrow_status,payment_expires_at) VALUES ($1,$2,$3,'for_sale',$1,1,1000,1000,0,0,0,1000,1000,'completed','holding',NOW()+INTERVAL '1 hour')`, orderID, buyerID, sellerID)
 	require.NoError(t, err)
-	_, err = tdb.Pool().Exec(ctx, `INSERT INTO escrows (id,order_id,buyer_wallet_id,amount,status,created_at) VALUES ($1,$2,$3,1000,'holding',NOW())`, escrowID, orderID, walletID)
+	_, err = tdb.Pool().Exec(ctx, `INSERT INTO escrows (id,order_id,amount,status,created_at) VALUES ($1,$2,1000,'holding',NOW())`, escrowID, orderID)
 	require.NoError(t, err)
 
-	wallet := walletApp.NewWalletService(db.NewFromPool(tdb.Pool()), zap.NewNop())
-	payment := NewOrderPaymentService(wallet)
+	escrowService := escrowApp.NewEscrowService(db.NewFromPool(tdb.Pool()), zap.NewNop())
+	payment := NewOrderPaymentService(escrowService)
 	payment.SetFinanceReleaseRecorder(financeApp.NewFinanceService())
 	order := &entity.Order{ID: orderID, SellerID: sellerID, Subtotal: money.New(1000), ShippingTotal: money.Zero(), CommissionAmount: money.Zero()}
 	err = tdb.WithTx(ctx, func(tx db.Tx) error {

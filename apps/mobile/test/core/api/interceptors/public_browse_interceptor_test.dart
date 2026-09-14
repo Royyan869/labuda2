@@ -75,7 +75,7 @@ Dio _buildDio(HttpClientAdapter adapter) {
   final dio = Dio()..httpClientAdapter = adapter;
   dio.options.validateStatus = (_) => true; // don't throw on 4xx/5xx
   dio.interceptors.add(
-    AuthInterceptor(tokenFetcher: (_) async => 'stub-token'),
+    AuthInterceptor(labudaTokenFetcher: () async => 'stub-token'),
   );
   return dio;
 }
@@ -257,8 +257,8 @@ void main() {
       dio.options.validateStatus = (_) => true;
       dio.interceptors.add(
         AuthInterceptor(
-          // No tokenFetcher — simulates no Firebase user (null token path)
-          tokenFetcher: (_) async => null,
+          // No labudaTokenFetcher — simulates no Labuda session (null token path)
+          labudaTokenFetcher: () async => null,
         ),
       );
 

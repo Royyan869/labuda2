@@ -293,11 +293,11 @@ func newHappyPathFixtures(_ *testing.T) (*OrderCreationService, CreateFromSaleSu
 	}
 
 	coverage := &shippingentity.ShippingCoverage{
-		ID:               uuid.New(),
+		ID:              uuid.New(),
 		ShippingSetupID: shippingSetupID,
-		ProvinceCode:     "31",
-		ProvinceRate:     money.New(15_000),
-		IsAvailable:      true,
+		ProvinceCode:    "31",
+		ProvinceRate:    money.New(15_000),
+		IsAvailable:     true,
 	}
 
 	productShippingRepo := &happyPathProductShippingRepo{options: []*shippingentity.ShippingSetup{shippingSetup}}
@@ -325,7 +325,7 @@ func newHappyPathFixtures(_ *testing.T) (*OrderCreationService, CreateFromSaleSu
 		outboxRepo:           realOutboxRepo,
 		commentRepo:          happyPathCommentRepo{},
 		// auditService, auctionRepo, negotiationRepo, shippingQuoteRepo,
-		// walletService, discountService, coinsService, configService,
+		// discountService, coinsService, configService,
 		// ownership: left nil. CreateFromSaleSurface's happy path either
 		// guards these with a nil check or never reaches them (no
 		// negotiation, no shipping quote, no auction).
@@ -343,20 +343,20 @@ func newHappyPathFixtures(_ *testing.T) (*OrderCreationService, CreateFromSaleSu
 		DiscountAmount:     money.New(0),
 		MaxCoinsAllowed:    10_000,
 		OrderValueForCoins: 115_000, // subtotal + shipping - discount
-		ShippingSetupName: "JNE Reguler",
+		ShippingSetupName:  "JNE Reguler",
 		TokenID:            uuid.New(),
 		PaymentMethod:      PaymentMethodInstant,
 	}
 
 	input := CreateFromSaleSurfaceInput{
-		ProductID:        productID,
-		SourceType:       orderentity.OrderSourceForSale,
-		SourceID:         listingID,
-		BuyerID:          buyerID,
-		Quantity:         1,
-		AddressID:        buyerAddressID,
+		ProductID:       productID,
+		SourceType:      orderentity.OrderSourceForSale,
+		SourceID:        listingID,
+		BuyerID:         buyerID,
+		Quantity:        1,
+		AddressID:       buyerAddressID,
 		ShippingSetupID: shippingSetupID,
-		PricingSnapshot:  snapshot,
+		PricingSnapshot: snapshot,
 	}
 
 	return svc, input, orderRepo, coinsRepo

@@ -159,9 +159,32 @@ func (r *LedgerRepository) CreateTransaction(
 			len(accountIDs), len(accountBalances))
 	}
 
+	// Step 4b: Load account types for account-aware balance calculation.
+	// CANONICAL SIGN ARCHITECTURE: Asset/Expense accounts increase with DR;
+	// Liability/Revenue/Equity accounts increase with CR.
+	accountTypes := make(map[uuid.UUID]string)
+	for accountID := range accountBalances {
+		var acctType string
+		if err := tx.QueryRow(ctx, `
+			SELECT account_type FROM financial_accounts WHERE id = $1;
+		`, accountID).Scan(&acctType); err != nil {
+			return fmt.Errorf("ledger: get account type failed for %s: %w", accountID, err)
+		}
+		accountTypes[accountID] = acctType
+	}
+
 	// Step 5: Update account balances and create ledger entries
 	for _, entry := range entries {
-		newBalance := accountBalances[entry.AccountID] + entry.Amount.Int64()
+		// CANONICAL BALANCE FORMULA:
+		// Asset/Expense: newBalance = oldBalance + entry.Amount (DR increases)
+		// Liability/Revenue/Equity: newBalance = oldBalance - entry.Amount (CR increases)
+		oldBalance := accountBalances[entry.AccountID]
+		var newBalance int64
+		if finance.AccountClassOf(accountTypes[entry.AccountID]).DebitIncreasesBalance() {
+			newBalance = oldBalance + entry.Amount.Int64()
+		} else {
+			newBalance = oldBalance - entry.Amount.Int64()
+		}
 
 		// Update account balance
 		_, err = tx.Exec(ctx, `

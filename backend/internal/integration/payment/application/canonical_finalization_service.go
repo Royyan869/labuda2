@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	orderapp "github.com/labuda/backend/internal/commerce/order/application"
 	orderRepoImpl "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
-	walletApp "github.com/labuda/backend/internal/core/wallet/application"
+	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
 	financeApp "github.com/labuda/backend/internal/finance/application"
 	"github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
@@ -35,7 +35,7 @@ type CoinSpendConsumer interface {
 type CanonicalFinalizationService struct {
 	settlementService *repository.PaymentSettlementService
 	financeService    *financeApp.FinanceService
-	walletService     *walletApp.WalletService
+	escrowService     *escrowApp.EscrowService
 	orderService      *orderapp.OrderService
 	orderRepo         *orderRepoImpl.OrderRepository
 	coinSpendConsumer CoinSpendConsumer
@@ -43,17 +43,17 @@ type CanonicalFinalizationService struct {
 }
 
 // NewCanonicalFinalizationService creates the canonical finalization service
-// using the canonical order, wallet, and finance services.
+// using the canonical order, escrow, and finance services.
 func NewCanonicalFinalizationService(
 	financeService *financeApp.FinanceService,
 	orderService *orderapp.OrderService,
-	walletService *walletApp.WalletService,
+	escrowService *escrowApp.EscrowService,
 	log *zap.Logger,
 ) *CanonicalFinalizationService {
 	return &CanonicalFinalizationService{
 		settlementService: repository.NewPaymentSettlementService(),
 		financeService:    financeService,
-		walletService:     walletService,
+		escrowService:     escrowService,
 		orderService:      orderService,
 		orderRepo:         orderRepoImpl.NewOrderRepository(),
 		log:               log,
@@ -172,7 +172,7 @@ func (s *CanonicalFinalizationService) FinalizeOrderPayment(
 	// buyer-funded cash. CalculateGrossEscrowFromSnapshot (P+S+C) is the
 	// rejected model and must not fund the escrow row.
 	escrowAmount := order.TotalBeforeCoinsAmount
-	if _, err := s.walletService.CreateEscrowFromGatewaySettlement(ctx, tx, walletApp.CreateEscrowFromGatewaySettlementInput{
+	if _, err := s.escrowService.CreateEscrowFromGatewaySettlement(ctx, tx, escrowApp.CreateEscrowFromGatewaySettlementInput{
 		OrderID:   orderID,
 		BuyerID:   order.BuyerID,
 		SellerID:  order.SellerID,

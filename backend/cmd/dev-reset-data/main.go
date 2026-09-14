@@ -156,7 +156,6 @@ var domainTables = []string{
 	"user_mutes",
 	"user_warnings",
 	"verification_documents",
-	"wallets",
 	"withdrawals",
 }
 

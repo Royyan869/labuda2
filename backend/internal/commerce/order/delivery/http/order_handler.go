@@ -852,12 +852,12 @@ type CreateOrderRequest struct {
 	NegotiationID *string `json:"negotiation_id,omitempty"`
 
 	// Common fields (required)
-	Quantity         int     `json:"quantity" binding:"required,min=1"`
-	AddressID        string  `json:"address_id" binding:"required"`
+	Quantity        int     `json:"quantity" binding:"required,min=1"`
+	AddressID       string  `json:"address_id" binding:"required"`
 	ShippingSetupID *string `json:"shipping_option_id,omitempty"` // Optional: when using shipping_quote_id
-	ShippingQuoteID  *string `json:"shipping_quote_id,omitempty"`  // Optional: when using manual quote
-	ProvinceCode     string  `json:"province_code"`                // Deprecated
-	CityCode         string  `json:"city_code"`                    // Deprecated
+	ShippingQuoteID *string `json:"shipping_quote_id,omitempty"`  // Optional: when using manual quote
+	ProvinceCode    string  `json:"province_code"`                // Deprecated
+	CityCode        string  `json:"city_code"`                    // Deprecated
 
 	// Pricing token (required for ALL orders to prevent price manipulation)
 	// The token must have been obtained from the pricing preview endpoint
@@ -1061,19 +1061,19 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			// Frontend cannot manipulate quantity or pricing
 			// Idempotency key is guaranteed non-empty by the header check above.
 			input := orderApp.CreateFromSaleSurfaceInput{
-				ProductID:        productID,
-				SourceType:       sourceType,
-				SourceID:         sourceID,
-				BuyerID:          userID,
-				Quantity:         validatedToken.Quantity, // From token, not request
-				AddressID:        addressID,
+				ProductID:       productID,
+				SourceType:      sourceType,
+				SourceID:        sourceID,
+				BuyerID:         userID,
+				Quantity:        validatedToken.Quantity, // From token, not request
+				AddressID:       addressID,
 				ShippingSetupID: shippingSetupID,
-				ProvinceCode:     req.ProvinceCode,
-				CityCode:         req.CityCode,
-				IdempotencyKey:   &idempotencyKey,
-				NegotiationID:    negotiationID,   // Optional negotiation context
-				PricingSnapshot:  pricingSnapshot, // PRICING FROM TOKEN
-				PricingTokenID:   &tokenID,        // Store token ID (prevents double-ordering)
+				ProvinceCode:    req.ProvinceCode,
+				CityCode:        req.CityCode,
+				IdempotencyKey:  &idempotencyKey,
+				NegotiationID:   negotiationID,   // Optional negotiation context
+				PricingSnapshot: pricingSnapshot, // PRICING FROM TOKEN
+				PricingTokenID:  &tokenID,        // Store token ID (prevents double-ordering)
 			}
 
 			// Step 4: Create order using pricing snapshot
@@ -1104,7 +1104,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 				BuyerID:               userID,
 				WinningBid:            validatedToken.UnitPrice.Int64(),
 				AddressID:             addressID,
-				ShippingSetupID:      shippingSetupID,
+				ShippingSetupID:       shippingSetupID,
 				ProvinceCode:          req.ProvinceCode,
 				CityCode:              req.CityCode,
 				DiscountCode:          nil,
@@ -1366,7 +1366,6 @@ func (h *OrderHandler) CompleteOrder(c *gin.Context) {
 	}
 
 	// Return updated order with relevant fields
-	// NOTE: EscrowStatus is cached from Wallet state
 	response.Success(c, gin.H{
 		"id":            updatedOrder.ID,
 		"status":        updatedOrder.Status,
@@ -1615,27 +1614,27 @@ func buildPricingSnapshotFromToken(token *pricingtokenentity.PricingToken) *orde
 	}
 
 	return &orderApp.PricingSnapshot{
-		UnitPrice:              token.UnitPrice,
-		Subtotal:               token.Subtotal,
-		ShippingTotal:          token.ShippingTotal,
-		CommissionPercent:      token.CommissionPercent,
-		CommissionAmount:       token.CommissionAmount,
-		EscrowAmount:           token.EscrowAmount,
-		ServiceFeeAmount:       token.ServiceFeeAmount,
-		TotalPayableAmount:     token.TotalPayableAmount,
-		DiscountAmount:         token.DiscountAmount,
-		MaxCoinsAllowed:        token.MaxCoinsAllowed,
-		CoinsUsed:              token.CoinsUsed,
-		OrderValueForCoins:     token.OrderValueForCoins,
-		ShippingSetupName:    token.ShippingSetupName,
+		UnitPrice:             token.UnitPrice,
+		Subtotal:              token.Subtotal,
+		ShippingTotal:         token.ShippingTotal,
+		CommissionPercent:     token.CommissionPercent,
+		CommissionAmount:      token.CommissionAmount,
+		EscrowAmount:          token.EscrowAmount,
+		ServiceFeeAmount:      token.ServiceFeeAmount,
+		TotalPayableAmount:    token.TotalPayableAmount,
+		DiscountAmount:        token.DiscountAmount,
+		MaxCoinsAllowed:       token.MaxCoinsAllowed,
+		CoinsUsed:             token.CoinsUsed,
+		OrderValueForCoins:    token.OrderValueForCoins,
+		ShippingSetupName:     token.ShippingSetupName,
 		ShippingTransportType: token.ShippingTransportType,
 		ShippingDestination:   addressSnapshot,
-		ShippingSource:         shippingSource,
-		ShippingQuoteID:        token.ShippingQuoteID,
-		ChatID:                 nil, // Set during chat checkout if needed
-		AuctionID:              token.AuctionID,
-		NegotiationID:          token.NegotiationID,
-		TokenID:                token.Token, // Store token ID to prevent double-ordering
-		PaymentMethod:          "default",   // TODO: Add payment method to token
+		ShippingSource:        shippingSource,
+		ShippingQuoteID:       token.ShippingQuoteID,
+		ChatID:                nil, // Set during chat checkout if needed
+		AuctionID:             token.AuctionID,
+		NegotiationID:         token.NegotiationID,
+		TokenID:               token.Token, // Store token ID to prevent double-ordering
+		PaymentMethod:         "default",   // TODO: Add payment method to token
 	}
 }

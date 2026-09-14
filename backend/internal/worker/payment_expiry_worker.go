@@ -67,7 +67,7 @@ func DefaultConfig() Config {
 // NewPaymentExpiryWorker creates a new payment expiry worker.
 //
 // orderService must be the fully-wired OrderService from dependencies.go
-// (with walletService, coinsService, etc. non-nil). The worker delegates
+// (with escrowService, financeService, etc. non-nil). The worker delegates
 // Expire() to OrderService which needs these deps for gateway-funded refund.
 func NewPaymentExpiryWorker(
 	db Transactor,

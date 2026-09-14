@@ -20,7 +20,6 @@ class AuthSignUpRepository {
   Future<Result<FirebasePrincipal>> signUpWithEmail({
     required String email,
     required String password,
-    required String username,
   }) async {
     try {
       final credential = await _firebaseAuth.createUserWithEmailAndPassword(

@@ -248,11 +248,11 @@ type DisplayHints struct {
 // It includes the order entity with decision contract.
 //
 // ARCHITECTURAL NOTES:
-// - EscrowAmount is the canonical buyer base from the pricing-token snapshot
-//   ((P−D)+S); commission C is seller/platform-side and is NOT buyer-funded cash.
-// - RefundAmount comes from Ledger service, not stored in Order
-// - Discount information comes from Ledger service, not stored in Order
-// - Coins discount amount comes from Ledger, only CoinsUsed is stored for display
+//   - EscrowAmount is the canonical buyer base from the pricing-token snapshot
+//     ((P−D)+S); commission C is seller/platform-side and is NOT buyer-funded cash.
+//   - RefundAmount comes from Ledger service, not stored in Order
+//   - Discount information comes from Ledger service, not stored in Order
+//   - Coins discount amount comes from Ledger, only CoinsUsed is stored for display
 type OrderDetailResponse struct {
 	// Order fields (flattened from Order entity for response)
 	ID           uuid.UUID `json:"id"`
@@ -296,7 +296,7 @@ type OrderDetailResponse struct {
 	// Shipping option snapshot
 	ShippingSetupID       uuid.UUID `json:"shipping_option_id"`
 	ShippingSetupName     string    `json:"shipping_option_name"`
-	ShippingTransportType string `json:"shipping_transport_type"`
+	ShippingTransportType string    `json:"shipping_transport_type"`
 
 	// Shipping Readiness Snapshot (for overdue calculation)
 	PreparationTimeSnapshot *string `json:"preparation_time_snapshot,omitempty"`
@@ -316,7 +316,7 @@ type OrderDetailResponse struct {
 
 	// Status
 	Status        string `json:"status"`
-	EscrowStatus  string `json:"escrow_status"` // CACHED from Wallet - may be stale, critical decisions should use Wallet
+	EscrowStatus  string `json:"escrow_status"` // Canonical escrow state from EscrowService
 	AutoReleaseAt *int64 `json:"auto_release_at,omitempty"`
 
 	// Confirmation extension
@@ -726,8 +726,8 @@ func OrderToDetailResponseWithIdentity(
 		ServiceFeeAmount:        order.ServiceFeeAmount.Int64(),
 		TotalPayableAmount:      order.TotalPayableAmount.Int64(),
 		CoinsUsed:               order.CoinsUsed,
-		ShippingSetupID:        getShippingSetupID(order.ShippingSetupID),
-		ShippingSetupName:      order.ShippingSetupName,
+		ShippingSetupID:         getShippingSetupID(order.ShippingSetupID),
+		ShippingSetupName:       order.ShippingSetupName,
 		ShippingTransportType:   order.ShippingTransportType,
 		PreparationTimeSnapshot: preparationTimeSnapshot,
 		PreparationNoteSnapshot: order.PreparationNoteSnapshot,

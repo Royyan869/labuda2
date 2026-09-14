@@ -39,8 +39,6 @@ func RequireActiveAccount(database *db.DB) gin.HandlerFunc {
 		emailVerified := false
 		if actor := GetActorFromContext(c); actor != nil {
 			emailVerified = actor.EmailVerified
-		} else if claims, ok := GetUserFromContext(c); ok {
-			emailVerified = claims.EmailVerified
 		}
 		if !emailVerified {
 			response.Error(c, http.StatusForbidden, "EMAIL_VERIFICATION_REQUIRED", "Email verification required")

@@ -69,7 +69,7 @@ func (s *spyOutboxEmitter) InsertEvent(
 // The path inside handleSuccessCallback calls (in order):
 //   1. ledgerRepo.GetSystemAccountID (SELECT ... FROM financial_accounts WHERE type=$1)     x2
 //   2. ledgerRepo.CreateTransaction  (SELECT on idempotency + INSERT transaction + 2x INSERT entry)
-//   3. withdrawRepo.MarkSettled      (UPDATE wallet.withdrawals ...)
+//   3. withdrawRepo.MarkSettled      (UPDATE withdrawals ...)
 //   4. outboxRepo.InsertEvent        (handled by spyOutboxEmitter — no SQL)
 //
 // We return enough rows/tags to avoid errors on every call.
@@ -119,8 +119,7 @@ func (s *gatewaySuccessSpyTx) Query(_ context.Context, sql string, _ ...any) (pg
 }
 
 func (s *gatewaySuccessSpyTx) Exec(_ context.Context, sql string, _ ...any) (pgconn.CommandTag, error) {
-	lsql := strings.ToLower(sql)
-	// INSERT financial_entries or UPDATE wallet.withdrawals — both succeed
+	lsql := strings.ToLower(sql) // INSERT financial_entries or UPDATE withdrawals — both succeed
 	_ = lsql
 	return pgconn.NewCommandTag("UPDATE 1"), nil
 }
@@ -365,5 +364,3 @@ func TestWebhookHandler_NilOutboxRepo_DoesNotPanic(t *testing.T) {
 
 	t.Log("F1-A PASS (nil-safety): nil outboxRepo skips emission without panic")
 }
-
-

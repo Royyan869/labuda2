@@ -274,15 +274,6 @@ type stubLookup struct {
 	shouldFail bool
 }
 
-func (s *stubLookup) GetUserIDByFirebaseUID(_ context.Context, _ string) (uuid.UUID, error) {
-	// This method name is historical: it takes firebase UID, but in Labuda path it should never be called
-	// because LabudaAuth already set user_id. We intentionally return the existsID to catch misuse.
-	if s.shouldFail {
-		return uuid.Nil, jwt.ErrSignatureInvalid
-	}
-	return s.existsID, nil
-}
-
 func (s *stubLookup) GetUserIDByID(_ context.Context, id uuid.UUID) (uuid.UUID, error) {
 	if s.shouldFail {
 		return uuid.Nil, jwt.ErrSignatureInvalid

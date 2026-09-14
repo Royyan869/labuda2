@@ -15,7 +15,10 @@ interface UserMeResponse {
   user: {
     id: string
     email?: string | null
+  }
+  profile: {
     username: string
+    avatar_url?: string | null
   }
 }
 
@@ -63,6 +66,7 @@ async function validateSession(token: string): Promise<SessionValidationResult> 
   try {
     const userResp = await api.get<{ data: UserMeResponse }>('/api/v1/users/me')
     const identity = userResp.data.user
+    const profile = userResp.data.profile
 
     const resp = await api.get<{ data: AdminMeResponse }>('/api/v1/admin/me')
     const me = resp.data
@@ -75,7 +79,8 @@ async function validateSession(token: string): Promise<SessionValidationResult> 
     const user: AdminUser = {
       id: identity.id,
       email: identity.email ?? '',
-      username: identity.username,
+      username: profile.username,
+      avatarUrl: profile.avatar_url ?? undefined,
       isAdmin: me.is_admin,
       capabilities: me.capabilities,
     }

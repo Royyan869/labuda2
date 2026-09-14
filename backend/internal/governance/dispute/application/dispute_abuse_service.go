@@ -1,9 +1,9 @@
 // ⚠️ FINANCIAL RULE:
-// All money operations MUST go through WalletService.
+// All escrow lifecycle operations MUST go through EscrowService.
 // Direct balance mutation is forbidden.
 //
 // Dispute domain manages dispute state and resolution.
-// All financial operations are delegated to WalletService.
+// All escrow operations are delegated to EscrowService.
 package application
 
 import (

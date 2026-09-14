@@ -13,8 +13,8 @@ import (
 	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
 	orderRepo "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
 	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
-	walletApp "github.com/labuda/backend/internal/core/wallet/application"
-	walletEntity "github.com/labuda/backend/internal/core/wallet/entity"
+	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
+	escrowEntity "github.com/labuda/backend/internal/core/escrow/entity"
 	"github.com/labuda/backend/internal/finance/refund/entity"
 	"github.com/labuda/backend/internal/finance/refund/infrastructure/repository"
 	refundRepo "github.com/labuda/backend/internal/finance/refund/repository"
@@ -66,10 +66,10 @@ type RefundHistoryPage struct {
 // 3. If rejected: buyer can escalate to dispute
 // 4. Admin resolves dispute via DisputeService (canonical path)
 //
-// CRITICAL HARDENING: Uses live wallet state for escrow validation (not cached Order.EscrowStatus).
+// CRITICAL HARDENING: Uses live escrow state for validation (not cached Order.EscrowStatus).
 type RefundService struct {
 	refundRepo              refundRepo.RefundRepository
-	walletService           *walletApp.WalletService // CRITICAL: Used for live escrow validation
+	escrowService           *escrowApp.EscrowService // CRITICAL: Used for live escrow validation
 	orderRepo               orderrepository.OrderRepository
 	orderService            *application.OrderService
 	outboxRepo              *outboxRepo.OutboxRepository
@@ -137,14 +137,14 @@ func (s *RefundService) coinsSpendForOrder(ctx context.Context, tx db.Tx, userID
 // NewRefundService creates a new RefundService.
 func NewRefundService(
 	orderService *application.OrderService,
-	walletService *walletApp.WalletService,
+	escrowService *escrowApp.EscrowService,
 	outboxRepo *outboxRepo.OutboxRepository,
 ) *RefundService {
 	return &RefundService{
 		refundRepo:    repository.NewRefundRepository(),
 		orderRepo:     orderRepo.NewOrderRepository(),
 		orderService:  orderService,
-		walletService: walletService, // CRITICAL: For live escrow validation
+		escrowService: escrowService, // CRITICAL: For live escrow validation
 		outboxRepo:    outboxRepo,
 	}
 }
@@ -191,18 +191,18 @@ func (s *RefundService) CreateRefund(
 		return nil, fmt.Errorf("cannot request refund: order has an active dispute")
 	}
 
-	// CRITICAL HARDENING: Validate escrow status using LIVE wallet state (not cached Order.EscrowStatus)
-	walletEscrow, err := s.walletService.GetEscrowForOrder(ctx, tx, orderID)
+	// CRITICAL HARDENING: Validate escrow status using LIVE escrow state (not cached Order.EscrowStatus)
+	liveEscrow, err := s.escrowService.GetEscrowForOrder(ctx, tx, orderID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify escrow state: %w", err)
 	}
-	if walletEscrow == nil || walletEscrow.Status != walletEntity.EscrowStatusHolding {
-		return nil, fmt.Errorf("cannot request refund: escrow must be in holding state, wallet status: %s",
+	if liveEscrow == nil || liveEscrow.Status != escrowEntity.EscrowStatusHolding {
+		return nil, fmt.Errorf("cannot request refund: escrow must be in holding state, escrow status: %s",
 			func() string {
-				if walletEscrow == nil {
+				if liveEscrow == nil {
 					return "none"
 				}
-				return string(walletEscrow.Status)
+				return string(liveEscrow.Status)
 			}())
 	}
 
@@ -334,11 +334,17 @@ func (s *RefundService) ListRefundsBySeller(
 func (s *RefundService) ListRefundHistoryByOrderID(
 	ctx context.Context, tx db.Tx, orderID uuid.UUID, limit int, cursor *RefundCursor,
 ) (*RefundHistoryPage, error) {
-	if limit <= 0 { limit = 20 }
+	if limit <= 0 {
+		limit = 20
+	}
 	refunds, err := s.refundRepo.ListByOrderID(ctx, tx, orderID, limit+1, cursor)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	hasMore := len(refunds) > limit
-	if hasMore { refunds = refunds[:limit] }
+	if hasMore {
+		refunds = refunds[:limit]
+	}
 	var nextCursor *RefundCursor
 	if hasMore && len(refunds) > 0 {
 		last := refunds[len(refunds)-1]
@@ -642,5 +648,3 @@ func isValidRefundReason(reason entity.RefundReason) bool {
 		return false
 	}
 }
-
-

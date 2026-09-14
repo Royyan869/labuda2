@@ -34,11 +34,9 @@ type projectionLister interface {
 // This is a CQRS query service that reads from the projection tables.
 //
 // HARDENING: Projection reads may have stale EscrowStatus if:
-// - Projection worker hasn't processed latest wallet event
+// - Projection worker hasn't processed latest escrow event
 // - Order.EscrowStatus update failed silently
 // - Event propagation delay
-//
-// MITIGATION: Projection should include wallet sync timestamp for staleness detection.
 type OrderQueryService struct {
 	projection        projectionLister
 	projectionEnabled bool
@@ -58,12 +56,10 @@ func NewOrderQueryService(projection projectionLister, projectionEnabled bool) *
 // OrderListItem represents a single order in a list response.
 //
 // ARCHITECTURAL NOTES:
-// - EscrowStatus is CACHED from Wallet state (projection may be stale)
+// - EscrowStatus is the canonical operational state (projection may be stale)
 // - EscrowAmount and RefundedAmount removed - financial truth is in Ledger service
 // - Contains only snapshot fields for display (Subtotal, ShippingTotal, CommissionAmount)
 // - For financial amounts, query the Ledger service
-//
-// HARDENING: Business logic guards should use Wallet-derived EscrowStatus, not projection value.
 type OrderListItem struct {
 	ID           uuid.UUID `json:"id"`
 	BuyerID      uuid.UUID `json:"buyer_id"`
@@ -84,7 +80,7 @@ type OrderListItem struct {
 	SellerAvatarURL    string     `json:"seller_avatar_url"`
 	OrderType          string     `json:"order_type"`
 	Status             string     `json:"status"`
-	EscrowStatus       string     `json:"escrow_status"`     // CACHED from Wallet - may be stale
+	EscrowStatus       string     `json:"escrow_status"`     // Canonical escrow state (projection may lag)
 	HasActiveRefund    bool       `json:"has_active_refund"` // true if order has active (non-terminal) refund
 	DisputeStatus      *string    `json:"dispute_status,omitempty"`
 	Subtotal           int64      `json:"subtotal"`
@@ -92,7 +88,7 @@ type OrderListItem struct {
 	CommissionAmount   int64      `json:"commission_amount"`
 	ServiceFeeAmount   int64      `json:"service_fee_amount"`
 	TotalPayableAmount int64      `json:"total_payable_amount"`
-	ShippingSetupName string     `json:"shipping_option_name"`
+	ShippingSetupName  string     `json:"shipping_option_name"`
 	AutoReleaseAt      *int64     `json:"auto_release_at,omitempty"`
 	PaymentID          *uuid.UUID `json:"payment_id,omitempty"` // V1.1 Payment Contract Refactor
 	// PaymentStatus is the status of the active/latest payment for this order.
@@ -130,7 +126,7 @@ type ListMyOrdersInput struct {
 // ListMyOrders retrieves orders for the authenticated user based on their role.
 //
 // HARDENING: This reads from CQRS projection which may have stale EscrowStatus.
-// Critical business logic should validate against live Wallet state.
+// Critical business logic should validate against live escrow state.
 //
 // Rules:
 // - roleParam must be "buyer" or "seller"
@@ -325,7 +321,7 @@ func (s *OrderQueryService) convertToListItem(
 		CommissionAmount:   summary.CommissionAmount,
 		ServiceFeeAmount:   summary.ServiceFeeAmount,
 		TotalPayableAmount: summary.TotalPayableAmount,
-		ShippingSetupName: summary.ShippingSetupName,
+		ShippingSetupName:  summary.ShippingSetupName,
 		CreatedAt:          summary.CreatedAt.Unix(),
 		UpdatedAt:          summary.UpdatedAt.Unix(),
 		DisputeReason:      summary.DisputeReason,
@@ -532,7 +528,7 @@ type AdminOrderSummary struct {
 	ServiceFeeAmount   int64      `json:"service_fee_amount"`
 	TotalPayableAmount int64      `json:"total_payable_amount"`
 	RefundedAmount     int64      `json:"refunded_amount"`
-	ShippingSetup     *string    `json:"shipping_option,omitempty"`
+	ShippingSetup      *string    `json:"shipping_option,omitempty"`
 	AutoReleaseAt      *time.Time `json:"auto_release_at,omitempty"`
 	CreatedAt          time.Time  `json:"created_at"`
 	UpdatedAt          time.Time  `json:"updated_at"`
@@ -636,7 +632,7 @@ func (s *OrderQueryService) ListAllOrdersForAdmin(
 			CommissionAmount:   s.CommissionAmount,
 			ServiceFeeAmount:   s.ServiceFeeAmount,
 			TotalPayableAmount: s.TotalPayableAmount,
-			ShippingSetup:     shippingSetup,
+			ShippingSetup:      shippingSetup,
 			AutoReleaseAt:      s.AutoReleaseAt,
 			CreatedAt:          s.CreatedAt,
 			UpdatedAt:          s.UpdatedAt,

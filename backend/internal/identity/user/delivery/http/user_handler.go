@@ -440,8 +440,9 @@ func (h *UserHandler) RefreshMyVerification(c *gin.Context) {
 	}
 
 	var emailVerified *bool
-	if claims, exists := middleware.GetUserFromContext(c); exists {
-		emailVerified = &claims.EmailVerified
+	if actor := middleware.GetActorFromContext(c); actor != nil {
+		v := actor.EmailVerified
+		emailVerified = &v
 	}
 
 	snapshot, err := h.userProfileService.RefreshVerificationSnapshot(ctx, userID, emailVerified)

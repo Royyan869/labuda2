@@ -661,26 +661,6 @@
     "description": "Resend verification button"
   },
 
-  "emailManagement": "Email Management",
-  "@emailManagement": {
-    "description": "Email management section"
-  },
-
-  "changeEmailAddress": "Change Email Address",
-  "@changeEmailAddress": {
-    "description": "Change email title"
-  },
-
-  "newEmailAddress": "New Email Address",
-  "@newEmailAddress": {
-    "description": "New email field"
-  },
-
-  "enterNewEmailAddress": "Enter your new email address",
-  "@enterNewEmailAddress": {
-    "description": "New email placeholder"
-  },
-
   "currentPassword": "Current Password",
   "@currentPassword": {
     "description": "Current password field"
@@ -689,16 +669,6 @@
   "enterCurrentPasswordToConfirm": "Enter your current password to confirm",
   "@enterCurrentPasswordToConfirm": {
     "description": "Current password placeholder"
-  },
-
-  "updateEmail": "Update Email",
-  "@updateEmail": {
-    "description": "Update email button"
-  },
-
-  "verifyNewEmailMessage": "You will need to verify your new email address before you can use it.",
-  "@verifyNewEmailMessage": {
-    "description": "Email verification message"
   },
 
   "passwordManagement": "Password Management",
@@ -831,16 +801,6 @@
   "pleaseFillAllFields": "Please fill all fields",
   "@pleaseFillAllFields": {
     "description": "Fill all fields error"
-  },
-
-  "emailChangeRequestSent": "Email change request sent! Check your new email for verification.",
-  "@emailChangeRequestSent": {
-    "description": "Email change success message"
-  },
-
-  "failedToChangeEmail": "Failed to change email. Please try again.",
-  "@failedToChangeEmail": {
-    "description": "Failed to change email error"
   },
 
   "anErrorOccurred": "An error occurred. Please try again.",

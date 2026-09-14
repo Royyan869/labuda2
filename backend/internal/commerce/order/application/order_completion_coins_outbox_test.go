@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap/zaptest"
 
 	"github.com/labuda/backend/internal/commerce/order/entity"
-	walletApp "github.com/labuda/backend/internal/core/wallet/application"
+	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
 	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 )
@@ -28,7 +28,7 @@ import (
 // swallowed, the order expires but coins are never refunded to the buyer.
 //
 // CancelOverdue uses the identical pattern but has deeper upstream deps
-// (idempotency + gateway refund + wallet escrow). The Expire path is testable
+// (idempotency + gateway refund + escrow release). The Expire path is testable
 // with minimal mocks because the nil-escrow shortcut skips payment operations.
 // ============================================================================
 
@@ -117,7 +117,7 @@ func TestExpire_OutboxFailure_RollsBackTransaction(t *testing.T) {
 				},
 			},
 		},
-		walletService: walletApp.NewWalletService(nil, zaptest.NewLogger(t)),
+		escrowService: escrowApp.NewEscrowService(nil, zaptest.NewLogger(t)),
 		outboxRepo:    outboxRepo.NewOutboxRepository(nil),
 		logger:        zaptest.NewLogger(t),
 	}
@@ -146,7 +146,7 @@ func TestExpire_NoCoins_SkipsOutbox(t *testing.T) {
 				},
 			},
 		},
-		walletService: walletApp.NewWalletService(nil, zaptest.NewLogger(t)),
+		escrowService: escrowApp.NewEscrowService(nil, zaptest.NewLogger(t)),
 		outboxRepo:    outboxRepo.NewOutboxRepository(nil),
 		logger:        zaptest.NewLogger(t),
 	}

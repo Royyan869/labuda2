@@ -143,7 +143,6 @@ func (r *htWithdrawalRows) Conn() *pgx.Conn                              { retur
 
 // buildHandlerWithTransactor creates a WithdrawalHandlerUnified backed by a
 // real WithdrawService whose db layer is replaced by the given transactor.
-// walletService is nil — ListWithdrawals must not touch it.
 func buildHandlerWithTransactor(tr financeApp.Transactor) *WithdrawalHandlerUnified {
 	svc := financeApp.NewWithdrawService(
 		tr,
@@ -171,10 +170,10 @@ func callListWithdrawalsHandler(h *WithdrawalHandlerUnified, sellerID uuid.UUID,
 
 // ── tests ─────────────────────────────────────────────────────────────────────
 
-// TestListWithdrawals_WalletServiceUnused proves that ListWithdrawals works when
-// walletService is nil.  If the handler still called walletService.Get*, this
-// test would panic.
-func TestListWithdrawals_WalletServiceUnused(t *testing.T) {
+// TestListWithdrawals_WorksWithoutExternalServices proves that ListWithdrawals
+// works with only the canonical finance WithdrawService wired (no wallet
+// dependency exists anymore — wallet is forbidden legacy).
+func TestListWithdrawals_WorksWithoutExternalServices(t *testing.T) {
 	h := buildHandlerWithTransactor(&htTransactor{})
 	w := callListWithdrawalsHandler(h, uuid.New(), "")
 
@@ -451,16 +450,17 @@ func TestRequestWithdraw_SellerNotVerified_Returns403(t *testing.T) {
 		tr,
 		financeRepo.NewLedgerRepository(),
 		financeRepo.NewWithdrawRepository(),
-		nil,                             // bankAccountRepo: not reached (fails at GUARD 1)
-		nil,                             // roleChecker: unused in RequestWithdrawal
-		&htActiveAccountChecker{},       // GUARD 0: always active
-		nil,                             // adminAuditLogger
-		&htUnverifiedChecker{},          // GUARD 1: always not verified
-		nil,                             // outboxRepo
+		nil,                       // bankAccountRepo: not reached (fails at GUARD 1)
+		nil,                       // roleChecker: unused in RequestWithdrawal
+		&htActiveAccountChecker{}, // GUARD 0: always active
+		nil,                       // adminAuditLogger
+		&htUnverifiedChecker{},    // GUARD 1: always not verified
+		nil,                       // outboxRepo
 	)
 	// canonicalAuthority nil would short-circuit before GUARD 0; set it to a
 	// non-nil zero value — GUARD 1 fires before any authority method is called.
 	svc.SetCanonicalAuthority(&financeApp.FinanceService{})
+	svc.SetWithdrawalFeeProvider(&htFixedFee{})
 	h := NewWithdrawalHandlerUnified(svc, nil, zap.NewNop())
 
 	id := uuid.New()
@@ -494,6 +494,11 @@ func (h *htUnverifiedChecker) IsSellerVerifiedTx(ctx context.Context, tx db.Tx, 
 func (h *htUnverifiedChecker) IsReviewedBankAccountTx(ctx context.Context, tx db.Tx, sellerID, bankAccountID uuid.UUID) (bool, error) {
 	return false, nil
 }
+
+// htFixedFee satisfies financeApp.WithdrawalFeeProvider with a zero fee.
+type htFixedFee struct{}
+
+func (htFixedFee) GetSellerWithdrawalFee(context.Context, db.Tx) int64 { return 0 }
 
 // TestListWithdrawals_ExpiredSubscriptionSellerCanReadOwnHistory proves that
 // the withdrawal history endpoint does not require an active seller subscription.
@@ -556,5 +561,3 @@ func TestListWithdrawals_RFC3339Timestamps(t *testing.T) {
 		t.Errorf("requested_at %q is not RFC3339: %v", ra, err)
 	}
 }
-
-

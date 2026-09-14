@@ -39,13 +39,6 @@ func LabudaAuthMiddleware(tokenService *application.TokenService) gin.HandlerFun
 		c.Set("user_id", claims.UserID)
 		c.Set("userID", claims.UserID) // Support legacy alias
 
-		// Create a dummy UserClaims for downstream compatibility that checks AuthContextKey.
-		// However, it does not carry Firebase UID.
-		userClaims := &UserClaims{
-			UID: claims.UserID.String(), // Required by some older compatibility paths
-		}
-		c.Set(AuthContextKey, userClaims)
-
 		c.Next()
 	}
 }

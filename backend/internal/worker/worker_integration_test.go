@@ -97,31 +97,16 @@ func seedOrder(t *testing.T, ctx context.Context, tx db.Tx, buyerID, sellerID uu
 	return orderID
 }
 
-func seedWallet(t *testing.T, ctx context.Context, tx db.Tx, userID uuid.UUID) uuid.UUID {
-	t.Helper()
-
-	walletID := uuid.New()
-	_, err := tx.Exec(ctx, `
-		INSERT INTO wallets (
-			id, user_id, available_balance, held_balance, pending_withdrawal,
-			created_at, updated_at
-		)
-		VALUES ($1, $2, 0, 0, 0, NOW(), NOW())
-	`, walletID, userID)
-	require.NoError(t, err)
-	return walletID
-}
-
-func seedEscrow(t *testing.T, ctx context.Context, tx db.Tx, orderID, buyerWalletID uuid.UUID, status string, createdAt time.Time) uuid.UUID {
+func seedEscrow(t *testing.T, ctx context.Context, tx db.Tx, orderID uuid.UUID, status string, createdAt time.Time) uuid.UUID {
 	t.Helper()
 
 	escrowID := uuid.New()
 	_, err := tx.Exec(ctx, `
 		INSERT INTO escrows (
-			id, order_id, buyer_wallet_id, seller_wallet_id, amount, status, created_at
+			id, order_id, amount, status, created_at
 		)
-		VALUES ($1, $2, $3, NULL, 100000, $4, $5)
-	`, escrowID, orderID, buyerWalletID, status, createdAt)
+		VALUES ($1, $2, 100000, $3, $4)
+	`, escrowID, orderID, status, createdAt)
 	require.NoError(t, err)
 	return escrowID
 }
@@ -240,7 +225,6 @@ func setupWorkerIntegrationDB(t *testing.T) (*testdb.TestDB, func()) {
 				order_overdue_reminders,
 				escrows,
 				orders,
-				wallets,
 				financial_accounts,
 				ledger_entries,
 				ledger_transactions
@@ -424,14 +408,10 @@ func TestAlertDetectionWorker_ManualProcess_DetectsAndDeduplicatesWithdrawalAndE
 		releasedOrderID := seedOrder(t, ctx, tx, buyerThree, sellerThree, "paid", &releasedDeadline)
 		cancelledOrderID := seedOrder(t, ctx, tx, buyerThree, sellerThree, "cancelled_timeout", &cancelledDeadline)
 
-		oldestWalletID := seedWallet(t, ctx, tx, buyerOne)
-		secondWalletID := seedWallet(t, ctx, tx, buyerTwo)
-		buyerThreeWalletID := seedWallet(t, ctx, tx, buyerThree)
-
-		seedEscrow(t, ctx, tx, oldestEscrowOrderID, oldestWalletID, "holding", time.Now().UTC().Add(-15*24*time.Hour))
-		seedEscrow(t, ctx, tx, secondOrderID, secondWalletID, "holding", time.Now().UTC().Add(-8*24*time.Hour))
-		seedEscrow(t, ctx, tx, releasedOrderID, buyerThreeWalletID, "released", time.Now().UTC().Add(-20*24*time.Hour))
-		seedEscrow(t, ctx, tx, cancelledOrderID, buyerThreeWalletID, "holding", time.Now().UTC().Add(-17*24*time.Hour))
+		seedEscrow(t, ctx, tx, oldestEscrowOrderID, "holding", time.Now().UTC().Add(-15*24*time.Hour))
+		seedEscrow(t, ctx, tx, secondOrderID, "holding", time.Now().UTC().Add(-8*24*time.Hour))
+		seedEscrow(t, ctx, tx, releasedOrderID, "released", time.Now().UTC().Add(-20*24*time.Hour))
+		seedEscrow(t, ctx, tx, cancelledOrderID, "holding", time.Now().UTC().Add(-17*24*time.Hour))
 
 		return nil
 	})

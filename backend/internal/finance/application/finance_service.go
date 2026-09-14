@@ -1,5 +1,5 @@
 // âš ï¸ FINANCIAL RULE:
-// All money operations MUST go through WalletService.
+// All money operations MUST go through the finance ledger (double-entry).
 // Direct balance mutation is forbidden.
 //
 // âš ï¸ Finance domain is NOT financial authority.
@@ -116,7 +116,7 @@ func (s *FinanceService) GetSellerTotalEarnings(
 //
 // Caller responsibilities:
 //   - escrow row already locked FOR UPDATE and validated (status=holding)
-//     by WalletService.ReleaseGatewayEscrow
+//     by EscrowService.ReleaseGatewayEscrow
 //   - all amounts are Rupiah integers (PASS_18H canonical unit, no cents/sen);
 //     sellerNet + commission MUST equal gross
 //   - tx is the same DB transaction used to update escrow.status / order.status
@@ -165,10 +165,12 @@ func (s *FinanceService) RecordOrderRelease(
 	// newBalance = oldBalance + entry.Amount.
 	// â†’ positive amount increases balance, negative amount decreases.
 	// At release, GATEWAY_CLEARING is drained into SELLER_PAYABLE + PLATFORM_REVENUE.
+	// CANONICAL SIGN ARCHITECTURE: GATEWAY_CLEARING (liability) DR decreases,
+	// SELLER_PAYABLE (liability) CR increases, PLATFORM_REVENUE (revenue) CR increases.
 	entries := []ledgerepo.Entry{
-		{AccountID: gatewayClearingID, Amount: money.New(-gross)},
-		{AccountID: sellerPayableID, Amount: money.New(sellerNet)},
-		{AccountID: platformRevenueID, Amount: money.New(commission)},
+		{AccountID: gatewayClearingID, Amount: money.New(gross)},       // DR: liability decreases (clearing drains)
+		{AccountID: sellerPayableID, Amount: money.New(-sellerNet)},    // CR: liability increases (seller owed)
+		{AccountID: platformRevenueID, Amount: money.New(-commission)}, // CR: revenue increases (platform earns)
 	}
 
 	idempotencyKey := fmt.Sprintf("order_release_%s", orderID.String())
@@ -232,9 +234,10 @@ func (s *FinanceService) RecordSubscriptionRevenue(
 	// Build ledger entries
 	// DR PLATFORM_REVENUE (positive = debit, revenue increases)
 	// CR BANK_SETTLEMENT  (negative = credit, reserve drains)
+	// CANONICAL SIGN: PLATFORM_REVENUE (revenue) CR increases, BANK_SETTLEMENT (liability) DR decreases.
 	entries := []ledgerepo.Entry{
-		{AccountID: platformRevenueID, Amount: money.New(amount)}, // DR +amount
-		{AccountID: bankSettlementID, Amount: money.New(-amount)}, // CR -amount
+		{AccountID: platformRevenueID, Amount: money.New(-amount)}, // CR: revenue increases
+		{AccountID: bankSettlementID, Amount: money.New(amount)},   // DR: reserve decreases
 	}
 
 	if err := s.ledgerRepo.CreateTransaction(ctx, tx, idempotencyKey, "seller_subscription_payment", paymentID, nil, nil, entries); err != nil {
@@ -322,7 +325,7 @@ func (s *FinanceService) RecordSubscriptionPaymentFeeRevenue(
 //   - payment row already locked / status transitioned via
 //     PaymentSettlementService.SettlePaymentByID in the SAME db.Tx
 //   - escrow row not yet created (this MUST run before
-//     WalletService.CreateEscrowFromGatewaySettlement)
+//     EscrowService.CreateEscrowFromGatewaySettlement)
 //   - gross is the payment.GrossAmount as a Rupiah integer (>=0), Labuda's
 //     canonical money unit (PASS_18H) — no cents/sen subunit
 //   - providerTransactionID is the gateway-issued transaction id (Midtrans
@@ -385,9 +388,11 @@ func (s *FinanceService) RecordGatewayPaymentSettlement(
 		return fmt.Errorf("ledger duplicate-check failed: %w", err)
 	}
 
+	// CANONICAL SIGN: GATEWAY_CLEARING (liability) CR increases (obligation grows at capture),
+	// BANK_SETTLEMENT (liability) DR decreases (reserve consumed).
 	entries := []ledgerepo.Entry{
-		{AccountID: gatewayClearingID, Amount: money.New(gross)}, // DR +gross
-		{AccountID: bankSettlementID, Amount: money.New(-gross)}, // CR -gross
+		{AccountID: gatewayClearingID, Amount: money.New(-gross)}, // CR: liability increases (clearing obligation)
+		{AccountID: bankSettlementID, Amount: money.New(gross)},   // DR: liability decreases (reserve consumed)
 	}
 
 	if err := s.ledgerRepo.CreateTransaction(
@@ -477,9 +482,11 @@ func (s *FinanceService) RecordBuyerPaymentFeeRevenue(
 
 	idempotencyKey := fmt.Sprintf("payment_fee_revenue_%s", paymentID.String())
 
+	// CANONICAL SIGN: GATEWAY_CLEARING (liability) DR decreases (fee carved from clearing),
+	// PLATFORM_REVENUE (revenue) CR increases.
 	entries := []ledgerepo.Entry{
-		{AccountID: gatewayClearingID, Amount: money.New(-buyerPaymentFee)}, // CR -fee
-		{AccountID: platformRevenueID, Amount: money.New(buyerPaymentFee)},  // DR +fee
+		{AccountID: gatewayClearingID, Amount: money.New(buyerPaymentFee)},  // DR: liability decreases (fee carved)
+		{AccountID: platformRevenueID, Amount: money.New(-buyerPaymentFee)}, // CR: revenue increases
 	}
 
 	if err := s.ledgerRepo.CreateTransaction(
@@ -548,9 +555,10 @@ func (s *FinanceService) RecordBillingPaymentFeeRevenue(
 
 	idempotencyKey := fmt.Sprintf("billing_fee_revenue_%s", paymentID.String())
 
+	// CANONICAL SIGN: BANK_SETTLEMENT (liability) DR decreases, PLATFORM_REVENUE (revenue) CR increases.
 	entries := []ledgerepo.Entry{
-		{AccountID: bankSettlementID, Amount: money.New(-buyerPaymentFee)}, // CR -fee
-		{AccountID: platformRevenueID, Amount: money.New(buyerPaymentFee)}, // DR +fee
+		{AccountID: bankSettlementID, Amount: money.New(buyerPaymentFee)},   // DR: reserve decreases by fee
+		{AccountID: platformRevenueID, Amount: money.New(-buyerPaymentFee)}, // CR: revenue increases
 	}
 
 	if err := s.ledgerRepo.CreateTransaction(
@@ -585,14 +593,16 @@ func (s *FinanceService) RecordBillingPaymentFeeRevenue(
 //   - K is NOT gateway cash and NEVER becomes PLATFORM_REVENUE.
 //
 // Ledger movement (Σ entries = 0 invariant):
-//   - DR PLATFORM_BANK    -K   (platform's own bank holdings fund the benefit)
-//   - CR GATEWAY_CLEARING +K   (clearing now holds BuyerBase, fully funding the
-//                               seller entitlement at release)
+//   - DR PLATFORM_COIN_BENEFIT +K   (the platform absorbs its own granted
+//     usage right — a platform benefit cost)
+//   - CR GATEWAY_CLEARING      -K   (clearing now holds BuyerBase, fully funding
+//     the seller entitlement at release)
 //
-// PLATFORM_BANK is the established account for the platform's own money
-// leaving the platform (see withdrawal payouts: WITHDRAWAL_COMMITTED →
-// PLATFORM_BANK). Funding a buyer benefit is the same economic direction:
-// platform money funding a real obligation. K is never recorded as revenue.
+// PLATFORM_COIN_BENEFIT is the canonical counterpart for platform-funded
+// coins. Labuda Coins are platform-owned usage rights / loyalty benefits, so
+// honoring K is a platform-owned benefit absorption: it is NOT cash
+// (PLATFORM_BANK), NOT income (PLATFORM_REVENUE), and NOT seller money
+// (PROMOTE_BALANCE / PROMOTION_ALLOCATION). K is never recorded as revenue.
 //
 // IDEMPOTENCY: idempotency_key = "coin_funding_<payment_id>". Replays
 // (duplicate settlement webhook, retry) are no-ops at the ledger layer.
@@ -616,22 +626,24 @@ func (s *FinanceService) RecordCoinFunding(
 		return fmt.Errorf("RecordCoinFunding: amount must be positive (got %d)", amount)
 	}
 
-	platformBankID, err := s.ledgerRepo.GetSystemAccountID(ctx, tx, finance.AccountPlatformBank)
+	coinBenefitID, err := s.ledgerRepo.GetSystemAccountID(ctx, tx, finance.AccountPlatformCoinBenefit)
 	if err != nil {
-		return fmt.Errorf("RecordCoinFunding: get platform bank account: %w", err)
+		return fmt.Errorf("RecordCoinFunding: get platform coin benefit account: %w", err)
 	}
 	gatewayClearingID, err := s.ledgerRepo.GetSystemAccountID(ctx, tx, finance.AccountGatewayClearing)
 	if err != nil {
 		return fmt.Errorf("RecordCoinFunding: get gateway clearing account: %w", err)
 	}
 
-	// Sign convention (matches RecordOrderRelease):
-	// newBalance = oldBalance + entry.Amount.
-	//   - PLATFORM_BANK -K: platform money funds the benefit (bank holdings decrease)
-	//   - GATEWAY_CLEARING +K: clearing gains the funded amount
+	// CANONICAL SIGN: GATEWAY_CLEARING (liability) CR increases — the clearing
+	// obligation grows by K so clearing holds BuyerBase at release.
+	// PLATFORM_COIN_BENEFIT (expense-like, debit-normal) DR is the single
+	// offsetting debit that keeps Σ(entries) = 0: the platform absorbs its own
+	// granted usage right. No cash account is involved — coin redemption moves
+	// no cash.
 	entries := []ledgerepo.Entry{
-		{AccountID: platformBankID, Amount: money.New(-amount)},
-		{AccountID: gatewayClearingID, Amount: money.New(amount)},
+		{AccountID: coinBenefitID, Amount: money.New(amount)},      // DR: platform benefit absorbed (+K)
+		{AccountID: gatewayClearingID, Amount: money.New(-amount)}, // CR: liability increases (clearing funded by K)
 	}
 
 	idempotencyKey := fmt.Sprintf("coin_funding_%s", paymentID.String())
@@ -656,21 +668,21 @@ func (s *FinanceService) RecordCoinFunding(
 // When an order that redeemed coins (K) is refunded, the buyer's coins are
 // restored via the coins domain (coins.refund_required → refund_earn). The
 // corresponding platform funding of K in GATEWAY_CLEARING is no longer needed
-// to fund the seller's (refunded) entitlement, so it is returned to
-// PLATFORM_BANK.
+// to fund the seller's (refunded) entitlement, so the platform's absorbed
+// benefit is released back (PLATFORM_COIN_BENEFIT).
 //
 // Ledger movement (Σ entries = 0 invariant):
-//   - DR GATEWAY_CLEARING -CoinDelta (funding for the refunded entitlement leaves clearing)
-//   - CR PLATFORM_BANK    +CoinDelta (platform recovers the funding)
+//   - DR GATEWAY_CLEARING      +CoinDelta (funding for the refunded entitlement leaves clearing)
+//   - CR PLATFORM_COIN_BENEFIT -CoinDelta (the platform's K absorption is unwound)
 //
 // CoinDelta is the product-proportional coins restored for this refund event
 // (refund_math.go: proportionalFloor(K, cumProductAfter, PD) -
 // proportionalFloor(K, cumProductBefore, PD)). Reversing exactly CoinDelta
 // keeps the ledger in balance:
 //
-//	full refund:   GATEWAY_CLEARING = B - (B-K) - K = 0; PLATFORM_BANK = -K + K = 0
+//	full refund:   GATEWAY_CLEARING = B - (B-K) - K = 0; PLATFORM_COIN_BENEFIT = +K - K = 0
 //	partial refund: GATEWAY_CLEARING = B - CashRefund - CoinDelta (drained by
-//	                the remainder release to 0); PLATFORM_BANK = -(K - CoinDelta)
+//	                the remainder release to 0); PLATFORM_COIN_BENEFIT = +(K - CoinDelta)
 //
 // where B = BuyerBase = PD + S.
 //
@@ -700,14 +712,17 @@ func (s *FinanceService) RecordCoinFundingReversal(
 	if err != nil {
 		return fmt.Errorf("RecordCoinFundingReversal: get gateway clearing account: %w", err)
 	}
-	platformBankID, err := s.ledgerRepo.GetSystemAccountID(ctx, tx, finance.AccountPlatformBank)
+	coinBenefitID, err := s.ledgerRepo.GetSystemAccountID(ctx, tx, finance.AccountPlatformCoinBenefit)
 	if err != nil {
-		return fmt.Errorf("RecordCoinFundingReversal: get platform bank account: %w", err)
+		return fmt.Errorf("RecordCoinFundingReversal: get platform coin benefit account: %w", err)
 	}
 
+	// CANONICAL SIGN — exact inverse of RecordCoinFunding:
+	// GATEWAY_CLEARING (liability) DR decreases (funding reversed),
+	// PLATFORM_COIN_BENEFIT (debit-normal benefit) CR releases the absorbed K.
 	entries := []ledgerepo.Entry{
-		{AccountID: gatewayClearingID, Amount: money.New(-amount)},
-		{AccountID: platformBankID, Amount: money.New(amount)},
+		{AccountID: gatewayClearingID, Amount: money.New(amount)}, // DR: liability decreases (funding leaves clearing)
+		{AccountID: coinBenefitID, Amount: money.New(-amount)},    // CR: absorbed platform benefit released
 	}
 
 	idempotencyKey := fmt.Sprintf("coin_funding_reversal_%s", refundID.String())
@@ -899,9 +914,10 @@ func (s *FinanceService) RecordRefundReversal(
 			if available >= input.SellerComponent {
 				// Phase 2B branch â€” payable fully covers reversal.
 				entries = []ledgerepo.Entry{
-					{AccountID: buyerRefundableID, Amount: money.New(input.RefundAmount)},         // DR +refund
-					{AccountID: sellerPayableID, Amount: money.New(-input.SellerComponent)},       // CR -seller
-					{AccountID: platformRevenueID, Amount: money.New(-input.CommissionComponent)}, // CR -commission
+					// CANONICAL SIGN: BR (liab) CR increases, SP (liab) DR decreases, PR (rev) DR decreases.
+					{AccountID: buyerRefundableID, Amount: money.New(-input.RefundAmount)},       // CR: refund liability increases
+					{AccountID: sellerPayableID, Amount: money.New(input.SellerComponent)},       // DR: seller payable decreases
+					{AccountID: platformRevenueID, Amount: money.New(input.CommissionComponent)}, // DR: revenue reversal
 				}
 			} else {
 				s.logger.Warn("finance_refund_reversal_seller_payable_insufficient",
@@ -919,18 +935,19 @@ func (s *FinanceService) RecordRefundReversal(
 			// before. CreateTransaction is idempotent on idempotency_key, so
 			// the entry list never reaches the DB â€” we just need a balanced
 			// shape so the validator does not panic. Use the Phase 2B shape
-			// which is balanced regardless of seller payable state.
+			// which is balanced regardless of seller payable state.				// CANONICAL SIGN: BR (liab) CR increases, SP (liab) DR decreases, PR (rev) DR decreases.
 			entries = []ledgerepo.Entry{
-				{AccountID: buyerRefundableID, Amount: money.New(input.RefundAmount)},
-				{AccountID: sellerPayableID, Amount: money.New(-input.SellerComponent)},
-				{AccountID: platformRevenueID, Amount: money.New(-input.CommissionComponent)},
+				{AccountID: buyerRefundableID, Amount: money.New(-input.RefundAmount)},
+				{AccountID: sellerPayableID, Amount: money.New(input.SellerComponent)},
+				{AccountID: platformRevenueID, Amount: money.New(input.CommissionComponent)},
 			}
 		}
 		_ = gatewayClearingID
 	} else {
+		// CANONICAL SIGN: BR (liab) CR increases, GC (liab) DR decreases.
 		entries = []ledgerepo.Entry{
-			{AccountID: buyerRefundableID, Amount: money.New(input.RefundAmount)},  // DR +refund
-			{AccountID: gatewayClearingID, Amount: money.New(-input.RefundAmount)}, // CR -refund
+			{AccountID: buyerRefundableID, Amount: money.New(-input.RefundAmount)}, // CR: refund liability increases
+			{AccountID: gatewayClearingID, Amount: money.New(input.RefundAmount)},  // DR: clearing obligation decreases
 		}
 	}
 
@@ -1091,10 +1108,11 @@ func (s *FinanceService) RecordPartialRefundRelease(
 		return false, fmt.Errorf("partial release: get platform revenue: %w", err)
 	}
 
+	// CANONICAL SIGN: GC (liab) DR decreases, SP (liab) CR increases, PR (rev) CR increases.
 	entries := []ledgerepo.Entry{
-		{AccountID: gatewayClearingID, Amount: money.New(-input.Remainder)},
-		{AccountID: sellerPayableID, Amount: money.New(input.SellerNet)},
-		{AccountID: platformRevenueID, Amount: money.New(input.Commission)},
+		{AccountID: gatewayClearingID, Amount: money.New(input.Remainder)},   // DR: clearing decreases
+		{AccountID: sellerPayableID, Amount: money.New(-input.SellerNet)},    // CR: seller payable increases
+		{AccountID: platformRevenueID, Amount: money.New(-input.Commission)}, // CR: revenue increases
 	}
 
 	if err := s.ledgerRepo.CreateTransaction(
@@ -1191,7 +1209,7 @@ func (s *FinanceService) GetSellerWithdrawable(
 // AssertSellerWithdrawalAllowed is the canonical withdrawal-time guard for
 // the dispute-aware freeze. It MUST be called inside the same db.Tx as the
 // downstream withdrawal mutation, so the FOR UPDATE lock on SELLER_PAYABLE
-// holds across the decision and the wallet/finance write.
+// holds across the decision and the finance ledger write.
 //
 // Returns ErrWithdrawalBlockedByWithdrawableBalance when amount > withdrawable.
 //
@@ -1367,7 +1385,7 @@ func (s *FinanceService) ReleaseDisputeFreezeByOrderID(
 // the unique-key constraint on financial_transactions returns success
 // without re-applying entries. Caller must therefore use the same
 // withdrawalID across retries â€” this is satisfied because withdrawal IDs
-// are persisted in wallet.withdrawals before this method runs and the
+// are persisted in withdrawals before this method runs and the
 // single-pending guard prevents two pending rows per seller.
 func (s *FinanceService) RecordWithdrawalRequest(
 	ctx context.Context,
@@ -1399,12 +1417,11 @@ func (s *FinanceService) RecordWithdrawalRequest(
 		return fmt.Errorf("get withdrawal pending account: %w", err)
 	}
 
-	// MONEY MODEL (PASS_18H): reserve exactly `amount` — the fee is deducted
-	// FROM it at final settlement, never added on top. feeAmount is accepted
-	// here only for logging/audit symmetry with the other lifecycle methods.
+	// CANONICAL SIGN: SP (liab) DR decreases, WP (liab) CR increases.
+	// MONEY MODEL: reserve exactly `amount`.
 	entries := []ledgerepo.Entry{
-		{AccountID: sellerPayableID, Amount: money.New(-amount)},
-		{AccountID: pendingID, Amount: money.New(amount)},
+		{AccountID: sellerPayableID, Amount: money.New(amount)}, // DR: seller payable decreases
+		{AccountID: pendingID, Amount: money.New(-amount)},      // CR: withdrawal pending increases
 	}
 	idem := fmt.Sprintf("withdrawal_request_%s", withdrawalID.String())
 	if err := s.ledgerRepo.CreateTransaction(
@@ -1474,10 +1491,11 @@ func (s *FinanceService) RecordWithdrawalCommit(
 		return fmt.Errorf("get withdrawal committed account: %w", err)
 	}
 
-	// MONEY MODEL (PASS_18H): move the same reserved `amount` — no fee added.
+	// CANONICAL SIGN: WP (liab) DR decreases, WC (liab) CR increases.
+	// MONEY MODEL: move the same reserved `amount`.
 	entries := []ledgerepo.Entry{
-		{AccountID: pendingID, Amount: money.New(-amount)},
-		{AccountID: committedID, Amount: money.New(amount)},
+		{AccountID: pendingID, Amount: money.New(amount)},    // DR: withdrawal pending decreases
+		{AccountID: committedID, Amount: money.New(-amount)}, // CR: withdrawal committed increases
 	}
 	idem := fmt.Sprintf("withdrawal_commit_%s", withdrawalID.String())
 	if err := s.ledgerRepo.CreateTransaction(
@@ -1545,10 +1563,11 @@ func (s *FinanceService) RecordWithdrawalReject(
 		return fmt.Errorf("get/create seller payable account: %w", err)
 	}
 
-	// MONEY MODEL (PASS_18H): restore the same reserved `amount` — no fee added.
+	// CANONICAL SIGN: WP (liab) DR decreases, SP (liab) CR increases.
+	// MONEY MODEL: restore the same reserved `amount`.
 	entries := []ledgerepo.Entry{
-		{AccountID: pendingID, Amount: money.New(-amount)},
-		{AccountID: sellerPayableID, Amount: money.New(amount)},
+		{AccountID: pendingID, Amount: money.New(amount)},        // DR: pending decreases
+		{AccountID: sellerPayableID, Amount: money.New(-amount)}, // CR: seller payable increases
 	}
 	idem := fmt.Sprintf("withdrawal_reject_%s", withdrawalID.String())
 	if err := s.ledgerRepo.CreateTransaction(
@@ -1607,10 +1626,11 @@ func (s *FinanceService) RecordWithdrawalRestore(
 		return fmt.Errorf("get/create seller payable account: %w", err)
 	}
 
-	// MONEY MODEL (PASS_18H): restore the same reserved `amount` — no fee added.
+	// CANONICAL SIGN: WC (liab) DR decreases, SP (liab) CR increases.
+	// MONEY MODEL: restore the same reserved `amount`.
 	entries := []ledgerepo.Entry{
-		{AccountID: committedID, Amount: money.New(-amount)},
-		{AccountID: sellerPayableID, Amount: money.New(amount)},
+		{AccountID: committedID, Amount: money.New(amount)},      // DR: committed decreases
+		{AccountID: sellerPayableID, Amount: money.New(-amount)}, // CR: seller payable increases
 	}
 	idem := fmt.Sprintf("withdrawal_restore_%s", withdrawalID.String())
 	if err := s.ledgerRepo.CreateTransaction(
@@ -1636,9 +1656,9 @@ func (s *FinanceService) RecordWithdrawalRestore(
 // The fee is deducted FROM the reserved amount, never added on top of it.
 //
 // Ledger movements (Σ entries = 0 invariant):
-//   - WITHDRAWAL_COMMITTED  -amount              (release the full reservation)
-//   - PLATFORM_BANK         +(amount-feeAmount)  (net payout — what actually leaves to the seller's bank)
-//   - PLATFORM_REVENUE      +feeAmount            (withdrawal fee revenue)
+//   - WITHDRAWAL_COMMITTED  +amount              (DR: the full reservation is released)
+//   - PLATFORM_BANK         -(amount-feeAmount)  (CR: net payout — what actually leaves to the seller's bank)
+//   - PLATFORM_REVENUE      -feeAmount            (CR: withdrawal fee revenue)
 //
 // IDEMPOTENCY: withdrawal_complete_<withdrawal_id>
 func (s *FinanceService) RecordWithdrawalComplete(
@@ -1679,10 +1699,13 @@ func (s *FinanceService) RecordWithdrawalComplete(
 	}
 	netPayout := amount - feeAmount
 
+	// CANONICAL SIGN — mirrors the gateway SUCCESS callback
+	// (finance/worker/webhook_handler.go handleSuccessCallback):
+	// WC (liab) DR decreases, PB (asset) CR decreases, PR (rev) CR increases.
 	entries := []ledgerepo.Entry{
-		{AccountID: committedID, Amount: money.New(-amount)},
-		{AccountID: platformBankID, Amount: money.New(netPayout)},
-		{AccountID: platformRevenueID, Amount: money.New(feeAmount)},
+		{AccountID: committedID, Amount: money.New(amount)},           // DR: committed decreases (reservation released)
+		{AccountID: platformBankID, Amount: money.New(-netPayout)},    // CR: asset decreases (net payout leaves)
+		{AccountID: platformRevenueID, Amount: money.New(-feeAmount)}, // CR: revenue increases (withdrawal fee)
 	}
 	idem := fmt.Sprintf("withdrawal_complete_%s", withdrawalID.String())
 	if err := s.ledgerRepo.CreateTransaction(

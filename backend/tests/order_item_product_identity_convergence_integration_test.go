@@ -100,7 +100,7 @@ func newStage5OrderService() *orderApp.OrderCreationService {
 		nil, // auditService
 		shippingrepo.NewProductShippingSetupRepository(optionRepo),
 		nil, // auctionStatusChecker (nil-safe guard; skips BNR lock)
-		nil, // walletService: unused by creation path
+
 	)
 }
 
@@ -224,7 +224,7 @@ func stage5Snapshot(tokenID uuid.UUID, unitPrice int64) *orderApp.PricingSnapsho
 		DiscountAmount:        money.New(0),
 		MaxCoinsAllowed:       10_000,
 		OrderValueForCoins:    unitPrice + shipping,
-		ShippingSetupName:    "JNE Reguler",
+		ShippingSetupName:     "JNE Reguler",
 		ShippingTransportType: "train",
 		TokenID:               tokenID,
 		PaymentMethod:         orderApp.PaymentMethodInstant,
@@ -305,14 +305,14 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 	option1 := stage5Shipping(t, ctx, tdb, sellerID, product1)
 	fps1ID := createActiveFPS(product1, 3)
 	orderInput1 := orderApp.CreateFromSaleSurfaceInput{
-		ProductID:        product1,
-		SourceType:       orderentity.OrderSourceForSale,
-		SourceID:         fps1ID,
-		BuyerID:          buyerID,
-		Quantity:         1,
-		AddressID:        buyerAddressID,
+		ProductID:       product1,
+		SourceType:      orderentity.OrderSourceForSale,
+		SourceID:        fps1ID,
+		BuyerID:         buyerID,
+		Quantity:        1,
+		AddressID:       buyerAddressID,
 		ShippingSetupID: option1,
-		PricingSnapshot:  stage5Snapshot(uuid.New(), 100_000),
+		PricingSnapshot: stage5Snapshot(uuid.New(), 100_000),
 	}
 	stage5PricingToken(t, ctx, tdb, orderInput1.PricingSnapshot, buyerID, buyerAddressID, option1)
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
@@ -380,15 +380,15 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 	negotiationSnapshot := stage5Snapshot(uuid.New(), 90_000) // negotiated price
 	stage5PricingToken(t, ctx, tdb, negotiationSnapshot, buyerID, buyerAddressID, option2)
 	negotiationInput := orderApp.CreateFromSaleSurfaceInput{
-		ProductID:        product2,
-		SourceType:       orderentity.OrderSourceForSale,
-		SourceID:         fps3ID,
-		BuyerID:          buyerID,
-		Quantity:         1,
-		AddressID:        buyerAddressID,
+		ProductID:       product2,
+		SourceType:      orderentity.OrderSourceForSale,
+		SourceID:        fps3ID,
+		BuyerID:         buyerID,
+		Quantity:        1,
+		AddressID:       buyerAddressID,
 		ShippingSetupID: option2,
-		NegotiationID:    &sessionID,
-		PricingSnapshot:  negotiationSnapshot,
+		NegotiationID:   &sessionID,
+		PricingSnapshot: negotiationSnapshot,
 	}
 	var negotiationOrderID uuid.UUID
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
@@ -429,7 +429,7 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 			BuyerID:               buyerID,
 			WinningBid:            500_000,
 			AddressID:             buyerAddressID,
-			ShippingSetupID:      option3,
+			ShippingSetupID:       option3,
 			AuctionSettlementType: orderentity.AuctionSettlementBidWin,
 			PricingSnapshot:       auctionSnapshot3,
 		})
@@ -460,7 +460,7 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 			BuyerID:               buyerID,
 			WinningBid:            400_000,
 			AddressID:             buyerAddressID,
-			ShippingSetupID:      option4,
+			ShippingSetupID:       option4,
 			AuctionSettlementType: orderentity.AuctionSettlementBidWin,
 			PricingSnapshot:       reuseSnapshot,
 		})

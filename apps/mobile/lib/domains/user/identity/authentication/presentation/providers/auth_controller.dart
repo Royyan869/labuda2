@@ -12,9 +12,6 @@ import 'package:labuda/domains/user/identity/authentication/data/auth_providers.
 import 'package:labuda/domains/user/profile/data/profile_providers.dart'
     show userSyncServiceProvider;
 import 'package:labuda/domains/user/profile/data/services/user_sync_service.dart';
-import '../providers/auth_sign_in_service.dart';
-import '../providers/auth_sign_up_service.dart';
-import '../providers/auth_profile_service.dart';
 import 'package:labuda/domains/system/notification/data/notification_providers.dart'
     show fcmServiceProvider;
 
@@ -207,9 +204,6 @@ class AuthController extends Notifier<AuthState> {
   late final IAuthRepository _authRepository;
   late final ILoggerService _logger;
   late final IAnalyticsRepository _analytics;
-  late final AuthSignInService _signInService;
-  late final AuthSignUpService _signUpService;
-  late final AuthProfileService _profileService;
   late final ILocalStorageService _localStorage;
   UserSyncService? _userSyncService; // Backend sync service for roles
 
@@ -375,21 +369,6 @@ class AuthController extends Notifier<AuthState> {
     }
 
     _localStorage = ref.read(localStorageServiceProvider);
-
-    // Initialize services
-    // UserSyncService is only used by AuthController, not by sign-in/sign-up services
-    _signInService = AuthSignInService(
-      authRepository: _authRepository,
-      logger: _logger,
-    );
-    _signUpService = AuthSignUpService(
-      authRepository: _authRepository,
-      logger: _logger,
-    );
-    _profileService = AuthProfileService(
-      authRepository: _authRepository,
-      logger: _logger,
-    );
 
     // SESSION HONESTY (Tier 2): Wire the AuthInterceptor's session-
     // expired signal to this controller so that a 401 followed by a
@@ -1343,7 +1322,7 @@ class AuthController extends Notifier<AuthState> {
     _isExplicitLoginInProgress = true;
     _setState(const AuthState.loading());
 
-    final result = await _signInService.signInWithEmail(
+    final result = await _authRepository.signInWithEmail(
       email: email,
       password: password,
     );
@@ -1401,7 +1380,7 @@ class AuthController extends Notifier<AuthState> {
 
     _isExplicitLoginInProgress = true;
     try {
-      final result = await _signInService.signInWithGoogle();
+      final result = await _authRepository.signInWithGoogle();
 
       if (result.isError) {
         // Only set error state if login failed
@@ -1471,10 +1450,9 @@ class AuthController extends Notifier<AuthState> {
 
     _setState(const AuthState.loading());
 
-    final result = await _signUpService.signUpWithEmail(
+    final result = await _authRepository.signUpWithEmail(
       email: email,
       password: password,
-      username: username,
     );
 
     if (result.isError) {
@@ -1674,7 +1652,7 @@ class AuthController extends Notifier<AuthState> {
     _ongoingSync = null;
 
     // 5. Proceed with Firebase Auth sign out
-    final result = await _signInService.signOut();
+    final result = await _authRepository.signOut();
 
     if (result.isSuccess) {
       _setState(const AuthState.unauthenticated());
@@ -1716,7 +1694,7 @@ class AuthController extends Notifier<AuthState> {
     _syncedUserId = null;
     _syncInProgress = false;
     _ongoingSync = null;
-    final result = await _signInService.signOut();
+    final result = await _authRepository.signOut();
     if (result.isSuccess) {
       _setState(const AuthState.unauthenticated());
     } else {
@@ -1795,29 +1773,12 @@ class AuthController extends Notifier<AuthState> {
     _syncWithBackend(firebaseUser.uid, firebaseUser, isEmailSignup: false);
   }
 
-  /// Change email for current user
-  Future<bool> changeEmail({
-    required String newEmail,
-    required String currentPassword,
-  }) async {
-    final result = await _profileService.changeEmail(
-      newEmail: newEmail,
-      currentPassword: currentPassword,
-    );
-
-    if (result.isError) {
-      _setState(AuthState.error(result.error!));
-    }
-
-    return result.isSuccess;
-  }
-
   /// Change password for current user
   Future<bool> changePassword({
     required String currentPassword,
     required String newPassword,
   }) async {
-    final result = await _profileService.changePassword(
+    final result = await _authRepository.changePassword(
       currentPassword: currentPassword,
       newPassword: newPassword,
     );
@@ -1831,7 +1792,7 @@ class AuthController extends Notifier<AuthState> {
 
   /// Send email verification
   Future<bool> sendEmailVerification() async {
-    final result = await _profileService.sendEmailVerification();
+    final result = await _authRepository.sendEmailVerification();
 
     if (result.isError) {
       _setState(AuthState.error(result.error!));
@@ -1850,7 +1811,7 @@ class AuthController extends Notifier<AuthState> {
     DateTime? phoneVerifiedAt,
     DateTime? dateOfBirth,
   }) async {
-    final result = await _profileService.updateProfile(
+    final result = await _authRepository.updateProfile(
       photoUrl: photoUrl,
       username: username,
       bio: bio,
@@ -1879,7 +1840,7 @@ class AuthController extends Notifier<AuthState> {
       return false;
     }
 
-    final result = await _profileService.completeProfile(username: username);
+    final result = await _authRepository.completeProfile(username: username);
 
     if (result.isSuccess && result.data != null) {
       final firebaseUser = activeFirebaseUser;

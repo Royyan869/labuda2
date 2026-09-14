@@ -1,9 +1,10 @@
 // ⚠️ FINANCIAL RULE:
-// All money operations MUST go through WalletService.
-// Direct balance mutation is forbidden.
+// All escrow lifecycle operations MUST go through EscrowService.
+// Direct state mutation is forbidden.
 //
 // Order domain is a PRICING SNAPSHOT only.
-// Wallet domain is the SINGLE SOURCE OF TRUTH for all money operations.
+// Escrow domain is the SINGLE SOURCE OF TRUTH for escrow row state.
+// Finance ledger is the SINGLE SOURCE OF TRUTH for money movement.
 package application
 
 import (
@@ -32,7 +33,7 @@ import (
 	shippingquoteEntity "github.com/labuda/backend/internal/commerce/shipping/quote/entity"
 	shippingquoteRepoImpl "github.com/labuda/backend/internal/commerce/shipping/quote/infrastructure/repository"
 	shippingquoteRepo "github.com/labuda/backend/internal/commerce/shipping/quote/repository"
-	walletApp "github.com/labuda/backend/internal/core/wallet/application"
+
 	auditApp "github.com/labuda/backend/internal/governance/audit/application"
 	addressApp "github.com/labuda/backend/internal/identity/address/application"
 	addressentity "github.com/labuda/backend/internal/identity/address/entity"
@@ -124,10 +125,9 @@ type OrderCreationService struct {
 	outboxRepo           *outboxRepo.OutboxRepository
 	configService        *platformconfigApp.ConfigService
 	commentRepo          contentrepo.CommentRepository
-	auditService         *auditApp.AuditService   // OBSERVABILITY: Audit logging service
-	auctionRepo          AuctionStatusChecker     // BNR: Check auction settlement status
-	walletService        *walletApp.WalletService // WALLET PHASE 1: Escrow hold on order creation
-	commerceGovRepo      commercegov.Repository   // COMMERCE RESTRICTION: canonical restriction checker
+	auditService         *auditApp.AuditService // OBSERVABILITY: Audit logging service
+	auctionRepo          AuctionStatusChecker   // BNR: Check auction settlement status
+	commerceGovRepo      commercegov.Repository // COMMERCE RESTRICTION: canonical restriction checker
 }
 
 // NewOrderCreationService creates a new OrderCreationService.
@@ -141,7 +141,6 @@ func NewOrderCreationService(
 	auditService *auditApp.AuditService, // OBSERVABILITY: Audit service
 	productShippingRepo shippingRepoImpl.ProductShippingSetupRepository, // DI: Product shipping options
 	auctionStatusChecker AuctionStatusChecker, // BNR: Auction status checker (optional)
-	walletService *walletApp.WalletService, // WALLET PHASE 1: Escrow hold on order creation
 ) *OrderCreationService {
 	return &OrderCreationService{
 		repo:                 orderRepoImpl.NewOrderRepository(),
@@ -162,7 +161,6 @@ func NewOrderCreationService(
 		commentRepo:          contentRepoImpl.NewCommentRepository(),
 		auditService:         auditService,
 		auctionRepo:          auctionStatusChecker,
-		walletService:        walletService,
 	}
 }
 
@@ -674,7 +672,7 @@ type CreateFromAuctionInput struct {
 	BuyerID               uuid.UUID
 	WinningBid            int64
 	AddressID             uuid.UUID // Buyer's shipping address ID
-	ShippingSetupID      uuid.UUID
+	ShippingSetupID       uuid.UUID
 	ProvinceCode          string                            // Deprecated: Use AddressID instead
 	CityCode              string                            // Deprecated: Use AddressID instead
 	DiscountCode          *string                           // Optional discount code for checkout pricing
@@ -963,29 +961,29 @@ func (s *OrderCreationService) CreateFromAuction(
 
 	order := orderentity.NewOrderFromSource(
 		input.BuyerID,
-		product.SellerID,               // IMPORTANT: Use canonical auction product seller, NOT input.AuctionSellerID
-		orderentity.OrderSourceAuction, // Source type = auction
-		input.AuctionID,                // Source ID = auction ID
-		nil,                            // No negotiation ID
-		1,                              // Quantity = 1
-		winningBidAmount,               // Unit price = winning bid
-		snapshot.Subtotal,              // Subtotal from pricing snapshot
-		snapshot.ShippingTotal,         // Shipping from pricing snapshot
-		snapshot.CommissionPercent,     // Commission percent from pricing snapshot
-		snapshot.CommissionAmount,      // Commission amount from pricing snapshot
-		snapshot.ServiceFeeAmount,      // Buyer service fee from pricing snapshot
-		snapshot.TotalPayableAmount,    // Buyer gross payable from pricing snapshot
-		shippingSetupID,               // NULLABLE: pointer to shipping option ID
-		snapshot.ShippingSetupName,    // Option name from pricing snapshot
-		snapshot.ShippingTransportType, // Transport type from pricing snapshot
-		&input.AuctionSettlementType, // Settlement type marker
-		product.PreparationTime,      // SNAPSHOT: Freeze preparation time from canonical product
-		product.PreparationNote,      // SNAPSHOT: Freeze preparation note from canonical product
-		snapshot.ShippingSource,      // Shipping source from pricing snapshot
-		shippingQuoteID,              // TASK F: Quote ID
-		shippingQuotePrice,           // TASK F: Quote price snapshot
-		&snapshot.TokenID,            // Store pricing token ID (prevents double-ordering)
-		snapshot.PaymentMethod,       // PHASE 2: Payment method from pricing snapshot
+		product.SellerID,                           // IMPORTANT: Use canonical auction product seller, NOT input.AuctionSellerID
+		orderentity.OrderSourceAuction,             // Source type = auction
+		input.AuctionID,                            // Source ID = auction ID
+		nil,                                        // No negotiation ID
+		1,                                          // Quantity = 1
+		winningBidAmount,                           // Unit price = winning bid
+		snapshot.Subtotal,                          // Subtotal from pricing snapshot
+		snapshot.ShippingTotal,                     // Shipping from pricing snapshot
+		snapshot.CommissionPercent,                 // Commission percent from pricing snapshot
+		snapshot.CommissionAmount,                  // Commission amount from pricing snapshot
+		snapshot.ServiceFeeAmount,                  // Buyer service fee from pricing snapshot
+		snapshot.TotalPayableAmount,                // Buyer gross payable from pricing snapshot
+		shippingSetupID,                            // NULLABLE: pointer to shipping option ID
+		snapshot.ShippingSetupName,                 // Option name from pricing snapshot
+		snapshot.ShippingTransportType,             // Transport type from pricing snapshot
+		&input.AuctionSettlementType,               // Settlement type marker
+		product.PreparationTime,                    // SNAPSHOT: Freeze preparation time from canonical product
+		product.PreparationNote,                    // SNAPSHOT: Freeze preparation note from canonical product
+		snapshot.ShippingSource,                    // Shipping source from pricing snapshot
+		shippingQuoteID,                            // TASK F: Quote ID
+		shippingQuotePrice,                         // TASK F: Quote price snapshot
+		&snapshot.TokenID,                          // Store pricing token ID (prevents double-ordering)
+		snapshot.PaymentMethod,                     // PHASE 2: Payment method from pricing snapshot
 		auctionOrderPaymentExpiry(input, snapshot), // Canonical auction payment deadline
 	)
 
@@ -1078,20 +1076,20 @@ func (s *OrderCreationService) CreateFromAuction(
 
 // CreateFromSaleSurfaceInput contains the parameters for creating a sale-surface order.
 type CreateFromSaleSurfaceInput struct {
-	ProductID        uuid.UUID // Canonical product identity
-	SourceType       orderentity.OrderSourceType
-	SourceID         uuid.UUID // Sale-surface identity (fixed-price sale ID)
-	BuyerID          uuid.UUID
-	Quantity         int
-	AddressID        uuid.UUID // Buyer's shipping address ID
+	ProductID       uuid.UUID // Canonical product identity
+	SourceType      orderentity.OrderSourceType
+	SourceID        uuid.UUID // Sale-surface identity (fixed-price sale ID)
+	BuyerID         uuid.UUID
+	Quantity        int
+	AddressID       uuid.UUID // Buyer's shipping address ID
 	ShippingSetupID uuid.UUID
-	ProvinceCode     string           // Deprecated: Use AddressID instead
-	CityCode         string           // Deprecated: Use AddressID instead
-	DiscountCode     *string          // Optional discount code for checkout pricing
-	PricingSnapshot  *PricingSnapshot // Optional: Pricing snapshot from validated pricing token
-	IdempotencyKey   *string          // Optional: HTTP idempotency key for safe retries
-	NegotiationID    *uuid.UUID       // Optional: Negotiation session ID for price override
-	PricingTokenID   *uuid.UUID       // Pricing token ID used for this order (prevents double-ordering)
+	ProvinceCode    string           // Deprecated: Use AddressID instead
+	CityCode        string           // Deprecated: Use AddressID instead
+	DiscountCode    *string          // Optional discount code for checkout pricing
+	PricingSnapshot *PricingSnapshot // Optional: Pricing snapshot from validated pricing token
+	IdempotencyKey  *string          // Optional: HTTP idempotency key for safe retries
+	NegotiationID   *uuid.UUID       // Optional: Negotiation session ID for price override
+	PricingTokenID  *uuid.UUID       // Pricing token ID used for this order (prevents double-ordering)
 }
 
 // idempotentOrderRecovery returns the existing order when (buyer, idempotency_key)
@@ -1138,28 +1136,28 @@ func idempotentOrderRecovery(existing *orderentity.Order, requestedPricingTokenI
 // IMPORTANT: EscrowAmount is calculated dynamically from these values.
 // ============================================================================
 type PricingSnapshot struct {
-	UnitPrice              money.Money
-	Subtotal               money.Money
-	ShippingTotal          money.Money
-	CommissionPercent      int64
-	CommissionAmount       money.Money
-	EscrowAmount           money.Money // Escrow amount from pricing token ((P−D)+S; commission is never buyer-funded)
-	ServiceFeeAmount       money.Money // Flat buyer checkout service fee
-	TotalPayableAmount     money.Money // EscrowAmount + ServiceFeeAmount
-	DiscountAmount         money.Money // Discount amount for order value calculation
-	MaxCoinsAllowed        int64       // Maximum coins allowed (from pricing token, pre-calculated)
-	CoinsUsed              int64       // Coins requested for settlement; persisted later by payment settlement
-	OrderValueForCoins     int64       // Pre-calculated for coins service: subtotal + shipping - discount
-	ShippingSetupName    string
+	UnitPrice             money.Money
+	Subtotal              money.Money
+	ShippingTotal         money.Money
+	CommissionPercent     int64
+	CommissionAmount      money.Money
+	EscrowAmount          money.Money // Escrow amount from pricing token ((P−D)+S; commission is never buyer-funded)
+	ServiceFeeAmount      money.Money // Flat buyer checkout service fee
+	TotalPayableAmount    money.Money // EscrowAmount + ServiceFeeAmount
+	DiscountAmount        money.Money // Discount amount for order value calculation
+	MaxCoinsAllowed       int64       // Maximum coins allowed (from pricing token, pre-calculated)
+	CoinsUsed             int64       // Coins requested for settlement; persisted later by payment settlement
+	OrderValueForCoins    int64       // Pre-calculated for coins service: subtotal + shipping - discount
+	ShippingSetupName     string
 	ShippingTransportType string
 	ShippingDestination   *addressentity.AddressSnapshot // Shipping address snapshot
-	ShippingSource         *string                        // "for_sale" or "shipping_quote"
-	ShippingQuoteID        *uuid.UUID                     // TASK A-G: Set when using shipping quote
-	ChatID                 *uuid.UUID                     // TASK A-G: Chat context for validation
-	AuctionID              *uuid.UUID                     // TASK A: Auction ID for auction quotes
-	NegotiationID          *uuid.UUID                     // N8-B: Negotiation ID from pricing token (direct==nil)
-	TokenID                uuid.UUID                      // Pricing token ID (prevents double-ordering)
-	PaymentMethod          string                         // PHASE 2: Payment method (instant, va, retail, default)
+	ShippingSource        *string                        // "for_sale" or "shipping_quote"
+	ShippingQuoteID       *uuid.UUID                     // TASK A-G: Set when using shipping quote
+	ChatID                *uuid.UUID                     // TASK A-G: Chat context for validation
+	AuctionID             *uuid.UUID                     // TASK A: Auction ID for auction quotes
+	NegotiationID         *uuid.UUID                     // N8-B: Negotiation ID from pricing token (direct==nil)
+	TokenID               uuid.UUID                      // Pricing token ID (prevents double-ordering)
+	PaymentMethod         string                         // PHASE 2: Payment method (instant, va, retail, default)
 }
 
 // finalizeOrderCreationInput bundles the data needed by the final,
@@ -1235,7 +1233,6 @@ func (s *OrderCreationService) finalizeOrderCreationTx(
 	}
 
 	// Buyer payment is captured through payment gateway after order creation.
-	// Do not hold buyer wallet balance here.
 
 	// ============================================================
 	// EMIT OUTBOX EVENTS
@@ -1709,20 +1706,20 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 	order := orderentity.NewOrderFromSource(
 		input.BuyerID,
 		forSale.SellerID,
-		input.SourceType,               // Source type = for_sale
-		input.SourceID,                 // Source ID = fixed-price sale surface ID
-		negotiationIDToPass,            // Negotiation ID (optional)
-		input.Quantity,                 // Quantity from input
-		unitPrice,                      // Unit price (negotiated or forSale price)
-		snapshot.Subtotal,              // Subtotal from pricing snapshot
-		snapshot.ShippingTotal,         // Shipping from pricing snapshot
-		snapshot.CommissionPercent,     // Commission percent from pricing snapshot
-		snapshot.CommissionAmount,      // Commission amount from pricing snapshot
-		snapshot.ServiceFeeAmount,      // Buyer service fee from pricing snapshot
-		snapshot.TotalPayableAmount,    // Buyer gross payable from pricing snapshot
-		shippingSetupID,               // NULLABLE: nil when using a manual shipping quote
-		snapshot.ShippingSetupName,    // Option name from pricing snapshot
-		snapshot.ShippingTransportType, // Transport type from pricing snapshot
+		input.SourceType,                // Source type = for_sale
+		input.SourceID,                  // Source ID = fixed-price sale surface ID
+		negotiationIDToPass,             // Negotiation ID (optional)
+		input.Quantity,                  // Quantity from input
+		unitPrice,                       // Unit price (negotiated or forSale price)
+		snapshot.Subtotal,               // Subtotal from pricing snapshot
+		snapshot.ShippingTotal,          // Shipping from pricing snapshot
+		snapshot.CommissionPercent,      // Commission percent from pricing snapshot
+		snapshot.CommissionAmount,       // Commission amount from pricing snapshot
+		snapshot.ServiceFeeAmount,       // Buyer service fee from pricing snapshot
+		snapshot.TotalPayableAmount,     // Buyer gross payable from pricing snapshot
+		shippingSetupID,                 // NULLABLE: nil when using a manual shipping quote
+		snapshot.ShippingSetupName,      // Option name from pricing snapshot
+		snapshot.ShippingTransportType,  // Transport type from pricing snapshot
 		nil,                             // Not an auction order
 		string(forSale.PreparationTime), // SNAPSHOT: Freeze preparation time from sale surface
 		forSale.PreparationNote,         // SNAPSHOT: Freeze preparation note from sale surface

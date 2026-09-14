@@ -12,9 +12,9 @@ import (
 
 // PaymentSettlementService handles payment settlement.
 //
-// FINANCIAL AUTHORITY: WalletService is the ONLY authority for money operations.
+// FINANCIAL AUTHORITY: The finance ledger is the ONLY authority for money movement.
 // Payment settlement ONLY updates payment status - no money movement happens here.
-// All money is held/released/refunded through WalletService.
+// All escrow lifecycle operations go through EscrowService.
 //
 // CRITICAL IDEMPOTENCY GUARANTEES:
 // 1. Row-level locking (FOR UPDATE) prevents race conditions
@@ -55,7 +55,7 @@ func (s *PaymentSettlementService) SetAuditService(auditService interface { // M
 // - Both paths now lock ORDER → PAYMENT (consistent lock order)
 // - Only one path can win (settle OR expire, never both)
 //
-// NOTE: Money is NOT moved here. All money operations are handled by WalletService:
+// NOTE: Money is NOT moved here. All money operations are handled by the finance ledger:
 // - HoldForOrder: Called during order creation to hold buyer funds
 // - ReleaseEscrow: Called during order completion to release to seller
 // - RefundEscrow: Called during order cancellation to refund buyer
@@ -136,8 +136,8 @@ func (s *PaymentSettlementService) SettlePayment(
 	// ============================================================
 	// STEP 5: Update payment status to settlement
 	// ============================================================
-	// NOTE: Money is NOT moved here. All money operations are handled by WalletService.
-	// Funds were already held when order was created via WalletService.HoldForOrder.
+	// NOTE: Money is NOT moved here. All money operations are handled by the finance ledger.
+	// Funds exist at the gateway clearing account once payment settles.
 	if err := s.paymentRepo.MarkAsSettlement(ctx, tx, payment.ID, transactionID, paymentType); err != nil {
 		return fmt.Errorf("failed to mark payment as settlement: %w", err)
 	}
@@ -234,7 +234,7 @@ func (s *PaymentSettlementService) SettlePaymentByID(
 	// ============================================================
 	// STEP 5: Update payment status to settlement
 	// ============================================================
-	// NOTE: Money is NOT moved here. All money operations are handled by WalletService.
+	// NOTE: Money is NOT moved here. All money operations are handled by the finance ledger.
 	if err := s.paymentRepo.MarkAsSettlement(ctx, tx, payment.ID, transactionID, paymentType); err != nil {
 		return fmt.Errorf("failed to mark payment as settlement: %w", err)
 	}
@@ -287,7 +287,7 @@ func (s *PaymentSettlementService) SettlePaymentWithOutbox(
 	}
 
 	// Step 4: Update payment status
-	// NOTE: Money is NOT moved here. All money operations are handled by WalletService.
+	// NOTE: Money is NOT moved here. All money operations are handled by the finance ledger.
 	if err := s.paymentRepo.MarkAsSettlement(ctx, tx, payment.ID, transactionID, paymentType); err != nil {
 		return nil, fmt.Errorf("failed to mark payment as settlement: %w", err)
 	}

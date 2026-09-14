@@ -16,7 +16,7 @@ import (
 // TOTAL MONEY INVARIANT WORKER — UNIT TESTS
 // ============================================================================
 // These tests verify the worker lifecycle and config parsing without a database.
-// The underlying checker logic is tested in wallet/application/total_money_invariant_checker_test.go.
+// The underlying checker logic is tested in finance/application/total_money_invariant_checker_test.go.
 
 // --- Start/Stop exits clean ---
 
@@ -233,5 +233,3 @@ func TestParseTotalMoneyInvariantConfig_ShadowVariants(t *testing.T) {
 		})
 	}
 }
-
-

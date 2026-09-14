@@ -53,11 +53,9 @@ class AuthRepositoryImpl implements IAuthRepository {
   Future<Result<FirebasePrincipal>> signUpWithEmail({
     required String email,
     required String password,
-    required String username,
   }) => _signUpRepository.signUpWithEmail(
     email: email,
     password: password,
-    username: username,
   );
 
   @override
@@ -103,10 +101,6 @@ class AuthRepositoryImpl implements IAuthRepository {
     return _profileRepository.revokeSession(familyId);
   }
 
-  @override
-  Future<Result<AuthUser?>> getCurrentUser() =>
-      _coreRepository.getCurrentUser();
-
   // Profile operations
   @override
   Future<Result<void>> resetPassword({required String email}) =>
@@ -143,15 +137,6 @@ class AuthRepositoryImpl implements IAuthRepository {
       _profileRepository.completeProfile(username: username);
 
   @override
-  Future<Result<void>> changeEmail({
-    required String newEmail,
-    required String currentPassword,
-  }) => _profileRepository.changeEmail(
-    newEmail: newEmail,
-    currentPassword: currentPassword,
-  );
-
-  @override
   Future<Result<void>> changePassword({
     required String currentPassword,
     required String newPassword,
@@ -162,10 +147,6 @@ class AuthRepositoryImpl implements IAuthRepository {
 
   @override
   Future<Result<void>> deleteAccount() => _profileRepository.deleteAccount();
-
-  @override
-  Stream<FirebasePrincipal?> get authStateChanges =>
-      _coreRepository.authStateChanges;
 
   // User lookup operations (moved from user module)
   @override
@@ -189,8 +170,4 @@ class AuthRepositoryImpl implements IAuthRepository {
     required String userId,
     required UserRole newRole,
   }) => _profileRepository.updateUserRole(userId: userId, newRole: newRole);
-
-  void dispose() {
-    _coreRepository.dispose();
-  }
 }

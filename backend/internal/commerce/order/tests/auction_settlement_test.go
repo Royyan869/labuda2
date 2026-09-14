@@ -19,7 +19,7 @@ import (
 	orderinfra "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
 	productentity "github.com/labuda/backend/internal/commerce/product/entity"
 	productinfra "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
-	walletapp "github.com/labuda/backend/internal/core/wallet/application"
+	escrowapp "github.com/labuda/backend/internal/core/escrow/application"
 	outboxrepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/money"
@@ -257,8 +257,8 @@ func TestAuctionBuyNowSettlement_RollbackLeavesAuctionUnchanged(t *testing.T) {
 // newTestOrderCompletionService constructs an OrderCompletionService with
 // only the dependencies exercised by Cancel()/Expire() for an UNPAID
 // (pending_payment) order. Expire() unconditionally calls
-// walletService.GetEscrowForOrder to distinguish unpaid expiry (no escrow,
-// no gateway refund) from paid expiry-with-escrow, so walletService must be
+// escrowService.GetEscrowForOrder to distinguish unpaid expiry (no escrow,
+// no gateway refund) from paid expiry-with-escrow, so escrowService must be
 // a real instance (its GetEscrowForOrder only touches escrowRepo + logger,
 // not the *db.DB field, so nil db is safe here). paymentService is never
 // reached because escrowForExpiry is nil for an unpaid order. disputeRepo:
@@ -274,7 +274,7 @@ func newTestOrderCompletionService(t *testing.T) *orderapp.OrderCompletionServic
 		nil, // coinsService — order.CoinsUsed is 0 in this test
 		nil, // shippingQuoteService — order.ShippingQuoteID is nil
 		nil, // disputeRepo — not referenced by Cancel()/Expire()
-		walletapp.NewWalletService(nil, zaptest.NewLogger(t)), // GetEscrowForOrder is called unconditionally by Expire()
+		escrowapp.NewEscrowService(nil, zaptest.NewLogger(t)), // GetEscrowForOrder is called unconditionally by Expire()
 		zaptest.NewLogger(t),
 	)
 }

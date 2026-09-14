@@ -29,7 +29,6 @@ abstract class IAuthRepository {
   Future<Result<FirebasePrincipal>> signUpWithEmail({
     required String email,
     required String password,
-    required String username,
   });
 
   /// Sign out user yang sedang aktif
@@ -51,9 +50,6 @@ abstract class IAuthRepository {
   /// Revoke a single session family by its family_id.
   Future<Result<void>> revokeSession(String familyId);
 
-  /// Mendapatkan user yang sedang aktif
-  Future<Result<domain.AuthUser?>> getCurrentUser();
-
   /// Reset password melalui email
   Future<Result<void>> resetPassword({required String email});
 
@@ -74,12 +70,6 @@ abstract class IAuthRepository {
   /// Complete the profile after restricted Firebase exchange.
   Future<Result<domain.AuthUser>> completeProfile({required String username});
 
-  /// Change email address
-  Future<Result<void>> changeEmail({
-    required String newEmail,
-    required String currentPassword,
-  });
-
   /// Change password
   Future<Result<void>> changePassword({
     required String currentPassword,
@@ -91,9 +81,6 @@ abstract class IAuthRepository {
 
   /// Delete user account
   Future<Result<void>> deleteAccount();
-
-  /// Stream untuk mendengarkan perubahan auth state
-  Stream<FirebasePrincipal?> get authStateChanges;
 
   // ============================================
   // User Lookup Operations (moved from user module)

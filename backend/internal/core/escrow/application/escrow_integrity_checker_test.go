@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	walletentity "github.com/labuda/backend/internal/core/wallet/entity"
+	escrowentity "github.com/labuda/backend/internal/core/escrow/entity"
 	alertapp "github.com/labuda/backend/internal/platform/alert/application"
 	alertentity "github.com/labuda/backend/internal/platform/alert/entity"
 	alertrepo "github.com/labuda/backend/internal/platform/alert/repository"
@@ -39,7 +39,7 @@ func TestCheckOrderEscrow_MatchingEscrowRow_NoAlert(t *testing.T) {
 	alertSvc, tracker := newTrackingAlertService(t)
 	checker := NewEscrowIntegrityChecker(
 		&mockEscrowLookup{
-			escrows: map[uuid.UUID]*walletentity.Escrow{},
+			escrows: map[uuid.UUID]*escrowentity.Escrow{},
 		},
 		alertSvc,
 		nil,
@@ -56,11 +56,11 @@ func TestCheckOrderEscrow_MatchingEscrowRow_NoAlert(t *testing.T) {
 		SellerID:     sellerID,
 		EscrowAmount: 15000,
 	}
-	checker.escrowLookup.(*mockEscrowLookup).escrows[orderID] = &walletentity.Escrow{
+	checker.escrowLookup.(*mockEscrowLookup).escrows[orderID] = &escrowentity.Escrow{
 		ID:      uuid.New(),
 		OrderID: orderID,
 		Amount:  15000,
-		Status:  walletentity.EscrowStatusHolding,
+		Status:  escrowentity.EscrowStatusHolding,
 	}
 
 	err := checker.checkOrderEscrow(context.Background(), &mockTx{}, row)
@@ -71,7 +71,7 @@ func TestCheckOrderEscrow_MatchingEscrowRow_NoAlert(t *testing.T) {
 func TestCheckOrderEscrow_MissingEscrow_Alerts(t *testing.T) {
 	alertSvc, tracker := newTrackingAlertService(t)
 	checker := NewEscrowIntegrityChecker(
-		&mockEscrowLookup{escrows: map[uuid.UUID]*walletentity.Escrow{}},
+		&mockEscrowLookup{escrows: map[uuid.UUID]*escrowentity.Escrow{}},
 		alertSvc,
 		nil,
 		zap.NewNop(),
@@ -98,12 +98,12 @@ func TestCheckOrderEscrow_StatusMismatch_Alerts(t *testing.T) {
 	orderID := uuid.New()
 	checker := NewEscrowIntegrityChecker(
 		&mockEscrowLookup{
-			escrows: map[uuid.UUID]*walletentity.Escrow{
+			escrows: map[uuid.UUID]*escrowentity.Escrow{
 				orderID: {
 					ID:      uuid.New(),
 					OrderID: orderID,
 					Amount:  15000,
-					Status:  walletentity.EscrowStatusReleased,
+					Status:  escrowentity.EscrowStatusReleased,
 				},
 			},
 		},
@@ -125,7 +125,7 @@ func TestCheckOrderEscrow_StatusMismatch_Alerts(t *testing.T) {
 	assert.Contains(t, err.Error(), "escrow status mismatch")
 	require.Equal(t, 1, tracker.alertCount)
 	assert.Equal(t, "holding", tracker.lastAlert.metadata["expected_status"])
-	assert.Equal(t, string(walletentity.EscrowStatusReleased), tracker.lastAlert.metadata["actual_status"])
+	assert.Equal(t, string(escrowentity.EscrowStatusReleased), tracker.lastAlert.metadata["actual_status"])
 }
 
 func TestCheckOrderEscrow_AmountMismatch_Alerts(t *testing.T) {
@@ -133,12 +133,12 @@ func TestCheckOrderEscrow_AmountMismatch_Alerts(t *testing.T) {
 	orderID := uuid.New()
 	checker := NewEscrowIntegrityChecker(
 		&mockEscrowLookup{
-			escrows: map[uuid.UUID]*walletentity.Escrow{
+			escrows: map[uuid.UUID]*escrowentity.Escrow{
 				orderID: {
 					ID:      uuid.New(),
 					OrderID: orderID,
 					Amount:  14800,
-					Status:  walletentity.EscrowStatusHolding,
+					Status:  escrowentity.EscrowStatusHolding,
 				},
 			},
 		},
@@ -206,12 +206,12 @@ func TestCheckEscrowIntegrity_EndToEnd_MatchingSnapshot_NoAlert(t *testing.T) {
 	alertSvc, tracker := newTrackingAlertService(t)
 	checker := NewEscrowIntegrityChecker(
 		&mockEscrowLookup{
-			escrows: map[uuid.UUID]*walletentity.Escrow{
+			escrows: map[uuid.UUID]*escrowentity.Escrow{
 				orderID: {
 					ID:      uuid.New(),
 					OrderID: orderID,
 					Amount:  15000,
-					Status:  walletentity.EscrowStatusHolding,
+					Status:  escrowentity.EscrowStatusHolding,
 				},
 			},
 		},
@@ -236,7 +236,7 @@ func TestCheckEscrowIntegrity_EndToEnd_MatchingSnapshot_NoAlert(t *testing.T) {
 func TestShadowMode_SuppressesAlerts(t *testing.T) {
 	alertSvc, tracker := newTrackingAlertService(t)
 	checker := NewEscrowIntegrityChecker(
-		&mockEscrowLookup{escrows: map[uuid.UUID]*walletentity.Escrow{}},
+		&mockEscrowLookup{escrows: map[uuid.UUID]*escrowentity.Escrow{}},
 		alertSvc,
 		nil,
 		zap.NewNop(),
@@ -252,7 +252,7 @@ func TestShadowMode_SuppressesAlerts(t *testing.T) {
 
 	checker.emitInvalidEscrowAmountAlert(context.Background(), row)
 	checker.emitMissingEscrowAlert(context.Background(), row)
-	checker.emitEscrowStatusMismatchAlert(context.Background(), row, string(walletentity.EscrowStatusReleased))
+	checker.emitEscrowStatusMismatchAlert(context.Background(), row, string(escrowentity.EscrowStatusReleased))
 	checker.emitEscrowAmountMismatchAlert(context.Background(), row, 5000)
 	checker.emitGlobalEscrowImbalanceAlert(context.Background(), 100000, 200000)
 
@@ -305,11 +305,11 @@ func TestAlertMetadata_ContainsCurrentModelFields(t *testing.T) {
 // ============================================================================
 
 type mockEscrowLookup struct {
-	escrows map[uuid.UUID]*walletentity.Escrow
+	escrows map[uuid.UUID]*escrowentity.Escrow
 	err     error
 }
 
-func (m *mockEscrowLookup) GetEscrowForOrder(_ context.Context, _ db.Tx, orderID uuid.UUID) (*walletentity.Escrow, error) {
+func (m *mockEscrowLookup) GetEscrowForOrder(_ context.Context, _ db.Tx, orderID uuid.UUID) (*escrowentity.Escrow, error) {
 	if m.err != nil {
 		return nil, m.err
 	}

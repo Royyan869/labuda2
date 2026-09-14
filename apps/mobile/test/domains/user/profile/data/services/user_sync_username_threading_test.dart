@@ -92,9 +92,43 @@ class _FakeFirebaseAuth extends Fake implements FirebaseAuth {
   User? get currentUser => user;
 }
 
+/// Minimal in-memory stand-in for the canonical credential store.
+///
+/// `UserSyncService.syncUser` persists the Labuda token pair through the
+/// canonical credential boundary (`saveLabudaCredential`) immediately after a
+/// successful Firebase exchange, BEFORE the /users/me fetch — so this call is
+/// part of the execution path under test and must be satisfied here. Without
+/// it the fake throws `UnimplementedError` and the username-threading
+/// assertions below are never reached.
+///
+/// Only the canonical credential operations reachable from that path are
+/// implemented; any other member still fails loudly via [Fake].
 class _RecordingLocalStorage extends Fake implements ILocalStorageService {
-  // AUTH-2: UserSyncService no longer writes credentials (moved to the canonical
-  // auth persistence boundary), so there are no legacy setAuth/setRefresh hooks.
+  String? accessToken;
+  String? refreshToken;
+
+  @override
+  Future<Result<void>> saveLabudaCredential(
+    String accessToken,
+    String refreshToken,
+  ) async {
+    this.accessToken = accessToken;
+    this.refreshToken = refreshToken;
+    return Result.success(null);
+  }
+
+  @override
+  Future<Result<String?>> readLabudaAccessToken() async =>
+      Result.success(accessToken);
+
+  @override
+  Future<Result<String?>> readLabudaRefreshToken() async =>
+      Result.success(refreshToken);
+
+  @override
+  Future<Result<bool>> hasLabudaCredential() async => Result.success(
+        accessToken?.isNotEmpty == true && refreshToken?.isNotEmpty == true,
+      );
 }
 
 void main() {

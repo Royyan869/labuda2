@@ -209,14 +209,12 @@ func (h *WebhookHandler) handleSuccessCallback(
 		return fmt.Errorf("get platform revenue account: %w", err)
 	}
 
-	// Create ledger transaction entries
-	// DR WITHDRAWAL_COMMITTED (decrease committed by the full amount)
-	// CR PLATFORM_BANK (net payout — what actually leaves to the seller's bank)
-	// CR PLATFORM_REVENUE (withdrawal fee)
+	// CANONICAL SIGN: WC (liab) DR decreases, PB (asset) CR decreases, PR (rev) CR increases.
+	// WC committed decreases (fulfilled), PB cash leaves, PR fee revenue increases.
 	entries := []ledgerintf.Entry{
-		{AccountID: withdrawalCommittedID, Amount: amountMoney.Neg()}, // Credit (decrease committed)
-		{AccountID: platformBankID, Amount: netPayoutMoney},           // Net payout to seller bank
-		{AccountID: platformRevenueID, Amount: feeMoney},              // Withdrawal fee revenue
+		{AccountID: withdrawalCommittedID, Amount: amountMoney},          // DR: committed decreases
+		{AccountID: platformBankID, Amount: netPayoutMoney.Neg()},        // CR: bank decreases (cash leaves)
+		{AccountID: platformRevenueID, Amount: feeMoney.Neg()},           // CR: revenue increases
 	}
 
 	err = h.ledgerRepo.CreateTransaction(
@@ -384,12 +382,11 @@ func (h *WebhookHandler) handleFailedCallback(
 		return fmt.Errorf("get seller payable account: %w", err)
 	}
 
-	// Create ledger transaction entries to return funds
-	// DR WITHDRAWAL_COMMITTED (decrease committed - credit/negative)
-	// CR user's SELLER_PAYABLE (increase seller's payable - debit/positive)
+	// CANONICAL SIGN: WC (liab) DR decreases, SP (liab) CR increases.
+	// WC committed decreases (failed payout), SP seller payable increases (funds returned).
 	entries := []ledgerintf.Entry{
-		{AccountID: withdrawalCommittedID, Amount: amountMoney.Neg()}, // Credit (decrease committed)
-		{AccountID: sellerPayableID, Amount: amountMoney},             // Debit (restore full amount)
+		{AccountID: withdrawalCommittedID, Amount: amountMoney},  // DR: committed decreases
+		{AccountID: sellerPayableID, Amount: amountMoney.Neg()},  // CR: seller payable increases
 	}
 
 	err = h.ledgerRepo.CreateTransaction(

@@ -238,20 +238,6 @@ void main() {
   });
 
   test(
-    'AuthCoreRepository does not synthesize accounts from Firebase principal',
-    () async {
-      final repo = AuthCoreRepository(
-        firebaseAuth: _MockFirebaseAuth(currentUserValue: _MockFirebaseUser()),
-      );
-
-      final result = await repo.getCurrentUser();
-
-      expect(result.isSuccess, isTrue);
-      expect(result.data, isNull);
-    },
-  );
-
-  test(
     '/users/me mapping produces AuthUser and seller flags stay independent',
     () async {
       final response = _usersMeResponse(

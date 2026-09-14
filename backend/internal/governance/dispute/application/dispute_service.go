@@ -1,9 +1,9 @@
 // ⚠️ FINANCIAL RULE:
-// All money operations MUST go through WalletService.
+// All escrow lifecycle operations MUST go through EscrowService.
 // Direct balance mutation is forbidden.
 //
 // Dispute domain manages dispute state and resolution.
-// All financial operations are delegated to WalletService.
+// All escrow operations are delegated to EscrowService.
 package application
 
 import (
@@ -17,8 +17,8 @@ import (
 	orderApp "github.com/labuda/backend/internal/commerce/order/application"
 	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
 	orderRepo "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
-	walletApp "github.com/labuda/backend/internal/core/wallet/application"
-	walletEntity "github.com/labuda/backend/internal/core/wallet/entity"
+	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
+	escrowEntity "github.com/labuda/backend/internal/core/escrow/entity"
 	"github.com/labuda/backend/internal/governance/dispute/entity"
 	"github.com/labuda/backend/internal/governance/dispute/infrastructure/repository"
 	disputeRepo "github.com/labuda/backend/internal/governance/dispute/repository"
@@ -80,12 +80,12 @@ type DisputeFreezeAuthority interface {
 // All financial operations (escrow freezing, refunds, releases) are delegated
 // to OrderService to maintain single responsibility principle.
 //
-// CRITICAL HARDENING: Uses live wallet state for escrow validation (not cached Order.EscrowStatus).
+// CRITICAL HARDENING: Uses live escrow state for validation (not cached Order.EscrowStatus).
 type DisputeService struct {
 	disputeRepo     disputeRepo.DisputeRepository
 	orderRepo       *orderRepo.OrderRepository
 	orderService    *orderApp.OrderService
-	walletService   *walletApp.WalletService // CRITICAL: For live escrow validation
+	escrowService   *escrowApp.EscrowService // CRITICAL: For live escrow validation
 	outboxRepo      *outboxRepo.OutboxRepository
 	abuseService    *DisputeAbuseService   // 🔥 TASK 3: Abuse monitoring
 	freezeAuthority DisputeFreezeAuthority // TASK 48: dispute freeze bookkeeping helper
@@ -96,14 +96,14 @@ type DisputeService struct {
 func NewDisputeService(
 	orderRepo *orderRepo.OrderRepository,
 	orderService *orderApp.OrderService,
-	walletService *walletApp.WalletService,
+	escrowService *escrowApp.EscrowService,
 	outboxRepo *outboxRepo.OutboxRepository,
 ) *DisputeService {
 	return &DisputeService{
 		disputeRepo:   repository.NewDisputeRepository(),
 		orderRepo:     orderRepo,
 		orderService:  orderService,
-		walletService: walletService, // CRITICAL: For live escrow validation
+		escrowService: escrowService, // CRITICAL: For live escrow validation
 		outboxRepo:    outboxRepo,
 		abuseService:  NewDisputeAbuseService(), // 🔥 TASK 3: Initialize abuse service
 	}
@@ -193,20 +193,20 @@ func (s *DisputeService) OpenDispute(
 		return nil, ErrDisputeOpenAlreadyHasActive
 	}
 
-	// CRITICAL HARDENING: Validate escrow status using LIVE wallet state (not cached Order.EscrowStatus).
+	// CRITICAL HARDENING: Validate escrow status using LIVE escrow state (not cached Order.EscrowStatus).
 	// PRE-RELEASE  (escrow=holding)  → standard dispute path: MarkDisputeOpen + status=dispute_open.
 	// POST-RELEASE (escrow=released) → blocked by finality guard above.
-	walletEscrow, err := s.walletService.GetEscrowForOrder(ctx, tx, orderID)
+	liveEscrow, err := s.escrowService.GetEscrowForOrder(ctx, tx, orderID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify escrow state: %w", err)
 	}
-	if walletEscrow == nil {
+	if liveEscrow == nil {
 		return nil, ErrDisputeOpenNoEscrow
 	}
-	switch walletEscrow.Status {
-	case walletEntity.EscrowStatusHolding:
+	switch liveEscrow.Status {
+	case escrowEntity.EscrowStatusHolding:
 		// pre-release path — normal
-	case walletEntity.EscrowStatusReleased:
+	case escrowEntity.EscrowStatusReleased:
 		return nil, ErrDisputeOpenAfterCompletion
 	default:
 		return nil, ErrDisputeOpenInvalidEscrowState
@@ -580,11 +580,11 @@ func (s *DisputeService) OpenDisputeFromEscalation(
 	}
 
 	// Escrow validation — escalation only valid while escrow is holding
-	walletEscrow, err := s.walletService.GetEscrowForOrder(ctx, tx, orderID)
+	liveEscrow, err := s.escrowService.GetEscrowForOrder(ctx, tx, orderID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify escrow state: %w", err)
 	}
-	if walletEscrow == nil || walletEscrow.Status != walletEntity.EscrowStatusHolding {
+	if liveEscrow == nil || liveEscrow.Status != escrowEntity.EscrowStatusHolding {
 		return nil, fmt.Errorf("cannot escalate: escrow not in holding state")
 	}
 

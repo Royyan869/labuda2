@@ -193,13 +193,10 @@ func (h *AdminHandler) GetAdminMe(c *gin.Context) {
 	}
 
 	email := ""
-	if claims, ok := middleware.GetUserFromContext(c); ok && claims != nil {
-		email = claims.Email
-	}
-
 	username := ""
 	if h.service != nil {
 		if userDetails, err := h.service.GetUserDetails(c.Request.Context(), actor.ID); err == nil && userDetails != nil {
+			email = userDetails.Email
 			if userDetails.Username != nil {
 				username = *userDetails.Username
 			}

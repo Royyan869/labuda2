@@ -16,7 +16,7 @@ import (
 	orderapp "github.com/labuda/backend/internal/commerce/order/application"
 	orderRepoImpl "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
 	subscriptionapp "github.com/labuda/backend/internal/commerce/subscription/application"
-	walletApp "github.com/labuda/backend/internal/core/wallet/application"
+	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
 	financeApp "github.com/labuda/backend/internal/finance/application"
 	billingapp "github.com/labuda/backend/internal/finance/billing/application"
 	billingentity "github.com/labuda/backend/internal/finance/billing/entity"
@@ -70,7 +70,7 @@ func (s *systemAccountStatusChecker) IsBanned(ctx context.Context, userID uuid.U
 // PaymentWebhookService handles Midtrans webhook notifications
 // Uses pgx-based repositories and DB layer (NO GORM)
 //
-// WIRING RULE: OrderService and WalletService MUST be injected from
+// WIRING RULE: OrderService and EscrowService MUST be injected from
 // dependencies_core.go. Never construct them here. Building local copies
 // produces nil-deps and causes settlement to crash inside MarkPaid.
 type PaymentWebhookService struct {
@@ -80,7 +80,7 @@ type PaymentWebhookService struct {
 	paymentRepo                  *repository.PaymentRepository
 	paymentAttemptRepo           *repository.PaymentAttemptRepository // BNR Phase 1: Payment attempt tracking
 	orderService                 *orderapp.OrderService
-	walletService                *walletApp.WalletService
+	escrowService                *escrowApp.EscrowService
 	orderRepo                    *orderRepoImpl.OrderRepository
 	canonicalFinalizationService *CanonicalFinalizationService
 	billingService               *billingapp.BillingService
@@ -107,7 +107,7 @@ type PaymentWebhookService struct {
 
 // NewPaymentWebhookService creates a new PaymentWebhookService.
 //
-// orderService and walletService MUST be the canonical instances built in
+// orderService and escrowService MUST be the canonical instances built in
 // dependencies_core.go. Do not pass freshly-constructed instances.
 //
 // subscriptionPaymentService should be set via SetSubscriptionPaymentService
@@ -116,7 +116,7 @@ func NewPaymentWebhookService(
 	db *db.DB,
 	midtransClient *midtrans.Client,
 	orderService *orderapp.OrderService,
-	walletService *walletApp.WalletService,
+	escrowService *escrowApp.EscrowService,
 	log *zap.Logger,
 ) *PaymentWebhookService {
 	roleChecker := &systemRoleChecker{}
@@ -135,7 +135,7 @@ func NewPaymentWebhookService(
 		paymentRepo:        paymentRepo,
 		paymentAttemptRepo: repository.NewPaymentAttemptRepository(log), // BNR Phase 1
 		orderService:       orderService,
-		walletService:      walletService,
+		escrowService:      escrowService,
 		orderRepo:          orderRepoImpl.NewOrderRepository(),
 		billingService:     billingapp.NewBillingService(roleChecker, accountStatusChecker),
 		billingRepo:        billingrepo.NewBillingRepository(),

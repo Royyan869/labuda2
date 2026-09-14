@@ -878,30 +878,6 @@ abstract class AppLocalizations {
   /// **'Resend Verification Email'**
   String get resendVerificationEmail;
 
-  /// Email management section
-  ///
-  /// In en, this message translates to:
-  /// **'Email Management'**
-  String get emailManagement;
-
-  /// Change email title
-  ///
-  /// In en, this message translates to:
-  /// **'Change Email Address'**
-  String get changeEmailAddress;
-
-  /// New email field
-  ///
-  /// In en, this message translates to:
-  /// **'New Email Address'**
-  String get newEmailAddress;
-
-  /// New email placeholder
-  ///
-  /// In en, this message translates to:
-  /// **'Enter your new email address'**
-  String get enterNewEmailAddress;
-
   /// Current password field
   ///
   /// In en, this message translates to:
@@ -913,18 +889,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter your current password to confirm'**
   String get enterCurrentPasswordToConfirm;
-
-  /// Update email button
-  ///
-  /// In en, this message translates to:
-  /// **'Update Email'**
-  String get updateEmail;
-
-  /// Email verification message
-  ///
-  /// In en, this message translates to:
-  /// **'You will need to verify your new email address before you can use it.'**
-  String get verifyNewEmailMessage;
 
   /// Password management section
   ///
@@ -1141,18 +1105,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please fill all fields'**
   String get pleaseFillAllFields;
-
-  /// Email change success message
-  ///
-  /// In en, this message translates to:
-  /// **'Email change request sent! Check your new email for verification.'**
-  String get emailChangeRequestSent;
-
-  /// Failed to change email error
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to change email. Please try again.'**
-  String get failedToChangeEmail;
 
   /// Generic error message
   ///

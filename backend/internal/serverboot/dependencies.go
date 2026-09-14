@@ -197,9 +197,8 @@ import (
 
 	// Fraud domain - ANTI-FRAUD FOUNDATION V1
 
-	// Wallet domain - WALLET PHASE 1 (FOUNDATION)
-	walletApp "github.com/labuda/backend/internal/core/wallet/application"
-	walletHTTP "github.com/labuda/backend/internal/core/wallet/delivery/http"
+	// Escrow domain - canonical escrow lifecycle authority
+	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
 
 	// Product domain - wired into AuctionService for inline product creation
 	productRepoImpl "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
@@ -219,7 +218,7 @@ type Dependencies struct {
 	PaymentWebhookHandler  *paymentHTTP.PaymentWebhookHandler
 	PayoutWebhookHandler   *financePayoutHTTP.PayoutWebhookHandler
 	// PHASE 2D / TASK 43: canonical seller withdrawal request endpoint.
-	WithdrawalHandlerUnified *walletHTTP.WithdrawalHandlerUnified
+	WithdrawalHandlerUnified *financePayoutHTTP.WithdrawalHandlerUnified
 	// C6.1: seller self-service bank account management.
 	BankAccountHandler *bankaccountHTTP.BankAccountHandler
 	// Address CRUD endpoints (buyer shipping + seller sender)
@@ -330,7 +329,7 @@ type Dependencies struct {
 	WithdrawalMonitoringWorker        Worker // PAYOUT MONITORING - read-only alert on stuck withdrawals
 	PushRetryWorker                   Worker // Z6: PUSH RELIABILITY - retries failed FCM pushes with exponential backoff
 	NotificationCleanupWorker         Worker // Z6: PUSH HYGIENE - deletes old delivery logs + expired retry entries
-	EscrowIntegrityWorker             Worker // ESCROW RECONCILIATION - shadow-rollout periodic escrow vs wallet check
+	EscrowIntegrityWorker             Worker // ESCROW RECONCILIATION - shadow-rollout periodic escrow vs order check
 	TotalMoneyInvariantWorker         Worker // TOTAL MONEY INVARIANT - shadow-rollout periodic ledger sum check
 	SellerMetricsWorker               Worker // SELLER MEASUREMENT - daily seller_monthly_metrics snapshot (measurement only)
 	SellerReputationRecomputeWorker   Worker // REPUTATION AUTHORITY - nightly rolling 90-day recompute of seller tier + reputation state
@@ -560,7 +559,7 @@ func InitServices(
 	// checkout (CorePaymentHandler) and admin config (AdminPaymentMethodHandler).
 	paymentMethodRepository := paymentmethodrepo.NewPaymentMethodRepository()
 	// NOTE: PaymentWebhookService is constructed AFTER orderService and
-	// walletService (below) so it can receive the canonical instances.
+	// escrowService (below) so it can receive the canonical instances.
 	// Constructing it here with nil deps is what caused the original
 	// MarkPaid nil-deref crash.
 
@@ -645,10 +644,11 @@ func InitServices(
 	contentRepo := contentrepo.NewContentRepository()
 
 	// ===== ORDER MODULE =====
-	// WALLET PHASE 1: Initialize wallet service for escrow hold on order creation
-	walletService := walletApp.NewWalletService(db.Pgx(), log.Logger)
+	// CANONICAL: Initialize escrow service — the single authority for escrow
+	// lifecycle operations (create/release/refund/partial-refund).
+	escrowService := escrowApp.NewEscrowService(db.Pgx(), log.Logger)
 
-	orderService := orderApp.NewOrderService(accountStatusChecker, shippingService, outboxRepository, configService, nil, roleChecker, actorResolver, auditService, productShippingRepo, walletService, nil) // shippingQuoteService - will be set later
+	orderService := orderApp.NewOrderService(accountStatusChecker, shippingService, outboxRepository, configService, nil, roleChecker, actorResolver, auditService, productShippingRepo, escrowService, nil) // shippingQuoteService - will be set later
 	// Gateway-aware release: wire finance ledger recorder into the order
 	// payment service so OrderCompletionService.Complete can book
 	// SELLER_PAYABLE / PLATFORM_REVENUE / GATEWAY_CLEARING ledger entries.
@@ -658,14 +658,14 @@ func InitServices(
 	orderQueryService := orderApp.NewOrderQueryService(projectionRepo, projectionEnabled)
 
 	// ===== PAYMENT WEBHOOK SERVICE =====
-	// Constructed AFTER orderService and walletService so it receives the
+	// Constructed AFTER orderService and escrowService so it receives the
 	// canonical instances. Constructing earlier with nil deps was the root
 	// cause of the original MarkPaid nil-deref crash.
 	paymentWebhookService := paymentApp.NewPaymentWebhookService(
 		db.Pgx(),
 		midtransClient,
 		orderService,
-		walletService,
+		escrowService,
 		log.Logger,
 	)
 	paymentWebhookHandler := paymentHTTP.NewPaymentWebhookHandler(
@@ -684,7 +684,7 @@ func InitServices(
 	canonicalFinalizationService := paymentApp.NewCanonicalFinalizationService(
 		settlementFinanceService,
 		orderService,
-		walletService,
+		escrowService,
 		log.Logger,
 	)
 	canonicalFinalizationService.SetAuditService(auditService)
@@ -694,7 +694,7 @@ func InitServices(
 	// ===== REFUND MODULE (TASK 34 / Phase 2a) =====
 	//
 	// Construct the canonical RefundService singleton AFTER orderService,
-	// walletService, and outboxRepository — those are its required deps —
+	// escrowService, and outboxRepository — those are its required deps —
 	// and AFTER paymentWebhookService so we can hand the refund service to
 	// the webhook dispatcher in the same place.
 	//
@@ -710,7 +710,7 @@ func InitServices(
 	// financial mutation in this phase.
 	refundService := refundApp.NewRefundService(
 		orderService,
-		walletService,
+		escrowService,
 		outboxRepository,
 	)
 	refundService.SetOrderRefundStatusSyncer(orderService)
@@ -796,16 +796,16 @@ func InitServices(
 	// Initialize support repository (used by SLA escalation worker)
 	supportRepo := supportInfraRepo.NewSupportRepository()
 
-	// DISPUTE ↔ WALLET INTEGRATION: Wire dispute repository to wallet service
-	// This enables wallet service to check for active disputes before escrow release/refund
-	walletService.SetDisputeRepository(disputeRepository)
+	// DISPUTE ↔ ESCROW INTEGRATION: Wire dispute repository to escrow service
+	// This enables the escrow service to check for active disputes before escrow release/refund
+	escrowService.SetDisputeRepository(disputeRepository)
 	// STRICT MODE: Wire dispute repository to order service for entry point guards
 	orderService.SetDisputeRepository(disputeRepository)
-	// Initialize dispute service (requires order repository, order service, wallet service, and outbox)
+	// Initialize dispute service (requires order repository, order service, escrow service, and outbox)
 	disputeService := disputeApp.NewDisputeService(
 		orderRepository,
 		orderService,
-		walletService,
+		escrowService,
 		outboxRepository,
 	)
 	disputeService.SetLogger(log.Logger)
@@ -2100,7 +2100,7 @@ func InitServices(
 	// drives the canonical finance-shape lifecycle (status=REQUESTED), which
 	// is consumed end-to-end by AdminPayoutHandler, PayoutWorker, and
 	// PayoutWebhookHandler.
-	withdrawalHandlerUnified := walletHTTP.NewWithdrawalHandlerUnified(
+	withdrawalHandlerUnified := financePayoutHTTP.NewWithdrawalHandlerUnified(
 		withdrawService,
 		db.Pgx(),
 		log.Logger,
@@ -2811,8 +2811,8 @@ func InitServices(
 	// Current activation state is also surfaced at runtime via
 	// worker.CriticalWorkerStatuses(), consumed by /health/ready.
 	escrowIntegrityCfg := worker.ParseEscrowIntegrityConfig()
-	escrowIntegrityChecker := walletApp.NewEscrowIntegrityChecker(
-		walletService,
+	escrowIntegrityChecker := escrowApp.NewEscrowIntegrityChecker(
+		escrowService,
 		alertService,
 		db.Pgx(),
 		log.Logger,
@@ -2859,7 +2859,7 @@ func InitServices(
 	// Current activation state is also surfaced at runtime via
 	// worker.CriticalWorkerStatuses(), consumed by /health/ready.
 	totalMoneyInvariantCfg := worker.ParseTotalMoneyInvariantConfig()
-	totalMoneyInvariantChecker := walletApp.NewTotalMoneyInvariantChecker(
+	totalMoneyInvariantChecker := financeApp.NewTotalMoneyInvariantChecker(
 		alertService,
 		db.Pgx(),
 		log.Logger,

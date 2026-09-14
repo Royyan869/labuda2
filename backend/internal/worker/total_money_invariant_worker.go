@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	walletApp "github.com/labuda/backend/internal/core/wallet/application"
+	financeApp "github.com/labuda/backend/internal/finance/application"
 	"go.uber.org/zap"
 )
 
@@ -85,7 +85,7 @@ func ParseTotalMoneyInvariantConfig() TotalMoneyInvariantConfig {
 //	  1. Set DISABLE_TOTAL_MONEY_INVARIANT_WORKER=true
 //	  2. Set TOTAL_MONEY_INVARIANT_SHADOW_MODE=false to promote shadow logging to live alerts
 type TotalMoneyInvariantWorker struct {
-	checker    *walletApp.TotalMoneyInvariantChecker
+	checker    *financeApp.TotalMoneyInvariantChecker
 	logger     *zap.Logger
 	interval   time.Duration
 	shadowMode bool
@@ -100,14 +100,14 @@ type TotalMoneyInvariantWorker struct {
 // NewTotalMoneyInvariantWorker creates a new total money invariant worker.
 //
 // Dependencies:
-//   - checker: the invariant checker from wallet/application
+//   - checker: the invariant checker from finance/application
 //   - logger: nil is safe (falls back to zap.NewNop)
 //   - interval: tick interval between checks
 //   - shadowMode: must match the value passed to the checker (used only for
 //     accurate per-cycle log reporting; the checker independently enforces
 //     its own alert-suppression behavior)
 func NewTotalMoneyInvariantWorker(
-	checker *walletApp.TotalMoneyInvariantChecker,
+	checker *financeApp.TotalMoneyInvariantChecker,
 	logger *zap.Logger,
 	interval time.Duration,
 	shadowMode bool,

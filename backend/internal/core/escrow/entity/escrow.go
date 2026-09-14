@@ -40,10 +40,9 @@ func (s EscrowStatus) IsFinal() bool {
 //
 // Money physically lives at the payment gateway clearing account; the escrow
 // row is the platform-side record of "this order has a settled payment held
-// pending release-to-seller or refund-to-buyer". Buyer wallet balances are
-// NOT debited at settlement and NOT credited at refund — the seller's
-// withdrawable surface is the finance ledger's SELLER_PAYABLE account, and
-// refunds flow through the gateway refund pipeline.
+// pending release-to-seller or refund-to-buyer". Buyer has no internal
+// monetary balance — the seller's withdrawable surface is the finance ledger's
+// SELLER_PAYABLE account, and refunds flow through the gateway refund pipeline.
 //
 // LIFECYCLE:
 //  1. HOLDING   — payment settled at gateway, escrow recorded
@@ -54,16 +53,14 @@ func (s EscrowStatus) IsFinal() bool {
 //
 // IMPORTANT: Only ONE escrow per order (enforced by UNIQUE constraint).
 type Escrow struct {
-	ID             uuid.UUID
-	OrderID        uuid.UUID
-	BuyerWalletID  uuid.UUID
-	SellerWalletID *uuid.UUID // Nullable: may not be known at creation
-	Amount         int64      // In cents (e.g., 10000 = $100.00)
-	Status         EscrowStatus
-	PaymentID      *uuid.UUID // Nullable link to payments(id) for audit
-	CreatedAt      time.Time
-	ReleasedAt     *time.Time
-	RefundedAt     *time.Time
+	ID         uuid.UUID
+	OrderID    uuid.UUID
+	Amount     int64 // In rupiah units (canonical money unit)
+	Status     EscrowStatus
+	PaymentID  *uuid.UUID // Nullable link to payments(id) for audit
+	CreatedAt  time.Time
+	ReleasedAt *time.Time
+	RefundedAt *time.Time
 }
 
 // IsValid checks if the escrow is valid.
@@ -78,25 +75,21 @@ func (e *Escrow) IsValid() error {
 }
 
 // NewEscrow creates a new escrow for an order.
-func NewEscrow(orderID, buyerWalletID uuid.UUID, amount int64) (*Escrow, error) {
+func NewEscrow(orderID uuid.UUID, amount int64) (*Escrow, error) {
+	if orderID == uuid.Nil {
+		return nil, fmt.Errorf("order_id cannot be nil")
+	}
 	if amount < 0 {
 		return nil, fmt.Errorf("amount cannot be negative: got %d", amount)
 	}
 
 	return &Escrow{
-		ID:            uuid.New(),
-		OrderID:       orderID,
-		BuyerWalletID: buyerWalletID,
-		Amount:        amount,
-		Status:        EscrowStatusHolding,
-		CreatedAt:     time.Now(),
+		ID:        uuid.New(),
+		OrderID:   orderID,
+		Amount:    amount,
+		Status:    EscrowStatusHolding,
+		CreatedAt: time.Now(),
 	}, nil
-}
-
-// SetSellerWallet sets the seller wallet for the escrow.
-// This is called when the seller wallet is known.
-func (e *Escrow) SetSellerWallet(sellerWalletID uuid.UUID) {
-	e.SellerWalletID = &sellerWalletID
 }
 
 // Release marks the escrow as released to the seller.
@@ -154,5 +147,3 @@ type ErrEscrowAlreadyExists struct {
 func (e *ErrEscrowAlreadyExists) Error() string {
 	return fmt.Errorf("escrow already exists for order: %s", e.OrderID).Error()
 }
-
-

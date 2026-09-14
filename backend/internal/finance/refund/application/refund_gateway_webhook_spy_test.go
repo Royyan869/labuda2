@@ -20,9 +20,9 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
 	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
-	walletApp "github.com/labuda/backend/internal/core/wallet/application"
-	walletEntity "github.com/labuda/backend/internal/core/wallet/entity"
-	walletRepo "github.com/labuda/backend/internal/core/wallet/repository"
+	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
+	escrowEntity "github.com/labuda/backend/internal/core/escrow/entity"
+	escrowRepo "github.com/labuda/backend/internal/core/escrow/repository"
 	financeapp "github.com/labuda/backend/internal/finance/application"
 	"github.com/labuda/backend/internal/finance/refund/entity"
 	refundrepo "github.com/labuda/backend/internal/finance/refund/repository"
@@ -101,10 +101,10 @@ func (noopTx) Rollback(_ context.Context) error                       { return n
 // ============================================================================
 
 type mockEscrowRepo struct {
-	escrows map[uuid.UUID]*walletEntity.Escrow
+	escrows map[uuid.UUID]*escrowEntity.Escrow
 }
 
-func (m *mockEscrowRepo) GetByID(_ context.Context, _ db.Tx, id uuid.UUID) (*walletEntity.Escrow, error) {
+func (m *mockEscrowRepo) GetByID(_ context.Context, _ db.Tx, id uuid.UUID) (*escrowEntity.Escrow, error) {
 	for _, e := range m.escrows {
 		if e.ID == id {
 			return e, nil
@@ -112,25 +112,19 @@ func (m *mockEscrowRepo) GetByID(_ context.Context, _ db.Tx, id uuid.UUID) (*wal
 	}
 	return nil, nil
 }
-func (m *mockEscrowRepo) GetByOrderID(_ context.Context, _ db.Tx, orderID uuid.UUID) (*walletEntity.Escrow, error) {
+func (m *mockEscrowRepo) GetByOrderID(_ context.Context, _ db.Tx, orderID uuid.UUID) (*escrowEntity.Escrow, error) {
 	return m.escrows[orderID], nil
 }
-func (m *mockEscrowRepo) GetByOrderIDForUpdate(_ context.Context, _ db.Tx, orderID uuid.UUID) (*walletEntity.Escrow, error) {
+func (m *mockEscrowRepo) GetByOrderIDForUpdate(_ context.Context, _ db.Tx, orderID uuid.UUID) (*escrowEntity.Escrow, error) {
 	return m.escrows[orderID], nil
 }
-func (m *mockEscrowRepo) Create(_ context.Context, _ db.Tx, escrow *walletEntity.Escrow) error {
+func (m *mockEscrowRepo) Create(_ context.Context, _ db.Tx, escrow *escrowEntity.Escrow) error {
 	m.escrows[escrow.OrderID] = escrow
 	return nil
 }
-func (m *mockEscrowRepo) Update(_ context.Context, _ db.Tx, escrow *walletEntity.Escrow) error {
+func (m *mockEscrowRepo) Update(_ context.Context, _ db.Tx, escrow *escrowEntity.Escrow) error {
 	m.escrows[escrow.OrderID] = escrow
 	return nil
-}
-func (m *mockEscrowRepo) GetByBuyerWalletID(_ context.Context, _ db.Tx, _ uuid.UUID) ([]*walletEntity.Escrow, error) {
-	return nil, nil
-}
-func (m *mockEscrowRepo) GetBySellerWalletID(_ context.Context, _ db.Tx, _ uuid.UUID) ([]*walletEntity.Escrow, error) {
-	return nil, nil
 }
 
 // ============================================================================
@@ -350,9 +344,9 @@ func buildTestOrder(orderID, buyerID, sellerID uuid.UUID, subtotal, shipping, co
 	}
 }
 
-// buildWalletService creates a WalletService with mock escrow + dispute repos.
-func buildWalletService(escrows map[uuid.UUID]*walletEntity.Escrow) *walletApp.WalletService {
-	ws := walletApp.NewWalletService(nil, zap.NewNop())
+// buildEscrowService creates an EscrowService with mock escrow + dispute repos.
+func buildEscrowService(escrows map[uuid.UUID]*escrowEntity.Escrow) *escrowApp.EscrowService {
+	ws := escrowApp.NewEscrowService(nil, zap.NewNop())
 	ws.SetEscrowRepository(&mockEscrowRepo{escrows: escrows})
 	ws.SetDisputeRepository(&mockDisputeRepo{})
 	return ws
@@ -362,13 +356,13 @@ func buildWalletService(escrows map[uuid.UUID]*walletEntity.Escrow) *walletApp.W
 func buildRefundService(
 	refundRepo refundrepo.RefundRepository,
 	orderRepo orderrepository.OrderRepository,
-	walletService *walletApp.WalletService,
+	escrowService *escrowApp.EscrowService,
 	spy *spyFinanceReverser,
 ) *RefundService {
 	svc := &RefundService{
 		refundRepo:              refundRepo,
 		orderRepo:               orderRepo,
-		walletService:           walletService,
+		escrowService:           escrowService,
 		outboxRepo:              outboxRepoImpl.NewOutboxRepository(nil),
 		gatewayLogger:           zap.NewNop(),
 		financeReverser:         spy,
@@ -456,13 +450,13 @@ func TestWebhookPartialRefund_CallsPartialRelease(t *testing.T) {
 	rr.refundByID[refund.ID] = refund
 	rr.successTotal = 0 // no previous refunds
 
-	escrow := &walletEntity.Escrow{
+	escrow := &escrowEntity.Escrow{
 		ID:      uuid.New(),
 		OrderID: orderID,
 		Amount:  131_250,
-		Status:  walletEntity.EscrowStatusHolding,
+		Status:  escrowEntity.EscrowStatusHolding,
 	}
-	ws := buildWalletService(map[uuid.UUID]*walletEntity.Escrow{orderID: escrow})
+	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 	spy := &spyFinanceReverser{}
 	svc := buildRefundService(rr, &mockOrderRepo{order: order}, ws, spy)
 
@@ -535,13 +529,13 @@ func TestWebhookFullRefund_DoesNotCallPartialRelease(t *testing.T) {
 	rr.refundByID[refund.ID] = refund
 	rr.successTotal = 0
 
-	escrow := &walletEntity.Escrow{
+	escrow := &escrowEntity.Escrow{
 		ID:      uuid.New(),
 		OrderID: orderID,
 		Amount:  131_250,
-		Status:  walletEntity.EscrowStatusHolding,
+		Status:  escrowEntity.EscrowStatusHolding,
 	}
-	ws := buildWalletService(map[uuid.UUID]*walletEntity.Escrow{orderID: escrow})
+	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 	spy := &spyFinanceReverser{}
 	svc := buildRefundService(rr, &mockOrderRepo{order: order}, ws, spy)
 
@@ -583,7 +577,7 @@ func TestWebhookDuplicate_NoFinanceCalls(t *testing.T) {
 	rr.refundByID[refund.ID] = refund
 
 	spy := &spyFinanceReverser{}
-	// walletService and order don't matter — should never be reached
+	// escrowService and order don't matter — should never be reached
 	svc := &RefundService{
 		refundRepo:      rr,
 		gatewayLogger:   zap.NewNop(),
@@ -628,13 +622,13 @@ func TestWebhookPartialRefund_ZeroRemainder_NoRelease(t *testing.T) {
 	rr.refundByID[refund.ID] = refund
 	rr.successTotal = 0
 
-	escrow := &walletEntity.Escrow{
+	escrow := &escrowEntity.Escrow{
 		ID:      uuid.New(),
 		OrderID: orderID,
 		Amount:  100_000,
-		Status:  walletEntity.EscrowStatusHolding,
+		Status:  escrowEntity.EscrowStatusHolding,
 	}
-	ws := buildWalletService(map[uuid.UUID]*walletEntity.Escrow{orderID: escrow})
+	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 	spy := &spyFinanceReverser{}
 	svc := buildRefundService(rr, &mockOrderRepo{order: order}, ws, spy)
 
@@ -671,11 +665,11 @@ func (s *spyFreezeReleaser) ReleaseDisputeFreezeByOrderID(_ context.Context, _ d
 func buildRefundServiceWithFreezeReleaser(
 	refundRepo refundrepo.RefundRepository,
 	orderRepo orderrepository.OrderRepository,
-	walletService *walletApp.WalletService,
+	escrowService *escrowApp.EscrowService,
 	spy *spyFinanceReverser,
 	freezeSpy *spyFreezeReleaser,
 ) *RefundService {
-	svc := buildRefundService(refundRepo, orderRepo, walletService, spy)
+	svc := buildRefundService(refundRepo, orderRepo, escrowService, spy)
 	svc.freezeReleaser = freezeSpy
 	return svc
 }
@@ -702,13 +696,13 @@ func TestWebhookPostRelease_AckRejected_DoesNotReleaseFreezeByOrderID(t *testing
 	rr.successTotal = 0
 
 	// Escrow is RELEASED (post-release scenario)
-	escrow := &walletEntity.Escrow{
+	escrow := &escrowEntity.Escrow{
 		ID:      uuid.New(),
 		OrderID: orderID,
 		Amount:  131_250,
-		Status:  walletEntity.EscrowStatusReleased,
+		Status:  escrowEntity.EscrowStatusReleased,
 	}
-	ws := buildWalletService(map[uuid.UUID]*walletEntity.Escrow{orderID: escrow})
+	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 
 	spy := &spyFinanceReverser{
 		reversalSummary: &financeapp.RecordRefundReversalSummary{
@@ -732,7 +726,7 @@ func TestWebhookPostRelease_AckRejected_DoesNotReleaseFreezeByOrderID(t *testing
 	if freezeSpy.releaseCalled {
 		t.Fatal("ReleaseDisputeFreezeByOrderID must not run for blocked post-release ack")
 	}
-	if escrow.Status != walletEntity.EscrowStatusReleased {
+	if escrow.Status != escrowEntity.EscrowStatusReleased {
 		t.Fatalf("escrow should stay RELEASED, got %s", escrow.Status)
 	}
 }
@@ -758,13 +752,13 @@ func TestWebhookPreRelease_AckSuccess_DoesNotReleaseFreezeByOrderID(t *testing.T
 	rr.successTotal = 0
 
 	// Escrow is HOLDING (pre-release scenario)
-	escrow := &walletEntity.Escrow{
+	escrow := &escrowEntity.Escrow{
 		ID:      uuid.New(),
 		OrderID: orderID,
 		Amount:  131_250,
-		Status:  walletEntity.EscrowStatusHolding,
+		Status:  escrowEntity.EscrowStatusHolding,
 	}
-	ws := buildWalletService(map[uuid.UUID]*walletEntity.Escrow{orderID: escrow})
+	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 
 	spy := &spyFinanceReverser{}
 	freezeSpy := &spyFreezeReleaser{}
@@ -846,13 +840,13 @@ func TestWebhookPostRelease_DuplicateAck_DoesNotDoubleRelease(t *testing.T) {
 	rr.refundByGatewayRefundID[gatewayRefundID] = refund
 	rr.refundByID[refund.ID] = refund
 
-	escrow := &walletEntity.Escrow{
+	escrow := &escrowEntity.Escrow{
 		ID:      uuid.New(),
 		OrderID: orderID,
 		Amount:  131_250,
-		Status:  walletEntity.EscrowStatusReleased,
+		Status:  escrowEntity.EscrowStatusReleased,
 	}
-	ws := buildWalletService(map[uuid.UUID]*walletEntity.Escrow{orderID: escrow})
+	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 
 	spy := &spyFinanceReverser{
 		reversalSummary: &financeapp.RecordRefundReversalSummary{
@@ -896,13 +890,13 @@ func TestWebhookPostRelease_FullRefund_IsRejected(t *testing.T) {
 	rr.successTotal = 0
 
 	// Escrow RELEASED → afterRelease=true, escrowAlreadyTerminal=true
-	escrow := &walletEntity.Escrow{
+	escrow := &escrowEntity.Escrow{
 		ID:      uuid.New(),
 		OrderID: orderID,
 		Amount:  131_250,
-		Status:  walletEntity.EscrowStatusReleased,
+		Status:  escrowEntity.EscrowStatusReleased,
 	}
-	ws := buildWalletService(map[uuid.UUID]*walletEntity.Escrow{orderID: escrow})
+	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 
 	spy := &spyFinanceReverser{
 		reversalSummary: &financeapp.RecordRefundReversalSummary{
@@ -950,13 +944,13 @@ func TestWebhookPostRelease_PartialRefund_IsRejected(t *testing.T) {
 	rr.successTotal = 0
 
 	// Escrow RELEASED (post-release)
-	escrow := &walletEntity.Escrow{
+	escrow := &escrowEntity.Escrow{
 		ID:      uuid.New(),
 		OrderID: orderID,
 		Amount:  131_250,
-		Status:  walletEntity.EscrowStatusReleased,
+		Status:  escrowEntity.EscrowStatusReleased,
 	}
-	ws := buildWalletService(map[uuid.UUID]*walletEntity.Escrow{orderID: escrow})
+	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 
 	spy := &spyFinanceReverser{
 		reversalSummary: &financeapp.RecordRefundReversalSummary{
@@ -1002,8 +996,8 @@ func TestWebhookSellerApproved_FullRefund_SetsOrderStatusRefunded(t *testing.T) 
 	rr.refundByGatewayRefundID[gatewayRefundID] = refund
 	rr.refundByID[refund.ID] = refund
 	rr.successTotal = 0
-	escrow := &walletEntity.Escrow{ID: uuid.New(), OrderID: orderID, Amount: 131_250, Status: walletEntity.EscrowStatusHolding}
-	ws := buildWalletService(map[uuid.UUID]*walletEntity.Escrow{orderID: escrow})
+	escrow := &escrowEntity.Escrow{ID: uuid.New(), OrderID: orderID, Amount: 131_250, Status: escrowEntity.EscrowStatusHolding}
+	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 	spy := &spyFinanceReverser{}
 	svc := buildRefundService(rr, &mockOrderRepo{order: order}, ws, spy)
 	syncSpy := &spyOrderRefundStatusSyncer{}
@@ -1036,8 +1030,8 @@ func TestWebhookSellerApproved_PartialRefund_SetsOrderStatusPartiallyRefunded(t 
 	rr.refundByGatewayRefundID[gatewayRefundID] = refund
 	rr.refundByID[refund.ID] = refund
 	rr.successTotal = 0
-	escrow := &walletEntity.Escrow{ID: uuid.New(), OrderID: orderID, Amount: 131_250, Status: walletEntity.EscrowStatusHolding}
-	ws := buildWalletService(map[uuid.UUID]*walletEntity.Escrow{orderID: escrow})
+	escrow := &escrowEntity.Escrow{ID: uuid.New(), OrderID: orderID, Amount: 131_250, Status: escrowEntity.EscrowStatusHolding}
+	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 	spy := &spyFinanceReverser{}
 	svc := buildRefundService(rr, &mockOrderRepo{order: order}, ws, spy)
 	syncSpy := &spyOrderRefundStatusSyncer{}
@@ -1069,13 +1063,13 @@ func TestWebhookSellerApproved_OrderStatusSyncerFailure_ReturnsError(t *testing.
 	rr.refundByID[refund.ID] = refund
 	rr.successTotal = 0
 
-	escrow := &walletEntity.Escrow{
+	escrow := &escrowEntity.Escrow{
 		ID:      uuid.New(),
 		OrderID: orderID,
 		Amount:  131_250,
-		Status:  walletEntity.EscrowStatusHolding,
+		Status:  escrowEntity.EscrowStatusHolding,
 	}
-	ws := buildWalletService(map[uuid.UUID]*walletEntity.Escrow{orderID: escrow})
+	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 	spy := &spyFinanceReverser{}
 	svc := buildRefundService(rr, &mockOrderRepo{order: order}, ws, spy)
 	syncSpy := &spyOrderRefundStatusSyncer{returnErr: errors.New("order sync failed")}
@@ -1110,8 +1104,8 @@ func TestWebhookPostRelease_AckRejected_OrderStatusNotUpdated(t *testing.T) {
 	rr.refundByGatewayRefundID[gatewayRefundID] = refund
 	rr.refundByID[refund.ID] = refund
 	rr.successTotal = 0
-	escrow := &walletEntity.Escrow{ID: uuid.New(), OrderID: orderID, Amount: 131_250, Status: walletEntity.EscrowStatusReleased}
-	ws := buildWalletService(map[uuid.UUID]*walletEntity.Escrow{orderID: escrow})
+	escrow := &escrowEntity.Escrow{ID: uuid.New(), OrderID: orderID, Amount: 131_250, Status: escrowEntity.EscrowStatusReleased}
+	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 	spy := &spyFinanceReverser{reversalSummary: &financeapp.RecordRefundReversalSummary{Phase: "after_release", Duplicate: false}}
 	freezeSpy := &spyFreezeReleaser{}
 	svc := buildRefundServiceWithFreezeReleaser(rr, &mockOrderRepo{order: order}, ws, spy, freezeSpy)
@@ -1178,13 +1172,13 @@ func TestWebhookPostRelease_NilFreezeReleaser_ReturnsError(t *testing.T) {
 	rr.successTotal = 0
 
 	// Escrow RELEASED → afterRelease=true
-	escrow := &walletEntity.Escrow{
+	escrow := &escrowEntity.Escrow{
 		ID:      uuid.New(),
 		OrderID: orderID,
 		Amount:  131_250,
-		Status:  walletEntity.EscrowStatusReleased,
+		Status:  escrowEntity.EscrowStatusReleased,
 	}
-	ws := buildWalletService(map[uuid.UUID]*walletEntity.Escrow{orderID: escrow})
+	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 
 	spy := &spyFinanceReverser{
 		reversalSummary: &financeapp.RecordRefundReversalSummary{
@@ -1228,13 +1222,13 @@ func TestWebhookPreRelease_NilFreezeReleaser_Succeeds(t *testing.T) {
 	rr.successTotal = 0
 
 	// Escrow HOLDING → afterRelease=false → freezeReleaser not needed
-	escrow := &walletEntity.Escrow{
+	escrow := &escrowEntity.Escrow{
 		ID:      uuid.New(),
 		OrderID: orderID,
 		Amount:  131_250,
-		Status:  walletEntity.EscrowStatusHolding,
+		Status:  escrowEntity.EscrowStatusHolding,
 	}
-	ws := buildWalletService(map[uuid.UUID]*walletEntity.Escrow{orderID: escrow})
+	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 
 	spy := &spyFinanceReverser{}
 	// Build service WITHOUT freezeReleaser (nil)
@@ -1311,13 +1305,13 @@ func TestWebhookPostRelease_WiredFreezeReleaser_Succeeds(t *testing.T) {
 	rr.successTotal = 0
 
 	// Escrow RELEASED → afterRelease=true
-	escrow := &walletEntity.Escrow{
+	escrow := &escrowEntity.Escrow{
 		ID:      uuid.New(),
 		OrderID: orderID,
 		Amount:  131_250,
-		Status:  walletEntity.EscrowStatusReleased,
+		Status:  escrowEntity.EscrowStatusReleased,
 	}
-	ws := buildWalletService(map[uuid.UUID]*walletEntity.Escrow{orderID: escrow})
+	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 
 	spy := &spyFinanceReverser{
 		reversalSummary: &financeapp.RecordRefundReversalSummary{
@@ -1346,4 +1340,4 @@ func TestWebhookPostRelease_WiredFreezeReleaser_Succeeds(t *testing.T) {
 // ============================================================================
 var _ refundrepo.RefundRepository = (*mockRefundRepo)(nil)
 var _ orderrepository.OrderRepository = (*mockOrderRepo)(nil)
-var _ walletRepo.EscrowRepository = (*mockEscrowRepo)(nil)
+var _ escrowRepo.EscrowRepository = (*mockEscrowRepo)(nil)

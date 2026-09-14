@@ -1,9 +1,10 @@
 // ⚠️ FINANCIAL RULE:
-// All money operations MUST go through WalletService.
-// Direct balance mutation is forbidden.
+// All escrow lifecycle operations MUST go through EscrowService.
+// Direct state mutation is forbidden.
 //
 // Order domain is a PRICING SNAPSHOT only.
-// Wallet domain is the SINGLE SOURCE OF TRUTH for all money operations.
+// Escrow domain is the SINGLE SOURCE OF TRUTH for escrow row state.
+// Finance ledger is the SINGLE SOURCE OF TRUTH for money movement.
 package application
 
 import (
@@ -17,7 +18,7 @@ import (
 	"github.com/labuda/backend/internal/commerce/governance/commercegov"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	shippingRepoImpl "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
-	walletApp "github.com/labuda/backend/internal/core/wallet/application"
+	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
 	auditApp "github.com/labuda/backend/internal/governance/audit/application"
 	disputerepo "github.com/labuda/backend/internal/governance/dispute/repository"
 	"github.com/labuda/backend/internal/identity/auth"
@@ -58,11 +59,11 @@ func NewOrderService(
 	actorResolver capabilityEntity.ActorResolver, // SERVICE LAYER ENFORCEMENT
 	auditService *auditApp.AuditService, // OBSERVABILITY: Audit service
 	productShippingRepo shippingRepoImpl.ProductShippingSetupRepository, // DI: Product shipping options
-	walletService *walletApp.WalletService, // WALLET PHASE 1: Escrow hold on order creation
+	escrowService *escrowApp.EscrowService, // CANONICAL: escrow lifecycle authority
 	shippingQuoteService ShippingQuoteService, // HARD FIX: Shipping quote reactivation
 ) *OrderService {
 	// Create payment service first (needed by other services)
-	paymentService := NewOrderPaymentService(walletService)
+	paymentService := NewOrderPaymentService(escrowService)
 
 	// Create specialized services
 	creationService := NewOrderCreationService(
@@ -75,7 +76,6 @@ func NewOrderService(
 		auditService,        // Pass audit service to creation service
 		productShippingRepo, // DI: Product shipping options
 		nil,                 // auctionStatusChecker - optional
-		walletService,       // WALLET PHASE 1: Escrow hold on order creation
 	)
 
 	completionService := NewOrderCompletionService(
@@ -85,7 +85,7 @@ func NewOrderService(
 		coinsService,
 		shippingQuoteService, // HARD FIX: Shipping quote reactivation
 		nil,                  // disputeRepo - will be set later
-		walletService,        // Used to derive Order.EscrowStatus from Wallet state
+		escrowService,        // Used to derive Order.EscrowStatus from Escrow state
 		zap.NewNop(),         // Logger is required but not used in this facade
 	)
 
@@ -190,7 +190,7 @@ func (s *OrderService) CreateFromSaleSurface(
 }
 
 // RefundToBuyer flips the order's escrow to "refunded" (gateway-funded model).
-// No wallet balance mutation; ledger reversal flows through the refund pipeline.
+// No balance mutation; ledger reversal flows through the refund pipeline.
 func (s *OrderService) RefundToBuyer(
 	ctx context.Context,
 	tx db.Tx,

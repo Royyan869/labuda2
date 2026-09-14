@@ -12,7 +12,7 @@
 //   - a webhook 'failed' ack cannot overwrite a 'succeeded' row.
 //
 // The state machine is the only authority for these invariants — nothing
-// in this file touches a database, ledger, escrow, wallet, or order.
+// in this file touches a database, ledger, escrow, or order.
 package entity
 
 import (
@@ -139,5 +139,3 @@ func TestGatewayRefundStatus_IsTerminal(t *testing.T) {
 	assert.False(t, GatewayRefundPending.IsTerminal())
 	assert.False(t, GatewayRefundUnsubmitted.IsTerminal())
 }
-
-

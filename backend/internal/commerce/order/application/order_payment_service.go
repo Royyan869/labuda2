@@ -1,9 +1,10 @@
 // ⚠️ FINANCIAL RULE:
-// All money operations MUST go through WalletService.
-// Direct balance mutation is forbidden.
+// All escrow lifecycle operations MUST go through EscrowService.
+// Direct state mutation is forbidden.
 //
 // Order domain is a PRICING SNAPSHOT only.
-// Wallet domain is the SINGLE SOURCE OF TRUTH for all money operations.
+// Escrow domain is the SINGLE SOURCE OF TRUTH for escrow row state.
+// Finance ledger is the SINGLE SOURCE OF TRUTH for money movement.
 package application
 
 import (
@@ -11,11 +12,9 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	// FINANCIAL AUTHORITY: WalletService is the ONLY authority for money movement
-	// All escrow operations MUST go through WalletService
 	"github.com/labuda/backend/internal/commerce/order/entity"
-	walletApp "github.com/labuda/backend/internal/core/wallet/application"
-	walletEntity "github.com/labuda/backend/internal/core/wallet/entity"
+	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
+	escrowEntity "github.com/labuda/backend/internal/core/escrow/entity"
 	coinsentity "github.com/labuda/backend/internal/incentive/coins/entity"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/money"
@@ -23,10 +22,11 @@ import (
 
 // OrderPaymentService handles payment operations for orders.
 //
-// CRITICAL ARCHITECTURAL CHANGE:
-// - Order is now a PRICING SNAPSHOT ONLY (immutable after creation)
+// ARCHITECTURE (canonical gateway-funded model):
+// - Order is a PRICING SNAPSHOT ONLY (immutable after creation)
 // - Order does NOT store: EscrowAmount, RefundedAmount, CoinsDiscount, Discount fields
-// - WalletService is the SINGLE SOURCE OF TRUTH for all money operations
+// - EscrowService is the SINGLE SOURCE OF TRUTH for escrow row state
+// - Finance ledger is the SINGLE SOURCE OF TRUTH for money movement
 // - This service calculates amounts dynamically from Order snapshots when needed
 //
 // FinanceReleaseRecorder is the minimal finance-domain dependency required by
@@ -86,10 +86,10 @@ type GatewayRefundInitiator interface {
 	) error
 }
 
-// FINANCIAL AUTHORITY: WalletService is the ONLY authority for money movement
-// All escrow operations MUST go through WalletService
+// EscrowService is the ONLY authority for escrow row state.
+// All escrow operations MUST go through EscrowService.
 type OrderPaymentService struct {
-	walletService   *walletApp.WalletService
+	escrowService *escrowApp.EscrowService
 
 	// financeRecorder is set after construction via SetFinanceReleaseRecorder.
 	// It is required by ReleaseGatewayEscrowToSeller and only that method;
@@ -144,9 +144,9 @@ func (s *OrderPaymentService) coinsSpendForOrder(ctx context.Context, tx db.Tx, 
 }
 
 // NewOrderPaymentService creates a new OrderPaymentService.
-func NewOrderPaymentService(walletService *walletApp.WalletService) *OrderPaymentService {
+func NewOrderPaymentService(escrowService *escrowApp.EscrowService) *OrderPaymentService {
 	return &OrderPaymentService{
-		walletService:   walletService,
+		escrowService: escrowService,
 	}
 }
 
@@ -172,7 +172,7 @@ var ErrGatewayRefundInitiatorNotConfigured = fmt.Errorf("gateway refund initiato
 // InitiateGatewayRefundForOrder dispatches a canonical gateway refund for a
 // PAID order whose escrow is still in holding state. It MUST be called by
 // every platform-initiated refund decision (dispute resolution, timeout,
-// expire-with-escrow, manual admin) BEFORE any wallet primitive flips
+// expire-with-escrow, manual admin) BEFORE any escrow primitive flips
 // escrow.status, so the gateway-side reversal is in flight when the local
 // state moves.
 //
@@ -236,20 +236,20 @@ func (s *OrderPaymentService) InitiateGatewayRefundForOrder(
 }
 
 // ============================================================================
-// ESCROW OPERATIONS - WALLET SERVICE REDIRECT
+// ESCROW OPERATIONS - ESCROW SERVICE REDIRECT
 // ============================================================================
-// All escrow operations are now handled by WalletService, which is the
-// SINGLE SOURCE OF TRUTH for all money operations.
+// All escrow row operations are handled by EscrowService, which is the
+// SINGLE SOURCE OF TRUTH for escrow state.
 //
 // FINANCIAL AUTHORITY (gateway-funded model):
 // - Order domain = pricing snapshot only
-// - Wallet domain owns escrow row state (holding / released / refunded)
+// - Escrow domain owns escrow row state (holding / released / refunded)
 // - Finance ledger owns money state (GATEWAY_CLEARING, SELLER_PAYABLE, etc.)
-// - Buyer/seller wallet balances are NOT touched by escrow lifecycle — money
+// - No user balance is touched by the escrow lifecycle — money
 //   physically lives at the platform clearing account.
 // ============================================================================
 
-// RefundToBuyer flips the order's escrow to "refunded" without any wallet
+// RefundToBuyer flips the order's escrow to "refunded" without any
 // balance mutation. Gateway-side refund issuance (Midtrans) and the matching
 // ledger reversal are orchestrated separately via the refund pipeline
 // (RefundService.InitiateGatewayRefund + HandleGatewayRefundAck →
@@ -261,13 +261,13 @@ func (s *OrderPaymentService) RefundToBuyer(
 	tx db.Tx,
 	order *entity.Order,
 ) error {
-	_, _, err := s.walletService.RefundGatewayEscrow(ctx, tx, order.ID)
+	_, _, err := s.escrowService.RefundGatewayEscrow(ctx, tx, order.ID)
 	return err
 }
 
 // PartialRefundLedger flips the order's escrow to "released" (terminal)
 // when a portion is refunded to the buyer and the remainder released to the
-// seller (e.g., partial dispute resolution). No wallet balance mutation;
+// seller (e.g., partial dispute resolution). No balance mutation;
 // ledger entries are written separately via the refund pipeline + order
 // release ledger.
 //
@@ -279,7 +279,7 @@ func (s *OrderPaymentService) PartialRefundLedger(
 	order *entity.Order,
 	refundAmount money.Money,
 ) error {
-	_, _, err := s.walletService.PartialRefundGatewayEscrow(ctx, tx, order.ID, refundAmount.Int64())
+	_, _, err := s.escrowService.PartialRefundGatewayEscrow(ctx, tx, order.ID, refundAmount.Int64())
 	return err
 }
 
@@ -297,15 +297,15 @@ type ReleaseSummary struct {
 //
 // Flow (single tx, caller-owned):
 //  1. Compute gross/commission/sellerNet from the order pricing snapshot.
-//  2. Lock + validate + flip escrow.status via WalletService.ReleaseGatewayEscrow.
+//  2. Lock + validate + flip escrow.status via EscrowService.ReleaseGatewayEscrow.
 //  3. Book finance ledger via FinanceService.RecordOrderRelease (idempotent
 //     via UNIQUE idempotency_key="order_release_<order_id>").
 //
-// IDEMPOTENCY: both the wallet escrow flip and the ledger write are
+// IDEMPOTENCY: both the escrow flip and the ledger write are
 // idempotent; replays are no-ops.
 //
-// Wallet balances (buyer.* and seller.*) are NOT touched. The seller's
-// withdrawable surface is financial_accounts[SELLER_PAYABLE].
+// User balances are NOT touched. The seller's withdrawable surface is
+// financial_accounts[SELLER_PAYABLE].
 func (s *OrderPaymentService) ReleaseGatewayEscrowToSeller(
 	ctx context.Context,
 	tx db.Tx,
@@ -336,8 +336,8 @@ func (s *OrderPaymentService) ReleaseGatewayEscrowToSeller(
 	}
 	sellerNet := gross - commission
 
-	// Wallet half: lock escrow, validate state/amount, flip status.
-	_, newly, err := s.walletService.ReleaseGatewayEscrow(ctx, tx, order.ID, gross)
+	// Escrow half: lock escrow, validate state/amount, flip status.
+	_, newly, err := s.escrowService.ReleaseGatewayEscrow(ctx, tx, order.ID, gross)
 	if err != nil {
 		return nil, err
 	}
@@ -362,13 +362,13 @@ func (s *OrderPaymentService) ReleaseGatewayEscrowToSeller(
 
 // PartialRefundEscrow flips the escrow to "released" (terminal) for partial
 // split dispute resolution: buyer is refunded item price, seller is released
-// shipping. No wallet balance mutation; ledger entries are written elsewhere.
+// shipping. No balance mutation; ledger entries are written elsewhere.
 func (s *OrderPaymentService) PartialRefundEscrow(
 	ctx context.Context,
 	tx db.Tx,
 	orderID uuid.UUID,
 	refundAmount int64,
-) (*walletEntity.Escrow, error) {
-	escrow, _, err := s.walletService.PartialRefundGatewayEscrow(ctx, tx, orderID, refundAmount)
+) (*escrowEntity.Escrow, error) {
+	escrow, _, err := s.escrowService.PartialRefundGatewayEscrow(ctx, tx, orderID, refundAmount)
 	return escrow, err
 }

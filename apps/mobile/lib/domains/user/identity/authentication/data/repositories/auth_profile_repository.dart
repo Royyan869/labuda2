@@ -16,7 +16,7 @@ import '../../domain/entities/user_profile_patch.dart';
 /// Migration Strategy (COMPLIANT with MIGRASI_2_GUIDE.md):
 /// - User data operations (getUserById, searchUsers, updateProfile data, deactivateAccount, updateUserRole)
 ///   use Go backend API via AuthApiDatasource
-/// - Firebase Auth operations (resetPassword, verifyEmail, changeEmail, changePassword, deleteAccount)
+/// - Firebase Auth operations (resetPassword, verifyEmail, changePassword, deleteAccount)
 ///   remain with Firebase Auth as these are platform/auth services
 class AuthProfileRepository {
   final FirebaseAuth _firebaseAuth;
@@ -150,7 +150,18 @@ class AuthProfileRepository {
         restrictedToken: restrictedToken,
       );
       if (result.isError) {
-        return Result.error(result.error ?? 'Failed to complete profile');
+        // TRANSPARENT CARRIER (Slice 22): the datasource owns the backend's
+        // structured error metadata. Re-wrapping the error without it stripped
+        // `errorCode`/`statusCode`/`details`, which forced
+        // AuthController.completeProfile onto free-text message matching for
+        // PROFILE_ALREADY_COMPLETED / INVALID_SCOPE and made the documented
+        // 5xx → backendUnavailable path unreachable from a real response.
+        return Result.error(
+          result.error ?? 'Failed to complete profile',
+          code: result.errorCode,
+          statusCode: result.statusCode,
+          details: result.errorDetails,
+        );
       }
 
       final completeResponse = result.data!;
@@ -193,37 +204,6 @@ class AuthProfileRepository {
       return Result.success(currentUser);
     } catch (e) {
       return Result.error('Complete profile failed: ${e.toString()}');
-    }
-  }
-
-  Future<Result<void>> changeEmail({
-    required String newEmail,
-    required String currentPassword,
-  }) async {
-    try {
-      final user = _firebaseAuth.currentUser;
-      if (user == null) {
-        return Result.error('User not found');
-      }
-
-      // Reauthenticate first for security
-      final credential = EmailAuthProvider.credential(
-        email: user.email!,
-        password: currentPassword,
-      );
-      await user.reauthenticateWithCredential(credential);
-
-      // Update email
-      await user.verifyBeforeUpdateEmail(newEmail);
-
-      // Send verification email to new address
-      await user.sendEmailVerification();
-
-      return Result.success(null);
-    } on FirebaseAuthException catch (e) {
-      return Result.error(_mapFirebaseError(e));
-    } catch (e) {
-      return Result.error('Change email failed: ${e.toString()}');
     }
   }
 

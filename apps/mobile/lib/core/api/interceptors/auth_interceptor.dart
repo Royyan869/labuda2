@@ -8,7 +8,6 @@ import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 
 typedef SessionExpiredCallback = FutureOr<void> Function();
 typedef LabudaTokenFetcher = Future<String?> Function();
-typedef IdTokenFetcher = Future<String?> Function(bool forceRefresh);
 typedef RequestRetrier = Future<Response<dynamic>> Function(RequestOptions options);
 
 /// Labuda refresh executor for tests — returns true on success, false on failure.
@@ -36,14 +35,11 @@ class AuthInterceptor extends Interceptor {
     LabudaTokenFetcher? labudaTokenFetcher,
     LabudaTokenFetcher? refreshTokenFetcher,
     LabudaRefreshExecutor? refreshExecutor,
-    @Deprecated('Use labudaTokenFetcher — Firebase path is removed (Phase 3B)')
-    IdTokenFetcher? tokenFetcher,
     RequestRetrier? requestRetrier,
     Dio? dio,
   })  : _logger = logger,
         _localStorage = localStorage,
-        _labudaFetcher = labudaTokenFetcher ??
-            (tokenFetcher != null ? () => tokenFetcher(false) : null),
+        _labudaFetcher = labudaTokenFetcher,
         _refreshFetcher = refreshTokenFetcher,
         _refreshExecutor = refreshExecutor,
         _requestRetrier = requestRetrier,

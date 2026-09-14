@@ -643,7 +643,6 @@ class _FailingAuthRepository extends Fake implements IAuthRepository {
   Future<Result<FirebasePrincipal>> signUpWithEmail({
     required String email,
     required String password,
-    required String username,
   }) async => Result.error('not used');
 
   @override
@@ -668,9 +667,6 @@ class _FailingAuthRepository extends Fake implements IAuthRepository {
   @override
   Future<Result<void>> revokeSession(String familyId) async =>
       Result.success(null);
-
-  @override
-  Future<Result<AuthUser?>> getCurrentUser() async => Result.success(null);
 
   @override
   Future<Result<void>> resetPassword({required String email}) async =>
@@ -716,12 +712,6 @@ class _FailingAuthRepository extends Fake implements IAuthRepository {
 
   @override
   Future<Result<void>> sendEmailVerification() async => Result.success(null);
-
-  @override
-  Future<Result<void>> changeEmail({
-    required String newEmail,
-    required String currentPassword,
-  }) async => Result.success(null);
 
   @override
   Future<Result<void>> changePassword({

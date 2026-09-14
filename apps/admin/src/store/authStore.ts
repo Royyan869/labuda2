@@ -4,6 +4,7 @@ export interface AdminUser {
   id: string
   email: string
   username: string
+  avatarUrl?: string
   isAdmin: boolean
   capabilities?: string[]
 }

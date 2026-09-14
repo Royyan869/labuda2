@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	walletEntity "github.com/labuda/backend/internal/core/wallet/entity"
+	escrowEntity "github.com/labuda/backend/internal/core/escrow/entity"
 	financeapp "github.com/labuda/backend/internal/finance/application"
 	"github.com/labuda/backend/internal/finance/refund/entity"
 	"github.com/labuda/backend/internal/identity/auth"
@@ -220,14 +220,14 @@ func (s *RefundService) InitiateGatewayRefund(ctx context.Context, tx db.Tx, inp
 		return nil, ErrRefundAlreadySettledByGateway
 	}
 
-	escrow, err := s.walletService.GetEscrowForOrder(ctx, tx, refund.OrderID)
+	escrow, err := s.escrowService.GetEscrowForOrder(ctx, tx, refund.OrderID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load escrow: %w", err)
 	}
 	if escrow == nil {
 		return nil, fmt.Errorf("cannot refund: no escrow for order")
 	}
-	if escrow.Status != walletEntity.EscrowStatusHolding {
+	if escrow.Status != escrowEntity.EscrowStatusHolding {
 		return nil, fmt.Errorf("gateway refund requires escrow in holding state, got %q", escrow.Status)
 	}
 
@@ -315,7 +315,7 @@ func (s *RefundService) HandleGatewayRefundAck(ctx context.Context, tx db.Tx, no
 			if err != nil {
 				return fmt.Errorf("refund reversal: lock order: %w", err)
 			}
-			escrow, err := s.walletService.GetEscrowForOrder(ctx, tx, refund.OrderID)
+			escrow, err := s.escrowService.GetEscrowForOrder(ctx, tx, refund.OrderID)
 			if err != nil {
 				return fmt.Errorf("refund reversal: load escrow: %w", err)
 			}
@@ -400,7 +400,7 @@ func (s *RefundService) HandleGatewayRefundAck(ctx context.Context, tx db.Tx, no
 				)
 			}
 
-			afterRelease := escrow.Status == walletEntity.EscrowStatusReleased
+			afterRelease := escrow.Status == escrowEntity.EscrowStatusReleased
 			if afterRelease {
 				return fmt.Errorf("post-release refund acknowledgements are disabled")
 			}
@@ -438,17 +438,17 @@ func (s *RefundService) HandleGatewayRefundAck(ctx context.Context, tx db.Tx, no
 				refund.UpdatedAt = now
 			}
 
-			escrowAlreadyTerminal := escrow.Status != walletEntity.EscrowStatusHolding
+			escrowAlreadyTerminal := escrow.Status != escrowEntity.EscrowStatusHolding
 			cumCash := breakdown.CumProductRefundAfter + breakdown.CumShippingRefundAfter - breakdown.CumCoinsRestoredAfter
 			fullyRefunded := !summary.Duplicate && !escrowAlreadyTerminal && cumCash >= pd+sVal-kVal
 			partiallyRefunded := !summary.Duplicate && !escrowAlreadyTerminal && cumCash > 0 && cumCash < pd+sVal-kVal
 
 			if fullyRefunded {
-				if _, _, err := s.walletService.RefundGatewayEscrow(ctx, tx, refund.OrderID); err != nil {
+				if _, _, err := s.escrowService.RefundGatewayEscrow(ctx, tx, refund.OrderID); err != nil {
 					return fmt.Errorf("refund reversal: flip escrow: %w", err)
 				}
 			} else if partiallyRefunded {
-				if _, _, err := s.walletService.PartialRefundGatewayEscrow(ctx, tx, refund.OrderID, breakdown.CashRefund); err != nil {
+				if _, _, err := s.escrowService.PartialRefundGatewayEscrow(ctx, tx, refund.OrderID, breakdown.CashRefund); err != nil {
 					return fmt.Errorf("refund reversal: flip escrow: %w", err)
 				}
 				// CANONICAL REMAINDER: the seller's remaining economic entitlement

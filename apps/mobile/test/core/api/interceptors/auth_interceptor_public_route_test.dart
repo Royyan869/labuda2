@@ -42,7 +42,7 @@ void main() {
       final adapter = _CaptureAdapter();
       final dio = Dio()..httpClientAdapter = adapter;
       dio.interceptors.add(
-        AuthInterceptor(tokenFetcher: (_) async => 'fresh-token'),
+        AuthInterceptor(labudaTokenFetcher: () async => 'fresh-token'),
       );
 
       // Any user-ID path (including former "trending") → public, no token
@@ -65,7 +65,7 @@ void main() {
       final adapter = _CaptureAdapter();
       final dio = Dio()..httpClientAdapter = adapter;
       dio.interceptors.add(
-        AuthInterceptor(tokenFetcher: (_) async => 'fresh-token'),
+        AuthInterceptor(labudaTokenFetcher: () async => 'fresh-token'),
       );
 
       // check-username is explicitly excluded from the public browse list
@@ -83,7 +83,7 @@ void main() {
     final adapter = _CaptureAdapter();
     final dio = Dio()..httpClientAdapter = adapter;
     dio.interceptors.add(
-      AuthInterceptor(tokenFetcher: (_) async => 'fresh-token'),
+      AuthInterceptor(labudaTokenFetcher: () async => 'fresh-token'),
     );
 
     await dio.get<dynamic>('/api/v1/users/me');

@@ -19,10 +19,6 @@ type wsLookup struct {
 	known map[uuid.UUID]bool
 }
 
-func (w *wsLookup) GetUserIDByFirebaseUID(ctx context.Context, firebaseUID string) (uuid.UUID, error) {
-	return uuid.Nil, context.DeadlineExceeded
-}
-
 func (w *wsLookup) GetUserIDByID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
 	if w.known[userID] {
 		return userID, nil

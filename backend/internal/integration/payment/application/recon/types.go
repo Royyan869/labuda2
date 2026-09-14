@@ -92,7 +92,7 @@ const (
 	LocalPaymentStatusExpire     = "expire"
 )
 
-// Local escrow.status canonical values (3-state model post wallet-hold
+// Local escrow.status canonical values (3-state model post gateway-settlement
 // demolition).
 const (
 	EscrowStatusHolding  = "holding"

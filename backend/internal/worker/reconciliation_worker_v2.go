@@ -43,7 +43,7 @@ type ReconciliationAlertService interface {
 //
 // CONSTITUTIONAL ROLE (RUNTIME-INVARIANTS §7.1 + ADR-002):
 // Reconciliation is VERIFICATION + ESCALATION only. It MUST NOT mutate the
-// ledger, wallet, or any canonical authority. Corrective journal entries are
+// ledger, or any canonical authority. Corrective journal entries are
 // the exclusive responsibility of canonical FinanceService methods invoked by
 // an attributable operator. There is no "auto-repair" path — silently
 // reshaping truth to match the ledger sum violates ADR-002 and §7.7.
@@ -500,20 +500,29 @@ func (w *ReconciliationWorkerV2) checkTransactionBalance(ctx context.Context, tx
 
 // checkAccountBalances verifies stored vs calculated balances.
 //
-// ledger_entries.amount is always positive (CHECK amount > 0);
-// entry_type distinguishes debit (+) from credit (-). The signed
-// sum reconstructs the net movement per account.
+// CANONICAL SIGN ARCHITECTURE: Balance reconstruction is account-class-aware.
+// Asset/Expense: economic_balance = Σ(DR) - Σ(CR)
+// Liability/Revenue/Equity: economic_balance = Σ(CR) - Σ(DR)
 //
-// BANK_SETTLEMENT is bootstrapped with an initial balance of
-// 9,000,000,000,000,000 (Rp 90 T reserve float) without a ledger
-// entry, so the comparison offsets by this seed value.
-// See: system_account_bootstrap.go → bankSettlementReserveFloat.
+// BANK_SETTLEMENT is bootstrapped with a seed balance that has no
+// corresponding ledger entry, so the comparison offsets by this seed value.
 func (w *ReconciliationWorkerV2) checkAccountBalances(ctx context.Context, tx db.Tx) []ReconciliationIssue {
+	// CANONICAL: account-class-aware balance reconstruction.
+	// For assets: debit contributes +amount, credit contributes -amount.
+	// For liabilities/revenue: credit contributes +amount, debit contributes -amount.
 	ledgerQuery := `
-		SELECT account_id,
-		       SUM(CASE WHEN entry_type = 'debit' THEN amount ELSE -amount END) as calculated_balance
-		FROM ledger_entries
-		GROUP BY account_id;
+		SELECT le.account_id, fa.account_type,
+		       SUM(CASE
+		         WHEN fa.account_type IN ('SELLER_PAYABLE','BUYER_REFUNDABLE','PLATFORM_REVENUE',
+		           'WITHDRAWAL_PENDING','WITHDRAWAL_COMMITTED','GATEWAY_CLEARING','ESCROW',
+		           'USER_SERVICE_CREDIT','AD_REVENUE','PROMOTE_BALANCE','PROMOTION_ALLOCATION',
+		           'BANK_SETTLEMENT')
+		         THEN CASE WHEN le.entry_type = 'credit' THEN le.amount ELSE -le.amount END
+		         ELSE CASE WHEN le.entry_type = 'debit' THEN le.amount ELSE -le.amount END
+		       END) as calculated_balance
+		FROM ledger_entries le
+		JOIN financial_accounts fa ON fa.id = le.account_id
+		GROUP BY le.account_id, fa.account_type;
 	`
 
 	rows, err := tx.Query(ctx, ledgerQuery)

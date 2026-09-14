@@ -35,11 +35,12 @@ const (
 // JWT tokens contain roles for CONVENIENCE/INFORMATIONAL PURPOSES ONLY.
 // The `roles` claim in the token is NOT authoritative for authorization.
 //
-// **AUTHORITY FLOW:**
-// 1. Firebase ID token verified by AuthMiddleware
+// **CANONICAL LABUDA AUTHORITY FLOW:**
+// 1. Firebase ID token verified by AuthHandler.FirebaseExchange (exchange only)
 // 2. User looked up/created in PostgreSQL
-// 3. Roles refreshed from PostgreSQL by RolesLookupMiddleware (on every request)
-// 4. Authorization checks use RoleChecker/SellerAuthorityChecker (DB queries)
+// 3. Labuda access JWT issued (token_use=access) and validated by LabudaAuthMiddleware on every request
+// 4. Actor (role + capabilities + emailVerified) resolved from PostgreSQL by ActorResolver on every request
+// 5. Authorization checks use RoleChecker/Actor capabilities (DB queries)
 //
 // This design ensures:
 // - Immediate role/authority revocation without waiting for token expiry
@@ -63,7 +64,7 @@ func NewTokenService(cfg *config.JWTConfig, log *logger.Logger) *TokenService {
 // Claims represents JWT claims structure.
 //
 // **AUTH ALIGNMENT:** The `Roles` field is INFORMATIONAL ONLY.
-// It is refreshed from PostgreSQL on every request via RolesLookupMiddleware.
+// It is resolved from PostgreSQL on every request via ActorResolver (Actor.Role/Capabilities).
 // Do NOT use token roles for authorization decisions in handlers.
 //
 // **CANONICAL AUTHORITY:** Use RoleChecker interface methods for authoritative checks.

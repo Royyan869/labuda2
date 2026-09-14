@@ -158,9 +158,10 @@ func (s *FinanceService) RecordPromoteBalanceFunding(
 		return fmt.Errorf("get/create promote balance account: %w", err)
 	}
 
+	// CANONICAL SIGN: BS (liab) DR decreases, MB (liab) CR increases.
 	entries := []ledgerepo.Entry{
-		{AccountID: bankSettlementID, Amount: money.New(-amount)}, // CR -amount
-		{AccountID: promoteBalanceID, Amount: money.New(amount)},  // DR +amount
+		{AccountID: bankSettlementID, Amount: money.New(amount)},   // DR: reserve decreases
+		{AccountID: promoteBalanceID, Amount: money.New(-amount)}, // CR: promote balance increases
 	}
 	if err := s.ledgerRepo.CreateTransaction(
 		ctx, tx, idempotencyKey, "promote_balance_funding", fundingID, nil, nil, entries,
@@ -289,9 +290,10 @@ func (s *FinanceService) RecordCanonicalPromotionAllocation(
 		return uuid.Nil, fmt.Errorf("get/create promotion allocation account: %w", err)
 	}
 
+	// CANONICAL SIGN: MB (liab) DR decreases, MA (liab) CR increases.
 	entries := []ledgerepo.Entry{
-		{AccountID: promoteBalanceID, Amount: money.New(-budget)}, // CR -budget
-		{AccountID: allocationID, Amount: money.New(budget)},      // DR +budget
+		{AccountID: promoteBalanceID, Amount: money.New(budget)},    // DR: promote balance decreases
+		{AccountID: allocationID, Amount: money.New(-budget)},      // CR: allocation increases
 	}
 	if err := s.ledgerRepo.CreateTransaction(
 		ctx, tx, idempotencyKey, "promotion_allocation", promotionID, nil, nil, entries,
@@ -406,9 +408,10 @@ func (s *FinanceService) RecordQualifiedImpression(
 		return fmt.Errorf("get platform revenue account: %w", err)
 	}
 
+	// CANONICAL SIGN: MA (liab) DR decreases, PR (rev) CR increases.
 	entries := []ledgerepo.Entry{
-		{AccountID: allocationID, Amount: money.New(-charge)},     // CR -charge
-		{AccountID: platformRevenueID, Amount: money.New(charge)}, // DR +charge
+		{AccountID: allocationID, Amount: money.New(charge)},       // DR: allocation decreases
+		{AccountID: platformRevenueID, Amount: money.New(-charge)}, // CR: revenue increases
 	}
 	if err := s.ledgerRepo.CreateTransaction(
 		ctx, tx, idempotencyKey, "promotion_qi", qualifiedImpressionID, nil, nil, entries,
@@ -512,9 +515,10 @@ func (s *FinanceService) RecordPromotionAllocationRelease(
 		return fmt.Errorf("get/create promote balance account: %w", err)
 	}
 
+	// CANONICAL SIGN: MA (liab) DR decreases, MB (liab) CR increases.
 	entries := []ledgerepo.Entry{
-		{AccountID: allocationID, Amount: money.New(-amount)},    // CR -amount
-		{AccountID: promoteBalanceID, Amount: money.New(amount)}, // DR +amount
+		{AccountID: allocationID, Amount: money.New(amount)},       // DR: allocation decreases
+		{AccountID: promoteBalanceID, Amount: money.New(-amount)}, // CR: promote balance increases
 	}
 	if err := s.ledgerRepo.CreateTransaction(
 		ctx, tx, idempotencyKey, "promotion_allocation_release", promotionID, nil, nil, entries,

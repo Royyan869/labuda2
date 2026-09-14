@@ -110,7 +110,6 @@ class _RecordingAuthRepository extends Fake implements IAuthRepository {
   Future<Result<FirebasePrincipal>> signUpWithEmail({
     required String email,
     required String password,
-    required String username,
   }) async {
     signUpWithEmailCalls++;
     return Result.success(

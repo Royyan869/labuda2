@@ -1,5 +1,5 @@
 // ⚠️ FINANCIAL RULE:
-// All money operations MUST go through WalletService.
+// All money operations MUST go through the finance ledger (double-entry).
 // Direct balance mutation is forbidden.
 //
 // ⚠️ Finance domain is NOT financial authority.
@@ -186,16 +186,16 @@ type RequestWithdrawResponse struct {
 //
 // MIGRATION PATH:
 // ❌ OLD: WithdrawService.RequestWithdraw(ctx, withdrawID, req)
-// ✅ NEW: WalletService.RequestWithdrawalUnifiedTx(ctx, input)
+// ✅ NEW: WithdrawService.RequestWithdrawalUnifiedTx(ctx, input)
 //
 // WHY REMOVED:
-// - Old flow used split transactions (wallet + finance separately)
-// - This caused wallet-finance drift when transactions partially committed
-// - New unified flow ensures atomic wallet+finance mutations in single transaction
+// - Old flow used split transactions (multiple DB calls that could partially commit)
+// - This caused state drift when transactions partially committed
+// - New unified flow ensures atomic mutations in single transaction
 //
 // ALL WITHDRAWAL REQUESTS MUST NOW GO THROUGH:
-// 1. Public API: WalletService.RequestWithdrawalUnifiedTx(ctx, input)
-// 2. Internal API: WalletService.RequestWithdrawalUnified(ctx, tx, input)
+// 1. Public API: WithdrawService.RequestWithdrawalUnifiedTx(ctx, input)
+// 2. Internal API: WithdrawService.RequestWithdrawalUnified(ctx, tx, input)
 //
 // This is a HARD BLOCK - calling this method will panic with clear migration guidance.
 func (s *WithdrawService) RequestWithdraw(
@@ -213,21 +213,21 @@ The old withdrawal flow has been REMOVED as part of PHASE 3.1 final hardening.
 
 MIGRATION REQUIRED:
   ❌ OLD: WithdrawService.RequestWithdraw(ctx, withdrawID, req)
-  ✅ NEW: WalletService.RequestWithdrawalUnifiedTx(ctx, input)
+  ✅ NEW: WithdrawService.RequestWithdrawalUnifiedTx(ctx, input)
 
 WHERE TO UPDATE:
-  - Handler: core/wallet/delivery/http/withdrawal_handler_unified.go (canonical)
-  - Tests: Update to use WalletService instead of WithdrawService
+  - Handler: finance/delivery/http/withdrawal_handler_unified.go (canonical)
+  - Tests: Update to use WithdrawService canonical unified flow
   - Workers: Update to use unified flow
 
 WHY REMOVED:
-  - Old flow used split transactions (wallet + finance separately)
-  - This caused wallet-finance drift when transactions partially committed
-  - New unified flow ensures atomic wallet+finance mutations in single transaction
+  - Old flow used split transactions (multiple DB calls that could partially commit)
+  - This caused state drift when transactions partially committed
+  - New unified flow ensures atomic mutations in single transaction
 
 CRITICAL FINANCIAL GUARANTEE:
   - All withdrawal mutations MUST happen in single transaction
-  - Wallet deduction + Finance ledger + Withdrawal record = ONE atomic operation
+  - Finance ledger + Withdrawal record = ONE atomic operation
   - No split-brain possible with new flow
 
 ════════════════════════════════════════════════════════════════════════════════

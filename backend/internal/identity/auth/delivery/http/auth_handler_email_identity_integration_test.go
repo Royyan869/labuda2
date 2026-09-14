@@ -121,6 +121,12 @@ func TestFirebaseAuth_RejectsDuplicateNormalizedEmailInDatabase(t *testing.T) {
 }
 
 func TestFirebaseAuth_SequentialSameEmailLinksToLatestFirebaseUID(t *testing.T) {
+	// B2 — Explicit identity linking (Owner-locked 2026-09-14).
+	// Firebase Exchange MUST NOT silently overwrite an existing
+	// firebase_uid merely because normalized email matches.
+	// The second Firebase identity with same normalized email but different
+	// UID must be rejected with EMAIL_ALREADY_REGISTERED and the original
+	// firebase_uid must remain unchanged (no last-writer-wins).
 	tdb, handler, fb, cleanup := setupEmailIdentityHandlerTest(t)
 	defer cleanup()
 
@@ -131,7 +137,7 @@ func TestFirebaseAuth_SequentialSameEmailLinksToLatestFirebaseUID(t *testing.T) 
 	if err != nil {
 		t.Fatalf("first token mock: %v", err)
 	}
-	secondTok, err := fb.VerifyIDTokenMock(ctx, secondToken)
+	_, err = fb.VerifyIDTokenMock(ctx, secondToken)
 	if err != nil {
 		t.Fatalf("second token mock: %v", err)
 	}
@@ -145,23 +151,28 @@ func TestFirebaseAuth_SequentialSameEmailLinksToLatestFirebaseUID(t *testing.T) 
 	}
 
 	w2 := callFirebaseAuth(t, handler, secondToken)
-	if w2.Code != http.StatusOK {
-		t.Fatalf("second auth call: got %d, body=%s", w2.Code, w2.Body.String())
+	if w2.Code != http.StatusConflict {
+		t.Fatalf("second auth call must be rejected with 409 EMAIL_ALREADY_REGISTERED (explicit linking), got %d, body=%s", w2.Code, w2.Body.String())
+	}
+	if !bytes.Contains(w2.Body.Bytes(), []byte("EMAIL_ALREADY_REGISTERED")) {
+		t.Fatalf("expected EMAIL_ALREADY_REGISTERED code in body, got %s", w2.Body.String())
 	}
 
 	id, firebaseUID := getUserByEmail(t, ctx, tdb, "caseemail@test.com")
 	if id == uuid.Nil {
 		t.Fatal("expected canonical user id")
 	}
-	if firebaseUID != secondTok.UID {
-		t.Fatalf("expected firebase_uid to relink to latest UID %q, got %q", secondTok.UID, firebaseUID)
-	}
-	if firebaseUID == firstTok.UID {
-		t.Fatalf("firebase_uid should have moved from first UID %q to second UID %q", firstTok.UID, secondTok.UID)
+	// B2 invariant: existing firebase_uid must NOT have been overwritten.
+	if firebaseUID != firstTok.UID {
+		t.Fatalf("expected firebase_uid to remain original UID %q (no overwrite), got %q", firstTok.UID, firebaseUID)
 	}
 }
 
 func TestFirebaseAuth_ConcurrentSameEmailKeepsOneCanonicalRow(t *testing.T) {
+	// B2 — Concurrent same-email with different Firebase UIDs must NEVER
+	// create duplicate Labuda accounts and MUST NOT last-writer-wins.
+	// Under explicit linking, exactly one succeeds (201/200) and the other
+	// is rejected with 409 EMAIL_ALREADY_REGISTERED. Advisory lock serializes.
 	tdb, handler, _, cleanup := setupEmailIdentityHandlerTest(t)
 	defer cleanup()
 
@@ -187,10 +198,19 @@ func TestFirebaseAuth_ConcurrentSameEmailKeepsOneCanonicalRow(t *testing.T) {
 	wg.Wait()
 	close(results)
 
+	var okCount, conflictCount int
 	for code := range results {
-		if code != http.StatusOK {
-			t.Fatalf("expected concurrent auth to succeed, got %d", code)
+		switch code {
+		case http.StatusOK:
+			okCount++
+		case http.StatusConflict:
+			conflictCount++
+		default:
+			t.Fatalf("expected concurrent auth to be 200 or 409, got %d", code)
 		}
+	}
+	if okCount != 1 || conflictCount != 1 {
+		t.Fatalf("expected exactly 1 success and 1 conflict (explicit linking), got ok=%d conflict=%d", okCount, conflictCount)
 	}
 
 	if got := countUsersByEmail(t, ctx, tdb, "raceemail@test.com"); got != 1 {

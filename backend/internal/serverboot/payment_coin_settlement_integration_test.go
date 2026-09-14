@@ -25,9 +25,10 @@ import (
 	orderrepo "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
 	paymentmethodrepo "github.com/labuda/backend/internal/commerce/paymentmethod/infrastructure/repository"
 	"github.com/labuda/backend/internal/config"
-	walletapp "github.com/labuda/backend/internal/core/wallet/application"
-	walletentity "github.com/labuda/backend/internal/core/wallet/entity"
+	escrowapp "github.com/labuda/backend/internal/core/escrow/application"
+	escrowentity "github.com/labuda/backend/internal/core/escrow/entity"
 	financeapp "github.com/labuda/backend/internal/finance/application"
+	disputerepo "github.com/labuda/backend/internal/governance/dispute/infrastructure/repository"
 	coinsapp "github.com/labuda/backend/internal/incentive/coins/application"
 	coinsentity "github.com/labuda/backend/internal/incentive/coins/entity"
 	coinsinfrepo "github.com/labuda/backend/internal/incentive/coins/infrastructure/repository"
@@ -35,7 +36,6 @@ import (
 	paymentapp "github.com/labuda/backend/internal/integration/payment/application"
 	paymentrepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
 	paymentrecon "github.com/labuda/backend/internal/integration/payment/reconciliation"
-	disputerepo "github.com/labuda/backend/internal/governance/dispute/infrastructure/repository"
 	"github.com/labuda/backend/internal/platform/logger"
 	"github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
 	"github.com/labuda/backend/pkg/database"
@@ -55,7 +55,7 @@ type paymentSettlementHarness struct {
 	paymentMethodRepo *paymentmethodrepo.PaymentMethodRepository
 	coinsRepo         coinsrepointf.CoinsRepository
 	coinsService      *coinsapp.CoinsService
-	walletService     *walletapp.WalletService
+	escrowService     *escrowapp.EscrowService
 	financeService    *financeapp.FinanceService
 	orderService      *orderapp.OrderService
 	webhookService    *paymentapp.PaymentWebhookService
@@ -71,32 +71,24 @@ type failingEscrowRepo struct {
 	err error
 }
 
-func (r *failingEscrowRepo) GetByID(ctx context.Context, tx db.Tx, escrowID uuid.UUID) (*walletentity.Escrow, error) {
+func (r *failingEscrowRepo) GetByID(ctx context.Context, tx db.Tx, escrowID uuid.UUID) (*escrowentity.Escrow, error) {
 	return nil, nil
 }
 
-func (r *failingEscrowRepo) GetByOrderID(ctx context.Context, tx db.Tx, orderID uuid.UUID) (*walletentity.Escrow, error) {
+func (r *failingEscrowRepo) GetByOrderID(ctx context.Context, tx db.Tx, orderID uuid.UUID) (*escrowentity.Escrow, error) {
 	return nil, nil
 }
 
-func (r *failingEscrowRepo) GetByOrderIDForUpdate(ctx context.Context, tx db.Tx, orderID uuid.UUID) (*walletentity.Escrow, error) {
+func (r *failingEscrowRepo) GetByOrderIDForUpdate(ctx context.Context, tx db.Tx, orderID uuid.UUID) (*escrowentity.Escrow, error) {
 	return nil, nil
 }
 
-func (r *failingEscrowRepo) Create(ctx context.Context, tx db.Tx, escrow *walletentity.Escrow) error {
+func (r *failingEscrowRepo) Create(ctx context.Context, tx db.Tx, escrow *escrowentity.Escrow) error {
 	return r.err
 }
 
-func (r *failingEscrowRepo) Update(ctx context.Context, tx db.Tx, escrow *walletentity.Escrow) error {
+func (r *failingEscrowRepo) Update(ctx context.Context, tx db.Tx, escrow *escrowentity.Escrow) error {
 	return nil
-}
-
-func (r *failingEscrowRepo) GetByBuyerWalletID(ctx context.Context, tx db.Tx, buyerWalletID uuid.UUID) ([]*walletentity.Escrow, error) {
-	return nil, nil
-}
-
-func (r *failingEscrowRepo) GetBySellerWalletID(ctx context.Context, tx db.Tx, sellerWalletID uuid.UUID) ([]*walletentity.Escrow, error) {
-	return nil, nil
 }
 
 type failingCreateTransactionCoinsRepo struct {
@@ -131,32 +123,24 @@ type failingEscrowLookupRepo struct {
 	err error
 }
 
-func (r *failingEscrowLookupRepo) GetByID(ctx context.Context, tx db.Tx, escrowID uuid.UUID) (*walletentity.Escrow, error) {
+func (r *failingEscrowLookupRepo) GetByID(ctx context.Context, tx db.Tx, escrowID uuid.UUID) (*escrowentity.Escrow, error) {
 	return nil, nil
 }
 
-func (r *failingEscrowLookupRepo) GetByOrderID(ctx context.Context, tx db.Tx, orderID uuid.UUID) (*walletentity.Escrow, error) {
+func (r *failingEscrowLookupRepo) GetByOrderID(ctx context.Context, tx db.Tx, orderID uuid.UUID) (*escrowentity.Escrow, error) {
 	return nil, r.err
 }
 
-func (r *failingEscrowLookupRepo) GetByOrderIDForUpdate(ctx context.Context, tx db.Tx, orderID uuid.UUID) (*walletentity.Escrow, error) {
+func (r *failingEscrowLookupRepo) GetByOrderIDForUpdate(ctx context.Context, tx db.Tx, orderID uuid.UUID) (*escrowentity.Escrow, error) {
 	return nil, r.err
 }
 
-func (r *failingEscrowLookupRepo) Create(ctx context.Context, tx db.Tx, escrow *walletentity.Escrow) error {
+func (r *failingEscrowLookupRepo) Create(ctx context.Context, tx db.Tx, escrow *escrowentity.Escrow) error {
 	return nil
 }
 
-func (r *failingEscrowLookupRepo) Update(ctx context.Context, tx db.Tx, escrow *walletentity.Escrow) error {
+func (r *failingEscrowLookupRepo) Update(ctx context.Context, tx db.Tx, escrow *escrowentity.Escrow) error {
 	return nil
-}
-
-func (r *failingEscrowLookupRepo) GetByBuyerWalletID(ctx context.Context, tx db.Tx, buyerWalletID uuid.UUID) ([]*walletentity.Escrow, error) {
-	return nil, nil
-}
-
-func (r *failingEscrowLookupRepo) GetBySellerWalletID(ctx context.Context, tx db.Tx, sellerWalletID uuid.UUID) ([]*walletentity.Escrow, error) {
-	return nil, nil
 }
 
 type paymentFixture struct {
@@ -185,8 +169,8 @@ func newPaymentSettlementHarness(t *testing.T) *paymentSettlementHarness {
 	paymentMethodRepo := paymentmethodrepo.NewPaymentMethodRepository()
 	coinsRepo := coinsrepointf.CoinsRepository(coinsinfrepo.NewCoinsRepository())
 	coinsService := coinsapp.NewCoinsService(coinsRepo, dbConn)
-	walletService := walletapp.NewWalletService(dbConn, zap.NewNop())
-	walletService.SetDisputeRepository(disputerepo.NewDisputeRepository())
+	escrowService := escrowapp.NewEscrowService(dbConn, zap.NewNop())
+	escrowService.SetDisputeRepository(disputerepo.NewDisputeRepository())
 	financeService := financeapp.NewFinanceService()
 	financeService.SetLogger(zap.NewNop())
 
@@ -201,7 +185,7 @@ func newPaymentSettlementHarness(t *testing.T) *paymentSettlementHarness {
 		nil,
 		nil,
 		nil,
-		walletService,
+		escrowService,
 		nil,
 	)
 	orderService.PaymentService().SetFinanceReleaseRecorder(financeService)
@@ -214,8 +198,8 @@ func newPaymentSettlementHarness(t *testing.T) *paymentSettlementHarness {
 		Environment: "sandbox",
 	}, midtransLogger)
 
-	webhookService := paymentapp.NewPaymentWebhookService(dbConn, midtransClient, orderService, walletService, zap.NewNop())
-	finalizer := paymentapp.NewCanonicalFinalizationService(financeService, orderService, walletService, zap.NewNop())
+	webhookService := paymentapp.NewPaymentWebhookService(dbConn, midtransClient, orderService, escrowService, zap.NewNop())
+	finalizer := paymentapp.NewCanonicalFinalizationService(financeService, orderService, escrowService, zap.NewNop())
 	// CANONICAL COIN CONSUME+SPEND WIRING: complete RESERVE → CONSUME at
 	// settlement so K>0 orders atomically consume the reservation, write the
 	// order_spend transaction, and deduct the coin balance.
@@ -246,7 +230,7 @@ func newPaymentSettlementHarness(t *testing.T) *paymentSettlementHarness {
 		paymentMethodRepo: paymentMethodRepo,
 		coinsRepo:         coinsRepo,
 		coinsService:      coinsService,
-		walletService:     walletService,
+		escrowService:     escrowService,
 		financeService:    financeService,
 		orderService:      orderService,
 		webhookService:    webhookService,
@@ -359,7 +343,7 @@ func (h *paymentSettlementHarness) loadEscrowAmount(t *testing.T, orderID uuid.U
 	ctx := context.Background()
 	var amount int64
 	err := h.tdb.WithTx(ctx, func(tx db.Tx) error {
-		escrow, err := h.walletService.GetEscrowForOrder(ctx, tx, orderID)
+		escrow, err := h.escrowService.GetEscrowForOrder(ctx, tx, orderID)
 		if err != nil {
 			return err
 		}
@@ -689,7 +673,7 @@ func TestPaymentCoinSettlement_RollsBackWhenSpendInsertFails(t *testing.T) {
 	}
 	failingCoinsService := coinsapp.NewCoinsService(failingCoinsRepo, h.db)
 	_ = failingCoinsService
-	failingFinalizer := paymentapp.NewCanonicalFinalizationService(h.financeService, h.orderService, h.walletService, zap.NewNop())
+	failingFinalizer := paymentapp.NewCanonicalFinalizationService(h.financeService, h.orderService, h.escrowService, zap.NewNop())
 
 	fx := h.createSettlementFixture(t, 10000, 4000, 20000)
 	err := h.tdb.WithTx(ctx, func(tx db.Tx) error {
@@ -965,7 +949,7 @@ func TestPaymentCoinSettlement_NonSuccessStatus_ReleasesReservation(t *testing.T
 func TestPaymentCoinSettlement_RollsBackWhenEscrowCreateFails(t *testing.T) {
 	ctx := context.Background()
 	h := newPaymentSettlementHarness(t)
-	h.walletService.SetEscrowRepository(&failingEscrowRepo{err: errors.New("forced escrow create failure")})
+	h.escrowService.SetEscrowRepository(&failingEscrowRepo{err: errors.New("forced escrow create failure")})
 
 	fx := h.createSettlementFixture(t, 10000, 4000, 20000)
 	err := h.finalizePaymentTx(ctx, fx, fx.TransactionID)
@@ -1020,7 +1004,8 @@ func TestPaymentCoinSettlement_SellerEntitlementStableAcrossKZeroAndKPositive(t 
 //
 //	GATEWAY_CLEARING after settlement+fee+coin funding = BuyerBase = PD + S
 //	Release drains BuyerBase; GATEWAY_CLEARING never goes negative.
-//	PLATFORM_BANK is debited exactly K (platform funds the buyer benefit).
+//	PLATFORM_COIN_BENEFIT absorbs exactly K (platform-owned benefit; no cash).
+//	PLATFORM_BANK does not move at all (coin redemption moves no cash).
 //	PLATFORM_REVENUE = fee F + commission C (K never becomes revenue).
 //	Every ledger transaction is balanced (Σ entries = 0), enforced by the
 //	ledger repository itself (panics on unbalanced).
@@ -1044,11 +1029,17 @@ func TestPaymentCoinSettlement_LedgerFundingProof(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, clearingBefore+110000, clearingAfterFunding, "GATEWAY_CLEARING must equal BuyerBase after funding")
 
-	// PLATFORM_BANK debited exactly K (platform funds the buyer benefit; K is
-	// never revenue and never credited back except via refund reversal).
+	// PLATFORM_BANK is NOT touched by coin funding: Labuda Coins are
+	// platform-owned usage rights and redeeming them moves no cash.
 	platformBankAfterFunding, err := loadSystemAccountBalance(ctx, h.tdb, "PLATFORM_BANK")
 	require.NoError(t, err)
-	require.Equal(t, platformBankBefore-10000, platformBankAfterFunding, "PLATFORM_BANK must be debited exactly K")
+	require.Equal(t, platformBankBefore, platformBankAfterFunding, "PLATFORM_BANK must not move for coin funding (no cash movement)")
+
+	// K is absorbed by the canonical platform-owned benefit account instead
+	// (K is never revenue and is released only via the funding reversal).
+	coinBenefitAfterFunding, err := loadSystemAccountBalance(ctx, h.tdb, "PLATFORM_COIN_BENEFIT")
+	require.NoError(t, err)
+	require.Equal(t, int64(10000), coinBenefitAfterFunding, "PLATFORM_COIN_BENEFIT must absorb exactly K")
 
 	// Release the escrow to seller.
 	var order *orderentity.Order
@@ -1253,7 +1244,7 @@ func TestPaymentCoinSettlement_TerminalFailure_RollsBackAfterReservationReleaseB
 	h := newPaymentSettlementHarness(t)
 
 	fx := h.createSettlementFixture(t, 10000, 4000, 20000)
-	h.walletService.SetEscrowRepository(&failingEscrowLookupRepo{err: errors.New("forced escrow lookup failure")})
+	h.escrowService.SetEscrowRepository(&failingEscrowLookupRepo{err: errors.New("forced escrow lookup failure")})
 
 	err := h.finalizeOrderPaymentFailure(ctx, fx.Payment, string(midtrans.StatusExpire))
 	require.Error(t, err)
@@ -1357,7 +1348,7 @@ func TestPaymentCoinSettlement_TerminalFailureRetry_ConvergesOnSecondAttempt(t *
 
 	fx := h.createSettlementFixture(t, 10000, 4000, 20000)
 	flakyEscrowRepo := &failingEscrowLookupRepo{err: errors.New("transient escrow lookup failure")}
-	h.walletService.SetEscrowRepository(flakyEscrowRepo)
+	h.escrowService.SetEscrowRepository(flakyEscrowRepo)
 
 	err := h.finalizeOrderPaymentFailure(ctx, fx.Payment, string(midtrans.StatusExpire))
 	require.Error(t, err)

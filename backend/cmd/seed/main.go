@@ -184,7 +184,7 @@ func initSeeder(db *database.DB, cfg *config.Config, log *zap.Logger) (*Seeder, 
 		nil, // actorResolver not needed for seed
 		nil, // auditService not needed for seed
 		stubProductShippingSetupRepo,
-		nil, // walletService not needed for seed
+		nil, // escrowService not needed for seed
 		nil, // shippingQuoteService not needed for seed
 	)
 

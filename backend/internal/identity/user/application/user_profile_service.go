@@ -15,6 +15,7 @@ import (
 	subscriptionEntity "github.com/labuda/backend/internal/commerce/subscription/entity"
 	subscriptionRepo "github.com/labuda/backend/internal/commerce/subscription/repository"
 	"github.com/labuda/backend/internal/governance/viewercontext"
+	authRefreshRepo "github.com/labuda/backend/internal/identity/auth/infrastructure/repository"
 	"github.com/labuda/backend/internal/identity/user/delivery/http/dto"
 	userEntity "github.com/labuda/backend/internal/identity/user/domain/entity"
 	"github.com/labuda/backend/internal/pkg/publiccard"
@@ -46,6 +47,10 @@ type userProfileRepository interface {
 	Update(ctx context.Context, tx db.Tx, user *userEntity.User) error
 }
 
+type refreshSessionRevoker interface {
+	RevokeAllForUser(ctx context.Context, tx db.Tx, userID uuid.UUID) error
+}
+
 // SellerState represents the seller capability state for a user
 type SellerState struct {
 	HasProfile            bool
@@ -58,12 +63,13 @@ type SellerState struct {
 // UserProfileService handles cross-domain composition for user profiles
 // It orchestrates between user, seller, and subscription domains
 type UserProfileService struct {
-	userRepo         userProfileRepository
-	sellerRepo       sellerRepo.SellerRepository
-	subscriptionRepo subscriptionRepo.SellerSubscriptionRepository
-	outboxRepo       *outboxInfra.OutboxRepository
-	firebaseClient   firebaseUserFetcher
-	db               userProfileDB
+	userRepo            userProfileRepository
+	sellerRepo          sellerRepo.SellerRepository
+	subscriptionRepo    subscriptionRepo.SellerSubscriptionRepository
+	outboxRepo          *outboxInfra.OutboxRepository
+	firebaseClient      firebaseUserFetcher
+	db                  userProfileDB
+	refreshSessionRepo  refreshSessionRevoker
 }
 
 // NewUserProfileService creates a new UserProfileService
@@ -76,13 +82,20 @@ func NewUserProfileService(
 	database userProfileDB,
 ) *UserProfileService {
 	return &UserProfileService{
-		userRepo:         userRepo,
-		sellerRepo:       sellerRepo,
-		subscriptionRepo: subscriptionRepo,
-		outboxRepo:       outboxRepo,
-		firebaseClient:   firebaseClient,
-		db:               database,
+		userRepo:           userRepo,
+		sellerRepo:         sellerRepo,
+		subscriptionRepo:   subscriptionRepo,
+		outboxRepo:         outboxRepo,
+		firebaseClient:     firebaseClient,
+		db:                 database,
+		refreshSessionRepo: authRefreshRepo.NewRefreshSessionRepository(),
 	}
+}
+
+// SetRefreshSessionRevoker injects a custom refresh session revoker (for testing).
+// If not set, NewUserProfileService defaults to the canonical RefreshSessionRepository.
+func (s *UserProfileService) SetRefreshSessionRevoker(r refreshSessionRevoker) {
+	s.refreshSessionRepo = r
 }
 
 type VerificationSnapshot struct {
@@ -180,6 +193,17 @@ func (s *UserProfileService) SelfDeleteAccount(ctx context.Context, userID uuid.
 	}
 	if alreadyDeleted {
 		return nil // idempotent
+	}
+
+	// Revoke all active refresh sessions atomically with deleted_at.
+	// Uses the same tx as SoftDeleteUser + outbox to guarantee
+	// deleted_at + revoked sessions + event commit or rollback together.
+	// Existing RevokeAllForUser is transaction-aware (tx.Exec) — verified
+	// in refresh_session_repository.go:293.
+	if s.refreshSessionRepo != nil {
+		if err := s.refreshSessionRepo.RevokeAllForUser(ctx, tx, userID); err != nil {
+			return fmt.Errorf("revoke refresh sessions: %w", err)
+		}
 	}
 
 	payload, err := json.Marshal(map[string]string{"user_id": userID.String()})

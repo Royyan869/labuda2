@@ -5,12 +5,16 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
+	alertapp "github.com/labuda/backend/internal/platform/alert/application"
+	alertentity "github.com/labuda/backend/internal/platform/alert/entity"
+	alertrepo "github.com/labuda/backend/internal/platform/alert/repository"
 	"github.com/labuda/backend/pkg/db"
 )
 
@@ -20,7 +24,7 @@ import (
 // These tests verify the ledger-authority invariant:
 //   SUM(financial_accounts.balance) == BankSettlementInitialSeed
 //
-// No wallet, payment, order, or refund queries exist in the checker.
+// No user-balance, payment, order, or refund queries exist in the checker.
 
 // --- Seed constant ---
 
@@ -164,14 +168,14 @@ func TestCheckTotalMoneyInvariant_ZeroBalance_Violation(t *testing.T) {
 	assert.Equal(t, 1, tracker.alertCount)
 }
 
-// --- No dead wallet/payment/order imports ---
+// --- No dead payment/order imports ---
 
 func TestTotalMoneyInvariantChecker_NoDeadDependencies(t *testing.T) {
-	// Structural test: the checker must NOT depend on WalletService, PaymentRepository,
+	// Structural test: the checker must NOT depend on EscrowService, PaymentRepository,
 	// or any order/refund/payout table. This is verified by the constructor signature:
 	// only alertService, db, log, shadowMode are accepted.
 	//
-	// If someone adds walletService or paymentRepo back, this test's comment
+	// If someone adds escrowService or paymentRepo back, this test's comment
 	// and the constructor call below will need updating — making the regression visible.
 	checker := NewTotalMoneyInvariantChecker(nil, nil, nil, true)
 	require.NotNil(t, checker)
@@ -231,4 +235,93 @@ func (r *invariantMockRow) Scan(dest ...any) error {
 	return errors.New("expected *int64 scan destination")
 }
 
+// ============================================================================
+// TEST HELPERS - ALERT TRACKING
+// ============================================================================
 
+// alertTracker records CreateAlert calls for assertions.
+type alertTracker struct {
+	alertCount int
+	lastAlert  trackedAlert
+}
+
+type trackedAlert struct {
+	alertType  alertentity.AlertType
+	severity   alertentity.AlertSeverity
+	entityType string
+	entityID   uuid.UUID
+	message    string
+	metadata   alertentity.AlertMetadata
+	groupKey   *string
+}
+
+// mockAlertTransactor provides a no-op transaction wrapper for tests.
+// Passes nil as db.Tx — the counting repo ignores it.
+type mockAlertTransactor struct{}
+
+func (m *mockAlertTransactor) WithTx(_ context.Context, fn func(db.Tx) error) error {
+	return fn(nil)
+}
+
+// countingAlertRepository satisfies alertrepo.AlertRepository and counts Create calls.
+type countingAlertRepository struct {
+	tracker *alertTracker
+}
+
+func (r *countingAlertRepository) Create(_ context.Context, _ interface{}, alert *alertentity.Alert) error {
+	r.tracker.alertCount++
+	r.tracker.lastAlert = trackedAlert{
+		alertType:  alert.AlertType,
+		severity:   alert.Severity,
+		entityType: alert.EntityType,
+		entityID:   alert.EntityID,
+		message:    alert.Message,
+		metadata:   alert.Metadata,
+		groupKey:   alert.GroupKey,
+	}
+	return nil
+}
+
+func (r *countingAlertRepository) GetByID(_ context.Context, _ interface{}, _ uuid.UUID) (*alertentity.Alert, error) {
+	return nil, nil
+}
+
+func (r *countingAlertRepository) GetForUpdate(_ context.Context, _ interface{}, _ uuid.UUID) (*alertentity.Alert, error) {
+	return nil, nil
+}
+
+func (r *countingAlertRepository) Update(_ context.Context, _ interface{}, _ *alertentity.Alert) error {
+	return nil
+}
+
+func (r *countingAlertRepository) List(_ context.Context, _ interface{}, _ alertrepo.AlertFilters) ([]*alertentity.Alert, error) {
+	return nil, nil
+}
+
+func (r *countingAlertRepository) Count(_ context.Context, _ interface{}, _ alertrepo.AlertFilters) (int64, error) {
+	return 0, nil
+}
+
+func (r *countingAlertRepository) FindActiveByGroupKey(_ context.Context, _ interface{}, _ string) ([]*alertentity.Alert, error) {
+	return nil, nil
+}
+
+func (r *countingAlertRepository) FindByDedupKeyInWindow(_ context.Context, _ interface{}, _ string, _ int) ([]*alertentity.Alert, error) {
+	return nil, nil
+}
+
+func (r *countingAlertRepository) DeleteOld(_ context.Context, _ interface{}, _ int) (int, error) {
+	return 0, nil
+}
+
+// newTrackingAlertService creates a real AlertService backed by counting mocks.
+func newTrackingAlertService(t *testing.T) (*alertapp.AlertService, *alertTracker) {
+	t.Helper()
+	tracker := &alertTracker{}
+	countingSvc := alertapp.NewAlertService(
+		&mockAlertTransactor{},
+		&countingAlertRepository{tracker: tracker},
+		zap.NewNop(),
+	)
+	return countingSvc, tracker
+}

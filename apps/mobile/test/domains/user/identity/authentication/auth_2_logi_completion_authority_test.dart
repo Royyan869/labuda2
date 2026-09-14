@@ -258,7 +258,7 @@ class _FakeRepo extends Fake implements IAuthRepository {
   @override
   Future<Result<void>> signInWithGoogle() async => Result.success(null);
   @override
-  Future<Result<FirebasePrincipal>> signUpWithEmail({required String email, required String password, required String username}) async => Result.error('n/a');
+  Future<Result<FirebasePrincipal>> signUpWithEmail({required String email, required String password}) async => Result.error('n/a');
   @override
   Future<Result<void>> signOut() async => Result.success(null);
   @override
@@ -270,8 +270,6 @@ class _FakeRepo extends Fake implements IAuthRepository {
   @override
   Future<Result<void>> revokeSession(String familyId) async => Result.success(null);
   @override
-  Future<Result<AuthUser?>> getCurrentUser() async => Result.success(null);
-  @override
   Future<Result<void>> resetPassword({required String email}) async => Result.success(null);
   @override
   Future<Result<void>> verifyEmail() async => Result.success(null);
@@ -281,8 +279,6 @@ class _FakeRepo extends Fake implements IAuthRepository {
   Future<Result<UserProfilePatch>> updateProfile({String? photoUrl, String? phoneNumber, DateTime? phoneVerifiedAt, String? username, String? bio, String? location, DateTime? dateOfBirth}) async => Result.error('n/a');
   @override
   Future<Result<AuthUser>> completeProfile({required String username}) async => Result.error('n/a');
-  @override
-  Future<Result<void>> changeEmail({required String newEmail, required String currentPassword}) async => Result.success(null);
   @override
   Future<Result<void>> changePassword({required String currentPassword, required String newPassword}) async => Result.success(null);
   @override

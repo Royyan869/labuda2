@@ -1,9 +1,10 @@
 // ⚠️ FINANCIAL RULE:
-// All money operations MUST go through WalletService.
-// Direct balance mutation is forbidden.
+// All escrow lifecycle operations MUST go through EscrowService.
+// Direct state mutation is forbidden.
 //
 // Order domain is a PRICING SNAPSHOT only.
-// Wallet domain is the SINGLE SOURCE OF TRUTH for all money operations.
+// Escrow domain is the SINGLE SOURCE OF TRUTH for escrow row state.
+// Finance ledger is the SINGLE SOURCE OF TRUTH for money movement.
 package application
 
 import (
@@ -16,14 +17,14 @@ import (
 	"github.com/google/uuid"
 	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
 	auctionRepoImpl "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
-	"github.com/labuda/backend/internal/commerce/governance/commercegov"
 	forSaleRepoImpl "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	forSalerepo "github.com/labuda/backend/internal/commerce/forsale/repository"
+	"github.com/labuda/backend/internal/commerce/governance/commercegov"
 	"github.com/labuda/backend/internal/commerce/order/entity"
 	orderRepoImpl "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
 	ratingApp "github.com/labuda/backend/internal/commerce/order/rating/application"
 	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
-	walletApp "github.com/labuda/backend/internal/core/wallet/application"
+	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
 	disputeEntity "github.com/labuda/backend/internal/governance/dispute/entity"
 	disputerepo "github.com/labuda/backend/internal/governance/dispute/repository"
 	supportRepoImpl "github.com/labuda/backend/internal/governance/support/infrastructure/repository"
@@ -45,22 +46,22 @@ var ErrActiveRefundCheckerNotConfigured = fmt.Errorf(
 	"order: active refund checker not configured; cannot complete order safely")
 
 // ============================================================================
-// WALLET ESCROW DERIVATION
+// ESCROW STATUS DERIVATION
 // ============================================================================
 
-// mapWalletEscrowToOrderEscrow maps Wallet.Escrow.Status to Order.EscrowStatus.
+// mapEscrowToOrderEscrow maps Escrow.Status to Order.EscrowStatus.
 //
 // CRITICAL: This is the ONLY valid way to set Order.EscrowStatus.
-// Order.EscrowStatus MUST always be derived from Wallet.Escrow.Status.
+// Order.EscrowStatus MUST always be derived from Escrow.Status.
 //
-// Wallet.Escrow.Status values (from wallet/entity/escrow.go):
+// Escrow.Status values (from escrow/entity/escrow.go):
 // - "holding": Funds held for pending order
 // - "released": Released to seller (order complete)
 // - "refunded": Refunded to buyer (order cancelled)
 //
-// This function ensures Order.EscrowStatus is a READ-ONLY projection of Wallet state.
-func mapWalletEscrowToOrderEscrow(walletEscrowStatus string) entity.EscrowStatus {
-	switch walletEscrowStatus {
+// This function ensures Order.EscrowStatus is a READ-ONLY projection of Escrow state.
+func mapEscrowToOrderEscrow(escrowStatus string) entity.EscrowStatus {
+	switch escrowStatus {
 	case "holding":
 		return entity.EscrowStatusHolding
 	case "released":
@@ -68,7 +69,7 @@ func mapWalletEscrowToOrderEscrow(walletEscrowStatus string) entity.EscrowStatus
 	case "refunded":
 		return entity.EscrowStatusRefunded
 	default:
-		// If wallet has no escrow or unknown state, default to holding
+		// If no escrow row exists or unknown state, default to holding
 		// This should not happen in practice, but provides safe fallback
 		return entity.EscrowStatusHolding
 	}
@@ -81,28 +82,28 @@ func mapWalletEscrowToOrderEscrow(walletEscrowStatus string) entity.EscrowStatus
 // - CANNOT access rating repository directly
 // - Enforces clear separation between order and rating domains
 //
-// WALLET INTEGRATION:
-// - Uses WalletService to fetch escrow state for deriving Order.EscrowStatus
-// - Order.EscrowStatus is ALWAYS derived from Wallet.Escrow.Status
+// ESCROW INTEGRATION:
+// - Uses EscrowService to fetch escrow state for deriving Order.EscrowStatus
+// - Order.EscrowStatus is ALWAYS derived from Escrow.Status
 type OrderCompletionService struct {
-	repo                 orderrepository.OrderRepository
-	forSaleRepo          forSalerepo.ForSaleRepository
-	auctionRepo          *auctionRepoImpl.AuctionRepository // PASS_20B: auction order-binding release on cancel/expire
+	repo                  orderrepository.OrderRepository
+	forSaleRepo           forSalerepo.ForSaleRepository
+	auctionRepo           *auctionRepoImpl.AuctionRepository // PASS_20B: auction order-binding release on cancel/expire
 	commerceViolationRepo commercegov.Repository             // Canonical violation/restriction authority for settlement failure
-	ownership            *auth.OwnershipValidator
-	accountStatusChecker auth.AccountStatusChecker
-	outboxRepo           *outboxRepo.OutboxRepository
-	idempotencyRepo      *idempotencyRepo.Repository
-	paymentService       *OrderPaymentService
-	paymentRepo          *paymentRepo.PaymentRepository
-	coinsService         *coinsApp.CoinsService  // Used for earning points on completion (NOT for refunds)
-	ratingMutator        ratingApp.RatingMutator // Interface-based access (write-only)
-	supportRepo          supportrepo.Repository
-	shippingQuoteService ShippingQuoteService
-	disputeRepo          disputerepo.DisputeRepository // Entry point guard: check dispute status
-	walletService        *walletApp.WalletService      // Used to derive Order.EscrowStatus from Wallet state
-	activeRefundChecker  ActiveRefundChecker           // H2-F2a: Block completion if refund is active
-	logger               *zap.Logger
+	ownership             *auth.OwnershipValidator
+	accountStatusChecker  auth.AccountStatusChecker
+	outboxRepo            *outboxRepo.OutboxRepository
+	idempotencyRepo       *idempotencyRepo.Repository
+	paymentService        *OrderPaymentService
+	paymentRepo           *paymentRepo.PaymentRepository
+	coinsService          *coinsApp.CoinsService  // Used for earning points on completion (NOT for refunds)
+	ratingMutator         ratingApp.RatingMutator // Interface-based access (write-only)
+	supportRepo           supportrepo.Repository
+	shippingQuoteService  ShippingQuoteService
+	disputeRepo           disputerepo.DisputeRepository // Entry point guard: check dispute status
+	escrowService         *escrowApp.EscrowService      // Used to derive Order.EscrowStatus from Escrow state
+	activeRefundChecker   ActiveRefundChecker           // H2-F2a: Block completion if refund is active
+	logger                *zap.Logger
 }
 
 // ShippingQuoteService defines the interface for shipping quote operations.
@@ -168,7 +169,7 @@ func NewOrderCompletionService(
 	coinsService *coinsApp.CoinsService,
 	shippingQuoteService ShippingQuoteService,
 	disputeRepo disputerepo.DisputeRepository,
-	walletService *walletApp.WalletService,
+	escrowService *escrowApp.EscrowService,
 	logger *zap.Logger,
 ) *OrderCompletionService {
 	// RATING DOMAIN BOUNDARY: Use factory to get rating mutator interface
@@ -189,7 +190,7 @@ func NewOrderCompletionService(
 		supportRepo:          supportRepoImpl.NewSupportRepository(),
 		shippingQuoteService: shippingQuoteService,
 		disputeRepo:          disputeRepo,   // Entry point guard: check dispute status before resolution
-		walletService:        walletService, // Used to derive Order.EscrowStatus from Wallet state
+		escrowService:        escrowService, // Used to derive Order.EscrowStatus from Escrow state
 		logger:               logger,
 	}
 }
@@ -214,8 +215,8 @@ func (s *OrderCompletionService) SetCoinsService(coinsService *coinsApp.CoinsSer
 // - This method ONLY manages order state transitions
 // - No ledger entries created here (prevents double escrow posting)
 //
-// CRITICAL: Order.EscrowStatus is DERIVED from Wallet.Escrow.Status
-// This ensures Order.EscrowStatus is ALWAYS a projection of Wallet state.
+// CRITICAL: Order.EscrowStatus is DERIVED from Escrow.Status
+// This ensures Order.EscrowStatus is ALWAYS a projection of Escrow state.
 //
 // IDEMPOTENCY: If order is already in paid status, returns success immediately.
 // This prevents duplicate state transitions on retry.
@@ -224,8 +225,8 @@ func (s *OrderCompletionService) SetCoinsService(coinsService *coinsApp.CoinsSer
 // 1. Lock order and validate transition
 // 2. CRITICAL: Check if order is expired (PHASE 6 DEFENSIVE GUARD)
 // 3. Check idempotency (already paid -> return success)
-// 4. Fetch wallet escrow state
-// 5. Derive Order.EscrowStatus from wallet state
+// 4. Fetch escrow state
+// 5. Derive Order.EscrowStatus from escrow state
 // 6. Update order status (pending -> paid)
 // 7. Emit outbox event
 //
@@ -257,29 +258,29 @@ func (s *OrderCompletionService) MarkPaid(
 		return nil
 	}
 
-	// Step 4: CRITICAL - Fetch wallet escrow state to derive Order.EscrowStatus
-	// This ensures Order.EscrowStatus is ALWAYS a projection of Wallet state
-	walletEscrow, err := s.walletService.GetEscrowForOrder(ctx, tx, orderID)
+	// Step 4: CRITICAL - Fetch escrow state to derive Order.EscrowStatus
+	// This ensures Order.EscrowStatus is ALWAYS a projection of Escrow state
+	escrowRow, err := s.escrowService.GetEscrowForOrder(ctx, tx, orderID)
 	if err != nil {
-		s.logger.Error("failed_to_fetch_wallet_escrow",
+		s.logger.Error("failed_to_fetch_escrow",
 			zap.String("order_id", orderID.String()),
 			zap.Error(err),
 		)
-		return fmt.Errorf("failed to fetch wallet escrow for order: %w", err)
+		return fmt.Errorf("failed to fetch escrow for order: %w", err)
 	}
 
-	// Step 5: Derive Order.EscrowStatus from Wallet state
+	// Step 5: Derive Order.EscrowStatus from Escrow state
 	// If escrow doesn't exist yet (edge case), default to holding
 	// This should not happen in normal flow since SettlePaymentByID creates escrow first
 	var derivedEscrowStatus entity.EscrowStatus
-	if walletEscrow == nil {
-		s.logger.Warn("wallet_escrow_not_found_for_paid_order",
+	if escrowRow == nil {
+		s.logger.Warn("escrow_not_found_for_paid_order",
 			zap.String("order_id", orderID.String()),
 			zap.String("reason", "escrow_should_exist_after_payment"),
 		)
 		derivedEscrowStatus = entity.EscrowStatusHolding // Default for paid orders
 	} else {
-		derivedEscrowStatus = mapWalletEscrowToOrderEscrow(walletEscrow.Status.String())
+		derivedEscrowStatus = mapEscrowToOrderEscrow(escrowRow.Status.String())
 	}
 
 	// Step 6: Update order state
@@ -287,7 +288,7 @@ func (s *OrderCompletionService) MarkPaid(
 		return err
 	}
 
-	// CRITICAL: Set EscrowStatus from Wallet, not from business logic
+	// CRITICAL: Set EscrowStatus from escrow row, not from business logic
 	order.EscrowStatus = derivedEscrowStatus
 
 	// No ledger entries here - escrow already funded by PaymentSettlementService
@@ -571,7 +572,7 @@ func (s *OrderCompletionService) Complete(
 	// escrow.status to 'released', and writes the finance ledger:
 	//   GATEWAY_CLEARING -= gross, SELLER_PAYABLE += sellerNet, PLATFORM_REVENUE += commission.
 	// Idempotency key (finance ledger): "order_release_<order_id>".
-	// No buyer/seller wallet balance is touched — the canonical seller payable
+	// No user balance is touched — the canonical seller payable
 	// surface is financial_accounts[SELLER_PAYABLE].
 	releaseSummary, err := s.paymentService.ReleaseGatewayEscrowToSeller(ctx, tx, order)
 	if err != nil {
@@ -581,8 +582,8 @@ func (s *OrderCompletionService) Complete(
 	// ============================================================
 	// STEP 3: UPDATE ORDER STATE (reflect financial state)
 	// ============================================================
-	// NOW update Order.EscrowStatus to match Wallet state
-	// Order domain follows Wallet domain (financial-first architecture)
+	// NOW update Order.EscrowStatus to match escrow state
+	// Order domain follows escrow domain (escrow-first operational state)
 	order.Status = entity.StatusCompleted
 	now := time.Now()
 	order.CompletedAt = &now
@@ -978,19 +979,19 @@ func (s *OrderCompletionService) CancelOverdue(
 		return fmt.Errorf("failed to refund escrow: %w", err)
 	}
 
-	walletEscrow, err := s.walletService.GetEscrowForOrder(ctx, tx, order.ID)
+	escrowRow, err := s.escrowService.GetEscrowForOrder(ctx, tx, order.ID)
 	if err != nil {
-		return fmt.Errorf("failed to fetch wallet escrow after refund: %w", err)
+		return fmt.Errorf("failed to fetch escrow after refund: %w", err)
 	}
-	derivedEscrowStatus := mapWalletEscrowToOrderEscrow(walletEscrow.Status.String())
+	derivedEscrowStatus := mapEscrowToOrderEscrow(escrowRow.Status.String())
 
 	// ============================================================
 	// STEP 7: UPDATE ORDER STATE (reflect financial state)
 	// ============================================================
-	// NOW update Order.EscrowStatus to match Wallet state
-	// Order domain follows Wallet domain (financial-first architecture)
+	// NOW update Order.EscrowStatus to match escrow state
+	// Order domain follows escrow domain (escrow-first operational state)
 	order.Status = entity.StatusCancelledTimeout
-	// CRITICAL: Set Order.EscrowStatus from Wallet state (not independent)
+	// CRITICAL: Set Order.EscrowStatus from escrow state (not independent)
 	order.EscrowStatus = derivedEscrowStatus
 	order.UpdatedAt = time.Now()
 
@@ -1106,8 +1107,8 @@ func (s *OrderCompletionService) Expire(
 	// 🔥 CRITICAL: ESCROW REFUND MUST BE BLOCKING
 	// - Orders now hold escrow on creation (WALLET PHASE 1)
 	// - When orders expire, we MUST refund the escrow to the buyer
-	// - This calls WalletService.RefundEscrow which moves:
-	//   buyer.held_balance → buyer.available_balance (full refund)
+	// - This calls RefundService which reverses:
+	//   Escrow refund via gateway refund pipeline
 	//
 	// ❌ OLD BEHAVIOR (NON-BLOCKING):
 	//   - Log error and continue with expiry
@@ -1118,7 +1119,7 @@ func (s *OrderCompletionService) Expire(
 	//   - No state: expired + escrow held
 	//   - Transaction rollback ensures atomicity
 	//
-	// WALLET SAFETY: WalletService.RefundEscrow is idempotent
+	// SAFETY: RefundGatewayEscrow is idempotent
 	// - Safe to call multiple times (only succeeds once)
 	// - If no escrow exists, returns success (no-op)
 	//
@@ -1129,7 +1130,7 @@ func (s *OrderCompletionService) Expire(
 	// account, so there is no gateway refund and no escrow to flip. Paid
 	// orders (escrow exists in holding) must dispatch the canonical gateway
 	// refund before the local escrow flip, mirroring the buyer-overdue path.
-	escrowForExpiry, escrowErr := s.walletService.GetEscrowForOrder(ctx, tx, order.ID)
+	escrowForExpiry, escrowErr := s.escrowService.GetEscrowForOrder(ctx, tx, order.ID)
 	if escrowErr != nil {
 		return fmt.Errorf("CRITICAL: failed to load escrow for expiry: order_id=%s, error=%w", orderID, escrowErr)
 	}
@@ -1347,11 +1348,11 @@ func (s *OrderCompletionService) RefundOrder(
 		return err
 	}
 
-	walletEscrow, err := s.walletService.GetEscrowForOrder(ctx, tx, order.ID)
+	escrowRow, err := s.escrowService.GetEscrowForOrder(ctx, tx, order.ID)
 	if err != nil {
-		return fmt.Errorf("failed to fetch wallet escrow after refund: %w", err)
+		return fmt.Errorf("failed to fetch escrow after refund: %w", err)
 	}
-	derivedEscrowStatus := mapWalletEscrowToOrderEscrow(walletEscrow.Status.String())
+	derivedEscrowStatus := mapEscrowToOrderEscrow(escrowRow.Status.String())
 
 	// ============================================================
 	// EMIT MONEY REFUNDED EVENT (triggers coins refund)
@@ -1402,7 +1403,7 @@ func (s *OrderCompletionService) RefundOrder(
 	// Auction orders excluded — quote isolation.
 	s.reactivateShippingQuoteIfEligible(ctx, tx, order)
 
-	// CRITICAL: Set Order.EscrowStatus from Wallet state (not independent)
+	// CRITICAL: Set Order.EscrowStatus from escrow state (not independent)
 	order.EscrowStatus = derivedEscrowStatus
 	order.Status = entity.StatusRefunded
 	// Note: Refund amount is tracked in Ledger, not in Order
@@ -1473,8 +1474,8 @@ func (s *OrderCompletionService) RefundFromDispute(
 		return errors.New("invalid state for dispute resolution")
 	}
 
-	// DISPUTE → WALLET INTEGRATION: Log that dispute resolution is triggering wallet refund
-	s.logger.Info("wallet_dispute_refund_triggered",
+	// DISPUTE → ESCROW INTEGRATION: Log that dispute resolution is triggering escrow refund
+	s.logger.Info("escrow_dispute_refund_triggered",
 		zap.String("order_id", order.ID.String()),
 		zap.String("buyer_id", order.BuyerID.String()),
 		zap.String("seller_id", order.SellerID.String()),
@@ -1498,17 +1499,17 @@ func (s *OrderCompletionService) RefundFromDispute(
 		return fmt.Errorf("gateway refund initiation failed: %w", err)
 	}
 
-	walletEscrow, _, err := s.walletService.RefundGatewayEscrow(ctx, tx, orderID)
+	escrowRow, _, err := s.escrowService.RefundGatewayEscrow(ctx, tx, orderID)
 	if err != nil {
-		s.logger.Error("wallet_refund_escrow_failed",
+		s.logger.Error("escrow_refund_failed",
 			zap.String("order_id", orderID.String()),
 			zap.Error(err),
 		)
-		return fmt.Errorf("failed to refund escrow via wallet service: %w", err)
+		return fmt.Errorf("failed to refund escrow via escrow service: %w", err)
 	}
 
-	// Derive Order.EscrowStatus from Wallet state (CRITICAL: no independent state)
-	derivedEscrowStatus := mapWalletEscrowToOrderEscrow(walletEscrow.Status.String())
+	// Derive Order.EscrowStatus from escrow state (CRITICAL: no independent state)
+	derivedEscrowStatus := mapEscrowToOrderEscrow(escrowRow.Status.String())
 
 	// ============================================================
 	// EMIT MONEY REFUNDED EVENT
@@ -1551,7 +1552,7 @@ func (s *OrderCompletionService) RefundFromDispute(
 	// was used. Auction orders excluded — quote isolation.
 	s.reactivateShippingQuoteIfEligible(ctx, tx, order)
 
-	// CRITICAL: Set Order.EscrowStatus from Wallet state (not independent)
+	// CRITICAL: Set Order.EscrowStatus from escrow state (not independent)
 	order.EscrowStatus = derivedEscrowStatus
 	order.Status = entity.StatusRefunded
 	// Note: Refund amount is tracked in Ledger, not in Order
@@ -1588,12 +1589,12 @@ func (s *OrderCompletionService) refundFromDispute(
 // PUBLIC API: Called by DisputeService for dispute resolution in favor of seller.
 //
 // Gateway-aware release: mirrors the canonical Complete() release semantics
-// (paymentService.ReleaseGatewayEscrowToSeller). Buyer wallet balances are NOT
+// (paymentService.ReleaseGatewayEscrowToSeller). Buyer balances are NOT
 // touched — the seller's withdrawable surface is financial_accounts[SELLER_PAYABLE].
 //
 // FLOW (single tx, caller-owned):
 //  1. Lock order and enforce dispute guards (HasDispute, status == dispute_open).
-//  2. Call paymentService.ReleaseGatewayEscrowToSeller (wallet escrow flip +
+//  2. Call paymentService.ReleaseGatewayEscrowToSeller (escrow flip +
 //     finance ledger via idempotency_key="order_release_<order_id>").
 //  3. Update order: status=completed, escrow_status=released, completed_at=now.
 //  4. Emit order.completed.
@@ -1623,8 +1624,8 @@ func (s *OrderCompletionService) ReleaseFromDispute(
 		return errors.New("invalid state for dispute resolution")
 	}
 
-	// DISPUTE → WALLET INTEGRATION: Log that dispute resolution is triggering wallet release
-	s.logger.Info("wallet_dispute_release_triggered",
+	// DISPUTE → ESCROW INTEGRATION: Log that dispute resolution is triggering escrow release
+	s.logger.Info("escrow_dispute_release_triggered",
 		zap.String("order_id", order.ID.String()),
 		zap.String("buyer_id", order.BuyerID.String()),
 		zap.String("seller_id", order.SellerID.String()),
@@ -1641,7 +1642,7 @@ func (s *OrderCompletionService) ReleaseFromDispute(
 		return err
 	}
 
-	// Update order status (Order.EscrowStatus mirrors Wallet.Escrow.Status).
+	// Update order status (Order.EscrowStatus mirrors Escrow.Status).
 	now := time.Now()
 	order.Status = entity.StatusCompleted
 	order.EscrowStatus = entity.EscrowStatusReleased
@@ -1694,17 +1695,17 @@ func (s *OrderCompletionService) ReleaseFromDispute(
 //
 // STRICT RULES:
 // - ADMIN ONLY (no user-triggered)
-// - MUST use walletService.PartialRefundEscrow (atomic single transaction)
+// - MUST use escrowService.PartialRefundEscrow (atomic single transaction)
 // - MUST be from dispute_open status with frozen escrow
 // - Refund amount MUST equal order.Subtotal (item price only)
 // - Shipping fee is released to seller (remainder)
 //
 // FINANCIAL FLOW:
 // 1. Validate order.Subtotal + order.ShippingTotal == escrow_amount
-// 2. Call walletService.PartialRefundEscrow with refund_amount = order.Subtotal
-// 3. Wallet service handles:
-//   - Transfer subtotal to buyer wallet
-//   - Transfer shipping_total to seller wallet
+// 2. Call escrowService.PartialRefundEscrow with refund_amount = order.Subtotal
+// 3. Escrow service handles:
+//   - Refund subtotal to buyer via gateway refund pipeline
+//   - Release shipping_total to seller via finance ledger
 //   - Create 3 ledger entries (debit buyer held, credit buyer, credit seller)
 //
 // 4. Update order status to partially_refunded
@@ -1762,8 +1763,8 @@ func (s *OrderCompletionService) PartialRefundFromDispute(
 			itemPrice.Int64(), shippingFee.Int64(), escrowAmount.Int64())
 	}
 
-	// LOG: Dispute resolution triggering wallet partial refund
-	s.logger.Info("wallet_dispute_partial_refund_triggered",
+	// LOG: Dispute resolution triggering escrow partial refund
+	s.logger.Info("escrow_dispute_partial_refund_triggered",
 		zap.String("order_id", order.ID.String()),
 		zap.String("buyer_id", order.BuyerID.String()),
 		zap.String("seller_id", order.SellerID.String()),
@@ -1776,7 +1777,7 @@ func (s *OrderCompletionService) PartialRefundFromDispute(
 
 	// CANONICAL PARTIAL REFUND: dispatch gateway refund for the BUYER
 	// portion (item price) ONLY. Local escrow.status DOES NOT flip here —
-	// the wallet primitive (PartialRefundGatewayEscrow) is now invoked
+	// the escrow primitive (PartialRefundGatewayEscrow) is now invoked
 	// from RefundService.HandleGatewayRefundAck after the canonical ledger
 	// reversal commits. Escrow stays HOLDING until the gateway ack arrives.
 	if err := s.paymentService.InitiateGatewayRefundForOrder(
@@ -1855,7 +1856,7 @@ func (s *OrderCompletionService) PartialRefundFromDispute(
 		return err
 	}
 
-	s.logger.Info("wallet_dispute_partial_refund_success",
+	s.logger.Info("escrow_dispute_partial_refund_success",
 		zap.String("order_id", order.ID.String()),
 		zap.String("buyer_id", order.BuyerID.String()),
 		zap.String("seller_id", order.SellerID.String()),

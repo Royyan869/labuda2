@@ -12,16 +12,7 @@ import 'package:labuda/domains/user/profile/data/profile_providers.dart'
     show userSyncServiceProvider;
 import 'package:labuda/domains/user/profile/data/services/user_sync_service.dart';
 
-class _FakeAuthRepository extends Fake implements IAuthRepository {
-  final List<Completer<Result<AuthUser?>>> pendingRequests = [];
-
-  @override
-  Future<Result<AuthUser?>> getCurrentUser() {
-    final completer = Completer<Result<AuthUser?>>();
-    pendingRequests.add(completer);
-    return completer.future;
-  }
-}
+class _FakeAuthRepository extends Fake implements IAuthRepository {}
 
 class _MockUserApiDatasource extends Fake implements UserApiDatasource {}
 

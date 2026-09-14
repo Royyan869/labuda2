@@ -14,7 +14,7 @@ import (
 //  1. No Authorization header → anonymous, pass through (no claims)
 //  2. Authorization header present but not "Bearer <token>" → 401
 //  3. Bearer token invalid/expired/wrong type (not access) → 401
-//  4. Bearer token valid Labuda access JWT → inject canonical user_id + UserClaims, pass through
+//  4. Bearer token valid Labuda access JWT → inject canonical user_id, pass through
 //
 // Use this for public browse routes where unauthenticated readers must be permitted
 // but invalid tokens must be rejected so the client knows to clear stale credentials.
@@ -50,9 +50,6 @@ func StrictBrowseLabudaAuthMiddleware(tokenService *application.TokenService) gi
 		// Case 4: Valid → inject canonical identity
 		c.Set("user_id", claims.UserID)
 		c.Set("userID", claims.UserID)
-		c.Set(AuthContextKey, &UserClaims{
-			UID: claims.UserID.String(),
-		})
 		c.Next()
 	}
 }

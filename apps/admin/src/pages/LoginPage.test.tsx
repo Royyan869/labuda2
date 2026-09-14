@@ -81,7 +81,12 @@ const USER_ME_RESPONSE = {
     user: {
       id: "admin-1",
       email: "admin@labuda.com",
+    },
+    profile: {
+      id: "profile-1",
+      user_id: "admin-1",
       username: "admin",
+      avatar_url: null,
     },
   },
 };

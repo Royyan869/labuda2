@@ -193,6 +193,13 @@ func (h *AuthHandler) FirebaseExchange(c *gin.Context) {
 
 			createdAuthUser, createdFlag, createErr := h.createUser(ctx, tx, firebaseUID, email, firebaseEmailVerified)
 			if createErr != nil {
+				if errors.Is(createErr, errEmailAlreadyRegistered) {
+					h.log.Warn("Email already registered to another account (concurrent creation race), rejecting",
+						zap.String("incoming_firebase_uid", firebaseUID),
+					)
+					response.Error(c, http.StatusConflict, "EMAIL_ALREADY_REGISTERED", "This email is already registered to another account. Please sign in with your original provider or use explicit account linking.")
+					return
+				}
 				h.log.Error("Failed to create user", zap.Error(createErr))
 				response.InternalServerError(c, "Failed to create user")
 				return
@@ -200,6 +207,10 @@ func (h *AuthHandler) FirebaseExchange(c *gin.Context) {
 			authUser = createdAuthUser
 			created = createdFlag
 		} else {
+			// B2 — Explicit identity linking (Owner-locked).
+			// Firebase Exchange MUST NOT silently overwrite an existing
+			// firebase_uid merely because normalized email matches.
+			// Authentication and identity linking are separate operations.
 			if authUser.AccountStatus != "active" {
 				h.log.Warn("User account is not active",
 					zap.String("user_id", authUser.ID.String()),
@@ -208,13 +219,12 @@ func (h *AuthHandler) FirebaseExchange(c *gin.Context) {
 				response.Error(c, http.StatusForbidden, "ACCOUNT_INACTIVE", fmt.Sprintf("Account is %s", authUser.AccountStatus))
 				return
 			}
-
-			if linkErr := h.linkFirebaseIdentity(ctx, tx, authUser.ID, firebaseUID); linkErr != nil {
-				h.log.Error("Failed to link Firebase identity", zap.Error(linkErr))
-				response.InternalServerError(c, "Failed to link account")
-				return
-			}
-			authUser.FirebaseUID = firebaseUID
+			h.log.Warn("Email already registered to another account, rejecting automatic linking",
+				zap.String("existing_user_id", authUser.ID.String()),
+				zap.String("incoming_firebase_uid", firebaseUID),
+			)
+			response.Error(c, http.StatusConflict, "EMAIL_ALREADY_REGISTERED", "This email is already registered to another account. Please sign in with your original provider or use explicit account linking.")
+			return
 		}
 	}
 
@@ -437,13 +447,9 @@ func (h *AuthHandler) createUser(ctx context.Context, tx pgx.Tx, firebaseUID, em
 			return nil, false, fmt.Errorf("failed to resolve user by email after insert conflict: %w", loadErr)
 		}
 		if authUser != nil {
-			if authUser.FirebaseUID != firebaseUID {
-				if linkErr := h.linkFirebaseIdentity(ctx, tx, authUser.ID, firebaseUID); linkErr != nil {
-					return nil, false, fmt.Errorf("failed to link firebase identity after insert conflict: %w", linkErr)
-				}
-				authUser.FirebaseUID = firebaseUID
-			}
-			return authUser, false, nil
+			// B2: Do not silently link on insert-conflict race either.
+			// The normalized email is already owned by an active Labuda account.
+			return nil, false, fmt.Errorf("%w: %s", errEmailAlreadyRegistered, *normalizedEmail)
 		}
 	}
 
@@ -542,6 +548,12 @@ func (h *AuthHandler) hasSoftDeletedUser(ctx context.Context, tx pgx.Tx, query s
 	return exists, nil
 }
 
+// linkFirebaseIdentity updates the canonical firebase_uid for a Labuda account.
+//
+// B2 — Explicit linking invariant: this helper MUST NOT be called from
+// FirebaseExchange automatic linking. It is retained only for a future
+// explicit identity-linking flow (separate bounded scope). Automatic
+// email-based overwrite is forbidden.
 func (h *AuthHandler) linkFirebaseIdentity(ctx context.Context, tx pgx.Tx, userID uuid.UUID, firebaseUID string) error {
 	_, err := tx.Exec(ctx, `
 		UPDATE users
@@ -573,6 +585,7 @@ func (h *AuthHandler) syncEmailVerifiedSnapshot(ctx context.Context, tx pgx.Tx, 
 var (
 	errSignupUsernameTaken     = errors.New("username already taken")
 	errSignupUsernameImmutable = errors.New("username is immutable after registration")
+	errEmailAlreadyRegistered  = errors.New("email already registered to another account")
 )
 
 // applyRegistrationUsername stamps the canonical username chosen at
@@ -731,13 +744,20 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	// Step 3: verify user is still active.
+	// Step 3: serialize with SelfDeleteAccount via users row FOR UPDATE.
+	// Must hold users row lock before verifying deleted_at and before
+	// ConsumeAndReplace to close the window:
+	//   Refresh SELECT users → SelfDelete COMMIT → Refresh INSERT new session
+	// Lock is held until COMMIT, giving ordering:
+	//   users → auth_refresh_sessions  (same as SelfDelete: users UPDATE → sessions UPDATE)
+	var deletedAt *time.Time
 	var accountStatus, dbRole string
 	dbErr := tx.QueryRow(ctx, `
-		SELECT account_status, role
+		SELECT deleted_at, account_status, role
 		FROM users
-		WHERE id = $1 AND deleted_at IS NULL
-	`, session.UserID).Scan(&accountStatus, &dbRole)
+		WHERE id = $1
+		FOR UPDATE
+	`, session.UserID).Scan(&deletedAt, &accountStatus, &dbRole)
 	if dbErr != nil {
 		if errors.Is(dbErr, pgx.ErrNoRows) {
 			response.Error(c, http.StatusNotFound, "USER_NOT_FOUND", "User not found")
@@ -745,6 +765,10 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		}
 		h.log.Error("Database error fetching user for refresh", zap.Error(dbErr))
 		response.InternalServerError(c, "Database error")
+		return
+	}
+	if deletedAt != nil {
+		response.Error(c, http.StatusNotFound, "USER_NOT_FOUND", "User not found")
 		return
 	}
 	if accountStatus != "active" {

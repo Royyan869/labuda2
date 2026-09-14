@@ -99,13 +99,6 @@ type DisputeFreeze struct {
 	Status       string // "active" | "released"
 }
 
-type Wallet struct {
-	ID               uuid.UUID
-	UserID           uuid.UUID
-	AvailableBalance int64
-	HeldBalance      int64
-}
-
 type OutboxEvent struct {
 	ID          uuid.UUID
 	AggregateID uuid.UUID
@@ -145,7 +138,6 @@ type Snapshot struct {
 	Withdrawals          []Withdrawal
 	Refunds              []Refund
 	DisputeFreezes       []DisputeFreeze
-	Wallets              []Wallet
 	OutboxEvents         []OutboxEvent
 	PromotionContracts   []PromotionContract
 	QualifiedImpressions []QualifiedImpression
@@ -236,9 +228,6 @@ func LoadSnapshot(ctx context.Context, pool *pgxpool.Pool) (*Snapshot, error) {
 		return nil, err
 	}
 	if s.DisputeFreezes, err = loadDisputeFreezes(ctx, pool); err != nil {
-		return nil, err
-	}
-	if s.Wallets, err = loadWallets(ctx, pool); err != nil {
 		return nil, err
 	}
 	if s.OutboxEvents, err = loadOutboxEvents(ctx, pool); err != nil {
@@ -465,7 +454,7 @@ func (v *verifier) checkAccountBalanceIntegrity() SectionResult {
 		})
 		running := openingBalance
 		for _, e := range entries {
-			signed := signedAmount(e)
+			signed := signedAmount(e, account.AccountType)
 			running += signed
 			if e.BalanceAfter != running {
 				class := "real_invariant_bug"
@@ -546,14 +535,14 @@ func (v *verifier) checkSettlementReleaseInvariants() SectionResult {
 		}
 		for _, e := range v.entriesByTx[tx.ID] {
 			if gatewayAccountIDs[e.AccountID] {
-				t.actual += signedAmount(e)
+				t.actual += signedAmount(e, finance.AccountGatewayClearing)
 				switch tx.ReferenceType {
 				case "payment_settlement":
-					t.settlement += signedAmount(e)
+					t.settlement += signedAmount(e, finance.AccountGatewayClearing)
 				case "order_release":
-					t.release += -signedAmount(e)
+					t.release += -signedAmount(e, finance.AccountGatewayClearing)
 				case "refund_reversal":
-					t.refund += -signedAmount(e)
+					t.refund += -signedAmount(e, finance.AccountGatewayClearing)
 				}
 			}
 		}
@@ -727,15 +716,16 @@ func (v *verifier) checkRefundInvariants() SectionResult {
 		var platformDelta int64
 		var bankDelta int64
 		for _, e := range entries {
-			switch accountTypeByID[e.AccountID] {
+			acctType := accountTypeByID[e.AccountID]
+			switch acctType {
 			case finance.AccountGatewayClearing:
-				gatewayDelta += signedAmount(e)
+				gatewayDelta += signedAmount(e, acctType)
 			case finance.AccountSellerPayable:
-				sellerDelta += signedAmount(e)
+				sellerDelta += signedAmount(e, acctType)
 			case finance.AccountPlatformRevenue:
-				platformDelta += signedAmount(e)
+				platformDelta += signedAmount(e, acctType)
 			case finance.AccountBankSettlement:
-				bankDelta += signedAmount(e)
+				bankDelta += signedAmount(e, acctType)
 			}
 		}
 
@@ -862,7 +852,7 @@ var promotionReferenceAllowedAccounts = map[string]map[string]bool{
 // that every promotion ledger transaction follows its canonical financial
 // shape. It proves the verifier UNDERSTANDS the promotion primitives (no
 // "unknown accounting primitive") and that no accidental competing financial
-// authority exists (allocation is ledger-state, not a second wallet).
+// authority exists (allocation is ledger-state, not a second balance authority).
 func (v *verifier) checkPromotionFinancialInvariants() SectionResult {
 	res := SectionResult{Name: "Promotion Financial Invariants"}
 
@@ -981,7 +971,7 @@ func (v *verifier) checkQualifiedImpressionReconciliation() SectionResult {
 		}
 		for _, e := range v.entriesByTx[tx.ID] {
 			if typeByID[e.AccountID] == finance.AccountPromotionAllocation {
-				promotionQiChargeByRef[*tx.ReferenceID] += signedAmount(e)
+				promotionQiChargeByRef[*tx.ReferenceID] += signedAmount(e, finance.AccountPromotionAllocation)
 			}
 		}
 	}
@@ -1034,7 +1024,7 @@ func (v *verifier) checkQualifiedImpressionReconciliation() SectionResult {
 		for _, e := range v.entriesByAccount[c.AllocationAccountID] {
 			tx, ok := v.txByID[e.TransactionID]
 			if ok && tx.ReferenceType == "promotion_qi" {
-				allocationPromotionQiDelta += signedAmount(e)
+				allocationPromotionQiDelta += signedAmount(e, finance.AccountPromotionAllocation)
 			}
 		}
 		if -allocationPromotionQiDelta != cumulative {
@@ -1090,7 +1080,24 @@ func (v *verifier) checkOutboxCorrelation() SectionResult {
 	return v.finalize(&res)
 }
 
-func signedAmount(e LedgerEntry) int64 {
+func signedAmount(e LedgerEntry, accountType string) int64 {
+	// CANONICAL SIGN ARCHITECTURE: account-class-aware balance calculation.
+	// Asset/Expense: debit increases, credit decreases.
+	// Liability/Revenue/Equity: credit increases, debit decreases.
+	isLiabilityOrRevenue := accountType == "SELLER_PAYABLE" || accountType == "BUYER_REFUNDABLE" ||
+		accountType == "PLATFORM_REVENUE" || accountType == "WITHDRAWAL_PENDING" ||
+		accountType == "WITHDRAWAL_COMMITTED" || accountType == "GATEWAY_CLEARING" ||
+		accountType == "ESCROW" || accountType == "USER_SERVICE_CREDIT" ||
+		accountType == "AD_REVENUE" || accountType == "PROMOTE_BALANCE" ||
+		accountType == "PROMOTION_ALLOCATION" || accountType == "BANK_SETTLEMENT"
+	if isLiabilityOrRevenue {
+		// Liability/revenue: credit increases balance, debit decreases.
+		if e.EntryType == "credit" {
+			return e.Amount // credit: positive contribution
+		}
+		return -e.Amount // debit: negative contribution
+	}
+	// Asset/expense: debit increases balance, credit decreases.
 	if e.EntryType == "credit" {
 		return -e.Amount
 	}
@@ -1168,9 +1175,15 @@ func (v *verifier) openingBalanceForAccount(account Account) (int64, string, boo
 		return 9_000_000_000_000_000, "real_invariant_bug", true
 	case finance.AccountPlatformBank:
 		// PLATFORM_BANK carries a reserve float representing the platform's
-		// own bank holdings, the source of platform-funded buyer benefits (K
-		// coin funding). Mirrors BANK_SETTLEMENT's reserve-float opening.
+		// own bank holdings, drawn down by payout settlement. Mirrors
+		// BANK_SETTLEMENT's reserve-float opening. Coin funding does NOT flow
+		// through PLATFORM_BANK (see AccountPlatformCoinBenefit).
 		return 9_000_000_000_000_000, "real_invariant_bug", true
+	case finance.AccountPlatformCoinBenefit:
+		// Platform-owned coin benefit (Labuda Coins K funding): debit-normal
+		// with no opening float — every balance movement comes from a
+		// coin-funding / coin-funding-reversal journal.
+		return 0, "real_invariant_bug", true
 	case finance.AccountGatewayClearing, finance.AccountEscrow, finance.AccountSellerPayable, finance.AccountPlatformRevenue, finance.AccountWithdrawalPending, finance.AccountWithdrawalCommitted, finance.AccountBuyerRefundable, finance.AccountUserServiceCredit, finance.AccountAdRevenue:
 		return 0, "real_invariant_bug", true
 	default:
@@ -1402,23 +1415,6 @@ func loadDisputeFreezes(ctx context.Context, pool *pgxpool.Pool) ([]DisputeFreez
 			return nil, fmt.Errorf("scan dispute_freezes: %w", err)
 		}
 		out = append(out, f)
-	}
-	return out, rows.Err()
-}
-
-func loadWallets(ctx context.Context, pool *pgxpool.Pool) ([]Wallet, error) {
-	rows, err := pool.Query(ctx, `SELECT id, user_id, available_balance, held_balance FROM wallets`)
-	if err != nil {
-		return nil, fmt.Errorf("load wallets: %w", err)
-	}
-	defer rows.Close()
-	var out []Wallet
-	for rows.Next() {
-		var w Wallet
-		if err := rows.Scan(&w.ID, &w.UserID, &w.AvailableBalance, &w.HeldBalance); err != nil {
-			return nil, fmt.Errorf("scan wallets: %w", err)
-		}
-		out = append(out, w)
 	}
 	return out, rows.Err()
 }

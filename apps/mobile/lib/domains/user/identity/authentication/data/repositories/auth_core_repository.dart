@@ -1,10 +1,6 @@
-import 'dart:async';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
 
-import '../../domain/entities/auth_user.dart' as domain;
 import '../../domain/entities/firebase_principal.dart';
 
 /// Core Authentication Repository - Handles basic auth operations.
@@ -13,23 +9,10 @@ import '../../domain/entities/firebase_principal.dart';
 /// separately by the controller.
 class AuthCoreRepository {
   final FirebaseAuth _firebaseAuth;
-  final StreamController<FirebasePrincipal?> _authStateController;
-  final LocalStorageService _localStorage;
 
   AuthCoreRepository({
     FirebaseAuth? firebaseAuth,
-    LocalStorageService? localStorage,
-  }) : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
-       _localStorage = localStorage ?? LocalStorageService(),
-       _authStateController = StreamController<FirebasePrincipal?>.broadcast() {
-    _firebaseAuth.authStateChanges().listen((User? user) {
-      if (user != null) {
-        _authStateController.add(FirebasePrincipal.fromFirebaseUser(user));
-      } else {
-        _authStateController.add(null);
-      }
-    });
-  }
+  }) : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance;
 
   Future<Result<FirebasePrincipal>> signInWithEmail({
     required String email,
@@ -67,30 +50,6 @@ class AuthCoreRepository {
     }
   }
 
-  /// Returns the current Firebase principal only.
-  ///
-  /// Canonical current-account hydration now comes from backend /users/me,
-  /// so this helper must not synthesize an application account.
-  Future<Result<domain.AuthUser?>> getCurrentUser() async {
-    try {
-      final user = _firebaseAuth.currentUser;
-      if (user == null) {
-        return Result.success(null);
-      }
-
-      return Result.success(null);
-    } catch (e) {
-      final user = _firebaseAuth.currentUser;
-      if (user != null) {
-        return Result.success(null);
-      }
-      return Result.success(null);
-    }
-  }
-
-  Stream<FirebasePrincipal?> get authStateChanges =>
-      _authStateController.stream;
-
   /// Map Firebase Auth errors to user-friendly English messages.
   String _mapFirebaseError(FirebaseAuthException e) {
     switch (e.code) {
@@ -115,9 +74,5 @@ class AuthCoreRepository {
       default:
         return 'Error occurred: ${e.message}';
     }
-  }
-
-  void dispose() {
-    _authStateController.close();
   }
 }

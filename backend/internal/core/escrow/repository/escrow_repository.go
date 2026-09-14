@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/core/wallet/entity"
+	"github.com/labuda/backend/internal/core/escrow/entity"
 	"github.com/labuda/backend/pkg/db"
 )
 
@@ -41,14 +41,4 @@ type EscrowRepository interface {
 	// Update updates an escrow (status changes).
 	// Used for release and refund operations.
 	Update(ctx context.Context, tx db.Tx, escrow *entity.Escrow) error
-
-	// GetByBuyerWalletID retrieves active escrows for a buyer wallet.
-	// Returns escrows in HOLDING status.
-	GetByBuyerWalletID(ctx context.Context, tx db.Tx, buyerWalletID uuid.UUID) ([]*entity.Escrow, error)
-
-	// GetBySellerWalletID retrieves active escrows for a seller wallet.
-	// Returns escrows in HOLDING status.
-	GetBySellerWalletID(ctx context.Context, tx db.Tx, sellerWalletID uuid.UUID) ([]*entity.Escrow, error)
 }
-
-

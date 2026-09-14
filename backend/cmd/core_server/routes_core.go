@@ -132,7 +132,6 @@ func SetupRoutes(
 	v1Browse.Use(middleware.ErrorHandler(log.Logger))
 	v1Browse.Use(middleware.StrictBrowseLabudaAuthMiddleware(labudaTokenService))
 	v1Browse.Use(middleware.UserLookupMiddleware(middleware.NewDBUserLookupService(db.Pgx())))
-	v1Browse.Use(middleware.RolesLookupMiddleware(db.Pgx()))
 	v1Browse.Use(middleware.ActorContextInject(deps.ActorResolver, middleware.ActorContextInjectOptions{Log: log.Logger}))
 	{
 		// ForSale browse (public discovery)
@@ -169,12 +168,11 @@ func SetupRoutes(
 	// ===== GLOBAL MIDDLEWARE CHAIN FOR /api/v1 =====
 	// All authenticated routes under /api/v1 share the same middleware pipeline:
 	// 1. LabudaAuthMiddleware - Validates canonical Labuda Access JWT (user_id, token_use=access)
-	// 2. UserLookupMiddleware - Validates canonical user_id exists (skips Firebase UID lookup when Labuda already set)
-	// 3. RolesLookupMiddleware - Fetches role from PostgreSQL for authorization
-	// 4. ActorContextInject - Injects Actor (role + capabilities) into request context
+	// 2. UserLookupMiddleware - Validates canonical user_id exists
+	// 3. ActorContextInject - Injects Actor (role + capabilities) into request context
 	//
-	// DATABASE-BASED AUTHORIZATION: Roles are queried from PostgreSQL on every request.
-	// This allows immediate role revocation without requiring token refresh.
+	// DATABASE-BASED AUTHORIZATION: Actor is resolved from PostgreSQL on every request via ActorResolver.
+	// This allows immediate role/capability revocation without requiring token refresh.
 	//
 	// USER PROVISIONING REMOVED: Middleware no longer creates users automatically.
 	// Users must be created through explicit signup flow (POST /api/v1/auth/firebase/exchange).
@@ -184,7 +182,6 @@ func SetupRoutes(
 	v1.Use(middleware.ErrorHandler(log.Logger))
 	v1.Use(middleware.LabudaAuthMiddleware(labudaTokenService))
 	v1.Use(middleware.UserLookupMiddleware(middleware.NewDBUserLookupService(db.Pgx())))
-	v1.Use(middleware.RolesLookupMiddleware(db.Pgx()))
 	// CANONICAL AUTHORITY PIPELINE: inject Actor (role + capabilities) into context
 	v1.Use(middleware.ActorContextInject(deps.ActorResolver, middleware.ActorContextInjectOptions{Log: log.Logger}))
 	{
@@ -598,7 +595,7 @@ func SetupRoutes(
 			// Request a withdrawal — PHASE 2D / TASK 43 canonical path.
 			// Authority: finance.SELLER_PAYABLE − Σ(active dispute freeze).
 			// Books DR SELLER_PAYABLE / CR WITHDRAWAL_PENDING in the same
-			// tx as the wallet.withdrawals row insert.
+			// tx as the withdrawals row insert.
 			withdrawRoutes.POST("",
 				middleware.RequireActiveAccount(db.Pgx()),
 				deps.WithdrawalHandlerUnified.RequestWithdraw,

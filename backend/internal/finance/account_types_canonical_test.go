@@ -56,6 +56,11 @@ func TestCanonicalAccountTypeConstants(t *testing.T) {
 		// user+holder-scoped per-contract allocation account.
 		{"PromoteBalance", finance.AccountPromoteBalance, "PROMOTE_BALANCE", ledgerintf.AccountPromoteBalance},
 		{"PromotionAllocation", finance.AccountPromotionAllocation, "PROMOTION_ALLOCATION", ledgerintf.AccountPromotionAllocation},
+		// Platform-owned coin benefit: the canonical counterpart of
+		// platform-funded Labuda Coins (K) funding. Defined only in package
+		// finance (no alias in the repository constants block — only
+		// FinanceService's coin-funding journals use it).
+		{"PlatformCoinBenefit", finance.AccountPlatformCoinBenefit, "PLATFORM_COIN_BENEFIT", finance.AccountPlatformCoinBenefit},
 	}
 
 	for _, c := range cases {

@@ -195,6 +195,7 @@ abstract class BaseApiRepository {
       return Result.error(
         exception.message,
         code: exception.code,
+        statusCode: exception.statusCode,
         details: exception.details is Map<String, dynamic>
             ? exception.details as Map<String, dynamic>
             : null,

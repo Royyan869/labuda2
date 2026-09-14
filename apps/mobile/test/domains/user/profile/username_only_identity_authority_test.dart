@@ -334,7 +334,6 @@ void main() {
       final result = await service.signUpWithEmail(
         email: 'yayan@example.com',
         password: 'password123',
-        username: 'yayan',
       );
 
       expect(result.isSuccess, isTrue);

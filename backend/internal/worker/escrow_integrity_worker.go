@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	walletApp "github.com/labuda/backend/internal/core/wallet/application"
+	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
 	"go.uber.org/zap"
 )
 
@@ -85,7 +85,7 @@ func ParseEscrowIntegrityConfig() EscrowIntegrityConfig {
 //	  1. Set DISABLE_ESCROW_INTEGRITY_WORKER=true
 //	  2. Set ESCROW_INTEGRITY_SHADOW_MODE=false to promote shadow logging to live alerts
 type EscrowIntegrityWorker struct {
-	checker    *walletApp.EscrowIntegrityChecker
+	checker    *escrowApp.EscrowIntegrityChecker
 	logger     *zap.Logger
 	interval   time.Duration
 	shadowMode bool
@@ -100,14 +100,14 @@ type EscrowIntegrityWorker struct {
 // NewEscrowIntegrityWorker creates a new escrow integrity worker.
 //
 // Dependencies:
-//   - checker: the reconciliation checker from wallet/application
+//   - checker: the reconciliation checker from escrow/application
 //   - logger: nil is safe (falls back to zap.NewNop)
 //   - interval: tick interval between checks
 //   - shadowMode: must match the value passed to the checker (used only for
 //     accurate per-cycle log reporting; the checker independently enforces
 //     its own alert-suppression behavior)
 func NewEscrowIntegrityWorker(
-	checker *walletApp.EscrowIntegrityChecker,
+	checker *escrowApp.EscrowIntegrityChecker,
 	logger *zap.Logger,
 	interval time.Duration,
 	shadowMode bool,

@@ -124,63 +124,7 @@ func (c *Client) CreateUser(ctx context.Context, email, password string) (*auth.
 	return user, nil
 }
 
-// DeleteUser deletes a Firebase user
-func (c *Client) DeleteUser(ctx context.Context, uid string) error {
-	if c.AuthClient == nil {
-		// Mock mode - just log and return success
-		c.log.Info("Mock mode: skip delete user", zap.String("uid", uid))
-		return nil
-	}
 
-	if err := c.AuthClient.DeleteUser(ctx, uid); err != nil {
-		return fmt.Errorf("failed to delete user: %w", err)
-	}
-
-	c.log.Info("Firebase user deleted", zap.String("uid", uid))
-	return nil
-}
-
-// SetCustomClaims sets custom claims for a user
-func (c *Client) SetCustomClaims(ctx context.Context, uid string, claims map[string]interface{}) error {
-	if c.AuthClient == nil {
-		// Mock mode - just log and return success
-		c.log.Info("Mock mode: skip set custom claims", zap.String("uid", uid))
-		return nil
-	}
-
-	if err := c.AuthClient.SetCustomUserClaims(ctx, uid, claims); err != nil {
-		return fmt.Errorf("failed to set custom claims: %w", err)
-	}
-
-	c.log.Info("Custom claims set", zap.String("uid", uid))
-	return nil
-}
-
-// UserExists checks if a user exists in Firebase Auth by UID
-// Returns false if user is not found (including deleted/disabled users)
-func (c *Client) UserExists(ctx context.Context, uid string) bool {
-	if c.AuthClient == nil {
-		// Mock mode - always return true
-		return true
-	}
-
-	_, err := c.AuthClient.GetUser(ctx, uid)
-	return err == nil
-}
-
-// IsUserDisabled checks if a user account is disabled in Firebase
-func (c *Client) IsUserDisabled(ctx context.Context, uid string) (bool, error) {
-	if c.AuthClient == nil {
-		// Mock mode - always return false (user is not disabled)
-		return false, nil
-	}
-
-	user, err := c.AuthClient.GetUser(ctx, uid)
-	if err != nil {
-		return false, fmt.Errorf("failed to get user: %w", err)
-	}
-	return user.Disabled, nil
-}
 
 // =============================================================================
 // P0-3: FCM Messaging Methods

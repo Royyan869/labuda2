@@ -143,7 +143,7 @@ type Order struct {
 	ShippingOrigin *addressentity.AddressSnapshot `json:"shipping_origin,omitempty" db:"shipping_origin_snapshot"` // Stored as JSONB in database
 
 	Status                    Status       `json:"status"`
-	EscrowStatus              EscrowStatus `json:"escrow_status"`             // CACHED from Wallet.Escrow.Status - may be stale, use Wallet for source of truth
+	EscrowStatus              EscrowStatus `json:"escrow_status"`             // CACHED from Escrow.Status - may be stale, use escrow row for source of truth
 	AutoReleaseAt             *time.Time   `json:"auto_release_at,omitempty"` // Auto-release timestamp for buyer confirmation
 	HasDispute                bool         `json:"has_dispute"`
 	ConfirmationExtensionUsed bool         `json:"confirmation_extension_used"`        // Whether buyer has used the one-time confirmation extension (3 days)
@@ -203,7 +203,7 @@ func (e *DisputeActiveError) Error() string {
 // InvalidEscrowStatusError is returned when escrow status is not valid for the operation.
 //
 // HARDENING: This error is used in business logic guards.
-// For critical financial decisions, validate against live Wallet state, not cached Order.EscrowStatus.
+// For critical financial decisions, validate against live escrow state, not cached Order.EscrowStatus.
 type InvalidEscrowStatusError struct {
 	CurrentStatus  EscrowStatus
 	RequiredStatus EscrowStatus
@@ -468,8 +468,8 @@ func (o *Order) validateShippingProofImmutability(
 
 // MarkPaid transitions the order from pending to paid.
 //
-// CRITICAL: EscrowStatus is NOT set here. It must be derived from Wallet.Escrow.Status
-// AFTER WalletService.HoldForOrder succeeds.
+// CRITICAL: EscrowStatus is NOT set here. It must be derived from Escrow.Status
+// AFTER payment settlement creates the escrow row.
 //
 // This method ONLY:
 // - Validates order status transition (pending -> paid)
@@ -477,9 +477,9 @@ func (o *Order) validateShippingProofImmutability(
 // - Calculates ready_to_ship_by based on preparation_time_snapshot
 //
 // CALLER MUST:
-// 1. Call WalletService.HoldForOrder() FIRST
-// 2. Fetch wallet escrow state
-// 3. Set Order.EscrowStatus = mapWalletEscrowToOrderEscrow(walletEscrow.Status)
+// 1. Payment settlement creates the escrow row FIRST
+// 2. Fetch escrow state
+// 3. Set Order.EscrowStatus = mapEscrowToOrderEscrow(escrowRow.Status)
 // 4. THEN call this method
 func (o *Order) MarkPaid() error {
 	// Validate order status transition
@@ -490,8 +490,8 @@ func (o *Order) MarkPaid() error {
 		}
 	}
 
-	// CRITICAL: Do NOT set EscrowStatus here - it must be derived from Wallet
-	// This ensures Order.EscrowStatus is ALWAYS a projection of Wallet state
+	// CRITICAL: Do NOT set EscrowStatus here - it must be derived from escrow state
+	// This ensures Order.EscrowStatus is ALWAYS a projection of Escrow state
 
 	o.Status = StatusPaid
 
@@ -733,7 +733,7 @@ func (o *Order) MarkShipped(proofType *string, trackingNumber *string, shippingP
 // The FIRST LAYER is the database query (has_dispute = false).
 // This defense-in-depth approach prevents race conditions.
 // ValidateComplete validates that an order can be completed without modifying state.
-// This allows validation to happen BEFORE wallet operations.
+// This allows validation to happen BEFORE escrow operations.
 func (o *Order) ValidateComplete() error {
 	// GUARD 0: Can ONLY complete from "shipped" or "delivered" status
 	// Timer starts at shipped, so auto-complete works from both states
@@ -751,9 +751,9 @@ func (o *Order) ValidateComplete() error {
 		return &DisputeActiveError{OrderID: o.ID}
 	}
 
-	// NOTE: EscrowStatus validation removed - that's Wallet's responsibility
+	// NOTE: EscrowStatus validation removed - that's the escrow service's responsibility
 	// This method only validates order-level state
-	// WalletService will validate escrow state when ReleaseEscrow is called
+	// EscrowService will validate escrow state when release is called
 
 	return nil
 }
@@ -781,7 +781,7 @@ func (o *Order) Cancel() error {
 }
 
 // ValidateCancelTimeout validates that an order can be cancelled due to timeout without modifying state.
-// This allows validation to happen BEFORE wallet operations.
+// This allows validation to happen BEFORE escrow operations.
 func (o *Order) ValidateCancelTimeout() error {
 	if !canTransition(o.Status, StatusCancelledTimeout) {
 		return &InvalidTransitionError{
@@ -790,9 +790,9 @@ func (o *Order) ValidateCancelTimeout() error {
 		}
 	}
 
-	// NOTE: EscrowStatus validation removed - that's Wallet's responsibility
+	// NOTE: EscrowStatus validation removed - that's the escrow service's responsibility
 	// This method only validates order-level state
-	// WalletService will validate escrow state when RefundEscrow is called
+	// EscrowService will validate escrow state when refund is called
 
 	return nil
 }
@@ -820,9 +820,9 @@ func (o *Order) MarkExpired() error {
 // - Sets order status to dispute_open
 // - Sets has_dispute = true
 //
-// ESCROW STATE: The Wallet domain does not have a "frozen" state.
+// ESCROW STATE: The escrow domain does not have a "frozen" state.
 // Disputes are tracked solely by Order.HasDispute = true.
-// When a dispute is resolved, the escrow is released/refunded via WalletService.
+// When a dispute is resolved, the escrow is released/refunded via EscrowService.
 func (o *Order) MarkDisputeOpen() error {
 	// Validate order status transition
 	if !canTransition(o.Status, StatusDisputeOpen) {
@@ -836,7 +836,7 @@ func (o *Order) MarkDisputeOpen() error {
 	o.HasDispute = true
 
 	// CRITICAL: Do NOT modify EscrowStatus here
-	// Wallet domain has no "frozen" state
+	// Escrow domain has no "frozen" state
 	// Dispute presence is tracked by HasDispute field only
 
 	o.UpdatedAt = time.Now()
@@ -846,14 +846,14 @@ func (o *Order) MarkDisputeOpen() error {
 // MarkPartiallyRefunded transitions the order to partially_refunded state.
 // This is called when a partial refund is processed via dispute resolution.
 //
-// CRITICAL: EscrowStatus is set based on what actually happened in Wallet:
+// CRITICAL: EscrowStatus is set based on what actually happened in escrow:
 // - If buyer refunded: EscrowStatus = "refunded" (full refund to buyer)
 // - If seller released: EscrowStatus = "released" (full release to seller)
 //
 // PARTIAL DISPUTE RESOLUTION:
 // - Partial refunds are tracked via Order.Status = "partially_refunded"
-// - Wallet performs SEPARATE operations (ReleaseEscrow + RefundEscrow)
-// - Order.EscrowStatus reflects the FINAL wallet state (usually "released" or "refunded")
+// - The escrow lifecycle performs SEPARATE operations (release + refund)
+// - Order.EscrowStatus reflects the FINAL escrow state (usually "released" or "refunded")
 // - The "partial" aspect is tracked in Order.Status, NOT in EscrowStatus
 //
 // TRANSITIONS: shipped/delivered/dispute_open -> partially_refunded
@@ -863,9 +863,9 @@ func (o *Order) MarkDisputeOpen() error {
 // - Sets order status to partially_refunded
 //
 // CALLER MUST:
-// 1. Execute Wallet operations (ReleaseEscrow + RefundEscrow for partial split)
-// 2. Fetch FINAL wallet escrow state
-// 3. Set Order.EscrowStatus = mapWalletEscrowToOrderEscrow(walletEscrow.Status)
+// 1. Execute escrow operations (release + refund for partial split)
+// 2. Fetch FINAL escrow state
+// 3. Set Order.EscrowStatus = mapEscrowToOrderEscrow(escrowRow.Status)
 // 4. THEN call this method
 func (o *Order) MarkPartiallyRefunded() error {
 	// Validate order status transition
@@ -877,8 +877,8 @@ func (o *Order) MarkPartiallyRefunded() error {
 	}
 
 	// CRITICAL: Do NOT set EscrowStatus to "partially_refunded"
-	// Wallet domain has no such state
-	// EscrowStatus should be set to "released" or "refunded" based on Wallet state
+	// Escrow domain has no such state
+	// EscrowStatus should be set to "released" or "refunded" based on escrow state
 
 	o.Status = StatusPartiallyRefunded
 	o.UpdatedAt = time.Now()
@@ -1023,8 +1023,8 @@ func (o *Order) ApplyShippingOrigin(snapshot addressentity.AddressSnapshot) {
 // - Panics if sourceType is invalid
 //
 // FINANCIAL TRUTH:
-// - Escrow is managed by Wallet service, NOT calculated here
-// - Refunds are tracked in Wallet, NOT in Order
+// - Escrow is managed by the escrow service, NOT calculated here
+// - Refunds are tracked in the refund domain, NOT in Order
 // - Discounts are applied at order creation with pricing token
 // - Coins usage is recorded for display only
 func NewOrderFromSource(

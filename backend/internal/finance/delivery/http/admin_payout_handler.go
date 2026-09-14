@@ -349,7 +349,7 @@ func (h *AdminPayoutHandler) GetWithdrawalDetails(c *gin.Context) {
 // ApproveWithdrawal handles POST /api/v1/admin/payouts/withdrawals/:id/approve
 //
 // Approves a withdrawal request, transitioning it from pending to approved
-// in the canonical wallet+finance flow. The payout worker remains dormant;
+// in the canonical finance flow. The payout worker remains dormant;
 // approved means the reserved amount has been committed for manual payout.
 //
 // SLICE 3: MIGRATED to capability-based auth with finance.withdraw.review

@@ -410,30 +410,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resendVerificationEmail => 'Resend Verification Email';
 
   @override
-  String get emailManagement => 'Email Management';
-
-  @override
-  String get changeEmailAddress => 'Change Email Address';
-
-  @override
-  String get newEmailAddress => 'New Email Address';
-
-  @override
-  String get enterNewEmailAddress => 'Enter your new email address';
-
-  @override
   String get currentPassword => 'Current Password';
 
   @override
   String get enterCurrentPasswordToConfirm =>
       'Enter your current password to confirm';
-
-  @override
-  String get updateEmail => 'Update Email';
-
-  @override
-  String get verifyNewEmailMessage =>
-      'You will need to verify your new email address before you can use it.';
 
   @override
   String get passwordManagement => 'Password Management';
@@ -549,13 +530,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pleaseFillAllFields => 'Please fill all fields';
-
-  @override
-  String get emailChangeRequestSent =>
-      'Email change request sent! Check your new email for verification.';
-
-  @override
-  String get failedToChangeEmail => 'Failed to change email. Please try again.';
 
   @override
   String get anErrorOccurred => 'An error occurred. Please try again.';

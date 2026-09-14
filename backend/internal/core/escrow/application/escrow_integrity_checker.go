@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	walletentity "github.com/labuda/backend/internal/core/wallet/entity"
+	escrowentity "github.com/labuda/backend/internal/core/escrow/entity"
 	alertapp "github.com/labuda/backend/internal/platform/alert/application"
 	alertentity "github.com/labuda/backend/internal/platform/alert/entity"
 	"github.com/labuda/backend/pkg/db"
@@ -38,9 +38,9 @@ type holdingOrderRow struct {
 //
 // The gateway-funded model keeps the escrow row as the canonical record for an
 // order's held funds. The checker only needs to fetch the escrow row for a
-// given order; it must not inspect buyer-wallet balances.
+// given order; it must not inspect user balances.
 type escrowLookupService interface {
-	GetEscrowForOrder(ctx context.Context, tx db.Tx, orderID uuid.UUID) (*walletentity.Escrow, error)
+	GetEscrowForOrder(ctx context.Context, tx db.Tx, orderID uuid.UUID) (*escrowentity.Escrow, error)
 }
 
 // EscrowIntegrityChecker verifies order escrow rows match the canonical escrow
@@ -52,9 +52,9 @@ type escrowLookupService interface {
 //   holding escrows
 //
 // FINANCIAL SAFETY LAYER:
-// - Detects when order says holding but the escrow row is missing/mismatched
-// - Detects global escrow imbalance (systemic issue)
-// - NO AUTO-FIX - detection and alerting only
+//   - Detects when order says holding but the escrow row is missing/mismatched
+//   - Detects global escrow imbalance (systemic issue)
+//   - NO AUTO-FIX - detection and alerting only
 type EscrowIntegrityChecker struct {
 	escrowLookup escrowLookupService
 	alertService *alertapp.AlertService
@@ -68,7 +68,7 @@ type EscrowIntegrityChecker struct {
 func NewEscrowIntegrityChecker(
 	escrowLookup escrowLookupService,
 	alertService *alertapp.AlertService,
-	db db.Transactor,
+	database db.Transactor,
 	log *zap.Logger,
 	shadowMode bool,
 ) *EscrowIntegrityChecker {
@@ -79,7 +79,7 @@ func NewEscrowIntegrityChecker(
 	return &EscrowIntegrityChecker{
 		escrowLookup: escrowLookup,
 		alertService: alertService,
-		db:           db,
+		db:           database,
 		log:          log,
 		shadowMode:   shadowMode,
 	}
@@ -181,7 +181,7 @@ func (c *EscrowIntegrityChecker) checkOrderEscrow(ctx context.Context, tx db.Tx,
 		return fmt.Errorf("escrow row not found")
 	}
 
-	if escrow.Status != walletentity.EscrowStatusHolding {
+	if escrow.Status != escrowentity.EscrowStatusHolding {
 		c.emitEscrowStatusMismatchAlert(ctx, row, escrow.Status.String())
 		return fmt.Errorf("escrow status mismatch: expected=holding got=%s", escrow.Status)
 	}
@@ -570,5 +570,3 @@ func (c *EscrowIntegrityChecker) emitGlobalEscrowImbalanceAlert(
 		)
 	}
 }
-
-

@@ -410,30 +410,11 @@ class AppLocalizationsId extends AppLocalizations {
   String get resendVerificationEmail => 'Kirim Ulang Email Verifikasi';
 
   @override
-  String get emailManagement => 'Manajemen Email';
-
-  @override
-  String get changeEmailAddress => 'Ubah Alamat Email';
-
-  @override
-  String get newEmailAddress => 'Alamat Email Baru';
-
-  @override
-  String get enterNewEmailAddress => 'Masukkan alamat email baru Anda';
-
-  @override
   String get currentPassword => 'Kata Sandi Saat Ini';
 
   @override
   String get enterCurrentPasswordToConfirm =>
       'Masukkan kata sandi saat ini untuk konfirmasi';
-
-  @override
-  String get updateEmail => 'Perbarui Email';
-
-  @override
-  String get verifyNewEmailMessage =>
-      'Anda perlu memverifikasi alamat email baru sebelum dapat menggunakannya.';
 
   @override
   String get passwordManagement => 'Manajemen Kata Sandi';
@@ -551,13 +532,6 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get pleaseFillAllFields => 'Silakan isi semua kolom';
-
-  @override
-  String get emailChangeRequestSent =>
-      'Permintaan perubahan email dikirim! Periksa email baru Anda untuk verifikasi.';
-
-  @override
-  String get failedToChangeEmail => 'Gagal mengubah email. Silakan coba lagi.';
 
   @override
   String get anErrorOccurred => 'Terjadi kesalahan. Silakan coba lagi.';

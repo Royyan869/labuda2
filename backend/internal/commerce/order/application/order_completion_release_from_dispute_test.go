@@ -21,7 +21,7 @@ import (
 // Protects the dispute seller-favor release contract:
 //
 //  1. Uses paymentService.ReleaseGatewayEscrowToSeller (the canonical
-//     gateway-funded release path; the legacy wallet-hold release method
+//     gateway-funded release path; there is no balance-hold release method
 //     was demolished).
 //  2. Sets order.Status=completed, order.EscrowStatus=released,
 //     order.CompletedAt=now, order.UpdatedAt=now and persists via UpdateStatusTx.
@@ -32,11 +32,11 @@ import (
 //  6. Rejects orders that have no open dispute.
 //  7. Rejects orders whose status is not dispute_open.
 //
-// Guards that return early (no payment service / wallet service required) are
+// Guards that return early (no payment service / escrow service required) are
 // covered by real unit tests below. Happy-path / "does not call legacy" / replay
 // idempotency assertions are documented as integration scenarios because
 // OrderCompletionService is constructed with concrete struct dependencies
-// (*OrderPaymentService, *walletApp.WalletService, *outboxRepo.OutboxRepository,
+// (*OrderPaymentService, *escrowApp.EscrowService, *outboxRepo.OutboxRepository,
 // *paymentRepo.PaymentRepository, ...) — full mocking would require a larger
 // new test framework which is explicitly out of scope for this patch.
 // ============================================================================
@@ -130,12 +130,12 @@ func TestReleaseFromDispute_RejectsWrongStatus(t *testing.T) {
 // TestReleaseFromDispute_GatewayReleaseHappyPath documents the canonical
 // gateway-funded happy path. Pure unit-mocking is not feasible because
 // OrderCompletionService depends on concrete *OrderPaymentService /
-// *walletApp.WalletService / *outboxRepo.OutboxRepository (no interfaces);
+// *escrowApp.EscrowService / *outboxRepo.OutboxRepository (no interfaces);
 // covering this path requires an integration harness with a real test DB.
 //
 // Expected behavior (must be exercised by the integration suite):
 //   - paymentService.ReleaseGatewayEscrowToSeller is invoked exactly once,
-//     flipping wallet escrow to "released" and writing the finance ledger
+//     flipping escrow to "released" and writing the finance ledger
 //     (idempotency_key="order_release_<order_id>").
 //   - order.Status=completed, order.EscrowStatus=released,
 //     order.CompletedAt!=nil, order.UpdatedAt!=nil are persisted via UpdateStatusTx.
@@ -160,17 +160,17 @@ func TestReleaseFromDispute_GatewayReleaseHappyPath(t *testing.T) {
 
 // TestReleaseFromDispute_UsesGatewayReleaseOnly documents that the
 // canonical gateway release is the only available path; the legacy
-// wallet-hold release methods have been demolished from the codebase.
+// balance-hold release methods have been demolished from the codebase.
 func TestReleaseFromDispute_UsesGatewayReleaseOnly(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration scenario — requires test database / call spies")
 	}
 	t.Log("INTEGRATION: must use paymentService.ReleaseGatewayEscrowToSeller")
-	t.Log("  - legacy ReleaseEscrowToSeller / WalletService.ReleaseEscrow no longer exist")
+	t.Log("  - legacy balance-hold release methods no longer exist")
 }
 
 // TestReleaseFromDispute_IdempotentReplay documents the replay-safe contract.
-// The wallet escrow flip and finance ledger write are both idempotent (UNIQUE
+// The escrow flip and finance ledger write are both idempotent (UNIQUE
 // idempotency_key="order_release_<order_id>"), and the money.released outbox
 // row is deduped on idempotency_key="money.released.<order_id>". A repeated
 // call on an already-released dispute must therefore be a no-op rather than an

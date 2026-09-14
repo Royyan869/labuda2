@@ -74,20 +74,19 @@ const bankSettlementReserveFloat int64 = 9_000_000_000_000_000
 // platformBankReserveFloat is the opening balance seeded into PLATFORM_BANK
 // on first bootstrap.
 //
-// ACCOUNTING ABSTRACTION (COIN FUNDING CONTRACT):
-// PLATFORM_BANK represents the platform's own external bank holdings — the
-// source of real platform money used to fund buyer benefits. Under the locked
-// coin-funding contract, coin redemption K is a PLATFORM-FUNDED BUYER BENEFIT:
-// the platform funds K into GATEWAY_CLEARING (DR PLATFORM_BANK -K / CR
-// GATEWAY_CLEARING +K) so the seller's economic entitlement (BuyerBase = PD+S)
-// is fully cash-backed without overdrawing the clearing account.
+// ACCOUNTING ABSTRACTION (PAYOUT FLOAT):
+// PLATFORM_BANK represents the platform's own external bank holdings. Payout
+// settlement credits it (asset CR), which draws the balance down, so the seed
+// keeps the financial_accounts.balance >= 0 CHECK invariant satisfied across
+// the payout lifecycle, mirroring the BANK_SETTLEMENT reserve-float pattern.
 //
-// The seed provides the opening balance against which platform-funded benefits
-// are drawn, mirroring the BANK_SETTLEMENT reserve-float pattern: it keeps the
-// financial_accounts.balance >= 0 CHECK invariant satisfied across the funding
-// lifecycle. The same magnitude rationale as bankSettlementReserveFloat applies
-// (Rupiah integer, well within int64, several orders of magnitude above any
-// plausible aggregate coin-redemption volume during pre-launch).
+// Coin funding does NOT flow through PLATFORM_BANK: Labuda Coins are
+// platform-owned usage rights and redeeming them moves no cash, so K is
+// absorbed by PLATFORM_COIN_BENEFIT (finance.AccountPlatformCoinBenefit).
+//
+// The same magnitude rationale as bankSettlementReserveFloat applies (Rupiah
+// integer, well within int64, several orders of magnitude above any plausible
+// aggregate payout volume during pre-launch).
 const platformBankReserveFloat int64 = 9_000_000_000_000_000
 
 // systemAccountConfigs maps account types to their readable names.
@@ -125,6 +124,15 @@ var systemAccountConfigs = map[string]systemAccountConfig{
 		accountType:    finance.AccountBankSettlement,
 		name:           "Bank Settlement Reserve Account",
 		initialBalance: bankSettlementReserveFloat,
+	},
+	// Platform-owned coin benefit: the canonical counterpart of
+	// platform-funded Labuda Coins (K) funding. It is debit-normal and starts
+	// at zero — it is not cash-backed and carries no opening float: every
+	// balance movement comes from a coin-funding / coin-funding-reversal
+	// ledger transaction.
+	finance.AccountPlatformCoinBenefit: {
+		accountType: finance.AccountPlatformCoinBenefit,
+		name:        "Platform Coin Benefit Account",
 	},
 }
 
@@ -239,5 +247,3 @@ func (b *SystemAccountBootstrap) GetSystemAccountID(
 
 	return accountID, nil
 }
-
-

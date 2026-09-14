@@ -7,16 +7,35 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/core/wallet/entity"
-	walletrepo "github.com/labuda/backend/internal/core/wallet/repository"
+	"github.com/labuda/backend/internal/core/escrow/entity"
+	escrowrepo "github.com/labuda/backend/internal/core/escrow/repository"
 	"github.com/labuda/backend/pkg/db"
 )
+
+// isDuplicateKeyError checks if the error is a PostgreSQL unique constraint violation.
+// PostgreSQL error code 23505 = "unique_violation"
+func isDuplicateKeyError(err error) bool {
+	if err == nil {
+		return false
+	}
+	// Check for pgx.Error with SQLState 23505 (unique_violation)
+	var pgErr interface{ SQLState() string }
+	if errors.As(err, &pgErr) {
+		return pgErr.SQLState() == "23505"
+	}
+	return false
+}
+
+// isNoRowsError checks if the error is a "no rows" error.
+func isNoRowsError(err error) bool {
+	return errors.Is(err, pgx.ErrNoRows)
+}
 
 // EscrowRepositoryImpl implements EscrowRepository using PostgreSQL.
 type EscrowRepositoryImpl struct{}
 
 // NewEscrowRepository creates a new EscrowRepositoryImpl.
-func NewEscrowRepository() walletrepo.EscrowRepository {
+func NewEscrowRepository() escrowrepo.EscrowRepository {
 	return &EscrowRepositoryImpl{}
 }
 
@@ -24,7 +43,7 @@ func NewEscrowRepository() walletrepo.EscrowRepository {
 // QUERY OPERATIONS
 // ============================================================================
 
-const escrowSelectColumns = `id, order_id, buyer_wallet_id, seller_wallet_id, amount, status,
+const escrowSelectColumns = `id, order_id, amount, status,
 	payment_id, created_at, released_at, refunded_at`
 
 func scanEscrow(row pgx.Row) (*entity.Escrow, error) {
@@ -32,8 +51,6 @@ func scanEscrow(row pgx.Row) (*entity.Escrow, error) {
 	err := row.Scan(
 		&escrow.ID,
 		&escrow.OrderID,
-		&escrow.BuyerWalletID,
-		&escrow.SellerWalletID,
 		&escrow.Amount,
 		&escrow.Status,
 		&escrow.PaymentID,
@@ -104,19 +121,17 @@ func (r *EscrowRepositoryImpl) GetByOrderIDForUpdate(ctx context.Context, tx db.
 func (r *EscrowRepositoryImpl) Create(ctx context.Context, tx db.Tx, escrow *entity.Escrow) error {
 	query := `
 		INSERT INTO escrows (
-			id, order_id, buyer_wallet_id, seller_wallet_id, amount, status,
+			id, order_id, amount, status,
 			created_at, released_at, refunded_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6,
-			$7, $8, $9
+			$1, $2, $3, $4,
+			$5, $6, $7
 		)
 	`
 
 	_, err := tx.Exec(ctx, query,
 		escrow.ID,
 		escrow.OrderID,
-		escrow.BuyerWalletID,
-		escrow.SellerWalletID,
 		escrow.Amount,
 		escrow.Status,
 		escrow.CreatedAt,
@@ -156,71 +171,3 @@ func (r *EscrowRepositoryImpl) Update(ctx context.Context, tx db.Tx, escrow *ent
 
 	return nil
 }
-
-// ============================================================================
-// ACTIVE ESCROW QUERIES
-// ============================================================================
-
-// GetByBuyerWalletID retrieves active escrows for a buyer wallet.
-// Returns escrows in HOLDING status.
-func (r *EscrowRepositoryImpl) GetByBuyerWalletID(ctx context.Context, tx db.Tx, buyerWalletID uuid.UUID) ([]*entity.Escrow, error) {
-	query := `SELECT ` + escrowSelectColumns + `
-		FROM escrows
-		WHERE buyer_wallet_id = $1
-		  AND status = 'holding'
-		ORDER BY created_at DESC`
-
-	rows, err := tx.Query(ctx, query, buyerWalletID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query escrows by buyer wallet: %w", err)
-	}
-	defer rows.Close()
-
-	var escrows []*entity.Escrow
-	for rows.Next() {
-		escrow, err := scanEscrow(rows)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan escrow: %w", err)
-		}
-		escrows = append(escrows, escrow)
-	}
-
-	if rows.Err() != nil {
-		return nil, fmt.Errorf("error iterating escrows: %w", rows.Err())
-	}
-
-	return escrows, nil
-}
-
-// GetBySellerWalletID retrieves active escrows for a seller wallet.
-// Returns escrows in HOLDING status.
-func (r *EscrowRepositoryImpl) GetBySellerWalletID(ctx context.Context, tx db.Tx, sellerWalletID uuid.UUID) ([]*entity.Escrow, error) {
-	query := `SELECT ` + escrowSelectColumns + `
-		FROM escrows
-		WHERE seller_wallet_id = $1
-		  AND status = 'holding'
-		ORDER BY created_at DESC`
-
-	rows, err := tx.Query(ctx, query, sellerWalletID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query escrows by seller wallet: %w", err)
-	}
-	defer rows.Close()
-
-	var escrows []*entity.Escrow
-	for rows.Next() {
-		escrow, err := scanEscrow(rows)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan escrow: %w", err)
-		}
-		escrows = append(escrows, escrow)
-	}
-
-	if rows.Err() != nil {
-		return nil, fmt.Errorf("error iterating escrows: %w", rows.Err())
-	}
-
-	return escrows, nil
-}
-
-

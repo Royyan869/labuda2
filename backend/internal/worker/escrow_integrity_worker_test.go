@@ -16,7 +16,7 @@ import (
 // ESCROW INTEGRITY WORKER — UNIT TESTS
 // ============================================================================
 // These tests verify the worker lifecycle and config parsing without a database.
-// The underlying checker logic is tested in wallet/application/escrow_integrity_checker_test.go.
+// The underlying checker logic is tested in escrow/application/escrow_integrity_checker_test.go.
 
 // --- Start/Stop exits clean ---
 
@@ -216,5 +216,3 @@ func TestParseEscrowIntegrityConfig_DisabledVariants(t *testing.T) {
 		})
 	}
 }
-
-

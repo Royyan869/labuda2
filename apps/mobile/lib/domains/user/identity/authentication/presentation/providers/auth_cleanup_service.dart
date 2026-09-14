@@ -8,7 +8,7 @@ import 'package:labuda/domains/system/notification/services/fcm_service.dart';
 /// - Other cleanup side effects that need to happen before/after auth state changes
 ///
 /// **NOT THIS SERVICE'S RESPONSIBILITY:**
-/// - Firebase sign out (owned by AuthSignInService)
+/// - Firebase sign out (owned by AuthController)
 /// - State management (owned by AuthController)
 /// - Backend sync (owned by AuthController._syncWithBackend)
 ///

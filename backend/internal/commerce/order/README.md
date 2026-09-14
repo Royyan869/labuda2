@@ -209,7 +209,8 @@ Order Refunded
 - **Payment Timeout:** `backend/internal/worker/order_payment_timeout_worker.go`
 
 ### Financial Authority
-- **Wallet Service:** `backend/internal/core/wallet/` (ONLY authority for money)
+- **Finance Ledger:** `backend/internal/finance/` (financial authority for money)
+- **Escrow:** `backend/internal/core/escrow/` (operational authority for hold/release/refund lifecycle)
 
 ---
 
@@ -227,7 +228,7 @@ Order Refunded
 
 ---
 
-**Remember:** The order domain is a **pricing snapshot only**. The **Wallet domain** is the **single source of truth** for all money operations. This architectural decision is critical for maintaining financial consistency.
+**Remember:** The order domain is a **pricing snapshot only**. The **finance ledger** is the **financial authority for money**, and **escrow** is the **operational authority for the payment hold/release/refund lifecycle**. This architectural decision is critical for maintaining financial consistency.
 
 ---
 

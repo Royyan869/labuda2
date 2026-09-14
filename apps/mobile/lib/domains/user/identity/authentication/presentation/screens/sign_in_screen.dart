@@ -4,7 +4,6 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/helpers/canonical_email_validator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../data/auth_persistence_service.dart';
 import '../shared/shared.dart';
 
 /// Sign In Screen - Golden Sample Refactor
@@ -99,13 +98,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
   }
 
   Future<void> _loadRememberMeState() async {
-    final rememberMe = await AuthPersistenceService.getRememberMe();
-    final lastEmail = await AuthPersistenceService.getLastLoginEmail();
-
-    if (mounted) {
-      if (lastEmail != null) _emailController.text = lastEmail;
-      if (rememberMe) _controller.setRememberMe(true);
-    }
+    // Remember-me persistence removed (AuthPersistenceService purged, Slice 1).
+    // Email field starts empty; canonical session persistence is via
+    // Labuda credential (ILocalStorageService). Keep method for lifecycle
+    // symmetry but as no-op.
   }
 
   /// Email/Password Sign-In - Deterministic Flow

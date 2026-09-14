@@ -30,15 +30,23 @@ export function Topbar() {
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-gray-100 transition-colors"
           >
-            {/* Avatar */}
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white text-sm font-medium">
-              {(user?.username || user?.email)?.charAt(0).toUpperCase() || 'A'}
-            </div>
+            {/* Avatar — canonical from user_profiles.avatar_url */}
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={user.username || user.email}
+                className="h-8 w-8 rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white text-sm font-medium">
+                {(user?.username || user?.email)?.charAt(0).toUpperCase() || 'A'}
+              </div>
+            )}
 
-            {/* User Info */}
+            {/* User Info — canonical username from user_profiles */}
             <div className="text-left">
               <p className="text-sm font-medium text-gray-900">
-                {user?.username ? `@${user.username}` : user?.id ? `@${user.id.slice(0, 8)}` : 'Admin'}
+                {user?.username ? `@${user.username}` : 'Admin'}
               </p>
               <p className="text-xs text-gray-500">
                 {user?.email}
@@ -61,7 +69,7 @@ export function Topbar() {
               <div className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-gray-200 bg-white shadow-lg z-50">
                 <div className="p-3 border-b border-gray-100">
                   <p className="text-sm font-medium text-gray-900">
-                    {user?.username ? `@${user.username}` : user?.id ? `@${user.id.slice(0, 8)}` : 'Admin'}
+                    {user?.username ? `@${user.username}` : 'Admin'}
                   </p>
                   <p className="text-xs text-gray-500">{user?.email}</p>
                 </div>
