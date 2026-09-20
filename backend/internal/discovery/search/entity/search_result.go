@@ -45,6 +45,12 @@ type ForSalePreview struct {
 // not projected here.
 // users.email is NEVER used as a public author field per
 // viewer-context-contract.md §4.1.
+//
+// MEDIA AUTHORITY: MediaURLs carries the PERSISTED content_media.media_url
+// references loaded by SearchContent. They are storage references, never read
+// URLs. The delivery projection resolves them through the shared mediaresolve
+// authority (search_projection_adapter.go) before they reach the wire — this
+// layer must never resolve, rewrite, or type-infer media.
 type ContentPreview struct {
 	ID              uuid.UUID
 	AuthorID        uuid.UUID

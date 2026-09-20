@@ -1,100 +1,101 @@
 /// Payment Intent Entity
 ///
-/// Pure Dart entity for payment intent.
-/// Represents a payment that is being initiated.
+/// Canonical model of the `POST /api/v1/payments` response.
+///
+/// WIRE AUTHORITY: backend/internal/serverboot/dependencies.go
+///   func (h *CorePaymentHandler) CreatePayment(c *gin.Context)
+///     response.Success(c, gin.H{
+///         "payment_id", "payment_number", "status", "payment_url",
+///         "payment_method_code", "buyer_payment_fee_amount", "gross_amount",
+///         "coins_to_use", "coin_discount_amount", "reference_type",
+///         "reference_id", "expired_at",
+///     })
+///
+/// Every field below maps 1:1 to a key that handler emits. Nothing here is
+/// invented for Flutter's convenience: there is no `amount`, `currency`, or
+/// `net_amount` on this wire, and no aliases are kept for them.
 library;
 
 import 'package:equatable/equatable.dart';
 
-/// Payment intent entity
+/// Payment intent entity — the buyer's created (or reused) payment attempt.
 class PaymentIntent extends Equatable {
-  /// Unique intent ID
-  final String id;
+  /// `payment_id` — UUID of the payments row.
+  final String paymentId;
 
-  /// Human-readable payment number
+  /// `payment_number` — human-readable payment number (e.g. "PAY-1706123456").
   final String paymentNumber;
 
-  /// Amount to pay
-  final double amount;
-
-  /// Currency code (default: IDR)
-  final String currency;
-
-  /// Payment status
+  /// `status` — raw backend payment status (`payment_status_enum`).
   final String status;
 
-  /// Payment URL (for redirect-based payments)
+  /// `payment_url` — Midtrans Snap redirect URL, presented in-app via
+  /// PaymentWebviewScreen. Nullable on the wire (the reuse branch returns the
+  /// stored value, which can still be empty if Snap never answered).
   final String? paymentUrl;
 
-  /// Deep link for mobile payment (e.g., gopay://)
-  final String? deepLinkUrl;
+  /// `payment_method_code` — canonical Labuda payment method the buyer chose.
+  final String? paymentMethodCode;
 
-  /// VA number (for virtual account payments)
-  final String? vaNumber;
+  /// `buyer_payment_fee_amount` — backend-calculated gateway fee (Rupiah).
+  final int buyerPaymentFeeAmount;
 
-  /// VA bank name
-  final String? vaBank;
+  /// `gross_amount` — cash after coin deduction plus the buyer fee (Rupiah).
+  final int grossAmount;
 
-  /// QR code string (for QRIS)
-  final String? qrString;
+  /// `coins_to_use` — loyalty coins redeemed on this payment (count, not money).
+  final int coinsToUse;
 
-  /// Expiry time
-  final DateTime? expiresAt;
+  /// `coin_discount_amount` — Rupiah value of [coinsToUse].
+  final int coinDiscountAmount;
+
+  /// `reference_type` — "order" | "billing" | "subscription".
+  final String referenceType;
+
+  /// `reference_id` — UUID of the referenced entity.
+  final String? referenceId;
+
+  /// `expired_at` — end of the payment window (RFC3339).
+  final DateTime? expiredAt;
 
   const PaymentIntent({
-    required this.id,
+    required this.paymentId,
     required this.paymentNumber,
-    required this.amount,
-    required this.currency,
     required this.status,
+    required this.buyerPaymentFeeAmount,
+    required this.grossAmount,
+    required this.coinsToUse,
+    required this.coinDiscountAmount,
+    required this.referenceType,
     this.paymentUrl,
-    this.deepLinkUrl,
-    this.vaNumber,
-    this.vaBank,
-    this.qrString,
-    this.expiresAt,
+    this.paymentMethodCode,
+    this.referenceId,
+    this.expiredAt,
   });
 
-  /// Check if payment intent is still valid
-  bool get isValid {
-    if (status == 'completed' || status == 'failed') return false;
-    if (expiresAt == null) return true;
-    return DateTime.now().isBefore(expiresAt!);
-  }
-
-  /// Check if payment requires redirect
+  /// Whether the backend handed us a payment URL to present in the WebView.
   bool get requiresRedirect => paymentUrl != null && paymentUrl!.isNotEmpty;
 
-  /// Check if payment requires deep link
-  bool get requiresDeepLink => deepLinkUrl != null && deepLinkUrl!.isNotEmpty;
-
-  /// Check if payment has VA details
-  bool get hasVaDetails => vaNumber != null && vaNumber!.isNotEmpty;
-
-  /// Check if payment has QR code
-  bool get hasQrCode => qrString != null && qrString!.isNotEmpty;
-
-  /// Get payment type for display
-  String get paymentType {
-    if (hasVaDetails) return 'Virtual Account';
-    if (hasQrCode) return 'QRIS';
-    if (requiresDeepLink) return 'E-Wallet';
-    if (requiresRedirect) return 'Online Payment';
-    return 'Other';
+  /// Whether the payment window has already closed.
+  bool get isExpired {
+    final expiry = expiredAt;
+    if (expiry == null) return false;
+    return !DateTime.now().isBefore(expiry);
   }
 
   @override
   List<Object?> get props => [
-    id,
+    paymentId,
     paymentNumber,
-    amount,
-    currency,
     status,
     paymentUrl,
-    deepLinkUrl,
-    vaNumber,
-    vaBank,
-    qrString,
-    expiresAt,
+    paymentMethodCode,
+    buyerPaymentFeeAmount,
+    grossAmount,
+    coinsToUse,
+    coinDiscountAmount,
+    referenceType,
+    referenceId,
+    expiredAt,
   ];
 }

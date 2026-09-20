@@ -58,59 +58,6 @@ func GetDefaultSLA() SLA {
 	}
 }
 
-// ComputeSLAMetricsSimple computes simplified SLA metrics without message data.
-// Used for list views where fetching messages would be too expensive.
-//
-// Simplified rules:
-// - First response: based on assigned_at (may not be accurate but fast)
-// - Resolution: based on created_at to resolved_at (includes waiting time)
-// - Next action: based on status only
-func (t *Ticket) ComputeSLAMetricsSimple() SLAMetrics {
-	metrics := SLAMetrics{
-		FirstResponseTime:      nil,
-		FirstResponseOverdue:   false,
-		FirstResponseTimestamp: nil,
-		ResolutionTime:         nil,
-		ResolutionOverdue:      false,
-		ResolutionTimestamp:    nil,
-		WaitingTime:            0,
-		ActiveTime:             0,
-		IsOverdue:              false,
-		NextAction:             t.computeSimpleNextAction(),
-	}
-
-	// Compute first response time (simplified - using assigned_at)
-	if t.AssignedAt != nil {
-		firstResponseDuration := t.AssignedAt.Sub(t.CreatedAt)
-		metrics.FirstResponseTime = &firstResponseDuration
-		metrics.FirstResponseTimestamp = t.AssignedAt
-		metrics.FirstResponseOverdue = firstResponseDuration > FirstResponseThreshold
-	} else {
-		// Not yet assigned - check if overdue based on current time
-		timeSinceCreation := time.Since(t.CreatedAt)
-		metrics.FirstResponseOverdue = timeSinceCreation > FirstResponseThreshold
-	}
-
-	// Compute resolution time (simplified - includes waiting time)
-	if t.ResolvedAt != nil {
-		resolutionDuration := t.ResolvedAt.Sub(t.CreatedAt)
-		metrics.ResolutionTime = &resolutionDuration
-		metrics.ResolutionTimestamp = t.ResolvedAt
-		metrics.ResolutionOverdue = resolutionDuration > ResolutionThreshold
-		metrics.ActiveTime = resolutionDuration
-	} else if !t.IsClosed() {
-		// Not yet resolved - check based on current time
-		timeSinceCreation := time.Since(t.CreatedAt)
-		metrics.ResolutionOverdue = timeSinceCreation > ResolutionThreshold
-		metrics.ActiveTime = timeSinceCreation
-	}
-
-	// Compute overall overdue status
-	metrics.IsOverdue = metrics.FirstResponseOverdue || metrics.ResolutionOverdue
-
-	return metrics
-}
-
 // computeSimpleNextAction determines next action without message data.
 func (t *Ticket) computeSimpleNextAction() string {
 	// If resolved or closed, no action needed
@@ -372,6 +319,132 @@ func (t *Ticket) IsResolutionOverdue(activeTime time.Duration) bool {
 		return false
 	}
 	return activeTime > ResolutionThreshold
+}
+
+// ComputeSLAMetricsFromEvents computes SLA metrics from ticket status-change
+// events and the first admin response time.
+//
+// This is the canonical SLA calculation for list/dashboard/detail views.
+//
+// Rules:
+// - Resolution time: active time EXCLUDING waiting_user periods
+// - Waiting periods are reconstructed from status_changed/ticket_waiting_user events
+// - First response: first valid admin response message in the ticket's
+//   support conversation (SLA-F04 canonical authority; AssignedAt is NOT a
+//   response — assignment only). firstAdminResponseAt is obtained in bulk
+//   via ListFirstAdminResponsesByTicketIDs; nil means no admin response yet.
+// - Overdue: separate flags for first_response and resolution
+func (t *Ticket) ComputeSLAMetricsFromEvents(events []*Event, firstAdminResponseAt *time.Time) SLAMetrics {
+	metrics := SLAMetrics{
+		FirstResponseTime:      nil,
+		FirstResponseOverdue:   false,
+		FirstResponseTimestamp: nil,
+		ResolutionTime:         nil,
+		ResolutionOverdue:      false,
+		ResolutionTimestamp:    nil,
+		WaitingTime:            0,
+		ActiveTime:             0,
+		IsOverdue:              false,
+		NextAction:             t.computeSimpleNextAction(),
+	}
+
+	// First response: canonical authority is the first valid admin response
+	// message timestamp. Assignment (AssignedAt) is deliberately NOT a response.
+	if firstAdminResponseAt != nil {
+		firstResponseDuration := firstAdminResponseAt.Sub(t.CreatedAt)
+		metrics.FirstResponseTime = &firstResponseDuration
+		metrics.FirstResponseTimestamp = firstAdminResponseAt
+		metrics.FirstResponseOverdue = firstResponseDuration > FirstResponseThreshold
+	} else {
+		// No admin response yet — overdue based on wall clock since creation.
+		timeSinceCreation := time.Since(t.CreatedAt)
+		metrics.FirstResponseOverdue = timeSinceCreation > FirstResponseThreshold
+	}
+
+	// Compute active time from events (excluding waiting_user periods)
+	activeTime, waitingTime := t.computeActiveTimeFromEvents(events)
+	metrics.ActiveTime = activeTime
+	metrics.WaitingTime = waitingTime
+
+	// Resolution time = active time (canonical pause semantics)
+	if t.ResolvedAt != nil {
+		metrics.ResolutionTime = &activeTime
+		metrics.ResolutionTimestamp = t.ResolvedAt
+		metrics.ResolutionOverdue = activeTime > ResolutionThreshold
+	} else if !t.IsClosed() {
+		metrics.ResolutionOverdue = activeTime > ResolutionThreshold
+	}
+
+	metrics.IsOverdue = metrics.FirstResponseOverdue || metrics.ResolutionOverdue
+
+	return metrics
+}
+
+// computeActiveTimeFromEvents reconstructs active time and waiting time from
+// status-change events. Returns (activeTime, waitingTime).
+//
+// Algorithm:
+// - Walk events chronologically
+// - Track when waiting_user periods start (entering waiting_user)
+// - Track when waiting_user periods end (leaving waiting_user)
+// - Sum all non-waiting periods as active time
+func (t *Ticket) computeActiveTimeFromEvents(events []*Event) (activeTime, waitingTime time.Duration) {
+	if len(events) == 0 {
+		// No events — use wall clock from created_at
+		end := time.Now()
+		if t.ResolvedAt != nil {
+			end = *t.ResolvedAt
+		}
+		return end.Sub(t.CreatedAt), 0
+	}
+
+	var waitingStart *time.Time
+	lastEventTime := t.CreatedAt
+
+	for _, event := range events {
+		eventTime := event.CreatedAt
+
+		if waitingStart != nil {
+			// This event ends a waiting period — count as waiting, NOT active
+			waitDuration := eventTime.Sub(*waitingStart)
+			waitingTime += waitDuration
+			waitingStart = nil
+			lastEventTime = eventTime
+		} else {
+			// Normal active interval
+			activeTime += eventTime.Sub(lastEventTime)
+			lastEventTime = eventTime
+		}
+
+		// Check if this event enters waiting_user
+		if event.NewStatus != nil && *event.NewStatus == StatusWaitingUser {
+			waitingStart = &eventTime
+		}
+	}
+
+	// Handle open waiting period (still in waiting_user)
+	if waitingStart != nil {
+		end := time.Now()
+		waitDuration := end.Sub(*waitingStart)
+		waitingTime += waitDuration
+		// Don't add active time for the current waiting period
+	} else {
+		// Add remaining active time from last event to end
+		end := time.Now()
+		if t.ResolvedAt != nil {
+			end = *t.ResolvedAt
+		}
+		activeTime += end.Sub(lastEventTime)
+	}
+
+	if activeTime < 0 {
+		activeTime = 0
+	}
+	if waitingTime < 0 {
+		waitingTime = 0
+	}
+
+	return activeTime, waitingTime
 }
 
 

@@ -1,7 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/core/src/interfaces/services/i_presence_service.dart';
 import 'package:labuda/core/src/interfaces/services/i_validation_service.dart';
 import 'package:labuda/core/src/navigation/i_navigation_registry.dart';
 import 'package:labuda/core/src/navigation/navigation_registry_impl.dart';
@@ -47,7 +46,6 @@ import 'package:labuda/core/src/websocket/chat_websocket_handler.dart';
 /// **CANONICAL DI PATH:** Riverpod Providers (ref.watch/ref.read)
 /// - Use loggerServiceProvider for ILoggerService
 /// - Use apiClientProvider for ApiClient
-/// - Use presenceServiceProvider for IPresenceService
 /// - etc.
 ///
 /// **ALLOWED USE CASES for generic `sl` access:**
@@ -105,12 +103,6 @@ class ServiceLocator {
   static void registerNavigationHandler(NavigationHandler handler) {
     if (!sl.isRegistered<NavigationHandler>()) {
       sl.registerSingleton<NavigationHandler>(handler);
-    }
-  }
-
-  static void registerPresenceService(IPresenceService presenceService) {
-    if (!sl.isRegistered<IPresenceService>()) {
-      sl.registerSingleton<IPresenceService>(presenceService);
     }
   }
 

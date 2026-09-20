@@ -3,7 +3,7 @@ import 'package:labuda/shared/utils/commerce_seller_identity.dart';
 
 void main() {
   group('CommerceSellerIdentity formatting', () {
-    test('Listing detail seller card style: @username then store_name', () {
+    test('ForSale detail seller card style: @username then store_name', () {
       final identity = buildCommerceSellerIdentity(
         username: 'yayan',
         storeName: 'Farm Koi Nusantara',

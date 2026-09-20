@@ -38,7 +38,6 @@ class _AppBootstrap {
   final ILocalStorageService localStorage;
   final IValidationService validation;
   final INavigationRegistry navigationRegistry;
-  final IPresenceService presenceService;
   final WebSocketService webSocketService;
   final FcmService fcmService;
   final LocalNotificationService localNotificationService;
@@ -51,7 +50,6 @@ class _AppBootstrap {
     required this.localStorage,
     required this.validation,
     required this.navigationRegistry,
-    required this.presenceService,
     required this.webSocketService,
     required this.fcmService,
     required this.localNotificationService,
@@ -85,9 +83,6 @@ void main() {
             ),
             core_providers.navigationRegistryProvider.overrideWithValue(
               b.navigationRegistry,
-            ),
-            core_providers.presenceServiceProvider.overrideWithValue(
-              b.presenceService,
             ),
             core_providers.webSocketServiceProvider.overrideWithValue(
               b.webSocketService,
@@ -200,13 +195,8 @@ Future<_AppBootstrap> _initServices() async {
   final analyticsService = FirebaseAnalyticsService(FirebaseAnalytics.instance);
   final analyticsRepository = FirebaseAnalyticsRepositoryImpl(analyticsService);
 
-  // ── WebSocket + Presence ───────────────────────────────────────────────────
+  // ── WebSocket ────────────────────────────────────────────────────────────────
   final webSocketService = WebSocketService(baseUrl: ApiConfig.wsUrl);
-  final presenceService = AppPresenceServiceApi(
-    apiClient: apiClient,
-    webSocketService: webSocketService,
-    logger: logger,
-  );
 
   // ── Navigation ─────────────────────────────────────────────────────────────
   logger.info('[BOOTSTRAP] initializeRouterModules() start');
@@ -223,7 +213,6 @@ Future<_AppBootstrap> _initServices() async {
     localStorage: localStorage,
     validation: validation,
     navigationRegistry: navigationRegistry,
-    presenceService: presenceService,
     webSocketService: webSocketService,
     fcmService: fcmService,
     localNotificationService: localNotificationService,

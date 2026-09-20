@@ -243,12 +243,15 @@ enum RefundStatus {
         return 'seller_rejected';
       case RefundStatus.escalatedToAdmin:
         return 'escalated_to_admin';
+      // Canonical backend decision values. These are sent as refund-list
+      // filters, so they must be exactly what refunds.status stores:
+      // admin buyer-wins = admin_refunded, admin seller-wins = admin_released.
       case RefundStatus.adminApproved:
-        return 'admin_approved';
+        return 'admin_refunded';
       case RefundStatus.rejected:
-        return 'rejected';
+        return 'admin_released';
       case RefundStatus.refunded:
-        return 'refunded';
+        return 'system_refunded';
     }
   }
 
@@ -273,7 +276,8 @@ enum RefundStatus {
       case 'admin_released':
       case 'rejected':
         return RefundStatus.rejected;
-      case 'refunded':
+      // Canonical backend value for a platform-initiated refund.
+      case 'system_refunded':
         return RefundStatus.refunded;
       default:
         return null;

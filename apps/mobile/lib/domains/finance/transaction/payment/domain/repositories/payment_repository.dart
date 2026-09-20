@@ -4,10 +4,8 @@
 /// Defines contract for payment operations.
 library;
 
-import 'package:labuda/core/core.dart' as core;
 import '../entities/payment.dart';
 import '../entities/payment_intent.dart';
-import '../entities/payment_method.dart';
 import '../failures/payment_failure.dart';
 
 /// Result type for repository operations
@@ -80,20 +78,4 @@ abstract class PaymentRepository {
     String orderId,
   );
 
-  /// Get available payment methods
-  List<PaymentMethod> getAvailablePaymentMethods();
-
-  /// Calculate fee for a payment method
-  ///
-  /// Backend authority – DISPLAY ONLY, do not calculate on client.
-  /// Fees come from backend via PriceSnapshot.
-  @Deprecated('Backend authority – use PriceSnapshot from backend instead')
-  double calculateFee(core.PaymentChannel channel, double amount);
-
-  /// Calculate total with fee
-  ///
-  /// Backend authority – DISPLAY ONLY, do not calculate on client.
-  /// Total amounts come from backend via PriceSnapshot.
-  @Deprecated('Backend authority – use PriceSnapshot from backend instead')
-  double calculateTotal(core.PaymentChannel channel, double amount);
 }

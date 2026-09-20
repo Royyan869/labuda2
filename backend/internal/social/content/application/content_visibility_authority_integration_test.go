@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 
+	idempotencyRepo "github.com/labuda/backend/internal/platform/idempotency/repository"
 	contentapp "github.com/labuda/backend/internal/social/content/application"
 	contenthttp "github.com/labuda/backend/internal/social/content/delivery/http"
 	contententity "github.com/labuda/backend/internal/social/content/entity"
@@ -50,13 +51,15 @@ func (visibilityRoleChecker) HasSellerProfile(ctx context.Context, userID uuid.U
 }
 
 func newVisibilityService() *contentapp.ContentService {
-	return contentapp.NewContentService(
+	svc := contentapp.NewContentService(
 		contentrepo.NewContentRepository(),
 		nil,
 		visibilityRoleChecker{},
 		visibilityAccountChecker{},
 		nil,
 	)
+	svc.SetIdempotencyRepository(idempotencyRepo.NewRepository())
+	return svc
 }
 
 func seedVisibilityUser(t *testing.T, ctx context.Context, pool *pgxpool.Pool, status string) uuid.UUID {
@@ -136,10 +139,11 @@ func TestCreateContent_PersistsVisibilityAndDefaultsPublic(t *testing.T) {
 				if !tc.explicit {
 					visibility = ""
 				}
-				content, createErr := service.CreateContent(
+				content, _, createErr := service.CreateContentIdempotent(
 					ctx,
 					tx,
 					authorID,
+					uuid.NewString(),
 					"visibility test",
 					visibility,
 					nil,
@@ -197,10 +201,11 @@ func TestUpdateCaptionAndVisibility_TransitionsVisibilityWithoutTouchingIsHidden
 		t.Run(tc.name, func(t *testing.T) {
 			var contentID uuid.UUID
 			err := tdb.WithTx(ctx, func(tx db.Tx) error {
-				content, createErr := service.CreateContent(
+				content, _, createErr := service.CreateContentIdempotent(
 					ctx,
 					tx,
 					authorID,
+					uuid.NewString(),
 					"update visibility",
 					tc.from,
 					nil,

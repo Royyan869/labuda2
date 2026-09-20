@@ -6,7 +6,7 @@ part 'explore_notifier.g.dart';
 /// Explore notifier for tab navigation
 ///
 /// This notifier handles tab switching and deep link navigation.
-/// The actual content (listing, auction) is provided
+/// The actual content (forSale, auction) is provided
 /// by their respective feature modules.
 @riverpod
 class ExploreNotifier extends _$ExploreNotifier {

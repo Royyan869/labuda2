@@ -5,10 +5,10 @@ import 'package:labuda/domains/social/content/domain/entities/content.dart';
 
 Map<String, dynamic> _listingJson() {
   return <String, dynamic>{
-    'id': 'listing-typed-media',
+    'id': 'forSale-typed-media',
     'seller_id': 'seller-1',
-    'title': 'Mixed typed listing',
-    'description': 'A listing with canonical typed media rows',
+    'title': 'Mixed typed forSale',
+    'description': 'A forSale with canonical typed media rows',
     'media_urls': <String>[
       'https://legacy.example.com/legacy-first.jpg',
       'https://legacy.example.com/legacy-second.mp4',
@@ -96,7 +96,7 @@ void main() {
     // and the mapper must not synthesize a blank 'thumbnail' variant that
     // would shadow originalUrl via variants['thumbnail'] ?? originalUrl.
     final dto = ForSaleResponseDto.fromJson(<String, dynamic>{
-      'id': 'listing-empty-thumb',
+      'id': 'forSale-empty-thumb',
       'seller_id': 'seller-1',
       'title': 'No thumb',
       'description': '',
@@ -135,9 +135,9 @@ void main() {
     'ForSaleResponseDto preserves legacy media_urls separately from typed mediaItems',
     () {
       final dto = ForSaleResponseDto.fromJson(<String, dynamic>{
-        'id': 'listing-legacy-media',
+        'id': 'forSale-legacy-media',
         'seller_id': 'seller-1',
-        'title': 'Legacy listing',
+        'title': 'Legacy forSale',
         'description': 'Legacy media only',
         'media_urls': <String>[
           'https://legacy.example.com/image-a.jpg',

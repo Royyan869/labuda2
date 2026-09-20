@@ -383,6 +383,12 @@ class UserApiResponse extends Equatable {
   final String? location;
   final UserProfileApiResponse? profile;
 
+  // Seller store identity — public projection (GET /users/{id}) ownership stays seller_profiles.
+  // Null when no seller profile or when identity lifecycle degraded. Never fallback to avatar.
+  final String? storeName;
+  final String? storeImageUrl;
+  final DateTime? storeImageUpdatedAt;
+
   const UserApiResponse({
     required this.id,
     required this.email,
@@ -408,6 +414,9 @@ class UserApiResponse extends Equatable {
     required this.updatedAt,
     this.location,
     this.profile,
+    this.storeName,
+    this.storeImageUrl,
+    this.storeImageUpdatedAt,
   });
 
   factory UserApiResponse.fromJson(Map<String, dynamic> json) {
@@ -507,6 +516,19 @@ class UserApiResponse extends Equatable {
       profile: json['profile'] != null
           ? UserProfileApiResponse.fromJson(json['profile'])
           : null,
+      storeName: (() {
+        final v = json['store_name'];
+        if (v == null) return null;
+        final s = v.toString().trim();
+        return s.isEmpty ? null : s;
+      })(),
+      storeImageUrl: (() {
+        final v = json['store_image_url'];
+        if (v == null) return null;
+        final s = v.toString().trim();
+        return s.isEmpty ? null : s;
+      })(),
+      storeImageUpdatedAt: safeDateTime('store_image_updated_at'),
     );
 
     // 🔍 DEBUG: Log parsed values

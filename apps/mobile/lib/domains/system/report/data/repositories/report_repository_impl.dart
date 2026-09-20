@@ -4,6 +4,7 @@
 library;
 
 import 'dart:async';
+import 'package:dio/dio.dart';
 
 import '../../domain/entities/entities.dart';
 import '../../domain/repositories/report_repository.dart';
@@ -13,13 +14,10 @@ import '../remote/report_api_datasource.dart';
 /// Report Repository Implementation
 class ReportRepositoryImpl implements ReportRepository {
   final ReportApiDatasource _datasource;
-  final ImageUploader _imageUploader;
 
   ReportRepositoryImpl({
     required ReportApiDatasource datasource,
-    required ImageUploader imageUploader,
-  }) : _datasource = datasource,
-       _imageUploader = imageUploader;
+  }) : _datasource = datasource;
 
   // =====================
   // User Operations
@@ -36,11 +34,34 @@ class ReportRepositoryImpl implements ReportRepository {
       );
 
       return ReportMapper.toEntity(dto);
-    } on ReportRepositoryException {
-      rethrow;
-    } catch (e) {
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      final errorMsg = _extractErrorMessage(e);
+
+      if (statusCode == 409) {
+        throw ReportRepositoryException(
+          'Anda sudah melaporkan konten ini.',
+          type: ReportFailureType.alreadyReported,
+        );
+      } else if (statusCode == 404) {
+        throw ReportRepositoryException(
+          'Target laporan tidak ditemukan.',
+          type: ReportFailureType.notFound,
+        );
+      } else if (statusCode == 400) {
+        throw ReportRepositoryException(
+          errorMsg ?? 'Laporan tidak valid.',
+          type: ReportFailureType.validation,
+        );
+      }
       throw ReportRepositoryException(
-        'Failed to create report: ${e.toString()}',
+        errorMsg ?? 'Gagal membuat laporan.',
+        type: ReportFailureType.network,
+      );
+    } catch (e) {
+      if (e is ReportRepositoryException) rethrow;
+      throw ReportRepositoryException(
+        'Gagal membuat laporan: ${e.toString()}',
         type: ReportFailureType.network,
       );
     }
@@ -51,11 +72,15 @@ class ReportRepositoryImpl implements ReportRepository {
     try {
       final dto = await _datasource.getReport(reportId);
       return ReportMapper.toEntity(dto);
-    } on ReportRepositoryException {
-      return null;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      throw ReportRepositoryException(
+        _extractErrorMessage(e) ?? 'Gagal mengambil laporan',
+        type: ReportFailureType.network,
+      );
     } catch (e) {
       throw ReportRepositoryException(
-        'Failed to get report: ${e.toString()}',
+        'Gagal mengambil laporan: ${e.toString()}',
         type: ReportFailureType.network,
       );
     }
@@ -64,14 +89,15 @@ class ReportRepositoryImpl implements ReportRepository {
   @override
   Future<List<Report>> getReportsByUser({
     required String userId,
+    int page = 1,
     int limit = 20,
   }) async {
     try {
-      final dtos = await _datasource.getMyReports(page: (limit / 20).ceil());
+      final dtos = await _datasource.getMyReports(page: page);
       return dtos.map((dto) => ReportMapper.toEntity(dto)).toList();
     } catch (e) {
       throw ReportRepositoryException(
-        'Failed to get user reports: ${e.toString()}',
+        'Gagal mengambil daftar laporan: ${e.toString()}',
         type: ReportFailureType.network,
       );
     }
@@ -84,38 +110,38 @@ class ReportRepositoryImpl implements ReportRepository {
     required ReportTargetType targetType,
   }) async {
     try {
-      final dtos = await _datasource.getMyReports();
-      return dtos.any((dto) => dto.subjectId == targetId);
+      final targetTypeStr = targetType.backendValue;
+      // Paginate through all user reports to close the first-page-only hole.
+      // Backend unique constraint is final guard, but client check must not
+      // falsely return false when duplicate is beyond page 1.
+      int page = 1;
+      while (true) {
+        final dtos = await _datasource.getMyReports(page: page);
+        if (dtos.isEmpty) return false;
+        if (dtos.any((dto) => dto.subjectId == targetId && dto.subjectType == targetTypeStr)) {
+          return true;
+        }
+        if (dtos.length < 20) return false;
+        page++;
+        if (page > 50) return false; // safety cap: 1000 reports
+      }
     } catch (e) {
       return false;
     }
   }
 
-  @override
-  Future<String> uploadEvidence({
-    required String reporterId,
-    required String filePath,
-  }) async {
-    try {
-      return await _imageUploader.uploadImage(
-        userId: reporterId,
-        filePath: filePath,
-      );
-    } catch (e) {
-      throw ReportRepositoryException(
-        'Failed to upload evidence: ${e.toString()}',
-        type: ReportFailureType.network,
-      );
+  String? _extractErrorMessage(DioException e) {
+    if (e.response?.data is Map<String, dynamic>) {
+      final data = e.response!.data as Map<String, dynamic>;
+      if (data.containsKey('message') && data['message'] is String) {
+        return data['message'] as String;
+      }
+      if (data.containsKey('error') && data['error'] is String) {
+        return data['error'] as String;
+      }
     }
+    return e.message;
   }
-
-  // =====================
-  // REMOVED: All Admin Operations
-  // =====================
-  // - getReports() - Admin-only endpoint
-  // - updateReportStatus() - Admin-only endpoint
-  // - getReportStatistics() - Admin-only endpoint
-  // - watchPendingReportsCount() - Admin-only endpoint
 }
 
 /// Custom exception for repository errors
@@ -129,13 +155,5 @@ class ReportRepositoryException implements Exception {
   });
 
   @override
-  String toString() => 'ReportRepositoryException: $message';
-}
-
-/// Abstract image uploader interface
-abstract class ImageUploader {
-  Future<String> uploadImage({
-    required String userId,
-    required String filePath,
-  });
+  String toString() => message;
 }

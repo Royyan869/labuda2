@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart' hide ProfileAvatar;
+import 'package:labuda/shared/helpers/user_identity_formatter.dart';
 import 'package:labuda/shared/governance/seller_tier_badge.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/profile_cover.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/profile_avatar.dart';
@@ -268,7 +269,7 @@ class _FlyingAvatarWithInfo extends StatelessWidget {
             userId: userId,
             avatarUrl: profileData['avatar'],
             farmPhotoUrl: profileData['farmPhotoUrl'],
-            initials: UserInitialsHelper.fromName(profileData['name']),
+            initials: UserIdentityFormatter.avatarInitials(profileData['name']),
             isSeller: isSeller,
             size: currentAvatarSize,
             showOnlineStatus: collapseProgress < 0.5,

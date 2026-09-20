@@ -39,14 +39,16 @@ func (r *SupportRepositoryImpl) CreateTicket(ctx context.Context, tx interface{}
 	query := `
 		INSERT INTO support_tickets (
 			id, user_id, chat_room_id, category, priority, status, escalation,
+			subject, description,
 			linked_order_id, assigned_admin_id, created_at, updated_at,
 			assigned_at, resolved_at, closed_at, resolution_notes, close_reason, metadata
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
 	`
 
 	_, err := toTx(tx).Exec(ctx, query,
 		ticket.ID, ticket.UserID, ticket.ChatRoomID, ticket.Category, ticket.Priority, ticket.Status, ticket.Escalation,
+		ticket.Subject, ticket.Description,
 		ticket.LinkedOrderID, ticket.AssignedAdminID, ticket.CreatedAt, ticket.UpdatedAt,
 		ticket.AssignedAt, ticket.ResolvedAt, ticket.ClosedAt, ticket.ResolutionNotes, ticket.CloseReason,
 		ticket.GetMetadataJSON(),
@@ -66,8 +68,9 @@ func (r *SupportRepositoryImpl) GetTicketByID(ctx context.Context, tx interface{
 		       COALESCE(up.username, '') AS username,
 		       COALESCE(sp.store_name, '') AS seller_farm_name,
 		       st.chat_room_id, st.category, st.priority, st.status, st.escalation,
+		       st.subject, st.description,
 		       st.linked_order_id, st.assigned_admin_id, st.created_at, st.updated_at,
-		       assigned_at, resolved_at, closed_at, resolution_notes, close_reason, metadata
+		       st.assigned_at, st.resolved_at, st.closed_at, st.resolution_notes, st.close_reason, st.metadata
 		FROM support_tickets st
 		LEFT JOIN user_profiles up ON up.user_id = st.user_id
 		LEFT JOIN seller_profiles sp ON sp.user_id = st.user_id
@@ -79,6 +82,7 @@ func (r *SupportRepositoryImpl) GetTicketByID(ctx context.Context, tx interface{
 
 	err := toTx(tx).QueryRow(ctx, query, ticketID).Scan(
 		&ticket.ID, &ticket.UserID, &ticket.Username, &ticket.SellerFarmName, &ticket.ChatRoomID, &ticket.Category, &ticket.Priority, &ticket.Status, &ticket.Escalation,
+		&ticket.Subject, &ticket.Description,
 		&ticket.LinkedOrderID, &ticket.AssignedAdminID, &ticket.CreatedAt, &ticket.UpdatedAt,
 		&ticket.AssignedAt, &ticket.ResolvedAt, &ticket.ClosedAt, &ticket.ResolutionNotes, &ticket.CloseReason,
 		&metadataJSON,
@@ -98,47 +102,6 @@ func (r *SupportRepositoryImpl) GetTicketByID(ctx context.Context, tx interface{
 	return &ticket, nil
 }
 
-// GetOpenTicketByUser retrieves the current open ticket for a user.
-func (r *SupportRepositoryImpl) GetOpenTicketByUser(ctx context.Context, tx interface{}, userID uuid.UUID) (*entity.Ticket, error) {
-	query := `
-		SELECT st.id, st.user_id,
-		       COALESCE(up.username, '') AS username,
-		       COALESCE(sp.store_name, '') AS seller_farm_name,
-		       st.chat_room_id, st.category, st.priority, st.status, st.escalation,
-		       st.linked_order_id, st.assigned_admin_id, st.created_at, st.updated_at,
-		       assigned_at, resolved_at, closed_at, resolution_notes, close_reason, metadata
-		FROM support_tickets st
-		LEFT JOIN user_profiles up ON up.user_id = st.user_id
-		LEFT JOIN seller_profiles sp ON sp.user_id = st.user_id
-		WHERE st.user_id = $1 AND st.status IN ('open', 'in_progress', 'waiting_user')
-		ORDER BY st.created_at DESC
-		LIMIT 1
-	`
-
-	var ticket entity.Ticket
-	var metadataJSON []byte
-
-	err := toTx(tx).QueryRow(ctx, query, userID).Scan(
-		&ticket.ID, &ticket.UserID, &ticket.Username, &ticket.SellerFarmName, &ticket.ChatRoomID, &ticket.Category, &ticket.Priority, &ticket.Status, &ticket.Escalation,
-		&ticket.LinkedOrderID, &ticket.AssignedAdminID, &ticket.CreatedAt, &ticket.UpdatedAt,
-		&ticket.AssignedAt, &ticket.ResolvedAt, &ticket.ClosedAt, &ticket.ResolutionNotes, &ticket.CloseReason,
-		&metadataJSON,
-	)
-
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, supportRepo.ErrTicketNotFound
-		}
-		return nil, fmt.Errorf("get open ticket by user failed: %w", err)
-	}
-
-	if metadataJSON != nil {
-		ticket.SetMetadataFromJSON(metadataJSON)
-	}
-
-	return &ticket, nil
-}
-
 // GetTicketByChatRoomID retrieves the active ticket linked to a chat room.
 // Used by the user-reply hook to transition ticket status when a user
 // sends a message in a support chat room.
@@ -148,8 +111,9 @@ func (r *SupportRepositoryImpl) GetTicketByChatRoomID(ctx context.Context, tx in
 		       COALESCE(up.username, '') AS username,
 		       COALESCE(sp.store_name, '') AS seller_farm_name,
 		       st.chat_room_id, st.category, st.priority, st.status, st.escalation,
+		       st.subject, st.description,
 		       st.linked_order_id, st.assigned_admin_id, st.created_at, st.updated_at,
-		       assigned_at, resolved_at, closed_at, resolution_notes, close_reason, metadata
+		       st.assigned_at, st.resolved_at, st.closed_at, st.resolution_notes, st.close_reason, st.metadata
 		FROM support_tickets st
 		LEFT JOIN user_profiles up ON up.user_id = st.user_id
 		LEFT JOIN seller_profiles sp ON sp.user_id = st.user_id
@@ -163,6 +127,7 @@ func (r *SupportRepositoryImpl) GetTicketByChatRoomID(ctx context.Context, tx in
 
 	err := toTx(tx).QueryRow(ctx, query, chatRoomID).Scan(
 		&ticket.ID, &ticket.UserID, &ticket.Username, &ticket.SellerFarmName, &ticket.ChatRoomID, &ticket.Category, &ticket.Priority, &ticket.Status, &ticket.Escalation,
+		&ticket.Subject, &ticket.Description,
 		&ticket.LinkedOrderID, &ticket.AssignedAdminID, &ticket.CreatedAt, &ticket.UpdatedAt,
 		&ticket.AssignedAt, &ticket.ResolvedAt, &ticket.ClosedAt, &ticket.ResolutionNotes, &ticket.CloseReason,
 		&metadataJSON,
@@ -201,8 +166,9 @@ func (r *SupportRepositoryImpl) ListTickets(
 		       COALESCE(up.username, '') AS username,
 		       COALESCE(sp.store_name, '') AS seller_farm_name,
 		       st.chat_room_id, st.category, st.priority, st.status, st.escalation,
+		       st.subject, st.description,
 		       st.linked_order_id, st.assigned_admin_id, st.created_at, st.updated_at,
-		       assigned_at, resolved_at, closed_at, resolution_notes, close_reason, metadata
+		       st.assigned_at, st.resolved_at, st.closed_at, st.resolution_notes, st.close_reason, st.metadata
 		FROM support_tickets st
 		LEFT JOIN user_profiles up ON up.user_id = st.user_id
 		LEFT JOIN seller_profiles sp ON sp.user_id = st.user_id
@@ -252,11 +218,25 @@ func (r *SupportRepositoryImpl) ListTickets(
 			}
 		}
 		if filter.IsOverdue != nil {
+			// SLA-F04 canonical first-response authority: a ticket has been
+			// first-responded when an admin-role message exists in its support
+			// conversation (EXISTS subquery, same authority as
+			// ListFirstAdminResponsesByTicketIDs). assigned_at is deliberately
+			// NOT a response — assignment only. Unresponded tickets are first
+			// response overdue after 1h wall clock; resolution overdue after 24h.
+			firstResponseOverdue := `(NOT EXISTS (
+				SELECT 1 FROM chat_rooms cr
+				JOIN chat_messages cm ON cm.room_id = cr.id
+				JOIN users u ON u.id = cm.sender_id AND u.role = 'admin'
+				WHERE cr.id = st.chat_room_id AND cr.room_type = 'support'
+				AND cm.deleted_at IS NULL AND cm.created_at >= st.created_at
+			) AND st.created_at < NOW() - INTERVAL '1 hour')`
+			resolutionOverdue := "((st.resolved_at IS NULL AND st.status NOT IN ('resolved', 'closed') AND st.created_at < NOW() - INTERVAL '24 hours') OR (st.resolved_at IS NOT NULL AND st.resolved_at - st.created_at > INTERVAL '24 hours'))"
 			if *filter.IsOverdue {
 				// Overdue: first response overdue OR resolution overdue
-				baseQuery += " AND ((st.assigned_admin_id IS NULL AND st.created_at < NOW() - INTERVAL '1 hour') OR (st.assigned_at IS NOT NULL AND st.assigned_at - st.created_at > INTERVAL '1 hour') OR (st.resolved_at IS NULL AND st.status NOT IN ('resolved', 'closed') AND st.created_at < NOW() - INTERVAL '24 hours') OR (st.resolved_at IS NOT NULL AND st.resolved_at - st.created_at > INTERVAL '24 hours')))"
+				baseQuery += " AND ((" + firstResponseOverdue + ") OR (" + resolutionOverdue + "))"
 			} else {
-				baseQuery += " AND NOT ((st.assigned_admin_id IS NULL AND st.created_at < NOW() - INTERVAL '1 hour') OR (st.assigned_at IS NOT NULL AND st.assigned_at - st.created_at > INTERVAL '1 hour') OR (st.resolved_at IS NULL AND st.status NOT IN ('resolved', 'closed') AND st.created_at < NOW() - INTERVAL '24 hours') OR (st.resolved_at IS NOT NULL AND st.resolved_at - st.created_at > INTERVAL '24 hours')))"
+				baseQuery += " AND NOT ((" + firstResponseOverdue + ") OR (" + resolutionOverdue + "))"
 			}
 		}
 	}
@@ -286,6 +266,7 @@ func (r *SupportRepositoryImpl) ListTickets(
 
 		err := rows.Scan(
 			&ticket.ID, &ticket.UserID, &ticket.Username, &ticket.SellerFarmName, &ticket.ChatRoomID, &ticket.Category, &ticket.Priority, &ticket.Status, &ticket.Escalation,
+			&ticket.Subject, &ticket.Description,
 			&ticket.LinkedOrderID, &ticket.AssignedAdminID, &ticket.CreatedAt, &ticket.UpdatedAt,
 			&ticket.AssignedAt, &ticket.ResolvedAt, &ticket.ClosedAt, &ticket.ResolutionNotes, &ticket.CloseReason,
 			&metadataJSON,
@@ -376,20 +357,27 @@ func (r *SupportRepositoryImpl) CountActiveTicketsByOrderID(ctx context.Context,
 }
 
 // ClaimTicket atomically claims an open ticket for an admin using SELECT FOR UPDATE.
+//
+// LOCK SCOPE: the row lock targets ONLY support_tickets (`FOR UPDATE OF st`).
+// The username / seller farm name come from LEFT JOINed profile tables, and a
+// bare FOR UPDATE is rejected by PostgreSQL on the nullable side of an outer
+// join ("FOR UPDATE cannot be applied to the nullable side of an outer join").
+// Locking just the ticket row keeps the claim atomic without locking profiles.
 func (r *SupportRepositoryImpl) ClaimTicket(ctx context.Context, tx interface{}, ticketID, adminID uuid.UUID) (*entity.Ticket, error) {
-	// First, lock the row for update
+	// First, lock the ticket row for update
 	query := `
 		SELECT st.id, st.user_id,
 		       COALESCE(up.username, '') AS username,
 		       COALESCE(sp.store_name, '') AS seller_farm_name,
 		       st.chat_room_id, st.category, st.priority, st.status, st.escalation,
+		       st.subject, st.description,
 		       st.linked_order_id, st.assigned_admin_id, st.created_at, st.updated_at,
-		       assigned_at, resolved_at, closed_at, resolution_notes, close_reason, metadata
+		       st.assigned_at, st.resolved_at, st.closed_at, st.resolution_notes, st.close_reason, st.metadata
 		FROM support_tickets st
 		LEFT JOIN user_profiles up ON up.user_id = st.user_id
 		LEFT JOIN seller_profiles sp ON sp.user_id = st.user_id
 		WHERE st.id = $1
-		FOR UPDATE
+		FOR UPDATE OF st
 	`
 
 	var ticket entity.Ticket
@@ -397,6 +385,7 @@ func (r *SupportRepositoryImpl) ClaimTicket(ctx context.Context, tx interface{},
 
 	err := toTx(tx).QueryRow(ctx, query, ticketID).Scan(
 		&ticket.ID, &ticket.UserID, &ticket.Username, &ticket.SellerFarmName, &ticket.ChatRoomID, &ticket.Category, &ticket.Priority, &ticket.Status, &ticket.Escalation,
+		&ticket.Subject, &ticket.Description,
 		&ticket.LinkedOrderID, &ticket.AssignedAdminID, &ticket.CreatedAt, &ticket.UpdatedAt,
 		&ticket.AssignedAt, &ticket.ResolvedAt, &ticket.ClosedAt, &ticket.ResolutionNotes, &ticket.CloseReason,
 		&metadataJSON,
@@ -494,7 +483,11 @@ func (r *SupportRepositoryImpl) CloseTicket(ctx context.Context, tx interface{},
 	return nil
 }
 
-// ReopenTicket reopens a resolved or closed ticket.
+// ReopenTicket reopens a RESOLVED ticket.
+//
+// closed is TERMINAL: a closed case is never reopened (a new problem is a new
+// ticket). The WHERE clause encodes that lifecycle invariant, so a reopen
+// attempt on a closed ticket affects no rows and returns ErrCannotReopenTicket.
 func (r *SupportRepositoryImpl) ReopenTicket(ctx context.Context, tx interface{}, ticketID uuid.UUID) error {
 	query := `
 		UPDATE support_tickets
@@ -506,7 +499,7 @@ func (r *SupportRepositoryImpl) ReopenTicket(ctx context.Context, tx interface{}
 		    resolution_notes = NULL,
 		    close_reason = NULL,
 		    updated_at = now()
-		WHERE id = $1 AND status IN ('resolved', 'closed')
+		WHERE id = $1 AND status = 'resolved'
 	`
 
 	result, err := toTx(tx).Exec(ctx, query, ticketID)
@@ -602,45 +595,6 @@ func (r *SupportRepositoryImpl) UpdateEscalation(ctx context.Context, tx interfa
 	return nil
 }
 
-// AssignAdmin directly assigns an admin to a ticket.
-func (r *SupportRepositoryImpl) AssignAdmin(ctx context.Context, tx interface{}, ticketID, adminID uuid.UUID) error {
-	query := `
-		UPDATE support_tickets
-		SET assigned_admin_id = $1,
-		    assigned_at = now(),
-		    updated_at = now()
-		WHERE id = $2
-	`
-
-	_, err := toTx(tx).Exec(ctx, query, adminID, ticketID)
-	if err != nil {
-		return fmt.Errorf("assign admin failed: %w", err)
-	}
-
-	return nil
-}
-
-// UnassignAdmin removes the admin assignment from a ticket.
-// NOTE: Currently unused — no caller in production code. Retained because
-// the Repository interface requires it. The $2 → $1 bug was fixed 2026-05-25.
-func (r *SupportRepositoryImpl) UnassignAdmin(ctx context.Context, tx interface{}, ticketID uuid.UUID) error {
-	query := `
-		UPDATE support_tickets
-		SET assigned_admin_id = NULL,
-		    status = 'open',
-		    assigned_at = NULL,
-		    updated_at = now()
-		WHERE id = $1
-	`
-
-	_, err := toTx(tx).Exec(ctx, query, ticketID)
-	if err != nil {
-		return fmt.Errorf("unassign admin failed: %w", err)
-	}
-
-	return nil
-}
-
 // ========================================================================
 // EVENT OPERATIONS
 // ========================================================================
@@ -714,184 +668,110 @@ func (r *SupportRepositoryImpl) ListEvents(ctx context.Context, tx interface{}, 
 	return events, nil
 }
 
-// ========================================================================
-// ADMIN OPERATIONS
-// ========================================================================
-
-// GetAdmin retrieves a support admin by ID.
-func (r *SupportRepositoryImpl) GetAdmin(ctx context.Context, tx interface{}, adminID uuid.UUID) (*entity.Admin, error) {
-	query := `
-		SELECT id, is_active, active_ticket_count, last_assigned_at, created_at, updated_at
-		FROM support_admins
-		WHERE id = $1
-	`
-
-	var admin entity.Admin
-	err := toTx(tx).QueryRow(ctx, query, adminID).Scan(
-		&admin.ID, &admin.IsActive, &admin.ActiveTicketCount,
-		&admin.LastAssignedAt, &admin.CreatedAt, &admin.UpdatedAt,
-	)
-
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, supportRepo.ErrAdminNotFound
-		}
-		return nil, fmt.Errorf("get admin failed: %w", err)
+// ListStatusEventsForTickets batch-fetches status-change events for multiple
+// tickets in a single query. Returns events keyed by ticket_id.
+func (r *SupportRepositoryImpl) ListStatusEventsForTickets(ctx context.Context, tx interface{}, ticketIDs []uuid.UUID) (map[uuid.UUID][]*entity.Event, error) {
+	if len(ticketIDs) == 0 {
+		return map[uuid.UUID][]*entity.Event{}, nil
 	}
 
-	return &admin, nil
-}
-
-// CreateAdmin creates a new support admin record.
-func (r *SupportRepositoryImpl) CreateAdmin(ctx context.Context, tx interface{}, admin *entity.Admin) error {
 	query := `
-		INSERT INTO support_admins (id, is_active, active_ticket_count, last_assigned_at, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		ON CONFLICT (id) DO NOTHING
+		SELECT id, ticket_id, event_type, actor_id, old_status, new_status, notes, metadata, created_at
+		FROM support_ticket_events
+		WHERE ticket_id = ANY($1::uuid[])
+		AND event_type IN ('status_changed', 'ticket_waiting_user')
+		ORDER BY ticket_id, created_at ASC
 	`
 
-	_, err := toTx(tx).Exec(ctx, query,
-		admin.ID, admin.IsActive, admin.ActiveTicketCount,
-		admin.LastAssignedAt, admin.CreatedAt, admin.UpdatedAt,
-	)
-
+	rows, err := toTx(tx).Query(ctx, query, ticketIDs)
 	if err != nil {
-		return fmt.Errorf("create admin failed: %w", err)
-	}
-
-	return nil
-}
-
-// ListAdmins lists all support admins with optional active filter.
-func (r *SupportRepositoryImpl) ListAdmins(ctx context.Context, tx interface{}, isActive *bool) ([]*entity.Admin, error) {
-	query := `
-		SELECT id, is_active, active_ticket_count, last_assigned_at, created_at, updated_at
-		FROM support_admins
-		WHERE 1=1
-	`
-
-	args := []interface{}{}
-	argIdx := 1
-
-	if isActive != nil {
-		query += fmt.Sprintf(" AND is_active = $%d", argIdx)
-		args = append(args, *isActive)
-		argIdx++
-	}
-
-	query += " ORDER BY active_ticket_count ASC"
-
-	rows, err := toTx(tx).Query(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("list admins failed: %w", err)
+		return nil, fmt.Errorf("list status events for tickets failed: %w", err)
 	}
 	defer rows.Close()
 
-	var admins []*entity.Admin
+	result := make(map[uuid.UUID][]*entity.Event)
 	for rows.Next() {
-		var admin entity.Admin
+		var event entity.Event
+		var metadataJSON []byte
+
 		err := rows.Scan(
-			&admin.ID, &admin.IsActive, &admin.ActiveTicketCount,
-			&admin.LastAssignedAt, &admin.CreatedAt, &admin.UpdatedAt,
+			&event.ID, &event.TicketID, &event.EventType, &event.ActorID,
+			&event.OldStatus, &event.NewStatus, &event.Notes,
+			&metadataJSON, &event.CreatedAt,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("scan admin failed: %w", err)
+			return nil, fmt.Errorf("scan status event failed: %w", err)
 		}
-		admins = append(admins, &admin)
+
+		if metadataJSON != nil {
+			event.Metadata = make(map[string]interface{})
+			if err := json.Unmarshal(metadataJSON, &event.Metadata); err != nil {
+				return nil, fmt.Errorf("unmarshal event metadata failed: %w", err)
+			}
+		}
+
+		result[event.TicketID] = append(result[event.TicketID], &event)
 	}
 
 	if rows.Err() != nil {
-		return nil, fmt.Errorf("iterate admins failed: %w", rows.Err())
+		return nil, fmt.Errorf("iterate status events failed: %w", rows.Err())
 	}
 
-	return admins, nil
+	return result, nil
 }
 
-// GetAvailableAdmins returns admins who can take more tickets.
-func (r *SupportRepositoryImpl) GetAvailableAdmins(ctx context.Context, tx interface{}, maxConcurrent int, limit int) ([]*entity.Admin, error) {
+// ListFirstAdminResponsesByTicketIDs batch-fetches the first valid admin
+// response timestamp for multiple tickets in a single query.
+//
+// CANONICAL AUTHORITY (SLA-F04): the earliest non-deleted chat_messages row
+// in the ticket's own support conversation (one ticket = one support room,
+// support_tickets.chat_room_id) whose sender has role = 'admin'. System
+// messages carry sender_id NULL and cannot match the join. No heuristic —
+// assigned_at/claimed events are deliberately NOT treated as a response.
+//
+// Single query via support_tickets ⋈ chat_rooms ⋈ chat_messages; index
+// idx_chat_messages_room_id (room_id, created_at) serves MIN(created_at)
+// per room. Tickets without any admin response are absent from the map.
+func (r *SupportRepositoryImpl) ListFirstAdminResponsesByTicketIDs(ctx context.Context, tx interface{}, ticketIDs []uuid.UUID) (map[uuid.UUID]*time.Time, error) {
+	if len(ticketIDs) == 0 {
+		return map[uuid.UUID]*time.Time{}, nil
+	}
+
 	query := `
-		SELECT id, is_active, active_ticket_count, last_assigned_at, created_at, updated_at
-		FROM support_admins
-		WHERE is_active = true AND active_ticket_count < $1
-		ORDER BY active_ticket_count ASC, last_assigned_at ASC NULLS LAST
-		LIMIT $2
+		SELECT st.id, MIN(cm.created_at) AS first_admin_response_at
+		FROM support_tickets st
+		JOIN chat_rooms cr ON cr.id = st.chat_room_id AND cr.room_type = 'support'
+		JOIN chat_messages cm ON cm.room_id = cr.id
+		JOIN users u ON u.id = cm.sender_id AND u.role = 'admin'
+		WHERE st.id = ANY($1::uuid[])
+		AND cm.deleted_at IS NULL
+		AND cm.created_at >= st.created_at
+		GROUP BY st.id
 	`
 
-	rows, err := toTx(tx).Query(ctx, query, maxConcurrent, limit)
+	rows, err := toTx(tx).Query(ctx, query, ticketIDs)
 	if err != nil {
-		return nil, fmt.Errorf("get available admins failed: %w", err)
+		return nil, fmt.Errorf("list first admin responses for tickets failed: %w", err)
 	}
 	defer rows.Close()
 
-	var admins []*entity.Admin
+	result := make(map[uuid.UUID]*time.Time)
 	for rows.Next() {
-		var admin entity.Admin
-		err := rows.Scan(
-			&admin.ID, &admin.IsActive, &admin.ActiveTicketCount,
-			&admin.LastAssignedAt, &admin.CreatedAt, &admin.UpdatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("scan admin failed: %w", err)
+		var ticketID uuid.UUID
+		var firstAdminResponseAt time.Time
+
+		if err := rows.Scan(&ticketID, &firstAdminResponseAt); err != nil {
+			return nil, fmt.Errorf("scan first admin response failed: %w", err)
 		}
-		admins = append(admins, &admin)
+
+		result[ticketID] = &firstAdminResponseAt
 	}
 
 	if rows.Err() != nil {
-		return nil, fmt.Errorf("iterate admins failed: %w", rows.Err())
+		return nil, fmt.Errorf("iterate first admin responses failed: %w", rows.Err())
 	}
 
-	return admins, nil
-}
-
-// IncrementAdminTicketCount increments the active ticket count for an admin.
-func (r *SupportRepositoryImpl) IncrementAdminTicketCount(ctx context.Context, tx interface{}, adminID uuid.UUID) error {
-	query := `
-		UPDATE support_admins
-		SET active_ticket_count = active_ticket_count + 1,
-		    last_assigned_at = now(),
-		    updated_at = now()
-		WHERE id = $1
-	`
-
-	_, err := toTx(tx).Exec(ctx, query, adminID)
-	if err != nil {
-		return fmt.Errorf("increment admin ticket count failed: %w", err)
-	}
-
-	return nil
-}
-
-// DecrementAdminTicketCount decrements the active ticket count for an admin.
-func (r *SupportRepositoryImpl) DecrementAdminTicketCount(ctx context.Context, tx interface{}, adminID uuid.UUID) error {
-	query := `
-		UPDATE support_admins
-		SET active_ticket_count = GREATEST(active_ticket_count - 1, 0),
-		    updated_at = now()
-		WHERE id = $1
-	`
-
-	_, err := toTx(tx).Exec(ctx, query, adminID)
-	if err != nil {
-		return fmt.Errorf("decrement admin ticket count failed: %w", err)
-	}
-
-	return nil
-}
-
-// SetAdminActive sets the admin's active status.
-func (r *SupportRepositoryImpl) SetAdminActive(ctx context.Context, tx interface{}, adminID uuid.UUID, isActive bool) error {
-	query := `
-		UPDATE support_admins
-		SET is_active = $1, updated_at = now()
-		WHERE id = $2
-	`
-
-	_, err := toTx(tx).Exec(ctx, query, isActive, adminID)
-	if err != nil {
-		return fmt.Errorf("set admin active failed: %w", err)
-	}
-
-	return nil
+	return result, nil
 }
 
 // GetTicketStatistics returns statistics about tickets.

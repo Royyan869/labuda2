@@ -196,15 +196,15 @@ void main() {
 
   test('marketplaceMediaLogicalKey is stable across signed URL churn', () {
     final first = marketplaceMediaLogicalKey(
-      entityType: 'listing',
-      entityId: 'listing-1',
+      entityType: 'forSale',
+      entityId: 'forSale-1',
       mediaReference:
           'https://cdn.example.com/media/koi.jpg?X-Amz-Signature=abc&variant=thumb',
       position: 0,
     );
     final second = marketplaceMediaLogicalKey(
-      entityType: 'listing',
-      entityId: 'listing-1',
+      entityType: 'forSale',
+      entityId: 'forSale-1',
       mediaReference:
           'https://cdn.example.com/media/koi.jpg?X-Amz-Signature=updated&variant=thumb',
       position: 0,
@@ -307,7 +307,7 @@ void main() {
               fallback: const SizedBox.shrink(),
             ),
             badges: const [
-              CommerceMarketplaceCardBadge(label: 'Listing', compact: true),
+              CommerceMarketplaceCardBadge(label: 'ForSale', compact: true),
             ],
             title: 'Showa Koi 30cm',
             value: const CommerceMarketplaceCardValue(
@@ -416,7 +416,7 @@ void main() {
                   fallback: const SizedBox.shrink(),
                 ),
                 badges: const [
-                  CommerceMarketplaceCardBadge(label: 'Listing', compact: true),
+                  CommerceMarketplaceCardBadge(label: 'ForSale', compact: true),
                 ],
                 title: 'Showa Koi 30cm',
                 value: const CommerceMarketplaceCardValue(

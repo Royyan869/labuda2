@@ -16,7 +16,7 @@ abstract class AuctionRepository {
   // ========== Auction CRUD Operations ==========
 
   /// Create new auction. A Product is created inline by the backend from
-  /// the item fields below — there is no productId/listingId parameter.
+  /// the item fields below — there is no productId/forSaleId parameter.
   Future<RepositoryResult<Auction>> createAuction({
     required String sellerId,
     String? sellerUsername,
@@ -73,12 +73,6 @@ abstract class AuctionRepository {
     String auctionId,
     Map<String, dynamic> updates,
   );
-
-  /// Update auction status
-  Future<RepositoryResult<Auction>> updateAuctionStatus({
-    required String auctionId,
-    required AuctionStatus status,
-  });
 
   /// Cancel auction (seller only)
   Future<RepositoryResult<void>> cancelAuction({
@@ -151,7 +145,7 @@ abstract class AuctionRepository {
 }
 
 /// Create auction request params. A Product is created inline by the
-/// backend from the item fields below — there is no productId/listingId.
+/// backend from the item fields below — there is no productId/forSaleId.
 class CreateAuctionParams {
   final String sellerId;
   final String? sellerUsername;

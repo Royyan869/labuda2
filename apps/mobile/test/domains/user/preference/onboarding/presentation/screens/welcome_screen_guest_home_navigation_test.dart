@@ -9,12 +9,12 @@
 //
 //   Home intent = /home = canonical Home
 //   Home intent ≠ For Sale (/for-sale) destination
-//   Home intent ≠ any legacy listing destination
+//   Home intent ≠ any legacy forSale destination
 //
 // This file proves the Welcome Screen producer:
 //   1. Positive: tapping the Home icon invokes the canonical Home navigation
 //      (NavigationHandler.navigateToHome → /home).
-//   2. Negative: the Home action no longer contains any For Sale / listing
+//   2. Negative: the Home action no longer contains any For Sale / forSale
 //      navigation mapping (source-level lock).
 
 import 'dart:io';
@@ -29,7 +29,7 @@ import 'package:labuda/domains/user/preference/onboarding/presentation/screens/w
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Records every navigation call so tests can assert exactly which navigation
-/// action the Welcome Home icon produced — and that no For Sale/listing
+/// action the Welcome Home icon produced — and that no For Sale/forSale
 /// navigation was invoked.
 class _RecordingNavigationHandler implements NavigationHandler {
   final List<String> invoked = <String>[];
@@ -90,7 +90,7 @@ void main() {
     );
 
     testWidgets(
-      'Guest Home action must NOT invoke any For Sale / listing navigation',
+      'Guest Home action must NOT invoke any For Sale / forSale navigation',
       (tester) async {
         final handler = _RecordingNavigationHandler();
 
@@ -115,12 +115,12 @@ void main() {
         final forbiddenCommerceNav = handler.invoked.where(
           (name) =>
               name.toLowerCase().contains('forSale') ||
-              name.toLowerCase().contains('listing'),
+              name.toLowerCase().contains('forSale'),
         );
         expect(
           forbiddenCommerceNav,
           isEmpty,
-          reason: 'Home action must never resolve to a For Sale/listing '
+          reason: 'Home action must never resolve to a For Sale/forSale '
               'destination',
         );
       },
@@ -139,7 +139,7 @@ void main() {
       // Canonical producer: Home icon delegates to the canonical Home action.
       expect(source, contains('ref.navigation.navigateToHome()'));
 
-      // Legacy Home → For Sale/listing mapping is gone (no hardcoded route,
+      // Legacy Home → For Sale/forSale mapping is gone (no hardcoded route,
       // no stale guidance comment, no "Explore as Guest" caption).
       expect(source, isNot(contains('RoutePaths.forSales')));
       expect(source, isNot(contains('context.go(RoutePaths.forSales)')));

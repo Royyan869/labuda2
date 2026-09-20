@@ -170,27 +170,4 @@ class TypingState extends Equatable {
   }
 }
 
-/// Presence State
-class PresenceState extends Equatable {
-  final Map<String, bool> onlineUsers; // userId -> isOnline
-  final Map<String, DateTime?> lastSeen; // userId -> lastSeen
 
-  const PresenceState({this.onlineUsers = const {}, this.lastSeen = const {}});
-
-  @override
-  List<Object?> get props => [onlineUsers, lastSeen];
-
-  bool isUserOnline(String userId) => onlineUsers[userId] ?? false;
-
-  DateTime? getUserLastSeen(String userId) => lastSeen[userId];
-
-  PresenceState copyWith({
-    Map<String, bool>? onlineUsers,
-    Map<String, DateTime?>? lastSeen,
-  }) {
-    return PresenceState(
-      onlineUsers: onlineUsers ?? this.onlineUsers,
-      lastSeen: lastSeen ?? this.lastSeen,
-    );
-  }
-}

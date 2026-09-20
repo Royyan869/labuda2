@@ -65,22 +65,6 @@ type WorkerLivenessRecorder interface {
 	RecordWorkerHeartbeat(workerName string)
 }
 
-// OrphanWebhookRecoveryMetricsRecorder is the sink-only metrics contract used
-// by the orphan webhook recovery worker. It never influences recovery
-// decisions; the worker records metrics only after it has already chosen the
-// canonical business outcome.
-type OrphanWebhookRecoveryMetricsRecorder interface {
-	WorkerLivenessRecorder
-	SetOrphanWebhookBacklog(count int)
-	RecordOrphanWebhookRecovered(count int)
-	RecordOrphanWebhookRetry(count int)
-	RecordOrphanWebhookFailed(count int)
-	RecordOrphanWebhookManualReview(count int)
-	RecordOrphanWebhookQuarantined(count int)
-	RecordOrphanWebhookTerminalFailure(count int)
-	RecordOrphanWebhookProcessingDuration(result string, d time.Duration)
-}
-
 // =============================================================================
 // Stable worker_name labels.
 // =============================================================================
@@ -88,12 +72,11 @@ type OrphanWebhookRecoveryMetricsRecorder interface {
 // (no UUID suffix) so dashboards / alerts can match them deterministically.
 
 const (
-	WorkerNameOutbox                = "outbox"
-	WorkerNameProjection            = "projection"
-	WorkerNameAlertDetection        = "alert_detection"
-	WorkerNameAuctionEnd            = "auction_end"
-	WorkerNameOrderAutoComplete     = "order_auto_complete"
-	WorkerNameOrphanWebhookRecovery = "orphan_webhook_recovery"
+	WorkerNameOutbox            = "outbox"
+	WorkerNameProjection        = "projection"
+	WorkerNameAlertDetection    = "alert_detection"
+	WorkerNameAuctionEnd        = "auction_end"
+	WorkerNameOrderAutoComplete = "order_auto_complete"
 )
 
 // =============================================================================
@@ -109,14 +92,4 @@ const (
 	ProjectionResultProcessed = "processed"
 	ProjectionResultSkipped   = "skipped"
 	ProjectionResultFailed    = "failed"
-
-	OrphanWebhookOutcomeRecovered       = "recovered"
-	OrphanWebhookOutcomeIdle            = "idle"
-	OrphanWebhookOutcomeRetry           = "retry"
-	OrphanWebhookOutcomeFailed          = "failed"
-	OrphanWebhookOutcomeManualReview    = "manual_review"
-	OrphanWebhookOutcomeQuarantined     = "quarantined"
-	OrphanWebhookOutcomeTerminalFailure = "terminal_failure"
 )
-
-

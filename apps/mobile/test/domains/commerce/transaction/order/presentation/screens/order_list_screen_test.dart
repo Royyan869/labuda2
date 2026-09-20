@@ -43,8 +43,8 @@ OrderItem _item() {
   return const OrderItem(
     id: 'item-1',
     productId: 'product-1',
-    listingName: 'Koi Kohaku',
-    listingImage: 'https://example.com/koi.jpg',
+    forSaleName: 'Koi Kohaku',
+    forSaleImage: 'https://example.com/koi.jpg',
     price: 100000,
     quantity: 1,
   );
@@ -69,8 +69,9 @@ Order _order({required String id, required OrderStatus status}) {
     pricing: const OrderPricing(
       subtotal: 100000,
       shippingCost: 10000,
-      discount: 0,
-      total: 110000,
+      commissionAmount: 0,
+      totalBeforeCoinsAmount: 110000,
+      totalPayableAmount: 110000,
     ),
     createdAt: DateTime.utc(2026, 6, 1),
     source: OrderSource.forSale,

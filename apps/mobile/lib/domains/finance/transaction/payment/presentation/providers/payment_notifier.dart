@@ -5,9 +5,7 @@
 library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:labuda/core/core.dart' as core;
 import '../../domain/entities/payment.dart';
-import '../../domain/entities/payment_method.dart';
 import 'payment_state.dart';
 import 'payment_providers.dart' show paymentRepositoryProvider;
 
@@ -61,32 +59,6 @@ class PaymentNotifier extends _$PaymentNotifier {
       (payment) => state = PaymentState.paymentLoaded(payment),
       (failure) => state = PaymentState.error(failure.message),
     );
-  }
-
-  /// Get available payment methods
-  List<PaymentMethod> getAvailablePaymentMethods() {
-    final repo = ref.read(paymentRepositoryProvider);
-    return repo.getAvailablePaymentMethods();
-  }
-
-  /// Calculate fee for payment method
-  ///
-  /// Backend authority – DISPLAY ONLY, do not calculate on client.
-  /// Fees come from backend via PriceSnapshot.
-  @Deprecated('Backend authority – use PriceSnapshot from backend instead')
-  double calculateFee(core.PaymentChannel channel, double amount) {
-    final repo = ref.read(paymentRepositoryProvider);
-    return repo.calculateFee(channel, amount);
-  }
-
-  /// Calculate total with fee
-  ///
-  /// Backend authority – DISPLAY ONLY, do not calculate on client.
-  /// Total amounts come from backend via PriceSnapshot.
-  @Deprecated('Backend authority – use PriceSnapshot from backend instead')
-  double calculateTotal(core.PaymentChannel channel, double amount) {
-    final repo = ref.read(paymentRepositoryProvider);
-    return repo.calculateTotal(channel, amount);
   }
 
   /// Clear error

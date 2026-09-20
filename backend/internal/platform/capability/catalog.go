@@ -180,7 +180,6 @@ var curatedDescriptions = map[Capability]string{
 	CapSupportTicketRespond:           "Can respond to support tickets",
 	CapSupportTicketClaim:             "Can claim support tickets",
 	CapSupportTicketResolve:           "Can resolve support tickets",
-	CapSupportAdminAssign:             "Can reassign tickets to admins",
 	CapSupportAdminRead:               "Can view support admin statistics and lists",
 	CapSupportTicketEscalate:          "Can escalate support tickets to disputes",
 }

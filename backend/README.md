@@ -162,7 +162,7 @@ backend/
 │   ├── seed/          Reference data seeder
 │   └── corpus_driver/ CI scenario runner
 ├── internal/          Domain code (DDD/Clean Architecture)
-│   ├── commerce/      Orders, listings, auctions, checkout, negotiation
+│   ├── commerce/      Orders, For Sale, auctions, checkout, negotiation
 │   ├── finance/       Ledger, withdrawals, refunds, billing
 │   ├── governance/    Disputes, moderation, warnings
 │   ├── interaction/   Chat, notifications, ratings

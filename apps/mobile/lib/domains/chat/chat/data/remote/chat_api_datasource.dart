@@ -14,19 +14,9 @@ class ChatApiDatasource extends BaseApiRepository {
   // ========================================
 
   /// Get or create a direct chat room with another user
-  ///
-  /// If [context] is provided, it will be attached to the room for commerce features.
-  /// For new rooms: Creates with the provided context.
-  /// For existing rooms without context: Updates with the provided context.
-  /// For existing rooms with context: Keeps existing context (not overwritten).
-  Future<Result<ChatDto>> getOrCreateDirectRoom(
-    String otherUserId, {
-    Map<String, dynamic>? context,
-  }) async {
-    final body = context != null ? {'context': context} : null;
-
+  Future<Result<ChatDto>> getOrCreateDirectRoom(String otherUserId) async {
     return executeRequest(
-      () => apiClient.post('/chat/direct/$otherUserId', data: body),
+      () => apiClient.post('/chat/direct/$otherUserId'),
       parser: (data) => ChatDto.fromJson(data as Map<String, dynamic>),
     );
   }
@@ -82,6 +72,18 @@ class ChatApiDatasource extends BaseApiRepository {
             .map((e) => ChatDto.fromJson(e as Map<String, dynamic>))
             .toList();
       },
+    );
+  }
+
+  /// Get a single chat room by id.
+  ///
+  /// Canonical conversation-open read (`GET /chat/rooms/:room_id`). Returns the
+  /// same room-summary contract as a room-list item, so the conversation
+  /// surface resolves the room identity it was opened for.
+  Future<Result<ChatDto>> getRoom(String roomId) async {
+    return executeRequest(
+      () => apiClient.get('/chat/rooms/$roomId'),
+      parser: (data) => ChatDto.fromJson(data as Map<String, dynamic>),
     );
   }
 

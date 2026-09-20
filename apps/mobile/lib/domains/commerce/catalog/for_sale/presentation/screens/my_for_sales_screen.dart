@@ -55,12 +55,12 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
       pageSize: 50,
     );
 
-    final listingsAsync = ref.watch(sellerForSalesProvider(params));
+    final forSalesAsync = ref.watch(sellerForSalesProvider(params));
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralGray50,
       appBar: AppBar(
-        title: const Text('Listing Saya'),
+        title: const Text('For Sale Saya'),
         backgroundColor: isDark
             ? AppColors.darkGray800
             : AppColors.neutralWhite,
@@ -99,15 +99,15 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
           ),
         ],
       ),
-      body: listingsAsync.when(
-        data: (listings) {
+      body: forSalesAsync.when(
+        data: (forSales) {
           // Apply status filter: show all if null, otherwise filter by selected status
-          // Default is active, so withdrawn (deleted) listings are hidden by default
-          final filteredListings = _statusFilter == null
-              ? listings
-              : listings.where((l) => l.status == _statusFilter).toList();
+          // Default is active, so withdrawn (deleted) For Sale are hidden by default
+          final filteredForSales = _statusFilter == null
+              ? forSales
+              : forSales.where((l) => l.status == _statusFilter).toList();
 
-          if (filteredListings.isEmpty) {
+          if (filteredForSales.isEmpty) {
             return _buildEmptyState(context, isDark);
           }
 
@@ -117,16 +117,16 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
             },
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: filteredListings.length,
+              itemCount: filteredForSales.length,
               itemBuilder: (context, index) {
-                final listing = filteredListings[index];
+                final forSale = filteredForSales[index];
                 return _SellerForSaleManagementCard(
-                  listing: listing,
-                  onTap: () => _viewForSaleDetail(context, listing.forSaleId),
-                  onEdit: () => _editForSale(context, listing),
+                  forSale: forSale,
+                  onTap: () => _viewForSaleDetail(context, forSale.forSaleId),
+                  onEdit: () => _editForSale(context, forSale),
                   onStatusChange: (status) =>
-                      _changeStatus(context, listing, status),
-                  onDelete: () => _deleteForSale(context, listing),
+                      _changeStatus(context, forSale, status),
+                  onDelete: () => _deleteForSale(context, forSale),
                 );
               },
             ),
@@ -144,7 +144,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Error loading listings',
+                'Error loading For Sale',
                 style: TextStyle(fontSize: 16, color: AppColors.neutralGray600),
               ),
               const SizedBox(height: 8),
@@ -169,7 +169,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
         backgroundColor: AppColors.primaryRed,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text(
-          'Buat Listing',
+          'Buat For Sale',
           style: TextStyle(color: Colors.white),
         ),
       ),
@@ -193,7 +193,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text('Silakan login untuk mengelola listing Anda'),
+            const Text('Silakan login untuk mengelola For Sale Anda'),
           ],
         ),
       ),
@@ -212,7 +212,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Belum Ada Listing',
+            'Belum Ada For Sale',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -221,7 +221,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Mulai buat listing untuk menjual produk Anda',
+            'Mulai buat For Sale untuk menjual produk Anda',
             style: TextStyle(fontSize: 14, color: AppColors.neutralGray600),
           ),
         ],
@@ -238,11 +238,11 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
     );
   }
 
-  void _editForSale(BuildContext context, ForSale listing) {
+  void _editForSale(BuildContext context, ForSale forSale) {
     context.push(
       RoutePaths.editForSale.replaceFirst(
         ':forSaleId',
-        listing.forSaleId,
+        forSale.forSaleId,
       ),
     );
   }
@@ -253,15 +253,15 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
 
   Future<void> _changeStatus(
     BuildContext context,
-    ForSale listing,
+    ForSale forSale,
     ForSaleStatus newStatus,
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Ubah Status Listing'),
+        title: const Text('Ubah Status For Sale'),
         content: Text(
-          'Ubah status "${listing.title}" menjadi ${newStatus.displayName}?',
+          'Ubah status "${forSale.title}" menjadi ${newStatus.displayName}?',
         ),
         actions: [
           TextButton(
@@ -282,7 +282,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
     if (confirmed == true && mounted) {
       final controller = ref.read(forSaleControllerProvider);
       final result = await controller.updateForSaleStatus(
-        listing.forSaleId,
+        forSale.forSaleId,
         newStatus,
       );
 
@@ -297,35 +297,40 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
         );
         ref.invalidate(
           sellerForSalesProvider(
-            SellerForSalesParams(sellerId: listing.sellerId),
+            SellerForSalesParams(sellerId: forSale.sellerId),
           ),
         );
         return;
       }
 
+      // Canonical restriction dispatch. The presenter owns the whole
+      // restriction family: `MARKET_AUTHORITY_REQUIRED` → seller renewal
+      // navigation, `COMMERCE_RESTRICTED` → restriction snackbar. Unknown
+      // codes are NOT consumed here and fall through to this screen's own
+      // error handling below.
+      final restrictionConsumed = CommerceRestrictionPresenter.handle(
+        context,
+        errorCode: result.errorCode,
+        actionDescription: 'mengubah status For Sale',
+      );
+      if (restrictionConsumed) return;
+
       // Phase 0 honesty + Phase 2 routing: publish gate surfaces
       // SHIPPING_NOT_CONFIGURED when the seller has not yet linked any
-      // shipping options to the listing. Offer two CTAs: one to set up
+      // shipping options to the For Sale. Offer two CTAs: one to set up
       // global options (if the catalog is empty), one to pick options for
-      // this specific listing via the edit screen.
-      if (CommerceRestrictionPresenter.isCommerceRestricted(result.errorCode)) {
-        CommerceRestrictionPresenter.show(
-          context,
-          actionDescription: 'mengubah status listing',
-        );
-        return;
-      }
+      // this specific For Sale via the edit screen.
       if (result.errorCode == 'SHIPPING_NOT_CONFIGURED') {
         showDialog<void>(
           context: context,
           builder: (dialogCtx) => AlertDialog(
             title: const Text('Pengiriman Belum Dipilih'),
             content: const Text(
-              'Pengiriman belum dipilih. Listing belum bisa dipublish sampai '
-              'Anda memilih opsi pengiriman untuk listing ini.\n\n'
+              'Pengiriman belum dipilih. For Sale belum bisa dipublish sampai '
+              'Anda memilih opsi pengiriman untuk For Sale ini.\n\n'
               'Jika Anda belum memiliki opsi pengiriman, atur dulu di '
-              'Pengaturan → Pengiriman. Jika sudah, buka Edit Listing untuk '
-              'memilih opsi yang berlaku untuk listing ini.',
+              'Pengaturan → Pengiriman. Jika sudah, buka Edit For Sale untuk '
+              'memilih opsi yang berlaku untuk For Sale ini.',
             ),
             actions: [
               TextButton(
@@ -345,7 +350,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
                   context.push(
                     RoutePaths.editForSale.replaceFirst(
                       ':fixedPriceSaleId',
-                      listing.forSaleId,
+                      forSale.forSaleId,
                     ),
                   );
                 },
@@ -353,7 +358,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
                   backgroundColor: AppColors.primaryRed,
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('Edit Listing'),
+                child: const Text('Edit For Sale'),
               ),
             ],
           ),
@@ -370,13 +375,13 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
     }
   }
 
-  Future<void> _deleteForSale(BuildContext context, ForSale listing) async {
+  Future<void> _deleteForSale(BuildContext context, ForSale forSale) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Hapus Listing'),
+        title: const Text('Hapus For Sale'),
         content: Text(
-          'Apakah Anda yakin ingin menghapus "${listing.title}"? Tindakan ini tidak dapat dibatalkan.',
+          'Apakah Anda yakin ingin menghapus "${forSale.title}"? Tindakan ini tidak dapat dibatalkan.',
         ),
         actions: [
           TextButton(
@@ -396,14 +401,14 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
 
     if (confirmed == true && mounted) {
       final controller = ref.read(forSaleControllerProvider);
-      final result = await controller.deleteForSale(listing.forSaleId);
+      final result = await controller.deleteForSale(forSale.forSaleId);
 
       if (mounted) {
         result.fold(
           (error) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Gagal menghapus listing: $error'),
+                content: Text('Gagal menghapus For Sale: $error'),
                 backgroundColor: AppColors.primaryRed,
               ),
             );
@@ -411,14 +416,14 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
           (_) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Listing berhasil dihapus'),
+                content: Text('For Sale berhasil dihapus'),
                 backgroundColor: AppColors.successGreen,
               ),
             );
             // Invalidate to refresh
             ref.invalidate(
               sellerForSalesProvider(
-                SellerForSalesParams(sellerId: listing.sellerId),
+                SellerForSalesParams(sellerId: forSale.sellerId),
               ),
             );
           },
@@ -430,14 +435,14 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
 
 /// ForSale Card for My ForSales
 class _SellerForSaleManagementCard extends StatelessWidget {
-  final ForSale listing;
+  final ForSale forSale;
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final void Function(ForSaleStatus) onStatusChange;
   final VoidCallback onDelete;
 
   const _SellerForSaleManagementCard({
-    required this.listing,
+    required this.forSale,
     required this.onTap,
     required this.onEdit,
     required this.onStatusChange,
@@ -467,9 +472,9 @@ class _SellerForSaleManagementCard extends StatelessWidget {
               // Thumbnail
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: listing.media.isNotEmptyUrls
+                child: forSale.media.isNotEmptyUrls
                     ? Image.network(
-                        listing.media.firstUrl,
+                        forSale.media.firstUrl,
                         width: 80,
                         height: 80,
                         fit: BoxFit.cover,
@@ -489,7 +494,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            listing.title,
+                            forSale.title,
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 15,
@@ -498,13 +503,13 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        _StatusBadge(status: listing.status),
+                        _StatusBadge(status: forSale.status),
                       ],
                     ),
                     const SizedBox(height: 4),
                     // Price
                     Text(
-                      listing.formattedPrice,
+                      forSale.formattedPrice,
                       style: const TextStyle(
                         color: AppColors.primaryRed,
                         fontWeight: FontWeight.bold,
@@ -514,7 +519,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     // Date
                     Text(
-                      'Dibuat ${_formatDate(listing.createdAt)}',
+                      'Dibuat ${_formatDate(forSale.createdAt)}',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.neutralGray600,
@@ -528,7 +533,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                 onSelected: (value) {
                   switch (value) {
                     case 'promote':
-                      _navigateToPromotion(context, listing);
+                      _navigateToPromotion(context, forSale);
                       break;
                     case 'edit':
                       onEdit();
@@ -550,7 +555,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                 },
                 itemBuilder: (context) => [
                   // Promote action (only for active forSales)
-                  if (listing.status == ForSaleStatus.active)
+                  if (forSale.status == ForSaleStatus.active)
                     const PopupMenuItem(
                       value: 'promote',
                       child: Row(
@@ -566,7 +571,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                       ),
                     ),
                   // Canonical: seller edit allowed IFF status == draft (active/sold/withdrawn are immutable)
-                  if (listing.status == ForSaleStatus.draft)
+                  if (forSale.status == ForSaleStatus.draft)
                     const PopupMenuItem(
                       value: 'edit',
                       child: Row(
@@ -577,7 +582,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                         ],
                       ),
                   ),
-                  if (listing.status != ForSaleStatus.active)
+                  if (forSale.status != ForSaleStatus.active)
                     const PopupMenuItem(
                       value: 'activate',
                       child: Row(
@@ -592,7 +597,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                  if (listing.status == ForSaleStatus.active)
+                  if (forSale.status == ForSaleStatus.active)
                     const PopupMenuItem(
                       value: 'deactivate',
                       child: Row(
@@ -603,7 +608,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                  if (listing.status != ForSaleStatus.sold)
+                  if (forSale.status != ForSaleStatus.sold)
                     const PopupMenuItem(
                       value: 'mark_sold',
                       child: Row(
@@ -670,7 +675,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
     }
   }
 
-  void _navigateToPromotion(BuildContext context, ForSale listing) {
+  void _navigateToPromotion(BuildContext context, ForSale forSale) {
     // Canonical era: promotion is contract-based; seller manages contracts
     // (create + queue targets) from the canonical promotion list screen.
     // The legacy activation flow is purged.

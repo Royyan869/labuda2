@@ -324,6 +324,7 @@ func (r *Resolver) fetchRefunds(ctx context.Context, orderID uuid.UUID) ([]recon
 func (r *Resolver) fetchWebhooks(ctx context.Context, midtransOID string) ([]recon.WebhookEventRef, error) {
 	const q = `
 		SELECT COALESCE(event_id, ''),
+		       COALESCE(notification_key, ''),
 		       COALESCE(midtrans_order_id, ''),
 		       status::text,
 		       COALESCE(payload->>'transaction_status', ''),
@@ -345,7 +346,7 @@ func (r *Resolver) fetchWebhooks(ctx context.Context, midtransOID string) ([]rec
 		var w recon.WebhookEventRef
 		var processedAt sql.NullTime
 		if err := rows.Scan(
-			&w.EventID, &w.MidtransOrderID, &w.Status,
+			&w.EventID, &w.NotificationKey, &w.MidtransOrderID, &w.Status,
 			&w.TransactionStatus, &w.TransactionID,
 			&w.ReceivedAt, &processedAt,
 		); err != nil {
@@ -476,5 +477,3 @@ func (r *Resolver) fetchOutboxLookups(ctx context.Context, snap *recon.Snapshot,
 	}
 	return nil
 }
-
-

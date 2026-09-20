@@ -11,7 +11,6 @@ import 'package:labuda/domains/user/profile/data/profile_providers.dart' show us
 import 'package:labuda/domains/user/profile/data/services/user_sync_service.dart';
 import 'package:labuda/domains/system/notification/data/notification_providers.dart' show fcmServiceProvider;
 import 'package:labuda/domains/system/notification/services/fcm_service.dart';
-import 'package:labuda/core/src/interfaces/services/i_presence_service.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -219,22 +218,7 @@ class FakeFcm extends Fake implements FcmService {
   dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
 }
 
-class FakePresenceService extends Fake implements IPresenceService {
-  @override
-  Future<Result<bool>> startTracking(String userId) async => Result.success(true);
-  @override
-  Future<Result<bool>> stopTracking(String userId) async => Result.success(true);
-  @override
-  Future<Result<bool>> updatePresence({required String userId, required bool isOnline}) async => Result.success(true);
-  @override
-  Future<Result<bool>> getUserOnlineStatus(String userId) async => Result.success(false);
-  @override
-  Future<Result<DateTime?>> getUserLastSeen(String userId) async => Result.success(null);
-  @override
-  Stream<bool> watchUserPresence(String userId) => Stream.value(false);
-  @override
-  Stream<Map<String, bool>> watchUsersPresence(List<String> userIds) => Stream.value({});
-}
+
 
 AuthUser testUser(String id) => AuthUser(
       id: id,
@@ -279,7 +263,6 @@ ProviderContainer buildContainer({
   final fakeAnalytics = analytics ?? FakeAnalytics();
   final fakeWs = ws ?? FakeWebSocket();
   final fakeFcm = fcm ?? FakeFcm();
-  final fakePresenceService = FakePresenceService();
   final fakeFirebaseAuth = _FakeFirebaseAuth(user: controller.fakeUser);
   final userSync = _FakeUserSyncService(fa: fakeFirebaseAuth);
   return ProviderContainer(overrides: [
@@ -289,7 +272,6 @@ ProviderContainer buildContainer({
     coreAnalyticsRepositoryProvider.overrideWithValue(fakeAnalytics),
     webSocketServiceProvider.overrideWithValue(fakeWs as dynamic),
     fcmServiceProvider.overrideWithValue(fakeFcm as dynamic),
-    presenceServiceProvider.overrideWithValue(fakePresenceService),
     userSyncServiceProvider.overrideWithValue(userSync),
     authControllerProvider.overrideWith(() => controller),
   ]);

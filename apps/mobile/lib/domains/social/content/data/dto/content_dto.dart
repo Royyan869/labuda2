@@ -304,7 +304,7 @@ void _validateVisibilityWire(Object? raw) {
 ///
 /// Hand-written (not auto-generated) because the per-item authorLifecycle
 /// extraction in [ContentDto.fromJson] relies on a hand-written factory and
-/// must stay consistent across all content-listing surfaces.
+/// must stay consistent across all content-forSale surfaces.
 class UserContentPageDto {
   final List<ContentDto> data;
   final String? nextCursor;

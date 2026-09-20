@@ -89,7 +89,7 @@ func TestMigration000034_RealPostgresProofs(t *testing.T) {
 		productID := uuid.New()
 		_, err := pool.Exec(ctx, `
 			INSERT INTO products (id, seller_id, title, description, variety, preparation_time, created_at, updated_at)
-			VALUES ($1, $2, 'test product', '', '', 'same_day', NOW(), NOW())`, productID, sellerID)
+			VALUES ($1, $2, 'test product', '', '', 'immediate', NOW(), NOW())`, productID, sellerID)
 		require.NoError(t, err)
 		fpsID := uuid.New()
 		_, err = pool.Exec(ctx, `
@@ -109,7 +109,7 @@ func TestMigration000034_RealPostgresProofs(t *testing.T) {
 		productID := uuid.New()
 		_, err := pool.Exec(ctx, `
 			INSERT INTO products (id, seller_id, title, description, variety, preparation_time, created_at, updated_at)
-			VALUES ($1, $2, 'test auction product', '', '', 'same_day', NOW(), NOW())`, productID, sellerID)
+			VALUES ($1, $2, 'test auction product', '', '', 'immediate', NOW(), NOW())`, productID, sellerID)
 		require.NoError(t, err)
 		auctionID := uuid.New()
 		_, err = pool.Exec(ctx, `

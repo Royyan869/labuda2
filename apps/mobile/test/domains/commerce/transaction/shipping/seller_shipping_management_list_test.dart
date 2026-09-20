@@ -88,7 +88,7 @@ class _MutationTestRepo implements ShippingRepository {
     if (failDelete) return Result.error('delete failed');
     if (deleteConflict) {
       return Result.error(
-        'shipping option is still used by 1 product listing(s)',
+        'shipping option is still used by 1 product forSale(s)',
         code: 'CONFLICT',
         statusCode: 409,
       );
@@ -151,11 +151,6 @@ class _FakeAuthController extends AuthController {
   }
 }
 
-class _FakePresenceManager extends PresenceManager {
-  @override
-  PresenceState build() => const PresenceState();
-}
-
 Widget _wrap({
   required Widget child,
   required _MutationTestRepo repo,
@@ -179,7 +174,6 @@ Widget _wrap({
   return ProviderScope(
     overrides: [
       authControllerProvider.overrideWith(_FakeAuthController.new),
-      presenceManagerProvider.overrideWith(_FakePresenceManager.new),
       shippingRepositoryProvider.overrideWithValue(repo),
       provincesProvider.overrideWith((ref) async => const []),
     ],

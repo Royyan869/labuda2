@@ -2,16 +2,13 @@ package http
 
 import (
 	"context"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/viewercontext"
 	"github.com/labuda/backend/internal/governance/evaluator"
-	"github.com/labuda/backend/internal/pkg/publiccard"
+	"github.com/labuda/backend/internal/governance/viewercontext"
 	"github.com/labuda/backend/internal/platform/response"
 	contentApp "github.com/labuda/backend/internal/social/content/application"
-	contententity "github.com/labuda/backend/internal/social/content/entity"
 	feedApp "github.com/labuda/backend/internal/social/feed/application"
 	"github.com/labuda/backend/internal/social/feed/entity"
 	"github.com/labuda/backend/pkg/db"
@@ -270,167 +267,6 @@ func (h *FeedHandler) GetFeed(c *gin.Context) {
 		"next_cursor": nextCursorOut,
 		"has_more":    result.HasMore,
 	})
-}
-
-// feedItemToResponse converts a FeedItem entity to API response format.
-// MEDIA INTEGRATION: Includes media array from FeedItem.
-// POST LOCATION: Includes location for posts only.
-//
-// C1 — lifecycleOverrides is the evaluator-enforcement override map (keyed
-// by FeedItem.ID). When non-nil and the row has an entry, the emitted
-// `lifecycle` top-level key AND the nested `card.lifecycle` are coarsened
-// to that value (canonical vocabulary: "active" / "unavailable" / "removed").
-// Pass nil for shadow-mode callers; the renderer short-circuits cleanly.
-//
-// FIX-3 — origAuthorLifecycles maps original_author_id → coarsened lifecycle
-// string for reposts. Emitted as `original_author_lifecycle` when non-empty.
-// Pass nil to skip (non-repost rows are unaffected regardless).
-func feedItemToResponse(item *entity.FeedItem, lifecycleOverrides map[uuid.UUID]string, origAuthorLifecycles map[uuid.UUID]string) map[string]interface{} {
-	// PUBLIC BOUNDARY:
-	//   - `status` is COARSENED into the public lifecycle vocabulary
-	//     (active / unavailable / removed). The raw internal enum
-	//     (active / fulfilled / deleted) is never emitted.
-	//   - `is_hidden` is intentionally NOT emitted. Hidden items must be
-	//     filtered upstream of this handler; the moderation flag does not
-	//     cross the boundary.
-	//
-	// Lifecycle precedence (C1):
-	//   1. evaluator override (lifecycleOverrides[item.ID]) — when present,
-	//      reflects the governance decision (TOMBSTONE → "removed",
-	//      REDACT → "unavailable"). Wins.
-	//   2. status-derived public lifecycle — the default coarsening of
-	//      item.Status (active / fulfilled / deleted → active / unavailable
-	//      / removed). Used when no override is present.
-	cardLifecycle := contententity.PublicLifecycleFromString(item.Status)
-	if lifecycleOverrides != nil {
-		if v, ok := lifecycleOverrides[item.ID]; ok && v != "" {
-			cardLifecycle = v
-		}
-	}
-
-	resp := map[string]interface{}{
-		"id":        item.ID.String(),
-		"author_id": item.AuthorID.String(),
-		"type":      item.Type,
-		"status":    contententity.PublicLifecycleFromString(item.Status),
-		// Top-level canonical lifecycle key — mirror of card.lifecycle so
-		// mobile DTOs that already read `json['lifecycle']` (see
-		// apps/mobile/lib/features/home/data/dto/feed_dto.dart) receive the
-		// governance decision without a card-nested traversal. The vocabulary
-		// is identical to ContentCard.Lifecycle.
-		"lifecycle":  cardLifecycle,
-		"body":       item.Body,
-		"created_at": item.CreatedAt.Format(time.RFC3339),
-		"updated_at": item.UpdatedAt.Format(time.RFC3339),
-		// MEDIA INTEGRATION: Always include media array (may be empty)
-		"media": item.Media,
-	}
-
-	// Add optional fields.
-	// SCHEMA ALIGNMENT (Batch 3J): `title` is no longer emitted — the
-	// canonical contents table has no title column and the FeedItem
-	// entity no longer carries one. Mobile DTO marks `title` nullable,
-	// so the missing key remains contract-compatible.
-	if item.Caption != nil {
-		resp["caption"] = *item.Caption
-	}
-	if item.AuthorUsername != nil {
-		resp["author_username"] = *item.AuthorUsername
-	}
-	if item.AuthorAvatar != nil {
-		resp["author_avatar"] = *item.AuthorAvatar
-	}
-
-	// Canonical PublicCard author (Batch 2B — feed converged onto publiccard.UserCard).
-	// AuthorUsername / AuthorAvatar are sourced from user_profiles via the
-	// feed JOIN — the card reuses those already-hydrated pointers without a
-	// second DB hit. DisplayName stays nil; feed does not hydrate full_name
-	// (NEVER per public-card-boundary doctrine).
-	//
-	// E2 — Lifecycle activation (feed-only). item.AuthorLifecycle carries
-	// the canonical public coarsening of users.account_status +
-	// users.deleted_at, materialized in the repository layer via
-	// viewercontext.CoarsenLifecycle. Empty string degrades to a nil
-	// Lifecycle (rollback-safe legacy emission); non-empty values flow
-	// into the wire as the canonical {active, unavailable, removed}
-	// vocabulary. Feed remains the SOLE surface wired through this seam
-	// per E2 doctrine — other publiccard.UserCard call sites continue to
-	// use publiccard.New and emit nil Lifecycle.
-	authorUsername := ""
-	if item.AuthorUsername != nil {
-		authorUsername = *item.AuthorUsername
-	}
-	authorCard := publiccard.NewWithLifecycle(
-		item.AuthorID,
-		authorUsername,
-		item.AuthorAvatar,
-		item.AuthorLifecycle,
-	)
-	resp["author"] = authorCard
-
-	// Canonical PublicCard ContentCard (Batch 2D — additive).
-	// Built from already-hydrated feed-item fields; no extra DB hit.
-	// Caption / media / lifecycle / author identity all reuse the surface's
-	// existing truth. Commerce-card hydration is out of scope this batch.
-	var captionPtr *string
-	if item.Caption != nil && *item.Caption != "" {
-		c := *item.Caption
-		captionPtr = &c
-	}
-	var feedMediaURLs []string
-	for _, m := range item.Media {
-		if m.URL != "" {
-			feedMediaURLs = append(feedMediaURLs, m.URL)
-		}
-	}
-	contentCard := publiccard.NewContentCard(
-		item.ID,
-		item.Type,
-		captionPtr,
-		feedMediaURLs,
-		cardLifecycle,
-		item.CreatedAt,
-		&authorCard,
-	)
-	resp["card"] = contentCard
-
-	// AUTHOR LOCATION: Include author city/province if present
-	if item.AuthorCity != nil || item.AuthorProvince != nil {
-		city := ""
-		province := ""
-		if item.AuthorCity != nil {
-			city = *item.AuthorCity
-		}
-		if item.AuthorProvince != nil {
-			province = *item.AuthorProvince
-		}
-		resp["author_city"] = city
-		resp["author_province"] = province
-	}
-
-	// CONTENT LOCATION HARDENED: Include location only when non-empty values exist.
-	hasCity := hasNonEmptyValue(item.City)
-	hasProvince := hasNonEmptyValue(item.Province)
-
-	if hasCity || hasProvince {
-		resp["location"] = map[string]interface{}{
-			"city":     derefOrEmpty(item.City),
-			"province": derefOrEmpty(item.Province),
-		}
-	}
-
-	// SHARE CONTRACT V1: Include share fields if this is a repost
-	if item.OriginalAuthorID != nil {
-		resp["original_author_id"] = item.OriginalAuthorID.String()
-		// FIX-3 — emit original author lifecycle so mobile can degrade
-		// attribution display when the original author is unavailable/removed.
-		if origAuthorLifecycles != nil {
-			if lc, ok := origAuthorLifecycles[*item.OriginalAuthorID]; ok && lc != "" {
-				resp["original_author_lifecycle"] = lc
-			}
-		}
-	}
-	return resp
 }
 
 func loadFeedContentResourceProjections(

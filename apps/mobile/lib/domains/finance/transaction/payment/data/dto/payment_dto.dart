@@ -3,6 +3,12 @@
 /// Data Transfer Objects for payment API responses.
 /// Handles serialization/deserialization of API data.
 ///
+/// WIRE AUTHORITY (do not invent fields here):
+///   POST /api/v1/payments        → backend/internal/serverboot/dependencies.go
+///                                  CorePaymentHandler.CreatePayment
+///   GET  /api/v1/payments/:id    → CorePaymentHandler.GetPayment
+///   GET  /api/v1/payments/methods→ CorePaymentHandler.ListPaymentMethods
+///
 /// PHASE 1F: Payment domain closure - using unified PaymentStatus from core
 library;
 
@@ -93,20 +99,28 @@ class DisplayHintsDto {
   };
 }
 
-/// Payment DTO from API
+/// Payment DTO from `GET /api/v1/payments/:id`.
+///
+/// Emitted keys (canonical, verbatim):
+///   id, payment_number, user_id, gross_amount, coins_to_use,
+///   coin_discount_amount, status, midtrans_order_id, midtrans_transaction_id,
+///   midtrans_payment_type, reference_type, reference_id, created_at, paid_at,
+///   expired_at, payment_url, price_snapshot_id, updated_at
+///
+/// There is NO `net_amount` on this wire: migration 000037 dropped
+/// `payments.net_amount`, and the handler never re-emits it. Money is whole
+/// Rupiah (int64) — never a double, never a minor unit.
 class PaymentDto extends Equatable {
   final String id;
   final String paymentNumber;
   final String userId;
-  final double grossAmount;
-  final int coinDiscount;
-  final double coinDiscountAmount;
-  final double netAmount;
+  final int grossAmount;
+  final int coinsToUse;
+  final int coinDiscountAmount;
   final String status;
   final String? midtransOrderId;
   final String? midtransTransactionId;
   final String? midtransPaymentType;
-  final String? midtransStatus;
   final String referenceType;
   final String? referenceId;
   final DateTime createdAt;
@@ -124,6 +138,10 @@ class PaymentDto extends Equatable {
   ///
   /// TRACK 8: Backend sends decision object for state-based UI rendering.
   /// Frontend MUST NOT derive state or allowed actions from other fields.
+  ///
+  /// NOTE: `GET /payments/:id` does not currently emit `decision`. This field
+  /// is a nullable passthrough only; it is never an authority and its absence
+  /// must never fail parsing.
   final DecisionContractResponseDto? decision;
 
   const PaymentDto({
@@ -131,17 +149,15 @@ class PaymentDto extends Equatable {
     required this.paymentNumber,
     required this.userId,
     required this.grossAmount,
-    required this.coinDiscount,
+    required this.coinsToUse,
     required this.coinDiscountAmount,
-    required this.netAmount,
     required this.status,
+    required this.referenceType,
+    required this.createdAt,
     this.midtransOrderId,
     this.midtransTransactionId,
     this.midtransPaymentType,
-    this.midtransStatus,
-    required this.referenceType,
     this.referenceId,
-    required this.createdAt,
     this.paidAt,
     this.expiredAt,
     this.paymentUrl,
@@ -151,8 +167,6 @@ class PaymentDto extends Equatable {
   });
 
   /// Parse from JSON
-  ///
-  /// TRACK 8: Added decision parsing from backend (consistent with Order)
   factory PaymentDto.fromJson(Map<String, dynamic> json) {
     // Parse decision object if present
     DecisionContractResponseDto? decision;
@@ -166,16 +180,13 @@ class PaymentDto extends Equatable {
       id: json['id'] as String,
       paymentNumber: json['payment_number'] as String? ?? '',
       userId: json['user_id'] as String,
-      grossAmount: (json['gross_amount'] as num).toDouble(),
-      coinDiscount: json['coin_discount'] as int? ?? 0,
-      coinDiscountAmount:
-          (json['coin_discount_amount'] as num?)?.toDouble() ?? 0.0,
-      netAmount: (json['net_amount'] as num).toDouble(),
+      grossAmount: (json['gross_amount'] as num).toInt(),
+      coinsToUse: json['coins_to_use'] as int? ?? 0,
+      coinDiscountAmount: (json['coin_discount_amount'] as num?)?.toInt() ?? 0,
       status: json['status'] as String,
       midtransOrderId: json['midtrans_order_id'] as String?,
       midtransTransactionId: json['midtrans_transaction_id'] as String?,
       midtransPaymentType: json['midtrans_payment_type'] as String?,
-      midtransStatus: json['midtrans_status'] as String?,
       referenceType: json['reference_type'] as String,
       referenceId: json['reference_id'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
@@ -195,8 +206,6 @@ class PaymentDto extends Equatable {
   }
 
   /// Convert to entity
-  ///
-  /// TRACK 8: Added decision conversion to Payment entity (consistent with Order)
   Payment toEntity() {
     // Convert DecisionContractResponseDto to DecisionContract using fromJson
     // This leverages the existing domain entity factory method
@@ -209,14 +218,12 @@ class PaymentDto extends Equatable {
       paymentNumber: paymentNumber,
       userId: userId,
       grossAmount: grossAmount,
-      coinDiscount: coinDiscount,
+      coinsToUse: coinsToUse,
       coinDiscountAmount: coinDiscountAmount,
-      netAmount: netAmount,
       status: PaymentStatus.fromString(status),
       midtransOrderId: midtransOrderId,
       midtransTransactionId: midtransTransactionId,
       midtransPaymentType: midtransPaymentType,
-      midtransStatus: midtransStatus,
       referenceType: referenceType,
       referenceId: referenceId,
       createdAt: createdAt,
@@ -233,49 +240,57 @@ class PaymentDto extends Equatable {
   List<Object?> get props => [id, paymentNumber, status, createdAt];
 }
 
-/// Payment Intent DTO from API
+/// Payment Intent DTO from `POST /api/v1/payments`.
+///
+/// Mirrors the canonical handler response exactly — see
+/// `PaymentIntent` in domain/entities/payment_intent.dart for the key map.
+/// The backend never emits `id`, `amount`, or `currency` on this endpoint.
 class PaymentIntentDto extends Equatable {
-  final String id;
+  final String paymentId;
   final String paymentNumber;
-  final double amount;
-  final String currency;
   final String status;
   final String? paymentUrl;
-  final String? deepLinkUrl;
-  final String? vaNumber;
-  final String? vaBank;
-  final String? qrString;
-  final DateTime? expiresAt;
+  final String? paymentMethodCode;
+  final int buyerPaymentFeeAmount;
+  final int grossAmount;
+  final int coinsToUse;
+  final int coinDiscountAmount;
+  final String referenceType;
+  final String? referenceId;
+  final DateTime? expiredAt;
 
   const PaymentIntentDto({
-    required this.id,
+    required this.paymentId,
     required this.paymentNumber,
-    required this.amount,
-    required this.currency,
     required this.status,
+    required this.buyerPaymentFeeAmount,
+    required this.grossAmount,
+    required this.coinsToUse,
+    required this.coinDiscountAmount,
+    required this.referenceType,
     this.paymentUrl,
-    this.deepLinkUrl,
-    this.vaNumber,
-    this.vaBank,
-    this.qrString,
-    this.expiresAt,
+    this.paymentMethodCode,
+    this.referenceId,
+    this.expiredAt,
   });
 
   /// Parse from JSON
   factory PaymentIntentDto.fromJson(Map<String, dynamic> json) {
     return PaymentIntentDto(
-      id: json['id'] as String,
+      paymentId: json['payment_id'] as String,
       paymentNumber: json['payment_number'] as String? ?? '',
-      amount: (json['amount'] as num).toDouble(),
-      currency: json['currency'] as String? ?? 'IDR',
-      status: json['status'] as String? ?? 'pending',
+      status: json['status'] as String,
       paymentUrl: json['payment_url'] as String?,
-      deepLinkUrl: json['deep_link_url'] as String?,
-      vaNumber: json['va_number'] as String?,
-      vaBank: json['va_bank'] as String?,
-      qrString: json['qr_string'] as String?,
-      expiresAt: json['expires_at'] != null
-          ? DateTime.parse(json['expires_at'] as String)
+      paymentMethodCode: json['payment_method_code'] as String?,
+      buyerPaymentFeeAmount:
+          (json['buyer_payment_fee_amount'] as num?)?.toInt() ?? 0,
+      grossAmount: (json['gross_amount'] as num).toInt(),
+      coinsToUse: json['coins_to_use'] as int? ?? 0,
+      coinDiscountAmount: (json['coin_discount_amount'] as num?)?.toInt() ?? 0,
+      referenceType: json['reference_type'] as String,
+      referenceId: json['reference_id'] as String?,
+      expiredAt: json['expired_at'] != null
+          ? DateTime.parse(json['expired_at'] as String)
           : null,
     );
   }
@@ -283,22 +298,29 @@ class PaymentIntentDto extends Equatable {
   /// Convert to entity
   PaymentIntent toEntity() {
     return PaymentIntent(
-      id: id,
+      paymentId: paymentId,
       paymentNumber: paymentNumber,
-      amount: amount,
-      currency: currency,
       status: status,
       paymentUrl: paymentUrl,
-      deepLinkUrl: deepLinkUrl,
-      vaNumber: vaNumber,
-      vaBank: vaBank,
-      qrString: qrString,
-      expiresAt: expiresAt,
+      paymentMethodCode: paymentMethodCode,
+      buyerPaymentFeeAmount: buyerPaymentFeeAmount,
+      grossAmount: grossAmount,
+      coinsToUse: coinsToUse,
+      coinDiscountAmount: coinDiscountAmount,
+      referenceType: referenceType,
+      referenceId: referenceId,
+      expiredAt: expiredAt,
     );
   }
 
   @override
-  List<Object?> get props => [id, paymentNumber, amount, status];
+  List<Object?> get props => [
+    paymentId,
+    paymentNumber,
+    status,
+    paymentUrl,
+    grossAmount,
+  ];
 }
 
 /// Create Payment Request DTO
@@ -306,11 +328,19 @@ class PaymentIntentDto extends Equatable {
 /// Matches backend CreatePaymentRequest struct:
 ///   order_id            uuid.UUID (required)
 ///   payment_method_code string    (required)
-///   coin_discount       int
 ///   price_snapshot_id   *uuid.UUID
 ///
-/// PASS_18V: backend calculates the buyer payment fee/gross amount from the
-/// selected method — the client never submits either.
+/// PAY-B: no `coins_to_use` — K is fixed at Order creation and derived by the
+/// backend from the pricing token snapshot.
+///
+/// PASS_18V: the backend is the sole authority for the buyer payment fee and
+/// gross amount; the client selects a canonical payment method (see
+/// PaymentRepository.getPaymentMethodOptions) and sends only its code — it
+/// never computes or submits a fee/gross amount.
+///
+/// There is no client idempotency key on this request: POST /payments is made
+/// idempotent server-side (order + active-payment reuse). Do not add one here
+/// without a matching backend contract.
 class CreatePaymentRequestDto {
   /// Order ID to create payment for (required)
   final String orderId;
@@ -318,16 +348,12 @@ class CreatePaymentRequestDto {
   /// Canonical payment method code the buyer selected (required)
   final String paymentMethodCode;
 
-  /// Number of coins to use for discount
-  final int coinDiscount;
-
   /// Price snapshot ID from order (optional, for backend validation)
   final String? priceSnapshotId;
 
   const CreatePaymentRequestDto({
     required this.orderId,
     required this.paymentMethodCode,
-    this.coinDiscount = 0,
     this.priceSnapshotId,
   });
 
@@ -335,7 +361,6 @@ class CreatePaymentRequestDto {
   Map<String, dynamic> toJson() => {
     'order_id': orderId,
     'payment_method_code': paymentMethodCode,
-    'coin_discount': coinDiscount,
     if (priceSnapshotId != null) 'price_snapshot_id': priceSnapshotId,
   };
 
@@ -344,7 +369,6 @@ class CreatePaymentRequestDto {
     return CreatePaymentRequestDto(
       orderId: request.orderId,
       paymentMethodCode: request.paymentMethodCode,
-      coinDiscount: request.coinDiscount,
       priceSnapshotId: request.priceSnapshotId,
     );
   }
@@ -379,21 +403,28 @@ class PaymentMethodOptionDto {
 }
 
 /// Response wrapper for GET /payments/methods.
+///
+/// FIN-R01E-C: backend emits `base_amount` = order.TotalBeforeCoinsAmount = PD+S
+/// as the ONE canonical order amount key for this endpoint.
+///
+/// FIN-R01E-D: the mobile client only ever consumes the per-method options
+/// (`methods[]`); the order-level `base_amount` was parsed but never read
+/// downstream, so it has been purged from this DTO rather than kept "just in
+/// case". If an order-level base is ever needed, re-introduce it deliberately
+/// from the canonical `base_amount` wire key — never from
+/// `total_before_coins_amount` (the persisted ORDER column, not a wire key).
 class PaymentMethodOptionsDto {
   final String orderId;
-  final int escrowAmount;
   final List<PaymentMethodOptionDto> methods;
 
   const PaymentMethodOptionsDto({
     required this.orderId,
-    required this.escrowAmount,
     required this.methods,
   });
 
   factory PaymentMethodOptionsDto.fromJson(Map<String, dynamic> json) {
     return PaymentMethodOptionsDto(
       orderId: json['order_id'] as String,
-      escrowAmount: (json['escrow_amount'] as num).toInt(),
       methods: (json['methods'] as List<dynamic>? ?? [])
           .map(
             (e) => PaymentMethodOptionDto.fromJson(e as Map<String, dynamic>),

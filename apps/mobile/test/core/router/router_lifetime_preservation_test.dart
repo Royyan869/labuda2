@@ -963,7 +963,7 @@ void main() {
   });
 
   testWidgets(
-    'create listing form keeps text state after same-principal refresh',
+    'create forSale form keeps text state after same-principal refresh',
     (tester) async {
       final sellerUser = _buildUser(
         id: _sellerUserId,

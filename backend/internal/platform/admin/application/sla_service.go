@@ -176,6 +176,24 @@ func (s *SLAService) computeSupportMetrics(ctx context.Context, tx db.Tx, since 
 		filteredTickets = tickets
 	}
 
+	// Batch-fetch status events for all tickets (single query, no N+1)
+	ticketIDs := make([]uuid.UUID, len(filteredTickets))
+	for i, t := range filteredTickets {
+		ticketIDs[i] = t.ID
+	}
+	eventsByTicket, err := s.supportRepo.ListStatusEventsForTickets(ctx, tx, ticketIDs)
+	if err != nil {
+		// Fallback: use empty events — SLA will show wall-clock (degraded but non-fatal)
+		eventsByTicket = make(map[uuid.UUID][]*supportEntity.Event)
+	}
+
+	// Batch-fetch first admin response timestamps for SLA-F04 (single query,
+	// no N+1). Missing entries mean "no admin response yet".
+	firstAdminResponses, err := s.supportRepo.ListFirstAdminResponsesByTicketIDs(ctx, tx, ticketIDs)
+	if err != nil {
+		firstAdminResponses = make(map[uuid.UUID]*time.Time)
+	}
+
 	var firstResponseTimes []time.Duration
 	var resolutionTimes []time.Duration
 	var overdueCount int64
@@ -183,8 +201,9 @@ func (s *SLAService) computeSupportMetrics(ctx context.Context, tx db.Tx, since 
 	var resolvedCount int64
 
 	for _, ticket := range filteredTickets {
-		// Compute SLA metrics
-		metrics := ticket.ComputeSLAMetricsSimple()
+		// Canonical SLA: compute from status-change events (excludes waiting_user
+		// time) and the first valid admin response message timestamp (SLA-F04).
+		metrics := ticket.ComputeSLAMetricsFromEvents(eventsByTicket[ticket.ID], firstAdminResponses[ticket.ID])
 
 		// First response metrics
 		if metrics.FirstResponseTime != nil {
@@ -332,21 +351,57 @@ func (s *SLAService) computeDisputeMetrics(ctx context.Context, tx db.Tx, since 
 
 // computeAdminPerformance calculates enhanced per-admin SLA metrics.
 func (s *SLAService) computeAdminPerformance(ctx context.Context, tx db.Tx) ([]AdminPerformanceMetrics, error) {
-	// Get all admins
-	admins, err := s.supportRepo.ListAdmins(ctx, tx, nil)
+	// Canonical assignment lives on support_tickets.assigned_admin_id; the
+	// support_admins workload pool was purged. Derive the agent set from the
+	// tickets actually assigned to them.
+	rows, err := tx.Query(ctx, `
+		SELECT DISTINCT assigned_admin_id
+		FROM support_tickets
+		WHERE assigned_admin_id IS NOT NULL
+	`)
 	if err != nil {
 		return nil, err
 	}
+	var adminIDs []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		adminIDs = append(adminIDs, id)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
-	adminMetrics := make([]AdminPerformanceMetrics, 0, len(admins))
+	adminMetrics := make([]AdminPerformanceMetrics, 0, len(adminIDs))
 
-	for _, admin := range admins {
+	for _, adminID := range adminIDs {
 		// Get tickets assigned to this admin
 		tickets, err := s.supportRepo.ListTickets(ctx, tx, &supportRepo.TicketFilter{
-			AssignedAdminID: &admin.ID,
+			AssignedAdminID: &adminID,
 		}, nil, nil, 1000)
 		if err != nil {
 			continue
+		}
+
+		// Batch-fetch status events for this admin's tickets
+		ticketIDs := make([]uuid.UUID, len(tickets))
+		for i, t := range tickets {
+			ticketIDs[i] = t.ID
+		}
+		eventsByTicket, err := s.supportRepo.ListStatusEventsForTickets(ctx, tx, ticketIDs)
+		if err != nil {
+			eventsByTicket = make(map[uuid.UUID][]*supportEntity.Event)
+		}
+
+		// Batch-fetch first admin response timestamps for SLA-F04 (single
+		// query, no N+1). Missing entries mean "no admin response yet".
+		firstAdminResponses, err := s.supportRepo.ListFirstAdminResponsesByTicketIDs(ctx, tx, ticketIDs)
+		if err != nil {
+			firstAdminResponses = make(map[uuid.UUID]*time.Time)
 		}
 
 		var responseTimes []time.Duration
@@ -355,7 +410,7 @@ func (s *SLAService) computeAdminPerformance(ctx context.Context, tx db.Tx) ([]A
 		var activeWorkload int64
 
 		for _, ticket := range tickets {
-			metrics := ticket.ComputeSLAMetricsSimple()
+			metrics := ticket.ComputeSLAMetricsFromEvents(eventsByTicket[ticket.ID], firstAdminResponses[ticket.ID])
 
 			if metrics.FirstResponseTime != nil {
 				responseTimes = append(responseTimes, *metrics.FirstResponseTime)
@@ -376,7 +431,7 @@ func (s *SLAService) computeAdminPerformance(ctx context.Context, tx db.Tx) ([]A
 		}
 
 		perf := AdminPerformanceMetrics{
-			AdminID:        admin.ID,
+			AdminID:        adminID,
 			HandledTickets: int64(len(tickets)),
 			OverdueCount:   overdueCount,
 			ActiveWorkload: activeWorkload,

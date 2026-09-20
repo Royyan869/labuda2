@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
 	escrowEntity "github.com/labuda/backend/internal/core/escrow/entity"
 	financeapp "github.com/labuda/backend/internal/finance/application"
 	"github.com/labuda/backend/internal/finance/refund/entity"
@@ -39,9 +40,6 @@ type FinanceReverser interface {
 	// holding platform funding for a refunded entitlement.
 	RecordCoinFundingReversal(ctx context.Context, tx db.Tx, refundID uuid.UUID, orderID uuid.UUID, amount int64) error
 }
-type DisputeFreezeReleaser interface {
-	ReleaseDisputeFreezeByOrderID(ctx context.Context, tx db.Tx, orderID uuid.UUID) error
-}
 type OrderRefundStatusSyncer interface {
 	SyncRefundSettlementFromGatewayAck(ctx context.Context, tx db.Tx, orderID, refundID uuid.UUID, fullyRefunded bool, occurredAt time.Time) error
 }
@@ -51,9 +49,6 @@ func (s *RefundService) SetGatewayClient(client GatewayRefundClient, logger *zap
 	s.gatewayLogger = logger
 }
 func (s *RefundService) SetFinanceReverser(reverser FinanceReverser) { s.financeReverser = reverser }
-func (s *RefundService) SetDisputeFreezeReleaser(releaser DisputeFreezeReleaser) {
-	s.freezeReleaser = releaser
-}
 func (s *RefundService) SetOrderRefundStatusSyncer(syncer OrderRefundStatusSyncer) {
 	s.orderRefundStatusSyncer = syncer
 }
@@ -69,6 +64,10 @@ var ErrGatewayClientNotConfigured = errors.New("gateway refund client not config
 var ErrRefundAlreadySettledByGateway = errors.New("refund already settled at gateway")
 
 // SystemRefundInput — S2C2: ProductAmount (Rpd) + ShippingAmount (Rs) + order/payment snapshots.
+//
+// AdminID is the human admin who decided the refund, persisted as
+// refunds.reviewed_by. Automatic platform refunds have no human reviewer and
+// MUST pass uuid.Nil (persisted as NULL).
 type SystemRefundInput struct {
 	OrderID, BuyerID, SellerID, AdminID uuid.UUID
 	ProductAmount                       int64 // Rpd
@@ -212,6 +211,23 @@ func (s *RefundService) InitiateGatewayRefund(ctx context.Context, tx db.Tx, inp
 		return existing, nil
 	}
 
+	// CANONICAL LOCK ORDER: ORDER → REFUND (never REFUND → ORDER).
+	// Read refund without lock first to obtain orderID for canonical lock ordering.
+	refundSnapshot, err := s.refundRepo.GetByID(ctx, tx, input.RefundID)
+	if err != nil {
+		return nil, fmt.Errorf("refund not found: %w", err)
+	}
+	if refundSnapshot == nil {
+		return nil, fmt.Errorf("refund not found: %w", err)
+	}
+
+	// Lock order first (canonical ORDER → REFUND order)
+	order, err := s.orderRepo.GetForUpdate(ctx, tx, refundSnapshot.OrderID)
+	if err != nil {
+		return nil, fmt.Errorf("order not found: %w", err)
+	}
+
+	// Now lock refund for state transition (after order lock acquired)
 	refund, err := s.refundRepo.GetForUpdate(ctx, tx, input.RefundID)
 	if err != nil {
 		return nil, fmt.Errorf("refund not found: %w", err)
@@ -230,13 +246,12 @@ func (s *RefundService) InitiateGatewayRefund(ctx context.Context, tx db.Tx, inp
 	if escrow.Status != escrowEntity.EscrowStatusHolding {
 		return nil, fmt.Errorf("gateway refund requires escrow in holding state, got %q", escrow.Status)
 	}
-
-	order, err := s.orderRepo.GetForUpdate(ctx, tx, refund.OrderID)
-	if err != nil {
-		return nil, fmt.Errorf("order not found: %w", err)
+	// Cap: PD + S = total_before_coins_amount (excludes C and F).
+	// FAIL CLOSED: no fallback to the undiscounted P + S cap.
+	if !order.HasCanonicalMoneyBase() {
+		return nil, fmt.Errorf("cannot dispatch gateway refund: canonical buyer-funded base invalid (total_before_coins=%d shipping=%d)", order.TotalBeforeCoinsAmount.Int64(), order.ShippingTotal.Int64())
 	}
-	// Cap: PD + S (excludes C and F). K subtraction handled by cashRefund caller.
-	orderCap := order.Subtotal.Int64() + order.ShippingTotal.Int64()
+	orderCap := order.TotalBeforeCoinsAmount.Int64()
 	if input.Amount > orderCap {
 		return nil, fmt.Errorf("gateway refund amount %d exceeds PD+S=%d", input.Amount, orderCap)
 	}
@@ -292,14 +307,38 @@ func (s *RefundService) HandleGatewayRefundAck(ctx context.Context, tx db.Tx, no
 		return nil
 	}
 
+	// DUPLICATE CHECK (no locks needed): when the refund is already terminal
+	// at gateway level, return immediately without acquiring any row locks.
+	now := time.Now()
+	success := isWebhookRefundSuccess(notification)
+	if success && refund.GatewayStatus == entity.GatewayRefundSucceeded {
+		return nil
+	}
+	if !success && refund.GatewayStatus == entity.GatewayRefundFailed {
+		return nil
+	}
+
+	// CANONICAL LOCK ORDER: ORDER → REFUND (never REFUND → ORDER).
+	// The refund row was already looked up without a lock above.
+	// When financeReverser is wired, we need both ORDER and REFUND locks.
+	// Lock ORDER first (canonical), then REFUND for state transition.
+	// When financeReverser is nil, only REFUND is locked.
+	var order *orderEntity.Order
+	if s.financeReverser != nil {
+		// Lock order first (canonical ORDER → REFUND order)
+		order, err = s.orderRepo.GetForUpdate(ctx, tx, refund.OrderID)
+		if err != nil {
+			return fmt.Errorf("refund reversal: lock order: %w", err)
+		}
+	}
+
+	// Now lock refund for state transition (after order lock acquired)
 	refund, err = s.refundRepo.GetForUpdate(ctx, tx, refund.ID)
 	if err != nil {
 		return fmt.Errorf("re-lock refund: %w", err)
 	}
 
-	now := time.Now()
-	success := isWebhookRefundSuccess(notification)
-
+	// Defense-in-depth: re-check idempotency after acquiring locks
 	if success && refund.GatewayStatus == entity.GatewayRefundSucceeded {
 		return nil
 	}
@@ -310,11 +349,19 @@ func (s *RefundService) HandleGatewayRefundAck(ctx context.Context, tx db.Tx, no
 	if success {
 		refund.MarkGatewayAckSucceeded(notification.RefundChargeID, now)
 
-		if s.financeReverser != nil {
-			order, err := s.orderRepo.GetForUpdate(ctx, tx, refund.OrderID)
-			if err != nil {
-				return fmt.Errorf("refund reversal: lock order: %w", err)
-			}
+		// REC-6 SLICE 3: gateway_captured_after_order_invalid refunds are
+		// confirmation-only — no escrow was created, no ledger was mutated,
+		// no seller payable exists. The financial reversal block below requires
+		// escrow in Holding state and would fail ("no escrow for order"). Skip
+		// it entirely for this canonical reason; the refund state transition
+		// (pending → succeeded) and the outbox event still apply.
+		if refund.Reason == entity.RefundReasonGatewayCapturedAfterOrderInvalid {
+			s.gatewayLog().Info("rec6_ack_confirmation_only",
+				zap.String("refund_id", refund.ID.String()),
+				zap.String("reason", string(refund.Reason)),
+			)
+		} else if s.financeReverser != nil {
+			// Order already locked above (canonical ORDER → REFUND order)
 			escrow, err := s.escrowService.GetEscrowForOrder(ctx, tx, refund.OrderID)
 			if err != nil {
 				return fmt.Errorf("refund reversal: load escrow: %w", err)
@@ -332,12 +379,12 @@ func (s *RefundService) HandleGatewayRefundAck(ctx context.Context, tx db.Tx, no
 			// BuyerBase = total_before_coins_amount = (P-D)+S is the persisted,
 			// token-validated buyer funding base. This is the canonical source
 			// for the discounted product value; orders.discount_amount is NOT
-			// authoritative (never persisted). Fall back to Subtotal only when
-			// the buyer base is absent (legacy rows / test fixtures).
-			pd := order.TotalBeforeCoinsAmount.Int64() - order.ShippingTotal.Int64()
-			if pd <= 0 {
-				pd = order.Subtotal.Int64()
+			// authoritative (never persisted). FAIL CLOSED when the base is absent;
+			// there is NO Subtotal (P) fallback.
+			if !order.HasCanonicalMoneyBase() {
+				return fmt.Errorf("refund reversal: canonical money base invalid (order_id=%s total_before_coins=%d shipping=%d)", refund.OrderID, order.TotalBeforeCoinsAmount.Int64(), order.ShippingTotal.Int64())
 			}
+			pd := order.DiscountedProductAmount().Int64()
 			sVal := order.ShippingTotal.Int64()
 			cVal := order.CommissionAmount.Int64()
 			kVal, err := s.coinsSpendForOrder(ctx, tx, refund.BuyerID, refund.OrderID)
@@ -523,6 +570,100 @@ func (s *RefundService) emitGatewayOutbox(ctx context.Context, tx db.Tx, refund 
 	}
 	bytes, _ := json.Marshal(payload)
 	return s.outboxRepo.InsertEvent(ctx, tx, eventType, refund.ID, bytes)
+}
+
+// ===========================================================================
+// REC-6 SLICE 1: CANONICAL REFUND-INTENT AUTHORITY
+// ===========================================================================
+//
+// CreateRefundIntentForInvalidOrder creates a durable, idempotent refund intent
+// for a gateway-success payment whose order entered a terminal state (expired,
+// cancelled, etc.) that prevents normal payment finalization.
+//
+// This is THE canonical entry point for REC-6 refund-intent creation.
+// All three producers (webhook, discovery, orphan recovery) must converge here.
+//
+// INVARIANTS:
+//   - Creates a Refund row with status=system_refunded, gateway_status=unsubmitted
+//   - Amount = payment.gross_amount (full captured amount, no escrow formula)
+//   - No escrow created, no ledger mutation, no seller payable, no platform revenue
+//   - No gateway HTTP dispatch (that's a later slice)
+//   - Idempotent: repeated calls with the same paymentID return existing refund
+//   - gateway_idempotency_key = "rec6:payment:<payment_id>" (deterministic)
+//
+// The refund row is the durable evidence that a refund is owed. The actual
+// gateway dispatch and financial reversal are handled by later slices.
+type Rec6RefundIntentInput struct {
+	PaymentID             uuid.UUID
+	OrderID               uuid.UUID
+	BuyerID               uuid.UUID
+	SellerID              uuid.UUID
+	GrossAmount           int64 // payment.gross_amount — full captured amount
+	PaymentMidtransOrderID string
+}
+
+// Rec6IdempotencyKey returns the deterministic gateway_idempotency_key for
+// a REC-6 refund intent. The key is based on payment_id, which uniquely
+// identifies the gateway capture event that triggered this refund.
+func Rec6IdempotencyKey(paymentID uuid.UUID) string {
+	return fmt.Sprintf("rec6:payment:%s", paymentID.String())
+}
+
+func (s *RefundService) CreateRefundIntentForInvalidOrder(
+	ctx context.Context,
+	tx db.Tx,
+	input Rec6RefundIntentInput,
+) (*entity.Refund, error) {
+	if input.OrderID == uuid.Nil {
+		return nil, fmt.Errorf("rec6 refund intent: order_id required")
+	}
+	if input.PaymentID == uuid.Nil {
+		return nil, fmt.Errorf("rec6 refund intent: payment_id required")
+	}
+	if input.GrossAmount <= 0 {
+		return nil, fmt.Errorf("rec6 refund intent: gross_amount must be positive, got %d", input.GrossAmount)
+	}
+
+	idempotencyKey := Rec6IdempotencyKey(input.PaymentID)
+
+	// Idempotent: if a refund with this key already exists, return it.
+	existing, err := s.refundRepo.GetByGatewayIdempotencyKey(ctx, tx, idempotencyKey)
+	if err != nil {
+		return nil, fmt.Errorf("rec6 refund intent: idempotency lookup: %w", err)
+	}
+	if existing != nil {
+		return existing, nil
+	}
+
+	// Create refund entity using the existing system-refund constructor.
+	// productAmount = GrossAmount, shippingAmount = 0: the entire gateway
+	// capture is treated as product amount because there is no escrow to
+	// decompose. This is semantically correct: the full captured amount
+	// needs to be refunded.
+	//
+	// ATTRIBUTION: this is an automatic system refund with no human reviewer,
+	// so reviewed_by is recorded as NULL (uuid.Nil). auth.SystemCallerID is an
+	// authorization/audit sentinel and MUST NOT be persisted as a users.id.
+	refund := entity.NewSystemRefund(
+		input.OrderID,
+		input.BuyerID,
+		input.SellerID,
+		uuid.Nil, // no human reviewer — reviewed_by persists as NULL
+		entity.RefundReasonGatewayCapturedAfterOrderInvalid,
+		input.GrossAmount, // productAmount = full gross (no escrow split)
+		0,                // shippingAmount = 0 (no escrow split)
+		nil,              // description
+	)
+
+	// Set the deterministic idempotency key BEFORE persist.
+	refund.GatewayIdempotencyKey = &idempotencyKey
+
+	// Persist the refund row.
+	if err := s.refundRepo.Create(ctx, tx, refund); err != nil {
+		return nil, fmt.Errorf("rec6 refund intent: create: %w", err)
+	}
+
+	return refund, nil
 }
 
 func isWebhookRefundSuccess(n *midtrans.NotificationPayload) bool {

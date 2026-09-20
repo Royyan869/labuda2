@@ -39,11 +39,20 @@ import (
 	"go.uber.org/zap"
 )
 
-// ErrActiveRefundCheckerNotConfigured is returned when Complete() is called
-// without a wired ActiveRefundChecker. Fail-closed by design: escrow must
-// not be released if the refund guard is absent.
-var ErrActiveRefundCheckerNotConfigured = fmt.Errorf(
-	"order: active refund checker not configured; cannot complete order safely")
+// ErrFinalRefundDecisionOwesBuyer is returned when escrow is asked to be
+// released to the seller while the order's refund process already carries a
+// FINAL decision that owes the buyer money (seller ACCEPT, admin buyer-wins, or
+// a platform-initiated refund). That decision is final, so the escrow belongs to
+// the buyer: paying the seller as well would move the same money twice.
+var ErrFinalRefundDecisionOwesBuyer = errors.New(
+	"cannot release escrow: the refund decision to pay the buyer is final",
+)
+
+// ErrRefundReleaseGuardNotConfigured is returned when Complete() is called
+// without a wired RefundReleaseGuard. Fail-closed by design: escrow must not be
+// released if the refund guard is absent.
+var ErrRefundReleaseGuardNotConfigured = fmt.Errorf(
+	"order: refund release guard not configured; cannot complete order safely")
 
 // ============================================================================
 // ESCROW STATUS DERIVATION
@@ -102,7 +111,8 @@ type OrderCompletionService struct {
 	shippingQuoteService  ShippingQuoteService
 	disputeRepo           disputerepo.DisputeRepository // Entry point guard: check dispute status
 	escrowService         *escrowApp.EscrowService      // Used to derive Order.EscrowStatus from Escrow state
-	activeRefundChecker   ActiveRefundChecker           // H2-F2a: Block completion if refund is active
+	refundReleaseGuard    RefundReleaseGuard            // Canonical: block release while a refund must be respected
+	refundDecisionAuth    RefundDecisionAuthority       // Canonical: record the admin's final refund decision on the refund process row
 	logger                *zap.Logger
 }
 
@@ -115,15 +125,36 @@ type ShippingQuoteService interface {
 	InvalidateQuotesByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) error
 }
 
-// ActiveRefundChecker checks whether an order has an active (non-terminal) refund.
-// Used by Complete() to prevent auto-releasing escrow while a refund is being
-// negotiated or awaiting gateway settlement.
+// RefundReleaseGuard answers the ONE question the order lifecycle must ask
+// before releasing money to the seller: does this order have a refund that still
+// has to be respected?
 //
-// Terminal statuses that do NOT block: refunded, admin_released.
-// All other statuses block: pending_seller_review, seller_approved,
-// seller_rejected, escalated_to_admin, admin_refunded.
-type ActiveRefundChecker interface {
-	HasActiveRefundByOrderID(ctx context.Context, tx db.Tx, orderID uuid.UUID) (bool, error)
+// It blocks when money owed to the buyer has not settled at the gateway yet, or
+// when the refund decision is still open while the order's own refund window is
+// still open (refundWindowOpen — owned by the order domain via
+// Order.IsRefundWindowOpen). Implemented by the refund repository as the SQL
+// mirror of refundEntity.Refund.BlocksOrderRelease.
+type RefundReleaseGuard interface {
+	HasRefundBlockingRelease(ctx context.Context, tx db.Tx, orderID uuid.UUID, refundWindowOpen bool) (bool, error)
+}
+
+// RefundDecisionAuthority lets the dispute/order side record the ADMIN's final
+// refund decision on the order's refund process WITHOUT holding refund authority
+// itself. Implemented by the refund domain (RefundService).
+//
+// buyerWins=true records a final buyer-wins decision and dispatches the gateway
+// refund on the same refund row. buyerWins=false records a final seller-wins
+// decision (no money to the buyer).
+//
+// recorded=false means the order has NO refund process (a direct dispute); the
+// caller then creates the platform refund record instead.
+type RefundDecisionAuthority interface {
+	AdminResolveRefundDecision(ctx context.Context, tx db.Tx, orderID, adminID uuid.UUID, buyerWins bool, amount int64, notes *string) (recorded bool, err error)
+	// HasFinalRefundDecisionOwedToBuyer reports whether the order's refund
+	// process already carries a FINAL decision that owes the buyer money
+	// (seller ACCEPT, admin buyer-wins, platform-initiated refund). A final
+	// decision may not be paid over to the seller as well.
+	HasFinalRefundDecisionOwedToBuyer(ctx context.Context, tx db.Tx, orderID uuid.UUID) (bool, error)
 }
 
 // reactivateShippingQuoteIfEligible reactivates a USED shipping quote after an
@@ -193,6 +224,13 @@ func NewOrderCompletionService(
 		escrowService:        escrowService, // Used to derive Order.EscrowStatus from Escrow state
 		logger:               logger,
 	}
+}
+
+// SetRefundDecisionAuthority wires the refund domain's admin-decision write-back
+// used by the dispute resolution paths. Without it, admin decisions on escalated
+// refunds fail closed (the refund process would otherwise stay unresolved).
+func (s *OrderCompletionService) SetRefundDecisionAuthority(authority RefundDecisionAuthority) {
+	s.refundDecisionAuth = authority
 }
 
 // SetCoinsService wires the coins service after construction.
@@ -521,19 +559,23 @@ func (s *OrderCompletionService) Complete(
 		return &entity.DisputeActiveError{OrderID: order.ID}
 	}
 
-	// REFUND DOMAIN GUARD (H2-F2a): Block completion if refund is active.
-	// Prevents releasing escrow while buyer/seller refund negotiation or gateway
-	// settlement is in progress. Without this, auto-complete can release funds
-	// to seller, creating a post-release money gap if the refund later succeeds.
-	if s.activeRefundChecker == nil {
-		return ErrActiveRefundCheckerNotConfigured
+	// REFUND DOMAIN GUARD: block release while a refund still has to be
+	// respected. Two independent reasons (see RefundReleaseGuard): money owed to
+	// the buyer has not settled at the gateway yet (releasing now would pay the
+	// same money twice), or the refund decision is still open inside the order's
+	// own refund window. Once that window closes the order lifecycle owns the
+	// outcome, so an undecided refund no longer freezes the order forever.
+	if s.refundReleaseGuard == nil {
+		return ErrRefundReleaseGuardNotConfigured
 	}
-	hasActiveRefund, err := s.activeRefundChecker.HasActiveRefundByOrderID(ctx, tx, order.ID)
+	refundBlocksRelease, err := s.refundReleaseGuard.HasRefundBlockingRelease(
+		ctx, tx, order.ID, order.IsRefundWindowOpen(),
+	)
 	if err != nil {
-		return fmt.Errorf("failed to check active refund: %w", err)
+		return fmt.Errorf("failed to check refund release guard: %w", err)
 	}
-	if hasActiveRefund {
-		return fmt.Errorf("cannot complete order: active refund exists (order_id=%s)", order.ID)
+	if refundBlocksRelease {
+		return fmt.Errorf("cannot complete order: refund still blocking release (order_id=%s)", order.ID)
 	}
 
 	// SUPPORT DOMAIN GUARD: Block completion if active support ticket exists
@@ -602,7 +644,9 @@ func (s *OrderCompletionService) Complete(
 	// IMPORTANT:
 	// - ONLY granted when order status = "completed"
 	// - NOT granted for cancelled, refunded, or disputed orders
-	// - Uses final paid amount (Subtotal + Shipping), NOT forSale price
+	// - Uses the canonical buyer-funded base PD + S (total_before_coins_amount),
+	//   NOT forSale price and NOT the undiscounted P + S. The payment fee F and
+	//   the commission C are not part of the reward base.
 	//
 	// Note: Error is logged but does not fail the completion.
 	// The order completion is more important than the points reward.
@@ -621,7 +665,7 @@ func (s *OrderCompletionService) Complete(
 		tx,
 		order.BuyerID,
 		order.ID,
-		order.Subtotal.Int64()+order.ShippingTotal.Int64(), // Final paid amount (excluding commission)
+		order.TotalBeforeCoinsAmount.Int64(), // CANONICAL buyer-funded base PD + S (excludes F and C)
 	); err != nil {
 		// ====================================================================
 		// OPERATIONAL VISIBILITY: LOG FAILED EARN ATTEMPTS
@@ -629,7 +673,7 @@ func (s *OrderCompletionService) Complete(
 		// Log the failure for operational visibility.
 		// Order completion succeeds regardless — the loyalty reward is secondary.
 		// Reconciliation: query coins_transactions for missing order_reward entries.
-		finalPaidAmount := order.Subtotal.Int64() + order.ShippingTotal.Int64()
+		finalPaidAmount := order.TotalBeforeCoinsAmount.Int64()
 		expectedPoints := finalPaidAmount / 1000
 		s.logger.Error("coins_earn_failed_order_completion",
 			zap.String("order_id", order.ID.String()),
@@ -964,9 +1008,14 @@ func (s *OrderCompletionService) CancelOverdue(
 	// refund BEFORE the local escrow flip so we never advance local state
 	// without the gateway-side reversal in flight. Ledger reversal happens
 	// at webhook ack (FinanceService.RecordRefundReversal).
-	refundAmount := order.Subtotal.Int64() + order.ShippingTotal.Int64()
+	// CANONICAL FULL REFUND: buyer-funded base PD+S = total_before_coins_amount.
+	// P+S is WRONG when D>0. No fallback — 0 is invalid/corrupt, fail closed.
+	refundAmount := order.TotalBeforeCoinsAmount.Int64()
+	if refundAmount <= 0 {
+		return fmt.Errorf("refund failed: total_before_coins_amount invalid (order_id=%s total_before_coins=%d)", order.ID.String(), refundAmount)
+	}
 	if err := s.paymentService.InitiateGatewayRefundForOrder(
-		ctx, tx, order, auth.SystemCallerID,
+		ctx, tx, order, uuid.Nil, // automatic system refund — reviewed_by persists as NULL
 		refundAmount, "other",
 		fmt.Sprintf("system_refund_buyer_overdue_%s", order.ID.String()),
 	); err != nil {
@@ -995,24 +1044,11 @@ func (s *OrderCompletionService) CancelOverdue(
 	order.EscrowStatus = derivedEscrowStatus
 	order.UpdatedAt = time.Now()
 
-	// ============================================================
-	// STEP 8: EMIT COINS REFUND REQUIRED EVENT
-	// ============================================================
-	// STRICT_EVENT_ATOMIC: Coins must be refunded when order is cancelled due
-	// to shipment timeout. Outbox failure rolls back the entire transaction so
-	// the cancel can be retried by the worker — buyer coins are never silently lost.
-	if order.CoinsUsed > 0 {
-		payload := map[string]interface{}{
-			"order_id": order.ID.String(),
-			"user_id":  order.BuyerID.String(),
-			"reason":   "order_cancelled_overdue",
-			"source":   "buyer_overdue_cancel",
-		}
-		payloadBytes, _ := json.Marshal(payload)
-		if err := s.outboxRepo.InsertEvent(ctx, tx, "coins.refund_required", order.ID, payloadBytes); err != nil {
-			return fmt.Errorf("outbox coins.refund_required (overdue cancel): %w", err)
-		}
-	}
+	// Coins are NOT refunded from the order domain here. A paid order cancelled
+	// for shipment timeout is refunded through the canonical gateway refund path
+	// above (InitiateGatewayRefundForOrder + RefundToBuyer); when the gateway ack
+	// lands, the refund pipeline emits coins.refund_required with the computed
+	// coin_delta and the coins domain restores K from coins_transactions.
 
 	// ============================================================
 	// STEP 9: RESTORE LISTING STOCK
@@ -1064,10 +1100,10 @@ func (s *OrderCompletionService) CancelOverdue(
 //   - Handles multi-item orders
 //   - All operations happen inside same transaction for atomicity
 //
-// COINS REFUND:
-//   - Emits coins.refund_required event when payment expires
-//   - CoinsRefundRequiredHandler processes the refund asynchronously
-//   - Uses INSERT-FIRST pattern for idempotent refund
+// COINS:
+//   - An unpaid order has no coin spend transaction (coins are redeemed at
+//     payment settlement via ConsumeAndSpendForOrder), so expiry has nothing
+//     to restore and this path emits no coins event.
 //
 // IMPORTANT: This does NOT trigger any ledger operations.
 // Expired orders have no funds held, so no escrow movement is needed.
@@ -1135,9 +1171,13 @@ func (s *OrderCompletionService) Expire(
 		return fmt.Errorf("CRITICAL: failed to load escrow for expiry: order_id=%s, error=%w", orderID, escrowErr)
 	}
 	if escrowForExpiry != nil {
-		refundAmount := order.Subtotal.Int64() + order.ShippingTotal.Int64()
+		// CANONICAL FULL REFUND: PD+S = total_before_coins_amount. No P+S fallback — 0 is invalid.
+		refundAmount := order.TotalBeforeCoinsAmount.Int64()
+		if refundAmount <= 0 {
+			return fmt.Errorf("refund failed: total_before_coins_amount invalid (order_id=%s total_before_coins=%d)", order.ID.String(), refundAmount)
+		}
 		if err := s.paymentService.InitiateGatewayRefundForOrder(
-			ctx, tx, order, auth.SystemCallerID,
+			ctx, tx, order, uuid.Nil, // automatic system refund — reviewed_by persists as NULL
 			refundAmount, "other",
 			fmt.Sprintf("system_refund_payment_expired_%s", order.ID.String()),
 		); err != nil {
@@ -1153,38 +1193,9 @@ func (s *OrderCompletionService) Expire(
 		)
 	}
 
-	// ============================================================
-	// STEP 4: EMIT COINS REFUND REQUIRED EVENT (SINGLE ENTRY POINT)
-	// ============================================================
-	// Coins must be refunded when order expires due to payment failure.
-	//
-	// CRITICAL: We NO LONGER call RefundCoinsInternal() directly.
-	// Instead, we emit a coins.refund_required event that will be
-	// processed by CoinsRefundRequiredHandler - the SINGLE SOURCE OF TRUTH.
-	//
-	// This ensures:
-	// 1. All refunds flow through one handler (idempotent)
-	// 2. Refunds are based on transactions, not order snapshot
-	// 3. Failures are recoverable via coins.refund_failed event
-	//
-	// NOTE: We check order.CoinsUsed > 0 as an optimization to avoid
-	// emitting unnecessary events. The handler will still verify
-	// the actual spend transaction exists.
-	// STRICT_EVENT_ATOMIC: Coins must be refunded when order expires.
-	// Outbox failure rolls back the entire transaction so the expire can be
-	// retried by the worker — buyer coins are never silently lost.
-	if order.CoinsUsed > 0 {
-		payload := map[string]interface{}{
-			"order_id": order.ID.String(),
-			"user_id":  order.BuyerID.String(),
-			"reason":   "order_expired",
-			"source":   "order_expire_worker",
-		}
-		payloadBytes, _ := json.Marshal(payload)
-		if err := s.outboxRepo.InsertEvent(ctx, tx, "coins.refund_required", order.ID, payloadBytes); err != nil {
-			return fmt.Errorf("outbox coins.refund_required (expire): %w", err)
-		}
-	}
+	// An order that expires without payment never reached payment settlement, so
+	// no coin spend transaction was ever created for it (ConsumeAndSpendForOrder
+	// runs in the payment finalization path) and there is nothing to restore.
 
 	// ============================================================
 	// STEP 4.5: REACTIVATE SHIPPING QUOTE IF ELIGIBLE (fixed-price only)
@@ -1253,63 +1264,30 @@ func (s *OrderCompletionService) MarkDisputeOpen(
 	return nil
 }
 
-// MarkHasDisputePostRelease marks has_dispute=true on a completed order WITHOUT
-// changing the order status. Used exclusively by DisputeService when a dispute
-// is opened on an already-completed (post-release) order.
-//
-// Pre-release disputes use MarkDisputeOpen (status → dispute_open).
-// Post-release disputes leave status = completed and rely on a dispute_freeze
-// record in the finance layer to block withdrawal.
-//
-// LOCK: caller must hold order FOR UPDATE (via GetForUpdate) in the same tx.
-func (s *OrderCompletionService) MarkHasDisputePostRelease(
-	ctx context.Context,
-	tx db.Tx,
-	orderID uuid.UUID,
-) error {
-	order, err := s.repo.GetForUpdate(ctx, tx, orderID)
-	if err != nil {
-		return err
-	}
-	if order.Status != entity.StatusCompleted {
-		return fmt.Errorf("MarkHasDisputePostRelease: expected completed order, got %s", order.Status)
-	}
-	if order.HasDispute {
-		return nil // idempotent
-	}
-	order.HasDispute = true
-	order.UpdatedAt = time.Now()
-	if err := s.repo.UpdateStatusTx(ctx, tx, order); err != nil {
-		return fmt.Errorf("MarkHasDisputePostRelease: persist failed: %w", err)
-	}
-	return nil
-}
-
 // RefundOrder processes a full refund to buyer.
-// Creates ledger transaction first, then transitions escrow_status to "refunded".
 //
-// UNIFIED SETTLEMENT MODEL V2:
-//   - Refund amount is the canonical buyer base (subtotal + shipping = PD + S).
-//     Commission C is seller/platform-side and NEVER part of buyer refund cash.
-//   - No platform revenue is recognized when refund occurs before release
-//   - Commission is never reversed (it was never recognized in the first place)
+// CANONICAL: the gateway refund is dispatched FIRST (via the refund domain's
+// RefundService), then escrow flips locally. The ledger reversal is booked at
+// gateway webhook ack (FinanceService.RecordRefundReversal), never here.
+//
+// Refund amount is the canonical buyer-funded base
+// (total_before_coins_amount = (P − D) + S).
+// Commission C is seller/platform-side and NEVER part of buyer refund cash.
 //
 // GOVERNANCE BOUNDARY:
 // - ONLY allows escrow_status = "holding"
 // - EXPLICITLY REJECTS orders with active disputes (status = dispute_open)
 // - For dispute resolution refunds, use RefundFromDispute instead
 //
-// CRITICAL: This method is idempotent via ledger idempotency key.
+// CRITICAL: This method is idempotent via the gateway refund idempotency key.
 // Even if called multiple times, the refund will only execute once.
 //
-// LEDGER ENTRIES (atomic, before state update):
-// - Debit: ESCROW (system account) - decreases by escrow_amount (canonical buyer base)
-// - Credit: buyer's BUYER_REFUNDABLE - increases by escrow_amount (canonical buyer base)
-//
-// STATE UPDATES (after ledger success):
-// - escrow_status = "refunded"
+// STATE UPDATES:
+// - escrow_status = derived from the escrow row after the refund
 // - status = "refunded"
-// - refunded_amount = escrow_amount
+//
+// The refund amount is never stored on the order; the refund row and the
+// ledger own that truth.
 func (s *OrderCompletionService) RefundOrder(
 	ctx context.Context,
 	tx db.Tx,
@@ -1327,7 +1305,6 @@ func (s *OrderCompletionService) RefundOrder(
 	}
 
 	// GOVERNANCE GUARD 2: Only allow refund from "holding" state
-	// "frozen" state requires dispute resolution path via RefundFromDispute
 	if order.EscrowStatus != entity.EscrowStatusHolding {
 		return &entity.InvalidEscrowStatusError{
 			CurrentStatus:  order.EscrowStatus,
@@ -1335,10 +1312,15 @@ func (s *OrderCompletionService) RefundOrder(
 		}
 	}
 
-	// CANONICAL REFUND: dispatch gateway refund FIRST, then flip local escrow.
-	refundAmount := order.Subtotal.Int64() + order.ShippingTotal.Int64()
+	// CANONICAL FULL REFUND: buyer-funded base PD+S = total_before_coins_amount.
+	// P+S is WRONG when D>0. No P+S fallback — TotalBeforeCoins must be >0;
+	// legacy 0 would be corrupt state, fail closed per existing canonical error handling.
+	refundAmount := order.TotalBeforeCoinsAmount.Int64()
+	if refundAmount <= 0 {
+		return fmt.Errorf("refund failed: total_before_coins_amount invalid (order_id=%s, total_before_coins=%d subtotal=%d shipping=%d)", order.ID.String(), refundAmount, order.Subtotal.Int64(), order.ShippingTotal.Int64())
+	}
 	if err := s.paymentService.InitiateGatewayRefundForOrder(
-		ctx, tx, order, auth.SystemCallerID,
+		ctx, tx, order, uuid.Nil, // automatic system refund — reviewed_by persists as NULL
 		refundAmount, "other",
 		fmt.Sprintf("system_refund_manual_%s", order.ID.String()),
 	); err != nil {
@@ -1353,20 +1335,6 @@ func (s *OrderCompletionService) RefundOrder(
 		return fmt.Errorf("failed to fetch escrow after refund: %w", err)
 	}
 	derivedEscrowStatus := mapEscrowToOrderEscrow(escrowRow.Status.String())
-
-	// ============================================================
-	// EMIT MONEY REFUNDED EVENT (triggers coins refund)
-	// ============================================================
-	if order.CoinsUsed > 0 {
-		payload := map[string]interface{}{
-			"order_id":    order.ID.String(),
-			"buyer_id":    order.BuyerID.String(),
-			"refund_type": "full",
-			"coins_used":  order.CoinsUsed,
-		}
-		payloadBytes, _ := json.Marshal(payload)
-		_ = s.outboxRepo.InsertEvent(ctx, tx, "money.refunded", order.ID, payloadBytes)
-	}
 
 	// ============================================================
 	// RATING INVALIDATION - EVENTUAL CONSISTENCY
@@ -1429,25 +1397,20 @@ func (s *OrderCompletionService) RefundOrder(
 // RefundFromDispute processes a full refund to buyer from dispute resolution.
 // PUBLIC API: Called by DisputeService for dispute resolution.
 //
-// This method handles dispute-approved refunds.
-// It enforces escrow_status = "frozen" to ensure dispute path exclusivity.
-//
-// UNIFIED SETTLEMENT MODEL V2:
-//   - Refund amount is the canonical buyer base (subtotal + shipping = PD + S).
-//     Commission C is seller/platform-side and NEVER part of buyer refund cash.
-//   - No platform revenue is recognized when refund occurs before release
-//   - Commission is never reversed (it was never recognized in the first place)
+// Refund amount is the canonical buyer-funded base
+// (total_before_coins_amount = (P − D) + S).
+// Commission C is seller/platform-side and NEVER part of buyer refund cash.
 //
 // GOVERNANCE: This is the ONLY path that can refund an order with status = dispute_open.
 //
-// LEDGER ENTRIES (atomic, before state update):
-// - Debit: ESCROW (system account) - decreases by escrow_amount (canonical buyer base)
-// - Credit: buyer's BUYER_REFUNDABLE - increases by escrow_amount (canonical buyer base)
+// CANONICAL ADMIN DECISION: the admin's final buyer-wins decision is recorded
+// on the order's own refund process row (RefundService.AdminResolveRefundDecision)
+// and the gateway refund is dispatched on that same row. The ledger reversal is
+// booked at gateway webhook ack, never here.
 //
-// STATE UPDATES (after ledger success):
-// - escrow_status = "refunded"
+// STATE UPDATES:
+// - escrow_status = derived from the escrow row after the refund
 // - status = "refunded"
-// - refunded_amount = escrow_amount
 func (s *OrderCompletionService) RefundFromDispute(
 	ctx context.Context,
 	tx db.Tx,
@@ -1483,20 +1446,39 @@ func (s *OrderCompletionService) RefundFromDispute(
 		zap.String("trigger", "dispute_resolution"),
 	)
 
-	// CANONICAL REFUND: dispatch gateway refund FIRST (creates Refund row
-	// in admin_refunded + admin_refunded gateway dispatch), then flip the
-	// local escrow state. Ledger reversal happens at webhook ack.
-	refundAmount := order.Subtotal.Int64() + order.ShippingTotal.Int64()
-	if err := s.paymentService.InitiateGatewayRefundForOrder(
-		ctx, tx, order, adminID,
-		refundAmount, "other",
-		fmt.Sprintf("system_refund_dispute_%s", order.ID.String()),
-	); err != nil {
-		s.logger.Error("dispute_refund_gateway_dispatch_failed",
+	// CANONICAL ADMIN DECISION + SETTLEMENT: the admin's final buyer-wins
+	// decision is recorded on the ORDER'S OWN refund process row (the escalated
+	// one), and the gateway refund is dispatched on that same row. Ledger
+	// reversal happens at webhook ack, after the local escrow flip.
+	//
+	// A direct dispute that never went through a refund request has no process
+	// row: there is no decision to record, so a platform refund record
+	// (system_refunded) is created instead.
+	// CANONICAL FULL REFUND: PD+S = total_before_coins_amount, not P+S.
+	refundAmount := order.TotalBeforeCoinsAmount.Int64()
+	if refundAmount <= 0 {
+		return fmt.Errorf("refund failed: total_before_coins_amount invalid (order_id=%s, total_before_coins=%d)", orderID.String(), refundAmount)
+	}
+	decisionRecorded, err := s.recordAdminRefundDecision(ctx, tx, order, adminID, true, refundAmount)
+	if err != nil {
+		s.logger.Error("dispute_refund_decision_failed",
 			zap.String("order_id", orderID.String()),
 			zap.Error(err),
 		)
-		return fmt.Errorf("gateway refund initiation failed: %w", err)
+		return fmt.Errorf("admin refund decision failed: %w", err)
+	}
+	if !decisionRecorded {
+		if err := s.paymentService.InitiateGatewayRefundForOrder(
+			ctx, tx, order, adminID,
+			refundAmount, "other",
+			fmt.Sprintf("system_refund_dispute_%s", order.ID.String()),
+		); err != nil {
+			s.logger.Error("dispute_refund_gateway_dispatch_failed",
+				zap.String("order_id", orderID.String()),
+				zap.Error(err),
+			)
+			return fmt.Errorf("gateway refund initiation failed: %w", err)
+		}
 	}
 
 	escrowRow, _, err := s.escrowService.RefundGatewayEscrow(ctx, tx, orderID)
@@ -1510,21 +1492,6 @@ func (s *OrderCompletionService) RefundFromDispute(
 
 	// Derive Order.EscrowStatus from escrow state (CRITICAL: no independent state)
 	derivedEscrowStatus := mapEscrowToOrderEscrow(escrowRow.Status.String())
-
-	// ============================================================
-	// EMIT MONEY REFUNDED EVENT
-	// ============================================================
-	// Event consumed as NoHandlerAuditOnly (coins refund moved to ack-time).
-	if order.CoinsUsed > 0 {
-		payload := map[string]interface{}{
-			"order_id":    order.ID.String(),
-			"buyer_id":    order.BuyerID.String(),
-			"refund_type": "full",
-			"coins_used":  order.CoinsUsed,
-		}
-		payloadBytes, _ := json.Marshal(payload)
-		_ = s.outboxRepo.InsertEvent(ctx, tx, "money.refunded", order.ID, payloadBytes)
-	}
 
 	// ============================================================
 	// RATING INVALIDATION - EVENTUAL CONSISTENCY
@@ -1575,14 +1542,22 @@ func (s *OrderCompletionService) RefundFromDispute(
 	return nil
 }
 
-// refundFromDispute is an alias for RefundFromDispute for backward compatibility.
-// Deprecated: Use RefundFromDispute directly.
-func (s *OrderCompletionService) refundFromDispute(
+// recordAdminRefundDecision delegates the admin's FINAL refund decision to the
+// refund domain (which owns refund state). Returns recorded=false when the order
+// has no refund process row — the caller then creates the platform refund
+// record. Fails closed when the authority is not wired.
+func (s *OrderCompletionService) recordAdminRefundDecision(
 	ctx context.Context,
 	tx db.Tx,
-	orderID uuid.UUID,
-) error {
-	return s.RefundFromDispute(ctx, tx, orderID, auth.SystemCallerID)
+	order *entity.Order,
+	adminID uuid.UUID,
+	buyerWins bool,
+	amount int64,
+) (bool, error) {
+	if s.refundDecisionAuth == nil {
+		return false, errors.New("refund decision authority not configured; refusing to resolve dispute without recording the final refund decision")
+	}
+	return s.refundDecisionAuth.AdminResolveRefundDecision(ctx, tx, order.ID, adminID, buyerWins, amount, nil)
 }
 
 // ReleaseFromDispute processes an escrow release to seller from dispute resolution.
@@ -1608,6 +1583,7 @@ func (s *OrderCompletionService) ReleaseFromDispute(
 	ctx context.Context,
 	tx db.Tx,
 	orderID uuid.UUID,
+	adminID uuid.UUID,
 ) error {
 	order, err := s.repo.GetForUpdate(ctx, tx, orderID)
 	if err != nil {
@@ -1622,6 +1598,29 @@ func (s *OrderCompletionService) ReleaseFromDispute(
 	// DISPUTE STATE GUARD: Only allow from "dispute_open" status
 	if order.Status != entity.StatusDisputeOpen {
 		return errors.New("invalid state for dispute resolution")
+	}
+
+	// CANONICAL FINALITY GUARD: a refund decision that owes the buyer money is
+	// FINAL (seller ACCEPT / admin buyer-wins / platform-initiated refund), so
+	// the order's escrow belongs to the buyer. Releasing it to the seller as
+	// well would move the same money twice and contradict a decision the buyer
+	// is entitled to rely on. Fail closed and let the refund settlement land.
+	if s.refundDecisionAuth == nil {
+		return errors.New("refund decision authority not configured; refusing to release escrow without checking the refund decision")
+	}
+	owedToBuyer, err := s.refundDecisionAuth.HasFinalRefundDecisionOwedToBuyer(ctx, tx, order.ID)
+	if err != nil {
+		return fmt.Errorf("failed to check final refund decision: %w", err)
+	}
+	if owedToBuyer {
+		return fmt.Errorf("%w (order_id=%s)", ErrFinalRefundDecisionOwesBuyer, order.ID)
+	}
+
+	// CANONICAL ADMIN DECISION: record the final seller-wins decision on the
+	// order's refund process row (if any) BEFORE releasing the money. The refund
+	// process must not be left looking unresolved once the admin has decided.
+	if _, err := s.recordAdminRefundDecision(ctx, tx, order, adminID, false, 0); err != nil {
+		return err
 	}
 
 	// DISPUTE → ESCROW INTEGRATION: Log that dispute resolution is triggering escrow release
@@ -1690,26 +1689,26 @@ func (s *OrderCompletionService) ReleaseFromDispute(
 }
 
 // PartialRefundFromDispute resolves a dispute with partial split:
-// - Buyer gets refund for item price (subtotal)
+// - Buyer gets refund for discounted product value PD (total_before_coins - S)
 // - Seller gets release for shipping fee (shipping_total)
 //
 // STRICT RULES:
 // - ADMIN ONLY (no user-triggered)
-// - MUST use escrowService.PartialRefundEscrow (atomic single transaction)
-// - MUST be from dispute_open status with frozen escrow
-// - Refund amount MUST equal order.Subtotal (item price only)
+// - MUST be from dispute_open status with escrow in holding
+// - Refund amount MUST equal PD (discounted product value, not undiscounted subtotal)
 // - Shipping fee is released to seller (remainder)
 //
-// FINANCIAL FLOW:
-// 1. Validate order.Subtotal + order.ShippingTotal == escrow_amount
-// 2. Call escrowService.PartialRefundEscrow with refund_amount = order.Subtotal
-// 3. Escrow service handles:
-//   - Refund subtotal to buyer via gateway refund pipeline
-//   - Release shipping_total to seller via finance ledger
-//   - Create 3 ledger entries (debit buyer held, credit buyer, credit seller)
+// CANONICAL: escrow = total_before_coins_amount = PD+S. P+S is NOT canonical when D>0.
 //
+// CANONICAL FINANCIAL FLOW:
+// 1. Validate PD + S == escrow_amount where PD = total_before_coins - S, escrow = total_before_coins
+// 2. Record the admin's buyer-wins decision on the order's refund process row
+//    with the item-price amount (RefundService.AdminResolveRefundDecision),
+//    which also dispatches the gateway refund on that same row.
+// 3. The escrow primitive (PartialRefundGatewayEscrow) is invoked from
+//    RefundService.HandleGatewayRefundAck after the canonical ledger reversal
+//    commits — escrow stays holding until the gateway ack arrives.
 // 4. Update order status to partially_refunded
-// 5. Update escrow status to released
 //
 // CRITICAL: This method is idempotent and atomic.
 func (s *OrderCompletionService) PartialRefundFromDispute(
@@ -1746,20 +1745,25 @@ func (s *OrderCompletionService) PartialRefundFromDispute(
 		return fmt.Errorf("entry point guard violation: dispute status must be 'under_review', got '%s'", dispute.Status)
 	}
 
-	// DATA VALIDATION: Ensure order has subtotal, shipping_total, and commission_amount.
-	itemPrice := order.Subtotal
+	// DATA VALIDATION: Ensure order has canonical buyer-funded escrow base.
+	// CANONICAL: escrow = total_before_coins_amount = PD + S = (P-D)+S.
+	// itemPrice for partial refund is the discounted product value PD,
+	// derived from the persisted canonical base (total_before_coins - S),
+	// NOT the undiscounted subtotal P. Shipping commission C is never buyer cash.
+	escrowAmount := order.TotalBeforeCoinsAmount
+	if !order.HasCanonicalMoneyBase() {
+		return fmt.Errorf("partial dispute validation failed: canonical money base invalid (total_before_coins=%d shipping=%d) — no P or P+S fallback", escrowAmount.Int64(), order.ShippingTotal.Int64())
+	}
+	// PD = (P-D) = total_before_coins - S — the ONE canonical PD derivation.
+	itemPrice := order.DiscountedProductAmount()
 	shippingFee := order.ShippingTotal
 	commissionFee := order.CommissionAmount
-
-	// CANONICAL ESCROW VALIDATION: escrow = total_before_coins_amount = PD + S.
-	// The buyer-funded escrow excludes commission (C is a seller/platform-side
-	// allocation, not buyer cash). The rejected model (P+S+C via
-	// CalculateGrossEscrowFromSnapshot) must not gate the partial dispute path.
-	escrowAmount := order.TotalBeforeCoinsAmount
-	calculatedTotal := itemPrice.Add(shippingFee)
-
-	if !calculatedTotal.Equal(escrowAmount) {
-		return fmt.Errorf("partial dispute validation failed: item_price + shipping_fee != escrow_amount (item=%d, shipping=%d, escrow=%d)",
+	if itemPrice.IsNegative() {
+		return fmt.Errorf("partial dispute validation failed: discounted product value negative (total_before_coins=%d shipping=%d)", escrowAmount.Int64(), shippingFee.Int64())
+	}
+	// Invariant: PD + S == total_before_coins (by construction) — sanity check that derived PD reconstructs canonical base.
+	if !itemPrice.Add(shippingFee).Equal(escrowAmount) {
+		return fmt.Errorf("partial dispute validation failed: item_price(PD) + shipping_fee != total_before_coins_amount (item(PD)=%d shipping=%d total_before_coins(PD+S)=%d)",
 			itemPrice.Int64(), shippingFee.Int64(), escrowAmount.Int64())
 	}
 
@@ -1771,43 +1775,39 @@ func (s *OrderCompletionService) PartialRefundFromDispute(
 		zap.Int64("item_price", itemPrice.Int64()),
 		zap.Int64("shipping_fee", shippingFee.Int64()),
 		zap.Int64("commission_fee", commissionFee.Int64()),
-		zap.Int64("escrow_amount", escrowAmount.Int64()),
+		zap.Int64("total_before_coins_amount", escrowAmount.Int64()),
 		zap.String("trigger", "dispute_partial_split_resolution"),
 	)
 
-	// CANONICAL PARTIAL REFUND: dispatch gateway refund for the BUYER
-	// portion (item price) ONLY. Local escrow.status DOES NOT flip here —
-	// the escrow primitive (PartialRefundGatewayEscrow) is now invoked
-	// from RefundService.HandleGatewayRefundAck after the canonical ledger
+	// CANONICAL PARTIAL REFUND: the admin's final buyer-wins decision is recorded
+	// on the order's OWN refund process row and the gateway refund for the BUYER
+	// portion (item price) ONLY is dispatched on that same row. Local escrow.status
+	// DOES NOT flip here — the escrow primitive (PartialRefundGatewayEscrow) is
+	// invoked from RefundService.HandleGatewayRefundAck after the canonical ledger
 	// reversal commits. Escrow stays HOLDING until the gateway ack arrives.
-	if err := s.paymentService.InitiateGatewayRefundForOrder(
-		ctx, tx, order, adminID,
-		itemPrice.Int64(), "other",
-		fmt.Sprintf("system_refund_partial_dispute_%s", order.ID.String()),
-	); err != nil {
-		return fmt.Errorf("partial gateway refund initiation failed: %w", err)
+	//
+	// A direct dispute with no refund process has nothing to record, so a platform
+	// refund record (system_refunded) is created instead.
+	partialRecorded, err := s.recordAdminRefundDecision(ctx, tx, order, adminID, true, itemPrice.Int64())
+	if err != nil {
+		return fmt.Errorf("partial admin refund decision failed: %w", err)
 	}
-
-	// ============================================================
-	// EMIT PARTIAL REFUND AND RELEASE EVENTS (eliminates ambiguity)
-	// ============================================================
-	// STRICT MODE: Separate events for partial operations
-	// - money.partial_refund: Buyer gets item price refund (triggers coin refund)
-	// - money.partial_release: Seller gets shipping fee release (audit only)
-	if order.CoinsUsed > 0 {
-		// Emit money.partial_refund event (triggers proportional coin refund)
-		partialRefundPayload := map[string]interface{}{
-			"order_id":     order.ID.String(),
-			"buyer_id":     order.BuyerID.String(),
-			"item_price":   itemPrice.Int64(),
-			"shipping_fee": shippingFee.Int64(),
-			"total_escrow": escrowAmount.Int64(),
-			"coins_used":   order.CoinsUsed,
+	if !partialRecorded {
+		if err := s.paymentService.InitiateGatewayRefundForOrder(
+			ctx, tx, order, adminID,
+			itemPrice.Int64(), "other",
+			fmt.Sprintf("system_refund_partial_dispute_%s", order.ID.String()),
+		); err != nil {
+			return fmt.Errorf("partial gateway refund initiation failed: %w", err)
 		}
-		partialRefundBytes, _ := json.Marshal(partialRefundPayload)
-		_ = s.outboxRepo.InsertEvent(ctx, tx, "money.partial_refund", order.ID, partialRefundBytes)
 	}
 
+	// ============================================================
+	// EMIT PARTIAL RELEASE EVENT
+	// ============================================================
+	// The proportional coin restoration for the buyer-owed portion is emitted by
+	// the gateway refund ack pipeline (coins.refund_required with coin_delta); the
+	// order domain does not compute it.
 	// Emit money.partial_release event (audit only - no coin refund)
 	partialReleasePayload := map[string]interface{}{
 		"order_id":     order.ID.String(),
@@ -1866,45 +1866,6 @@ func (s *OrderCompletionService) PartialRefundFromDispute(
 	)
 
 	return nil
-}
-
-// ============================================================================
-// PARKED POST-RELEASE DISPUTE REFUND (H2-F2b)
-// ============================================================================
-//
-// These methods are parked under the owner finality rule. Post-release buyer
-// objections are handled outside the app, so the live runtime no longer calls
-// into this refund path.
-//
-// Historical differences from pre-release RefundFromDispute/PartialRefundFromDispute:
-//   - Order status stayed "completed" (terminal — no valid transitions)
-//   - Escrow status stayed "released" (terminal — no flip)
-//   - Dispute freeze stayed ACTIVE until gateway ack succeeded
-//   - Ledger reversal happened at gateway webhook ack time
-// ============================================================================
-
-// RefundFromDisputePostRelease is parked under the owner finality rule.
-// Post-release buyer objections are handled outside the app and this method
-// now returns an explicit error instead of dispatching a refund.
-func (s *OrderCompletionService) RefundFromDisputePostRelease(
-	ctx context.Context,
-	tx db.Tx,
-	orderID uuid.UUID,
-	adminID uuid.UUID,
-) error {
-	return errors.New("post-release dispute refunds are disabled; handle objections outside the app")
-}
-
-// PartialRefundFromDisputePostRelease is parked under the owner finality rule.
-// Post-release buyer objections are handled outside the app and this method
-// now returns an explicit error instead of dispatching a refund.
-func (s *OrderCompletionService) PartialRefundFromDisputePostRelease(
-	ctx context.Context,
-	tx db.Tx,
-	orderID uuid.UUID,
-	adminID uuid.UUID,
-) error {
-	return errors.New("post-release dispute refunds are disabled; handle objections outside the app")
 }
 
 // SyncRefundSettlementFromGatewayAck syncs order terminal refund status after

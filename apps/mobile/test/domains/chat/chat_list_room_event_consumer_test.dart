@@ -11,8 +11,6 @@ import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/domain/repositories/chat_repository.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_notifier.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_state.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
-import 'package:labuda/shared/object/object_preview.dart';
 
 Message _lastMessage(
   String roomId,
@@ -45,7 +43,6 @@ Chat _chat({
   required DateTime lastMessageAt,
   required int unreadCount,
   Message? lastMessage,
-  ShareReference? context,
   String? linkedOrderId,
   ChatType type = ChatType.private,
 }) {
@@ -55,27 +52,13 @@ Chat _chat({
     participantIds: [otherUserId],
     participantNames: {otherUserId: otherUsername},
     participantAvatars: const {},
-    context: context,
-    contextSetBy: null,
     lastMessage: lastMessage,
     createdAt: createdAt,
     updatedAt: updatedAt,
-    unreadCounts: {otherUserId: unreadCount},
+    unreadCount: unreadCount,
     linkedOrderId: linkedOrderId,
   );
 }
-
-Map<String, dynamic> _contextPayload(String targetId) => <String, dynamic>{
-  'target_type': 'for_sale',
-  'target_id': targetId,
-  'preview': <String, dynamic>{
-    'title': 'Listing $targetId',
-    'isAvailable': true,
-    'isSold': false,
-    'isClosed': false,
-    'isDeleted': false,
-  },
-};
 
 Map<String, dynamic> _roomEventPayload({
   required String roomId,
@@ -85,7 +68,6 @@ Map<String, dynamic> _roomEventPayload({
   required DateTime updatedAt,
   required DateTime lastMessageAt,
   required int unreadCount,
-  Map<String, dynamic>? context,
   String? linkedOrderId,
   Map<String, dynamic>? lastMessage,
 }) {
@@ -100,7 +82,6 @@ Map<String, dynamic> _roomEventPayload({
       'avatar_url': 'https://example.com/$otherUserId.png',
       'lifecycle': 'active',
     },
-    if (context != null) 'context': context,
     if (linkedOrderId != null) 'linked_order_id': linkedOrderId,
     if (lastMessage != null) 'last_message': lastMessage,
     'unread_count': unreadCount,
@@ -180,20 +161,6 @@ void main() {
             'user_a',
             DateTime.utc(2026, 6, 2, 10, 0),
           ),
-          context: ShareReference(
-            targetType: ShareTargetType.content,
-            targetId: 'listing_a',
-            preview: const ObjectPreview(
-              id: 'listing_a',
-              type: 'content',
-              title: 'Listing A',
-              isAvailable: true,
-              isSold: false,
-              isClosed: false,
-              isDeleted: false,
-              status: 'available',
-            ),
-          ),
         );
         final repo = _FakeChatRepository([roomA]);
         final container = ProviderContainer(
@@ -216,7 +183,6 @@ void main() {
               updatedAt: DateTime.utc(2026, 6, 2, 10, 5),
               lastMessageAt: DateTime.utc(2026, 6, 2, 10, 5),
               unreadCount: 3,
-              context: _contextPayload('listing_b'),
               linkedOrderId: 'order_b',
             ),
             eventType: WebSocketEventType.roomCreated,
@@ -228,9 +194,8 @@ void main() {
         var state = container.read(chatListProvider);
         expect(state.chats, hasLength(2));
         expect(state.chats.first.id, 'room_b');
-        expect(state.chats.first.context, isNotNull);
         expect(state.chats.first.linkedOrderId, 'order_b');
-        expect(state.chats.first.getUnreadCount('user_me'), 3);
+        expect(state.chats.first.roomUnreadCount, 3);
 
         repo.events.add(
           ChatRoomEventDto.fromJson(
@@ -242,7 +207,6 @@ void main() {
               updatedAt: DateTime.utc(2026, 6, 2, 10, 6),
               lastMessageAt: DateTime.utc(2026, 6, 2, 10, 5),
               unreadCount: 4,
-              context: _contextPayload('listing_b'),
               linkedOrderId: 'order_b',
             ),
             eventType: WebSocketEventType.roomUpdated,
@@ -255,7 +219,7 @@ void main() {
         expect(state.chats, hasLength(2));
         expect(state.chats.where((chat) => chat.id == 'room_b'), hasLength(1));
         expect(state.chats.first.id, 'room_b');
-        expect(state.chats.first.getUnreadCount('user_me'), 4);
+        expect(state.chats.first.roomUnreadCount, 4);
       },
     );
 
@@ -333,7 +297,7 @@ void main() {
 
         state = container.read(chatListProvider);
         expect(state.chats.map((chat) => chat.id), ['room_a', 'room_b']);
-        expect(state.chats.last.getUnreadCount('user_me'), 0);
+        expect(state.chats.last.roomUnreadCount, 0);
 
         repo.events.add(
           ChatRoomEventDto.fromJson(
@@ -362,7 +326,7 @@ void main() {
 
         state = container.read(chatListProvider);
         expect(state.chats.map((chat) => chat.id), ['room_b', 'room_a']);
-        expect(state.chats.first.getUnreadCount('user_me'), 1);
+        expect(state.chats.first.roomUnreadCount, 1);
       },
     );
 

@@ -13,8 +13,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	"github.com/labuda/backend/internal/governance/support/entity"
+	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -40,7 +40,7 @@ func TestB99_CreateTicket_RoomTypeSupport(t *testing.T) {
 	subject := "Test support ticket"
 	req := &CreateTicketRequest{
 		UserID:   uuid.New(),
-		Category: entity.CategoryPayment,
+		Category: entity.CategoryPaymentIssue,
 		Priority: entity.PriorityMedium,
 		Subject:  &subject,
 	}
@@ -64,37 +64,26 @@ func TestB99_CreateTicket_RoomTypeSupport(t *testing.T) {
 // RoomTypeSupport rooms are exempt from block enforcement in SendMessage.
 //
 // The chat service checks:
-//   if room.RoomType != chatEntity.RoomTypeSupport && !room.HasOrderContext() { blockCheck }
+//
+//	if room.RoomType != chatEntity.RoomTypeSupport && !room.HasOrderContext() { blockCheck }
 //
 // With RoomTypeSupport, block check is skipped unconditionally.
 func TestB99_SupportRoomBlockExemptionProperty(t *testing.T) {
-	room := &chatEntity.ChatRoom{
-		ID:           uuid.New(),
-		RoomType:     chatEntity.RoomTypeSupport,
-		ParticipantA: uuid.Nil,               // system
-		ParticipantB: uuid.New(),              // user
-	}
+	room := chatEntity.NewSupportRoom(uuid.New())
 
-	// RoomTypeSupport is NOT direct and NOT negotiation → block-exempt per chat_service.go:814
+	// RoomTypeSupport is NOT direct and NOT negotiation → block-exempt.
 	assert.Equal(t, chatEntity.RoomTypeSupport, room.RoomType)
 	assert.NotEqual(t, chatEntity.RoomTypeDirect, room.RoomType,
 		"Support room must NOT be RoomTypeDirect — otherwise block exemption is lost")
 }
 
 // TestB99_SupportUserRepliedEmissionProperty verifies the structural property:
-// The support.user_replied outbox event fires only when:
-//   room.RoomType == RoomTypeSupport && senderID != uuid.Nil
-//
-// With the old RoomTypeDirect, this condition was never true → event never fired.
+// The support.user_replied outbox event fires only for a support room when the
+// authenticated sender is the ticket owner (a real, non-Nil user id).
 func TestB99_SupportUserRepliedEmissionProperty(t *testing.T) {
 	userID := uuid.New()
 
-	room := &chatEntity.ChatRoom{
-		ID:           uuid.New(),
-		RoomType:     chatEntity.RoomTypeSupport,
-		ParticipantA: uuid.Nil, // system (sorted: Nil is always smallest)
-		ParticipantB: userID,
-	}
+	room := chatEntity.NewSupportRoom(userID)
 
 	// Condition for support.user_replied emission:
 	isSupportRoom := room.RoomType == chatEntity.RoomTypeSupport
@@ -107,28 +96,23 @@ func TestB99_SupportUserRepliedEmissionProperty(t *testing.T) {
 	assert.True(t, isSupportRoom && senderIsUser,
 		"Both conditions must be true for support.user_replied emission")
 
-	// System messages (sender = uuid.Nil) must NOT trigger support.user_replied
+	// A Nil sender can never trigger support.user_replied.
 	systemSender := uuid.Nil
 	assert.False(t, isSupportRoom && systemSender != uuid.Nil,
 		"System messages must NOT trigger support.user_replied")
 }
 
-// TestB99_SupportRoomParticipantSorting verifies that NewChatRoom sorts participants
-// correctly for support rooms: uuid.Nil is always participant_a.
-func TestB99_SupportRoomParticipantSorting(t *testing.T) {
+// TestB99_SupportRoomSingleHumanOwner verifies the canonical support-room
+// invariant: the ticket owner is participant_a and participant_b is unset
+// (uuid.Nil in memory, NULL in the database). No fake agent participant exists.
+func TestB99_SupportRoomSingleHumanOwner(t *testing.T) {
 	userID := uuid.New()
 
-	// NewChatRoom sorts by UUID string — uuid.Nil is always smallest.
-	room := chatEntity.NewChatRoom(chatEntity.RoomTypeSupport, userID, uuid.Nil)
+	room := chatEntity.NewSupportRoom(userID)
 
-	assert.Equal(t, uuid.Nil, room.ParticipantA,
-		"uuid.Nil must be participant_a (smallest UUID after sorting)")
-	assert.Equal(t, userID, room.ParticipantB,
-		"User must be participant_b (larger UUID after sorting)")
-
-	// HasParticipant must find both
-	assert.True(t, room.HasParticipant(userID), "User must be a participant")
-	assert.True(t, room.HasParticipant(uuid.Nil), "System (Nil) must be a participant")
+	assert.Equal(t, userID, room.ParticipantA,
+		"the ticket owner must be the sole human participant (participant_a)")
+	assert.Equal(t, uuid.Nil, room.ParticipantB,
+		"support rooms must not model a fake agent participant")
+	assert.True(t, room.HasParticipant(userID), "owner must be a participant")
 }
-
-

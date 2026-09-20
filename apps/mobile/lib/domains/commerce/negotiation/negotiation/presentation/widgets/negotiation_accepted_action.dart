@@ -65,23 +65,23 @@ class NegotiationAcceptedAction extends ConsumerWidget {
     final theme = Theme.of(context);
 
     // Expired-seller visibility — disable "Beli Sekarang" up-front when
-    // the listing's seller has lapsed subscription. Backend order Guard 6
+    // the forSale's seller has lapsed subscription. Backend order Guard 6
     // rejects regardless, but the UI short-circuits so the buyer is not
     // routed to /order-preview only to be bounced. Tolerant fallback:
-    // when the listing detail provider is still loading or errored,
+    // when the forSale detail provider is still loading or errored,
     // leave the CTA enabled (active default), since backend remains the
     // final authority.
-    final listingAsync = ref.watch(
+    final forSaleAsync = ref.watch(
       forSaleDetailProvider(negotiation.fixedPriceSaleId),
     );
-    final productId = listingAsync.maybeWhen(
-      data: (listing) => listing?.productId,
+    final productId = forSaleAsync.maybeWhen(
+      data: (forSale) => forSale?.productId,
       orElse: () => null,
     );
-    final sellerInactive = listingAsync.maybeWhen(
-      data: (listing) {
-        if (listing == null) return false;
-        return listing.sellerTrustLifecycle != ContentLifecycle.active;
+    final sellerInactive = forSaleAsync.maybeWhen(
+      data: (forSale) {
+        if (forSale == null) return false;
+        return forSale.sellerTrustLifecycle != ContentLifecycle.active;
       },
       orElse: () => false,
     );

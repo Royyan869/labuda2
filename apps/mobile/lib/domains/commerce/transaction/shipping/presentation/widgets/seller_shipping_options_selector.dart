@@ -1,7 +1,7 @@
 /// Seller Shipping Options Selector
 ///
-/// Reusable multi-select section embedded in create_listing_screen,
-/// edit_listing_screen, and create_auction_screen. Loads the seller's
+/// Reusable multi-select section embedded in create_for_sale_screen,
+/// edit_for_sale_screen, and create_auction_screen. Loads the seller's
 /// **active** global shipping options via the canonical shipping repository
 /// and lets the seller tick which ones apply to this sale surface.
 ///
@@ -135,7 +135,7 @@ class _SellerShippingSetupsSelectorState
         if (!hasSelection) ...[
           const SizedBox(height: 8),
           Text(
-            'Pilih minimal 1 opsi pengiriman agar listing bisa dipublish.',
+            'Pilih minimal 1 opsi pengiriman agar forSale bisa dipublish.',
             style: TextStyle(
               fontSize: 12,
               color: AppColors.statusWarning,
@@ -264,7 +264,7 @@ class _EmptyOptionsBanner extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Belum ada opsi pengiriman aktif. Buat opsi pengiriman dulu sebelum publish listing.',
+            'Belum ada opsi pengiriman aktif. Buat opsi pengiriman dulu sebelum publish forSale.',
             style: TextStyle(fontSize: 12, color: AppColors.neutralGray700),
           ),
           const SizedBox(height: 10),

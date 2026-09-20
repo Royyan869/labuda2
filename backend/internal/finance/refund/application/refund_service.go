@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/order/application"
 	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
 	orderRepo "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
 	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
@@ -60,18 +59,23 @@ type RefundHistoryPage struct {
 
 // RefundService handles refund lifecycle operations.
 //
-// Refund flow:
+// Refund flow (canonical decision model — see entity.Refund):
 // 1. Buyer creates refund request (pending_seller_review)
-// 2. Seller approves or rejects
-// 3. If rejected: buyer can escalate to dispute
-// 4. Admin resolves dispute via DisputeService (canonical path)
+// 2. Seller ACCEPTS (final decision → seller_approved) or REJECTS (not final → seller_rejected)
+// 3. If rejected: buyer may escalate to dispute → escalated_to_admin (admin is the final authority)
+// 4. Admin decides → admin_refunded (buyer wins) or admin_released (seller wins)
+// 5. The order's own refund window closing ends an open process through the
+//    normal lifecycle; an undecided refund never freezes the order once the
+//    window has closed (see entity.Refund.BlocksOrderRelease).
+//
+// Gateway settlement of the money is a SEPARATE axis (gateway_status): it never
+// rewrites the refund decision and the decision never fakes settlement.
 //
 // CRITICAL HARDENING: Uses live escrow state for validation (not cached Order.EscrowStatus).
 type RefundService struct {
 	refundRepo              refundRepo.RefundRepository
 	escrowService           *escrowApp.EscrowService // CRITICAL: Used for live escrow validation
 	orderRepo               orderrepository.OrderRepository
-	orderService            *application.OrderService
 	outboxRepo              *outboxRepo.OutboxRepository
 	orderRefundStatusSyncer OrderRefundStatusSyncer
 
@@ -88,15 +92,18 @@ type RefundService struct {
 	// and emits refund_reversal_unwired so the gap is observable.
 	financeReverser FinanceReverser
 
-	// Compatibility-only hook retained for legacy freeze bookkeeping.
-	// The live runtime now rejects released-escrow refund acknowledgements
-	// before reaching this surface.
-	freezeReleaser DisputeFreezeReleaser
-
 	// coinsSpendReader resolves the canonical coins spent (K) for an order
-	// from the coins domain (coins_transactions), NOT from orders.coins_used
-	// (dead, never persisted). Wired via SetCoinsSpendReader; nil-safe (K=0).
+	// from the coins domain (coins_transactions). The order persists no coins
+	// snapshot at all, so the coins domain is the only place K can come from.
+	// Wired via SetCoinsSpendReader; nil-safe (K=0).
 	coinsSpendReader CoinsSpendReader
+
+	// db is the transaction runner used by the REC-6 Slice-2 dispatch executor
+	// (DispatchPendingRec6Refunds) to claim intents and persist dispatch
+	// outcomes in short, independent transactions. Wired via SetTxRunner;
+	// dispatch returns an error if unset. Existing call paths are unaffected:
+	// they always receive their tx from the caller.
+	db db.Transactor
 }
 
 // CoinsSpendReader is the minimal coins-domain surface the refund pipeline
@@ -104,7 +111,7 @@ type RefundService struct {
 // implementation is coinsRepo.FindSpendByReference against coins_transactions
 // (reference_type='order_spend', reference_id=order_id), matching the worker's
 // CoinsRefundRequiredHandler.findSpendTransaction. K is a coin-subsystem
-// concern and must never be read from orders.coins_used.
+// concern: the order carries no coins snapshot to read it from.
 type CoinsSpendReader interface {
 	FindSpendByReference(ctx context.Context, tx db.Tx, userID uuid.UUID, referenceID uuid.UUID) (*coinsentity.CoinsTransaction, error)
 }
@@ -136,18 +143,21 @@ func (s *RefundService) coinsSpendForOrder(ctx context.Context, tx db.Tx, userID
 
 // NewRefundService creates a new RefundService.
 func NewRefundService(
-	orderService *application.OrderService,
 	escrowService *escrowApp.EscrowService,
 	outboxRepo *outboxRepo.OutboxRepository,
 ) *RefundService {
 	return &RefundService{
 		refundRepo:    repository.NewRefundRepository(),
 		orderRepo:     orderRepo.NewOrderRepository(),
-		orderService:  orderService,
 		escrowService: escrowService, // CRITICAL: For live escrow validation
 		outboxRepo:    outboxRepo,
 	}
 }
+
+// SetTxRunner wires the transaction runner used by the REC-6 Slice-2 dispatch
+// executor. Required for DispatchPendingRec6Refunds; every other RefundService
+// method is unaffected (they take their tx from the caller).
+func (s *RefundService) SetTxRunner(t db.Transactor) { s.db = t }
 
 // CreateRefund creates a new refund request for an order.
 //
@@ -206,18 +216,17 @@ func (s *RefundService) CreateRefund(
 			}())
 	}
 
-	// Check for existing refund with same idempotency key
+	// ONE REFUND PROCESS PER ORDER: a new request is only allowed once the
+	// previous process is finished. It is blocked while the previous refund's
+	// decision is still open, or while money owed to the buyer is still settling
+	// at the gateway (a second refund would double-refund the same order).
 	existingRefund, _ := s.refundRepo.GetByOrderID(ctx, tx, orderID)
-	if existingRefund != nil {
-		// If same idempotency key, return existing (idempotent)
-		// For simplicity, we'll check if the existing refund is recent and has same buyer
-		if existingRefund.BuyerID == buyerID && !existingRefund.IsTerminal() {
+	if existingRefund != nil && (existingRefund.AwaitsDecision() || existingRefund.IsSettlementPending()) {
+		// Same buyer retrying an open request is idempotent.
+		if existingRefund.BuyerID == buyerID {
 			return existingRefund, nil
 		}
-		// Otherwise, reject new refund if there's an active one
-		if !existingRefund.IsTerminal() {
-			return nil, fmt.Errorf("cannot create refund: order already has an active refund request")
-		}
+		return nil, fmt.Errorf("cannot create refund: order already has an active refund request")
 	}
 
 	// Parse reason
@@ -230,12 +239,11 @@ func (s *RefundService) CreateRefund(
 	// CANONICAL: the buyer-funded base is total_before_coins_amount = (P-D)+S.
 	// orders.discount_amount / orders.escrow_amount are NOT authoritative.
 	escrowAmount := order.TotalBeforeCoinsAmount.Int64()
-	if escrowAmount <= 0 {
-		// Legacy rows / test fixtures without a persisted buyer base:
-		// fall back to the undiscounted product+shipping cap so the refund
-		// request guard remains functional. The dispatch/ack pipeline still
-		// derives the canonical PD for allocation.
-		escrowAmount = order.Subtotal.Int64() + order.ShippingTotal.Int64()
+	if !order.HasCanonicalMoneyBase() {
+		// FAIL CLOSED: no fallback to the undiscounted P + S cap. An order
+		// without the persisted buyer-funded base (PD + S) has no refundable
+		// canonical amount.
+		return nil, fmt.Errorf("cannot create refund: canonical buyer-funded base invalid (total_before_coins=%d shipping=%d)", escrowAmount, order.ShippingTotal.Int64())
 	}
 	if input.RequestedAmount <= 0 {
 		return nil, fmt.Errorf("requested amount must be positive")
@@ -306,28 +314,6 @@ func (s *RefundService) GetRefundByOrderID(
 	orderID uuid.UUID,
 ) (*entity.Refund, error) {
 	return s.refundRepo.GetByOrderID(ctx, tx, orderID)
-}
-
-// ListRefundsByBuyer retrieves all refunds for a buyer.
-func (s *RefundService) ListRefundsByBuyer(
-	ctx context.Context,
-	tx db.Tx,
-	buyerID uuid.UUID,
-	limit int,
-	offset int64,
-) ([]*entity.Refund, error) {
-	return s.refundRepo.ListByBuyer(ctx, tx, buyerID, limit, offset)
-}
-
-// ListRefundsBySeller retrieves all refunds for a seller.
-func (s *RefundService) ListRefundsBySeller(
-	ctx context.Context,
-	tx db.Tx,
-	sellerID uuid.UUID,
-	limit int,
-	offset int64,
-) ([]*entity.Refund, error) {
-	return s.refundRepo.ListBySeller(ctx, tx, sellerID, limit, offset)
 }
 
 // ListRefundHistoryByOrderID retrieves the canonical refund history for an order.
@@ -423,6 +409,159 @@ func (s *RefundService) EscalateToDispute(
 	return refund, nil
 }
 
+// AdminResolveRefundDecision records the ADMIN's FINAL decision on the order's
+// existing refund process, and for a buyer-wins decision dispatches the gateway
+// refund on that SAME refund row.
+//
+// CANONICAL B1: Admin may ONLY decide on refunds that were explicitly escalated
+// to admin (escalated_to_admin). The escalation is the buyer's explicit action
+// after seller rejection — via POST /refunds/:id/escalate — which transitions
+// seller_rejected → escalated_to_admin AND opens a linked dispute in a single
+// atomic flow. A generic dispute opening does NOT grant admin authority over a
+// refund that is still seller_rejected or pending_seller_review.
+//
+// CANONICAL: one refund process = one refund row. The admin decision is written
+// back onto the row that was escalated, so the original request can never be
+// left looking unresolved while the money moves. Financial settlement stays on
+// the separate gateway axis and never rewrites the decision.
+//
+// Returns recorded=false when the order has NO refund process (a direct dispute
+// that never went through a refund request). There is then no decision to record
+// and no negotiation row to attach it to; the caller creates the platform refund
+// record (system_refunded) instead.
+//
+// FAILS CLOSED when the refund is not escalated_to_admin: the admin must not
+// be able to decide on a refund that the buyer has not explicitly escalated.
+//
+// Idempotent: when the decision is already final this is a no-op and returns
+// recorded=true.
+func (s *RefundService) AdminResolveRefundDecision(
+	ctx context.Context,
+	tx db.Tx,
+	orderID uuid.UUID,
+	adminID uuid.UUID,
+	buyerWins bool,
+	amount int64,
+	notes *string,
+) (bool, error) {
+	existing, err := s.refundRepo.GetByOrderID(ctx, tx, orderID)
+	if err != nil {
+		return false, fmt.Errorf("admin refund decision: load refund process: %w", err)
+	}
+	if existing == nil {
+		return false, nil
+	}
+	if existing.IsDecisionFinal() {
+		return true, nil
+	}
+
+	refund, err := s.refundRepo.GetForUpdate(ctx, tx, existing.ID)
+	if err != nil {
+		return false, fmt.Errorf("admin refund decision: lock refund: %w", err)
+	}
+	if refund.IsDecisionFinal() {
+		return true, nil
+	}
+
+	now := time.Now()
+
+	// CANONICAL B1: Admin may ONLY decide on refunds that were explicitly
+	// escalated to admin (escalated_to_admin). The escalation is the buyer's
+	// explicit action after seller rejection — via POST /refunds/:id/escalate —
+	// which transitions seller_rejected → escalated_to_admin AND opens a linked
+	// dispute in a single atomic flow.
+	//
+	// A generic dispute opening (support, seller, or buyer via OpenDispute)
+	// does NOT grant admin authority over a refund that is still
+	// seller_rejected or pending_seller_review. The admin decision must be
+	// blocked (fail closed) when the refund has not been explicitly escalated.
+	if refund.Status != entity.RefundStatusEscalatedToAdmin {
+		return false, fmt.Errorf("admin refund decision: refund must be escalated_to_admin, current status: %s", refund.Status)
+	}
+
+	if buyerWins {
+		if err := refund.AdminRefund(adminID, amount, notes, now); err != nil {
+			return false, fmt.Errorf("admin refund decision: %w", err)
+		}
+	} else {
+		if err := refund.AdminRelease(adminID, notes, now); err != nil {
+			return false, fmt.Errorf("admin release decision: %w", err)
+		}
+	}
+
+	if err := s.refundRepo.Update(ctx, tx, refund); err != nil {
+		return false, fmt.Errorf("admin refund decision: persist: %w", err)
+	}
+	if err := s.emitAdminDecisionOutbox(ctx, tx, refund); err != nil {
+		return false, err
+	}
+
+	if !buyerWins {
+		// Seller wins: the decision is final and no money moves to the buyer.
+		// The order side releases escrow inside the same transaction.
+		return true, nil
+	}
+
+	// Dispatch the gateway refund on the SAME row that carries the decision.
+	callerType := GatewayRefundCallerTypeAdmin
+	if auth.IsSystemCaller(adminID) {
+		callerType = GatewayRefundCallerTypeSystem
+	}
+	if _, err := s.InitiateGatewayRefund(ctx, tx, InitiateGatewayRefundInput{
+		RefundID:       refund.ID,
+		Amount:         amount,
+		Reason:         string(refund.Reason),
+		IdempotencyKey: fmt.Sprintf("admin_decision_%s", refund.ID.String()),
+		CallerID:       adminID,
+		CallerType:     callerType,
+	}); err != nil {
+		return false, fmt.Errorf("admin refund decision: gateway dispatch: %w", err)
+	}
+
+	return true, nil
+}
+
+// HasFinalRefundDecisionOwedToBuyer reports whether the order's refund process
+// already carries a FINAL decision that owes the buyer money — seller ACCEPT,
+// admin buyer-wins, or a platform-initiated refund.
+//
+// This is the refund domain's answer to the order side's question "may escrow
+// still be released to the seller?". Once such a decision exists it is FINAL
+// (locked business truth), so paying the seller as well would move the same
+// money twice and contradict a decision the buyer is entitled to rely on.
+//
+// Settlement state is deliberately NOT part of this predicate: the decision is
+// final the moment it is recorded, whether or not the gateway has landed it yet.
+func (s *RefundService) HasFinalRefundDecisionOwedToBuyer(ctx context.Context, tx db.Tx, orderID uuid.UUID) (bool, error) {
+	existing, err := s.refundRepo.GetByOrderID(ctx, tx, orderID)
+	if err != nil {
+		return false, fmt.Errorf("load refund process: %w", err)
+	}
+	return existing != nil && existing.IsDecisionFinal() && existing.OwesBuyerRefund(), nil
+}
+
+// emitAdminDecisionOutbox emits the canonical audit event for a final admin
+// decision on an escalated refund process.
+func (s *RefundService) emitAdminDecisionOutbox(ctx context.Context, tx db.Tx, refund *entity.Refund) error {
+	eventType := "refund.admin_released"
+	if refund.Status == entity.RefundStatusAdminRefunded {
+		eventType = "refund.admin_refunded"
+	}
+	payload, _ := json.Marshal(map[string]interface{}{
+		"refund_id":       refund.ID,
+		"order_id":        refund.OrderID,
+		"buyer_id":        refund.BuyerID,
+		"seller_id":       refund.SellerID,
+		"status":          string(refund.Status),
+		"reviewed_by":     refund.ReviewedBy,
+		"admin_reviewed_at": refund.AdminReviewedAt,
+	})
+	if err := s.outboxRepo.InsertEvent(ctx, tx, eventType, refund.ID, payload); err != nil {
+		return fmt.Errorf("failed to insert %s outbox event: %w", eventType, err)
+	}
+	return nil
+}
+
 // ApproveRefund processes a seller's approval of a refund request.
 //
 // OWNERSHIP: Actor must be the seller of the order associated with the refund.
@@ -440,8 +579,8 @@ func (s *RefundService) EscalateToDispute(
 //   - "refund.approved" outbox event is emitted
 //
 // Policy table:
-//   - item_damaged / defective_item → product_only (Order.Subtotal)
-//   - item_not_received / wrong_item → full (Order gross)
+//   - item_damaged / defective_item → product_only (DiscountedProduct = PD)
+//   - item_not_received / wrong_item → full (PD + S = total_before_coins_amount)
 //   - item_not_as_described / delivery_delay / change_of_mind / other → blocked
 //
 // Caller must provide an active transaction.
@@ -452,26 +591,47 @@ func (s *RefundService) ApproveRefund(
 	sellerID uuid.UUID,
 	input ApproveRefundInput,
 ) (*entity.Refund, error) {
-	// Lock refund row
+	// CANONICAL LOCK ORDER: ORDER → REFUND (never REFUND → ORDER).
+	// Lock order first for policy resolution, then lock refund for state transition.
+	// This prevents deadlock with RefundFromDispute/ReleaseFromDispute which lock ORDER → REFUND.
+
+	// Read refund without lock to get orderID for canonical lock ordering
+	refundRead, err := s.refundRepo.GetByID(ctx, tx, refundID)
+	if err != nil {
+		return nil, fmt.Errorf("refund not found: %w", err)
+	}
+	if refundRead == nil {
+		return nil, fmt.Errorf("refund not found: %w", err)
+	}
+
+	// Ownership check: caller must be the seller of the order
+	if refundRead.SellerID != sellerID {
+		return nil, fmt.Errorf("only the seller of this order can approve the refund")
+	}
+
+	// Lock order first (canonical ORDER → REFUND order)
+	order, err := s.orderRepo.GetForUpdate(ctx, tx, refundRead.OrderID)
+	if err != nil {
+		return nil, fmt.Errorf("order not found for policy resolution: %w", err)
+	}
+
+	// Now lock refund for state transition (after order lock acquired)
 	refund, err := s.refundRepo.GetForUpdate(ctx, tx, refundID)
 	if err != nil {
 		return nil, fmt.Errorf("refund not found: %w", err)
 	}
 
-	// Ownership check: caller must be the seller of the order
-	if refund.SellerID != sellerID {
-		return nil, fmt.Errorf("only the seller of this order can approve the refund")
+	// Resolve canonical refund policy from reason + order snapshot.
+	//
+	// CANONICAL PD: OrderSnapshot.DiscountedProduct is the DISCOUNTED product
+	// value (PD), never the order's undiscounted Subtotal (P). PD is derived
+	// from the persisted buyer-funded base (total_before_coins_amount - S).
+	// FAIL CLOSED: no fallback to P.
+	if !order.HasCanonicalMoneyBase() {
+		return nil, fmt.Errorf("cannot approve refund: canonical money base invalid (total_before_coins=%d shipping=%d) — no P fallback", order.TotalBeforeCoinsAmount.Int64(), order.ShippingTotal.Int64())
 	}
-
-	// Load order for policy resolution
-	order, err := s.orderRepo.GetForUpdate(ctx, tx, refund.OrderID)
-	if err != nil {
-		return nil, fmt.Errorf("order not found for policy resolution: %w", err)
-	}
-
-	// Resolve canonical refund policy from reason + order snapshot
 	orderSnap := entity.OrderSnapshot{
-		Subtotal:         order.Subtotal.Int64(),
+		DiscountedProduct: order.DiscountedProductAmount().Int64(),
 		ShippingTotal:    order.ShippingTotal.Int64(),
 		CommissionAmount: order.CommissionAmount.Int64(),
 	}

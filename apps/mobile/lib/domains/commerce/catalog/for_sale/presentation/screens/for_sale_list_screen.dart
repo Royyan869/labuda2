@@ -96,7 +96,7 @@ class _ForSaleListScreenState extends ConsumerState<ForSaleListScreen> {
             ? AppColors.darkGray900
             : AppColors.neutralGray50,
         appBar: AppBar(
-          title: const Text('Listings'),
+          title: const Text('For Sale'),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(),
@@ -127,7 +127,7 @@ class _ForSaleListScreenState extends ConsumerState<ForSaleListScreen> {
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Search listings...',
+                    hintText: 'Search For Sale...',
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
@@ -145,14 +145,14 @@ class _ForSaleListScreenState extends ConsumerState<ForSaleListScreen> {
                   onChanged: (_) => _onFilterChanged(),
                 ),
               ),
-              // Listings list
+              // For Sale list
               Expanded(
-                child: _ListingsList(
+                child: _ForSalesList(
                   params: params,
                   scrollController: _scrollController,
                   onRefresh: () => _onFilterChanged(),
-                  onListingTap: (listing) {
-                    context.push('/for-sale/${listing.forSaleId}');
+                  onForSaleTap: (forSale) {
+                    context.push('/for-sale/${forSale.forSaleId}');
                   },
                 ),
               ),
@@ -164,28 +164,28 @@ class _ForSaleListScreenState extends ConsumerState<ForSaleListScreen> {
   }
 }
 
-/// Internal widget for listings list
-class _ListingsList extends ConsumerWidget {
+/// Internal widget for For Sale list
+class _ForSalesList extends ConsumerWidget {
   final ForSalesParams params;
   final ScrollController scrollController;
   final VoidCallback onRefresh;
-  final void Function(ForSale) onListingTap;
+  final void Function(ForSale) onForSaleTap;
 
-  const _ListingsList({
+  const _ForSalesList({
     required this.params,
     required this.scrollController,
     required this.onRefresh,
-    required this.onListingTap,
+    required this.onForSaleTap,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final listingsAsync = ref.watch(forSalesProvider(params));
+    final forSalesAsync = ref.watch(forSalesProvider(params));
 
-    return listingsAsync.when(
-      data: (listings) {
-        if (listings.isEmpty) {
-          return const Center(child: Text('No listings found'));
+    return forSalesAsync.when(
+      data: (forSales) {
+        if (forSales.isEmpty) {
+          return const Center(child: Text('No For Sale found'));
         }
 
         return RefreshIndicator(
@@ -196,12 +196,12 @@ class _ListingsList extends ConsumerWidget {
           child: ListView.builder(
             controller: scrollController,
             padding: const EdgeInsets.all(16),
-            itemCount: listings.length,
+            itemCount: forSales.length,
             itemBuilder: (context, index) {
-              final listing = listings[index];
+              final forSale = forSales[index];
               return ForSaleCard(
-                listing: listing,
-                onTap: () => onListingTap(listing),
+                forSale: forSale,
+                onTap: () => onForSaleTap(forSale),
               );
             },
           ),

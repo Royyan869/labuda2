@@ -21,7 +21,7 @@ class NegotiationHonestyMessages {
       'Barang tetap dapat dibeli oleh pembeli lain sampai pesanan Anda berhasil dibuat.';
 
   // Checkout warnings
-  static const String listingUnavailableWarning =
+  static const String forSaleUnavailableWarning =
       'Maaf, barang untuk negosiasi ini sudah tidak tersedia. '
       'Harga negosiasi masih valid, tapi barangnya sudah terjual atau dihapus.';
 
@@ -34,7 +34,7 @@ class NegotiationHonestyMessages {
       'Negosiasi harga Anda masih tersimpan di riwayat chat.';
 
   // Status messages
-  static const String acceptedButListingUnavailable =
+  static const String acceptedButForSaleUnavailable =
       'Negosiasi Disetujui - Barang Tidak Tersedia';
 
   static String get explanationForAcceptedWithoutReserve {

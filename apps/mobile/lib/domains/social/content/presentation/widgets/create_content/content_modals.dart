@@ -39,53 +39,6 @@ class ContentModals {
     );
   }
 
-  /// Show link item modal - HONEST VERSION
-  ///
-  /// PHASE 2 HARDENING: Removed dead affordances for Product/Auction/Contest linking.
-  /// These features were showing "coming soon" but are not implemented.
-  /// This modal now shows an honest message about feature availability.
-  static void showLinkModal(BuildContext context) {
-    AppBottomSheet.show(
-      context: context,
-      title: 'Link Item',
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Link your posts to listings or auctions in a future update.',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.neutralGray100,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.neutralGray300),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, color: AppColors.neutralGray600),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Feature not available',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.neutralGray700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   /// Show exit confirmation dialog
   static void showExitDialog({
     required BuildContext context,

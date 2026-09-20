@@ -49,16 +49,6 @@ func strictBindJSON(c *gin.Context, dst any) error {
 	return nil
 }
 
-func (h *CommentHandler) queryRow(ctx context.Context, sql string, args ...any) pgx.Row {
-	if h != nil && h.blockQueryOverride != nil {
-		return h.blockQueryOverride.QueryRow(ctx, sql, args...)
-	}
-	if h != nil && h.db != nil {
-		return h.db.Pool().QueryRow(ctx, sql, args...)
-	}
-	return &strictBindJSONErrorRow{err: errors.New("comment handler database unavailable")}
-}
-
 func (h *CommentHandler) buildCanonicalCommentResponse(
 	ctx context.Context,
 	tx db.Tx,

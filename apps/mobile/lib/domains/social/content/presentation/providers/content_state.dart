@@ -10,7 +10,7 @@ part 'content_state.freezed.dart';
 // FEED OWNERSHIP LOCK (BATCH C2):
 // ContentState.feed removed - Content domain does not provide social timeline.
 // For social timeline feed, use Home/Feed domain's feedProvider.
-// For content listing, use ContentState.list with specific methods.
+// For content forSale, use ContentState.list with specific methods.
 
 /// Base state untuk Content operations
 @freezed

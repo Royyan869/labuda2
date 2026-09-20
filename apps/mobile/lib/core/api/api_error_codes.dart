@@ -26,3 +26,13 @@ const String emailVerificationRequired = 'EMAIL_VERIFICATION_REQUIRED';
 ///
 /// HTTP 403 — user previously won an auction but did not complete payment.
 const String bnrAuctionRestricted = 'BNR_AUCTION_RESTRICTED';
+
+/// Market authority required.
+///
+/// HTTP 403 — backend enforced active seller subscription / market authority
+/// gate. This is the mobile canonical identity for the backend error code
+/// `MARKET_AUTHORITY_REQUIRED` produced by `response.MarketAuthorityRequired(...)`
+/// (HTTP 403 + code `MARKET_AUTHORITY_REQUIRED`).
+///
+/// Distinct from generic `FORBIDDEN` and from `COMMERCE_RESTRICTED`.
+const String marketAuthorityRequired = 'MARKET_AUTHORITY_REQUIRED';

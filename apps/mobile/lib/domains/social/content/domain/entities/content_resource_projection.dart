@@ -34,7 +34,7 @@ extension ContentResourceProjectionTypeX on ContentResourceProjectionType {
       case ContentResourceProjectionType.content:
         return 'content';
       case ContentResourceProjectionType.fixedPriceSale:
-        return 'fixed_price_sale';
+        return 'for_sale';
       case ContentResourceProjectionType.auction:
         return 'auction';
     }
@@ -47,7 +47,7 @@ extension ContentResourceProjectionTypeX on ContentResourceProjectionType {
       case ContentResourceProjectionType.content:
         return 'Konten';
       case ContentResourceProjectionType.fixedPriceSale:
-        return 'Listing';
+        return 'ForSale';
       case ContentResourceProjectionType.auction:
         return 'Lelang';
     }
@@ -59,7 +59,7 @@ extension ContentResourceProjectionTypeX on ContentResourceProjectionType {
         return ContentResourceProjectionType.profile;
       case 'content':
         return ContentResourceProjectionType.content;
-      case 'fixed_price_sale':
+      case 'for_sale':
         return ContentResourceProjectionType.fixedPriceSale;
       case 'auction':
         return ContentResourceProjectionType.auction;
@@ -376,32 +376,32 @@ class ContentResourceProjectionFixedPriceSalePayload extends Equatable {
     final seller = json['seller'];
     final mediaRaw = json['media'];
     if (title is! String || title.trim().isEmpty) {
-      throw const FormatException('fixed_price_sale requires title');
+      throw const FormatException('for_sale requires title');
     }
     if (price is! num) {
-      throw const FormatException('fixed_price_sale requires price');
+      throw const FormatException('for_sale requires price');
     }
     if (status is! String || status.trim().isEmpty) {
-      throw const FormatException('fixed_price_sale requires status');
+      throw const FormatException('for_sale requires status');
     }
     if (quantity is! num) {
       throw const FormatException(
-        'fixed_price_sale requires quantity_available',
+        'for_sale requires quantity_available',
       );
     }
     if (canInteract is! bool) {
-      throw const FormatException('fixed_price_sale requires can_interact');
+      throw const FormatException('for_sale requires can_interact');
     }
     if (seller is! Map<String, dynamic>) {
-      throw const FormatException('fixed_price_sale requires seller');
+      throw const FormatException('for_sale requires seller');
     }
     if (mediaRaw is! List) {
-      throw const FormatException('fixed_price_sale requires media');
+      throw const FormatException('for_sale requires media');
     }
     final media = <ContentResourceProjectionMediaRef>[];
     for (final item in mediaRaw) {
       if (item is! Map<String, dynamic>) {
-        throw const FormatException('fixed_price_sale requires media items');
+        throw const FormatException('for_sale requires media items');
       }
       media.add(ContentResourceProjectionMediaRef.fromJson(item));
     }
@@ -594,7 +594,7 @@ class ContentResourceProjection extends Equatable {
         final caption = content?.caption?.trim();
         return caption != null && caption.isNotEmpty ? caption : 'Konten';
       case ContentResourceProjectionType.fixedPriceSale:
-        return fixedPriceSale?.title ?? 'Listing';
+        return fixedPriceSale?.title ?? 'ForSale';
       case ContentResourceProjectionType.auction:
         return auction?.title ?? 'Lelang';
     }
@@ -670,7 +670,7 @@ class ContentResourceProjection extends Equatable {
     final resourceType = ContentResourceProjectionTypeX.fromWire(rawType);
     final profile = json['profile'];
     final content = json['content'];
-    final fixedPriceSale = json['fixed_price_sale'];
+    final fixedPriceSale = json['for_sale'];
     final auction = json['auction'];
 
     switch (state) {
@@ -708,7 +708,7 @@ class ContentResourceProjection extends Equatable {
                       fixedPriceSale,
                     )
                   : throw const FormatException(
-                      'LIVE fixed_price_sale projection requires fixed_price_sale payload',
+                      'LIVE for_sale projection requires for_sale payload',
                     ),
             );
           case ContentResourceProjectionType.auction:
@@ -749,7 +749,7 @@ class ContentResourceProjection extends Equatable {
     if (profile != null) out['profile'] = profile!.toJson();
     if (content != null) out['content'] = content!.toJson();
     if (fixedPriceSale != null) {
-      out['fixed_price_sale'] = fixedPriceSale!.toJson();
+      out['for_sale'] = fixedPriceSale!.toJson();
     }
     if (auction != null) out['auction'] = auction!.toJson();
     return out;

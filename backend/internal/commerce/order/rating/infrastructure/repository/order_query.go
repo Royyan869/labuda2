@@ -11,11 +11,14 @@ import (
 // OrderQuery provides minimal order data needed for rating validation.
 // This avoids coupling the rating domain to the full order entity.
 type OrderQuery struct {
-	ID        uuid.UUID
-	BuyerID   uuid.UUID
-	SellerID  uuid.UUID
-	Status    string
-	OrderType string
+	ID       uuid.UUID
+	BuyerID  uuid.UUID
+	SellerID uuid.UUID
+	Status   string
+	// SourceType is orders.source_type — the canonical order kind
+	// (for_sale | seller_quote | auction | negotiation). orders has no
+	// order_type column; source_type is the only authority for order kind.
+	SourceType string
 	HasDispute bool // 🔥 TASK 4: Dispute exclusion - prevent rating during active disputes
 }
 
@@ -36,16 +39,16 @@ func (r *OrderQueryRepository) GetForUpdate(
 	orderID uuid.UUID,
 ) (*OrderQuery, error) {
 	var id, buyerID, sellerID uuid.UUID
-	var status, orderType string
+	var status, sourceType string
 	var hasDispute bool
 
 	err := tx.QueryRow(ctx, `
-		SELECT id, buyer_id, seller_id, status, order_type, has_dispute
+		SELECT id, buyer_id, seller_id, status, source_type, has_dispute
 		FROM orders
 		WHERE id = $1
 		FOR UPDATE
 	`, orderID).Scan(
-		&id, &buyerID, &sellerID, &status, &orderType, &hasDispute,
+		&id, &buyerID, &sellerID, &status, &sourceType, &hasDispute,
 	)
 
 	if err != nil {
@@ -56,11 +59,11 @@ func (r *OrderQueryRepository) GetForUpdate(
 	}
 
 	return &OrderQuery{
-		ID:        id,
-		BuyerID:   buyerID,
-		SellerID:  sellerID,
-		Status:    status,
-		OrderType: orderType,
+		ID:         id,
+		BuyerID:    buyerID,
+		SellerID:   sellerID,
+		Status:     status,
+		SourceType: sourceType,
 		HasDispute: hasDispute, // 🔥 TASK 4: Include dispute status
 	}, nil
 }
@@ -73,15 +76,15 @@ func (r *OrderQueryRepository) Get(
 	orderID uuid.UUID,
 ) (*OrderQuery, error) {
 	var id, buyerID, sellerID uuid.UUID
-	var status, orderType string
+	var status, sourceType string
 	var hasDispute bool
 
 	err := tx.QueryRow(ctx, `
-		SELECT id, buyer_id, seller_id, status, order_type, has_dispute
+		SELECT id, buyer_id, seller_id, status, source_type, has_dispute
 		FROM orders
 		WHERE id = $1
 	`, orderID).Scan(
-		&id, &buyerID, &sellerID, &status, &orderType, &hasDispute,
+		&id, &buyerID, &sellerID, &status, &sourceType, &hasDispute,
 	)
 
 	if err != nil {
@@ -92,11 +95,11 @@ func (r *OrderQueryRepository) Get(
 	}
 
 	return &OrderQuery{
-		ID:        id,
-		BuyerID:   buyerID,
-		SellerID:  sellerID,
-		Status:    status,
-		OrderType: orderType,
+		ID:         id,
+		BuyerID:    buyerID,
+		SellerID:   sellerID,
+		Status:     status,
+		SourceType: sourceType,
 		HasDispute: hasDispute, // 🔥 TASK 4: Include dispute status
 	}, nil
 }

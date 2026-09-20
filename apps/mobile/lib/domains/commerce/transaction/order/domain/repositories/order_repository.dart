@@ -10,13 +10,11 @@ abstract class OrderRepository {
   );
 
   // Order CRUD Operations
-  Future<RepositoryResult<Order>> createOrder(CreateOrderParams params);
   Future<RepositoryResult<Order>> getOrderById(String orderId);
-  Future<RepositoryResult<Order>> getOrderByNumber(String orderNumber);
   Future<RepositoryResult<List<Order>>> getBuyerOrders(GetOrdersParams params);
   Future<RepositoryResult<List<Order>>> getSellerOrders(GetOrdersParams params);
 
-  // Order Page-based listing (used by order list pager controllers)
+  // Order Page-based forSale (used by order list pager controllers)
   Future<RepositoryResult<OrderPageResult>> getBuyerOrdersPage(
     GetOrdersParams params,
   );
@@ -24,58 +22,19 @@ abstract class OrderRepository {
     GetOrdersParams params,
   );
 
-  Future<RepositoryResult<OrderStats>> getOrderStats(
-    GetOrderStatsParams params,
-  );
-
   // Order Status Operations
-  Future<RepositoryResult<Order>> updateOrderStatus(
-    UpdateOrderStatusParams params,
-  );
-  Future<RepositoryResult<Order>> confirmOrder(String orderId);
-  Future<RepositoryResult<Order>> completeOrder(String orderId);
   Future<RepositoryResult<Order>> cancelOrder(
     String orderId,
     CancelOrderParams params,
   );
 
-  // Additional shipping operations (aliases for notifier compatibility)
+  // Ship + complete actions.
+  //
+  // These are the canonical repository entry points for the backend
+  // POST /orders/:id/ship and POST /orders/:id/complete contracts.
+  // Buyer "Terima Barang" and seller "Kirim" flow through these.
   Future<RepositoryResult<Order>> markAsShipped(MarkAsShippedParams params);
   Future<RepositoryResult<Order>> markAsDelivered(String orderId);
-
-  // Payment Operations
-  Future<RepositoryResult<Order>> processPayment(
-    String orderId,
-    ProcessPaymentParams params,
-  );
-  Future<RepositoryResult<PaymentStatus>> checkPaymentStatus(String orderId);
-  Future<RepositoryResult<Order>> updatePaymentToken(
-    UpdatePaymentTokenParams params,
-  );
-
-  // Shipping Operations
-  Future<RepositoryResult<Order>> updateShippingInfo(
-    String orderId,
-    UpdateShippingInfoParams params,
-  );
-  Future<RepositoryResult<Order>> addTrackingNumber(
-    String orderId,
-    String trackingNumber,
-  );
-
-  // Validation
-  Future<RepositoryResult<bool>> validateShippingAddress(ShippingInfo info);
-
-  // Order Confirmation Operations
-  Future<RepositoryResult<OrderConfirmation?>> getConfirmation(String orderId);
-  Future<RepositoryResult<OrderConfirmation>> extendConfirmation({
-    required String orderId,
-    required String buyerId,
-  });
-  Future<RepositoryResult<OrderConfirmation>> completeConfirmation({
-    required String orderId,
-    required String completionReason,
-  });
 
   // ========================================
   // Order Action Operations (Decision V2)

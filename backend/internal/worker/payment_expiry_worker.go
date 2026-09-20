@@ -10,6 +10,8 @@ import (
 	"github.com/google/uuid"
 	orderApp "github.com/labuda/backend/internal/commerce/order/application"
 	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
+	coinsinfra "github.com/labuda/backend/internal/incentive/coins/infrastructure/repository"
+	coinsrepo "github.com/labuda/backend/internal/incentive/coins/repository"
 	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 	"go.uber.org/zap"
@@ -36,6 +38,12 @@ type PaymentExpiryWorker struct {
 	db           Transactor
 	paymentRepo  *paymentRepo.PaymentRepository
 	orderService *orderApp.OrderService
+	// coinsRepo releases the buyer's coin reservation when a pending payment
+	// times out. Coins are loyalty points, not money: this is a reservation
+	// status transition (idempotent, never a balance deduction), and without it
+	// a timed-out order would strand the buyer's redeemed coins as reserved
+	// forever. Settlement consumes the same reservation instead.
+	coinsRepo    coinsrepo.CoinsRepository
 	log          *zap.Logger
 	pollInterval time.Duration
 	batchSize    int
@@ -90,6 +98,7 @@ func NewPaymentExpiryWorker(
 		db:           db,
 		paymentRepo:  paymentRepo.NewPaymentRepository(),
 		orderService: orderService,
+		coinsRepo:    coinsinfra.NewCoinsRepository(),
 		log:          log,
 		pollInterval: cfg.PollInterval,
 		batchSize:    cfg.BatchSize,
@@ -295,6 +304,22 @@ func (w *PaymentExpiryWorker) expirePayment(
 		w.log.Info("Payment marked expired",
 			zap.String("payment_id", payment.ID.String()),
 		)
+
+		// CANONICAL COIN RELEASE: expiry is a terminal failure of the
+		// RESERVE → CONSUME lifecycle, so the buyer's reserved coins must be
+		// released in the same transaction that expires the payment. Without
+		// this a timed-out payment left the reservation 'reserved' forever,
+		// permanently shrinking the buyer's usable coin balance. ReleaseReservation
+		// is idempotent and a no-op when K=0 or the reservation was already
+		// consumed/released by another terminal path.
+		if payment.CoinsToUse > 0 {
+			if w.coinsRepo == nil {
+				return fmt.Errorf("coins repository not configured for expired payment with coins_to_use=%d", payment.CoinsToUse)
+			}
+			if _, err := w.coinsRepo.ReleaseReservation(ctx, tx, payment.ID); err != nil {
+				return fmt.Errorf("failed to release coin reservation for expired payment: %w", err)
+			}
+		}
 
 		// Handle reference-specific cleanup based on reference_type
 		if payment.ReferenceType == paymentRepo.ReferenceTypeOrder && payment.ReferenceID != nil {

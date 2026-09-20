@@ -53,12 +53,12 @@ class _ExternalProductSearchApiService implements SearchApiService {
     return ForSaleSearchResponseDto(
       forSales: [
         ForSaleSearchResultDto(
-          id: 'listing-1',
+          id: 'forSale-1',
           title: 'Showa Koi 30cm',
-          description: 'Organic listing',
+          description: 'Organic forSale',
           variety: 'Showa',
           price: 1500000,
-          mediaUrls: const ['https://example.com/listing.jpg'],
+          mediaUrls: const ['https://example.com/forSale.jpg'],
           sellerId: 'seller-1',
           createdAt: DateTime.parse('2026-01-01T00:00:00.000Z'),
           sellerUsername: 'seller_user',
@@ -119,7 +119,7 @@ class _ExternalProductSearchApiService implements SearchApiService {
 
 void main() {
   test(
-    'external_product maps into listing surface as SearchResultType.externalProduct',
+    'external_product maps into forSale surface as SearchResultType.externalProduct',
     () async {
       final repository = SearchRepositoryImpl(
         _ExternalProductSearchApiService(),
@@ -130,7 +130,7 @@ void main() {
       expect(result.error, isNull);
       expect(result.data, isNotNull);
 
-      final listingSurface = result.data!.listings;
+      final listingSurface = result.data!.forSales;
       expect(listingSurface, hasLength(2));
 
       final external = listingSurface.singleWhere(
@@ -142,9 +142,9 @@ void main() {
       expect(external.title, 'Promoted external product');
       expect(external.imageUrl, 'https://example.com/external.jpg');
       expect(external.metadata['externalUrl'], 'https://example.com/product');
-      // The For Sale tab reads the listing-surface domain collection
+      // The For Sale tab reads the forSale-surface domain collection
       // directly (no flat allResults scan needed for external products).
-      expect(result.data!.listings, contains(external));
+      expect(result.data!.forSales, contains(external));
     },
   );
 

@@ -82,11 +82,11 @@ type gatewayStatusResponse struct {
 }
 
 type gatewayRefundHistoryRow struct {
-	RefundKey         string `json:"refund_key"`
+	RefundKey          string `json:"refund_key"`
 	RefundChargebackID string `json:"refund_chargeback_id"`
-	RefundAmount      string `json:"refund_amount"`
-	Status            string `json:"status"`
-	CreatedAt         string `json:"created_at"`
+	RefundAmount       string `json:"refund_amount"`
+	Status             string `json:"status"`
+	CreatedAt          string `json:"created_at"`
 }
 
 // fetchStatus calls GET /v2/{order_id}/status and translates the response
@@ -126,8 +126,8 @@ func (g *gatewayClient) FetchStatus(ctx context.Context, midtransOrderID string)
 		// Available=true with empty TransactionStatus so the classifier can
 		// reason about "gateway says nothing here".
 		return recon.GatewaySnapshot{
-			MidtransOrderID: midtransOrderID,
-			Available:       true,
+			MidtransOrderID:   midtransOrderID,
+			Available:         true,
 			TransactionStatus: "",
 			QueriedAt:         queriedAt,
 		}, nil
@@ -225,5 +225,3 @@ func truncate(s string, n int) string {
 	}
 	return s[:n] + "..."
 }
-
-

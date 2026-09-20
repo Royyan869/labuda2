@@ -121,14 +121,14 @@ class ShippingRemoteDatasource {
   /// An empty list clears all linked options.
   ///
   /// Backend rejects if any of the option IDs do not belong to the calling
-  /// seller, or if the listing already has active orders.
+  /// seller, or if the forSale already has active orders.
   Future<void> setProductShippingSetups(
     String productId,
     List<String> shippingSetupIds,
   ) async {
     await _apiClient.put(
       '/products/$productId/shipping',
-      data: {'shipping_setup_ids': shippingSetupIds},
+      data: {'shipping_option_ids': shippingSetupIds},
     );
   }
 

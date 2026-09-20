@@ -36,11 +36,6 @@ type Repository interface {
 	// Returns ErrRoomNotFound if not found.
 	GetDirectRoom(ctx context.Context, tx interface{}, userA, userB uuid.UUID) (*entity.ChatRoom, error)
 
-	// GetSupportRoom retrieves a support room for a user.
-	// Support rooms have the user as participant_a and a system UUID as participant_b.
-	// Returns ErrRoomNotFound if not found.
-	GetSupportRoom(ctx context.Context, tx interface{}, userID uuid.UUID) (*entity.ChatRoom, error)
-
 	// ListRoomsByUser lists all rooms where the user is a participant.
 	// Uses cursor-based pagination on last_message_at.
 	// Returns rooms ordered by last_message_at DESC.
@@ -88,9 +83,13 @@ type Repository interface {
 		limit int,
 	) ([]*entity.ChatMessage, error)
 
-	// GetMessageByIdempotencyKey retrieves a message by idempotency key.
+	// GetMessageByIdempotencyKey retrieves a message by (sender_id, idempotency_key).
+	//
+	// AUTHORITY: actor-scoped. The idempotency key is only meaningful within
+	// the sender's own command space — UNIQUE(sender_id, idempotency_key)
+	// (migration 000032). A key used by another sender must never be returned.
 	// Returns ErrMessageNotFound if not found.
-	GetMessageByIdempotencyKey(ctx context.Context, tx interface{}, idempotencyKey string) (*entity.ChatMessage, error)
+	GetMessageByIdempotencyKey(ctx context.Context, tx interface{}, senderID uuid.UUID, idempotencyKey string) (*entity.ChatMessage, error)
 
 	// ========================================================================
 	// MODERATION OPERATIONS
@@ -126,8 +125,19 @@ type Repository interface {
 	ListReadStatesByRoom(ctx context.Context, tx interface{}, roomID uuid.UUID) ([]*entity.ChatReadState, error)
 
 	// GetUnreadCountByRoomAndUser calculates the unread count for one room and one user.
-	// It mirrors the room-list unread projection, including mute suppression.
+	//
+	// This is a thin delegation to GetUnreadCountsByRoomIDs so that exactly ONE
+	// unread-count SQL formula exists in the codebase.
 	GetUnreadCountByRoomAndUser(ctx context.Context, tx interface{}, roomID, userID uuid.UUID) (int, error)
+
+	// GetUnreadCountsByRoomIDs calculates the unread count for several rooms for
+	// one viewer in a single batch query.
+	//
+	// CANONICAL unread-count authority: unread = visible (deleted_at IS NULL)
+	// messages after the viewer's last_read_at, excluding muted senders. Every
+	// unread consumer (single-room endpoint, send/read flows, room-list badges)
+	// resolves through this method.
+	GetUnreadCountsByRoomIDs(ctx context.Context, tx interface{}, roomIDs []uuid.UUID, userID uuid.UUID) (map[uuid.UUID]int, error)
 }
 
 // ========================================================================
@@ -147,6 +157,12 @@ var (
 	// ErrDuplicateMessage is returned when a message with the same idempotency key exists.
 	ErrDuplicateMessage = errorString("message already exists")
 
+	// ErrIdempotencyKeyConflict is returned when the same sender reuses an
+	// idempotency key for a different command (different command_fingerprint).
+	// Same sender + same key + same command is an idempotent replay; same
+	// sender + same key + different command is a conflict.
+	ErrIdempotencyKeyConflict = errorString("idempotency key already used with a different command")
+
 	// ErrReadStateNotFound is returned when a read state is not found.
 	ErrReadStateNotFound = errorString("read state not found")
 
@@ -161,6 +177,12 @@ var (
 
 	// ErrInvalidIdempotencyKey is returned when the idempotency key is empty.
 	ErrInvalidIdempotencyKey = errorString("idempotency key cannot be empty")
+
+	// ErrInvalidResourceOccurrence is returned when a message resource
+	// occurrence reference violates the communication contract (invalid
+	// operation/type, nil id, or a direct-commerce operation on a
+	// non-commerce resource type).
+	ErrInvalidResourceOccurrence = errorString("invalid resource occurrence")
 
 	// ErrParticipantMismatch is returned when a user is not a participant in a room.
 	ErrParticipantMismatch = errorString("user is not a participant in this room")

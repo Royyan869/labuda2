@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,16 +14,16 @@ import (
 
 // mockTx is a mock transaction for testing.
 type mockTx struct {
-	execFunc    func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
-	queryFunc   func(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	execFunc     func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+	queryFunc    func(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	queryRowFunc func(ctx context.Context, sql string, args ...any) pgx.Row
 	commitFunc   func(ctx context.Context) error
 	rollbackFunc func(ctx context.Context) error
 
-	execCalled    int
-	queryCalled   int
+	execCalled     int
+	queryCalled    int
 	queryRowCalled int
-	commitCalled  int
+	commitCalled   int
 	rollbackCalled int
 }
 
@@ -337,27 +338,51 @@ func TestInsertEvent(t *testing.T) {
 func TestFetchPendingBatch(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("fetches pending events", func(t *testing.T) {
+	t.Run("include scope restricts the claim to owned event types", func(t *testing.T) {
 		eventID1 := uuid.New()
 		eventID2 := uuid.New()
 		aggregateID := uuid.New()
 		now := time.Now()
+		owned := []string{"chat.message.sent", "chat.room.updated"}
 
 		rows := &mockRows{
 			values: [][]any{
-				{eventID1, "payment", aggregateID, "payment.completed", []byte(`{"test": "data"}`), StatusPending, 0, now, now},
-				{eventID2, "order", aggregateID, "order.created", []byte(`{"test": "data2"}`), StatusPending, 0, now, now},
+				{eventID1, "chat.message", aggregateID, "chat.message.sent", []byte(`{"test": "data"}`), StatusPending, 0, now, now},
+				{eventID2, "chat.room", aggregateID, "chat.room.updated", []byte(`{"test": "data2"}`), StatusPending, 0, now, now},
 			},
 		}
 
 		tx := &mockTx{
 			queryFunc: func(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+				// OWNERSHIP: the include scope must reach SQL as a bound array so
+				// the database — not the worker — decides what is claimable.
+				if !strings.Contains(sql, "event_type = ANY(") {
+					t.Errorf("expected include clause in query, got: %s", sql)
+				}
+				if strings.Contains(sql, "<> ALL(") {
+					t.Errorf("include scope must not emit an exclude clause, got: %s", sql)
+				}
+				if len(args) != 4 {
+					t.Fatalf("expected 4 args (pending, failed, include, limit), got %d: %v", len(args), args)
+				}
+				got, ok := args[2].([]string)
+				if !ok || len(got) != len(owned) {
+					t.Fatalf("expected include scope %v, got %v", owned, args[2])
+				}
+				for i := range owned {
+					if got[i] != owned[i] {
+						t.Fatalf("include scope[%d]=%q want %q", i, got[i], owned[i])
+					}
+				}
+				if limit, ok := args[3].(int); !ok || limit != 10 {
+					t.Errorf("expected limit 10, got %v", args[3])
+				}
 				return rows, nil
 			},
 		}
 		repo := NewOutboxRepository(nil)
 
-		events, err := repo.FetchPendingBatch(ctx, tx, 10)
+		events, err := repo.FetchPendingBatch(ctx, tx, 10, EventOwnershipScope{Include: owned})
 		if err != nil {
 			t.Errorf("expected no error, got %v", err)
 		}
@@ -369,6 +394,47 @@ func TestFetchPendingBatch(t *testing.T) {
 		}
 		if events[1].ID != eventID2 {
 			t.Errorf("expected event ID %v, got %v", eventID2, events[1].ID)
+		}
+	})
+
+	t.Run("exclude scope claims every type except the excluded ones", func(t *testing.T) {
+		excluded := []string{"chat.message.sent", "chat.room.created", "chat.room.updated"}
+
+		rows := &mockRows{
+			values: [][]any{
+				{uuid.New(), "payment", uuid.New(), "payment.completed", []byte(`{}`), StatusPending, 0, time.Now(), time.Now()},
+			},
+		}
+
+		tx := &mockTx{
+			queryFunc: func(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+				if !strings.Contains(sql, "event_type <> ALL(") {
+					t.Errorf("expected exclude clause in query, got: %s", sql)
+				}
+				if strings.Contains(sql, "= ANY(") {
+					t.Errorf("exclude scope must not emit an include clause, got: %s", sql)
+				}
+				if len(args) != 4 {
+					t.Fatalf("expected 4 args (pending, failed, exclude, limit), got %d: %v", len(args), args)
+				}
+				got, ok := args[2].([]string)
+				if !ok || len(got) != len(excluded) {
+					t.Fatalf("expected exclude scope %v, got %v", excluded, args[2])
+				}
+				if limit, ok := args[3].(int); !ok || limit != 5 {
+					t.Errorf("expected limit 5, got %v", args[3])
+				}
+				return rows, nil
+			},
+		}
+		repo := NewOutboxRepository(nil)
+
+		events, err := repo.FetchPendingBatch(ctx, tx, 5, EventOwnershipScope{Exclude: excluded})
+		if err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
+		if len(events) != 1 {
+			t.Errorf("expected 1 event, got %d", len(events))
 		}
 	})
 
@@ -384,42 +450,12 @@ func TestFetchPendingBatch(t *testing.T) {
 		}
 		repo := NewOutboxRepository(nil)
 
-		events, err := repo.FetchPendingBatch(ctx, tx, 10)
+		events, err := repo.FetchPendingBatch(ctx, tx, 10, EventOwnershipScope{Include: []string{"payment.completed"}})
 		if err != nil {
 			t.Errorf("expected no error, got %v", err)
 		}
 		if len(events) != 0 {
 			t.Errorf("expected 0 events, got %d", len(events))
-		}
-	})
-
-	t.Run("respects limit parameter", func(t *testing.T) {
-		rows := &mockRows{
-			values: [][]any{
-				{uuid.New(), "payment", uuid.New(), "payment.completed", []byte(`{}`), StatusPending, 0, time.Now(), time.Now()},
-			},
-		}
-
-		tx := &mockTx{
-			queryFunc: func(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
-				if len(args) < 3 {
-					t.Errorf("expected at least 3 args, got %d", len(args))
-				}
-				limit, ok := args[2].(int)
-				if !ok || limit != 5 {
-					t.Errorf("expected limit to be 5, got %v", args[2])
-				}
-				return rows, nil
-			},
-		}
-		repo := NewOutboxRepository(nil)
-
-		events, err := repo.FetchPendingBatch(ctx, tx, 5)
-		if err != nil {
-			t.Errorf("expected no error, got %v", err)
-		}
-		if len(events) != 1 {
-			t.Errorf("expected 1 event, got %d", len(events))
 		}
 	})
 
@@ -431,9 +467,63 @@ func TestFetchPendingBatch(t *testing.T) {
 		}
 		repo := NewOutboxRepository(nil)
 
-		_, err := repo.FetchPendingBatch(ctx, tx, 10)
+		_, err := repo.FetchPendingBatch(ctx, tx, 10, EventOwnershipScope{Include: []string{"payment.completed"}})
 		if err == nil {
 			t.Error("expected error, got nil")
+		}
+	})
+}
+
+// TestFetchPendingBatch_RejectsUnscopedClaim proves a consumer cannot claim
+// without declaring what it owns: an empty or contradictory ownership scope is
+// refused before any row is selected.
+func TestFetchPendingBatch_RejectsUnscopedClaim(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("empty scope is rejected and no query is issued", func(t *testing.T) {
+		queried := false
+		tx := &mockTx{
+			queryFunc: func(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+				queried = true
+				return &mockRows{}, nil
+			},
+		}
+		repo := NewOutboxRepository(nil)
+
+		_, err := repo.FetchPendingBatch(ctx, tx, 10, EventOwnershipScope{})
+		if err == nil {
+			t.Fatal("expected error for empty ownership scope, got nil")
+		}
+		if !strings.Contains(err.Error(), "ownership scope is empty") {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if queried {
+			t.Fatal("an unscoped claim must not reach the database")
+		}
+	})
+
+	t.Run("contradictory scope is rejected", func(t *testing.T) {
+		queried := false
+		tx := &mockTx{
+			queryFunc: func(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+				queried = true
+				return &mockRows{}, nil
+			},
+		}
+		repo := NewOutboxRepository(nil)
+
+		_, err := repo.FetchPendingBatch(ctx, tx, 10, EventOwnershipScope{
+			Include: []string{"chat.message.sent"},
+			Exclude: []string{"payment.completed"},
+		})
+		if err == nil {
+			t.Fatal("expected error for contradictory ownership scope, got nil")
+		}
+		if !strings.Contains(err.Error(), "exactly one of include/exclude") {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if queried {
+			t.Fatal("a contradictory claim must not reach the database")
 		}
 	})
 }
@@ -617,5 +707,3 @@ func TestEvent(t *testing.T) {
 		}
 	})
 }
-
-

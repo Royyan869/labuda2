@@ -13,7 +13,7 @@ import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/comm
 /// Canonical Product content from the detail wire (variety, size_cm,
 /// age_months, gender, breeder, bloodline, certificates, preparation_time,
 /// preparation_note, description) is consumed through the shared
-/// [CommerceCommonProductDetailSection] — the same section the Listing/ForSale
+/// [CommerceCommonProductDetailSection] — the same section the ForSale/ForSale
 /// sibling uses, so no canonical value preserved in the Auction read model is
 /// left dead. 'Bid Increment' remains the auction-specific row.
 class AuctionDetailInfo extends StatelessWidget {

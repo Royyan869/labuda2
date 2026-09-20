@@ -22,9 +22,9 @@ go run ./cmd/migrate
 000008_payment_webhook_captured_after_expiry_index.up.sql          — index split out of 000005 (new enum value can't be used in the same tx that added it)
 000009_fixed_price_sale_quantity_persistence.up.sql                — adds fixed_price_sales.quantity_available (was previously faked from status alone)
 000010_product_sale_channel_canonicalization.up.sql                — PASS_21C: drops the legacy listings table, auctions.listing_id, and all other dead
-                                                                       listing_id columns (pricing_tokens, order_items, shipping_quotes — the last of
-                                                                       these was a live NOT NULL-with-no-writer bug); adds a DB trigger enforcing one
-                                                                       active selling channel (Listing or Auction) per product
+                                                                        listing_id columns (pricing_tokens, order_items, shipping_quotes — the last of
+                                                                        these was a live NOT NULL-with-no-writer bug); adds a DB trigger enforcing one
+                                                                        active selling channel (For Sale or Auction) per product
 000011_prune_orphan_tables.up.sql                                  — PHASE 1 CLEANUP: drops 6 tables with zero application code references
                                                                        (actors, bnr_classifications, financial_reconciliations, search_results,
                                                                        ticket_escalations, user_online_status)

@@ -94,7 +94,7 @@ func TestReleaseFromDispute_RejectsOrderWithoutDispute(t *testing.T) {
 		logger: logger,
 	}
 
-	err := svc.ReleaseFromDispute(context.Background(), nil, order.ID)
+	err := svc.ReleaseFromDispute(context.Background(), nil, order.ID, uuid.New())
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "open dispute")
@@ -119,7 +119,7 @@ func TestReleaseFromDispute_RejectsWrongStatus(t *testing.T) {
 		logger: logger,
 	}
 
-	err := svc.ReleaseFromDispute(context.Background(), nil, order.ID)
+	err := svc.ReleaseFromDispute(context.Background(), nil, order.ID, uuid.New())
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid state")
@@ -146,27 +146,22 @@ func TestReleaseFromDispute_RejectsWrongStatus(t *testing.T) {
 //   - No loyalty points granted (coinsService.EarnPointsForOrderCompletion
 //     must NOT be called).
 //   - fulfillRequestsFromOrder must NOT be called.
+// SKIPPED, NOT PASSING: this test asserts nothing. It previously reported a
+// green PASS while only logging the expectations, which is FALSE CONFIDENCE —
+// the canonical happy path stays unproven until it is exercised against a real
+// database (escrow flip + finance ledger + order.completed + money.released).
 func TestReleaseFromDispute_GatewayReleaseHappyPath(t *testing.T) {
-	if testing.Short() {
-		t.Skip("integration scenario — requires test database")
-	}
-	t.Log("INTEGRATION: gateway-funded ReleaseFromDispute happy path")
-	t.Log("  - escrow.status flipped to released")
-	t.Log("  - finance ledger: GATEWAY_CLEARING -= gross, SELLER_PAYABLE += sellerNet, PLATFORM_REVENUE += commission")
-	t.Log("  - order.status=completed, order.escrow_status=released")
-	t.Log("  - outbox emits order.completed AND money.released")
-	t.Log("  - NO loyalty points, NO request fulfillment")
+	t.Skip("UNPROVEN: requires an integration harness (real DB) — escrow flip, finance ledger, order.completed + money.released")
 }
 
 // TestReleaseFromDispute_UsesGatewayReleaseOnly documents that the
 // canonical gateway release is the only available path; the legacy
 // balance-hold release methods have been demolished from the codebase.
+// SKIPPED, NOT PASSING: asserts nothing today (was a false PASS). The claim
+// that ReleaseGatewayEscrowToSeller is the only release path is proven by
+// absence of the legacy methods (compile-time) — not by this test.
 func TestReleaseFromDispute_UsesGatewayReleaseOnly(t *testing.T) {
-	if testing.Short() {
-		t.Skip("integration scenario — requires test database / call spies")
-	}
-	t.Log("INTEGRATION: must use paymentService.ReleaseGatewayEscrowToSeller")
-	t.Log("  - legacy balance-hold release methods no longer exist")
+	t.Skip("UNPROVEN: no call spy available; legacy methods are absent at compile time instead")
 }
 
 // TestReleaseFromDispute_IdempotentReplay documents the replay-safe contract.
@@ -175,14 +170,10 @@ func TestReleaseFromDispute_UsesGatewayReleaseOnly(t *testing.T) {
 // row is deduped on idempotency_key="money.released.<order_id>". A repeated
 // call on an already-released dispute must therefore be a no-op rather than an
 // error or a double release.
+// SKIPPED, NOT PASSING: idempotent replay needs the real escrow/ledger/outbox
+// constraints (UNIQUE idempotency_key) to be meaningful; logging it was a false PASS.
 func TestReleaseFromDispute_IdempotentReplay(t *testing.T) {
-	if testing.Short() {
-		t.Skip("integration scenario — requires test database")
-	}
-	t.Log("INTEGRATION: replayed ReleaseFromDispute on released escrow")
-	t.Log("  - second call returns nil (no error)")
-	t.Log("  - finance ledger: no duplicate release transaction")
-	t.Log("  - outbox: no duplicate money.released row")
+	t.Skip("UNPROVEN: requires an integration harness (real DB) to exercise release idempotency")
 }
 
 

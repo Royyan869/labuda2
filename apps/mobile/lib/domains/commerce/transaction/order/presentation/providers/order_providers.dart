@@ -131,10 +131,24 @@ final refundsByOrderProvider =
 // ORDER PREVIEW PROVIDER
 // =============================================================================
 
-/// Provider for previewing order pricing before order creation
-/// This provider calls POST /orders/preview to get backend-calculated pricing
-/// The pricing from this provider should be used for checkout validation
-/// instead of listing.price
+/// Provider for previewing order pricing before order creation.
+///
+/// This provider calls the canonical pricing preview boundary
+/// (`POST /pricing/preview`) to get backend-calculated pricing. The pricing from
+/// this provider must be used for checkout validation instead of
+/// `forSale.price`.
+///
+/// RETRY IS DELIBERATELY DISABLED.
+///
+/// Riverpod retries a failed FutureProvider automatically (exponential backoff,
+/// up to ~10 attempts). While that retry loop runs, the provider stays in a
+/// retrying loading state and `provider.future` NEVER completes, so a checkout
+/// screen awaiting it cannot tell a failure from a slow network: the buyer sees
+/// an endless spinner instead of an actionable error. Silent retries would also
+/// mint a fresh pricing token on every attempt, so the screen that owns the
+/// refresh affordance must be the only authority that retries. With retry
+/// disabled a failure settles into a deterministic AsyncError, the awaited
+/// future throws, and checkout reports the failure truthfully.
 final orderPreviewProvider =
     FutureProvider.family<PreviewOrderResult, PreviewOrderParams>((
       ref,
@@ -148,4 +162,4 @@ final orderPreviewProvider =
       }
 
       return result.data!;
-    });
+    }, retry: (retryCount, error) => null);

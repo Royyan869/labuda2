@@ -14,10 +14,6 @@ import (
 // This is the canonical duplicate signal for retrying the same checkout attempt.
 var ErrDuplicatePricingToken = errors.New("order with this pricing_token_id already exists")
 
-// ErrDuplicateSource is returned when an order with the same (source_type, source_id) already exists.
-// This is expected behavior for idempotent auction settlement.
-var ErrDuplicateSource = errors.New("order with this source_type and source_id already exists")
-
 // ErrDuplicateIdempotencyKey is returned when an order with the same (buyer_id, idempotency_key)
 // already exists. The buyer-scoped idempotency key has been reused for a different request payload
 // (e.g. different pricing token). Callers should surface a 409 to the client.
@@ -64,9 +60,6 @@ type OrderRepository interface {
 	// Used for shipping quote reactivation validation to prevent duplicate orders.
 	CountValidOrdersByShippingQuoteID(ctx context.Context, tx db.Tx, shippingQuoteID uuid.UUID) (int64, error)
 
-	// GetBySource retrieves an order by its source type and source ID.
-	GetBySource(ctx context.Context, tx db.Tx, sourceType string, sourceID uuid.UUID) (*entity.Order, error)
-
 	// GetOrderItems retrieves all order items for a given order.
 	GetOrderItems(ctx context.Context, tx db.Tx, orderID uuid.UUID) ([]*entity.OrderItem, error)
 
@@ -79,9 +72,6 @@ type OrderRepository interface {
 	// Uses FOR UPDATE SKIP LOCKED to support concurrent workers.
 	// Query conditions: status = 'paid', escrow_status = 'holding', ready_to_ship_by + grace_period < NOW()
 	FindOverdueOrdersForCancel(ctx context.Context, tx db.Tx, limit int) ([]uuid.UUID, error)
-
-	// GetByOrderNumber retrieves an order by its human-readable order number.
-	GetByOrderNumber(ctx context.Context, tx db.Tx, orderNumber string) (*entity.Order, error)
 
 	// CreateShippingProofTx creates a shipping proof within a transaction.
 	CreateShippingProofTx(ctx context.Context, tx db.Tx, proof *entity.ShippingProof) error

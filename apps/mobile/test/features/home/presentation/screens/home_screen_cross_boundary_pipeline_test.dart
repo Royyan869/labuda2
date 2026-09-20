@@ -74,12 +74,12 @@ Map<String, dynamic> feedContentItem({
   };
 }
 
-/// A promoted listing item for the feed wire.
+/// A promoted forSale item for the feed wire.
 Map<String, dynamic> feedPromotedListingItem({
   required String instanceId,
   required String title,
   int pricePerUnit = 5000000,
-  String forSaleId = 'listing-1',
+  String forSaleId = 'forSale-1',
 }) {
   return <String, dynamic>{
     'type': 'promoted_for_sale',
@@ -463,8 +463,8 @@ void main() {
               items: [
                 feedContentItem(id: 'organic-1', body: 'An organic post'),
                 feedPromotedListingItem(
-                  instanceId: 'pi-listing',
-                  title: 'Promoted Listing Koi',
+                  instanceId: 'pi-forSale',
+                  title: 'Promoted ForSale Koi',
                 ),
                 feedPromotedAuctionItem(
                   instanceId: 'pi-auction',
@@ -495,14 +495,14 @@ void main() {
         final state = _container(tester).read(feedProvider);
         expect(state.items, hasLength(5));
         expect(state.items[0].type, FeedItemType.content);
-        expect(state.items[1].type, FeedItemType.promotedListing);
+        expect(state.items[1].type, FeedItemType.promotedForSale);
         expect(state.items[2].type, FeedItemType.promotedAuction);
         expect(state.items[3].type, FeedItemType.content);
         expect(state.items[4].type, FeedItemType.promotedExternal);
 
         // Proof: promoted items carry correct additionalData from DTO mapping.
         expect(state.items[1].additionalData['isPromoted'], true);
-        expect(state.items[1].additionalData['title'], 'Promoted Listing Koi');
+        expect(state.items[1].additionalData['title'], 'Promoted ForSale Koi');
         expect(state.items[2].additionalData['auctionId'], 'auction-1');
         expect(state.items[2].additionalData['bidCount'], 3);
         expect(state.items[4].additionalData['externalUrl'],

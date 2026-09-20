@@ -24,7 +24,7 @@ func TestReleaseGatewayEscrowRollsBackWhenFinanceAccountMissingRealDB(t *testing
 	buyerID, sellerID, orderID, escrowID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
 	_, err := tdb.Pool().Exec(ctx, `INSERT INTO users (id,firebase_uid,email) VALUES ($1,$2,$3),($4,$5,$6)`, buyerID, buyerID.String(), buyerID.String()+"@proof.test", sellerID, sellerID.String(), sellerID.String()+"@proof.test")
 	require.NoError(t, err)
-	_, err = tdb.Pool().Exec(ctx, `INSERT INTO orders (id,buyer_id,seller_id,source_type,source_id,quantity,unit_price,subtotal,shipping_total,commission_percent,commission_amount,escrow_amount,total_payable_amount,status,escrow_status,payment_expires_at) VALUES ($1,$2,$3,'for_sale',$1,1,1000,1000,0,0,0,1000,1000,'completed','holding',NOW()+INTERVAL '1 hour')`, orderID, buyerID, sellerID)
+	_, err = tdb.Pool().Exec(ctx, `INSERT INTO orders (id,buyer_id,seller_id,source_type,source_id,quantity,unit_price,subtotal,shipping_total,commission_percent,commission_amount,total_payable_amount,status,escrow_status,payment_expires_at) VALUES ($1,$2,$3,'for_sale',$1,1,1000,1000,0,0,1000,'completed','holding',NOW()+INTERVAL '1 hour')`, orderID, buyerID, sellerID)
 	require.NoError(t, err)
 	_, err = tdb.Pool().Exec(ctx, `INSERT INTO escrows (id,order_id,amount,status,created_at) VALUES ($1,$2,1000,'holding',NOW())`, escrowID, orderID)
 	require.NoError(t, err)

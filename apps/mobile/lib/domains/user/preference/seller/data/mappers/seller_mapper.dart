@@ -26,9 +26,9 @@ class DashboardStatsMapper {
       totalRevenue: dto.totalRevenue,
       pendingRevenue: dto.pendingRevenue,
       refundedRevenue: dto.refundedRevenue,
-      totalListings: dto.totalListings,
-      activeListings: dto.activeListings,
-      soldListings: dto.soldListings,
+      totalForSales: dto.totalForSales,
+      activeForSales: dto.activeForSales,
+      soldForSales: dto.soldForSales,
       totalAuctions: dto.totalAuctions,
       activeAuctions: dto.activeAuctions,
     );
@@ -47,9 +47,9 @@ class DashboardStatsMapper {
       totalRevenue: entity.totalRevenue,
       pendingRevenue: entity.pendingRevenue,
       refundedRevenue: entity.refundedRevenue,
-      totalListings: entity.totalListings,
-      activeListings: entity.activeListings,
-      soldListings: entity.soldListings,
+      totalForSales: entity.totalForSales,
+      activeForSales: entity.activeForSales,
+      soldForSales: entity.soldForSales,
       totalAuctions: entity.totalAuctions,
       activeAuctions: entity.activeAuctions,
     );
@@ -223,7 +223,6 @@ class SellerEarningsMapper {
       calculatedAt: DateTime.now(),
       // Balance breakdown (J1-C)
       grossPayable: apiModel.grossPayable,
-      activeDisputeFreeze: apiModel.activeDisputeFreeze,
     );
   }
 }

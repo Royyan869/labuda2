@@ -1,7 +1,7 @@
-/// Listing Picker Bottom Sheet
+/// ForSale Picker Bottom Sheet
 ///
-/// Allows seller to select from their active listings when responding to buyer requests.
-/// Only shows listings that are:
+/// Allows seller to select from their active forSales when responding to buyer requests.
+/// Only shows forSales that are:
 /// - Owned by the current seller
 /// - Active status (not sold, not withdrawn)
 /// - Valid for sharing
@@ -32,27 +32,27 @@ enum ForSalePickerIntent {
 /// The underlying for-sale item remains available for rich UI context, but callers
 /// must read the canonical ID that matches their intent.
 class ForSalePickerSelection {
-  final ForSale listing;
+  final ForSale forSale;
   final String forSaleId;
   final String? productId;
   final String title;
   final String? imageUrl;
 
   const ForSalePickerSelection({
-    required this.listing,
+    required this.forSale,
     required this.forSaleId,
     required this.productId,
     required this.title,
     this.imageUrl,
   });
 
-  factory ForSalePickerSelection.fromListing(ForSale listing) {
+  factory ForSalePickerSelection.fromForSale(ForSale forSale) {
     return ForSalePickerSelection(
-      listing: listing,
-      forSaleId: listing.forSaleId,
-      productId: listing.productId,
-      title: listing.title,
-      imageUrl: listing.media.isNotEmptyUrls ? listing.media.firstUrl : null,
+      forSale: forSale,
+      forSaleId: forSale.forSaleId,
+      productId: forSale.productId,
+      title: forSale.title,
+      imageUrl: forSale.media.isNotEmptyUrls ? forSale.media.firstUrl : null,
     );
   }
 
@@ -64,24 +64,24 @@ typedef ForSaleSelectedCallback =
     void Function(ForSalePickerSelection selection);
 
 extension ForSalePickerIntentX on ForSalePickerIntent {
-  bool matches(ForSale listing) {
-    if (listing.status != ForSaleStatus.active) {
+  bool matches(ForSale forSale) {
+    if (forSale.status != ForSaleStatus.active) {
       return false;
     }
 
     switch (this) {
       case ForSalePickerIntent.forSaleAttachment:
-        // PASS_21C: the listingType != 'auction' check was removed —
+        // PASS_21C: the forSaleType != 'auction' check was removed —
         // ForSale no longer models a "type" at all (the backend never
         // emits one; every real ForSale is definitionally fixed-price).
-        return listing.forSaleId.isNotEmpty;
+        return forSale.forSaleId.isNotEmpty;
     }
   }
 
-  String? selectedId(ForSale listing) {
+  String? selectedId(ForSale forSale) {
     switch (this) {
       case ForSalePickerIntent.forSaleAttachment:
-        return listing.forSaleId;
+        return forSale.forSaleId;
     }
   }
 }
@@ -166,7 +166,7 @@ class _ForSalePickerBottomSheetState
       pageSize: 50,
     );
 
-    final listingsAsync = ref.watch(sellerForSalesProvider(params));
+    final forSalesAsync = ref.watch(sellerForSalesProvider(params));
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
@@ -178,12 +178,12 @@ class _ForSalePickerBottomSheetState
         children: [
           _buildHeader(context, isDark),
           _buildSearchBar(context, isDark),
-          _buildCreateNewListingButton(context, isDark),
+          _buildCreateNewForSaleButton(context, isDark),
           Expanded(
-            child: listingsAsync.when(
-              data: (listings) {
-                // Filter only active listings and apply search
-                final activeListings = listings
+            child: forSalesAsync.when(
+              data: (forSales) {
+                // Filter only active forSales and apply search
+                final activeForSales = forSales
                     .where(
                       (l) =>
                           widget.intent.matches(l) &&
@@ -194,11 +194,11 @@ class _ForSalePickerBottomSheetState
                     )
                     .toList();
 
-                if (activeListings.isEmpty) {
+                if (activeForSales.isEmpty) {
                   return _buildEmptyState(context, isDark);
                 }
 
-                return _buildListingList(context, isDark, activeListings);
+                return _buildForSaleList(context, isDark, activeForSales);
               },
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stack) => Center(
@@ -212,7 +212,7 @@ class _ForSalePickerBottomSheetState
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Error loading listings',
+                      'Error loading forSales',
                       style: TextStyle(
                         fontSize: 16,
                         color: AppColors.neutralGray600,
@@ -261,7 +261,7 @@ class _ForSalePickerBottomSheetState
       child: Row(
         children: [
           Text(
-            'Pilih Listing',
+            'Pilih ForSale',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -284,7 +284,7 @@ class _ForSalePickerBottomSheetState
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
-          hintText: 'Cari listing...',
+          hintText: 'Cari forSale...',
           prefixIcon: const Icon(Icons.search),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
@@ -307,7 +307,7 @@ class _ForSalePickerBottomSheetState
     );
   }
 
-  Widget _buildCreateNewListingButton(BuildContext context, bool isDark) {
+  Widget _buildCreateNewForSaleButton(BuildContext context, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: SizedBox(
@@ -318,7 +318,7 @@ class _ForSalePickerBottomSheetState
             widget.onCreateNewForSale?.call();
           },
           icon: const Icon(Icons.add),
-          label: const Text('Buat Listing Baru'),
+          label: const Text('Buat ForSale Baru'),
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.primaryRed,
             side: const BorderSide(color: AppColors.primaryRed),
@@ -344,7 +344,7 @@ class _ForSalePickerBottomSheetState
           ),
           const SizedBox(height: 16),
           Text(
-            'Tidak Ada Listing Aktif',
+            'Tidak Ada ForSale Aktif',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -353,7 +353,7 @@ class _ForSalePickerBottomSheetState
           ),
           const SizedBox(height: 8),
           Text(
-            'Buat listing baru untuk mulai menjual',
+            'Buat forSale baru untuk mulai menjual',
             style: TextStyle(fontSize: 14, color: AppColors.neutralGray600),
           ),
         ],
@@ -361,28 +361,28 @@ class _ForSalePickerBottomSheetState
     );
   }
 
-  Widget _buildListingList(
+  Widget _buildForSaleList(
     BuildContext context,
     bool isDark,
-    List<ForSale> listings,
+    List<ForSale> forSales,
   ) {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: listings.length,
+      itemCount: forSales.length,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final listing = listings[index];
+        final forSale = forSales[index];
         final isSelected = switch (widget.intent) {
           ForSalePickerIntent.forSaleAttachment =>
-            listing.forSaleId == widget.selectedForSaleId,
+            forSale.forSaleId == widget.selectedForSaleId,
         };
 
-        return _ListingTile(
-          listing: listing,
+        return _ForSaleTile(
+          forSale: forSale,
           isSelected: isSelected,
           onTap: () {
             widget.onForSaleSelected(
-              ForSalePickerSelection.fromListing(listing),
+              ForSalePickerSelection.fromForSale(forSale),
             );
             Navigator.of(context).pop();
           },
@@ -393,13 +393,13 @@ class _ForSalePickerBottomSheetState
 }
 
 /// ForSale Tile for Picker
-class _ListingTile extends StatelessWidget {
-  final ForSale listing;
+class _ForSaleTile extends StatelessWidget {
+  final ForSale forSale;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _ListingTile({
-    required this.listing,
+  const _ForSaleTile({
+    required this.forSale,
     required this.isSelected,
     required this.onTap,
   });
@@ -428,9 +428,9 @@ class _ListingTile extends StatelessWidget {
             // Thumbnail
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: listing.media.isNotEmptyUrls
+              child: forSale.media.isNotEmptyUrls
                   ? Image.network(
-                      listing.media.firstUrl,
+                      forSale.media.firstUrl,
                       width: 70,
                       height: 70,
                       fit: BoxFit.cover,
@@ -446,7 +446,7 @@ class _ListingTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    listing.title,
+                    forSale.title,
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 15,
@@ -456,7 +456,7 @@ class _ListingTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    listing.formattedPrice,
+                    forSale.formattedPrice,
                     style: const TextStyle(
                       color: AppColors.primaryRed,
                       fontWeight: FontWeight.bold,
@@ -465,7 +465,7 @@ class _ListingTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Stok: ${listing.stock}',
+                    'Stok: ${forSale.stock}',
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.neutralGray600,

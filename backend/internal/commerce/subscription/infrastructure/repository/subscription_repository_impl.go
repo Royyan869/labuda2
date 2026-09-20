@@ -281,6 +281,67 @@ func (r *SellerSubscriptionRepositoryImpl) GetLatestByUserID(
 	}, nil
 }
 
+// GetMostRecentByUserID returns the user's latest subscription row regardless of
+// status (ORDER BY created_at DESC LIMIT 1) — the canonical subscription-STATE
+// read for reporting. Returns nil when the user has no subscription row at all.
+//
+// Mirrors the search projection's seller_subscription_status semantics: no row
+// means "no subscription" upstream, NOT "expired". Market authority is owned by
+// GetLatestByUserID (active + inside its window).
+func (r *SellerSubscriptionRepositoryImpl) GetMostRecentByUserID(
+	ctx context.Context,
+	tx db.Tx,
+	userID uuid.UUID,
+) (*subscriptionEntity.SellerSubscription, error) {
+	var id, paymentID uuid.UUID
+	var status subscriptionEntity.Status
+	var startedAt, expiresAt, createdAt, updatedAt time.Time
+	var durationDays int
+	var amountPaid int64
+	var currency string
+
+	err := tx.QueryRow(ctx, `
+		SELECT id, user_id, status,
+		       started_at, expires_at,
+		       duration_days,
+		       amount_paid, currency,
+		       payment_id,
+		       created_at, updated_at
+		FROM seller_subscriptions
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+		LIMIT 1
+	`, userID).Scan(
+		&id, &userID, &status,
+		&startedAt, &expiresAt,
+		&durationDays,
+		&amountPaid, &currency,
+		&paymentID,
+		&createdAt, &updatedAt,
+	)
+
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("get most recent subscription by user id failed: %w", err)
+	}
+
+	return &subscriptionEntity.SellerSubscription{
+		ID:           id,
+		UserID:       userID,
+		Status:       status,
+		StartedAt:    startedAt,
+		ExpiresAt:    expiresAt,
+		DurationDays: durationDays,
+		AmountPaid:   money.New(amountPaid),
+		Currency:     currency,
+		PaymentID:    paymentID,
+		CreatedAt:    createdAt,
+		UpdatedAt:    updatedAt,
+	}, nil
+}
+
 // GetLatestByUserIDForUpdate returns the furthest entitlement chain end for a user.
 // The caller must hold any seller-level serialization lock before invoking this.
 // Returns nil if no entitlement-bearing subscription exists.

@@ -33,12 +33,12 @@ class CommerceResourceSelection {
 class CommerceResourcePicker extends ConsumerStatefulWidget {
   final String sellerId;
   final String? selectedResourceId;
-  final Future<void> Function()? onCreateNewListing;
+  final Future<void> Function()? onCreateNewForSale;
   const CommerceResourcePicker({
     super.key,
     required this.sellerId,
     this.selectedResourceId,
-    this.onCreateNewListing,
+    this.onCreateNewForSale,
   });
 
   @override
@@ -49,7 +49,7 @@ class CommerceResourcePicker extends ConsumerStatefulWidget {
     BuildContext context, {
     required String sellerId,
     String? selectedResourceId,
-    Future<void> Function()? onCreateNewListing,
+    Future<void> Function()? onCreateNewForSale,
   }) {
     return showModalBottomSheet<CommerceResourceSelection>(
       context: context,
@@ -60,7 +60,7 @@ class CommerceResourcePicker extends ConsumerStatefulWidget {
       builder: (_) => CommerceResourcePicker(
         sellerId: sellerId,
         selectedResourceId: selectedResourceId,
-        onCreateNewListing: onCreateNewListing,
+        onCreateNewForSale: onCreateNewForSale,
       ),
     );
   }
@@ -122,7 +122,7 @@ class _CommerceResourcePickerState extends ConsumerState<CommerceResourcePicker>
                 _FPSTab(
                   sellerId: widget.sellerId,
                   selectedResourceId: widget.selectedResourceId,
-                  onCreateNewListing: widget.onCreateNewListing,
+                  onCreateNewForSale: widget.onCreateNewForSale,
                   onSelected: (s) => Navigator.of(context).pop(s),
                 ),
                 _AuctionTab(
@@ -144,18 +144,18 @@ class _CommerceResourcePickerState extends ConsumerState<CommerceResourcePicker>
 class _FPSTab extends ConsumerWidget {
   final String sellerId;
   final String? selectedResourceId;
-  final Future<void> Function()? onCreateNewListing;
+  final Future<void> Function()? onCreateNewForSale;
   final Function(CommerceResourceSelection) onSelected;
   const _FPSTab({
     required this.sellerId,
     this.selectedResourceId,
-    this.onCreateNewListing,
+    this.onCreateNewForSale,
     required this.onSelected,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final createNewListing = onCreateNewListing;
+    final createNewForSale = onCreateNewForSale;
     final pagerState = ref.watch(sellerFPSPagerProvider);
     final active = pagerState.items
         .where(
@@ -179,22 +179,22 @@ class _FPSTab extends ConsumerWidget {
     if (active.isEmpty && !pagerState.hasMore) {
       return _EmptyTab(
         message: 'Belum ada For Sale aktif',
-        actionLabel: createNewListing != null ? 'Buat Produk Baru' : null,
-        onAction: createNewListing == null
+        actionLabel: createNewForSale != null ? 'Buat Produk Baru' : null,
+        onAction: createNewForSale == null
             ? null
             : () {
-                unawaited(createNewListing.call());
+                unawaited(createNewForSale.call());
               },
       );
     }
 
     final showLoader = pagerState.isLoadingMore;
-    final showCreateNewListing = createNewListing != null;
-    final itemOffset = showCreateNewListing ? 1 : 0;
+    final showCreateNewForSale = createNewForSale != null;
+    final itemOffset = showCreateNewForSale ? 1 : 0;
     return ListView.builder(
       itemCount: active.length + itemOffset + (showLoader ? 1 : 0),
       itemBuilder: (context, index) {
-        if (showCreateNewListing && index == 0) {
+        if (showCreateNewForSale && index == 0) {
           return ListTile(
             leading: const Icon(
               Icons.add_circle_outline,
@@ -205,12 +205,12 @@ class _FPSTab extends ConsumerWidget {
               style: TextStyle(color: AppColors.primaryRed),
             ),
             onTap: () {
-              unawaited(createNewListing.call());
+              unawaited(createNewForSale.call());
             },
           );
         }
-        final listingIndex = index - itemOffset;
-        if (listingIndex >= active.length) {
+        final forSaleIndex = index - itemOffset;
+        if (forSaleIndex >= active.length) {
           return const Center(
             child: Padding(
               padding: EdgeInsets.all(16),
@@ -218,7 +218,7 @@ class _FPSTab extends ConsumerWidget {
             ),
           );
         }
-        final l = active[listingIndex];
+        final l = active[forSaleIndex];
         return _Tile(
           title: l.title,
           price: l.formattedPrice,

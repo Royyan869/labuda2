@@ -13,8 +13,6 @@ import '../dto/dto.dart';
 /// Mapper for Report entity
 class ReportMapper {
   /// Map backend ReportDto to domain Report entity.
-  ///
-  /// Backend returns subject_type / subject_id / reason_code / reason_note.
   static Report toEntity(ReportDto dto) {
     return Report(
       id: dto.id,
@@ -23,19 +21,33 @@ class ReportMapper {
       subjectType: ReportTargetTypeExtension.fromString(dto.subjectType),
       reason: ReportReasonTypeExtension.fromString(dto.reasonCode),
       description: dto.reasonNote,
-      evidenceUrls: const [],
-      status: ReportStatus.pending,
+      caseId: dto.caseId,
       createdAt: dto.createdAt,
+      caseProjection: dto.caseProjection != null
+          ? ReportCaseProjection(
+              id: dto.caseProjection!.id,
+              status: dto.caseProjection!.status,
+              createdAt: dto.caseProjection!.createdAt,
+              closedAt: dto.caseProjection!.closedAt,
+            )
+          : null,
+      decisionProjection: dto.decisionProjection != null
+          ? ReportDecisionProjection(
+              outcome: dto.decisionProjection!.outcome,
+              createdAt: dto.decisionProjection!.createdAt,
+            )
+          : null,
+      targetProjection: dto.targetProjection != null
+          ? ReportTargetProjection(
+              subjectType: dto.targetProjection!.subjectType,
+              subjectId: dto.targetProjection!.subjectId,
+              title: dto.targetProjection!.title,
+            )
+          : null,
     );
   }
 
   /// Map CreateReportRequest to backend CreateReportRequestDto.
-  ///
-  /// Serializes:
-  ///   subjectType → subject_type (content/comment/for_sale/auction/user)
-  ///   subjectId   → subject_id
-  ///   reason      → reason_code (locked taxonomy)
-  ///   description → reason_note (optional free text)
   static CreateReportRequestDto toCreateRequestDto(CreateReportRequest request) {
     return CreateReportRequestDto(
       subjectType: request.subjectType.backendValue,
@@ -44,7 +56,6 @@ class ReportMapper {
       reasonNote: request.description,
     );
   }
-
 }
 
 // =====================
@@ -53,17 +64,11 @@ class ReportMapper {
 
 /// Mapper for Appeal entity
 class AppealMapper {
-  /// Map DTO to Domain Entity.
-  ///
-  /// Backend contract (V1): {id, decision_id, status, message, created_at,
-  ///                          admin_response?, reviewed_by?, reviewed_at?}
-  /// Domain mapping: decisionId→sourceId, message→reason,
-  ///                 appealType defaults to contentRemoval (V1 only).
   static Appeal toEntity(AppealDto dto) {
     return Appeal(
       id: dto.id,
-      userId: '', // backend create response omits user_id; populated on read
-      appealType: AppealType.contentRemoval, // V1: content/comment only
+      userId: '',
+      appealType: AppealType.contentRemoval,
       sourceId: dto.decisionId,
       reason: dto.message,
       evidenceDescription: null,
@@ -74,14 +79,10 @@ class AppealMapper {
       reviewerName: dto.reviewedBy,
       reviewedAt: dto.reviewedAt,
       reviewNote: dto.adminResponse,
-      decision: null, // backend does not expose a decision enum field
+      decision: null,
     );
   }
 
-  /// Map Domain Entity to DTO (for creating request).
-  ///
-  /// Backend contract: {decision_id (uuid), message (string)}.
-  /// sourceId on CreateAppealRequest holds the governance decision UUID.
   static CreateAppealRequestDto toCreateRequestDto(
     CreateAppealRequest request,
   ) {
@@ -91,7 +92,6 @@ class AppealMapper {
     );
   }
 
-  /// Map Review Request to DTO (admin only).
   static ReviewAppealRequestDto toReviewRequestDto(
     ReviewAppealRequest request,
   ) {
@@ -100,10 +100,6 @@ class AppealMapper {
       adminResponse: request.reviewNote,
     );
   }
-
-  // =====================
-  // Private Helpers
-  // =====================
 
   static AppealStatus _mapAppealStatusString(String value) {
     return AppealStatusExtension.fromString(value);
@@ -115,25 +111,7 @@ class AppealMapper {
 // =====================
 
 /// Mapper for UserWarning entity
-///
-/// Maps between backend DTO contract and domain entity.
-/// V1: Contract-aligned, no misleading transformations.
 class WarningMapper {
-  /// Map DTO to Domain Entity
-  ///
-  /// Backend fields -> Domain fields:
-  /// - id -> id
-  /// - user_id -> userId
-  /// - level -> level (direct mapping: info/warning/severe)
-  /// - reason -> reason
-  /// - issued_by -> adminId
-  /// - created_at -> createdAt
-  /// - is_active -> isActive
-  /// - status -> status
-  /// - expires_at -> expiresAt
-  /// - revoked_at -> revokedAt
-  /// - revoked_by -> revokedBy
-  /// - adminName (resolved separately from adminId)
   static UserWarning toEntity(UserWarningDto dto, {required String adminName}) {
     return UserWarning(
       id: dto.id,
@@ -151,74 +129,11 @@ class WarningMapper {
     );
   }
 
-  // =====================
-  // Private Helpers
-  // =====================
-
   static WarningLevel _mapLevelString(String value) {
     return WarningLevelExtension.fromString(value);
   }
 
   static WarningStatus _mapWarningStatusString(String value) {
     return WarningStatusExtension.fromString(value);
-  }
-}
-
-// =====================
-// Statistics Mapper
-// =====================
-
-/// Mapper for Report Statistics
-class ReportStatisticsMapper {
-  /// Map API response to Domain Entity
-  static ReportStatistics fromJson(Map<String, dynamic> json) {
-    final reports = json['reports'] as List<dynamic>? ?? [];
-    final byReason = <ReportReasonType, int>{};
-    final byTarget = <ReportTargetType, int>{};
-
-    int pending = 0;
-    int underReview = 0;
-    int resolved = 0;
-
-    for (final report in reports) {
-      final data = report as Map<String, dynamic>;
-      final statusStr = data['status'] as String? ?? 'pending';
-      final reasonStr = data['reason_code'] as String? ?? 'other';
-      final targetStr = data['subject_type'] as String? ?? 'content';
-
-      // Count by status
-      final status = ReportStatusExtension.fromString(statusStr);
-      switch (status) {
-        case ReportStatus.pending:
-          pending++;
-          break;
-        case ReportStatus.underReview:
-          underReview++;
-          break;
-        case ReportStatus.resolved:
-        case ReportStatus.approved:
-        case ReportStatus.rejected:
-          resolved++;
-          break;
-      }
-
-      // Count by reason
-      final reason = ReportReasonTypeExtension.fromString(reasonStr);
-      byReason[reason] = (byReason[reason] ?? 0) + 1;
-
-      // Count by target type
-      final target = ReportTargetTypeExtension.fromString(targetStr);
-      byTarget[target] = (byTarget[target] ?? 0) + 1;
-    }
-
-    return ReportStatistics(
-      totalReports: json['total'] as int? ?? reports.length,
-      pendingReports: json['pending'] as int? ?? pending,
-      underReviewReports: json['under_review'] as int? ?? underReview,
-      resolvedReports: json['resolved'] as int? ?? resolved,
-      reportsByReason: byReason,
-      reportsByTarget: byTarget,
-      generatedAt: DateTime.now(),
-    );
   }
 }

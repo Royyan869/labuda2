@@ -102,13 +102,10 @@ class FollowApiMapper {
   /// Convert a lifecycle-aware FollowListUserCardDto (from backend publiccard)
   /// to a FollowableUser domain entity.
   static FollowableUser fromFollowListCard(FollowListUserCardDto card) {
-    final resolvedUsername = card.username.isNotEmpty
-        ? card.username
-        : 'user_${card.id.length >= 8 ? card.id.substring(0, 8) : card.id}';
+    final resolvedUsername = card.username.trim();
     return FollowableUser(
       id: card.id,
       username: resolvedUsername,
-      displayName: resolvedUsername,
       avatar: card.avatarUrl,
       userType: UserType.buyer,
       lifecycle: card.lifecycle ?? 'active',
@@ -137,13 +134,10 @@ class FollowApiMapper {
   /// isFollowedByCurrentUser defaults to false (not provided; caller fetches
   /// follow state via a separate request if needed).
   static FollowableUser fromUserSearchPreview(UserSearchPreviewDto preview) {
-    final resolvedUsername = preview.username.isNotEmpty
-        ? preview.username
-        : 'user_${preview.id.length >= 8 ? preview.id.substring(0, 8) : preview.id}';
+    final resolvedUsername = preview.username.trim();
     return FollowableUser(
       id: preview.id,
       username: resolvedUsername,
-      displayName: resolvedUsername,
       avatar: preview.avatarUrl,
       userType: UserType.buyer,
       lifecycle: 'active',
@@ -167,11 +161,10 @@ class FollowApiMapper {
 
   /// Convert UserBriefApiResponse to FollowableUser
   static FollowableUser _toFollowableUserFromBrief(UserBriefApiResponse user) {
-    final resolvedUsername = user.username ?? 'user_${user.id.substring(0, 8)}';
+    final resolvedUsername = (user.username ?? '').trim();
     return FollowableUser(
       id: user.id,
       username: resolvedUsername,
-      displayName: resolvedUsername,
       avatar: user.avatar,
       userType: UserType.buyer, // Default, not provided by brief API
       // REMOVED: postsCount (not provided by brief API, deleted in PROFILE PURGE)

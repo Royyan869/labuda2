@@ -32,22 +32,27 @@ class SupportRepositoryApi implements SupportRepository {
   // ============================================================
 
   @override
-  Future<SupportResult<String>> createSupportChat({
+  Future<SupportResult<String>> createTicket({
     required String userId,
     required String userName,
     String? userAvatar,
     required SupportCategory category,
     SupportPriority priority = SupportPriority.medium,
+    String? subject,
     String? description,
     String? linkedOrderId,
   }) async {
+    // Identity is NOT sent: the backend derives the owner from the session.
+    // `userId`/`userName`/`userAvatar` remain local display context only.
+    assert(
+      userId.isNotEmpty && userName.isNotEmpty,
+      'support ticket creation requires a local owner context',
+    );
     try {
       final result = await _datasource.createTicket(
-        userId: userId,
-        userName: userName,
-        userAvatar: userAvatar,
-        category: category.name,
+        category: category.wireValue,
         priority: priority.name,
+        subject: subject,
         description: description,
         linkedOrderId: linkedOrderId,
       );
@@ -60,7 +65,7 @@ class SupportRepositoryApi implements SupportRepository {
         onSuccess: (dto) => SupportResult.success(dto.id),
       );
     } catch (e, stackTrace) {
-      _logger?.error('Error creating support chat', stackTrace: stackTrace);
+      _logger?.error('Error creating support ticket', stackTrace: stackTrace);
       return SupportResult.failure(
         const SupportFailureNetwork(message: 'Failed to create support ticket'),
       );
@@ -96,6 +101,25 @@ class SupportRepositoryApi implements SupportRepository {
       );
     } catch (e, stackTrace) {
       _logger?.error('Error getting ticket', stackTrace: stackTrace);
+      return SupportResult.failure(
+        SupportFailureUnknown(message: e.toString(), originalError: e),
+      );
+    }
+  }
+
+  @override
+  Future<SupportResult<List<SupportTicket>>> getMyTickets({int limit = 50}) async {
+    try {
+      final result = await _datasource.getMyTickets(limit: limit);
+
+      return result.fold(
+        onError: (error, code) =>
+            SupportResult.failure(_mapApiErrorToFailure(error, code)),
+        onSuccess: (dtos) =>
+            SupportResult.success(dtos.map((dto) => dto.toEntity()).toList()),
+      );
+    } catch (e, stackTrace) {
+      _logger?.error('Error listing my tickets', stackTrace: stackTrace);
       return SupportResult.failure(
         SupportFailureUnknown(message: e.toString(), originalError: e),
       );
@@ -168,6 +192,37 @@ class SupportRepositoryApi implements SupportRepository {
       );
     } catch (e, stackTrace) {
       _logger?.error('Error getting ticket messages', stackTrace: stackTrace);
+      return SupportResult.failure(
+        SupportFailureUnknown(message: e.toString(), originalError: e),
+      );
+    }
+  }
+
+  @override
+  Future<SupportResult<void>> sendMessage({
+    required String ticketId,
+    required String message,
+  }) async {
+    final trimmed = message.trim();
+    if (trimmed.isEmpty) {
+      return SupportResult.failure(
+        const SupportFailureValidation(message: 'Message cannot be empty'),
+      );
+    }
+
+    try {
+      final result = await _datasource.sendMessage(
+        ticketId: ticketId,
+        message: trimmed,
+      );
+
+      return result.fold(
+        onError: (error, code) =>
+            SupportResult.failure(_mapApiErrorToFailure(error, code)),
+        onSuccess: (_) => SupportResult.success(null),
+      );
+    } catch (e, stackTrace) {
+      _logger?.error('Error sending ticket message', stackTrace: stackTrace);
       return SupportResult.failure(
         SupportFailureUnknown(message: e.toString(), originalError: e),
       );

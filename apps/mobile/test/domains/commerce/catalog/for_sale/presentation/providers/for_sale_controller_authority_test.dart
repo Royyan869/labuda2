@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:labuda/core/api/api_error_codes.dart' as codes;
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_controller.dart';
@@ -167,7 +168,7 @@ class _FakeForSaleRepository implements ForSaleRepository {
     lastRequest = request;
     return Result.success(
       ForSale(
-        forSaleId: 'listing-1',
+        forSaleId: 'forSale-1',
         productId: 'product-1',
         title: request.title,
         description: request.description,
@@ -202,18 +203,30 @@ class _FakeForSaleRepository implements ForSaleRepository {
     throw UnimplementedError();
   }
 
+  /// Backend response for a publish (draft → active) attempt. Publish authority
+  /// is never decided locally — the controller must surface whatever the owning
+  /// service returns.
+  Result<ForSale>? statusUpdateResult;
+
   @override
   Future<Result<ForSale>> updateForSaleStatus(
     String forSaleId,
     ForSaleStatus status,
   ) async {
-    throw UnimplementedError();
+    final result = statusUpdateResult;
+    if (result == null) {
+      throw UnimplementedError('statusUpdateResult not configured');
+    }
+    return result;
   }
 }
 
+/// The three seller axes are passed independently on purpose: workspace
+/// (profile), capability (market authority) and expiry (subscription status).
 AuthUser _seller({
   required bool hasSellerProfile,
   required bool hasMarketAuthority,
+  required String sellerSubscriptionStatus,
   bool isEmailVerified = true,
 }) {
   final now = DateTime.utc(2026, 1, 1);
@@ -228,7 +241,7 @@ AuthUser _seller({
     roles: const [UserRole.user],
     provider: AuthProvider.email,
     hasSellerProfile: hasSellerProfile,
-    sellerSubscriptionStatus: hasMarketAuthority ? 'active' : 'expired',
+    sellerSubscriptionStatus: sellerSubscriptionStatus,
     hasMarketAuthority: hasMarketAuthority,
     sellerTier: SellerTier.sellerElite,
     isIdVerified: false,
@@ -237,6 +250,8 @@ AuthUser _seller({
   );
 }
 
+/// Mirrors the payload the create screen builds: a PRIVATE workspace draft
+/// (`create_for_sale_screen.dart` → `visibility: 'private'`).
 CreateForSaleRequest _request() => const CreateForSaleRequest(
   title: 'Kohaku 50cm',
   description: 'Healthy koi',
@@ -245,42 +260,13 @@ CreateForSaleRequest _request() => const CreateForSaleRequest(
   mediaUrls: ['https://example.com/1.jpg'],
   variety: 'Kohaku',
   sizeCm: 50,
+  visibility: 'private',
 );
 
 void main() {
-  group('ForSaleController create-listing authority boundary', () {
-    test('blocked states never call the repository', () async {
-      final repo = _FakeForSaleRepository();
-      final controller = ForSaleController(
-        repository: repo,
-        logger: const _NoopLogger(),
-      );
-
-      final blockedStates = [
-        const AuthState.loading(),
-        AuthState.authenticated(
-          _seller(hasSellerProfile: false, hasMarketAuthority: false),
-          emailVerified: true,
-        ),
-        AuthState.authenticated(
-          _seller(hasSellerProfile: true, hasMarketAuthority: false),
-          emailVerified: true,
-        ),
-      ];
-
-      for (final state in blockedStates) {
-        final result = await controller.createForSaleIfAuthorized(
-          _request(),
-          state,
-        );
-
-        expect(result.isError, isTrue);
-        expect(repo.createCalls, 0);
-      }
-    });
-
+  group('ForSaleController draft-create authority boundary', () {
     test(
-      'active seller can reach submission and call the repository',
+      'seller with a profile but NO market authority can create a private draft',
       () async {
         final repo = _FakeForSaleRepository();
         final controller = ForSaleController(
@@ -291,34 +277,142 @@ void main() {
         final result = await controller.createForSaleIfAuthorized(
           _request(),
           AuthState.authenticated(
-            _seller(hasSellerProfile: true, hasMarketAuthority: true),
+            _seller(
+              hasSellerProfile: true,
+              hasMarketAuthority: false,
+              sellerSubscriptionStatus: 'none',
+            ),
             emailVerified: true,
           ),
         );
 
         expect(result.isSuccess, isTrue);
         expect(repo.createCalls, 1);
-        expect(repo.lastRequest?.title, 'Kohaku 50cm');
+        // Still a PRIVATE workspace draft — market exposure is a later step.
+        expect(repo.lastRequest?.visibility, 'private');
       },
     );
 
-    test('current principal switch flips authorization immediately', () {
+    test(
+      'expired-subscription seller can also create a private draft',
+      () async {
+        final repo = _FakeForSaleRepository();
+        final controller = ForSaleController(
+          repository: repo,
+          logger: const _NoopLogger(),
+        );
+
+        final result = await controller.createForSaleIfAuthorized(
+          _request(),
+          AuthState.authenticated(
+            _seller(
+              hasSellerProfile: true,
+              hasMarketAuthority: false,
+              sellerSubscriptionStatus: 'expired',
+            ),
+            emailVerified: true,
+          ),
+        );
+
+        expect(result.isSuccess, isTrue);
+        expect(repo.createCalls, 1);
+      },
+    );
+
+    test('seller without a profile is still blocked (workspace gate)', () async {
+      final repo = _FakeForSaleRepository();
+      final controller = ForSaleController(
+        repository: repo,
+        logger: const _NoopLogger(),
+      );
+
+      final result = await controller.createForSaleIfAuthorized(
+        _request(),
+        AuthState.authenticated(
+          _seller(
+            hasSellerProfile: false,
+            hasMarketAuthority: false,
+            sellerSubscriptionStatus: 'none',
+          ),
+          emailVerified: true,
+        ),
+      );
+
+      expect(result.isError, isTrue);
+      expect(result.errorCode, 'SELLER_PROFILE_REQUIRED');
+      expect(repo.createCalls, 0);
+    });
+
+    test('unhydrated session is still blocked (workspace gate)', () async {
+      final repo = _FakeForSaleRepository();
+      final controller = ForSaleController(
+        repository: repo,
+        logger: const _NoopLogger(),
+      );
+
+      final result = await controller.createForSaleIfAuthorized(
+        _request(),
+        const AuthState.loading(),
+      );
+
+      expect(result.isError, isTrue);
+      expect(result.errorCode, 'AUTH_NOT_READY');
+      expect(repo.createCalls, 0);
+    });
+
+    test('canCreateForSale is workspace-keyed, not capability-keyed', () {
       final controller = ForSaleController(
         repository: _FakeForSaleRepository(),
         logger: const _NoopLogger(),
       );
 
-      final active = AuthState.authenticated(
-        _seller(hasSellerProfile: true, hasMarketAuthority: true),
+      final sellerWithoutCapability = AuthState.authenticated(
+        _seller(
+          hasSellerProfile: true,
+          hasMarketAuthority: false,
+          sellerSubscriptionStatus: 'none',
+        ),
         emailVerified: true,
       );
-      final expired = AuthState.authenticated(
-        _seller(hasSellerProfile: true, hasMarketAuthority: false),
+      final nonSeller = AuthState.authenticated(
+        _seller(
+          hasSellerProfile: false,
+          hasMarketAuthority: false,
+          sellerSubscriptionStatus: 'none',
+        ),
         emailVerified: true,
       );
 
-      expect(controller.canCreateForSale(active), isTrue);
-      expect(controller.canCreateForSale(expired), isFalse);
+      expect(controller.canCreateForSale(sellerWithoutCapability), isTrue);
+      expect(controller.canCreateForSale(nonSeller), isFalse);
+      expect(controller.canCreateForSale(const AuthState.loading()), isFalse);
     });
+
+    test(
+      'publish is NOT granted locally: the backend rejection is surfaced',
+      () async {
+        // What the owning service returns for a capability-false publisher:
+        // 403 MARKET_AUTHORITY_REQUIRED on the draft → active transition.
+        final repo = _FakeForSaleRepository()
+          ..statusUpdateResult = Result.error(
+            'Active seller subscription required to publish for_sales',
+            code: codes.marketAuthorityRequired,
+            statusCode: 403,
+          );
+        final controller = ForSaleController(
+          repository: repo,
+          logger: const _NoopLogger(),
+        );
+
+        final result = await controller.updateForSaleStatus(
+          'forSale-1',
+          ForSaleStatus.active,
+        );
+
+        expect(result.isError, isTrue);
+        expect(result.errorCode, codes.marketAuthorityRequired);
+        expect(result.statusCode, 403);
+      },
+    );
   });
 }

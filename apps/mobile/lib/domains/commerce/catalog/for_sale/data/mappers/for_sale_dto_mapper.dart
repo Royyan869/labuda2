@@ -134,7 +134,7 @@ class ForSaleDtoMapper {
   /// SAFETY FIRST - UNKNOWN STATUS HANDLING:
   /// ═══════════════════════════════════════════════════════════════════════════════
   /// Unknown statuses are mapped to 'draft' (NOT 'active') for safety.
-  /// This prevents showing unknown/new listings as purchasable.
+  /// This prevents showing unknown/new forSales as purchasable.
   ///
   /// IF THIS BEHAVIOR CAUSES ISSUES: Fix the source (backend), don't change the default.
   /// ═══════════════════════════════════════════════════════════════════════════════
@@ -151,7 +151,7 @@ class ForSaleDtoMapper {
         return ForSaleStatus.sold;
       default:
         // SAFETY: Unknown status defaults to draft (not active) to avoid false availability
-        // This prevents showing unknown listings as purchasable
+        // This prevents showing unknown forSales as purchasable
         // DO NOT change this to 'active' - fix the backend instead
         return ForSaleStatus.draft;
     }
@@ -174,7 +174,7 @@ class ForSaleDtoMapper {
   /// SAFETY FIRST - UNKNOWN VISIBILITY HANDLING:
   /// ═══════════════════════════════════════════════════════════════════════════════
   /// Unknown visibility defaults to 'private' for safety.
-  /// This prevents accidentally showing private listings as market-visible.
+  /// This prevents accidentally showing private forSales as market-visible.
   /// ═══════════════════════════════════════════════════════════════════════════════
   static ForSaleVisibility _mapVisibility(String? visibility) {
     if (visibility == null) {
@@ -188,7 +188,7 @@ class ForSaleDtoMapper {
         return ForSaleVisibility.private;
       default:
         // SAFETY: Unknown visibility defaults to private (not public) to avoid
-        // accidentally showing workspace listings in the marketplace
+        // accidentally showing workspace forSales in the marketplace
         return ForSaleVisibility.private;
     }
   }

@@ -57,11 +57,11 @@ Map<String, dynamic> _fixedPriceSaleProjection({
 }) {
   final json = <String, dynamic>{
     'state': state,
-    'resource_type': 'fixed_price_sale',
+    'resource_type': 'for_sale',
     'resource_id': resourceId,
   };
   if (state == 'LIVE') {
-    json['fixed_price_sale'] = <String, dynamic>{
+    json['for_sale'] = <String, dynamic>{
       'title': title,
       'media': <Map<String, dynamic>>[],
       'price': 125000,

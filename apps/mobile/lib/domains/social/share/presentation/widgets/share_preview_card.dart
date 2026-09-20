@@ -108,7 +108,7 @@ class SharePreviewCard extends StatelessWidget {
   /// Build metadata section based on content type
   Widget _buildMetadataSection(Color textColor, Color secondaryTextColor) {
     switch (target.type) {
-      case ExternalShareType.listing:
+      case ExternalShareType.forSale:
         return _buildForSaleMetadata(textColor, secondaryTextColor);
       case ExternalShareType.auction:
         return _buildAuctionMetadata(textColor, secondaryTextColor);
@@ -376,7 +376,7 @@ class SharePreviewCard extends StatelessWidget {
     switch (target.type) {
       case ExternalShareType.post:
         return Icons.article;
-      case ExternalShareType.listing:
+      case ExternalShareType.forSale:
         return Icons.shopping_bag;
       case ExternalShareType.request:
         return Icons.help_outline;
@@ -391,7 +391,7 @@ class SharePreviewCard extends StatelessWidget {
     switch (target.type) {
       case ExternalShareType.post:
         return 'Post';
-      case ExternalShareType.listing:
+      case ExternalShareType.forSale:
         return 'Produk';
       case ExternalShareType.request:
         return 'Request';

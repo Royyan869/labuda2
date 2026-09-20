@@ -345,7 +345,7 @@ func emitChatMessageNotificationWithType(
 		ID:            uuid.New(),
 		AggregateType: "chat_room",
 		AggregateID:   roomID,
-		EventType:     "chat.message.sent",
+		EventType:     events.EventChatMessageNotification,
 		Payload:       payload,
 	})
 	require.NoError(t, err)
@@ -701,8 +701,6 @@ func TestChatNotificationLifecycle_PostgresBacked(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-
-
 		require.Equal(t, baseline, fixture.pushSender.count())
 		require.Equal(t, 0, fetchNotificationCount(t, ctx, fixture.appDB, recipientID, senderID, roomID))
 	})
@@ -893,7 +891,7 @@ func TestChatNotificationLifecycle_PostgresBacked(t *testing.T) {
 			ID:            uuid.New(),
 			AggregateType: "chat_room",
 			AggregateID:   roomID,
-			EventType:     "chat.message.sent",
+			EventType:     events.EventChatMessageNotification,
 			Payload:       payload,
 		})
 		require.Error(t, err)
@@ -904,7 +902,7 @@ func TestChatNotificationLifecycle_PostgresBacked(t *testing.T) {
 			ID:            uuid.New(),
 			AggregateType: "chat_room",
 			AggregateID:   roomID,
-			EventType:     "chat.message.sent",
+			EventType:     events.EventChatMessageNotification,
 			Payload:       payload,
 		})
 		require.NoError(t, err)

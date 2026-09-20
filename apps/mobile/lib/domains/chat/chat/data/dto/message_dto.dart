@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'attachment_dto.dart';
+import 'chat_resource_occurrence_request.dart';
+import 'package:labuda/domains/chat/chat/domain/entities/chat_resource_projection.dart';
 
 /// Message DTO from API
 class MessageDto extends Equatable {
@@ -42,6 +44,11 @@ class MessageDto extends Equatable {
   /// Null when absent (legacy-safe; mapper defaults to active).
   final String? attachmentSellerTrustLifecycle;
 
+  /// Chat resource projection: the server-resolved, viewer-aware representation
+  /// of the resource this message references. Null when the message carries no
+  /// resource occurrence. Chat renders this; it never derives Commerce truth.
+  final ChatResourceProjection? resourceProjection;
+
   const MessageDto({
     required this.id,
     required this.chatRoomId,
@@ -65,6 +72,7 @@ class MessageDto extends Equatable {
     required this.updatedAt,
     this.senderLifecycle,
     this.attachmentSellerTrustLifecycle,
+    this.resourceProjection,
   });
 
   factory MessageDto.fromJson(Map<String, dynamic> json) {
@@ -125,6 +133,7 @@ class MessageDto extends Equatable {
           : DateTime.parse(json['created_at'] as String),
       senderLifecycle: _readSenderLifecycle(json),
       attachmentSellerTrustLifecycle: _readAttachmentSellerTrustLifecycle(json),
+      resourceProjection: _readResourceProjection(json),
     );
   }
 
@@ -234,6 +243,20 @@ bool _readIsHidden(Map<String, dynamic> json) {
   return false;
 }
 
+/// Parse the optional server-resolved resource projection.
+///
+/// A malformed projection is dropped rather than failing the whole message:
+/// the projection is display decoration, not message authority. Absent → null.
+ChatResourceProjection? _readResourceProjection(Map<String, dynamic> json) {
+  final raw = json['resource_projection'];
+  if (raw is! Map<String, dynamic>) return null;
+  try {
+    return ChatResourceProjection.fromJson(raw);
+  } on FormatException {
+    return null;
+  }
+}
+
 /// Reply Preview DTO
 class ReplyPreviewDto extends Equatable {
   final String content;
@@ -274,6 +297,10 @@ class SendMessageDto {
   final List<String>? mentionedUserIds;
   final String idempotencyKey;
 
+  /// Communication reference the message carries (what the message is about).
+  /// Identity only — never Commerce business state.
+  final ChatResourceOccurrenceRequest? resourceOccurrence;
+
   const SendMessageDto({
     required this.body,
     required this.messageType,
@@ -282,6 +309,7 @@ class SendMessageDto {
     this.attachment,
     this.replyToId,
     this.mentionedUserIds,
+    this.resourceOccurrence,
   });
 
   Map<String, dynamic> toJson() => {
@@ -292,6 +320,8 @@ class SendMessageDto {
     if (attachment != null) 'attachment_json': attachment!.toJson(),
     if (replyToId != null) 'reply_to_id': replyToId,
     if (mentionedUserIds != null) 'mentioned_user_ids': mentionedUserIds,
+    if (resourceOccurrence != null)
+      'resource_occurrence': resourceOccurrence!.toJson(),
   };
 }
 

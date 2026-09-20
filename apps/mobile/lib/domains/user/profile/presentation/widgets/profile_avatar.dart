@@ -13,7 +13,7 @@ class ProfileAvatar extends ConsumerWidget {
   final String userId;
   final String? avatarUrl;
   final String? farmPhotoUrl;
-  final String initials;
+  final String? initials;
   final bool isSeller;
   final double size;
   final bool showOnlineStatus;
@@ -24,7 +24,7 @@ class ProfileAvatar extends ConsumerWidget {
     required this.userId,
     this.avatarUrl,
     this.farmPhotoUrl,
-    required this.initials,
+    this.initials,
     this.isSeller = false,
     this.size = 80,
     this.showOnlineStatus = true,
@@ -165,13 +165,21 @@ class ProfileAvatar extends ConsumerWidget {
   }
 
   Widget _buildInitialsAvatar(double avatarSize, bool isDark) {
+    if (initials == null || initials!.trim().isEmpty) {
+      return Container(
+        width: avatarSize,
+        height: avatarSize,
+        color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
+        child: Icon(Icons.person, size: avatarSize * 0.5, color: isDark ? AppColors.neutralWhite : AppColors.neutralGray700),
+      );
+    }
     return Container(
       width: avatarSize,
       height: avatarSize,
       color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
       child: Center(
         child: Text(
-          initials,
+          initials!,
           style: TextStyle(
             fontSize: avatarSize * 0.4,
             fontWeight: FontWeight.bold,

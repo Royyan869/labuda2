@@ -146,7 +146,10 @@ func TestOutboxRetryLifecycle(t *testing.T) {
 		var events []repository.Event
 		err := appDB.WithTx(ctx, func(tx db.Tx) error {
 			var fetchErr error
-			events, fetchErr = outboxRepo.FetchPendingBatch(ctx, tx, 100)
+			// OWNERSHIP: a claim always declares what the consumer owns.
+			events, fetchErr = outboxRepo.FetchPendingBatch(ctx, tx, 100, repository.EventOwnershipScope{
+				Include: []string{"test.fetch.mixed", "test.fetch.mixed.failed"},
+			})
 			return fetchErr
 		})
 		require.NoError(t, err)

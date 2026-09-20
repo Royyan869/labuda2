@@ -55,11 +55,30 @@ func TestAdversarial_RepostTarget_BlockedViewerDenied(t *testing.T) {
 	author := uuid.New()
 	viewer := uuid.New()
 	c := storeContent(repo, author, entity.VisibilityPublic, false)
-	// viewer blocks author — GetContentVisibleToViewer still passes (no block check), but validateContentTarget should deny via block lookup
-	// We simulate validateContentTarget's block check via second QueryRow
-	// For this test, we directly test GetContentVisibleToViewer passes public even when blocked (expected — block is secondary constraint handled at handler/repost level)
+	// viewer blocks author — GetContentVisibleToViewer still passes (no block check)
 	_, err := svc.GetContentVisibleToViewer(context.Background(), &fakeTx{followExists: false}, viewer, c.ID)
 	require.NoError(t, err, "public visible even when blocked at service layer — block is enforced at handler/repost, not here; this is legitimate layering")
+
+	// But validateContentTarget MUST deny if blockChecker is wired
+	type mockBlockTrue struct{}
+	// ExistsBlock requires signature: func (m *mockBlockTrue) ExistsBlock(ctx context.Context, tx interface{}, a, b uuid.UUID) (bool, error)
+	// Actually, wait, we need to create a struct that satisfies BlockChecker inline.
+}
+
+type mockBlockTrueInline struct{}
+func (m *mockBlockTrueInline) ExistsBlock(ctx context.Context, tx interface{}, a,b uuid.UUID) (bool,error){return true,nil}
+
+func TestAdversarial_RepostTarget_BlockedViewerDenied_Target(t *testing.T) {
+	repo := newFakeContentRepo()
+	svc := NewContentService(repo, nil, nil, fakeAccountChecker{}, nil)
+	svc.SetBlockChecker(&mockBlockTrueInline{})
+	author := uuid.New()
+	viewer := uuid.New()
+	c := storeContent(repo, author, entity.VisibilityPublic, false)
+	
+	err := svc.validateContentTarget(context.Background(), &fakeTx{followExists: false}, viewer, c.ID.String())
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "content not found: blocked")
 }
 
 // ATTEMPT: private+visible (is_hidden=false) must still be denied to non-owner

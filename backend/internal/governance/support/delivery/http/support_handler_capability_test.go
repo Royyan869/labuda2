@@ -58,6 +58,9 @@ func setupCapabilityTestRouter(handler *Handler, actor *capabilityEntity.Actor) 
 	adminGroup.PUT("/:id/claim",
 		requireCapabilityMock(capability.CapSupportTicketClaim.String()),
 		handler.ClaimTicket)
+	adminGroup.PUT("/:id/reopen",
+		requireCapabilityMock(capability.CapSupportTicketResolve.String()),
+		handler.AdminReopenTicket)
 	adminGroup.POST("/:id/messages",
 		requireCapabilityMock(capability.CapSupportTicketRespond.String()),
 		handler.SendMessage)
@@ -134,10 +137,6 @@ func (m *mockCapabilityRepository) GetTicketByID(ctx context.Context, tx interfa
 	return nil, supportRepo.ErrTicketNotFound
 }
 
-func (m *mockCapabilityRepository) GetOpenTicketByUser(ctx context.Context, tx interface{}, userID uuid.UUID) (*supportEntity.Ticket, error) {
-	return nil, supportRepo.ErrTicketNotFound
-}
-
 func (m *mockCapabilityRepository) ListTickets(ctx context.Context, tx interface{}, filter *supportRepo.TicketFilter, cursorCreatedAt *time.Time, cursorID *uuid.UUID, limit int) ([]*supportEntity.Ticket, error) {
 	return nil, nil
 }
@@ -173,6 +172,14 @@ func (m *mockCapabilityRepository) CloseTicket(ctx context.Context, tx interface
 }
 
 func (m *mockCapabilityRepository) ReopenTicket(ctx context.Context, tx interface{}, ticketID uuid.UUID) error {
+	if m.ticket == nil || !m.ticket.CanBeReopened() {
+		return supportRepo.ErrCannotReopenTicket
+	}
+	m.ticket.Status = supportEntity.StatusOpen
+	m.ticket.AssignedAdminID = nil
+	m.ticket.AssignedAt = nil
+	m.ticket.ResolvedAt = nil
+	m.ticket.ClosedAt = nil
 	return nil
 }
 
@@ -188,14 +195,6 @@ func (m *mockCapabilityRepository) UpdateStatus(ctx context.Context, tx interfac
 	return nil
 }
 
-func (m *mockCapabilityRepository) AssignAdmin(ctx context.Context, tx interface{}, ticketID, adminID uuid.UUID) error {
-	return nil
-}
-
-func (m *mockCapabilityRepository) UnassignAdmin(ctx context.Context, tx interface{}, ticketID uuid.UUID) error {
-	return nil
-}
-
 func (m *mockCapabilityRepository) CreateEvent(ctx context.Context, tx interface{}, event *supportEntity.Event) error {
 	return nil
 }
@@ -203,33 +202,12 @@ func (m *mockCapabilityRepository) CreateEvent(ctx context.Context, tx interface
 func (m *mockCapabilityRepository) ListEvents(ctx context.Context, tx interface{}, ticketID uuid.UUID, limit int) ([]*supportEntity.Event, error) {
 	return nil, nil
 }
-
-func (m *mockCapabilityRepository) GetAdmin(ctx context.Context, tx interface{}, adminID uuid.UUID) (*supportEntity.Admin, error) {
-	return nil, nil
+func (m *mockCapabilityRepository) ListStatusEventsForTickets(ctx context.Context, tx interface{}, ticketIDs []uuid.UUID) (map[uuid.UUID][]*supportEntity.Event, error) {
+	return make(map[uuid.UUID][]*supportEntity.Event), nil
 }
 
-func (m *mockCapabilityRepository) CreateAdmin(ctx context.Context, tx interface{}, admin *supportEntity.Admin) error {
-	return nil
-}
-
-func (m *mockCapabilityRepository) ListAdmins(ctx context.Context, tx interface{}, isActive *bool) ([]*supportEntity.Admin, error) {
-	return nil, nil
-}
-
-func (m *mockCapabilityRepository) GetAvailableAdmins(ctx context.Context, tx interface{}, maxConcurrent int, limit int) ([]*supportEntity.Admin, error) {
-	return nil, nil
-}
-
-func (m *mockCapabilityRepository) IncrementAdminTicketCount(ctx context.Context, tx interface{}, adminID uuid.UUID) error {
-	return nil
-}
-
-func (m *mockCapabilityRepository) DecrementAdminTicketCount(ctx context.Context, tx interface{}, adminID uuid.UUID) error {
-	return nil
-}
-
-func (m *mockCapabilityRepository) SetAdminActive(ctx context.Context, tx interface{}, adminID uuid.UUID, isActive bool) error {
-	return nil
+func (m *mockCapabilityRepository) ListFirstAdminResponsesByTicketIDs(ctx context.Context, tx interface{}, ticketIDs []uuid.UUID) (map[uuid.UUID]*time.Time, error) {
+	return make(map[uuid.UUID]*time.Time), nil
 }
 
 func (m *mockCapabilityRepository) GetTicketStatistics(ctx context.Context, tx interface{}) (*supportRepo.TicketStatistics, error) {
@@ -240,6 +218,22 @@ func (m *mockCapabilityRepository) CountActiveTicketsByOrderID(ctx context.Conte
 	return 0, nil
 }
 
+func (m *mockCapabilityRepository) GetTicketByChatRoomID(ctx context.Context, tx interface{}, chatRoomID uuid.UUID) (*supportEntity.Ticket, error) {
+	return nil, supportRepo.ErrTicketNotFound
+}
+
+func (m *mockCapabilityRepository) UpdateEscalation(ctx context.Context, tx interface{}, ticketID uuid.UUID, escalation supportEntity.Escalation) error {
+	return nil
+}
+
+func (m *mockCapabilityRepository) FindTicketsForSLACheck(ctx context.Context, tx db.Tx, limit int) ([]supportRepo.TicketSLARow, error) {
+	return nil, nil
+}
+
+func (m *mockCapabilityRepository) FindDisputesForSLACheck(ctx context.Context, tx db.Tx, limit int) ([]supportRepo.DisputeSLARow, error) {
+	return nil, nil
+}
+
 // mockChatService is a mock chat service for testing.
 type mockChatService struct{}
 
@@ -247,8 +241,19 @@ func (m *mockChatService) CreateSupportTicketRoom(ctx context.Context, userID uu
 	return nil, nil
 }
 
-func (m *mockChatService) SendSystemMessage(ctx context.Context, roomID uuid.UUID, body string) error {
-	return nil
+// mockChatMessageService is a mock ChatMessageService for testing SendMessage.
+type mockChatMessageService struct{}
+
+func (m *mockChatMessageService) ListSupportMessages(
+	ctx context.Context, roomID uuid.UUID, cursorCreatedAt *time.Time, cursorID *uuid.UUID, limit int,
+) ([]*chatEntity.ChatMessage, error) {
+	return nil, nil
+}
+
+func (m *mockChatMessageService) SendSupportMessage(
+	ctx context.Context, roomID, senderID uuid.UUID, body string, idempotencyKey string,
+) (*chatEntity.ChatMessage, error) {
+	return &chatEntity.ChatMessage{ID: uuid.New(), RoomID: roomID, SenderID: senderID}, nil
 }
 
 // mockOutboxInserter is a mock outbox inserter.
@@ -280,6 +285,7 @@ func createMockService(repo *mockCapabilityRepository) *supportApp.Service {
 		&mockChatService{},
 		&mockOutboxInserter{},
 		&mockOrderEscrowService{},
+		nil,          // dispute service not exercised by capability tests
 		zap.NewNop(), // No-op logger for tests
 	)
 }
@@ -298,14 +304,14 @@ func TestHandler_ResolveTicket_CapabilityProtection(t *testing.T) {
 		}
 
 		// Create an in_progress ticket assigned to the admin
-		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPayment, supportEntity.PriorityMedium)
+		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPaymentIssue, supportEntity.PriorityMedium)
 		ticket.ID = ticketID
 		ticket.AssignedAdminID = &adminID
 		ticket.Status = supportEntity.StatusInProgress
 
 		repo := &mockCapabilityRepository{ticket: ticket}
 		service := createMockService(repo)
-		handler := &Handler{supportService: service}
+		handler := &Handler{supportService: service, adminAuditLogger: noopAdminAuditLogger{}}
 		router := setupCapabilityTestRouter(handler, actor)
 
 		req, _ := http.NewRequest("PUT", "/admin/support/tickets/"+ticketID.String()+"/resolve", strings.NewReader(`{"notes": "Issue resolved"}`))
@@ -325,14 +331,14 @@ func TestHandler_ResolveTicket_CapabilityProtection(t *testing.T) {
 			Capabilities: []string{}, // No support.ticket.resolve capability
 		}
 
-		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPayment, supportEntity.PriorityMedium)
+		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPaymentIssue, supportEntity.PriorityMedium)
 		ticket.ID = ticketID
 		ticket.AssignedAdminID = &adminID
 		ticket.Status = supportEntity.StatusInProgress
 
 		repo := &mockCapabilityRepository{ticket: ticket}
 		service := createMockService(repo)
-		handler := &Handler{supportService: service}
+		handler := &Handler{supportService: service, adminAuditLogger: noopAdminAuditLogger{}}
 		router := setupCapabilityTestRouter(handler, actor)
 
 		req, _ := http.NewRequest("PUT", "/admin/support/tickets/"+ticketID.String()+"/resolve", strings.NewReader(`{"notes": "Issue resolved"}`))
@@ -345,14 +351,14 @@ func TestHandler_ResolveTicket_CapabilityProtection(t *testing.T) {
 	})
 
 	t.Run("unauthorized: no actor in context", func(t *testing.T) {
-		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPayment, supportEntity.PriorityMedium)
+		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPaymentIssue, supportEntity.PriorityMedium)
 		ticket.ID = ticketID
 		ticket.AssignedAdminID = &adminID
 		ticket.Status = supportEntity.StatusInProgress
 
 		repo := &mockCapabilityRepository{ticket: ticket}
 		service := createMockService(repo)
-		handler := &Handler{supportService: service}
+		handler := &Handler{supportService: service, adminAuditLogger: noopAdminAuditLogger{}}
 		router := setupCapabilityTestRouter(handler, nil) // No actor
 
 		req, _ := http.NewRequest("PUT", "/admin/support/tickets/"+ticketID.String()+"/resolve", strings.NewReader(`{"notes": "Issue resolved"}`))
@@ -371,14 +377,14 @@ func TestHandler_ResolveTicket_CapabilityProtection(t *testing.T) {
 			Capabilities: []string{capability.CapSupportTicketClaim.String()}, // Has claim but NOT resolve
 		}
 
-		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPayment, supportEntity.PriorityMedium)
+		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPaymentIssue, supportEntity.PriorityMedium)
 		ticket.ID = ticketID
 		ticket.AssignedAdminID = &adminID
 		ticket.Status = supportEntity.StatusInProgress
 
 		repo := &mockCapabilityRepository{ticket: ticket}
 		service := createMockService(repo)
-		handler := &Handler{supportService: service}
+		handler := &Handler{supportService: service, adminAuditLogger: noopAdminAuditLogger{}}
 		router := setupCapabilityTestRouter(handler, actor)
 
 		req, _ := http.NewRequest("PUT", "/admin/support/tickets/"+ticketID.String()+"/resolve", strings.NewReader(`{"notes": "Issue resolved"}`))
@@ -405,7 +411,7 @@ func TestHandler_CloseTicket_CapabilityProtection(t *testing.T) {
 		}
 
 		// Create a resolved ticket
-		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPayment, supportEntity.PriorityMedium)
+		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPaymentIssue, supportEntity.PriorityMedium)
 		ticket.ID = ticketID
 		ticket.Status = supportEntity.StatusResolved
 		now := time.Now()
@@ -413,7 +419,7 @@ func TestHandler_CloseTicket_CapabilityProtection(t *testing.T) {
 
 		repo := &mockCapabilityRepository{ticket: ticket}
 		service := createMockService(repo)
-		handler := &Handler{supportService: service}
+		handler := &Handler{supportService: service, adminAuditLogger: noopAdminAuditLogger{}}
 		router := setupCapabilityTestRouter(handler, actor)
 
 		req, _ := http.NewRequest("PUT", "/admin/support/tickets/"+ticketID.String()+"/close", strings.NewReader(`{"reason": "User confirmed resolution"}`))
@@ -432,7 +438,7 @@ func TestHandler_CloseTicket_CapabilityProtection(t *testing.T) {
 			Capabilities: []string{}, // No support.ticket.resolve capability
 		}
 
-		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPayment, supportEntity.PriorityMedium)
+		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPaymentIssue, supportEntity.PriorityMedium)
 		ticket.ID = ticketID
 		ticket.Status = supportEntity.StatusResolved
 		now := time.Now()
@@ -440,7 +446,7 @@ func TestHandler_CloseTicket_CapabilityProtection(t *testing.T) {
 
 		repo := &mockCapabilityRepository{ticket: ticket}
 		service := createMockService(repo)
-		handler := &Handler{supportService: service}
+		handler := &Handler{supportService: service, adminAuditLogger: noopAdminAuditLogger{}}
 		router := setupCapabilityTestRouter(handler, actor)
 
 		req, _ := http.NewRequest("PUT", "/admin/support/tickets/"+ticketID.String()+"/close", strings.NewReader(`{"reason": "User confirmed resolution"}`))
@@ -459,7 +465,7 @@ func TestHandler_CloseTicket_CapabilityProtection(t *testing.T) {
 			Capabilities: []string{capability.CapSupportTicketRespond.String()}, // Has respond but NOT resolve
 		}
 
-		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPayment, supportEntity.PriorityMedium)
+		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPaymentIssue, supportEntity.PriorityMedium)
 		ticket.ID = ticketID
 		ticket.Status = supportEntity.StatusResolved
 		now := time.Now()
@@ -467,7 +473,7 @@ func TestHandler_CloseTicket_CapabilityProtection(t *testing.T) {
 
 		repo := &mockCapabilityRepository{ticket: ticket}
 		service := createMockService(repo)
-		handler := &Handler{supportService: service}
+		handler := &Handler{supportService: service, adminAuditLogger: noopAdminAuditLogger{}}
 		router := setupCapabilityTestRouter(handler, actor)
 
 		req, _ := http.NewRequest("PUT", "/admin/support/tickets/"+ticketID.String()+"/close", strings.NewReader(`{"reason": "User confirmed resolution"}`))
@@ -552,13 +558,13 @@ func TestHandler_ClaimTicket_CapabilityProtection(t *testing.T) {
 		}
 
 		// Create an open ticket (not assigned)
-		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPayment, supportEntity.PriorityMedium)
+		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPaymentIssue, supportEntity.PriorityMedium)
 		ticket.ID = ticketID
 		ticket.Status = supportEntity.StatusOpen
 
 		repo := &mockCapabilityRepository{ticket: ticket}
 		service := createMockService(repo)
-		handler := &Handler{supportService: service, chatService: &mockChatService{}}
+		handler := &Handler{supportService: service, adminAuditLogger: noopAdminAuditLogger{}}
 		router := setupCapabilityTestRouter(handler, actor)
 
 		req, _ := http.NewRequest("PUT", "/admin/support/tickets/"+ticketID.String()+"/claim", strings.NewReader(""))
@@ -578,13 +584,13 @@ func TestHandler_ClaimTicket_CapabilityProtection(t *testing.T) {
 			Capabilities: []string{}, // No support.ticket.claim capability
 		}
 
-		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPayment, supportEntity.PriorityMedium)
+		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPaymentIssue, supportEntity.PriorityMedium)
 		ticket.ID = ticketID
 		ticket.Status = supportEntity.StatusOpen
 
 		repo := &mockCapabilityRepository{ticket: ticket}
 		service := createMockService(repo)
-		handler := &Handler{supportService: service, chatService: &mockChatService{}}
+		handler := &Handler{supportService: service, adminAuditLogger: noopAdminAuditLogger{}}
 		router := setupCapabilityTestRouter(handler, actor)
 
 		req, _ := http.NewRequest("PUT", "/admin/support/tickets/"+ticketID.String()+"/claim", strings.NewReader(""))
@@ -603,13 +609,13 @@ func TestHandler_ClaimTicket_CapabilityProtection(t *testing.T) {
 			Capabilities: []string{capability.CapSupportTicketRespond.String()}, // Has respond but NOT claim
 		}
 
-		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPayment, supportEntity.PriorityMedium)
+		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPaymentIssue, supportEntity.PriorityMedium)
 		ticket.ID = ticketID
 		ticket.Status = supportEntity.StatusOpen
 
 		repo := &mockCapabilityRepository{ticket: ticket}
 		service := createMockService(repo)
-		handler := &Handler{supportService: service, chatService: &mockChatService{}}
+		handler := &Handler{supportService: service, adminAuditLogger: noopAdminAuditLogger{}}
 		router := setupCapabilityTestRouter(handler, actor)
 
 		req, _ := http.NewRequest("PUT", "/admin/support/tickets/"+ticketID.String()+"/claim", strings.NewReader(""))
@@ -640,14 +646,14 @@ func TestHandler_SendMessage_CapabilityProtection(t *testing.T) {
 		}
 
 		// Create an in_progress ticket assigned to the admin
-		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPayment, supportEntity.PriorityMedium)
+		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPaymentIssue, supportEntity.PriorityMedium)
 		ticket.ID = ticketID
 		ticket.AssignedAdminID = &adminID
 		ticket.Status = supportEntity.StatusInProgress
 
 		repo := &mockCapabilityRepository{ticket: ticket}
 		service := createMockService(repo)
-		handler := &Handler{supportService: service, chatService: &mockChatService{}}
+		handler := &Handler{supportService: service, adminAuditLogger: noopAdminAuditLogger{}, chatMessageService: &mockChatMessageService{}}
 		router := setupCapabilityTestRouter(handler, actor)
 
 		req, _ := http.NewRequest("POST", "/admin/support/tickets/"+ticketID.String()+"/messages", strings.NewReader(`{"type": "agent", "message": "Hello"}`))
@@ -667,13 +673,13 @@ func TestHandler_SendMessage_CapabilityProtection(t *testing.T) {
 			Capabilities: []string{}, // No support.ticket.respond capability
 		}
 
-		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPayment, supportEntity.PriorityMedium)
+		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPaymentIssue, supportEntity.PriorityMedium)
 		ticket.ID = ticketID
 		ticket.Status = supportEntity.StatusInProgress
 
 		repo := &mockCapabilityRepository{ticket: ticket}
 		service := createMockService(repo)
-		handler := &Handler{supportService: service, chatService: &mockChatService{}}
+		handler := &Handler{supportService: service, adminAuditLogger: noopAdminAuditLogger{}}
 		router := setupCapabilityTestRouter(handler, actor)
 
 		req, _ := http.NewRequest("POST", "/admin/support/tickets/"+ticketID.String()+"/messages", strings.NewReader(`{"type": "agent", "message": "Hello"}`))
@@ -692,13 +698,13 @@ func TestHandler_SendMessage_CapabilityProtection(t *testing.T) {
 			Capabilities: []string{capability.CapSupportTicketClaim.String()}, // Has claim but NOT respond
 		}
 
-		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPayment, supportEntity.PriorityMedium)
+		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPaymentIssue, supportEntity.PriorityMedium)
 		ticket.ID = ticketID
 		ticket.Status = supportEntity.StatusInProgress
 
 		repo := &mockCapabilityRepository{ticket: ticket}
 		service := createMockService(repo)
-		handler := &Handler{supportService: service, chatService: &mockChatService{}}
+		handler := &Handler{supportService: service, adminAuditLogger: noopAdminAuditLogger{}}
 		router := setupCapabilityTestRouter(handler, actor)
 
 		req, _ := http.NewRequest("POST", "/admin/support/tickets/"+ticketID.String()+"/messages", strings.NewReader(`{"type": "agent", "message": "Hello"}`))
@@ -708,5 +714,102 @@ func TestHandler_SendMessage_CapabilityProtection(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+}
+
+// ============================================================================
+// AGENT REOPEN — CAPABILITY + ACTOR AUTHORITY
+// ============================================================================
+
+// TestHandler_AdminReopenTicket verifies that an agent may reopen a RESOLVED
+// case (resolved -> open) using the resolve capability, and that a closed case
+// is terminal — never reopened.
+func TestHandler_AdminReopenTicket(t *testing.T) {
+	adminID := uuid.New()
+	userID := uuid.New()
+	ticketID := uuid.New()
+
+	buildTicket := func(status supportEntity.Status) *supportEntity.Ticket {
+		ticket := supportEntity.NewTicket(userID, uuid.New(), supportEntity.CategoryPaymentIssue, supportEntity.PriorityMedium)
+		ticket.ID = ticketID
+		ticket.Status = status
+		if status == supportEntity.StatusResolved {
+			now := time.Now()
+			ticket.ResolvedAt = &now
+			ticket.AssignedAdminID = &adminID
+		}
+		if status == supportEntity.StatusClosed {
+			now := time.Now()
+			ticket.ClosedAt = &now
+		}
+		return ticket
+	}
+
+	t.Run("agent with resolve capability reopens a resolved case", func(t *testing.T) {
+		actor := &capabilityEntity.Actor{
+			ID:           adminID,
+			Role:         "admin",
+			Capabilities: []string{capability.CapSupportTicketResolve.String()},
+		}
+
+		repo := &mockCapabilityRepository{ticket: buildTicket(supportEntity.StatusResolved)}
+		handler := &Handler{supportService: createMockService(repo), adminAuditLogger: noopAdminAuditLogger{}}
+		router := setupCapabilityTestRouter(handler, actor)
+
+		req, _ := http.NewRequest("PUT", "/admin/support/tickets/"+ticketID.String()+"/reopen", strings.NewReader(""))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		// The reopen is a resolved -> open transition; assignment is cleared so
+		// the case re-enters the normal claim flow.
+		assert.Contains(t, w.Body.String(), `"status":"open"`)
+		assert.Equal(t, supportEntity.StatusOpen, repo.ticket.Status)
+		assert.Nil(t, repo.ticket.AssignedAdminID)
+	})
+
+	t.Run("forbidden without support.ticket.resolve", func(t *testing.T) {
+		actor := &capabilityEntity.Actor{
+			ID:           adminID,
+			Role:         "admin",
+			Capabilities: []string{},
+		}
+
+		repo := &mockCapabilityRepository{ticket: buildTicket(supportEntity.StatusResolved)}
+		handler := &Handler{supportService: createMockService(repo), adminAuditLogger: noopAdminAuditLogger{}}
+		router := setupCapabilityTestRouter(handler, actor)
+
+		req, _ := http.NewRequest("PUT", "/admin/support/tickets/"+ticketID.String()+"/reopen", strings.NewReader(""))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+		assert.Equal(t, supportEntity.StatusResolved, repo.ticket.Status,
+			"a rejected reopen must not mutate the case")
+	})
+
+	t.Run("a CLOSED case is terminal and cannot be reopened", func(t *testing.T) {
+		actor := &capabilityEntity.Actor{
+			ID:           adminID,
+			Role:         "admin",
+			Capabilities: []string{capability.CapSupportTicketResolve.String()},
+		}
+
+		repo := &mockCapabilityRepository{ticket: buildTicket(supportEntity.StatusClosed)}
+		handler := &Handler{supportService: createMockService(repo), adminAuditLogger: noopAdminAuditLogger{}}
+		router := setupCapabilityTestRouter(handler, actor)
+
+		req, _ := http.NewRequest("PUT", "/admin/support/tickets/"+ticketID.String()+"/reopen", strings.NewReader(""))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Equal(t, supportEntity.StatusClosed, repo.ticket.Status)
 	})
 }

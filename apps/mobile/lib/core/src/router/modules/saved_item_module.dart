@@ -9,7 +9,7 @@ import 'package:labuda/core/src/router/modules/base_module.dart';
 ///
 /// This module handles routing for the unified Saved Items (shortlist + auction watches).
 ///
-/// Purpose: Unified stream of saved items (listings + auctions)
+/// Purpose: Unified stream of saved items (forSales + auctions)
 /// Screen: SavedItemScreen
 /// Icon: Bookmark
 /// Tooltip: "Disimpan" (Saved)

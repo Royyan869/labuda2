@@ -646,10 +646,10 @@ func (r *stubCityOverrideRepository) DeleteByCoverage(ctx context.Context, tx db
 
 type stubProductShippingSetupRepository struct{}
 
-func (r *stubProductShippingSetupRepository) Create(ctx context.Context, tx db.Tx, listingID uuid.UUID, shippingSetupID uuid.UUID, sortOrder int) error {
+func (r *stubProductShippingSetupRepository) Create(ctx context.Context, tx db.Tx, forSaleID uuid.UUID, shippingSetupID uuid.UUID, sortOrder int) error {
 	return nil
 }
-func (r *stubProductShippingSetupRepository) Delete(ctx context.Context, tx db.Tx, listingID uuid.UUID, shippingSetupID uuid.UUID) error {
+func (r *stubProductShippingSetupRepository) Delete(ctx context.Context, tx db.Tx, forSaleID uuid.UUID, shippingSetupID uuid.UUID) error {
 	return nil
 }
 func (r *stubProductShippingSetupRepository) GetByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) ([]*shippingEntity.ShippingSetup, error) {

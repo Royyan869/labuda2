@@ -57,7 +57,6 @@ const (
 	PaymentWebhookEventStatusProcessing     = "processing"
 	PaymentWebhookEventStatusSucceeded      = "succeeded"
 	PaymentWebhookEventStatusFailed         = "failed"
-	PaymentWebhookEventStatusOrphaned       = "orphaned"
 	PaymentWebhookEventStatusManualReview   = "manual_review"
 	PaymentWebhookEventStatusQuarantined    = "quarantined"
 	PaymentWebhookEventStatusTerminalReview = "terminal_review"
@@ -90,7 +89,35 @@ func (p *Payment) IsPending() bool {
 
 // IsSettled returns true if payment is settled or captured.
 func (p *Payment) IsSettled() bool {
-	return p.Status == PaymentStatusSettlement || p.Status == PaymentStatusCapture
+	return IsSettledStatus(p.Status)
+}
+
+// settledPaymentStatuses is THE canonical definition of "the money is ours".
+//
+// ONE DEFINITION, TWO ACCESSORS: IsSettledStatus answers the question for a
+// single status in Go, SettledPaymentStatuses supplies the same set for SQL
+// (`p.status = ANY($n::text[])`). Never restate this set as SQL literals: the
+// subscription recovery selector and the admin recovery surface each used to
+// spell out 'settlement' by hand, so a capture-status payment could be
+// settled for the domain and invisible to recovery at the same time.
+var settledPaymentStatuses = []string{PaymentStatusSettlement, PaymentStatusCapture}
+
+// SettledPaymentStatuses returns a copy of the canonical settled status set so
+// SQL consumers can express the same truth without restating it.
+func SettledPaymentStatuses() []string {
+	return append([]string(nil), settledPaymentStatuses...)
+}
+
+// IsSettledStatus reports whether a raw payment status counts as settled:
+// the gateway money is in, and no reversal has happened (deny / cancel /
+// expire / pending are all NOT settled).
+func IsSettledStatus(status string) bool {
+	for _, s := range settledPaymentStatuses {
+		if status == s {
+			return true
+		}
+	}
+	return false
 }
 
 // IsFailed returns true if payment has failed.

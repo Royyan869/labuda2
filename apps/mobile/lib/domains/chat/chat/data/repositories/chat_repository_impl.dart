@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:labuda/core/common/result.dart';
 import 'package:labuda/core/websocket/websocket_service.dart';
 import 'package:labuda/domains/chat/chat/data/dto/message_dto.dart';
+import 'package:labuda/domains/chat/chat/data/dto/chat_resource_occurrence_request.dart';
 import 'package:labuda/domains/chat/chat/data/dto/chat_room_event_dto.dart';
 import 'package:labuda/domains/chat/chat/data/mappers/chat_mapper.dart';
 import 'package:labuda/domains/chat/chat/data/remote/chat_api_datasource.dart';
@@ -395,33 +396,16 @@ class ChatRepositoryImpl implements ChatRepository {
   @override
   Future<Result<Chat>> getOrCreateChat({
     required List<String> participantIds,
-    ShareReference? context,
   }) async {
     // participantIds should have exactly 2 users: current user and other user
     if (participantIds.length != 2) {
       return Result.error('Direct chat requires exactly 2 participants');
     }
 
-    // For direct chat, we need the current user ID to determine the "other" user
-    // The API endpoint is POST /chat/direct/:otherUserId
-    // So we need to figure out which user is the "other" user (not the current user)
-
-    // Since we don't have the current user ID in this method signature,
-    // we'll use the first participant as the "other" user (the seller in listing→chat flow)
-    // This is a limitation of the current interface design
     final otherUserId = participantIds.last;
 
-    // Convert ShareReference to context map if provided
-    Map<String, dynamic>? contextMap;
-    if (context != null) {
-      contextMap = _shareReferenceToContextMap(context);
-    }
-
     // Call the datasource
-    final result = await _apiDatasource.getOrCreateDirectRoom(
-      otherUserId,
-      context: contextMap,
-    );
+    final result = await _apiDatasource.getOrCreateDirectRoom(otherUserId);
 
     return result.fold((error) => Result.error(error), (dto) {
       // Convert ChatDto to domain Chat entity
@@ -433,9 +417,11 @@ class ChatRepositoryImpl implements ChatRepository {
 
   @override
   Future<Result<Chat>> getChatById(String chatId) async {
-    // NOTE: Backend does not have a single room endpoint.
-    // Use getUserChats and filter by chatId, or store rooms locally.
-    return Result.error('Get chat by ID not available - use getUserChats');
+    final result = await _apiDatasource.getRoom(chatId);
+    return result.fold(
+      (error) => Result.error(error),
+      (dto) => Result.success(ChatMapper.toDomain(dto)),
+    );
   }
 
   @override
@@ -527,6 +513,10 @@ class ChatRepositoryImpl implements ChatRepository {
       attachment: ChatMapper.domainAttachmentToDto(tempMessage),
       replyToId: replyToId,
       mentionedUserIds: mentionedUserIds,
+      // Declare what the message is about (communication reference only).
+      resourceOccurrence: _resourceOccurrenceFor(
+        normalizedReference ?? objectReference,
+      ),
     );
 
     final result = await _apiDatasource.sendMessage(chatId, request);
@@ -654,49 +644,6 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   // ========================================
-  // Presence
-  // ========================================
-
-  @override
-  Future<Result<bool>> updateUserPresence({
-    required String userId,
-    required bool isOnline,
-    DateTime? lastSeen,
-  }) async {
-    // NOTE: Backend does not have presence endpoints.
-    // Presence tracking is not implemented.
-    return Result.error('Presence tracking not available');
-  }
-
-  @override
-  Future<Result<bool>> getUserOnlineStatus(String userId) async {
-    // NOTE: Backend does not have presence endpoints.
-    // Online status is not available.
-    return Result.error('Online status not available');
-  }
-
-  @override
-  Future<Result<DateTime?>> getUserLastSeen(String userId) async {
-    // NOTE: Backend does not have presence endpoints.
-    // Last seen is not available.
-    return Result.error('Last seen not available');
-  }
-
-  @override
-  Future<Result<bool>> startPresenceTracking(String userId) async {
-    // NOTE: Backend does not have presence endpoints.
-    // Presence tracking is not available.
-    return Result.error('Presence tracking not available');
-  }
-
-  @override
-  Future<Result<bool>> stopPresenceTracking(String userId) async {
-    // NOTE: Backend does not have presence endpoints.
-    // Presence tracking is not available.
-    return Result.error('Presence tracking not available');
-  }
-
-  // ========================================
   // Support
   // ========================================
 
@@ -717,33 +664,6 @@ class ChatRepositoryImpl implements ChatRepository {
   // Helpers
   // ========================================
 
-  /// Converts a ShareReference to a context map for API requests
-  ///
-  /// **SOCIAL FIX 1.1:** Uses canonical snake_case reference keys.
-  Map<String, dynamic>? _shareReferenceToContextMap(ShareReference? reference) {
-    if (reference == null) return null;
-
-    final chatReference = reference.asChatReference();
-    if (chatReference == null) {
-      return null;
-    }
-
-    // Canonical reference payload
-    return {
-      'target_type': chatReference.wireTargetType,
-      'target_id': chatReference.targetId,
-      'preview': {
-        'title': chatReference.preview.title,
-        if (chatReference.preview.imageUrl != null)
-          'imageUrl': chatReference.preview.imageUrl,
-        'isAvailable': chatReference.preview.isAvailable,
-        'isSold': chatReference.preview.isSold,
-        'isClosed': chatReference.preview.isClosed,
-        'isDeleted': chatReference.preview.isDeleted,
-      },
-    };
-  }
-
   ShareReference? _normalizeReferenceForChat(
     ShareReference? reference,
     Map<String, dynamic>? workflowAttachment,
@@ -760,6 +680,24 @@ class ChatRepositoryImpl implements ChatRepository {
     }
 
     return reference.copyWith(wireTargetType: contentType).asChatReference();
+  }
+
+  /// Derive the canonical resource occurrence from the reference carried by a
+  /// message. Returns null when there is no canonical chat reference.
+  ///
+  /// The occurrence declares the resource identity + operation only — it never
+  /// carries Commerce business state (price/availability/order/payment).
+  ChatResourceOccurrenceRequest? _resourceOccurrenceFor(
+    ShareReference? reference,
+  ) {
+    if (reference == null || !reference.isValid) return null;
+    final chatReference = reference.asChatReference();
+    if (chatReference == null) return null;
+    try {
+      return ChatResourceOccurrenceRequest.fromShareReference(chatReference);
+    } on FormatException {
+      return null;
+    }
   }
 
   String? _readChatContentType(Map<String, dynamic>? workflowAttachment) {

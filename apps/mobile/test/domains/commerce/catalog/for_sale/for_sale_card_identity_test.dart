@@ -5,11 +5,11 @@ import 'package:labuda/domains/commerce/catalog/for_sale/presentation/widgets/fo
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/governance/seller_inactive_badge.dart';
 
-Widget _wrap(ForSale listing) {
+Widget _wrap(ForSale forSale) {
   return MaterialApp(
     home: Scaffold(
       body: ListView(
-        children: [ForSaleCard(listing: listing, onTap: () {})],
+        children: [ForSaleCard(forSale: forSale, onTap: () {})],
       ),
     ),
   );
@@ -22,7 +22,7 @@ ForSale _listing({
   ContentLifecycle trustLifecycle = ContentLifecycle.active,
 }) {
   return ForSale(
-    forSaleId: 'listing-1',
+    forSaleId: 'forSale-1',
     title: 'Showa Koi 30cm',
     description: 'Premium showa',
     price: 1500000,
@@ -40,7 +40,7 @@ ForSale _listing({
 }
 
 void main() {
-  testWidgets('Listing Card renders @username then store_name', (tester) async {
+  testWidgets('ForSale Card renders @username then store_name', (tester) async {
     await tester.pumpWidget(_wrap(_listing()));
 
     final usernameFinder = find.text('@yayan');

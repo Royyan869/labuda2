@@ -160,7 +160,7 @@ Map<String, dynamic> _coverageJson({
 }) {
   return {
     'id': id,
-    'shipping_setup_id': shippingSetupId,
+    'shipping_option_id': shippingSetupId,
     'province_code': provinceCode,
     'province_name': provinceName,
     'rate': rate,

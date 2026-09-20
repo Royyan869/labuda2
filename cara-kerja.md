@@ -1120,3 +1120,18 @@ kode lama → tambal → tambah kondisi → tambah compatibility → akhirnya te
 
 Tetapi:
 business truth → tentukan model sederhana → satu authority → implementasikan ulang.
+
+Complexity / Simplification
+Fokusnya bukan sekadar refactor, tapi:
+
+Business truth → simple model → one authority → implementation
+
+cari bagian yang:
+
+terlalu banyak layer untuk hasil yang sama,
+duplicate authority,
+fallback/compatibility yang tidak diperlukan,
+adapter/proxy/provider berlebihan,
+state dan lifecycle yang unnecessarily rumit,
+worker/abstraction yang sebenarnya bisa disederhanakan,
+legacy/residue yang masih membuat developer masa depan harus memahami sejarah codebase.

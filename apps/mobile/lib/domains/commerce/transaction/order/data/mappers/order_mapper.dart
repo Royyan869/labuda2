@@ -2,9 +2,8 @@ import 'package:flutter/foundation.dart' show debugPrint;
 
 import '../../domain/domain.dart';
 import 'package:labuda/core/common/types/preparation_time.dart';
-import '../dto/dto_barrel.dart';
 import '../models/api/order_api_response_dtos.dart'
-    show ActiveRefundApiResponse;
+    show OrderApiResponse, ActiveRefundApiResponse;
 
 /// Order Mapper - converts between DTOs and Domain Entities
 class OrderMapper {
@@ -18,7 +17,7 @@ class OrderMapper {
   /// All nullable; old payloads simply land null. No fake fallback
   /// (no Unknown / User / Buyer / Seller / Anonymous). No fullName
   /// fallback. UI consumption is deferred to Stage 4.
-  static Order toOrder(OrderDto dto) {
+  static Order toOrder(OrderApiResponse dto) {
     return Order(
       id: dto.id,
       buyerId: dto.buyerId,
@@ -30,16 +29,16 @@ class OrderMapper {
       paymentStatus: _mapPaymentStatus(dto.paymentStatus),
       shippingInfo: _buildShippingInfo(dto),
       pricing: _buildOrderPricing(dto),
-      notes: dto.notes,
+      notes: dto.buyerNotes,
       preparationTimeSnapshot: _mapPreparationTime(dto.preparationTimeSnapshot),
       preparationNoteSnapshot: dto.preparationNoteSnapshot,
       readyToShipBy: dto.readyToShipBy,
       createdAt: dto.createdAt,
-      paidAt: dto.confirmedAt,
-      shippedAt: dto.shippedAt,
+      paidAt: null, // confirmed_at removed from canonical contract
+      shippedAt: null, // no shipped timestamp exists on the canonical contract
       completedAt: dto.completedAt,
-      cancelledAt: dto.cancelledAt,
-      acceptanceDeadline: dto.sellerAcceptDeadline,
+      cancelledAt: null, // cancelled_at removed from canonical contract
+      acceptanceDeadline: null, // seller_accept_deadline removed from canonical contract
       source: OrderSource.forSale,
       sourceId: dto.sourceId,
       hasActiveRefund: dto.hasActiveRefund,
@@ -53,132 +52,92 @@ class OrderMapper {
     );
   }
 
-  static List<Order> toOrderList(List<OrderDto> dtos) {
+  static List<Order> toOrderList(List<OrderApiResponse> dtos) {
     return dtos.map(toOrder).toList();
   }
 
-  static CreateOrderDto toCreateOrderDto({
-    required String productId,
-    required int quantity,
-    required ShippingInfo shippingInfo,
-    String? discountCode,
-    bool? useCoins,
-    String? notes,
-    required String pricingToken,
-    String? auctionId,
-    String? negotiationId,
-  }) {
-    return CreateOrderDto(
-      productId: productId,
-      quantity: quantity,
-      discountCode: discountCode,
-      useCoins: useCoins,
-      notes: notes,
-      shippingAddress: ShippingAddressRequestDto(
-        recipientName: shippingInfo.recipientName,
-        phoneNumber: shippingInfo.phone,
-        addressLine1: shippingInfo.address,
-        city: shippingInfo.cityName,
-        province: shippingInfo.provinceName,
-        postalCode: shippingInfo.postalCode,
-      ),
-      pricingToken: pricingToken,
-      sourceType: auctionId != null ? 'auction' : 'fixed_price_sale',
-      sourceId: auctionId ?? productId,
-      auctionId: auctionId,
-      negotiationId: negotiationId,
-    );
+  /// CANONICAL line items — backend key `items` (OrderItemDTO[]).
+  ///
+  /// No placeholder item is invented and no `product` summary fallback is
+  /// honored: that key does not exist on the order contract, so the legacy
+  /// parse (and the `productId` field it read) were purged. The backend order
+  /// payload carries no product image, so `forSaleImage` stays empty rather
+  /// than being filled with an invented URL.
+  static List<OrderItem> _buildOrderItems(OrderApiResponse dto) {
+    return dto.items
+        .map(
+          (item) => OrderItem(
+            id: item.id,
+            productId: item.productId,
+            forSaleName: item.name,
+            forSaleImage: '',
+            price: item.unitPrice,
+            quantity: item.quantity,
+          ),
+        )
+        .toList();
   }
 
-  static List<OrderItem> _buildOrderItems(OrderDto dto) {
-    final product = dto.product;
-    if (product == null) {
-      return [
-        OrderItem(
-          id: dto.productId,
-          productId: dto.productId,
-          listingName: 'Item',
-          listingImage: '',
-          price: dto.totalAmount,
-          quantity: dto.quantity,
-        ),
-      ];
-    }
-
-    return [
-      OrderItem(
-        id: product.id,
-        productId: product.id,
-        listingName: product.title,
-        listingImage: product.imageUrl ?? '',
-        price: product.price,
-        quantity: dto.quantity,
-      ),
-    ];
-  }
-
-  static ShippingInfo _buildShippingInfo(OrderDto dto) {
+  /// CANONICAL address mapping — backend key `shipping_address`, which is the
+  /// immutable `orders.address_snapshot` (AddressSnapshot) frozen at creation.
+  /// Every component is mapped field-for-field; the client never re-derives or
+  /// invents an address part.
+  static ShippingInfo _buildShippingInfo(OrderApiResponse dto) {
     final addr = dto.shippingAddress;
-    if (addr == null) {
-      return ShippingInfo(
-        recipientName: '',
-        phone: '',
-        address: '',
-        method: ShippingMethod.courier,
-        shippingCost: dto.shippingFee,
-        // SHIPPING CONFIRMATION TRUTH: Map shipping reference fields
-        trackingNumber: dto.shippingReference,
-        referenceType: dto.referenceType,
-        shippingNote: dto.shippingNote,
-        courierName: null,
-      );
-    }
-
     return ShippingInfo(
-      recipientName: addr.recipientName,
-      phone: addr.phoneNumber,
-      address: addr.fullAddress.isNotEmpty
-          ? addr.fullAddress
-          : addr.addressLine1,
-      cityName: addr.city,
-      provinceName: addr.province,
-      postalCode: addr.postalCode,
+      recipientName: addr?.recipientName ?? '',
+      phone: addr?.phone ?? '',
+      address: addr?.streetAddress ?? '',
+      provinceId: addr?.provinceId,
+      provinceName: addr?.provinceName,
+      cityId: addr?.cityId,
+      cityName: addr?.cityName,
+      districtId: addr?.districtId,
+      districtName: addr?.districtName,
+      villageId: addr?.villageId,
+      villageName: addr?.villageName,
+      postalCode: addr?.postalCode,
+      latitude: addr?.latitude,
+      longitude: addr?.longitude,
       method: ShippingMethod.courier,
-      shippingCost: dto.shippingFee,
-      // SHIPPING CONFIRMATION TRUTH: Map shipping reference fields
-      trackingNumber: dto.shippingReference,
-      referenceType: dto.referenceType,
+      shippingCost: dto.shippingTotal,
+      // SHIPPING CONFIRMATION TRUTH: canonical tracking reference fields
+      trackingNumber: dto.trackingNumber,
+      referenceType: _mapProofType(dto.proofType),
       shippingNote: dto.shippingNote,
       courierName: null,
     );
   }
 
-  static OrderPricing _buildOrderPricing(OrderDto dto) {
-    final subtotal = dto.totalAmount;
-    final shippingCost = dto.shippingFee;
+  /// Translate the backend shipping-proof vocabulary
+  /// ("tracking" | "phone" | "manual") into the UI labeling vocabulary
+  /// ("tracking" | "phone" | "other"). A "manual" reference has no courier
+  /// resi, so it is surfaced as "other" instead of being mislabeled as a
+  /// tracking number.
+  static String? _mapProofType(String? proofType) {
+    switch (proofType) {
+      case 'tracking':
+        return 'tracking';
+      case 'phone':
+        return 'phone';
+      case 'manual':
+        return 'other';
+      default:
+        return null;
+    }
+  }
 
-    // BACKEND OWNERSHIP: Use backend-provided discountAmount directly.
-    // Mobile does NOT derive or combine discount values.
-    // NOTE: dto.coinDiscount exists but is not added to discount field here.
-    // The backend sends separate discount components (discountAmount, coinDiscount)
-    // but OrderPricing entity has a single discount field.
-    // This maps discountAmount conservatively - backend is source of truth.
-    final discount = dto.discountAmount;
-
-    final total = dto.finalAmount;
-
-    // Financial values (adminFee, paymentFee) MUST come from backend
-    // sellerCommission and sellerEarnings REMOVED (Wave 3.1B) - seller financial data
-    // belongs in finance-derived sources, not Order domain
+  static OrderPricing _buildOrderPricing(OrderApiResponse dto) {
+    // CANONICAL: Backend emits subtotal (P), shipping_total (S),
+    // commission_amount (C), service_fee_amount (F),
+    // total_payable_amount (PD+S+F), total_before_coins_amount (PD+S).
     return OrderPricing(
-      subtotal: subtotal,
-      shippingCost: shippingCost,
+      subtotal: dto.subtotal,
+      shippingCost: dto.shippingTotal,
+      commissionAmount: dto.commissionAmount,
       serviceFeeAmount: dto.serviceFeeAmount,
-      adminFee: null, // Backend must provide
-      paymentFee: null, // Backend must provide
-      discount: discount,
-      total: total,
       totalPayableAmount: dto.totalPayableAmount,
+      totalBeforeCoinsAmount: dto.totalBeforeCoinsAmount,
     );
   }
 
@@ -392,22 +351,12 @@ class OrderMapper {
       case 'admin_released':
       case 'rejected':
         return RefundStatus.rejected;
-      case 'refunded':
+      // Canonical backend value for a platform-initiated refund.
+      case 'system_refunded':
         return RefundStatus.refunded;
       default:
         return RefundStatus.pendingSellerReview;
     }
-  }
-
-  // Convert OrderStatsApiResponse to OrderStats (domain entity)
-  static OrderStats toOrderStats(OrderStatsDto dto) {
-    return OrderStats(
-      totalOrders: dto.totalOrders,
-      pendingOrders: dto.pendingOrders,
-      completedOrders: dto.completedOrders,
-      cancelledOrders: dto.cancelledOrders,
-      totalRevenue: dto.totalRevenue,
-    );
   }
 
   // Public version of _mapPaymentStatus for external use

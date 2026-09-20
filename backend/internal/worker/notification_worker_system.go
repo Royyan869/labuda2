@@ -72,7 +72,14 @@ func (h *NotificationEventHandler) handleSupportTicketClosed(ctx context.Context
 }
 
 // handleSupportTicketWaitingUser processes support.ticket_waiting_user events.
-// Notifies the user that admin is waiting for their response.
+// Notifies the user that the assigned admin replied and is waiting for the
+// user's response.
+//
+// ACTOR IDENTITY: the actor is the human agent who replied (payload admin_id),
+// not a uuid.Nil sentinel. notifications.actor_id is NOT NULL with a FK to
+// users(id), so a uuid.Nil sentinel can never be persisted — the notification
+// would be silently undeliverable. The same real-actor rule already applies to
+// support.ticket.user_responded (actor = the user).
 func (h *NotificationEventHandler) handleSupportTicketWaitingUser(ctx context.Context, payload []byte) (notificationInfo, error) {
 	var p SupportTicketPayload
 	if err := json.Unmarshal(payload, &p); err != nil {
@@ -89,14 +96,25 @@ func (h *NotificationEventHandler) handleSupportTicketWaitingUser(ctx context.Co
 		return notificationInfo{}, fmt.Errorf("invalid user_id: %w", err)
 	}
 
+	adminID, err := uuid.Parse(p.AdminID)
+	if err != nil || adminID == uuid.Nil {
+		// No real actor: never insert an unpersistable uuid.Nil actor. Legacy
+		// events emitted before admin_id was carried are skipped, not failed,
+		// so they cannot poison the outbox with endless retries.
+		h.log.Warn("support.ticket_waiting_user without a real actor — skipped",
+			zap.String("ticket_id", p.TicketID),
+		)
+		return notificationInfo{}, nil
+	}
+
 	// Navigation data for mobile
 	data := map[string]interface{}{
 		"ticketId":   p.TicketID,
 		"chatRoomId": p.ChatRoomID,
 	}
 
-	// Notify USER (admin is waiting for user reply)
-	info, err := h.insertNotificationWithPolicy(ctx, userID, uuid.Nil, "support.ticket_waiting_user", ticketID, data)
+	// Notify USER (the agent is waiting for the user's reply).
+	info, err := h.insertNotificationWithPolicy(ctx, userID, adminID, "support.ticket_waiting_user", ticketID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -253,5 +271,3 @@ func (h *NotificationEventHandler) handleSupportTicketCreated(ctx context.Contex
 // P2-A FIX: The negotiation.started outbox event is emitted before the chat consumer
 // creates the room, so chat_room_id is absent from the payload. We enrich it here via
 // a fail-soft DB lookup — notification is always delivered; deeplink is best-effort.
-
-

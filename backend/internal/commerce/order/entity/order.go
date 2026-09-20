@@ -32,11 +32,6 @@ type Order struct {
 	// NegotiationID is optional, used for negotiated price purchases
 	NegotiationID *uuid.UUID `json:"negotiation_id,omitempty"`
 
-	// Auction settlement metadata (only populated when SourceType == auction)
-	// AuctionSettlementType indicates how the auction was settled (buy_now vs bid_win)
-	// This is critical for pricing rules: both buy_now and bid_win allow discounts/coins (owner canonical 2026-06-16)
-	AuctionSettlementType *AuctionSettlementType `json:"auction_settlement_type,omitempty"`
-
 	// ============================================================================
 	// PRICING SNAPSHOT (immutable after creation)
 	// ============================================================================
@@ -60,36 +55,6 @@ type Order struct {
 	ServiceFeeAmount       money.Money `json:"service_fee_amount"`        // Buyer-facing service fee projection for the selected payment method
 	TotalPayableAmount     money.Money `json:"total_payable_amount"`      // Buyer-facing gross payable projection after payment selection
 	TotalBeforeCoinsAmount money.Money `json:"total_before_coins_amount"` // Canonical buyer base before coin deduction/payment fee
-
-	// ============================================================================
-	// CoinsUsed - DISPLAY ONLY FIELD - STRICT USAGE RULES APPLY
-	// ============================================================================
-	// CRITICAL: This field is for DISPLAY PURPOSES ONLY.
-	//
-	// WHAT IT IS:
-	// - Immutable snapshot of coins used at order creation time
-	// - Shows to user: "You used X coins on this order"
-	// - Used for coins refund ratio calculation in partial refunds
-	//
-	// WHAT IT IS NOT:
-	// - NOT a financial field (no ledger entry)
-	// - NOT used for discount calculation (discount logic is handled during order creation)
-	// - NOT modifiable after order creation
-	// - NOT a source of truth for any financial calculation
-	//
-	// FINANCIAL TRUTH:
-	// - CoinsService tracks user balance
-	// - Ledger tracks discount amounts via actual_ledger_amount
-	// - This field is purely cosmetic/display
-	//
-	// USAGE RULES:
-	// - OK: Display to user ("You used 500 coins")
-	// - OK: Calculate refund ratio in partial refunds (proportional only)
-	// - FORBIDDEN: Use for financial calculations
-	// - FORBIDDEN: Use for discount calculations
-	// - FORBIDDEN: Modify after order creation
-	// ============================================================================
-	CoinsUsed int64 `json:"coins_used"` // Number of coins used (DISPLAY ONLY - see usage rules above)
 
 	// Shipping option snapshot (no FK - immutable snapshot at order creation)
 	ShippingSetupID      *uuid.UUID `json:"shipping_option_id,omitempty"`       // Snapshot of shipping option ID (NULL when using shipping quote)
@@ -131,10 +96,14 @@ type Order struct {
 	PreparationNoteSnapshot *string    `json:"preparation_note_snapshot,omitempty"` // Frozen preparation note from source
 	ReadyToShipBy           *time.Time `json:"ready_to_ship_by,omitempty"`          // Calculated deadline: paid_at + preparation_days (null until paid)
 
-	// Shipping Destination Snapshot - frozen at order creation time
+	// Shipping Address Snapshot - frozen at order creation time
 	// This preserves the shipping address for order fulfillment, even if buyer
-	// modifies or deletes their address from the address book
-	ShippingDestination *addressentity.AddressSnapshot `json:"shipping_destination,omitempty" db:"address_snapshot"` // Stored as JSONB in database
+	// modifies or deletes their address from the address book.
+	//
+	// CANONICAL: the persisted column is orders.address_snapshot and the wire key
+	// is shipping_address. The legacy name `shipping_destination` (column and
+	// JSON key) was purged; the identifier was renamed to match the column.
+	AddressSnapshot *addressentity.AddressSnapshot `json:"address_snapshot,omitempty" db:"address_snapshot"` // Stored as JSONB in database
 
 	// Shipping Origin Snapshot - frozen at order creation time
 	// This preserves the seller's farm/warehouse address for order fulfillment,
@@ -158,23 +127,20 @@ type Order struct {
 	// ============================================================================
 	// PAYMENT EXPIRY (SINGLE SOURCE OF TRUTH)
 	// ============================================================================
-	// PaymentMethod is "default" at order creation (the buyer has not chosen
-	// a payment method yet — see PricingSnapshot.PaymentMethod in
-	// order_creation_service.go), used only for the payment-window duration
-	// below. Once the buyer selects a canonical method (PASS_18V) and
-	// CorePaymentHandler.CreatePayment succeeds, this is overwritten with
-	// the real method code (e.g. "qris", "bank_transfer") via
-	// OrderRepository.UpdatePaymentSelectionTx — "default" is never the
-	// terminal/authoritative value for a paid order.
 	// PaymentExpiresAt is when the payment window closes - after this time, payment
-	// is rejected and order becomes expired.
+	// is rejected and order becomes expired. Its duration is derived once, at
+	// creation, from PricingSnapshot.PaymentMethod (see calculatePaymentExpiry in
+	// order_creation_service.go) and then persisted here.
 	//
 	// CRITICAL: This is the ONLY source of truth for payment expiry.
 	// - No dual logic with created_at + interval
 	// - No separate payment.expired_at field
 	// - Workers query this field directly
+	//
+	// The order does NOT store the buyer's selected payment method: that is
+	// owned by the payment domain (payments.payment_method_code), and duplicating
+	// it here would create a second authority over the same concept.
 	// ============================================================================
-	PaymentMethod    string     `json:"payment_method"`         // Payment method: instant, va, retail, etc.
 	PaymentExpiresAt time.Time  `json:"payment_expires_at"`     // When payment window closes (single source of truth)
 	CompletedAt      *time.Time `json:"completed_at,omitempty"` // When order was completed (NULL for non-completed orders)
 	CreatedAt        time.Time  `json:"created_at"`
@@ -540,6 +506,33 @@ func (o *Order) IsExpired() bool {
 	return time.Now().After(o.PaymentExpiresAt)
 }
 
+// IsInvalidForPaymentFinalization is the SINGLE canonical authority for the
+// REC-6 decision: a gateway SUCCESS has arrived for an order that can no longer
+// be applied by the canonical payment-finalization path.
+//
+// It reproduces EXACTLY the two guards enforced by
+// OrderCompletionService.MarkPaid -> Order.MarkPaid:
+//  1. the order must not be past payment_expires_at (Order.IsExpired), and
+//  2. the order must still be allowed to transition to paid — only
+//     pending_payment may transition to paid (canTransition).
+//
+// It takes the raw orders-table columns so webhook ingestion, payment discovery,
+// and orphan recovery can all share ONE authority instead of each re-implementing
+// the status/time rule. A gateway success satisfying this predicate must be
+// converted into a canonical refund intent; it must never be finalized and never
+// be recorded as a successfully processed event without that intent.
+func IsInvalidForPaymentFinalization(status Status, paymentExpiresAt time.Time) bool {
+	// paid is the canonical IDEMPOTENT-SUCCESS state: OrderCompletionService.MarkPaid
+	// returns nil for an already-paid order without performing any transition, so a
+	// paid order (expired or not) is NOT invalid for payment finalization and must
+	// never produce a REC-6 refund intent.
+	if status == StatusPaid {
+		return false
+	}
+	o := Order{Status: status, PaymentExpiresAt: paymentExpiresAt}
+	return o.IsExpired() || !canTransition(o.Status, StatusPaid)
+}
+
 // ============================================================================
 // FULFILLMENT DEADLINE METHODS
 // ============================================================================
@@ -591,6 +584,32 @@ func (o *Order) IsWithinPostShipDisputeWindow() bool {
 	markShipTime := o.AutoReleaseAt.Add(-AutoReleaseDuration)
 	windowCloses := markShipTime.Add(PostShipDisputeWindowHours * time.Hour)
 	return time.Now().Before(windowCloses)
+}
+
+// IsRefundWindowOpen reports whether the buyer's refund / escalation opportunity
+// is still inside the order's own lifecycle window.
+//
+// AUTHORITY: the order lifecycle owns this question (order status, dispute flag,
+// and the auto-release deadline). The refund domain owns whether a given refund
+// row still has an open decision. Together they answer "must this refund block
+// order release?" — see refundEntity.Refund.BlocksOrderRelease.
+//
+// The window is open while the order is SHIPPED (the only state in which a
+// refund request can be created), has no active dispute, and has not yet reached
+// its auto-release deadline. Once the window closes, the normal lifecycle owns
+// the outcome: an undecided refund no longer blocks completion (locked business
+// truth — seller reject + no escalation may end through normal completion).
+func (o *Order) IsRefundWindowOpen() bool {
+	if o.Status != StatusShipped {
+		return false
+	}
+	if o.HasDispute {
+		return false
+	}
+	if o.AutoReleaseAt == nil {
+		return true
+	}
+	return time.Now().Before(*o.AutoReleaseAt)
 }
 
 // IsUserAuthorizedForDispute returns true if the user is authorized to access/manage the dispute.
@@ -953,10 +972,44 @@ func (o *Order) SetAutoRelease(at time.Time) {
 	o.UpdatedAt = time.Now()
 }
 
-// ApplyShippingDestination applies the shipping destination snapshot to the order.
+// ============================================================================
+// CANONICAL BUYER-FUNDED MONEY BASE
+// ============================================================================
+//
+// AUTHORITY: the pricing token snapshot persisted at order creation.
+//
+//	total_before_coins_amount = PD + S   (buyer-funded base, fee F excluded)
+//	DiscountedProductAmount   = PD       (= base - S)
+//	total_payable_amount      = PD + S + F (after payment-method selection)
+//
+// Subtotal is P (price before discount) and is NEVER the discounted product
+// value. There is exactly ONE PD derivation (base - S) and ONE base definition
+// (total_before_coins_amount); consumers MUST fail closed through
+// HasCanonicalMoneyBase() instead of falling back to P or P+S.
+
+// DiscountedProductAmount returns the canonical discounted product value PD.
+//
+// PD = total_before_coins_amount - shipping_total = (P - D).
+// It is derived from the persisted buyer-funded base, never from Subtotal (P).
+func (o *Order) DiscountedProductAmount() money.Money {
+	return o.TotalBeforeCoinsAmount.Sub(o.ShippingTotal)
+}
+
+// HasCanonicalMoneyBase reports whether the persisted buyer-funded base
+// (PD + S) and the derived PD are both positive. Money-base-dependent
+// operations (refund, release, reward, cap) MUST fail closed when this is
+// false — there is no fallback to P, P+S, or P+S+C.
+func (o *Order) HasCanonicalMoneyBase() bool {
+	if o.TotalBeforeCoinsAmount.Int64() <= 0 {
+		return false
+	}
+	return o.DiscountedProductAmount().Int64() > 0
+}
+
+// ApplyAddressSnapshot applies the shipping address snapshot to the order.
 //
 // This is called AFTER address validation and BEFORE order persistence.
-// It stores the immutable snapshot of the shipping address.
+// It stores the immutable snapshot of the shipping address (orders.address_snapshot).
 //
 // IMMUTABILITY GUARANTEE:
 // - The snapshot is frozen at order creation time
@@ -969,8 +1022,8 @@ func (o *Order) SetAutoRelease(at time.Time) {
 // - Fulfillment and delivery
 // - Refund/dispute resolution (shipping proof)
 // - Audit and compliance
-func (o *Order) ApplyShippingDestination(snapshot addressentity.AddressSnapshot) {
-	o.ShippingDestination = &snapshot
+func (o *Order) ApplyAddressSnapshot(snapshot addressentity.AddressSnapshot) {
+	o.AddressSnapshot = &snapshot
 	o.UpdatedAt = time.Now()
 }
 
@@ -1010,23 +1063,34 @@ func (o *Order) ApplyShippingOrigin(snapshot addressentity.AddressSnapshot) {
 // - subtotal: Subtotal amount from pricing snapshot (Quantity * UnitPrice)
 // - shippingTotal: Shipping cost
 // - commissionPercent: Commission percentage for record (e.g., 5 for 5%)
+// - escrowBase: CANONICAL buyer-funded base from the pricing token = PD + S.
+//   The payment/service fee (F) is NOT part of it: TotalPayableAmount is derived
+//   as escrowBase + serviceFeeAmount, so F can never leak into the base.
 // - commissionAmount: Commission amount snapshot from pricing token
 // - shippingSource: "for_sale" or "shipping_quote"
 // - shippingQuoteID: Quote ID when using shipping quote (TASK F)
 // - shippingQuotePrice: Quote price snapshot when using shipping quote (TASK F)
-// - paymentMethod: Payment method (instant, va, retail, etc.)
 // - paymentExpiresAt: When payment window closes (SINGLE SOURCE OF TRUTH)
+//
+// NOTE: the order does not carry auction settlement metadata or the buyer's
+// selected payment method. Auction settlement type is a pricing-token/auction
+// concern (validated at creation), and the selected payment method is owned by
+// the payment domain (payments.payment_method_code). Persisting either on the
+// order would create a duplicate authority over a concept owned elsewhere.
 //
 // VALIDATION GUARDS:
 // - Panics if quantity <= 0
 // - Panics if unitPrice is negative
+// - Panics if escrowBase is negative
 // - Panics if sourceType is invalid
 //
 // FINANCIAL TRUTH:
 // - Escrow is managed by the escrow service, NOT calculated here
 // - Refunds are tracked in the refund domain, NOT in Order
 // - Discounts are applied at order creation with pricing token
-// - Coins usage is recorded for display only
+// - Buyer-funded base is escrowBase (PD + S); fee F is never part of the base
+// - Coins redeemed for an order live in the coins domain (coins_transactions,
+//   keyed by reference_id = order id), never in an order snapshot
 func NewOrderFromSource(
 	buyerID, sellerID uuid.UUID,
 	sourceType OrderSourceType,
@@ -1037,18 +1101,16 @@ func NewOrderFromSource(
 	commissionPercent int64,
 	commissionAmount money.Money, // Commission amount from pricing snapshot
 	serviceFeeAmount money.Money, // Flat buyer checkout service fee snapshot
-	totalPayableAmount money.Money, // Buyer gross payable snapshot
+	escrowBase money.Money, // CANONICAL buyer-funded base = PD + S (payment fee F is NOT part of it)
 	shippingSetupID *uuid.UUID, // NULLABLE: nil when using shipping quote
 	shippingSetupName string,
 	shippingTransportType string,
-	auctionSettlementType *AuctionSettlementType,
 	preparationTimeSnapshot string,
 	preparationNoteSnapshot *string,
 	shippingSource *string, // Shipping source ("for_sale" or "shipping_quote")
 	shippingQuoteID *uuid.UUID, // TASK F: Quote ID when using shipping quote
 	shippingQuotePrice *int64, // TASK F: Quote price snapshot
 	pricingTokenID *uuid.UUID, // Pricing token used for this order (prevents double-ordering)
-	paymentMethod string, // Payment method: instant, va, retail, etc.
 	paymentExpiresAt time.Time, // When payment window closes (SINGLE SOURCE OF TRUTH)
 ) *Order {
 	// Validation guards
@@ -1057,6 +1119,9 @@ func NewOrderFromSource(
 	}
 	if unitPrice.IsNegative() {
 		panic("order: unit price cannot be negative")
+	}
+	if escrowBase.IsNegative() {
+		panic("order: escrow base (PD + S) cannot be negative")
 	}
 
 	// D2: Max price cap validation
@@ -1087,7 +1152,6 @@ func NewOrderFromSource(
 		SourceType:                sourceType,
 		SourceID:                  sourceID,
 		NegotiationID:             negotiationID,
-		AuctionSettlementType:     auctionSettlementType,
 		Quantity:                  quantity,
 		UnitPrice:                 unitPrice,
 		Subtotal:                  subtotal,
@@ -1095,9 +1159,8 @@ func NewOrderFromSource(
 		CommissionPercent:         commissionPercent,
 		CommissionAmount:          commissionAmount,
 		ServiceFeeAmount:          serviceFeeAmount,
-		TotalPayableAmount:        totalPayableAmount,
-		TotalBeforeCoinsAmount:    totalPayableAmount,
-		CoinsUsed:                 0, // No coins used by default
+		TotalBeforeCoinsAmount:    escrowBase,                          // CANONICAL: PD + S
+		TotalPayableAmount:        escrowBase.Add(serviceFeeAmount),    // PD + S + F
 		ShippingSetupID:          shippingSetupID,
 		ShippingSetupName:        shippingSetupName,
 		ShippingTransportType:     shippingTransportType,
@@ -1114,7 +1177,6 @@ func NewOrderFromSource(
 		HasDispute:                false,
 		ConfirmationExtensionUsed: false,
 		ConfirmationExtendedAt:    nil,
-		PaymentMethod:             paymentMethod,    // Payment method
 		PaymentExpiresAt:          paymentExpiresAt, // SINGLE SOURCE OF TRUTH for expiry
 		CreatedAt:                 now,
 		UpdatedAt:                 now,

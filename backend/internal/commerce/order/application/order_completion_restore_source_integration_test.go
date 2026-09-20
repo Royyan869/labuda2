@@ -119,8 +119,8 @@ func TestStage5_RestoreListingStock_ResolvesSurfaceFromOrderSource(t *testing.T)
 		buyerID, sellerID, orderentity.OrderSourceForSale, fpsID, nil,
 		1, money.New(50000), money.New(50000), money.New(0),
 		0, money.New(0), money.New(0), money.New(50000),
-		nil, "", "", nil, "immediate", nil, nil, nil, nil, nil,
-		"instant", time.Now(),
+		nil, "", "", "immediate", nil, nil, nil, nil, nil,
+		time.Now(),
 	)
 	order.ID = uuid.New()
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
@@ -162,8 +162,8 @@ func TestStage5_RestoreListingStock_ResolvesSurfaceFromOrderSource(t *testing.T)
 		buyerID, sellerID, orderentity.OrderSourceAuction, uuid.Nil, nil,
 		1, money.New(40000), money.New(40000), money.New(0),
 		0, money.New(0), money.New(0), money.New(40000),
-		nil, "", "", nil, "immediate", nil, nil, nil, nil, nil,
-		"instant", time.Now(),
+		nil, "", "", "immediate", nil, nil, nil, nil, nil,
+		time.Now(),
 	)
 	auctionOrder.ID = uuid.New()
 	auctionOrderID = auctionOrder.ID

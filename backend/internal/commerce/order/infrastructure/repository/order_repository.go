@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/commerce/order/entity"
 	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
+	refundEntity "github.com/labuda/backend/internal/finance/refund/entity"
 	addressentity "github.com/labuda/backend/internal/identity/address/entity"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/money"
@@ -33,8 +34,8 @@ func (r *OrderRepository) CreateOrderTx(
 ) error {
 	// Marshal address snapshot to JSONB
 	var addressSnapshotJSON []byte
-	if order.ShippingDestination != nil {
-		addrBytes, err := json.Marshal(order.ShippingDestination)
+	if order.AddressSnapshot != nil {
+		addrBytes, err := json.Marshal(order.AddressSnapshot)
 		if err != nil {
 			return fmt.Errorf("marshal address snapshot failed: %w", err)
 		}
@@ -90,7 +91,7 @@ func (r *OrderRepository) CreateOrderTx(
 		order.CommissionAmount.Int64(),
 		order.ServiceFeeAmount.Int64(),
 		order.TotalPayableAmount.Int64(),
-		order.TotalPayableAmount.Int64(), // total_before_coins_amount = total_payable when no coins
+		order.TotalBeforeCoinsAmount.Int64(), // CANONICAL buyer-funded base = PD + S (fee F is NEVER part of it)
 		string(order.Status),
 		string(order.EscrowStatus),
 		order.AutoReleaseAt,
@@ -265,7 +266,7 @@ func (r *OrderRepository) GetByID(
 		PreparationTimeSnapshot:   preparationTimeSnapshot.String,
 		PreparationNoteSnapshot:   db.ToStringPtr(preparationNoteSnapshot),
 		ReadyToShipBy:             db.ToTimePtr(readyToShipBy),
-		ShippingDestination:       shippingDestination,
+		AddressSnapshot:           shippingDestination,
 		Status:                    entity.Status(status),
 		EscrowStatus:              entity.EscrowStatus(escrowStatus),
 		HasDispute:                hasDispute,
@@ -431,7 +432,7 @@ func (r *OrderRepository) GetForUpdate(
 		PreparationTimeSnapshot:   preparationTimeSnapshot.String,
 		PreparationNoteSnapshot:   db.ToStringPtr(preparationNoteSnapshot),
 		ReadyToShipBy:             db.ToTimePtr(readyToShipBy),
-		ShippingDestination:       shippingDestination,
+		AddressSnapshot:           shippingDestination,
 		Status:                    entity.Status(status),
 		EscrowStatus:              entity.EscrowStatus(escrowStatus),
 		HasDispute:                hasDispute,
@@ -496,6 +497,13 @@ func (r *OrderRepository) GetByIdempotencyKey(
 // GetByShippingQuoteID retrieves an order by its shipping quote ID.
 // SCENARIO 6 FIX: Prevents double-order attacks from same shipping quote.
 // Returns nil if no order found with the given shipping quote.
+//
+// NARROW PROJECTION: this reader hydrates the order's identity, status, escrow
+// status, quote metadata and address snapshot only. Its sole consumer
+// (shipping-quote reactivation) reads the status; money fields and lifecycle
+// deadlines are NOT hydrated and must never be read from this result — use
+// GetByID/GetForUpdate when the caller needs the canonical money base or
+// payment/completion deadlines.
 func (r *OrderRepository) GetByShippingQuoteID(
 	ctx context.Context,
 	tx db.Tx,
@@ -512,8 +520,7 @@ func (r *OrderRepository) GetByShippingQuoteID(
 	var trackingNumber, shippingNote *string
 	var orderNum *string
 	var autoReleaseAt *time.Time
-	var confirmationExtendedAt *time.Time
-	var completedAt *int64
+	var completedAt sql.NullTime
 	var hasDispute bool
 	var confirmationExtensionUsed bool
 	var idempotencyKeyPtr *string
@@ -525,7 +532,7 @@ func (r *OrderRepository) GetByShippingQuoteID(
 	var shippingSourcePtr *string
 	var shippingQuoteIDPtr *uuid.UUID
 	var shippingQuotePricePtr *int64
-	var createdAt, updatedAt int64
+	var createdAt, updatedAt time.Time
 
 	err := tx.QueryRow(ctx, `
 		SELECT id, buyer_id, seller_id,
@@ -536,10 +543,10 @@ func (r *OrderRepository) GetByShippingQuoteID(
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
 	       tracking_number, shipping_note, order_number,
 		       preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by,
-		       shipping_destination,
+		       address_snapshot,
 		       shipping_source, shipping_origin_snapshot,
 		       shipping_quote_id, shipping_quote_price,
-		       created_at, updated_at
+		       completed_at, created_at, updated_at
 		FROM orders
 		WHERE shipping_quote_id = $1
 	`, shippingQuoteID).Scan(
@@ -601,7 +608,7 @@ func (r *OrderRepository) GetByShippingQuoteID(
 		ShippingSetupName:        shippingSetupName.String,
 		ShippingTransportType:     shippingTransportType.String,
 		TrackingNumber:            trackingNumber,
-		ShippingNote:              nil,
+		ShippingNote:              shippingNote,
 		OrderNumber:               orderNum,
 		ShippingSource:            shippingSourcePtr,
 		ShippingOrigin:            shippingOrigin,
@@ -610,14 +617,14 @@ func (r *OrderRepository) GetByShippingQuoteID(
 		PreparationTimeSnapshot:   preparationTimeSnapshot.String,
 		PreparationNoteSnapshot:   preparationNoteSnapshot,
 		ReadyToShipBy:             readyToShipBy,
-		ShippingDestination:       shippingDestination,
+		AddressSnapshot:           shippingDestination,
 		Status:                    entity.Status(status),
 		EscrowStatus:              entity.EscrowStatus(escrowStatus),
 		HasDispute:                hasDispute,
 		ConfirmationExtensionUsed: confirmationExtensionUsed,
 		IdempotencyKey:            idempotencyKeyPtr,
-		CreatedAt:                 time.Unix(createdAt, 0),
-		UpdatedAt:                 time.Unix(updatedAt, 0),
+		CreatedAt:                 createdAt,
+		UpdatedAt:                 updatedAt,
 	}
 
 	if autoReleaseAt != nil {
@@ -625,13 +632,8 @@ func (r *OrderRepository) GetByShippingQuoteID(
 		order.AutoReleaseAt = &ts
 	}
 
-	if confirmationExtendedAt != nil {
-		ts := *confirmationExtendedAt
-		order.ConfirmationExtendedAt = &ts
-	}
-
-	if completedAt != nil {
-		ts := time.Unix(*completedAt, 0)
+	if completedAt.Valid {
+		ts := completedAt.Time
 		order.CompletedAt = &ts
 	}
 
@@ -651,7 +653,7 @@ func (r *OrderRepository) CountValidOrdersByShippingQuoteID(
 		SELECT COUNT(*)
 		FROM orders
 		WHERE shipping_quote_id = $1
-		  AND status = ANY($2::text[])
+		  AND status::text = ANY($2::text[])
 	`, shippingQuoteID, quoteBlockingOrderStatuses()).Scan(&count)
 
 	if err != nil {
@@ -673,7 +675,7 @@ func (r *OrderRepository) GetByPricingTokenID(
 	var storedPricingTokenID sql.NullString
 	var quantity int
 	var unitPrice, subtotal, shippingTotal, commissionPercent, commissionAmount int64
-	var serviceFeeAmount, totalPayableAmount int64
+	var serviceFeeAmount, totalPayableAmount, totalBeforeCoinsAmount int64
 	var status, escrowStatus, sourceType string
 	var shippingSetupName, shippingTransportType sql.NullString // NULLABLE in DB
 	var trackingNumber sql.NullString
@@ -697,12 +699,14 @@ func (r *OrderRepository) GetByPricingTokenID(
 	var originSnapshotJSON []byte
 	var shippingQuoteIDDB sql.NullString
 	var shippingQuotePriceDB sql.NullInt64
+	var paymentExpiresAt sql.NullTime
 
 	err := tx.QueryRow(ctx, `
 		SELECT id, buyer_id, seller_id,
 		       source_type, source_id, negotiation_id,
 		       quantity, unit_price, subtotal, shipping_total,
 		       commission_percent, commission_amount, service_fee_amount, total_payable_amount,
+		       total_before_coins_amount,
 		       status, escrow_status, auto_release_at, has_dispute,
 		       confirmation_extension_used, confirmation_extended_at, idempotency_key,
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
@@ -710,6 +714,7 @@ func (r *OrderRepository) GetByPricingTokenID(
 		       order_number,
 		       preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by, address_snapshot,
 		       pricing_token_id,
+		       payment_expires_at,
 		       shipping_source, shipping_origin_snapshot,
 		       shipping_quote_id, shipping_quote_price,
 		       completed_at, created_at, updated_at
@@ -720,12 +725,14 @@ func (r *OrderRepository) GetByPricingTokenID(
 		&sourceType, &sourceID, &negotiationID,
 		&quantity, &unitPrice, &subtotal, &shippingTotal,
 		&commissionPercent, &commissionAmount, &serviceFeeAmount, &totalPayableAmount,
+		&totalBeforeCoinsAmount,
 		&status, &escrowStatus, &autoReleaseAt, &hasDispute, &confirmationExtensionUsed, &confirmationExtendedAt, &idempotencyKey,
 		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&trackingNumber, &proofType, &shippingProofMedia, &shippingNote,
 		&orderNum,
 		&preparationTimeSnapshot, &preparationNoteSnapshot, &readyToShipBy, &addressSnapshotJSON,
 		&storedPricingTokenID,
+		&paymentExpiresAt,
 		&shippingSourceDB, &originSnapshotJSON,
 		&shippingQuoteIDDB, &shippingQuotePriceDB,
 		&completedAt, &createdAt, &updatedAt,
@@ -770,6 +777,7 @@ func (r *OrderRepository) GetByPricingTokenID(
 		CommissionAmount:          money.New(commissionAmount),
 		ServiceFeeAmount:          money.New(serviceFeeAmount),
 		TotalPayableAmount:        money.New(totalPayableAmount),
+		TotalBeforeCoinsAmount:     money.New(totalBeforeCoinsAmount),
 		ShippingSetupID:          db.ToUUIDPtr(shippingSetupID),
 		ShippingSetupName:        shippingSetupName.String,
 		ShippingTransportType:     shippingTransportType.String,
@@ -786,7 +794,7 @@ func (r *OrderRepository) GetByPricingTokenID(
 		PreparationTimeSnapshot:   preparationTimeSnapshot.String,
 		PreparationNoteSnapshot:   db.ToStringPtr(preparationNoteSnapshot),
 		ReadyToShipBy:             db.ToTimePtr(readyToShipBy),
-		ShippingDestination:       shippingDestination,
+		AddressSnapshot:           shippingDestination,
 		Status:                    entity.Status(status),
 		EscrowStatus:              entity.EscrowStatus(escrowStatus),
 		HasDispute:                hasDispute,
@@ -809,6 +817,10 @@ func (r *OrderRepository) GetByPricingTokenID(
 	if completedAt.Valid {
 		ts := completedAt.Time
 		order.CompletedAt = &ts
+	}
+
+	if paymentExpiresAt.Valid {
+		order.PaymentExpiresAt = paymentExpiresAt.Time
 	}
 
 	return order, nil
@@ -903,6 +915,12 @@ func (r *OrderRepository) UpdateStatusTx(
 // method and fee. The handler computes the canonical payment values first;
 // this repository method only stores the projection rows for
 // service_fee_amount and total_payable_amount.
+//
+// INVARIANT: total_payable_amount = (total_before_coins_amount − coins_applied)
+// + service_fee_amount; with no coins applied that is simply base + F.
+// This UPDATE deliberately never writes total_before_coins_amount: the buyer
+// funding base (PD + S) is fixed at order creation and neither the payment fee
+// F nor the coins deduction may enter it.
 func (r *OrderRepository) UpdatePaymentSelectionTx(
 	ctx context.Context,
 	tx db.Tx,
@@ -933,14 +951,14 @@ func (r *OrderRepository) UpdatePaymentSelectionTx(
 // BUSINESS RULE: Timer starts at SHIPPED, so both shipped and delivered orders can auto-complete.
 // The timer-based auto-complete is the source of truth, not the delivery status.
 //
-// CRITICAL SAFETY: Query excludes disputed orders AND orders with active refunds
-// at the database level to prevent race conditions.
+// CRITICAL SAFETY: Query excludes disputed orders AND orders with a refund that
+// still blocks release, at the database level, to prevent race conditions.
 //
 // Query conditions:
 // - status IN ('shipped', 'delivered') - timer starts at shipped
 // - escrow_status = 'holding'
 // - has_dispute = false (CRITICAL - prevents auto-completing disputed orders)
-// - no active refund (H2-F2a - prevents releasing escrow while refund in flight)
+// - no refund blocking release (canonical predicate: refundEntity.Refund.BlocksOrderRelease)
 // - auto_release_at <= NOW()
 func (r *OrderRepository) FindOrdersForAutoComplete(
 	ctx context.Context,
@@ -952,9 +970,21 @@ func (r *OrderRepository) FindOrdersForAutoComplete(
 	// Use FOR UPDATE SKIP LOCKED to allow concurrent workers to process different orders
 	// Each worker locks a subset of orders, preventing duplicate processing
 	//
-	// H2-F2a: NOT EXISTS subquery excludes orders where a refund row exists in
-	// a non-terminal status. Terminal statuses (refunded, admin_released) do NOT
-	// block because the money movement is already complete.
+	// CANONICAL REFUND GATE — derived from entity.Refund.BlocksOrderRelease:
+	//
+	//   BlocksOrderRelease(windowOpen) = IsSettlementPending()
+	//                                   || (AwaitsDecision() && windowOpen)
+	//
+	// This query ONLY selects orders that already reached their auto-release
+	// deadline (o.auto_release_at <= NOW()), which is exactly the point where the
+	// order domain reports the refund window CLOSED (Order.IsRefundWindowOpen is
+	// false for every row this query can return). The negotiation branch
+	// therefore reduces to false, and only the settlement branch remains: a final
+	// decision that owes the buyer money and has not settled at the gateway yet
+	// must not be pre-empted by a release to the seller.
+	//
+	// Status sets come from the refund domain (single source of truth) — never
+	// spell them out here, they previously drifted from the guard's predicate.
 	query := `
 		SELECT id
 		FROM orders o
@@ -965,7 +995,8 @@ func (r *OrderRepository) FindOrdersForAutoComplete(
 		  AND NOT EXISTS (
 		      SELECT 1 FROM refunds r
 		      WHERE r.order_id = o.id
-		        AND r.status NOT IN ('refunded', 'admin_released')
+		        AND r.status IN ` + refundEntity.RefundOwesBuyerStatusList + `
+		        AND r.gateway_status <> 'succeeded'
 		  )
 		FOR UPDATE SKIP LOCKED
 		LIMIT $1
@@ -1106,151 +1137,4 @@ func (r *OrderRepository) GetShippingProofsByOrderID(
 	}
 
 	return proofs, nil
-}
-
-// GetByOrderNumber retrieves an order by its human-readable order number.
-func (r *OrderRepository) GetByOrderNumber(
-	ctx context.Context,
-	tx db.Tx,
-	orderNumber string,
-) (*entity.Order, error) {
-	var id, buyerID, sellerID, sourceID uuid.UUID
-	var shippingSetupID *uuid.UUID // NULLABLE: nil when using shipping quote
-	var negotiationID *uuid.UUID
-	var quantity int
-	var unitPrice, subtotal, shippingTotal, commissionPercent, commissionAmount int64
-	var serviceFeeAmount, totalPayableAmount int64
-	var status, escrowStatus, sourceType string
-	var shippingSetupName, shippingTransportType sql.NullString // NULLABLE in DB
-	var trackingNumber, shippingNote *string
-	var orderNum *string
-	var autoReleaseAt *time.Time
-	var confirmationExtendedAt *time.Time
-	var completedAt *int64
-	var hasDispute bool
-	var confirmationExtensionUsed bool
-	var idempotencyKey *string
-	var preparationTimeSnapshot sql.NullString // NULLABLE in DB
-	var preparationNoteSnapshot *string
-	var readyToShipBy *time.Time
-	var addressSnapshotJSON []byte
-	var originSnapshotJSON []byte
-	var shippingSourcePtr *string
-	var shippingQuoteIDPtr *uuid.UUID
-	var shippingQuotePricePtr *int64
-	var createdAt, updatedAt int64
-
-	err := tx.QueryRow(ctx, `
-		SELECT id, buyer_id, seller_id,
-		       source_type, source_id, negotiation_id,
-		       quantity, unit_price, subtotal, shipping_total,
-		       commission_percent, commission_amount, service_fee_amount, total_payable_amount,
-		       status, escrow_status, auto_release_at, has_dispute,
-		       confirmation_extension_used, confirmation_extended_at, idempotency_key,
-		       shipping_option_id, shipping_option_name, shipping_transport_type,
-		       tracking_number, shipping_note,
-		       order_number,
-		       preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by, address_snapshot,
-		       shipping_source, shipping_origin_snapshot,
-		       shipping_quote_id, shipping_quote_price,
-		       created_at, updated_at
-		FROM orders
-		WHERE order_number = $1
-	`, orderNumber).Scan(
-		&id, &buyerID, &sellerID,
-		&sourceType, &sourceID, &negotiationID,
-		&quantity, &unitPrice, &subtotal, &shippingTotal,
-		&commissionPercent, &commissionAmount, &serviceFeeAmount, &totalPayableAmount,
-		&status, &escrowStatus, &autoReleaseAt, &hasDispute, &confirmationExtensionUsed, &confirmationExtendedAt, &idempotencyKey,
-		&shippingSetupID, &shippingSetupName, &shippingTransportType,
-		&trackingNumber, &shippingNote,
-		&orderNum,
-		&preparationTimeSnapshot, &preparationNoteSnapshot, &readyToShipBy, &addressSnapshotJSON,
-		&shippingSourcePtr, &originSnapshotJSON,
-		&shippingQuoteIDPtr, &shippingQuotePricePtr,
-		&completedAt, &createdAt, &updatedAt,
-	)
-
-	if err != nil {
-		if err.Error() == "no rows in result set" {
-			return nil, fmt.Errorf("order not found: %s", orderNumber)
-		}
-		return nil, fmt.Errorf("get order by order number failed: %w", err)
-	}
-
-	// Unmarshal address snapshot from JSONB
-	var shippingDestination *addressentity.AddressSnapshot
-	if addressSnapshotJSON != nil {
-		var snapshot addressentity.AddressSnapshot
-		if err := json.Unmarshal(addressSnapshotJSON, &snapshot); err == nil {
-			shippingDestination = &snapshot
-		}
-	}
-
-	// Unmarshal shipping origin snapshot from JSONB
-	var shippingOrigin *addressentity.AddressSnapshot
-	if originSnapshotJSON != nil {
-		var snapshot addressentity.AddressSnapshot
-		if err := json.Unmarshal(originSnapshotJSON, &snapshot); err == nil {
-			shippingOrigin = &snapshot
-		}
-	}
-
-	order := &entity.Order{
-		ID:                     id,
-		BuyerID:                buyerID,
-		SellerID:               sellerID,
-		SourceType:             entity.OrderSourceType(sourceType),
-		SourceID:               sourceID,
-		NegotiationID:          negotiationID,
-		Quantity:               quantity,
-		UnitPrice:              money.New(unitPrice),
-		Subtotal:               money.New(subtotal),
-		ShippingTotal:          money.New(shippingTotal),
-		CommissionPercent:      commissionPercent,
-		CommissionAmount:       money.New(commissionAmount),
-		ServiceFeeAmount:       money.New(serviceFeeAmount),
-		TotalPayableAmount:     money.New(totalPayableAmount),
-		ShippingSetupID:       shippingSetupID,
-		ShippingSetupName:     shippingSetupName.String,
-		ShippingTransportType:  shippingTransportType.String,
-		// Shipping Confirmation (canonical fields)
-		TrackingNumber: trackingNumber,
-		ShippingNote:   shippingNote,
-		OrderNumber:    orderNum,
-		// Shipping Source + Origin + Quote
-		ShippingSource:     shippingSourcePtr,
-		ShippingOrigin:     shippingOrigin,
-		ShippingQuoteID:    shippingQuoteIDPtr,
-		ShippingQuotePrice: shippingQuotePricePtr,
-		// Shipping Readiness Snapshot
-		PreparationTimeSnapshot:   preparationTimeSnapshot.String,
-		PreparationNoteSnapshot:   preparationNoteSnapshot,
-		ReadyToShipBy:             readyToShipBy,
-		ShippingDestination:       shippingDestination,
-		Status:                    entity.Status(status),
-		EscrowStatus:              entity.EscrowStatus(escrowStatus),
-		HasDispute:                hasDispute,
-		ConfirmationExtensionUsed: confirmationExtensionUsed,
-		IdempotencyKey:            idempotencyKey,
-		CreatedAt:                 time.Unix(createdAt, 0),
-		UpdatedAt:                 time.Unix(updatedAt, 0),
-	}
-
-	if autoReleaseAt != nil {
-		ts := *autoReleaseAt
-		order.AutoReleaseAt = &ts
-	}
-
-	if confirmationExtendedAt != nil {
-		ts := *confirmationExtendedAt
-		order.ConfirmationExtendedAt = &ts
-	}
-
-	if completedAt != nil {
-		ts := time.Unix(*completedAt, 0)
-		order.CompletedAt = &ts
-	}
-
-	return order, nil
 }

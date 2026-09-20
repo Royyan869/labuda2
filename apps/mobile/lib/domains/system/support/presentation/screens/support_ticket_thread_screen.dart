@@ -27,6 +27,60 @@ class SupportTicketThreadScreen extends ConsumerStatefulWidget {
 
 class _SupportTicketThreadScreenState
     extends ConsumerState<SupportTicketThreadScreen> {
+  final TextEditingController _messageController = TextEditingController();
+  late Future<SupportResult<List<SupportMessage>>> _messagesFuture;
+  bool _isSending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _messagesFuture = _loadMessages();
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  Future<SupportResult<List<SupportMessage>>> _loadMessages() {
+    return ref.read(supportRepositoryProvider).getMessages(widget.ticketId);
+  }
+
+  void _reloadMessages() {
+    setState(() {
+      _messagesFuture = _loadMessages();
+    });
+  }
+
+  /// Send the authenticated user's reply through the Support API. Sender
+  /// identity is derived server-side from the session — the client never
+  /// supplies it.
+  Future<void> _sendMessage() async {
+    final text = _messageController.text.trim();
+    if (text.isEmpty || _isSending) return;
+
+    setState(() => _isSending = true);
+    final result = await ref
+        .read(supportRepositoryProvider)
+        .sendMessage(ticketId: widget.ticketId, message: text);
+
+    if (!mounted) return;
+    setState(() => _isSending = false);
+
+    if (result.isFailure) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.failure?.message ?? 'Gagal mengirim pesan'),
+        ),
+      );
+      return;
+    }
+
+    _messageController.clear();
+    _reloadMessages();
+  }
+
   @override
   Widget build(BuildContext context) {
     final ticketAsync = ref.watch(supportTicketProvider(widget.ticketId));
@@ -50,8 +104,8 @@ class _SupportTicketThreadScreenState
           // Messages List
           Expanded(child: _buildMessagesList(ticketAsync)),
 
-          // Static footer (no input)
-          _buildStaticFooter(),
+          // Reply composer
+          _buildComposer(),
         ],
       ),
     );
@@ -154,10 +208,8 @@ class _SupportTicketThreadScreenState
   }
 
   Widget _buildMessagesList(AsyncValue<SupportTicket?> ticketAsync) {
-    final repository = ref.watch(supportRepositoryProvider);
-
     return FutureBuilder<SupportResult<List<SupportMessage>>>(
-      future: repository.getMessages(widget.ticketId),
+      future: _messagesFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == flutter.ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -212,14 +264,14 @@ class _SupportTicketThreadScreenState
           return _buildEmptyThread(ticketAsync);
         }
 
-        final currentUserId = ref.read(currentUserIdProvider);
-
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: messages.length,
           itemBuilder: (context, index) {
             final message = messages[index];
-            final isFromUser = message.senderId == currentUserId;
+            // Sender identity comes from the persisted canonical sender_type
+            // on the message — never guessed from a UUID or local state.
+            final isFromUser = message.senderType == SupportSenderType.user;
 
             return _ThreadMessageCard(message: message, isFromUser: isFromUser);
           },
@@ -254,11 +306,12 @@ class _SupportTicketThreadScreenState
     );
   }
 
-  Widget _buildStaticFooter() {
+  /// Composer: posts the user's reply into the ticket conversation.
+  Widget _buildComposer() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkGray800 : AppColors.neutralGray100,
         border: Border(
@@ -267,28 +320,48 @@ class _SupportTicketThreadScreenState
           ),
         ),
       ),
-      child: Column(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Icon(Icons.support_agent, size: 32, color: AppColors.primaryRed),
-          const SizedBox(height: 12),
-          Text(
-            'Tim kami akan segera merespon',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+          Expanded(
+            child: TextField(
+              controller: _messageController,
+              minLines: 1,
+              maxLines: 4,
+              textInputAction: TextInputAction.newline,
+              decoration: InputDecoration(
+                hintText: 'Tulis balasan...',
+                isDense: true,
+                filled: true,
+                fillColor: isDark
+                    ? AppColors.darkGray700
+                    : AppColors.neutralWhite,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Biasanya dalam waktu 24 jam',
-            style: TextStyle(
-              fontSize: 12,
-              color: isDark
-                  ? AppColors.neutralGray500
-                  : AppColors.neutralGray600,
-            ),
-          ),
+          const SizedBox(width: 8),
+          _isSending
+              ? const SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                )
+              : IconButton(
+                  onPressed: _sendMessage,
+                  icon: const Icon(Icons.send),
+                  color: AppColors.primaryRed,
+                  tooltip: 'Kirim',
+                ),
         ],
       ),
     );

@@ -51,9 +51,9 @@ Map<String, dynamic> _fixedPriceSaleProjection({
 }) {
   return <String, dynamic>{
     'state': 'LIVE',
-    'resource_type': 'fixed_price_sale',
+    'resource_type': 'for_sale',
     'resource_id': resourceId,
-    'fixed_price_sale': <String, dynamic>{
+    'for_sale': <String, dynamic>{
       'title': title,
       'media': <Map<String, dynamic>>[],
       'thumbnail_url': thumbnailUrl,
@@ -128,8 +128,7 @@ void main() {
             content: 'legacy share content',
             type: FeedItemType.content,
             additionalData: {
-              'shareReference': <String, dynamic>{
-                'targetType': 'fixed_price_sale',
+              'shareReference': <String, dynamic>{                 'targetType': 'for_sale',
                 'targetId': 'sale-1',
                 'preview': <String, dynamic>{
                   'title': 'legacy preview',
@@ -157,15 +156,15 @@ void main() {
       _wrap(
         FeedCard(
           item: _baseItem(
-            id: 'listing-share-1',
-            content: 'listing share content',
+            id: 'forSale-share-1',
+            content: 'forSale share content',
             type: FeedItemType.content,
             additionalData: {
               'resourceProjection': ContentResourceProjection.fromJson(
                 _fixedPriceSaleProjection(
                   resourceId: 'sale-1',
-                  title: 'listing share',
-                  thumbnailUrl: 'https://example.com/listing.jpg',
+                  title: 'forSale share',
+                  thumbnailUrl: 'https://example.com/forSale.jpg',
                 ),
               ),
             },
@@ -178,7 +177,7 @@ void main() {
     expect(find.byType(RepostAttributionBar), findsNothing);
     expect(find.byType(ObjectPreviewCard), findsNothing);
     expect(find.byType(ContentResourceProjectionCard), findsOneWidget);
-    expect(find.text('listing share'), findsOneWidget);
+    expect(find.text('forSale share'), findsOneWidget);
   });
 
   testWidgets('auction resource projection renders canonical card', (

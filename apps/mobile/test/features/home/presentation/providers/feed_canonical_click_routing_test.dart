@@ -13,7 +13,7 @@
 //   C19: no exposure identity → the client never fabricates a click against
 //        the canonical endpoint (no /promotions/clicks call at all).
 //
-// Tests exercise the ACTUAL production card widgets (PromotedListingCard,
+// Tests exercise the ACTUAL production card widgets (PromotedForSaleCard,
 // PromotedAuctionCard) and the real _recordPromotionClick routing in
 // feed_renderers.dart.
 // ============================================================================
@@ -125,7 +125,7 @@ FeedItem _makeFeedItem({
       'contractId': contractId,
       'title': title,
       'imageUrl': 'https://example.com/img.jpg',
-      'targetType': 'listing',
+      'targetType': 'forSale',
       ...extra,
     },
   );
@@ -133,13 +133,13 @@ FeedItem _makeFeedItem({
 
 FeedItem _listingItem({
   required String contractId,
-  String title = 'Click Test Listing',
+  String title = 'Click Test ForSale',
   String forSaleId = 'fps-click-1',
   String? canonicalExposureId,
 }) {
   return _makeFeedItem(
     id: contractId,
-    type: FeedItemType.promotedListing,
+    type: FeedItemType.promotedForSale,
     contractId: contractId,
     title: title,
     extra: {
@@ -237,7 +237,7 @@ void main() {
   // ==========================================================================
   // C16 + C17 — canonical card tap → /promotions/clicks (never /events)
   // ==========================================================================
-  group('C16/C17: canonical listing card click', () {
+  group('C16/C17: canonical forSale card click', () {
     testWidgets(
         'tap echoes the exposure identity to /promotions/clicks and never '
         'calls /promotions/events', (tester) async {
@@ -248,7 +248,7 @@ void main() {
       await tester.pumpWidget(
         _buildCardHarness(
           adapter,
-          PromotedListingCard(
+          PromotedForSaleCard(
             item: _listingItem(
               contractId: 'promo-canonical-001',
               canonicalExposureId: exposureId,
@@ -258,7 +258,7 @@ void main() {
       );
       await _pump(tester);
 
-      await tester.tap(find.byType(PromotedListingCard));
+      await tester.tap(find.byType(PromotedForSaleCard));
       await _pump(tester);
 
       // C16 — exactly one canonical click acknowledgement echoing the
@@ -318,14 +318,14 @@ void main() {
       await tester.pumpWidget(
         _buildCardHarness(
           adapter,
-          PromotedListingCard(
+          PromotedForSaleCard(
             item: _listingItem(contractId: 'instance-no-exposure-001'),
           ),
         ),
       );
       await _pump(tester);
 
-      await tester.tap(find.byType(PromotedListingCard));
+      await tester.tap(find.byType(PromotedForSaleCard));
       await _pump(tester);
 
       // C18 — the legacy /promotions/events click path is purged: a card
@@ -353,10 +353,10 @@ void main() {
       await tester.pumpWidget(
         _buildCardHarness(
           adapter,
-          PromotedListingCard(
+          PromotedForSaleCard(
             item: _makeFeedItem(
               id: 'no-identity',
-              type: FeedItemType.promotedListing,
+              type: FeedItemType.promotedForSale,
               contractId: '',
               title: 'No Identity Card',
             ),
@@ -365,7 +365,7 @@ void main() {
       );
       await _pump(tester);
 
-      final cardFinder = find.byType(PromotedListingCard);
+      final cardFinder = find.byType(PromotedForSaleCard);
       if (tester.any(cardFinder)) {
         await tester.tap(cardFinder, warnIfMissed: false);
       }

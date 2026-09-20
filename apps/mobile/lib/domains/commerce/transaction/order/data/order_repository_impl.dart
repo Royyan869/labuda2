@@ -45,12 +45,12 @@ class OrderRepositoryImpl implements OrderRepository {
     try {
       final body = <String, dynamic>{
         'product_id': params.productId ?? '',
-        'source_type': params.sourceType ?? 'fixed_price_sale',
+        'source_type': params.sourceType ?? 'for_sale',
         'source_id': params.sourceId ?? '',
         'quantity': params.quantity,
         if (params.addressId != null) 'address_id': params.addressId,
         if (params.shippingSetupId != null)
-          'shipping_setup_id': params.shippingSetupId,
+          'shipping_option_id': params.shippingSetupId,
         if (params.shippingQuoteId != null)
           'shipping_quote_id': params.shippingQuoteId,
         if (params.negotiationId != null)
@@ -65,19 +65,14 @@ class OrderRepositoryImpl implements OrderRepository {
             subtotal: (snapshot['subtotal'] as num?)?.toDouble() ?? 0.0,
             shippingCost:
                 (snapshot['shipping_total'] as num?)?.toDouble() ?? 0.0,
+            commissionAmount:
+                (snapshot['commission_amount'] as num?)?.toDouble() ?? 0.0,
             serviceFeeAmount:
                 (snapshot['service_fee_amount'] as num?)?.toDouble() ?? 0.0,
-            adminFee: null,
-            paymentFee: null,
-            discount: (snapshot['discount_amount'] as num?)?.toDouble() ?? 0.0,
-            total:
-                (snapshot['total_payable_amount'] as num?)?.toDouble() ??
-                (snapshot['escrow_amount'] as num?)?.toDouble() ??
-                0.0,
             totalPayableAmount:
                 (snapshot['total_payable_amount'] as num?)?.toDouble() ?? 0.0,
-            discountCode: snapshot['discount_code'] as String?,
-            discountDescription: null,
+            totalBeforeCoinsAmount:
+                (snapshot['total_before_coins_amount'] as num?)?.toDouble(),
           ),
           pricingToken: data['token'] as String?,
           expiresAt: data['expires_at'] != null
@@ -97,53 +92,9 @@ class OrderRepositoryImpl implements OrderRepository {
   // ========================================
 
   @override
-  Future<RepositoryResult<Order>> createOrder(CreateOrderParams params) async {
-    if (params.items.isEmpty) {
-      return RepositoryResult.error('No items in order');
-    }
-
-    // PRICING TOKEN VALIDATION: pricingToken is required
-    // All order creation must go through preview endpoint first
-    if (params.pricingToken.isEmpty) {
-      return RepositoryResult.error(
-        'PRICING_TOKEN_REQUIRED: Order must use preview pricing. '
-        'Call POST /orders/preview first to obtain a pricing token.',
-      );
-    }
-
-    try {
-      final firstItem = params.items.first;
-      final request = OrderMapper.toCreateOrderDto(
-        productId: firstItem.productId,
-        quantity: firstItem.quantity,
-        shippingInfo: params.shippingInfo,
-        discountCode: params.discountCode,
-        useCoins: params.useCoins,
-        notes: params.notes,
-        pricingToken: params.pricingToken,
-      );
-
-      final result = await _datasource.createOrder(request);
-      return RepositoryResult.success(OrderMapper.toOrder(result));
-    } catch (e) {
-      return _mapError(e);
-    }
-  }
-
-  @override
   Future<RepositoryResult<Order>> getOrderById(String orderId) async {
     try {
       final result = await _datasource.getOrder(orderId);
-      return RepositoryResult.success(OrderMapper.toOrder(result));
-    } catch (e) {
-      return _mapError(e);
-    }
-  }
-
-  @override
-  Future<RepositoryResult<Order>> getOrderByNumber(String orderNumber) async {
-    try {
-      final result = await _datasource.getOrderByNumber(orderNumber);
       return RepositoryResult.success(OrderMapper.toOrder(result));
     } catch (e) {
       return _mapError(e);
@@ -222,48 +173,9 @@ class OrderRepositoryImpl implements OrderRepository {
     );
   }
 
-  @override
-  Future<RepositoryResult<OrderStats>> getOrderStats(
-    GetOrderStatsParams params,
-  ) async {
-    try {
-      final result = await _datasource.getOrderStats(asSeller: params.asSeller);
-      return RepositoryResult.success(OrderMapper.toOrderStats(result));
-    } catch (e) {
-      return _mapError(e);
-    }
-  }
-
   // ========================================
   // Order Status Operations
   // ========================================
-
-  @override
-  Future<RepositoryResult<Order>> updateOrderStatus(
-    UpdateOrderStatusParams params,
-  ) async {
-    // Implementation depends on which endpoint to use
-    // For now, we'll need orderId - this is a simplified version
-    _logger?.warning('updateOrderStatus needs orderId parameter');
-    return RepositoryResult.error('Not implemented');
-  }
-
-  @override
-  Future<RepositoryResult<Order>> confirmOrder(String orderId) async {
-    return RepositoryResult.error(
-      'POST /orders/:id/confirm is not supported by backend contract.',
-    );
-  }
-
-  @override
-  Future<RepositoryResult<Order>> completeOrder(String orderId) async {
-    try {
-      await _datasource.completeOrder(orderId);
-      return await getOrderById(orderId);
-    } catch (e) {
-      return _mapError(e);
-    }
-  }
 
   @override
   Future<RepositoryResult<Order>> cancelOrder(
@@ -298,115 +210,6 @@ class OrderRepositoryImpl implements OrderRepository {
     } catch (e) {
       return _mapError(e);
     }
-  }
-
-  // ========================================
-  // Payment Operations
-  // ========================================
-
-  @override
-  Future<RepositoryResult<Order>> processPayment(
-    String orderId,
-    ProcessPaymentParams params,
-  ) async {
-    // Payment processing is handled by backend via webhooks
-    // This method just fetches the updated order
-    _logger?.debug('processPayment called - fetching updated order');
-    return getOrderById(orderId);
-  }
-
-  @override
-  Future<RepositoryResult<PaymentStatus>> checkPaymentStatus(
-    String orderId,
-  ) async {
-    try {
-      final result = await _datasource.getOrder(orderId);
-      return RepositoryResult.success(
-        OrderMapper.mapPaymentStatus(result.paymentStatus),
-      );
-    } catch (e) {
-      return _mapError(e);
-    }
-  }
-
-  @override
-  Future<RepositoryResult<Order>> updatePaymentToken(
-    UpdatePaymentTokenParams params,
-  ) async {
-    // Token regeneration is handled by backend
-    // Just fetch the updated order - would need orderId here
-    _logger?.debug('updatePaymentToken called - needs orderId');
-    return RepositoryResult.error('Not implemented');
-  }
-
-  // ========================================
-  // Shipping Operations
-  // ========================================
-
-  @override
-  Future<RepositoryResult<Order>> updateShippingInfo(
-    String orderId,
-    UpdateShippingInfoParams params,
-  ) async {
-    // Shipping info update not directly supported by current backend
-    _logger?.warning('updateShippingInfo not implemented in API');
-    return getOrderById(orderId);
-  }
-
-  @override
-  Future<RepositoryResult<Order>> addTrackingNumber(
-    String orderId,
-    String trackingNumber,
-  ) async {
-    return RepositoryResult.error(
-      'Shipping-proof endpoints are not supported by backend contract.',
-    );
-  }
-
-  // ========================================
-  // Validation
-  // ========================================
-
-  @override
-  Future<RepositoryResult<bool>> validateShippingAddress(
-    ShippingInfo info,
-  ) async {
-    // Address validation could check delivery availability
-    // For now, always return true
-    return RepositoryResult.success(true);
-  }
-
-  // ========================================
-  // Order Confirmation Operations
-  // ========================================
-
-  @override
-  Future<RepositoryResult<OrderConfirmation?>> getConfirmation(
-    String orderId,
-  ) async {
-    return RepositoryResult.error(
-      'Order confirmation endpoints are not supported by backend contract.',
-    );
-  }
-
-  @override
-  Future<RepositoryResult<OrderConfirmation>> extendConfirmation({
-    required String orderId,
-    required String buyerId,
-  }) async {
-    return RepositoryResult.error(
-      'Order confirmation endpoints are not supported by backend contract.',
-    );
-  }
-
-  @override
-  Future<RepositoryResult<OrderConfirmation>> completeConfirmation({
-    required String orderId,
-    required String completionReason,
-  }) async {
-    return RepositoryResult.error(
-      'Order confirmation endpoints are not supported by backend contract.',
-    );
   }
 
   // ========================================

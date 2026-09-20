@@ -9,6 +9,7 @@ import 'package:labuda/core/src/theme/app_colors.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_identity_display.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_lifecycle_redaction.dart';
+import 'package:labuda/domains/chat/chat/presentation/widgets/chat_resource_projection_card.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/widgets/attachment_widget.dart' as widget_lib;
 import 'package:labuda/shared/object/object_preview.dart' as obj;
@@ -17,7 +18,7 @@ import 'package:labuda/shared/object/presentation/widgets/object_preview_card.da
 /// Message Bubble Widget
 ///
 /// Displays a single message in a chat.
-/// Supports rendering commerce attachments (listing, quote, negotiation).
+/// Supports rendering commerce attachments (forSale, quote, negotiation).
 ///
 /// **TRUTH HARDENING:** Automatically fetches live status for commerce attachments
 /// to display honest availability/bidding status.
@@ -101,6 +102,8 @@ class MessageBubble extends ConsumerWidget {
           else ...[
             if (message.replyToId != null) _buildReplyPreview(context),
             if (message.hasAttachment) _buildAttachment(context, ref),
+            if (message.resourceProjection != null)
+              _buildResourceProjection(context),
             if (message.type == MessageType.text)
               _buildTextMessage(context, textColor)
             else if (message.type == MessageType.image)
@@ -296,9 +299,16 @@ class MessageBubble extends ConsumerWidget {
     // ========================================================================
     // OBJECT RESOLVER INTEGRATION (SAFE MODE)
     // ========================================================================
-    // Handle ShareReference (listing, auction, content)
+    // Handle ShareReference (forSale, auction, content)
     // ========================================================================
     if (message.objectReference != null) {
+      // When the server has resolved a viewer-aware projection for this
+      // message's resource, the projection card is the canonical display and
+      // the client-cached attachment preview is suppressed (avoids rendering
+      // two representations of the same resource).
+      if (message.resourceProjection != null) {
+        return const SizedBox.shrink();
+      }
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: ObjectPreviewCard(
@@ -390,6 +400,17 @@ class MessageBubble extends ConsumerWidget {
     }
 
     return const SizedBox.shrink();
+  }
+
+  /// Renders the server-resolved resource projection — the resource this
+  /// message is about. Display + navigation only; no Commerce business logic.
+  Widget _buildResourceProjection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: ChatResourceProjectionCard(
+        resourceProjection: message.resourceProjection!,
+      ),
+    );
   }
 
   Widget _buildMessageFooter(BuildContext context, Color textColor) {

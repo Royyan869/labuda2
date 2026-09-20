@@ -8,10 +8,31 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/labuda/backend/internal/presence"
 	"github.com/labuda/backend/pkg/rate"
 	"go.uber.org/zap"
 	"golang.org/x/net/websocket"
 )
+
+// PresenceLeaser is the minimal canonical presence lease authority.
+//
+// It is satisfied by *presence.Service and reuses the existing
+// Redis Lua lease authority (ZSET member=connectionID).
+//
+// Renew is intentionally NOT a separate method: renew == ResumeLease
+// with the same connectionID (ZADD refreshes score), preserving the
+// single Redis authority and version semantics.
+//
+// Nil is permitted ONLY as test-harness compatibility. Production
+// wiring (serverboot) must supply a non-nil implementation and
+// authenticated WS connections must hold a lease via this authority.
+type PresenceLeaser interface {
+	ResumeLease(ctx context.Context, userID uuid.UUID, connectionID string) (*presence.LeaseResult, error)
+	LeaveLease(ctx context.Context, userID uuid.UUID, connectionID string) (*presence.LeaseResult, error)
+	PublishChanged(ctx context.Context, state presence.State) error
+	EnqueueLastSeen(ctx context.Context, userID uuid.UUID, occurredAt time.Time, version int64) error
+	HandleOfflineTransition(ctx context.Context, res *presence.LeaseResult) error
+}
 
 // Connection represents a WebSocket client connection.
 //
@@ -49,11 +70,17 @@ type Connection struct {
 	// Rate limiter for subscribe actions
 	rateLimiter *rate.RateLimiter
 
+	// presence is the canonical presence lease authority (Redis Lua).
+	// Nil only as test-harness compatibility; production must be non-nil.
+	presence PresenceLeaser
+
 	// closeOnce ensures Close() operations are performed exactly once
 	closeOnce sync.Once
 }
 
 // NewConnection creates a new Connection instance.
+// presence may be nil only for tests; production callers must supply the
+// canonical presence lease authority.
 func NewConnection(
 	userID uuid.UUID,
 	ws *websocket.Conn,
@@ -61,6 +88,7 @@ func NewConnection(
 	gate *SubscribeGate,
 	rateLimiter *rate.RateLimiter,
 	log *zap.Logger,
+	presence PresenceLeaser,
 ) *Connection {
 	if log == nil {
 		log = zap.NewNop()
@@ -76,8 +104,12 @@ func NewConnection(
 		gate:        gate,
 		rateLimiter: rateLimiter,
 		log:         log,
+		presence:    presence,
 	}
 }
+
+// Presence returns the wired presence lease authority (nil in test harness).
+func (c *Connection) Presence() PresenceLeaser { return c.presence }
 
 // ClientMessage represents a message sent from the client.
 // Clients use this to subscribe/unsubscribe from rooms.
@@ -295,16 +327,33 @@ func (c *Connection) WritePump() {
 				return
 			}
 
+			// Presence renew: ResumeLease with same connectionID refreshes the
+			// expiry score (ZADD). Uses Background with timeout because no
+			// request context exists in this ticker goroutine.
+			if c.presence != nil {
+				renewCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				if _, err := c.presence.ResumeLease(renewCtx, c.UserID, c.ID); err != nil {
+					c.log.Warn("Presence renew failed",
+						zap.String("connection_id", c.ID),
+						zap.String("user_id", c.UserID.String()),
+						zap.Error(err),
+					)
+				}
+				cancel()
+			}
+
 			// Periodic lifecycle check — evict non-active users (removed/banned/suspended).
 			// Closes the stale-socket gap where a user's status changes after WS connect.
 			// Complements the event-driven user.banned eviction with a polling safety net.
-			ctx := context.Background()
-			if !c.gate.IsAlive(ctx, c.UserID) {
-				c.log.Info("Evicting non-active user from WS",
-					zap.String("connection_id", c.ID),
-					zap.String("user_id", c.UserID.String()),
-				)
-				return // triggers deferred c.Close()
+			if c.gate != nil {
+				ctx := context.Background()
+				if !c.gate.IsAlive(ctx, c.UserID) {
+					c.log.Info("Evicting non-active user from WS",
+						zap.String("connection_id", c.ID),
+						zap.String("user_id", c.UserID.String()),
+					)
+					return // triggers deferred c.Close()
+				}
 			}
 		}
 	}
@@ -312,11 +361,48 @@ func (c *Connection) WritePump() {
 
 // Close gracefully closes the connection.
 // Idempotent: safe to call multiple times (uses sync.Once).
+//
+// CONTEXT LIFECYCLE: LeaveLease uses context.Background() with a short timeout
+// instead of any request-scoped context. Close is invoked from ReadPump/WritePump
+// defers and from Hub.EvictUser long after the HTTP handler's request context
+// has been canceled. Using Background guarantees the Redis Lua mutation can
+// still execute. The timeout prevents Close from blocking indefinitely.
 func (c *Connection) Close() {
 	c.closeOnce.Do(func() {
-		c.hub.Unregister(c)
+		// Release presence lease before unregistering, so Redis state reflects
+		// session termination even if hub eviction races.
+		// Slice-3: durable last_seen is produced canonically from the same
+		// LeaseResult via HandleOfflineTransition (publish presence.changed +
+		// enqueue last_seen if effective offline). Single producer.
+		if c.presence != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			res, err := c.presence.LeaveLease(ctx, c.UserID, c.ID)
+			cancel()
+			if err != nil {
+				c.log.Warn("Presence LeaveLease failed",
+					zap.String("connection_id", c.ID),
+					zap.String("user_id", c.UserID.String()),
+					zap.Error(err),
+				)
+			} else if res != nil && res.Transitioned {
+				hCtx, hCancel := context.WithTimeout(context.Background(), 3*time.Second)
+				if hErr := c.presence.HandleOfflineTransition(hCtx, res); hErr != nil {
+					c.log.Warn("Presence HandleOfflineTransition failed",
+						zap.String("connection_id", c.ID),
+						zap.String("user_id", c.UserID.String()),
+						zap.Error(hErr),
+					)
+				}
+				hCancel()
+			}
+		}
+		if c.hub != nil {
+			c.hub.Unregister(c)
+		}
 		close(c.Send)
-		c.WS.Close()
+		if c.WS != nil {
+			c.WS.Close()
+		}
 
 		c.log.Debug("Connection closed",
 			zap.String("connection_id", c.ID),

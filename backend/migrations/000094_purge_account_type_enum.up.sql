@@ -1,0 +1,27 @@
+-- ============================================================
+-- 000094 PURGE ACCOUNT_TYPE_ENUM
+--
+-- Proven OBSOLETE in Finance Account Type Authority Audit (Phase 1).
+--
+-- Canonical authority is:
+--   - financial_accounts.account_type VARCHAR (000001:846)
+--   - account_balances.account_type TEXT (000001:403) [already purged by 000093]
+--   - Go constants in backend/internal/finance/account_types.go
+--   - AccountClassOf() in backend/internal/finance/account_types.go:24
+--
+-- account_type_enum (000001:19-29) is orphaned:
+--   - Created as 9-value ENUM in canonical snapshot
+--   - ZERO columns use it (both account tables are VARCHAR/TEXT)
+--   - ZERO casts (::account_type_enum) in codebase
+--   - Missing 6 canonical values (WITHDRAWAL_COMMITTED,
+--     PLATFORM_COIN_BENEFIT, PROMOTE_BALANCE, PROMOTION_ALLOCATION,
+--     USER_SERVICE_CREDIT, AD_REVENUE)
+--   - Contains dead value VAT_LIABILITY with zero producers/consumers
+--   - Promotion CHECK constraints (000064) prove VARCHAR is canonical
+--     (account_type = 'PROMOTION_ALLOCATION' would fail if ENUM-enforced)
+--
+-- This migration drops the orphan type. No CASCADE — dependency proven zero.
+-- 000001 is historical snapshot and MUST remain immutable.
+-- ============================================================
+
+DROP TYPE IF EXISTS account_type_enum;

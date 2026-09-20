@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/commerce/order/entity"
 	addressentity "github.com/labuda/backend/internal/identity/address/entity"
+	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
 )
 
 // Decision Contract from Backend
@@ -252,7 +253,9 @@ type DisplayHints struct {
 //     ((P−D)+S); commission C is seller/platform-side and is NOT buyer-funded cash.
 //   - RefundAmount comes from Ledger service, not stored in Order
 //   - Discount information comes from Ledger service, not stored in Order
-//   - Coins discount amount comes from Ledger, only CoinsUsed is stored for display
+//   - Coins redeemed for the order come from the coins domain
+//     (coins_transactions, keyed by reference_id); the order stores no coins
+//     snapshot and this response emits no coins_used field
 type OrderDetailResponse struct {
 	// Order fields (flattened from Order entity for response)
 	ID           uuid.UUID `json:"id"`
@@ -289,9 +292,9 @@ type OrderDetailResponse struct {
 	CommissionAmount   int64 `json:"commission_amount"`
 	ServiceFeeAmount   int64 `json:"service_fee_amount"`
 	TotalPayableAmount int64 `json:"total_payable_amount"`
-
-	// CoinsUsed for display only (discount amount handled by Ledger)
-	CoinsUsed int64 `json:"coins_used,omitempty"`
+	// TotalBeforeCoinsAmount is the canonical buyer-funded base PD+S.
+	// It is the default refund amount and the money-base invariant.
+	TotalBeforeCoinsAmount int64 `json:"total_before_coins_amount"`
 
 	// Shipping option snapshot
 	ShippingSetupID       uuid.UUID `json:"shipping_option_id"`
@@ -336,6 +339,10 @@ type OrderDetailResponse struct {
 	// Timestamps
 	CreatedAt int64 `json:"created_at"`
 	UpdatedAt int64 `json:"updated_at"`
+	// CompletedAt is exposed because the canonical mobile consumer renders the
+	// completion step of the order status timeline from it. There is no
+	// shipped_at: the Order entity persists no shipped timestamp.
+	CompletedAt *int64 `json:"completed_at,omitempty"`
 
 	// Decision Contract - Backend is SINGLE SOURCE OF TRUTH for business decisions
 	Decision *Decision `json:"decision,omitempty"`
@@ -350,8 +357,13 @@ type OrderDetailResponse struct {
 	ShippingOrigin *addressentity.AddressSnapshot `json:"shipping_origin,omitempty"` // Seller farm/warehouse address snapshot
 
 	// Nested objects (optional, populated when available)
-	Items               []*OrderItemDTO                `json:"items,omitempty"`
-	ShippingDestination *addressentity.AddressSnapshot `json:"shipping_destination,omitempty"`
+	Items []*OrderItemDTO `json:"items,omitempty"`
+
+	// ShippingAddress is the immutable buyer address snapshot frozen at order
+	// creation (persisted as orders.address_snapshot). The legacy
+	// `shipping_destination` key was purged; `shipping_address` is the canonical
+	// wire key and matches the admin order detail surface.
+	ShippingAddress *addressentity.AddressSnapshot `json:"shipping_address,omitempty"`
 }
 
 // ActiveRefundSummary is the seller/buyer-safe refund payload surfaced in
@@ -643,10 +655,16 @@ func OrderToDetailResponseWithIdentity(
 		confirmationExtendedAt = &ts
 	}
 
-	// Convert shipping destination snapshot
-	var shippingDestination *addressentity.AddressSnapshot
-	if order.ShippingDestination != nil {
-		shippingDestination = order.ShippingDestination
+	var completedAt *int64
+	if order.CompletedAt != nil {
+		ts := order.CompletedAt.Unix()
+		completedAt = &ts
+	}
+
+	// Convert shipping address snapshot (orders.address_snapshot)
+	var shippingAddress *addressentity.AddressSnapshot
+	if order.AddressSnapshot != nil {
+		shippingAddress = order.AddressSnapshot
 	}
 
 	// Convert avatar strings to pointers
@@ -725,7 +743,7 @@ func OrderToDetailResponseWithIdentity(
 		CommissionAmount:        order.CommissionAmount.Int64(),
 		ServiceFeeAmount:        order.ServiceFeeAmount.Int64(),
 		TotalPayableAmount:      order.TotalPayableAmount.Int64(),
-		CoinsUsed:               order.CoinsUsed,
+		TotalBeforeCoinsAmount:  order.TotalBeforeCoinsAmount.Int64(),
 		ShippingSetupID:         getShippingSetupID(order.ShippingSetupID),
 		ShippingSetupName:       order.ShippingSetupName,
 		ShippingTransportType:   order.ShippingTransportType,
@@ -754,11 +772,12 @@ func OrderToDetailResponseWithIdentity(
 		PaymentStatus:             paymentStatus,
 		CreatedAt:                 order.CreatedAt.Unix(),
 		UpdatedAt:                 order.UpdatedAt.Unix(),
+		CompletedAt:               completedAt,
 		Decision:                  decision,
 		HasActiveRefund:           hasActiveRefund,
 		ActiveRefund:              activeRefund,
 		Items:                     itemsDTO,
-		ShippingDestination:       shippingDestination,
+		ShippingAddress:           shippingAddress,
 	}
 }
 
@@ -778,12 +797,15 @@ func selectPayActionLabelKey(paymentStatus *string, paymentExpiredAt *time.Time)
 		return "action.pay_now"
 	}
 
-	switch *paymentStatus {
-	case "settlement", "capture":
-		// Payment resource already shows success but the order hasn't
-		// caught up yet (webhook/order-sync lag) - buyer should check
-		// status, not pay again.
+	// Settled = the canonical payment predicate (settlement or capture), never a
+	// local status list: the payment resource already shows success but the order
+	// hasn't caught up yet (webhook/order-sync lag) - buyer should check status,
+	// not pay again.
+	if paymentRepo.IsSettledStatus(*paymentStatus) {
 		return "action.payment_check_status"
+	}
+
+	switch *paymentStatus {
 	case "challenge":
 		// Fraud-review hold - still resolving, not yet actionable either way.
 		return "action.payment_check_status"

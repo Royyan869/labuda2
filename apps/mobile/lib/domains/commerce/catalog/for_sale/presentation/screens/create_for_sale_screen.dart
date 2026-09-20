@@ -43,7 +43,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
   int _quantity = 1;
   final List<String> _mediaUrls = [];
 
-  // Koi details (required for listings)
+  // Koi details (required for forSales)
   String? _variety;
   double? _sizeInCm;
   int? _ageInMonths;
@@ -54,7 +54,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
   // Shipping readiness
   PreparationTime _preparationTime = PreparationTime.immediate;
 
-  // Phase 2: shipping option IDs the seller selects to apply to this listing.
+  // Phase 2: shipping option IDs the seller selects to apply to this forSale.
   // Drives the post-create PUT /products/:id/shipping call.
   List<String> _selectedShippingSetupIds = const [];
 
@@ -90,13 +90,13 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
       return;
     }
 
-    // Validate required fields for listing
+    // Validate required fields for forSale
     if (_price == null) {
-      setState(() => _errorMessage = 'Harga wajib diisi untuk listing');
+      setState(() => _errorMessage = 'Harga wajib diisi untuk forSale');
       return;
     }
     if (_variety == null || _sizeInCm == null) {
-      setState(() => _errorMessage = 'Detail koi wajib diisi untuk listing');
+      setState(() => _errorMessage = 'Detail koi wajib diisi untuk forSale');
       return;
     }
 
@@ -104,7 +104,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
     _errorMessage = null;
 
     try {
-      // Build request using listing domain model
+      // Build request using forSale domain model
       // NOTE: Create as draft (private visibility) - publish happens later with validation
       final request = CreateForSaleRequest(
         title: _titleController.text.trim(),
@@ -135,17 +135,17 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
       if (!mounted) return;
 
       if (result.isSuccess && result.data != null) {
-        final listing = result.data!;
+        final forSale = result.data!;
         // Phase 2: link the seller-selected shipping subset to the brand-new
-        // listing. We only call PUT when the seller actually picked something;
+        // forSale. We only call PUT when the seller actually picked something;
         // an empty selection is permitted for draft, but the publish gate
         // (SHIPPING_NOT_CONFIGURED) will fire later if the seller never links.
         if (_selectedShippingSetupIds.isNotEmpty) {
-          final productId = listing.productId;
+          final productId = forSale.productId;
           if (productId == null || productId.isEmpty) {
             setState(() {
               _errorMessage =
-                  'Draft listing tersimpan, tetapi product_id belum tersedia untuk menautkan opsi pengiriman.';
+                  'Draft forSale tersimpan, tetapi product_id belum tersedia untuk menautkan opsi pengiriman.';
             });
             return;
           }
@@ -154,43 +154,45 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
               .setProductShippingSetups(productId, _selectedShippingSetupIds);
           if (!mounted) return;
           if (linkResult.isError) {
-            // Listing exists (as draft) but shipping linking failed — be
+            // ForSale exists (as draft) but shipping linking failed — be
             // explicit so the seller can retry from the edit screen.
             setState(() {
               _errorMessage =
-                  'Draft listing tersimpan, tapi opsi pengiriman gagal ditautkan: '
+                  'Draft forSale tersimpan, tapi opsi pengiriman gagal ditautkan: '
                   '${linkResult.error ?? 'kesalahan tidak diketahui'}. '
-                  'Buka Edit Listing untuk mencoba lagi sebelum publish.';
+                  'Buka Edit ForSale untuk mencoba lagi sebelum publish.';
             });
             return;
           }
         }
-        // Show success and navigate back with listing data
+        // Show success and navigate back with forSale data
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               _selectedShippingSetupIds.isEmpty
-                  ? 'Draft listing tersimpan. Pilih opsi pengiriman sebelum publish.'
-                  : 'Draft listing tersimpan dengan ${_selectedShippingSetupIds.length} opsi pengiriman.',
+                  ? 'Draft forSale tersimpan. Pilih opsi pengiriman sebelum publish.'
+                  : 'Draft forSale tersimpan dengan ${_selectedShippingSetupIds.length} opsi pengiriman.',
             ),
             backgroundColor: AppColors.successGreen,
             duration: const Duration(seconds: 3),
           ),
         );
-        Navigator.of(context).pop(listing); // Return created listing
+        Navigator.of(context).pop(forSale); // Return created forSale
       } else if (result.errorCode == api_codes.emailVerificationRequired) {
         // Defensive backend fail-close: keep honoring the server's rejection.
         await showBlockedActionGate(
           context,
-          actionDescription: 'membuat listing',
-        );
-      } else if (CommerceRestrictionPresenter.isCommerceRestricted(result.errorCode)) {
-        CommerceRestrictionPresenter.show(
-          context,
-          actionDescription: 'membuat listing',
+          actionDescription: 'membuat forSale',
         );
       } else {
-        setState(() => _errorMessage = result.error ?? 'Gagal membuat listing');
+        final consumed = CommerceRestrictionPresenter.handle(
+          context,
+          errorCode: result.errorCode,
+          actionDescription: 'membuat forSale',
+        );
+        if (!consumed) {
+          setState(() => _errorMessage = result.error ?? 'Gagal membuat forSale');
+        }
       }
     } catch (e) {
       setState(() => _errorMessage = 'Terjadi kesalahan: ${e.toString()}');
@@ -236,23 +238,16 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
             context,
             title: 'Jadi Seller Dulu',
             message:
-                'Untuk membuat listing, kamu perlu membuat seller profile terlebih dahulu.',
+                'Untuk membuat forSale, kamu perlu membuat seller profile terlebih dahulu.',
             buttonLabel: 'Mulai Jualan',
             onPressed: () => context.push(RoutePaths.sellerUpgrade),
           );
         }
 
-        if (user.hasMarketAuthority != true) {
-          return _buildAccessGate(
-            context,
-            title: 'Langganan Seller Habis',
-            message:
-                'Aktifkan kembali langganan seller agar bisa membuat listing di mobile.',
-            buttonLabel: 'Perpanjang Langganan',
-            onPressed: () => context.push(RoutePaths.sellerUpgrade),
-          );
-        }
-
+        // NO market-authority gate: this screen creates a PRIVATE DRAFT
+        // (workspace state — see the `visibility: 'private'` payload below).
+        // Market authority is enforced by the owning service at publish
+        // (draft → active); blocking draft creation on it was an over-gate.
         return _buildFormScaffold(context);
     }
   }
@@ -262,7 +257,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralGray50,
       appBar: AppBar(
-        title: const Text('Buat Listing Baru'),
+        title: const Text('Buat ForSale Baru'),
         backgroundColor: isDark
             ? AppColors.darkGray800
             : AppColors.neutralWhite,
@@ -288,7 +283,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralGray50,
       appBar: AppBar(
-        title: const Text('Buat Listing Baru'),
+        title: const Text('Buat ForSale Baru'),
         backgroundColor: isDark
             ? AppColors.darkGray800
             : AppColors.neutralWhite,
@@ -358,7 +353,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralGray50,
       appBar: AppBar(
-        title: const Text('Buat Listing Baru'),
+        title: const Text('Buat ForSale Baru'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
@@ -399,7 +394,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
 
             const SizedBox(height: 24),
 
-            // Price & Negotiable (required for listings)
+            // Price & Negotiable (required for forSales)
             const _SectionTitle('Harga'),
             const SizedBox(height: 12),
             _PriceField(
@@ -419,7 +414,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
 
             const SizedBox(height: 24),
 
-            // Koi Details (required for listings)
+            // Koi Details (required for forSales)
             const _SectionTitle('Detail Koi'),
             const SizedBox(height: 12),
             _KoiDetailsForm(
@@ -458,13 +453,13 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
 
             const SizedBox(height: 24),
 
-            // Phase 2: Listing-level shipping option subset
-            const _SectionTitle('Opsi Pengiriman untuk Listing Ini'),
+            // Phase 2: ForSale-level shipping option subset
+            const _SectionTitle('Opsi Pengiriman untuk ForSale Ini'),
             const SizedBox(height: 8),
             SellerShippingSetupsSelector(
               helperText:
                   'Pilih opsi pengiriman dari katalog Anda yang berlaku untuk '
-                  'listing ini. Pembeli hanya bisa memilih dari opsi terpilih. '
+                  'forSale ini. Pembeli hanya bisa memilih dari opsi terpilih. '
                   'Untuk kasus khusus, gunakan kirim quote di chat.',
               onSelectionChanged: (ids) =>
                   setState(() => _selectedShippingSetupIds = ids),
@@ -512,7 +507,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
                       ),
                     )
                   : const Text(
-                      'Buat Listing',
+                      'Buat ForSale',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -528,12 +523,15 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
     );
   }
 
+  /// Blocked-action message for a failed [ForSaleController.canCreateForSale].
+  ///
+  /// Reaching this means the principal is not in a seller workspace yet (no
+  /// usable session, or no seller profile). Market authority is not consulted:
+  /// draft creation is workspace state, and the capability gate lives at publish.
   String _createForSaleAccessMessage(AuthState authState) {
     return switch (authState) {
-      AuthStateAuthenticated(:final user) =>
-        user.hasSellerProfile == true
-            ? 'Langganan seller Anda sudah berakhir. Perpanjang dulu untuk membuat forSale.'
-            : 'Buat seller profile dulu untuk membuat forSale.',
+      AuthStateAuthenticated(:final user) when user.hasSellerProfile != true =>
+        'Buat seller profile dulu untuk membuat forSale.',
       _ => 'Sesi autentikasi belum siap untuk membuat forSale.',
     };
   }
@@ -779,7 +777,7 @@ class _NegotiableToggle extends StatelessWidget {
 
 /// Stock/quantity field.
 ///
-/// Defaults to 1 (unique item — most koi listings are one-of-a-kind).
+/// Defaults to 1 (unique item — most koi forSales are one-of-a-kind).
 /// Sellers with multiple units of the same product increase this to enable
 /// stock-based sale; buyers can then purchase up to the available amount.
 class _StockField extends StatefulWidget {

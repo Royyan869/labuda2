@@ -64,14 +64,12 @@ func TestNewOrderFromSource_SetsOrderNumber(t *testing.T) {
 		nil,
 		"JNE",
 		"truck",
-		nil,
 		"immediate",
 		nil,
 		nil,
 		nil,
 		nil,
 		nil,
-		"instant",
 		time.Now().Add(15*time.Minute),
 	)
 
@@ -92,10 +90,8 @@ func TestNewOrderFromSource_OrderNumberMatchesFormat(t *testing.T) {
 		money.New(3000),
 		money.New(213000),
 		nil, "TIKI", "plane",
-		&[]entity.AuctionSettlementType{entity.AuctionSettlementBidWin}[0],
 		"short", nil,
 		nil, nil, nil, nil,
-		"va",
 		time.Now().Add(time.Hour),
 	)
 

@@ -9,7 +9,7 @@
 // Pipeline under test:
 //   FeedApiDatasource → FeedResponseDto → PromotedFeedItemMapper
 //   → mergeFeedItems → FeedNotifier → HomeScreen → FeedCardFactory
-//   → PromotedListingCard | PromotedAuctionCard | PromotedExternalCard
+//   → PromotedForSaleCard | PromotedAuctionCard | PromotedExternalCard
 //
 // ONLY the HTTP transport is overridden. Everything downstream is real
 // production code: datasource, DTO, mapper, merge, repository, notifier,
@@ -92,12 +92,12 @@ Map<String, dynamic> _feedContentItem({
   };
 }
 
-/// Canonical promoted listing fixture.
-Map<String, dynamic> _promotedListingItem({
+/// Canonical promoted forSale fixture.
+Map<String, dynamic> _promotedForSaleItem({
   required String instanceId,
   required String title,
   int pricePerUnit = 5000000,
-  String forSaleId = 'listing-1',
+  String forSaleId = 'forSale-1',
   String imageUrl = 'https://example.com/koi.jpg',
   String sellerUsername = 'seller1',
   String sellerFarmName = 'Farm One',
@@ -414,10 +414,10 @@ void main() {
   });
 
   // ==========================================================================
-  // SCENARIO 1: Promoted Listing — actual PromotedListingCard at HomeScreen
+  // SCENARIO 1: Promoted ForSale — actual PromotedForSaleCard at HomeScreen
   // ==========================================================================
-  group('SCENARIO 1: Promoted Listing actual-card proof', () {
-    testWidgets('full pipeline builds PromotedListingCard in HomeScreen', (
+  group('SCENARIO 1: Promoted ForSale actual-card proof', () {
+    testWidgets('full pipeline builds PromotedForSaleCard in HomeScreen', (
       tester,
     ) async {
       _setLargeViewport(tester);
@@ -427,11 +427,11 @@ void main() {
           statusCode: 200,
           body: _feedEnvelope(
             items: [
-              _promotedListingItem(
-                instanceId: 'pi-listing-1',
+              _promotedForSaleItem(
+                instanceId: 'pi-forSale-1',
                 title: 'Koi Kohaku Grade A',
                 pricePerUnit: 7500000,
-                forSaleId: 'listing-abc',
+                forSaleId: 'forSale-abc',
                 imageUrl: 'https://example.com/koi-kohaku.jpg',
                 sellerUsername: 'breeder_one',
                 sellerFarmName: 'Sakura Koi Farm',
@@ -450,16 +450,16 @@ void main() {
       // ---- FeedState proof ----
       final state = _container(tester).read(feedProvider);
       expect(state.items, hasLength(1));
-      expect(state.items[0].type, FeedItemType.promotedListing);
-      expect(state.items[0].id, 'pi-listing-1');
+      expect(state.items[0].type, FeedItemType.promotedForSale);
+      expect(state.items[0].id, 'pi-forSale-1');
       expect(state.items[0].additionalData['isPromoted'], true);
       expect(state.items[0].additionalData['title'], 'Koi Kohaku Grade A');
-      expect(state.items[0].additionalData['forSaleId'], 'listing-abc');
+      expect(state.items[0].additionalData['forSaleId'], 'forSale-abc');
       expect(state.items[0].additionalData['pricePerUnit'], 7500000);
 
       // ---- Actual card widget proof ----
-      // PromotedListingCard must exist in the widget tree.
-      expect(find.byType(PromotedListingCard), findsOneWidget);
+      // PromotedForSaleCard must exist in the widget tree.
+      expect(find.byType(PromotedForSaleCard), findsOneWidget);
 
       // Other promoted card types must be absent.
       expect(find.byType(PromotedAuctionCard), findsNothing);
@@ -468,7 +468,7 @@ void main() {
       // FeedCard (organic content card) must be absent.
       expect(find.byType(FeedCard), findsNothing);
 
-      // CommerceMarketplaceCardShell must be present (used by PromotedListingCard).
+      // CommerceMarketplaceCardShell must be present (used by PromotedForSaleCard).
 
       // Title must be rendered in the card.
       expect(find.text('Koi Kohaku Grade A'), findsOneWidget);
@@ -485,7 +485,7 @@ void main() {
       expect(state.errorMessage, isNull);
     });
 
-    testWidgets('promoted listing title renders from additionalData', (
+    testWidgets('promoted forSale title renders from additionalData', (
       tester,
     ) async {
       _setLargeViewport(tester);
@@ -495,7 +495,7 @@ void main() {
           statusCode: 200,
           body: _feedEnvelope(
             items: [
-              _promotedListingItem(
+              _promotedForSaleItem(
                 instanceId: 'pi-title-test',
                 title: 'Show Quality Tancho',
                 pricePerUnit: 12000000,
@@ -511,11 +511,11 @@ void main() {
       );
       await _pump(tester);
 
-      expect(find.byType(PromotedListingCard), findsOneWidget);
+      expect(find.byType(PromotedForSaleCard), findsOneWidget);
       expect(find.text('Show Quality Tancho'), findsOneWidget);
     });
 
-    testWidgets('promoted listing price renders from contract', (tester) async {
+    testWidgets('promoted forSale price renders from contract', (tester) async {
       _setLargeViewport(tester);
 
       final adapter = _FakeFeedHttpAdapter([
@@ -523,7 +523,7 @@ void main() {
           statusCode: 200,
           body: _feedEnvelope(
             items: [
-              _promotedListingItem(
+              _promotedForSaleItem(
                 instanceId: 'pi-price-test',
                 title: 'Budget Koi',
                 pricePerUnit: 100000, // 1000 rupiah = Rp1rb
@@ -539,12 +539,12 @@ void main() {
       );
       await _pump(tester);
 
-      expect(find.byType(PromotedListingCard), findsOneWidget);
+      expect(find.byType(PromotedForSaleCard), findsOneWidget);
       // 100000 minor → 1000 rupiah → Rp1rb
       expect(find.text('Rp1rb'), findsOneWidget);
     });
 
-    testWidgets('promoted listing reference ID is preserved', (tester) async {
+    testWidgets('promoted forSale reference ID is preserved', (tester) async {
       _setLargeViewport(tester);
 
       final adapter = _FakeFeedHttpAdapter([
@@ -552,7 +552,7 @@ void main() {
           statusCode: 200,
           body: _feedEnvelope(
             items: [
-              _promotedListingItem(
+              _promotedForSaleItem(
                 instanceId: 'pi-ref-test',
                 title: 'Reference Test',
                 forSaleId: 'fps-custom-999',
@@ -632,7 +632,7 @@ void main() {
       );
 
       // Other promoted card types must be absent.
-      expect(find.byType(PromotedListingCard), findsNothing);
+      expect(find.byType(PromotedForSaleCard), findsNothing);
       expect(find.byType(PromotedExternalCard), findsNothing);
       expect(find.byType(FeedCard), findsNothing);
 
@@ -769,7 +769,7 @@ void main() {
       expect(find.byType(PromotedExternalCard), findsOneWidget);
 
       // Other promoted card types must be absent.
-      expect(find.byType(PromotedListingCard), findsNothing);
+      expect(find.byType(PromotedForSaleCard), findsNothing);
       expect(find.byType(PromotedAuctionCard), findsNothing);
       expect(find.byType(FeedCard), findsNothing);
 
@@ -828,7 +828,7 @@ void main() {
       expect(find.text('Direct Shop Link'), findsOneWidget);
     });
 
-    testWidgets('promoted external does NOT render as listing or auction', (
+    testWidgets('promoted external does NOT render as forSale or auction', (
       tester,
     ) async {
       _setLargeViewport(tester);
@@ -855,7 +855,7 @@ void main() {
 
       // Only the external card, no other card types.
       expect(find.byType(PromotedExternalCard), findsOneWidget);
-      expect(find.byType(PromotedListingCard), findsNothing);
+      expect(find.byType(PromotedForSaleCard), findsNothing);
       expect(find.byType(PromotedAuctionCard), findsNothing);
       expect(find.byType(FeedCard), findsNothing);
     });
@@ -866,7 +866,7 @@ void main() {
   // ==========================================================================
   group('SCENARIO 4: Mixed placement and rendered order', () {
     testWidgets(
-      'Content A, Promoted Listing, Content B, Promoted Auction, '
+      'Content A, Promoted ForSale, Content B, Promoted Auction, '
       'Promoted External — all render in canonical order',
       (tester) async {
         _setExtraLargeViewport(tester);
@@ -878,10 +878,10 @@ void main() {
               items: [
                 // Index 0: organic
                 _feedContentItem(id: 'organic-a', body: 'Content A'),
-                // Index 1: promoted listing
-                _promotedListingItem(
-                  instanceId: 'pi-mix-listing',
-                  title: 'Mixed Listing Card',
+                // Index 1: promoted forSale
+                _promotedForSaleItem(
+                  instanceId: 'pi-mix-forSale',
+                  title: 'Mixed ForSale Card',
                   pricePerUnit: 3000000,
                 ),
                 // Index 2: organic
@@ -915,8 +915,8 @@ void main() {
         expect(state.items, hasLength(5));
         expect(state.items[0].type, FeedItemType.content);
         expect(state.items[0].content, 'Content A');
-        expect(state.items[1].type, FeedItemType.promotedListing);
-        expect(state.items[1].additionalData['title'], 'Mixed Listing Card');
+        expect(state.items[1].type, FeedItemType.promotedForSale);
+        expect(state.items[1].additionalData['title'], 'Mixed ForSale Card');
         expect(state.items[2].type, FeedItemType.content);
         expect(state.items[2].content, 'Content B');
         expect(state.items[3].type, FeedItemType.promotedAuction);
@@ -926,7 +926,7 @@ void main() {
 
         // ---- Actual widget order proof ----
         // Verify all promoted card types are present.
-        expect(find.byType(PromotedListingCard), findsOneWidget);
+        expect(find.byType(PromotedForSaleCard), findsOneWidget);
         expect(find.byType(PromotedAuctionCard), findsOneWidget);
         expect(find.byType(PromotedExternalCard), findsOneWidget);
 
@@ -936,7 +936,7 @@ void main() {
         // Verify all content appears on screen.
         expect(find.text('Content A'), findsOneWidget);
         expect(find.text('Content B'), findsOneWidget);
-        expect(find.text('Mixed Listing Card'), findsOneWidget);
+        expect(find.text('Mixed ForSale Card'), findsOneWidget);
         expect(find.text('Mixed Auction Card'), findsOneWidget);
         expect(find.text('Mixed External Card'), findsOneWidget);
 
@@ -969,8 +969,8 @@ void main() {
             statusCode: 200,
             body: _feedEnvelope(
               items: [
-                // Index 0: promoted listing (first item)
-                _promotedListingItem(
+                // Index 0: promoted forSale (first item)
+                _promotedForSaleItem(
                   instanceId: 'pi-first',
                   title: 'First Promoted',
                   pricePerUnit: 1000000,
@@ -995,15 +995,15 @@ void main() {
 
         final state = _container(tester).read(feedProvider);
         expect(state.items, hasLength(3));
-        // First item is promoted listing.
-        expect(state.items[0].type, FeedItemType.promotedListing);
+        // First item is promoted forSale.
+        expect(state.items[0].type, FeedItemType.promotedForSale);
         // Middle is organic.
         expect(state.items[1].type, FeedItemType.content);
         // Last item is promoted external.
         expect(state.items[2].type, FeedItemType.promotedExternal);
 
         // Actual card widgets present.
-        expect(find.byType(PromotedListingCard), findsOneWidget);
+        expect(find.byType(PromotedForSaleCard), findsOneWidget);
         expect(find.byType(FeedCard), findsOneWidget);
         expect(find.byType(PromotedExternalCard), findsOneWidget);
 
@@ -1030,9 +1030,9 @@ void main() {
             statusCode: 200,
             body: _feedEnvelope(
               items: [
-                _promotedListingItem(
+                _promotedForSaleItem(
                   instanceId: 'pi-only-list',
-                  title: 'Only Listing',
+                  title: 'Only ForSale',
                 ),
                 _promotedAuctionItem(
                   instanceId: 'pi-only-auc',
@@ -1055,12 +1055,12 @@ void main() {
 
         final state = _container(tester).read(feedProvider);
         expect(state.items, hasLength(3));
-        expect(state.items[0].type, FeedItemType.promotedListing);
+        expect(state.items[0].type, FeedItemType.promotedForSale);
         expect(state.items[1].type, FeedItemType.promotedAuction);
         expect(state.items[2].type, FeedItemType.promotedExternal);
 
         // All three card types present, no organic.
-        expect(find.byType(PromotedListingCard), findsOneWidget);
+        expect(find.byType(PromotedForSaleCard), findsOneWidget);
         expect(find.byType(PromotedAuctionCard), findsOneWidget);
         expect(find.byType(PromotedExternalCard), findsOneWidget);
         expect(find.byType(FeedCard), findsNothing);

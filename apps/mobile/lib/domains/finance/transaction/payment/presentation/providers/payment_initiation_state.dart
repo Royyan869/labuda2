@@ -2,6 +2,10 @@
 ///
 /// States for payment initiation flow with safety guards.
 /// Prevents duplicate payment initiation and provides clear error states.
+///
+/// NOTE: there is deliberately NO client-side idempotency key here. POST
+/// /api/v1/payments is idempotent server-side (order + active-payment reuse)
+/// and the backend binds no client key for it.
 library;
 
 import 'package:equatable/equatable.dart';
@@ -19,11 +23,6 @@ class PaymentInitiationState extends Equatable {
   /// Error message if initiation failed
   final String? error;
 
-  /// Idempotency key for the current payment initiation attempt
-  /// Generated once per payment attempt and preserved through retries
-  /// Uses UUID v4 format to ensure uniqueness and prevent duplicate payments
-  final String? idempotencyKey;
-
   /// Whether payment has been initiated (for preventing re-initiation)
   final bool isInitiated;
 
@@ -34,7 +33,6 @@ class PaymentInitiationState extends Equatable {
     this.isInitiating = false,
     this.intent,
     this.error,
-    this.idempotencyKey,
     this.isInitiated = false,
     this.lastInitiatedAt,
   });
@@ -44,36 +42,19 @@ class PaymentInitiationState extends Equatable {
     return const PaymentInitiationState();
   }
 
-  /// Loading state during initiation
-  factory PaymentInitiationState.initiating({required String idempotencyKey}) {
-    return PaymentInitiationState(
-      isInitiating: true,
-      idempotencyKey: idempotencyKey,
-      lastInitiatedAt: DateTime.now(),
-    );
-  }
-
   /// Success state after successful initiation
-  factory PaymentInitiationState.success({
-    required PaymentIntent intent,
-    String? idempotencyKey,
-  }) {
+  factory PaymentInitiationState.success({required PaymentIntent intent}) {
     return PaymentInitiationState(
       intent: intent,
       isInitiated: true,
-      idempotencyKey: idempotencyKey,
       lastInitiatedAt: DateTime.now(),
     );
   }
 
   /// Error state after failed initiation
-  factory PaymentInitiationState.failure({
-    required String error,
-    String? idempotencyKey,
-  }) {
+  factory PaymentInitiationState.failure({required String error}) {
     return PaymentInitiationState(
       error: error,
-      idempotencyKey: idempotencyKey,
       lastInitiatedAt: DateTime.now(),
     );
   }
@@ -93,18 +74,13 @@ class PaymentInitiationState extends Equatable {
     bool? isInitiating,
     PaymentIntent? intent,
     String? error,
-    String? idempotencyKey,
     bool? isInitiated,
     DateTime? lastInitiatedAt,
-    bool clearIdempotencyKey = false,
   }) {
     return PaymentInitiationState(
       isInitiating: isInitiating ?? this.isInitiating,
       intent: intent ?? this.intent,
       error: error,
-      idempotencyKey: clearIdempotencyKey
-          ? null
-          : (idempotencyKey ?? this.idempotencyKey),
       isInitiated: isInitiated ?? this.isInitiated,
       lastInitiatedAt: lastInitiatedAt ?? this.lastInitiatedAt,
     );
@@ -123,7 +99,6 @@ class PaymentInitiationState extends Equatable {
     isInitiating,
     intent,
     error,
-    idempotencyKey,
     isInitiated,
     lastInitiatedAt,
   ];

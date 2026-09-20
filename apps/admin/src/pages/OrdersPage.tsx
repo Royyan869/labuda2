@@ -34,7 +34,7 @@ const ORDER_STATUSES: { value: OrderStatus | ''; label: string }[] = [
 
 const SOURCE_TYPES: { value: SourceType | ''; label: string }[] = [
   { value: '', label: 'All Sources' },
-  { value: 'fixed_price_sale', label: 'Fixed-Price Sale' },
+  { value: 'for_sale', label: 'For Sale' },
   { value: 'auction', label: 'Auction' },
   { value: 'negotiation', label: 'Negotiation' },
 ]
@@ -267,7 +267,7 @@ export function OrdersPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm">
-                        {formatRupiah(order.escrow_amount)}
+                        {formatRupiah(order.total_before_coins_amount)}
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">
                         {formatDate(order.created_at)}

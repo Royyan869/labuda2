@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labuda/backend/internal/finance"
+	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
 )
 
 type Account struct {
@@ -66,15 +67,15 @@ type Order struct {
 	ShippingTotal          int64
 	CommissionAmount       int64
 	TotalBeforeCoinsAmount int64 // canonical buyer-funded escrow base = PD + S
-	RefundedAmount         int64
 	PaymentID              *uuid.UUID
 }
 
 type Withdrawal struct {
-	ID       uuid.UUID
-	SellerID uuid.UUID
-	Amount   int64
-	Status   string
+	ID        uuid.UUID
+	SellerID  uuid.UUID
+	Amount    int64
+	FeeAmount int64
+	Status    string
 }
 
 type Refund struct {
@@ -88,15 +89,6 @@ type Refund struct {
 	FinalRefundAmount *int64
 	RefundedAt        *time.Time
 	CreatedAt         time.Time
-}
-
-type DisputeFreeze struct {
-	ID           uuid.UUID
-	DisputeID    uuid.UUID
-	OrderID      uuid.UUID
-	SellerID     uuid.UUID
-	FrozenAmount int64
-	Status       string // "active" | "released"
 }
 
 type OutboxEvent struct {
@@ -137,7 +129,6 @@ type Snapshot struct {
 	Orders               []Order
 	Withdrawals          []Withdrawal
 	Refunds              []Refund
-	DisputeFreezes       []DisputeFreeze
 	OutboxEvents         []OutboxEvent
 	PromotionContracts   []PromotionContract
 	QualifiedImpressions []QualifiedImpression
@@ -227,9 +218,6 @@ func LoadSnapshot(ctx context.Context, pool *pgxpool.Pool) (*Snapshot, error) {
 	if s.Refunds, err = loadRefunds(ctx, pool); err != nil {
 		return nil, err
 	}
-	if s.DisputeFreezes, err = loadDisputeFreezes(ctx, pool); err != nil {
-		return nil, err
-	}
 	if s.OutboxEvents, err = loadOutboxEvents(ctx, pool); err != nil {
 		return nil, err
 	}
@@ -252,7 +240,6 @@ func Verify(snapshot *Snapshot, mode Mode) Report {
 			v.checkSettlementReleaseInvariants(),
 			v.checkWithdrawalInvariants(),
 			v.checkRefundInvariants(),
-			v.checkDisputeFreezeInvariants(),
 			v.checkPromotionFinancialInvariants(),
 			v.checkQualifiedImpressionReconciliation(),
 			v.checkOutboxCorrelation(),
@@ -498,7 +485,9 @@ func (v *verifier) checkSettlementReleaseInvariants() SectionResult {
 		if p.ReferenceType != "order" {
 			continue
 		}
-		if p.Status == "settlement" || p.Status == "capture" {
+		// Settled = the canonical payment predicate (settlement or capture);
+		// never a local status list.
+		if paymentRepo.IsSettledStatus(p.Status) {
 			if paymentSettlementByPayment[p.ID] != 1 {
 				class := "real_invariant_bug"
 				if v.paymentSettlementIsLegacyResidue(p) {
@@ -564,38 +553,199 @@ func (v *verifier) checkWithdrawalInvariants() SectionResult {
 	rejectCount := v.referenceTypeCount("withdrawal_reject")
 	restoreCount := v.referenceTypeCount("withdrawal_restore")
 	completeCount := v.referenceTypeCount("withdrawal_complete")
+	settleCount := v.referenceTypeCount("WITHDRAWAL_SETTLE")
+	failReturnCount := v.referenceTypeCount("WITHDRAWAL_FAIL_RETURN")
+
+	accountTypeByID := make(map[uuid.UUID]string, len(v.snapshot.Accounts))
+	for _, a := range v.snapshot.Accounts {
+		accountTypeByID[a.ID] = a.AccountType
+	}
 
 	var expectedPending int64
 	var expectedCommitted int64
 
 	for _, w := range v.snapshot.Withdrawals {
 		switch w.Status {
-		case "pending":
+		case "REQUESTED":
 			expectedPending += w.Amount
 			if requestCount[w.ID] != 1 {
-				v.addFinding(&res, "real_invariant_bug", "withdrawal_request_count", fmt.Sprintf("withdrawal=%s status=pending request_tx_count=%d", w.ID, requestCount[w.ID]))
+				v.addFinding(&res, "real_invariant_bug", "withdrawal_request_count", fmt.Sprintf("withdrawal=%s status=REQUESTED request_tx_count=%d", w.ID, requestCount[w.ID]))
+			} else {
+				if tx := v.findTransaction("withdrawal_request", w.ID); tx != nil {
+					entries := v.entriesByTx[tx.ID]
+					if len(entries) != 2 {
+						v.addFinding(&res, "real_invariant_bug", "withdrawal_request_entry_count", fmt.Sprintf("withdrawal=%s withdrawal_request entries=%d want 2", w.ID, len(entries)))
+					} else {
+						var sellerFound, pendingFound bool
+						for _, e := range entries {
+							t := accountTypeByID[e.AccountID]
+							signed := signedAmount(e, t)
+							if t == finance.AccountSellerPayable && e.EntryType == "debit" && e.Amount == w.Amount && signed == -w.Amount {
+								sellerFound = true
+							}
+							if t == finance.AccountWithdrawalPending && e.EntryType == "credit" && e.Amount == w.Amount && signed == w.Amount {
+								pendingFound = true
+							}
+						}
+						if !sellerFound || !pendingFound {
+							v.addFinding(&res, "real_invariant_bug", "withdrawal_request_direction", fmt.Sprintf("withdrawal=%s SELLER_PAYABLE debit +amount / WITHDRAWAL_PENDING credit +amount not matched", w.ID))
+						}
+					}
+				}
 			}
-		case "approved":
+		case "PROCESSING":
 			expectedCommitted += w.Amount
 			if commitCount[w.ID] != 1 {
-				v.addFinding(&res, "real_invariant_bug", "withdrawal_commit_count", fmt.Sprintf("withdrawal=%s status=approved commit_tx_count=%d", w.ID, commitCount[w.ID]))
+				v.addFinding(&res, "real_invariant_bug", "withdrawal_commit_count", fmt.Sprintf("withdrawal=%s status=PROCESSING commit_tx_count=%d", w.ID, commitCount[w.ID]))
 			}
-		case "completed":
+			if requestCount[w.ID] != 1 {
+				v.addFinding(&res, "real_invariant_bug", "withdrawal_request_count_for_processing", fmt.Sprintf("withdrawal=%s status=PROCESSING request_tx_count=%d want 1", w.ID, requestCount[w.ID]))
+			}
+		case "SUBMITTED", "SETTLING":
+			expectedCommitted += w.Amount
+			if commitCount[w.ID] != 1 {
+				v.addFinding(&res, "real_invariant_bug", "withdrawal_commit_count", fmt.Sprintf("withdrawal=%s status=%s commit_tx_count=%d", w.ID, w.Status, commitCount[w.ID]))
+			}
+			if settleCount[w.ID] != 0 {
+				v.addFinding(&res, "real_invariant_bug", "withdrawal_settle_unexpected", fmt.Sprintf("withdrawal=%s status=%s settle_tx_count=%d want 0", w.ID, w.Status, settleCount[w.ID]))
+			}
+			if failReturnCount[w.ID] != 0 {
+				v.addFinding(&res, "real_invariant_bug", "withdrawal_fail_return_unexpected", fmt.Sprintf("withdrawal=%s status=%s fail_return_tx_count=%d want 0", w.ID, w.Status, failReturnCount[w.ID]))
+			}
+		case "SETTLED":
+			if settleCount[w.ID] != 1 {
+				v.addFinding(&res, "real_invariant_bug", "withdrawal_settle_count", fmt.Sprintf("withdrawal=%s status=SETTLED settle_tx_count=%d want 1", w.ID, settleCount[w.ID]))
+			} else {
+				tx := v.findTransaction("WITHDRAWAL_SETTLE", w.ID)
+				if tx != nil {
+					entries := v.entriesByTx[tx.ID]
+					var wcFound, pbFound, prFound bool
+					var pbAmt, prAmt int64
+					for _, e := range entries {
+						t := accountTypeByID[e.AccountID]
+						switch t {
+						case finance.AccountWithdrawalCommitted:
+							if e.EntryType == "debit" && e.Amount == w.Amount {
+								wcFound = true
+							}
+						case finance.AccountPlatformBank:
+							if e.EntryType == "credit" {
+								pbFound = true
+								pbAmt = e.Amount
+							}
+						case finance.AccountPlatformRevenue:
+							if e.EntryType == "credit" {
+								prFound = true
+								prAmt = e.Amount
+							}
+						}
+					}
+					if !wcFound {
+						v.addFinding(&res, "real_invariant_bug", "withdrawal_settle_wc_direction", fmt.Sprintf("withdrawal=%s WITHDRAWAL_COMMITTED debit +amount not found", w.ID))
+					}
+					if !pbFound || !prFound {
+						v.addFinding(&res, "real_invariant_bug", "withdrawal_settle_pb_pr_direction", fmt.Sprintf("withdrawal=%s PLATFORM_BANK credit / PLATFORM_REVENUE credit not found pb=%v pr=%v", w.ID, pbFound, prFound))
+					} else if pbAmt+prAmt != w.Amount {
+						v.addFinding(&res, "real_invariant_bug", "withdrawal_settle_amount_mismatch", fmt.Sprintf("withdrawal=%s pb_amt=%d pr_amt=%d sum=%d want %d", w.ID, pbAmt, prAmt, pbAmt+prAmt, w.Amount))
+					}
+					if w.FeeAmount < 0 || w.FeeAmount >= w.Amount {
+						// fee sanity already enforced at production; just ensure pr matches fee when loaded
+						if prAmt != w.FeeAmount && w.FeeAmount != 0 {
+							v.addFinding(&res, "real_invariant_bug", "withdrawal_settle_fee_mismatch", fmt.Sprintf("withdrawal=%s pr_amt=%d feeAmount=%d", w.ID, prAmt, w.FeeAmount))
+						}
+					} else if prAmt != w.FeeAmount {
+						v.addFinding(&res, "real_invariant_bug", "withdrawal_settle_fee_mismatch", fmt.Sprintf("withdrawal=%s pr_amt=%d feeAmount=%d", w.ID, prAmt, w.FeeAmount))
+					}
+				}
+			}
+		case "COMPLETED":
 			if completeCount[w.ID] != 1 {
-				v.addFinding(&res, "real_invariant_bug", "withdrawal_complete_count", fmt.Sprintf("withdrawal=%s status=completed complete_tx_count=%d", w.ID, completeCount[w.ID]))
+				v.addFinding(&res, "real_invariant_bug", "withdrawal_complete_count", fmt.Sprintf("withdrawal=%s status=COMPLETED complete_tx_count=%d want 1", w.ID, completeCount[w.ID]))
+			} else {
+				tx := v.findTransaction("withdrawal_complete", w.ID)
+				if tx != nil {
+					entries := v.entriesByTx[tx.ID]
+					var wcFound, pbFound, prFound bool
+					var pbAmt, prAmt int64
+					for _, e := range entries {
+						t := accountTypeByID[e.AccountID]
+						switch t {
+						case finance.AccountWithdrawalCommitted:
+							if e.EntryType == "debit" && e.Amount == w.Amount {
+								wcFound = true
+							}
+						case finance.AccountPlatformBank:
+							if e.EntryType == "credit" {
+								pbFound = true
+								pbAmt = e.Amount
+							}
+						case finance.AccountPlatformRevenue:
+							if e.EntryType == "credit" {
+								prFound = true
+								prAmt = e.Amount
+							}
+						}
+					}
+					if !wcFound {
+						v.addFinding(&res, "real_invariant_bug", "withdrawal_complete_wc_direction", fmt.Sprintf("withdrawal=%s WITHDRAWAL_COMMITTED debit +amount not found", w.ID))
+					}
+					if !pbFound || !prFound {
+						v.addFinding(&res, "real_invariant_bug", "withdrawal_complete_pb_pr_direction", fmt.Sprintf("withdrawal=%s PLATFORM_BANK/PR not found", w.ID))
+					} else if pbAmt+prAmt != w.Amount {
+						v.addFinding(&res, "real_invariant_bug", "withdrawal_complete_amount_mismatch", fmt.Sprintf("withdrawal=%s pb=%d pr=%d sum=%d want %d", w.ID, pbAmt, prAmt, pbAmt+prAmt, w.Amount))
+					}
+					if prAmt != w.FeeAmount {
+						v.addFinding(&res, "real_invariant_bug", "withdrawal_complete_fee_mismatch", fmt.Sprintf("withdrawal=%s pr_amt=%d fee=%d", w.ID, prAmt, w.FeeAmount))
+					}
+				}
 			}
-		case "rejected":
+		case "FAILED_RETRYABLE":
+			expectedCommitted += w.Amount
+			if failReturnCount[w.ID] != 0 {
+				v.addFinding(&res, "real_invariant_bug", "withdrawal_fail_return_unexpected_for_retryable", fmt.Sprintf("withdrawal=%s status=FAILED_RETRYABLE fail_return_tx_count=%d want 0", w.ID, failReturnCount[w.ID]))
+			}
+			if settleCount[w.ID] != 0 {
+				v.addFinding(&res, "real_invariant_bug", "withdrawal_settle_unexpected_for_retryable", fmt.Sprintf("withdrawal=%s status=FAILED_RETRYABLE settle_tx_count=%d want 0", w.ID, settleCount[w.ID]))
+			}
+		case "FAILED_FINAL":
+			if failReturnCount[w.ID] != 1 {
+				v.addFinding(&res, "real_invariant_bug", "withdrawal_fail_return_count", fmt.Sprintf("withdrawal=%s status=FAILED_FINAL fail_return_tx_count=%d want 1", w.ID, failReturnCount[w.ID]))
+			} else {
+				tx := v.findTransaction("WITHDRAWAL_FAIL_RETURN", w.ID)
+				if tx != nil {
+					entries := v.entriesByTx[tx.ID]
+					if len(entries) != 2 {
+						v.addFinding(&res, "real_invariant_bug", "withdrawal_fail_return_entry_count", fmt.Sprintf("withdrawal=%s entries=%d want 2", w.ID, len(entries)))
+					} else {
+						var wcFound, spFound bool
+						for _, e := range entries {
+							t := accountTypeByID[e.AccountID]
+							if t == finance.AccountWithdrawalCommitted && e.EntryType == "debit" && e.Amount == w.Amount {
+								wcFound = true
+							}
+							if t == finance.AccountSellerPayable && e.EntryType == "credit" && e.Amount == w.Amount {
+								spFound = true
+							}
+						}
+						if !wcFound || !spFound {
+							v.addFinding(&res, "real_invariant_bug", "withdrawal_fail_return_direction", fmt.Sprintf("withdrawal=%s WC debit +amount / SP credit +amount not matched wc=%v sp=%v", w.ID, wcFound, spFound))
+						}
+					}
+				}
+			}
+			if settleCount[w.ID] != 0 {
+				v.addFinding(&res, "real_invariant_bug", "withdrawal_settle_unexpected_for_failed_final", fmt.Sprintf("withdrawal=%s status=FAILED_FINAL settle_tx_count=%d want 0", w.ID, settleCount[w.ID]))
+			}
+		case "FAILED":
 			pathCount := rejectCount[w.ID] + restoreCount[w.ID]
 			if pathCount != 1 {
-				v.addFinding(&res, "real_invariant_bug", "withdrawal_reject_restore_count", fmt.Sprintf("withdrawal=%s status=rejected reject_tx_count=%d restore_tx_count=%d", w.ID, rejectCount[w.ID], restoreCount[w.ID]))
+				v.addFinding(&res, "real_invariant_bug", "withdrawal_reject_restore_count", fmt.Sprintf("withdrawal=%s status=FAILED reject_tx_count=%d restore_tx_count=%d want 1", w.ID, rejectCount[w.ID], restoreCount[w.ID]))
 			}
-		case "REQUESTED", "PROCESSING", "SUBMITTED", "SETTLING", "SETTLED",
-			"FAILED_RETRYABLE", "FAILED_FINAL", "PILOT_BLOCKED":
-			// Payout-system statuses. Ledger invariants for these require
-			// payout worker accounting integration (not yet activated).
-			// Classified as informational until accounting is wired.
-			v.addFinding(&res, "missing_accounting_primitive", "payout_status_unaudited",
-				fmt.Sprintf("withdrawal=%s status=%s â€” payout accounting invariants not yet implemented", w.ID, w.Status))
+		case "PILOT_BLOCKED":
+			expectedCommitted += w.Amount
+			if commitCount[w.ID] != 1 {
+				v.addFinding(&res, "real_invariant_bug", "withdrawal_commit_count_for_pilot_blocked", fmt.Sprintf("withdrawal=%s status=PILOT_BLOCKED commit_tx_count=%d want 1", w.ID, commitCount[w.ID]))
+			}
 		default:
 			v.addFinding(&res, "real_invariant_bug", "unknown_withdrawal_status", fmt.Sprintf("withdrawal=%s status=%s", w.ID, w.Status))
 		}
@@ -639,7 +789,7 @@ func (v *verifier) checkRefundInvariants() SectionResult {
 		var cumulative int64
 		for _, refund := range refunds {
 			previousByRefund[refund.ID] = cumulative
-			if refund.GatewayStatus == "succeeded" || refund.Status == "refunded" || refund.RefundedAt != nil {
+			if refundSettledOnGateway(refund) {
 				if refund.FinalRefundAmount != nil {
 					cumulative += *refund.FinalRefundAmount
 				}
@@ -662,9 +812,12 @@ func (v *verifier) checkRefundInvariants() SectionResult {
 		}
 		// CANONICAL BUYER-FUNDED ESCROW BASE: orderGross = total_before_coins_amount
 		// = PD + S. orders.escrow_amount is NOT authoritative (never persisted).
+		// FAIL CLOSED: no fallback to the undiscounted P + S. An order without a
+		// persisted buyer-funded base is reported as a finding, not masked.
 		orderGross := order.TotalBeforeCoinsAmount
 		if orderGross <= 0 {
-			orderGross = order.Subtotal + order.ShippingTotal
+			v.addFinding(&res, "real_invariant_bug", "order_invalid_base", fmt.Sprintf("order=%s total_before_coins_amount=%d", order.ID, orderGross))
+			continue
 		}
 		if r.RequestedAmount > orderGross {
 			v.addFinding(&res, "real_invariant_bug", "refund_requested_exceeds_order", fmt.Sprintf("refund=%s requested_amount=%d order_escrow=%d", r.ID, r.RequestedAmount, orderGross))
@@ -672,7 +825,7 @@ func (v *verifier) checkRefundInvariants() SectionResult {
 		if r.FinalRefundAmount != nil && *r.FinalRefundAmount > orderGross {
 			v.addFinding(&res, "real_invariant_bug", "refund_final_exceeds_order", fmt.Sprintf("refund=%s final_refund_amount=%d order_escrow=%d", r.ID, *r.FinalRefundAmount, orderGross))
 		}
-		if r.GatewayStatus == "succeeded" || r.Status == "refunded" || r.RefundedAt != nil {
+		if refundSettledOnGateway(r) {
 			if refundTxs[r.ID] != 1 {
 				v.addFinding(&res, "real_invariant_bug", "refund_reversal_count", fmt.Sprintf("refund=%s status=%s gateway_status=%s refund_reversal_tx_count=%d", r.ID, r.Status, r.GatewayStatus, refundTxs[r.ID]))
 				continue
@@ -698,10 +851,9 @@ func (v *verifier) checkRefundInvariants() SectionResult {
 		// PD = TotalBeforeCoins - Shipping (product-only, discounted buyer
 		// base minus shipping), NOT EscrowAmount and NOT a dead discount
 		// column. This matches refund_math.go / refund_gateway.go.
+		// PD = base − S is the only canonical derivation; FAIL CLOSED with a
+		// finding instead of falling back to Subtotal (P).
 		pd := order.TotalBeforeCoinsAmount - order.ShippingTotal
-		if pd <= 0 {
-			pd = order.Subtotal
-		}
 		if pd <= 0 {
 			v.addFinding(&res, "real_invariant_bug", "order_invalid_pd", fmt.Sprintf("order=%s pd=%d", order.ID, pd))
 			continue
@@ -763,7 +915,9 @@ func refundOrderingTime(r Refund) time.Time {
 
 // verifierProportionalCommissionPD computes the product-proportional commission
 // reversal for a cumulative refunded amount, using the CANONICAL denominator
-// PD = Subtotal - Discount. This mirrors refund_math.go's proportionalFloor
+// PD = total_before_coins_amount − shipping_total (never Subtotal/P and never a
+// discount column, which orders does not persist). This mirrors
+// refund_math.go's proportionalFloor
 // (floor division) so the verifier checks ledger entries against the same
 // allocation the refund pipeline actually posts. It is a derived expectation,
 // NOT a commission identity — the identity is order.CommissionAmount.
@@ -772,55 +926,6 @@ func verifierProportionalCommissionPD(amount int64, orderCommission int64, pd in
 		return 0
 	}
 	return (amount * orderCommission) / pd
-}
-
-// checkDisputeFreezeInvariants validates:
-// 1. frozen_amount > 0 for every row
-// 2. frozen_amount â‰¤ order gross (subtotal + shipping) for known orders
-// 3. active freeze count per dispute â‰¤ 1 (UNIQUE enforced by DB, verified here)
-// 4. active freezes reduce seller withdrawable (informational warning in forensic mode)
-func (v *verifier) checkDisputeFreezeInvariants() SectionResult {
-	res := SectionResult{Name: "Dispute Freeze Invariants"}
-
-	orderGrossByID := make(map[uuid.UUID]int64)
-	for _, o := range v.snapshot.Orders {
-		orderGrossByID[o.ID] = o.Subtotal + o.ShippingTotal
-	}
-
-	activeByDispute := make(map[uuid.UUID]int)
-	activeFreezesBySeller := make(map[uuid.UUID]int64)
-
-	for _, f := range v.snapshot.DisputeFreezes {
-		if f.FrozenAmount <= 0 {
-			v.addFinding(&res, "real_invariant_bug", "dispute_freeze_non_positive",
-				fmt.Sprintf("freeze=%s dispute=%s amount=%d", f.ID, f.DisputeID, f.FrozenAmount))
-		}
-		if gross, ok := orderGrossByID[f.OrderID]; ok && f.FrozenAmount > gross {
-			v.addFinding(&res, "real_invariant_bug", "dispute_freeze_exceeds_order_gross",
-				fmt.Sprintf("freeze=%s dispute=%s frozen=%d order_gross=%d", f.ID, f.DisputeID, f.FrozenAmount, gross))
-		}
-		if f.Status == "active" {
-			activeByDispute[f.DisputeID]++
-			activeFreezesBySeller[f.SellerID] += f.FrozenAmount
-		}
-	}
-
-	for disputeID, count := range activeByDispute {
-		if count > 1 {
-			v.addFinding(&res, "real_invariant_bug", "dispute_multiple_active_freezes",
-				fmt.Sprintf("dispute=%s active_freeze_count=%d", disputeID, count))
-		}
-	}
-
-	for sellerID, freezeTotal := range activeFreezesBySeller {
-		payable := v.userBalance(finance.AccountSellerPayable, sellerID)
-		if freezeTotal > payable {
-			v.addFinding(&res, "real_invariant_bug", "dispute_freeze_exceeds_payable",
-				fmt.Sprintf("seller=%s active_freeze=%d payable_balance=%d", sellerID, freezeTotal, payable))
-		}
-	}
-
-	return v.finalize(&res)
 }
 
 // promotionReferenceAllowedAccounts maps each promotion ledger reference type
@@ -1055,7 +1160,7 @@ func (v *verifier) checkOutboxCorrelation() SectionResult {
 		}
 	}
 	for _, r := range v.snapshot.Refunds {
-		if r.GatewayStatus == "succeeded" || r.Status == "refunded" || r.RefundedAt != nil {
+		if refundSettledOnGateway(r) {
 			if v.outboxCount("money.refund_succeeded", r.ID) != 1 {
 				v.addFinding(&res, "real_invariant_bug", "missing_money_refund_succeeded_event", fmt.Sprintf("refund=%s money.refund_succeeded_count=%d", r.ID, v.outboxCount("money.refund_succeeded", r.ID)))
 			}
@@ -1318,7 +1423,10 @@ func loadOrders(ctx context.Context, pool *pgxpool.Pool) ([]Order, error) {
 	if err != nil {
 		return nil, err
 	}
-	query := `SELECT id, buyer_id, seller_id, status::text, escrow_status::text, subtotal, shipping_total, commission_amount, total_before_coins_amount, refunded_amount`
+	// NOTE: orders.refunded_amount is NOT loaded — it was a never-written column
+	// and has been purged. Refund truth is derived from the refunds domain
+	// (LoadSnapshot/refunds) by the refund invariant sections below.
+	query := `SELECT id, buyer_id, seller_id, status::text, escrow_status::text, subtotal, shipping_total, commission_amount, total_before_coins_amount`
 	if hasPaymentID {
 		query += `, payment_id`
 	} else {
@@ -1333,7 +1441,7 @@ func loadOrders(ctx context.Context, pool *pgxpool.Pool) ([]Order, error) {
 	var out []Order
 	for rows.Next() {
 		var o Order
-		if err := rows.Scan(&o.ID, &o.BuyerID, &o.SellerID, &o.Status, &o.EscrowStatus, &o.Subtotal, &o.ShippingTotal, &o.CommissionAmount, &o.TotalBeforeCoinsAmount, &o.RefundedAmount, &o.PaymentID); err != nil {
+		if err := rows.Scan(&o.ID, &o.BuyerID, &o.SellerID, &o.Status, &o.EscrowStatus, &o.Subtotal, &o.ShippingTotal, &o.CommissionAmount, &o.TotalBeforeCoinsAmount, &o.PaymentID); err != nil {
 			return nil, fmt.Errorf("scan orders: %w", err)
 		}
 		out = append(out, o)
@@ -1352,7 +1460,7 @@ func loadWithdrawals(ctx context.Context, pool *pgxpool.Pool) ([]Withdrawal, err
 	} else {
 		query += `user_id`
 	}
-	query += `, amount, status::text FROM withdrawals`
+	query += `, amount, fee_amount, status::text FROM withdrawals`
 	rows, err := pool.Query(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("load withdrawals: %w", err)
@@ -1361,12 +1469,23 @@ func loadWithdrawals(ctx context.Context, pool *pgxpool.Pool) ([]Withdrawal, err
 	var out []Withdrawal
 	for rows.Next() {
 		var w Withdrawal
-		if err := rows.Scan(&w.ID, &w.SellerID, &w.Amount, &w.Status); err != nil {
+		if err := rows.Scan(&w.ID, &w.SellerID, &w.Amount, &w.FeeAmount, &w.Status); err != nil {
 			return nil, fmt.Errorf("scan withdrawals: %w", err)
 		}
 		out = append(out, w)
 	}
 	return out, rows.Err()
+}
+
+// refundSettledOnGateway reports whether the gateway actually reversed the money
+// for this refund row.
+//
+// THIS IS THE FINANCIAL SETTLEMENT AXIS ONLY. The refund decision status
+// (refunds.status) records who decided and whether the decision is final — it
+// never indicates that money moved. Settlement truth is gateway_status plus the
+// refunded_at stamp, which is why the decision status must not appear here.
+func refundSettledOnGateway(r Refund) bool {
+	return r.GatewayStatus == "succeeded" || r.RefundedAt != nil
 }
 
 func loadRefunds(ctx context.Context, pool *pgxpool.Pool) ([]Refund, error) {
@@ -1393,28 +1512,6 @@ func loadRefunds(ctx context.Context, pool *pgxpool.Pool) ([]Refund, error) {
 			return nil, fmt.Errorf("scan refunds: %w", err)
 		}
 		out = append(out, r)
-	}
-	return out, rows.Err()
-}
-
-func loadDisputeFreezes(ctx context.Context, pool *pgxpool.Pool) ([]DisputeFreeze, error) {
-	// Table may not exist before migration 000131 — tolerate absence gracefully.
-	rows, err := pool.Query(ctx, `
-		SELECT id, dispute_id, order_id, seller_id, frozen_amount, status
-		FROM dispute_freezes
-	`)
-	if err != nil {
-		// Migration not yet applied — treat as empty, not an error.
-		return nil, nil
-	}
-	defer rows.Close()
-	var out []DisputeFreeze
-	for rows.Next() {
-		var f DisputeFreeze
-		if err := rows.Scan(&f.ID, &f.DisputeID, &f.OrderID, &f.SellerID, &f.FrozenAmount, &f.Status); err != nil {
-			return nil, fmt.Errorf("scan dispute_freezes: %w", err)
-		}
-		out = append(out, f)
 	}
 	return out, rows.Err()
 }
@@ -1551,7 +1648,7 @@ func fixtureDuplicateRefundReversal() *Snapshot {
 			{ID: orderID, BuyerID: uuid.MustParse("16161616-1616-1616-1616-161616161616"), SellerID: uuid.MustParse("17171717-1717-1717-1717-171717171717"), Status: "refunded", EscrowStatus: "refunded", Subtotal: 1500, ShippingTotal: 300, CommissionAmount: 200, TotalBeforeCoinsAmount: 1800},
 		},
 		Refunds: []Refund{
-			{ID: refundID, OrderID: orderID, BuyerID: uuid.MustParse("16161616-1616-1616-1616-161616161616"), SellerID: uuid.MustParse("17171717-1717-1717-1717-171717171717"), Status: "refunded", GatewayStatus: "succeeded", RequestedAmount: 2000},
+			{ID: refundID, OrderID: orderID, BuyerID: uuid.MustParse("16161616-1616-1616-1616-161616161616"), SellerID: uuid.MustParse("17171717-1717-1717-1717-171717171717"), Status: "system_refunded", GatewayStatus: "succeeded", RequestedAmount: 2000},
 		},
 		Transactions: []LedgerTransaction{
 			{ID: tx1, IdempotencyKey: "refund_reversal_1", ReferenceType: "refund_reversal", ReferenceID: &refundID, OrderID: &orderID, CreatedAt: 1},

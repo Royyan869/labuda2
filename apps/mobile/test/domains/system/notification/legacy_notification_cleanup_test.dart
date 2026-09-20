@@ -36,10 +36,10 @@ Widget _routerApp() {
           builder: (context, state) => const Scaffold(body: Text('home')),
         ),
         GoRoute(
-          path: '/listing/:fixedPriceSaleId',
+          path: '/forSale/:fixedPriceSaleId',
           builder: (context, state) {
             final fixedPriceSaleId = state.pathParameters['forSaleId']!;
-            return Scaffold(body: Text('listing:$fixedPriceSaleId'));
+            return Scaffold(body: Text('forSale:$fixedPriceSaleId'));
           },
         ),
         GoRoute(
@@ -151,7 +151,7 @@ void main() {
           ('payment_pending', {'orderId': 'order-1'}),
           ('security_alert', {'orderId': 'order-1'}),
           ('login_from_new_device', {'orderId': 'order-1'}),
-          ('collection_recommendation', {'listingId': 'listing-1'}),
+          ('collection_recommendation', {'forSaleId': 'forSale-1'}),
         ]) {
           final handled = NotificationNavigationHandler.navigate(
             context: context,
@@ -163,7 +163,7 @@ void main() {
         }
 
         expect(find.text('home'), findsOneWidget);
-        expect(find.textContaining('listing:'), findsNothing);
+        expect(find.textContaining('forSale:'), findsNothing);
         expect(find.textContaining('order:'), findsNothing);
       },
     );

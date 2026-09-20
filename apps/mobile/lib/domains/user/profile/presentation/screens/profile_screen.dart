@@ -33,6 +33,7 @@ import 'package:labuda/domains/user/preference/seller/seller.dart';
 import 'package:labuda/domains/social/share/share.dart';
 import 'package:labuda/shared/widgets/empty_state.dart';
 import 'package:labuda/shared/shared.dart' hide ProfileAvatar;
+import 'package:labuda/shared/helpers/user_identity_formatter.dart';
 import 'package:labuda/shared/providers/block_state_provider.dart';
 import 'package:labuda/shared/widgets/block_confirmation_dialog.dart';
 
@@ -774,7 +775,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             userId: userId,
             avatarUrl: profileData['avatar'],
             farmPhotoUrl: profileData['farmPhotoUrl'],
-            initials: UserInitialsHelper.fromName(profileData['name']),
+            initials: UserIdentityFormatter.avatarInitials(profileData['name'] as String?),
             isSeller: isSeller,
             size: currentAvatarSize,
             showOnlineStatus:

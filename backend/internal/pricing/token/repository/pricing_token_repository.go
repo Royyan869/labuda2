@@ -20,8 +20,10 @@ type PricingTokenRepository interface {
 	// This prevents concurrent modifications and must be used within a transaction.
 	GetByTokenForUpdate(ctx context.Context, tx db.Tx, token uuid.UUID) (*entity.PricingToken, error)
 
-	// MarkAsUsedTx marks a token as used and links it to an order within a transaction.
-	MarkAsUsedTx(ctx context.Context, tx db.Tx, tokenID uuid.UUID, orderID uuid.UUID) error
+	// MarkAsUsedTx marks a token as used, links it to an order, and persists the
+	// canonical coins redeemed (K) into coins_used within a transaction. K is
+	// decided once at Order creation; this is the only writer of coins_used.
+	MarkAsUsedTx(ctx context.Context, tx db.Tx, tokenID uuid.UUID, orderID uuid.UUID, coinsUsed int64) error
 
 	// DeleteExpiredTokensTx deletes expired tokens that are older than the specified duration.
 	// This is a maintenance operation to clean up old tokens.

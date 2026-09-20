@@ -46,7 +46,7 @@ class AuctionSellerCard extends StatelessWidget {
       // navigation affordance (chevron / InkWell). This card is structurally
       // non-interactive even for active sellers, so the tap-gate is
       // satisfied by the absence of an InkWell wrapper below — mirroring
-      // _ListingSellerCard._buildDegradedRow.
+      // _ForSaleSellerCard._buildDegradedRow.
       primaryLabel = auction.sellerUserLifecycle.publicRedactionLabel;
     } else if (identity != null) {
       primaryLabel = identity.line1;

@@ -56,7 +56,7 @@ type RequestWithdrawRequest struct {
 //  1. Get seller_id from auth context.
 //  2. Delegate to WithdrawService.RequestWithdrawal — single tx covers:
 //     - Verified-seller gate
-//     - Dispute-aware withdrawable gate (SELLER_PAYABLE − dispute_freeze)
+//     - Withdrawable gate (SELLER_PAYABLE balance ceiling)
 //     - Single-in-flight withdrawal guard
 //     - Default bank account snapshot (FOR UPDATE)
 //     - withdrawals row insert with status=REQUESTED and idempotency_key set
@@ -166,12 +166,11 @@ func (h *WithdrawalHandlerUnified) RequestWithdraw(c *gin.Context) {
 				zap.String("seller_id", sellerID.String()),
 				zap.Int64("requested_amount", e.RequestedAmount),
 				zap.Int64("payable_balance", e.PayableBalance),
-				zap.Int64("active_dispute_freeze", e.ActiveDisputeFreeze),
 				zap.Int64("withdrawable", e.Withdrawable),
 			)
 			response.BadRequest(c, fmt.Sprintf(
-				"Withdrawal blocked by dispute freeze or balance ceiling. Requested: %d, Withdrawable: %d (Payable: %d − Freeze: %d)",
-				e.RequestedAmount, e.Withdrawable, e.PayableBalance, e.ActiveDisputeFreeze,
+				"Withdrawal blocked by balance ceiling. Requested: %d, Withdrawable: %d (Payable: %d)",
+				e.RequestedAmount, e.Withdrawable, e.PayableBalance,
 			))
 			return
 

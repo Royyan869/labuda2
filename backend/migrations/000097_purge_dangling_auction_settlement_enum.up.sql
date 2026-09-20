@@ -1,0 +1,28 @@
+-- ============================================================
+-- 000097 PURGE DANGLING auction_settlement_type_enum
+--
+-- ORDER-SCOPE-C — ENTITY ↔ PERSISTENCE ↔ CONSUMER CONVERGENCE.
+--
+-- auction_settlement_type_enum (000001:31-34) is orphaned:
+--   - Created as a 2-value ENUM ('standard', 'buy_now') for a per-order
+--     auction settlement marker.
+--   - ZERO columns use it (verified in pg_attribute: 0 columns, no table
+--     ever declared a column of this type).
+--   - ZERO casts (::auction_settlement_type_enum) in the codebase.
+--   - The 'standard' value was never produced by any code path.
+--
+-- The Order entity no longer carries auction settlement metadata. Settlement
+-- type (buy_now vs bid_win) is a pricing-token / auction creation-time concern:
+--   - validated at creation (AuctionSettlementType.IsValid)
+--   - persisted on the pricing token snapshot
+--   - consumed at creation to derive the payment window
+--   - never read back from an order
+-- Note the vocabulary drift that proves it was never wired: the enum value is
+-- 'standard' while the Go constant is 'bid_win'.
+--
+-- The dangling type is therefore a schema breadcrumb that invites the rejected
+-- per-order settlement-marker design back. No CASCADE — dependency proven zero.
+-- 000001 is the historical snapshot and MUST remain immutable.
+-- ============================================================
+
+DROP TYPE IF EXISTS auction_settlement_type_enum;

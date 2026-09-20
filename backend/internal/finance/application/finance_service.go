@@ -10,7 +10,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/finance"
@@ -42,9 +41,8 @@ import (
 // - Seller earnings queries
 // ============================================================================
 type FinanceService struct {
-	ledgerRepo        ledgerepo.LedgerRepository
-	disputeFreezeRepo DisputeFreezeWriter
-	logger            *zap.Logger
+	ledgerRepo ledgerepo.LedgerRepository
+	logger     *zap.Logger
 }
 
 // NewFinanceService creates a new FinanceService.
@@ -53,27 +51,6 @@ func NewFinanceService() *FinanceService {
 		ledgerRepo: ledgerrepoimpl.NewLedgerRepository(),
 		logger:     zap.NewNop(),
 	}
-}
-
-// DisputeFreezeWriter is the minimal dispute_freeze persistence surface used by
-// FinanceService to track dispute freeze bookkeeping. Defined as an interface
-// so tests can inject a fake without a real DB.
-//
-// The concrete implementation is
-// internal/finance/infrastructure/repository.DisputeFreezeRepository.
-type DisputeFreezeWriter interface {
-	Create(ctx context.Context, tx db.Tx, freeze *ledgerepo.DisputeFreeze) error
-	Release(ctx context.Context, tx db.Tx, disputeID uuid.UUID) error
-	ReleaseByOrderID(ctx context.Context, tx db.Tx, orderID uuid.UUID) error
-	GetTotalActiveBySeller(ctx context.Context, tx db.Tx, sellerID uuid.UUID) (int64, error)
-}
-
-// SetDisputeFreezeRepo wires the dispute_freeze repository used by
-// CreateDisputeFreeze, ReleaseDisputeFreeze, and AssertSellerWithdrawalAllowed.
-// When unset the dispute-freeze surface is a no-op (safe for old deployments
-// before migration 000131 is applied).
-func (s *FinanceService) SetDisputeFreezeRepo(repo DisputeFreezeWriter) {
-	s.disputeFreezeRepo = repo
 }
 
 // SetLogger wires a structured logger for finance observability events.
@@ -1136,35 +1113,36 @@ func (s *FinanceService) RecordPartialRefundRelease(
 }
 
 // ============================================================================
-// SELLER WITHDRAWABLE — DISPUTE-AWARE FREEZE
+// SELLER WITHDRAWABLE
 // ============================================================================
 
 // ErrWithdrawalBlockedByWithdrawableBalance is returned by AssertSellerWithdrawalAllowed
-// when the requested withdrawal exceeds the dispute-aware withdrawable balance.
+// when the requested withdrawal exceeds the seller's withdrawable balance.
 type ErrWithdrawalBlockedByWithdrawableBalance struct {
-	SellerID            uuid.UUID
-	RequestedAmount     int64
-	PayableBalance      int64
-	ActiveDisputeFreeze int64
-	Withdrawable        int64
+	SellerID        uuid.UUID
+	RequestedAmount int64
+	PayableBalance  int64
+	Withdrawable    int64
 }
 
 func (e *ErrWithdrawalBlockedByWithdrawableBalance) Error() string {
 	return fmt.Sprintf(
-		"withdrawal blocked by withdrawable balance: seller=%s requested=%d payable=%d freeze=%d withdrawable=%d",
-		e.SellerID, e.RequestedAmount, e.PayableBalance, e.ActiveDisputeFreeze, e.Withdrawable,
+		"withdrawal blocked by withdrawable balance: seller=%s requested=%d payable=%d withdrawable=%d",
+		e.SellerID, e.RequestedAmount, e.PayableBalance, e.Withdrawable,
 	)
 }
 
-// SellerWithdrawableSummary is the dispute-aware snapshot of a
-// seller's payout surface used by both the withdraw guard and observability.
+// SellerWithdrawableSummary is the snapshot of a seller's payout surface used by
+// both the withdraw guard and observability.
+//
+// The withdrawable ceiling is the seller's SELLER_PAYABLE ledger balance: once
+// escrow is released the money belongs to the seller.
 type SellerWithdrawableSummary struct {
-	PayableBalance      int64
-	ActiveDisputeFreeze int64 // sum of active dispute_freeze rows
-	Withdrawable        int64 // max(payable - dispute_freeze, 0)
+	PayableBalance int64
+	Withdrawable   int64 // the withdrawable ceiling (= SELLER_PAYABLE balance)
 }
 
-// GetSellerWithdrawable returns the seller's dispute-aware withdrawable amount.
+// GetSellerWithdrawable returns the seller's withdrawable amount.
 // Pure read — locks nothing — safe for non-mutating callers (admin UI,
 // observability). For withdrawal-time enforcement, use
 // AssertSellerWithdrawalAllowed which performs FOR UPDATE locking.
@@ -1188,36 +1166,24 @@ func (s *FinanceService) GetSellerWithdrawable(
 		}
 		payableBalance = bal.Int64()
 	}
-	var freezeTotal int64
-	if s.disputeFreezeRepo != nil {
-		freezeTotal, err = s.disputeFreezeRepo.GetTotalActiveBySeller(ctx, tx, sellerID)
-		if err != nil {
-			return nil, fmt.Errorf("read dispute freeze total: %w", err)
-		}
-	}
-	withdrawable := payableBalance - freezeTotal
-	if withdrawable < 0 {
-		withdrawable = 0
-	}
 	return &SellerWithdrawableSummary{
-		PayableBalance:      payableBalance,
-		ActiveDisputeFreeze: freezeTotal,
-		Withdrawable:        withdrawable,
+		PayableBalance: payableBalance,
+		Withdrawable:   payableBalance,
 	}, nil
 }
 
-// AssertSellerWithdrawalAllowed is the canonical withdrawal-time guard for
-// the dispute-aware freeze. It MUST be called inside the same db.Tx as the
-// downstream withdrawal mutation, so the FOR UPDATE lock on SELLER_PAYABLE
-// holds across the decision and the finance ledger write.
+// AssertSellerWithdrawalAllowed is the canonical withdrawal-time guard. It
+// MUST be called inside the same db.Tx as the downstream withdrawal mutation,
+// so the FOR UPDATE lock on SELLER_PAYABLE holds across the decision and the
+// finance ledger write.
+//
+// The withdrawable ceiling is the seller's SELLER_PAYABLE ledger balance. Once
+// escrow is released the money belongs to the seller; nothing may hold it back.
 //
 // Returns ErrWithdrawalBlockedByWithdrawableBalance when amount > withdrawable.
 //
 // Lock order (matches release/refund paths to avoid deadlock):
 //  1. SELLER_PAYABLE balance (FOR UPDATE)
-//  2. dispute freeze rows are read (no per-row lock; the SUM is the source of
-//     truth and a concurrent freeze insert in another tx serializes via the
-//     surrounding dispute workflow tx, which locks the order row first).
 func (s *FinanceService) AssertSellerWithdrawalAllowed(
 	ctx context.Context,
 	tx db.Tx,
@@ -1239,133 +1205,26 @@ func (s *FinanceService) AssertSellerWithdrawalAllowed(
 	if err != nil {
 		return nil, fmt.Errorf("lock seller payable balance: %w", err)
 	}
-	var freezeTotal int64
-	if s.disputeFreezeRepo != nil {
-		freezeTotal, err = s.disputeFreezeRepo.GetTotalActiveBySeller(ctx, tx, sellerID)
-		if err != nil {
-			return nil, fmt.Errorf("read dispute freeze total: %w", err)
-		}
-	}
-	// TASK 48: subtract active dispute freezes so disputed funds cannot be
-	// withdrawn while an active dispute remains unresolved.
-	withdrawable := payableBal.Int64() - freezeTotal
-	if withdrawable < 0 {
-		withdrawable = 0
-	}
+	withdrawable := payableBal.Int64()
 	summary := &SellerWithdrawableSummary{
-		PayableBalance:      payableBal.Int64(),
-		ActiveDisputeFreeze: freezeTotal,
-		Withdrawable:        withdrawable,
+		PayableBalance: payableBal.Int64(),
+		Withdrawable:   withdrawable,
 	}
 	if amount > withdrawable {
 		s.logger.Warn("withdrawal_blocked_by_balance_ceiling",
 			zap.String("seller_id", sellerID.String()),
 			zap.Int64("requested_amount", amount),
 			zap.Int64("payable_balance", payableBal.Int64()),
-			zap.Int64("active_dispute_freeze", freezeTotal),
 			zap.Int64("withdrawable", withdrawable),
 		)
 		return summary, &ErrWithdrawalBlockedByWithdrawableBalance{
-			SellerID:            sellerID,
-			RequestedAmount:     amount,
-			PayableBalance:      payableBal.Int64(),
-			ActiveDisputeFreeze: freezeTotal,
-			Withdrawable:        withdrawable,
+			SellerID:        sellerID,
+			RequestedAmount: amount,
+			PayableBalance:  payableBal.Int64(),
+			Withdrawable:    withdrawable,
 		}
 	}
 	return summary, nil
-}
-
-// CreateDisputeFreeze records a dispute freeze against the seller's
-// SELLER_PAYABLE. This helper remains as compatibility scaffolding, but the
-// live runtime no longer opens completed+released disputes.
-//
-// The freeze reduces the seller's withdrawable until the dispute resolves:
-//   - Seller wins  â†’ ReleaseDisputeFreeze (no ledger change, freeze deleted)
-//   - Buyer  wins  â†’ ReleaseDisputeFreeze for the frozen amount
-//
-// FIX-4: Acquires SELLER_PAYABLE FOR UPDATE before inserting the freeze row.
-// This serializes CreateDisputeFreeze against concurrent calls to
-// AssertSellerWithdrawalAllowed (which also locks SELLER_PAYABLE FOR UPDATE),
-// closing the TOCTOU window where a withdrawal TX could read freeze_total=0
-// before this TX commits the new dispute_freezes row.
-func (s *FinanceService) CreateDisputeFreeze(
-	ctx context.Context,
-	tx db.Tx,
-	disputeID, sellerID, orderID uuid.UUID,
-	frozenAmount int64,
-) error {
-	if s.disputeFreezeRepo == nil {
-		return fmt.Errorf("dispute freeze repository not wired")
-	}
-	// FIX-4: lock SELLER_PAYABLE to serialize against concurrent withdrawal auth.
-	payableID, err := s.ledgerRepo.GetOrCreateUserAccount(ctx, tx, finance.AccountSellerPayable, sellerID)
-	if err != nil {
-		return fmt.Errorf("CreateDisputeFreeze: get seller payable account: %w", err)
-	}
-	if _, err = s.ledgerRepo.GetAccountBalanceForUpdate(ctx, tx, payableID); err != nil {
-		return fmt.Errorf("CreateDisputeFreeze: lock seller payable: %w", err)
-	}
-	freeze := &ledgerepo.DisputeFreeze{
-		ID:           uuid.New(),
-		DisputeID:    disputeID,
-		OrderID:      orderID,
-		SellerID:     sellerID,
-		FrozenAmount: frozenAmount,
-		Status:       "active",
-		CreatedAt:    time.Now().UnixMilli(),
-		UpdatedAt:    time.Now().UnixMilli(),
-	}
-	if err := s.disputeFreezeRepo.Create(ctx, tx, freeze); err != nil {
-		return fmt.Errorf("CreateDisputeFreeze: %w", err)
-	}
-	s.logger.Info("dispute_financial_freeze_created",
-		zap.String("dispute_id", disputeID.String()),
-		zap.String("order_id", orderID.String()),
-		zap.String("seller_id", sellerID.String()),
-		zap.Int64("frozen_amount", frozenAmount),
-	)
-	return nil
-}
-
-// ReleaseDisputeFreeze marks a dispute freeze as released.
-// Idempotent â€” safe to call even if no freeze exists (legacy compatibility).
-func (s *FinanceService) ReleaseDisputeFreeze(
-	ctx context.Context,
-	tx db.Tx,
-	disputeID uuid.UUID,
-) error {
-	if s.disputeFreezeRepo == nil {
-		return nil // no-op when repo not wired (pre-migration)
-	}
-	if err := s.disputeFreezeRepo.Release(ctx, tx, disputeID); err != nil {
-		return fmt.Errorf("ReleaseDisputeFreeze: %w", err)
-	}
-	s.logger.Info("dispute_financial_freeze_released",
-		zap.String("dispute_id", disputeID.String()),
-	)
-	return nil
-}
-
-// ReleaseDisputeFreezeByOrderID marks any active freeze for the given order
-// as released. Idempotent: no-op if no active freeze exists. This remains as
-// compatibility scaffolding; current runtime does not reach it from the
-// completed+released refund/dispute flow.
-func (s *FinanceService) ReleaseDisputeFreezeByOrderID(
-	ctx context.Context,
-	tx db.Tx,
-	orderID uuid.UUID,
-) error {
-	if s.disputeFreezeRepo == nil {
-		return nil // no-op when repo not wired
-	}
-	if err := s.disputeFreezeRepo.ReleaseByOrderID(ctx, tx, orderID); err != nil {
-		return fmt.Errorf("ReleaseDisputeFreezeByOrderID: %w", err)
-	}
-	s.logger.Info("dispute_financial_freeze_released_by_order",
-		zap.String("order_id", orderID.String()),
-	)
-	return nil
 }
 
 // RecordWithdrawalRequest books the canonical request-time finance ledger

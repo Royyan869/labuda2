@@ -37,10 +37,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final sellerIdentityStatus = ref.watch(sellerIdentityStatusProvider);
     final isSeller = sellerIdentityStatus == SellerIdentityStatus.seller;
 
-    // Watch presence state for online status toggle
-    final presenceState = ref.watch(presenceManagerProvider);
-    final showOnlineStatus = presenceState.isEnabled;
-
     return Scaffold(
       appBar: AppBarCustom(title: l10n.settings),
       body: SafeArea(
@@ -81,9 +77,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             // 🔒 Security & Privacy Section
             SettingsSecurityPrivacySection(
               onNavigate: _handleNavigation,
-              showOnlineStatus: showOnlineStatus,
-              onShowOnlineStatusChanged: (value) =>
-                  ref.read(presenceManagerProvider.notifier).setEnabled(value),
             ),
 
             // 🔔 Notifications & Preferences Section

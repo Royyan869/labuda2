@@ -174,9 +174,9 @@ class _AuctionClaimShippingModalState
 
       final request = CheckDeliveryRequest(
         productId: productId,
+        // 2-digit / 4-digit BPS codes (address `Province.id` / `City.id`).
         provinceId: _selectedAddress!.province.id,
         cityId: _selectedAddress!.city.id,
-        cityName: _selectedAddress!.city.name,
       );
 
       final result = await shippingRepository.checkDeliveryAvailability(
@@ -802,14 +802,6 @@ class _AuctionClaimShippingModalState
                       color: AppColors.neutralGray900,
                     ),
                   ),
-                  if (option.notes != null)
-                    Text(
-                      option.notes!,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.neutralGray600,
-                      ),
-                    ),
                 ],
               ),
             ),

@@ -23,7 +23,10 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/features/home/domain/domain.dart'; // R3.1: Import FeedItem from home domain
 import 'package:go_router/go_router.dart';
+import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/domains/social/content/domain/entities/content_resource_projection.dart';
+import 'package:labuda/shared/widgets/carousel_video_player.dart';
+import 'package:labuda/shared/widgets/stable_network_image.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/domains/social/like/domain/entities/like.dart';
@@ -79,8 +82,8 @@ class FeedCardFactory {
 
     // P3A — Dispatch promoted item types to their dedicated renderers.
     switch (item.type) {
-      case FeedItemType.promotedListing:
-        return PromotedListingCard(item: item);
+      case FeedItemType.promotedForSale:
+        return PromotedForSaleCard(item: item);
       case FeedItemType.promotedAuction:
         return PromotedAuctionCard(item: item);
       case FeedItemType.promotedExternal:
@@ -106,6 +109,9 @@ class FeedCardFactory {
 /// - No misleading "0 likes" when data simply isn't available
 /// - Better to be simple but honest than rich but fake
 class FeedCard extends ConsumerWidget {
+  /// Height of the card media slot.
+  static const double _mediaCardHeight = 200;
+
   final FeedItem item;
 
   const FeedCard({super.key, required this.item});
@@ -168,8 +174,10 @@ class FeedCard extends ConsumerWidget {
                       : null,
                 ),
               ),
-            // MEDIA INTEGRATION: Render media from MediaEntity
-            if (item.media.isNotEmpty) _buildMediaImage(context),              // Content
+            // MEDIA: canonical network-media path. MediaEntity.type is the
+            // authority — image renders through StableNetworkImage (which
+            // resolves storage references), video through CarouselVideoPlayer.
+            if (item.media.isNotEmpty) _buildMedia(context, item.media.first),
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -214,37 +222,51 @@ class FeedCard extends ConsumerWidget {
     }
   }
 
-  Widget _buildMediaImage(BuildContext context) {
-    // MEDIA INTEGRATION: Use MediaEntity from canonical Content.media
-    final imageUrl = item.media.first.originalUrl;
+  /// Canonical content media renderer for the feed card.
+  ///
+  /// [MediaEntity.type] is the render authority:
+  /// - image — [StableNetworkImage], the shared network-media path that
+  ///   projects the reference through `resolveNetworkImageUrl`.
+  /// - video — [CarouselVideoPlayer], the shared video primitive. A video
+  ///   reference must never reach the image decoder.
+  Widget _buildMedia(BuildContext context, MediaEntity media) {
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-      child: Image.network(
-        imageUrl,
+      child: SizedBox(
         width: double.infinity,
-        height: 200,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => Container(
-          width: double.infinity,
-          height: 200,
-          color: AppColors.neutralGray200,
-          child: const Icon(
-            Icons.image_not_supported,
-            size: 48,
-            color: AppColors.neutralGray400,
-          ),
-        ),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            width: double.infinity,
-            height: 200,
-            color: AppColors.neutralGray100,
-            child: const Center(
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          );
-        },
+        height: _mediaCardHeight,
+        child: media.type == MediaType.video
+            ? LayoutBuilder(
+                builder: (context, constraints) => CarouselVideoPlayer(
+                  videoUrl: media.originalUrl,
+                  width: constraints.maxWidth,
+                  height: constraints.maxHeight,
+                  fit: BoxFit.cover,
+                  onFullscreenTap: () => _navigateToDetail(context),
+                ),
+              )
+            : StableNetworkImage(
+                imageUrl: media.originalUrl,
+                logicalCacheKey: media.id,
+                fit: BoxFit.cover,
+                fallback: _buildMediaPlaceholder(),
+              ),
+      ),
+    );
+  }
+
+  /// Neutral placeholder shown while the image loads and when it cannot be
+  /// loaded — the [StableNetworkImage] contract keeps one fallback for both
+  /// states (same convention as the commerce marketplace card media).
+  Widget _buildMediaPlaceholder() {
+    return Container(
+      width: double.infinity,
+      height: _mediaCardHeight,
+      color: AppColors.neutralGray200,
+      child: const Icon(
+        Icons.image,
+        size: 48,
+        color: AppColors.neutralGray400,
       ),
     );
   }
@@ -566,7 +588,7 @@ class FeedCard extends ConsumerWidget {
     switch (type) {
       case FeedItemType.content:
         return ExternalShareType.post;
-      case FeedItemType.promotedListing:
+      case FeedItemType.promotedForSale:
       case FeedItemType.promotedAuction:
       case FeedItemType.promotedExternal:
         return ExternalShareType.post; // promoted items not shareable from feed
@@ -745,10 +767,10 @@ String _formatPrice(int? priceMinor) {
   return 'Rp$rupiah';
 }
 
-/// Promoted listing card — shows listing image, title, price, seller.
-class PromotedListingCard extends ConsumerWidget {
+/// Promoted forSale card — shows forSale image, title, price, seller.
+class PromotedForSaleCard extends ConsumerWidget {
   final FeedItem item;
-  const PromotedListingCard({super.key, required this.item});
+  const PromotedForSaleCard({super.key, required this.item});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -765,7 +787,7 @@ class PromotedListingCard extends ConsumerWidget {
     final canonicalExposureId = data['canonicalExposureId'] as String?;
 
     return VisibilityDetector(
-      key: Key('promo_imp_${contractId}_feed_listing'),
+      key: Key('promo_imp_${contractId}_feed_for_sale'),
       onVisibilityChanged: (info) {
         if (info.visibleFraction >= 0.5) {
           _recordPromotionImpression(ref, contractId, 'feed',

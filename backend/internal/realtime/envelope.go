@@ -12,7 +12,6 @@ const wsServerSender = "server"
 const (
 	EventTypeChatRoomCreated = "chat.room.created"
 	EventTypeChatRoomUpdated = "chat.room.updated"
-	EventTypeChatRoomRemoved = "chat.room.removed"
 )
 
 // WSEnvelope is the canonical outbound WS contract for Labuda.
@@ -37,14 +36,6 @@ type ChatRoomSummaryPayload struct {
 	CreatedAt     string `json:"created_at,omitempty"`
 	UpdatedAt     string `json:"updated_at"`
 	LastMessageAt string `json:"last_message_at"`
-}
-
-// ChatRoomRemovedPayload is the canonical WS tombstone for room removal.
-// Keep it minimal so removed events do not leak room content.
-type ChatRoomRemovedPayload struct {
-	RoomID    string `json:"room_id"`
-	Reason    string `json:"reason,omitempty"`
-	UpdatedAt string `json:"updated_at,omitempty"`
 }
 
 func marshalWSEnvelope(messageType string, data map[string]any) []byte {
@@ -85,19 +76,6 @@ func (p ChatRoomSummaryPayload) toMap() map[string]any {
 	return data
 }
 
-func (p ChatRoomRemovedPayload) toMap() map[string]any {
-	data := map[string]any{
-		"room_id": p.RoomID,
-	}
-	if p.Reason != "" {
-		data["reason"] = p.Reason
-	}
-	if p.UpdatedAt != "" {
-		data["updated_at"] = p.UpdatedAt
-	}
-	return data
-}
-
 func marshalChatMessageSent(roomID, messageID uuid.UUID) []byte {
 	return marshalWSEnvelope("chat.message.sent", map[string]any{
 		"room_id":    roomID.String(),
@@ -111,10 +89,6 @@ func marshalChatRoomCreated(payload ChatRoomSummaryPayload) []byte {
 
 func marshalChatRoomUpdated(payload ChatRoomSummaryPayload) []byte {
 	return marshalWSEnvelope(EventTypeChatRoomUpdated, payload.toMap())
-}
-
-func marshalChatRoomRemoved(payload ChatRoomRemovedPayload) []byte {
-	return marshalWSEnvelope(EventTypeChatRoomRemoved, payload.toMap())
 }
 
 func marshalWSError(messageID, code, action string) []byte {

@@ -213,14 +213,17 @@ func (s *PresenceSubscriber) handleMessage(ctx context.Context, payload string) 
 }
 
 func marshalPresenceChanged(state presencepkg.State) []byte {
-	payload, err := json.Marshal(presencepkg.Event{
-		Type:  "presence.changed",
-		State: state,
-	})
-	if err != nil {
-		return nil
+	data := map[string]any{
+		"user_id":   state.UserID.String(),
+		"is_online": state.IsOnline,
+		"version":   state.Version,
 	}
-	return payload
+	if state.LastSeenAt != nil {
+		data["last_seen_at"] = state.LastSeenAt.UTC().Format(time.RFC3339Nano)
+	} else {
+		data["last_seen_at"] = nil
+	}
+	return marshalWSEnvelope("presence.changed", data)
 }
 
 func (s *PresenceSubscriber) shouldDeliver(userID uuid.UUID, version int64) bool {

@@ -139,10 +139,11 @@ func TestCreateContent_CanonicalResourceOccurrenceBindingAndNegativeContracts(t 
 	t.Run("CW20 update content cannot mutate canonical occurrence", func(t *testing.T) {
 		var contentID uuid.UUID
 		require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-			content, err := handler.contentService.CreateContent(
+			content, _, err := handler.contentService.CreateContentIdempotent(
 				ctx,
 				tx,
 				actorID,
+				uuid.NewString(),
 				"update target",
 				contententity.VisibilityPublic,
 				nil,
@@ -184,10 +185,11 @@ func TestCreateContent_CanonicalResourceOccurrenceBindingAndNegativeContracts(t 
 	t.Run("CW20 update content rejects all canonical mutation attempts", func(t *testing.T) {
 		var contentID uuid.UUID
 		require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-			content, err := handler.contentService.CreateContent(
+			content, _, err := handler.contentService.CreateContentIdempotent(
 				ctx,
 				tx,
 				actorID,
+				uuid.NewString(),
 				"update target matrix",
 				contententity.VisibilityPublic,
 				nil,

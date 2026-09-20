@@ -10,7 +10,10 @@ class ChatDto extends Equatable {
   final LastMessageDto? lastMessage;
   final DateTime createdAt;
   final DateTime? updatedAt;
-  final Map<String, int> unreadCounts;
+
+  /// Viewer-scoped unread count from the wire (`unread_count`). Null when the
+  /// payload omits it (room-list carries it; the direct-room response does not).
+  final int? unreadCount;
   final bool isActive;
   final String status;
   final List<String> deletedBy;
@@ -63,7 +66,7 @@ class ChatDto extends Equatable {
     this.lastMessage,
     required this.createdAt,
     this.updatedAt,
-    this.unreadCounts = const {},
+    this.unreadCount,
     this.isActive = true,
     this.status = 'active',
     this.deletedBy = const [],
@@ -115,7 +118,7 @@ class ChatDto extends Equatable {
         updatedAt: json['updated_at'] != null
             ? DateTime.parse(json['updated_at'] as String)
             : null,
-        unreadCounts: _readUnreadCounts(json, otherUserId: otherUserId),
+        unreadCount: _readUnreadCount(json),
         isActive: true,
         status: 'active',
         deletedBy: const [],
@@ -159,7 +162,7 @@ class ChatDto extends Equatable {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
           : null,
-      unreadCounts: Map<String, int>.from(json['unread_counts'] ?? {}),
+      unreadCount: _readUnreadCount(json),
       isActive: json['is_active'] as bool? ?? true,
       status: json['status'] as String? ?? 'active',
       deletedBy: List<String>.from(json['deleted_by'] ?? []),
@@ -206,7 +209,7 @@ class ChatDto extends Equatable {
     if (lastMessage != null) 'last_message': lastMessage!.toJson(),
     'created_at': createdAt.toIso8601String(),
     if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
-    'unread_counts': unreadCounts,
+    if (unreadCount != null) 'unread_count': unreadCount,
     'is_active': isActive,
     'status': status,
     'deleted_by': deletedBy,
@@ -227,29 +230,16 @@ class ChatDto extends Equatable {
   List<Object?> get props => [id, type, participantIds, createdAt];
 }
 
-Map<String, int> _readUnreadCounts(
-  Map<String, dynamic> json, {
-  String? otherUserId,
-}) {
-  final out = <String, int>{};
-  final legacy = json['unread_counts'];
-  if (legacy is Map<String, dynamic>) {
-    legacy.forEach((key, value) {
-      if (value is int) {
-        out[key] = value;
-      }
-    });
-  }
-
-  final singleUnread = json['unread_count'];
-  if (singleUnread is int) {
-    // Backend /chat/rooms currently emits a single unread count for viewer.
-    // Keep it in-map so domain layer can read it through sum fallback.
-    final key = otherUserId ?? '__room_unread__';
-    out[key] = singleUnread;
-  }
-
-  return out;
+/// Reads the canonical viewer-scoped unread count from the wire.
+///
+/// The backend emits exactly one `unread_count` per room per viewer. Absent /
+/// non-numeric → null (so a merge preserves the previously known value).
+int? _readUnreadCount(Map<String, dynamic> json) {
+  final raw = json['unread_count'];
+  if (raw is int) return raw;
+  if (raw is num) return raw.toInt();
+  if (raw is String) return int.tryParse(raw);
+  return null;
 }
 
 /// E4.1 — Extract the per-participant lifecycle map from the chat-room wire
@@ -360,9 +350,7 @@ class CreateChatDto {
 
   const CreateChatDto({required this.participantIds});
 
-  Map<String, dynamic> toJson() => {
-    'participant_ids': participantIds,
-  };
+  Map<String, dynamic> toJson() => {'participant_ids': participantIds};
 }
 
 /// Chat List Response DTO

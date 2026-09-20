@@ -4,7 +4,13 @@ import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 
 import '../dto/dto_barrel.dart';
 import '../models/api/order_api_models.dart'
-    show OrderFilterParams, RefundFilterParams;
+    show
+        OrderApiResponse,
+        OrderListApiResponse,
+        OrderFilterParams,
+        RefundFilterParams,
+        CheckDeliveryApiResponse,
+        CheckDeliveryApiRequest;
 import 'order_remote_datasource.dart';
 import '../../domain/entities/order_params.dart';
 
@@ -83,39 +89,16 @@ class OrderApiDatasourceImpl implements OrderRemoteDatasource {
   // ========================================
 
   @override
-  Future<PreviewOrderResponseDto> previewOrder(
-    PreviewOrderRequestDto request,
-  ) async {
-    throw UnsupportedError(
-      'POST /orders/preview is not supported by backend contract. Use POST /pricing/preview.',
-    );
-  }
-
-  @override
-  Future<OrderDto> createOrder(CreateOrderDto request) async {
-    return _executeRequest(
-      () => _apiClient.post('/orders', data: request.toJson()),
-      parser: (data) => OrderDto.fromJson(data as Map<String, dynamic>),
-    );
-  }
-
-  @override
-  Future<OrderDto> getOrder(String orderId) async {
+  Future<OrderApiResponse> getOrder(String orderId) async {
     return _executeRequest(
       () => _apiClient.get('/orders/$orderId'),
-      parser: (data) => OrderDto.fromJson(data as Map<String, dynamic>),
+      parser: (data) =>
+          OrderApiResponse.fromJson(data as Map<String, dynamic>),
     );
   }
 
   @override
-  Future<OrderDto> getOrderByNumber(String orderNumber) async {
-    throw UnsupportedError(
-      'GET /orders/number/:orderNumber is not supported by backend contract.',
-    );
-  }
-
-  @override
-  Future<OrderListDto> listMyOrders({OrderFilterParams? params}) async {
+  Future<OrderListApiResponse> listMyOrders({OrderFilterParams? params}) async {
     final query = <String, dynamic>{
       'role': 'buyer',
       'limit': params?.pageSize ?? 20,
@@ -130,7 +113,9 @@ class OrderApiDatasourceImpl implements OrderRemoteDatasource {
   }
 
   @override
-  Future<OrderListDto> listSellerOrders({OrderFilterParams? params}) async {
+  Future<OrderListApiResponse> listSellerOrders({
+    OrderFilterParams? params,
+  }) async {
     final query = <String, dynamic>{
       'role': 'seller',
       'limit': params?.pageSize ?? 20,
@@ -144,21 +129,14 @@ class OrderApiDatasourceImpl implements OrderRemoteDatasource {
     );
   }
 
-  @override
-  Future<OrderStatsDto> getOrderStats({bool asSeller = false}) async {
-    throw UnsupportedError(
-      'GET /orders/stats is not supported by backend contract.',
-    );
-  }
-
-  OrderListDto _parseOrderListResponse(dynamic data) {
+  OrderListApiResponse _parseOrderListResponse(dynamic data) {
     if (data is Map<String, dynamic>) {
-      return OrderListDto.fromJson(data);
+      return OrderListApiResponse.fromJson(data);
     }
     if (data is List) {
-      return OrderListDto.fromJson({'orders': data});
+      return OrderListApiResponse.fromJson({'orders': data});
     }
-    return OrderListDto.fromJson({'orders': const []});
+    return OrderListApiResponse.fromJson({'orders': const []});
   }
 
   // ========================================
@@ -166,24 +144,10 @@ class OrderApiDatasourceImpl implements OrderRemoteDatasource {
   // ========================================
 
   @override
-  Future<OrderDto> updateOrderStatus(
+  Future<OrderApiResponse> shipOrder(
     String orderId,
-    UpdateOrderStatusDto request,
+    MarkAsShippedParams params,
   ) async {
-    throw UnsupportedError(
-      'PUT /orders/:id/status is not supported by backend contract.',
-    );
-  }
-
-  @override
-  Future<OrderDto> confirmOrder(String orderId) async {
-    throw UnsupportedError(
-      'POST /orders/:id/confirm is not supported by backend contract.',
-    );
-  }
-
-  @override
-  Future<OrderDto> shipOrder(String orderId, MarkAsShippedParams params) async {
     final idempotencyKey =
         '${orderId}_ship_${DateTime.now().millisecondsSinceEpoch}';
     return _executeRequest(
@@ -192,12 +156,12 @@ class OrderApiDatasourceImpl implements OrderRemoteDatasource {
         data: params.toJson(),
         options: Options(headers: {'Idempotency-Key': idempotencyKey}),
       ),
-      parser: (_) => OrderDto.fromJson({'id': orderId}),
+      parser: (_) => OrderApiResponse.fromJson({'id': orderId}),
     );
   }
 
   @override
-  Future<OrderDto> completeOrder(String orderId) async {
+  Future<OrderApiResponse> completeOrder(String orderId) async {
     final idempotencyKey =
         '${orderId}_complete_${DateTime.now().millisecondsSinceEpoch}';
     return _executeRequest(
@@ -205,12 +169,12 @@ class OrderApiDatasourceImpl implements OrderRemoteDatasource {
         '/orders/$orderId/complete',
         options: Options(headers: {'Idempotency-Key': idempotencyKey}),
       ),
-      parser: (_) => OrderDto.fromJson({'id': orderId}),
+      parser: (_) => OrderApiResponse.fromJson({'id': orderId}),
     );
   }
 
   @override
-  Future<OrderDto> cancelOrder(String orderId) async {
+  Future<OrderApiResponse> cancelOrder(String orderId) async {
     final idempotencyKey =
         '${orderId}_cancel_${DateTime.now().millisecondsSinceEpoch}';
     return _executeRequest(
@@ -218,7 +182,7 @@ class OrderApiDatasourceImpl implements OrderRemoteDatasource {
         '/orders/$orderId/cancel',
         options: Options(headers: {'Idempotency-Key': idempotencyKey}),
       ),
-      parser: (_) => OrderDto.fromJson({'id': orderId}),
+      parser: (_) => OrderApiResponse.fromJson({'id': orderId}),
     );
   }
 
@@ -310,71 +274,13 @@ class OrderApiDatasourceImpl implements OrderRemoteDatasource {
   // ========================================
 
   @override
-  Future<CheckDeliveryDto> checkDelivery(
-    CheckDeliveryRequestDto request,
+  Future<CheckDeliveryApiResponse> checkDelivery(
+    CheckDeliveryApiRequest request,
   ) async {
     return _executeRequest(
       () => _apiClient.post('/shipping/check', data: request.toJson()),
-      parser: (data) => CheckDeliveryDto.fromJson(data as Map<String, dynamic>),
-    );
-  }
-
-  @override
-  Future<ShippingProofDto> uploadShippingProof(
-    String orderId,
-    CreateShippingProofDto request,
-  ) async {
-    throw UnsupportedError(
-      'POST /orders/:id/shipping-proof is not supported by backend contract.',
-    );
-  }
-
-  @override
-  Future<ShippingProofDto> getShippingProof(String orderId) async {
-    throw UnsupportedError(
-      'GET /orders/:id/shipping-proof is not supported by backend contract.',
-    );
-  }
-
-  @override
-  Future<ShippingProofDto> updateShippingProof(
-    String orderId,
-    CreateShippingProofDto request,
-  ) async {
-    throw UnsupportedError(
-      'PUT /orders/:id/shipping-proof is not supported by backend contract.',
-    );
-  }
-
-  // ========================================
-  // Order Confirmation Operations
-  // ========================================
-
-  @override
-  Future<OrderConfirmationDto> getConfirmation(String orderId) async {
-    throw UnsupportedError(
-      'GET /orders/:id/confirmation is not supported by backend contract.',
-    );
-  }
-
-  @override
-  Future<OrderConfirmationDto> extendConfirmation(
-    String orderId,
-    DateTime newEndDate,
-  ) async {
-    throw UnsupportedError(
-      'PUT /orders/:id/confirmation/extend is not supported by backend contract.',
-    );
-  }
-
-  @override
-  Future<OrderConfirmationDto> completeConfirmation(
-    String orderId,
-    String status,
-    String completionReason,
-  ) async {
-    throw UnsupportedError(
-      'PUT /orders/:id/confirmation/complete is not supported by backend contract.',
+      parser: (data) =>
+          CheckDeliveryApiResponse.fromJson(data as Map<String, dynamic>),
     );
   }
 
@@ -390,42 +296,6 @@ class OrderApiDatasourceImpl implements OrderRemoteDatasource {
     return _executeRequest(
       () => _apiClient.post('/orders/$orderId/dispute', data: request.toJson()),
       parser: (data) => DisputeDto.fromJson(data as Map<String, dynamic>),
-    );
-  }
-
-  @override
-  Future<DisputeDto> getDispute(String disputeId) async {
-    throw UnsupportedError(
-      '/admin/disputes/* is admin-only and not available in buyer/seller flow datasource.',
-    );
-  }
-
-  @override
-  Future<DisputeListDto> listAdminDisputes({
-    DisputeFilterParams? params,
-  }) async {
-    throw UnsupportedError(
-      '/admin/disputes/* is admin-only and not available in buyer/seller flow datasource.',
-    );
-  }
-
-  @override
-  Future<DisputeDto> adminApproveDispute(
-    String disputeId,
-    AdminDisputeResolutionDto request,
-  ) async {
-    throw UnsupportedError(
-      '/admin/disputes/* is admin-only and not available in buyer/seller flow datasource.',
-    );
-  }
-
-  @override
-  Future<DisputeDto> adminRejectDispute(
-    String disputeId,
-    AdminDisputeResolutionDto request,
-  ) async {
-    throw UnsupportedError(
-      '/admin/disputes/* is admin-only and not available in buyer/seller flow datasource.',
     );
   }
 

@@ -26,12 +26,7 @@ import (
 // - Only 1 breach per ticket/dispute per stage
 // - No database state in domain entities
 //
-// EVENTS EMITTED:
-// - ticket.sla.warning.first_response
-// - ticket.sla.breach.first_response
-// - ticket.sla.warning.resolution
-// - ticket.sla.breach.resolution
-// - dispute.sla.warning.first_response
+// EVENTS EMITTED://   - dispute.sla.warning.first_response
 // - dispute.sla.breach.first_response
 // - dispute.sla.warning.resolution
 // - dispute.sla.breach.resolution
@@ -338,92 +333,11 @@ func (w *SLAEscalationWorker) checkTicketSLA(ctx context.Context, ticket support
 		return fmt.Errorf("ticket row has nil UUID — refusing to process")
 	}
 
-	ticketID := ticket.ID
-	createdAt := ticket.CreatedAt
-	hasFirstResponse := ticket.AssignedAt != nil && !ticket.AssignedAt.IsZero()
-	isResolved := ticket.ResolvedAt != nil && !ticket.ResolvedAt.IsZero()
-
-	// Check first response SLA (only if not yet responded)
-	if !hasFirstResponse {
-		elapsed := time.Since(createdAt)
-
-		// Check for breach
-		if elapsed >= TicketFirstResponseBreachThreshold {
-			if !w.eventExists(ctx, "ticket.sla.breach.first_response", ticketID) {
-				w.log.Info("Ticket first response SLA breach",
-					zap.String("ticket_id", ticketID.String()),
-					zap.Duration("elapsed", elapsed),
-				)
-
-				if err := w.emitEvent(ctx, "dispute.sla.breach.first_response", map[string]any{
-					"ticket_id": ticketID,
-					"user_id":   ticket.UserID,
-					"elapsed":   elapsed.String(),
-					"threshold": TicketFirstResponseBreachThreshold.String(),
-				}, ticketID.String()); err != nil {
-					return err
-				}
-			}
-		} else if elapsed >= TicketFirstResponseWarningThreshold {
-			// Check for warning
-			if !w.eventExists(ctx, "ticket.sla.warning.first_response", ticketID) {
-				w.log.Info("Ticket first response SLA warning",
-					zap.String("ticket_id", ticketID.String()),
-					zap.Duration("elapsed", elapsed),
-				)
-
-				if err := w.emitEvent(ctx, "dispute.sla.warning.first_response", map[string]any{
-					"ticket_id": ticketID,
-					"user_id":   ticket.UserID,
-					"elapsed":   elapsed.String(),
-					"threshold": TicketFirstResponseWarningThreshold.String(),
-				}, ticketID.String()); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	// Check resolution SLA (only if not yet resolved)
-	if !isResolved {
-		elapsed := time.Since(createdAt)
-
-		// Check for breach
-		if elapsed >= TicketResolutionBreachThreshold {
-			if !w.eventExists(ctx, "ticket.sla.breach.resolution", ticketID) {
-				w.log.Info("Ticket resolution SLA breach",
-					zap.String("ticket_id", ticketID.String()),
-					zap.Duration("elapsed", elapsed),
-				)
-
-				if err := w.emitEvent(ctx, "dispute.sla.breach.resolution", map[string]any{
-					"ticket_id": ticketID,
-					"user_id":   ticket.UserID,
-					"elapsed":   elapsed.String(),
-					"threshold": TicketResolutionBreachThreshold.String(),
-				}, ticketID.String()); err != nil {
-					return err
-				}
-			}
-		} else if elapsed >= TicketResolutionWarningThreshold {
-			// Check for warning
-			if !w.eventExists(ctx, "ticket.sla.warning.resolution", ticketID) {
-				w.log.Info("Ticket resolution SLA warning",
-					zap.String("ticket_id", ticketID.String()),
-					zap.Duration("elapsed", elapsed),
-				)
-
-				if err := w.emitEvent(ctx, "dispute.sla.warning.resolution", map[string]any{
-					"ticket_id": ticketID,
-					"user_id":   ticket.UserID,
-					"elapsed":   elapsed.String(),
-					"threshold": TicketResolutionWarningThreshold.String(),
-				}, ticketID.String()); err != nil {
-					return err
-				}
-			}
-		}
-	}
+	// OBSOLETE: ticket.sla.* event emission was removed. The SLA escalation
+	// worker's ticket path is gated OFF (DISABLE_SLA_ESCALATION_WORKER=true)
+	// and had no registered consumer handler. Admin SLA display is computed
+	// on-the-fly via ComputeSLAMetrics/Simple, not from outbox events.
+	// The dispute SLA path (checkDisputeSLA) retains its event emission.
 
 	return nil
 }
@@ -556,7 +470,7 @@ func (w *SLAEscalationWorker) eventExists(ctx context.Context, eventType string,
 		`
 
 		// Build exact idempotency key: {event_type}.{entity_id}
-		// For example: "ticket.sla.warning.first_response.123e4567-e89b-12d3-a456-426614174000"
+		// For example: "dispute.sla.warning.first_response.123e4567-e89b-12d3-a456-426614174000"
 		idempotencyKey := fmt.Sprintf("%s.%s", eventType, entityID.String())
 
 		return tx.QueryRow(ctx, query, idempotencyKey).Scan(&exists)

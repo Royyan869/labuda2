@@ -83,10 +83,10 @@ sealed class LiveStatus {
   bool get hasMismatch;
 }
 
-/// Live status for listing references
-class ListingLiveStatus extends LiveStatus {
+/// Live status for forSale references
+class ForSaleLiveStatus extends LiveStatus {
   /// Availability status
-  final ListingAvailabilityStatus availability;
+  final ForSaleAvailabilityStatus availability;
 
   @override
   final bool isFromLive;
@@ -103,7 +103,7 @@ class ListingLiveStatus extends LiveStatus {
   @override
   final bool hasMismatch;
 
-  const ListingLiveStatus({
+  const ForSaleLiveStatus({
     required this.availability,
     required this.isFromLive,
     required this.isAvailable,
@@ -113,21 +113,21 @@ class ListingLiveStatus extends LiveStatus {
   });
 
   /// Create from snapshot data only (preview)
-  factory ListingLiveStatus.fromSnapshot(obj.ObjectPreview snapshot) {
+  factory ForSaleLiveStatus.fromSnapshot(obj.ObjectPreview snapshot) {
     final availability = snapshot.isDeleted
-        ? ListingAvailabilityStatus.deleted
+        ? ForSaleAvailabilityStatus.deleted
         : snapshot.isSold
-        ? ListingAvailabilityStatus.sold
-        : ListingAvailabilityStatus.available;
+        ? ForSaleAvailabilityStatus.sold
+        : ForSaleAvailabilityStatus.available;
 
-    return ListingLiveStatus(
+    return ForSaleLiveStatus(
       availability: availability,
       isFromLive: false,
       isAvailable:
           snapshot.isAvailable && !snapshot.isSold && !snapshot.isDeleted,
       label: availability.label,
       message: snapshot.isDeleted
-          ? 'Listing ini telah dihapus'
+          ? 'ForSale ini telah dihapus'
           : snapshot.isSold
           ? 'Barang ini sudah terjual'
           : null,
@@ -135,22 +135,22 @@ class ListingLiveStatus extends LiveStatus {
     );
   }
 
-  /// Create from live listing data
-  factory ListingLiveStatus.fromLive(
-    ForSale listing,
+  /// Create from live forSale data
+  factory ForSaleLiveStatus.fromLive(
+    ForSale forSale,
     obj.ObjectPreview snapshot,
   ) {
-    final availability = ListingAvailabilityStatus.fromListing(listing);
+    final availability = ForSaleAvailabilityStatus.fromForSale(forSale);
     final snapshotStatus = snapshot.isDeleted
-        ? ListingAvailabilityStatus.deleted
+        ? ForSaleAvailabilityStatus.deleted
         : snapshot.isSold
-        ? ListingAvailabilityStatus.sold
-        : ListingAvailabilityStatus.available;
+        ? ForSaleAvailabilityStatus.sold
+        : ForSaleAvailabilityStatus.available;
 
-    return ListingLiveStatus(
+    return ForSaleLiveStatus(
       availability: availability,
       isFromLive: true,
-      isAvailable: listing.isAvailable,
+      isAvailable: forSale.isAvailable,
       label: availability.label,
       message: availability.message,
       hasMismatch: availability != snapshotStatus,
@@ -158,9 +158,9 @@ class ListingLiveStatus extends LiveStatus {
   }
 
   /// Unknown status (error/loading)
-  factory ListingLiveStatus.unknown() {
-    return const ListingLiveStatus(
-      availability: ListingAvailabilityStatus.unknown,
+  factory ForSaleLiveStatus.unknown() {
+    return const ForSaleLiveStatus(
+      availability: ForSaleAvailabilityStatus.unknown,
       isFromLive: false,
       isAvailable: true, // Assume available for unknown
       label: 'Memuat...',
@@ -171,7 +171,7 @@ class ListingLiveStatus extends LiveStatus {
 
   @override
   String toString() =>
-      'ListingLiveStatus(availability: $availability, isFromLive: $isFromLive, isAvailable: $isAvailable)';
+      'ForSaleLiveStatus(availability: $availability, isFromLive: $isFromLive, isAvailable: $isAvailable)';
 }
 
 /// Live status for auction references
@@ -357,11 +357,11 @@ class ContentLiveStatus extends LiveStatus {
 }
 
 // =============================================================================
-// LISTING STATUS ENUMS
+// FOR SALE STATUS ENUMS
 // =============================================================================
 
-/// Listing availability status for display
-enum ListingAvailabilityStatus {
+/// ForSale availability status for display
+enum ForSaleAvailabilityStatus {
   available,
   sold,
   withdrawn,
@@ -371,53 +371,53 @@ enum ListingAvailabilityStatus {
 
   String get label {
     switch (this) {
-      case ListingAvailabilityStatus.available:
+      case ForSaleAvailabilityStatus.available:
         return 'Tersedia';
-      case ListingAvailabilityStatus.sold:
+      case ForSaleAvailabilityStatus.sold:
         return 'Terjual';
-      case ListingAvailabilityStatus.withdrawn:
+      case ForSaleAvailabilityStatus.withdrawn:
         return 'Ditarik';
-      case ListingAvailabilityStatus.noStock:
+      case ForSaleAvailabilityStatus.noStock:
         return 'Habis';
-      case ListingAvailabilityStatus.deleted:
+      case ForSaleAvailabilityStatus.deleted:
         return 'Tidak Tersedia';
-      case ListingAvailabilityStatus.unknown:
+      case ForSaleAvailabilityStatus.unknown:
         return 'Memuat...';
     }
   }
 
   String? get message {
     switch (this) {
-      case ListingAvailabilityStatus.available:
+      case ForSaleAvailabilityStatus.available:
         return null;
-      case ListingAvailabilityStatus.sold:
+      case ForSaleAvailabilityStatus.sold:
         return 'Barang ini sudah terjual';
-      case ListingAvailabilityStatus.withdrawn:
-        return 'Listing telah ditarik oleh penjual';
-      case ListingAvailabilityStatus.noStock:
+      case ForSaleAvailabilityStatus.withdrawn:
+        return 'ForSale telah ditarik oleh penjual';
+      case ForSaleAvailabilityStatus.noStock:
         return 'Stok barang telah habis';
-      case ListingAvailabilityStatus.deleted:
-        return 'Listing ini tidak tersedia';
-      case ListingAvailabilityStatus.unknown:
+      case ForSaleAvailabilityStatus.deleted:
+        return 'ForSale ini tidak tersedia';
+      case ForSaleAvailabilityStatus.unknown:
         return null;
     }
   }
 
-  /// Create from Listing entity
-  static ListingAvailabilityStatus fromListing(ForSale listing) {
-    if (listing.status == ForSaleStatus.sold) {
-      return ListingAvailabilityStatus.sold;
+  /// Create from ForSale entity
+  static ForSaleAvailabilityStatus fromForSale(ForSale forSale) {
+    if (forSale.status == ForSaleStatus.sold) {
+      return ForSaleAvailabilityStatus.sold;
     }
-    if (listing.status == ForSaleStatus.withdrawn) {
-      return ListingAvailabilityStatus.withdrawn;
+    if (forSale.status == ForSaleStatus.withdrawn) {
+      return ForSaleAvailabilityStatus.withdrawn;
     }
-    if (listing.stock <= 0) {
-      return ListingAvailabilityStatus.noStock;
+    if (forSale.stock <= 0) {
+      return ForSaleAvailabilityStatus.noStock;
     }
-    if (listing.isAvailable) {
-      return ListingAvailabilityStatus.available;
+    if (forSale.isAvailable) {
+      return ForSaleAvailabilityStatus.available;
     }
-    return ListingAvailabilityStatus.unknown;
+    return ForSaleAvailabilityStatus.unknown;
   }
 }
 
@@ -522,7 +522,7 @@ final liveStatusProvider = FutureProvider.autoDispose
     .family<LiveStatus, ShareReference>((ref, shareReference) async {
       switch (shareReference.targetType) {
         case ShareTargetType.forSale:
-          return _getListingLiveStatus(ref, shareReference);
+          return _getForSaleLiveStatus(ref, shareReference);
 
         case ShareTargetType.auction:
           return _getAuctionLiveStatus(ref, shareReference);
@@ -535,32 +535,32 @@ final liveStatusProvider = FutureProvider.autoDispose
       }
     });
 
-/// Get live status for listing
-Future<ListingLiveStatus> _getListingLiveStatus(
+/// Get live status for forSale
+Future<ForSaleLiveStatus> _getForSaleLiveStatus(
   Ref ref,
   ShareReference shareReference,
 ) async {
   try {
-    final listingAsync = await ref.read(
+    final forSaleAsync = await ref.read(
       forSaleDetailProvider(shareReference.targetId).future,
     );
 
-    if (listingAsync == null) {
-      // Listing not found - treat as deleted
-      return ListingLiveStatus(
-        availability: ListingAvailabilityStatus.deleted,
+    if (forSaleAsync == null) {
+      // ForSale not found - treat as deleted
+      return ForSaleLiveStatus(
+        availability: ForSaleAvailabilityStatus.deleted,
         isFromLive: true,
         isAvailable: false,
         label: 'Tidak Tersedia',
-        message: 'Listing tidak ditemukan',
+        message: 'ForSale tidak ditemukan',
         hasMismatch: shareReference.preview.isAvailable,
       );
     }
 
-    return ListingLiveStatus.fromLive(listingAsync, shareReference.preview);
+    return ForSaleLiveStatus.fromLive(forSaleAsync, shareReference.preview);
   } catch (_) {
     // On error, return snapshot-only status
-    return ListingLiveStatus.fromSnapshot(shareReference.preview);
+    return ForSaleLiveStatus.fromSnapshot(shareReference.preview);
   }
 }
 
@@ -598,20 +598,20 @@ Future<AuctionLiveStatus> _getAuctionLiveStatus(
 // CONVENIENCE PROVIDERS
 // =============================================================================
 
-/// Quick status check for listing - returns just the availability status
+/// Quick status check for forSale - returns just the availability status
 ///
-/// Useful for simple UI that only needs to know if listing is available.
+/// Useful for simple UI that only needs to know if forSale is available.
 /// For full status details, use liveStatusProvider instead.
-final listingAvailabilityProvider = FutureProvider.autoDispose
-    .family<ListingAvailabilityStatus, String>((ref, listingId) async {
+final forSaleAvailabilityProvider = FutureProvider.autoDispose
+    .family<ForSaleAvailabilityStatus, String>((ref, forSaleId) async {
       try {
-        final listing = await ref.read(forSaleDetailProvider(listingId).future);
-        if (listing == null) {
-          return ListingAvailabilityStatus.deleted;
+        final forSale = await ref.read(forSaleDetailProvider(forSaleId).future);
+        if (forSale == null) {
+          return ForSaleAvailabilityStatus.deleted;
         }
-        return ListingAvailabilityStatus.fromListing(listing);
+        return ForSaleAvailabilityStatus.fromForSale(forSale);
       } catch (_) {
-        return ListingAvailabilityStatus.unknown;
+        return ForSaleAvailabilityStatus.unknown;
       }
     });
 
@@ -641,14 +641,14 @@ final auctionStatusProvider = FutureProvider.autoDispose
 /// Returns a color string for UI theming based on the status.
 String getStatusBadgeColor(LiveStatus status) {
   return switch (status) {
-    ListingLiveStatus(availability: ListingAvailabilityStatus.available) =>
+    ForSaleLiveStatus(availability: ForSaleAvailabilityStatus.available) =>
       'green',
-    ListingLiveStatus(availability: ListingAvailabilityStatus.sold) => 'red',
-    ListingLiveStatus(availability: ListingAvailabilityStatus.withdrawn) =>
+    ForSaleLiveStatus(availability: ForSaleAvailabilityStatus.sold) => 'red',
+    ForSaleLiveStatus(availability: ForSaleAvailabilityStatus.withdrawn) =>
       'orange',
-    ListingLiveStatus(availability: ListingAvailabilityStatus.noStock) =>
+    ForSaleLiveStatus(availability: ForSaleAvailabilityStatus.noStock) =>
       'orange',
-    ListingLiveStatus(availability: ListingAvailabilityStatus.deleted) =>
+    ForSaleLiveStatus(availability: ForSaleAvailabilityStatus.deleted) =>
       'gray',
     AuctionLiveStatus(status: AuctionDisplayStatus.active) => 'blue',
     AuctionLiveStatus(status: AuctionDisplayStatus.scheduled) => 'purple',
@@ -676,7 +676,7 @@ bool shouldRefreshStatus(
 /// Create a fallback status from snapshot when live data is unavailable
 LiveStatus createFallbackStatus(ShareReference shareReference) {
   return switch (shareReference.targetType) {
-    ShareTargetType.forSale => ListingLiveStatus.fromSnapshot(
+    ShareTargetType.forSale => ForSaleLiveStatus.fromSnapshot(
       shareReference.preview,
     ),
     ShareTargetType.auction => AuctionLiveStatus.fromSnapshot(

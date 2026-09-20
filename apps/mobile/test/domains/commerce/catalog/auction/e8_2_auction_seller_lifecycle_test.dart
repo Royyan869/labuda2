@@ -1,6 +1,6 @@
 // E8.2 — Mobile auction-detail seller user-axis lifecycle ingestion tests.
 //
-// Mirrors the listing E8.2 test file. Scope is pinned to three seams:
+// Mirrors the forSale E8.2 test file. Scope is pinned to three seams:
 //   1) the wire shape parser that walks `auction.seller.user.lifecycle`
 //      into AuctionDto.sellerUserLifecycle,
 //   2) the mapper that converts the wire string into the canonical

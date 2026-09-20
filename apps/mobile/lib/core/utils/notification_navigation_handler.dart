@@ -148,7 +148,7 @@ class NotificationNavigationHandler {
         return _navigateToNegotiationChat(context, data);
 
       // ========================================
-      // Listing/Catalog Notifications
+      // ForSale/Catalog Notifications
       // ========================================
       // BATCH N1: Removed auction notification types (auction_bid_placed, auction_ending, auction_won)
       // Backend emits auction events but doesn't handle them for notifications - ghost code removed
@@ -357,7 +357,7 @@ class NotificationNavigationHandler {
               _navigateToNotifications(context);
             }
             break;
-          case 'listing':
+          case 'forSale':
             if (targetId != null && targetId.isNotEmpty) {
               appRouter.navigateToForSaleDetail(targetId);
             } else {

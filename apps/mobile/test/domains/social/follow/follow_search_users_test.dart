@@ -144,7 +144,7 @@ void main() {
 
       expect(user.id, 'uuid-1');
       expect(user.username, 'sari');
-      expect(user.displayName, 'sari');
+      expect(user.username, 'sari');
       expect(user.avatar, 'https://cdn.example.com/sari.jpg');
     });
 
@@ -164,8 +164,7 @@ void main() {
 
       final user = FollowApiMapper.fromUserSearchPreview(preview);
 
-      expect(user.username, 'user_abcdef12');
-      expect(user.displayName, 'user_abcdef12');
+      expect(user.username, '');
     });
 
     test(

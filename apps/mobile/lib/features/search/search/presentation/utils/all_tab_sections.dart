@@ -57,7 +57,7 @@ List<AllTabSection> buildAllTabSections(UnifiedSearchResults results) {
     AllTabSection(
       title: 'For Sale',
       tabType: SearchResultType.forSale,
-      items: _preview(results.listings, AllTabPreviewLimits.forSale),
+      items: _preview(results.forSales, AllTabPreviewLimits.forSale),
     ),
     AllTabSection(
       title: 'Auctions',

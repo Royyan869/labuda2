@@ -20,15 +20,6 @@ export interface SupportStats {
   unassigned_tickets: number
 }
 
-export interface SupportAdmin {
-  id: string
-  is_active: boolean
-  active_ticket_count: number
-  last_assigned_at: string | null
-  created_at: string
-  updated_at: string
-}
-
 function buildSupportTicketQuery(params: SupportTicketsQueryParams = {}) {
   const queryParams = new URLSearchParams()
   if (params.status) queryParams.append('status', params.status)
@@ -60,12 +51,14 @@ export async function getSupportTicket(ticketId: string) {
 }
 
 export async function getSupportTicketMessages(ticketId: string) {
+  // Canonical backend envelope: { success, data: { data: SupportMessage[] } }.
+  // The message array is nested one level inside the envelope's `data` key.
   const resp = await api.get<{
-    data: SupportMessage[]
-    chat_room_id?: string
-    message?: string
+    data: {
+      data: SupportMessage[]
+    }
   }>(`/api/v1/admin/support/tickets/${encodeURIComponent(ticketId)}/messages`)
-  return resp.data ?? []
+  return resp.data?.data ?? []
 }
 
 export async function claimSupportTicket(ticketId: string) {
@@ -82,6 +75,13 @@ export async function resolveSupportTicket(ticketId: string, notes?: string) {
   return resp.data
 }
 
+export async function reopenSupportTicket(ticketId: string) {
+  const resp = await api.put<{
+    data: SupportTicketDetail
+  }>(`/api/v1/admin/support/tickets/${encodeURIComponent(ticketId)}/reopen`, {})
+  return resp.data
+}
+
 export async function closeSupportTicket(ticketId: string, reason?: string) {
   const resp = await api.put<{
     data: { ticket_id: string }
@@ -91,7 +91,7 @@ export async function closeSupportTicket(ticketId: string, reason?: string) {
 
 export async function sendSupportTicketMessage(ticketId: string, data: SendMessageRequest) {
   const resp = await api.post<{
-    data: { ticket_id: string; chat_room_id: string; message_type: string }
+    data: { ticket_id: string; chat_room_id: string }
   }>(`/api/v1/admin/support/tickets/${encodeURIComponent(ticketId)}/messages`, data)
   return resp.data
 }
@@ -129,15 +129,4 @@ export async function getSupportStatistics() {
     data: SupportStats
   }>('/api/v1/admin/support/statistics')
   return resp.data
-}
-
-export async function getSupportAdmins(isActive?: boolean) {
-  const query = new URLSearchParams()
-  if (isActive !== undefined) query.append('is_active', String(isActive))
-  const resp = await api.get<{
-    data: {
-      data: SupportAdmin[]
-    }
-  }>(`/api/v1/admin/support/admins${query.toString() ? `?${query.toString()}` : ''}`)
-  return resp.data.data ?? []
 }

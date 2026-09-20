@@ -30,12 +30,6 @@ type RefundRepository interface {
 	// Update updates an existing refund within a transaction.
 	Update(ctx context.Context, tx db.Tx, refund *entity.Refund) error
 
-	// ListByBuyer retrieves refunds for a buyer with pagination.
-	ListByBuyer(ctx context.Context, tx db.Tx, buyerID uuid.UUID, limit int, offset int64) ([]*entity.Refund, error)
-
-	// ListBySeller retrieves refunds for a seller with pagination.
-	ListBySeller(ctx context.Context, tx db.Tx, sellerID uuid.UUID, limit int, offset int64) ([]*entity.Refund, error)
-
 	// GetByGatewayIdempotencyKey looks up a refund by the idempotency key
 	// we sent to the payment gateway. Used for duplicate-request detection
 	// in the gateway refund orchestration. Returns nil if not found.
@@ -46,16 +40,17 @@ type RefundRepository interface {
 	// if not found. Used by the refund webhook handler.
 	GetByGatewayRefundID(ctx context.Context, tx db.Tx, gatewayRefundID string) (*entity.Refund, error)
 
-	// GetSuccessfulRefundTotalByOrder returns the cumulative amount of
-	// successful gateway refunds already recorded for an order. excludeRefundID
-	// allows the caller to omit the in-flight refund row from the sum.
-	GetSuccessfulRefundTotalByOrder(ctx context.Context, tx db.Tx, orderID uuid.UUID, excludeRefundID *uuid.UUID) (int64, error)
-
-	// HasActiveRefundByOrderID returns true if the order has a refund in a
-	// non-terminal status (anything other than 'refunded' or 'admin_released').
-	// H2-F2a: Used by OrderCompletionService to block auto-complete while
-	// refund is being negotiated or settled.
-	HasActiveRefundByOrderID(ctx context.Context, tx db.Tx, orderID uuid.UUID) (bool, error)
+	// HasRefundBlockingRelease reports whether the order has a refund that must
+	// be respected before the order lifecycle may release money to the seller:
+	// either money owed to the buyer has not settled at the gateway yet, or the
+	// refund decision is still open while the order's own refund window is still
+	// open (refundWindowOpen is owned by the order domain — see
+	// Order.IsRefundWindowOpen).
+	//
+	// This is the canonical predicate for that question and the SQL mirror of
+	// entity.Refund.BlocksOrderRelease. Used by OrderCompletionService (buyer
+	// acceptance + auto-complete guard) and the order read path (CTA gating).
+	HasRefundBlockingRelease(ctx context.Context, tx db.Tx, orderID uuid.UUID, refundWindowOpen bool) (bool, error)
 
 	// CreateEvidence creates an evidence attachment for a refund.
 	CreateEvidence(ctx context.Context, tx db.Tx, refundID uuid.UUID, mediaURL string) error

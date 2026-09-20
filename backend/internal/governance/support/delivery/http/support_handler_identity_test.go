@@ -20,7 +20,7 @@ func TestTicketToResponse_EmitsCanonicalIdentityFields(t *testing.T) {
 		Username:       username,
 		SellerFarmName: farmName,
 		ChatRoomID:     uuid.New(),
-		Category:       supportEntity.CategoryPayment,
+		Category:       supportEntity.CategoryPaymentIssue,
 		Priority:       supportEntity.PriorityMedium,
 		Status:         supportEntity.StatusOpen,
 		Escalation:     supportEntity.EscalationNone,
@@ -28,10 +28,8 @@ func TestTicketToResponse_EmitsCanonicalIdentityFields(t *testing.T) {
 		UpdatedAt:      now,
 	}
 
-	resp := ticketToResponse(ticket)
+	resp := ticketToResponse(ticket, nil, nil)
 
 	assert.Equal(t, username, resp["username"])
 	assert.Equal(t, farmName, resp["seller_farm_name"])
 }
-
-

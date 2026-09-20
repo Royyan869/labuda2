@@ -5,21 +5,13 @@ import 'package:labuda/generated/app_localizations.dart';
 /// Security & Privacy Section
 /// Handles: Security, Privacy Settings, Blocked Users
 ///
-/// STAGE 4D: the "Public Profile" and "Allow Messages" switches were removed —
-/// they were non-persistent fake toggles (setState only, no backend authority,
-/// no hydration). "Show Online Status" remains: it is wired to the local
-/// presence manager (presenceManagerProvider.setEnabled) and persists to local
-/// storage. Do NOT re-add switches without a backend field + hydration path.
+/// Presence privacy is server-derived via `show_activity_status` – no local toggle.
 class SettingsSecurityPrivacySection extends StatelessWidget {
   final Function(String) onNavigate;
-  final bool showOnlineStatus;
-  final Function(bool) onShowOnlineStatusChanged;
 
   const SettingsSecurityPrivacySection({
     super.key,
     required this.onNavigate,
-    required this.showOnlineStatus,
-    required this.onShowOnlineStatusChanged,
   });
 
   @override
@@ -47,14 +39,6 @@ class SettingsSecurityPrivacySection extends StatelessWidget {
           title: 'Notification Settings',
           subtitle: 'Manage notification preferences',
           onTap: () => onNavigate('notifications'),
-          isDark: isDark,
-        ),
-        _buildSwitchTile(
-          icon: Icons.circle,
-          title: 'Show Online Status',
-          subtitle: 'Let others see when you\'re online',
-          value: showOnlineStatus,
-          onChanged: onShowOnlineStatusChanged,
           isDark: isDark,
         ),
         _buildSettingsTile(

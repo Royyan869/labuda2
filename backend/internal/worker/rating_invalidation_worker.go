@@ -173,13 +173,18 @@ func (w *RatingInvalidationWorker) cleanupOnce(ctx context.Context) {
 //
 // SQL CONTRACT:
 //
-//	SELECT DISTINCT o.id
+//	SELECT o.id
 //	FROM orders o
 //	INNER JOIN order_ratings r ON r.order_id = o.id
 //	WHERE o.status IN ('refunded', 'partially_refunded')
 //	  AND r.invalidated_at IS NULL
-//	ORDER BY o.updated_at DESC
+//	GROUP BY o.id
+//	ORDER BY MAX(o.updated_at) DESC
 //	LIMIT $1
+//
+// GROUP BY o.id (not SELECT DISTINCT) is required: PostgreSQL rejects
+// `SELECT DISTINCT` combined with an ORDER BY expression that is not in the
+// select list, and the scan reads exactly one column (o.id).
 //
 // The partial index idx_order_ratings_valid covers the invalidated_at IS NULL filter.
 func (w *RatingInvalidationWorker) findOrdersNeedingInvalidation(ctx context.Context) ([]uuid.UUID, error) {
@@ -187,12 +192,13 @@ func (w *RatingInvalidationWorker) findOrdersNeedingInvalidation(ctx context.Con
 
 	err := w.db.WithTx(ctx, func(tx db.Tx) error {
 		rows, err := tx.Query(ctx, `
-			SELECT DISTINCT o.id
+			SELECT o.id
 			FROM orders o
 			INNER JOIN order_ratings r ON r.order_id = o.id
 			WHERE o.status IN ('refunded', 'partially_refunded')
 			  AND r.invalidated_at IS NULL
-			ORDER BY o.updated_at DESC
+			GROUP BY o.id
+			ORDER BY MAX(o.updated_at) DESC
 			LIMIT $1
 		`, w.batchSize)
 		if err != nil {

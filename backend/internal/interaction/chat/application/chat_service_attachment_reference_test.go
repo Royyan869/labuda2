@@ -98,10 +98,6 @@ func (m *mockAttachmentSocialRepo) AcquireFollowLock(context.Context, interface{
 	return nil
 }
 
-func (m *mockAttachmentSocialRepo) IsBlockedBy(context.Context, interface{}, uuid.UUID, uuid.UUID) (bool, error) {
-	return false, nil
-}
-
 func (m *mockAttachmentSocialRepo) InsertMute(context.Context, interface{}, uuid.UUID, uuid.UUID) error {
 	return nil
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/labuda/backend/internal/governance/viewercontext"
 	"github.com/labuda/backend/internal/identity/auth"
 	"github.com/labuda/backend/internal/pkg/publiccard"
+	"github.com/labuda/backend/internal/platform/mediaresolve"
 	"github.com/labuda/backend/internal/platform/response"
 	contentApp "github.com/labuda/backend/internal/social/content/application"
 	"github.com/labuda/backend/internal/social/content/delivery/http/dto"
@@ -311,9 +312,20 @@ type LocationResponse struct {
 //     mobile compat.
 //   - The canonical PublicCard `card` block is populated only when the
 //     caller supplies a hydrated author UserCard via
-//     ToContentResponseWithAuthor (the variant below). Callers without
-//     transaction access fall through to a card-less response — the
-//     wire shape stays valid because `card` is omitempty.
+//     ToContentResponseWithAuthorAndProjection (the variant below).
+//     Callers without transaction access fall through to a card-less
+//     response — the wire shape stays valid because `card` is omitempty.
+//
+//     The content `card` media refs are built from the ALREADY RESOLVED
+//     `media[].url` values, so the flat array and the card never disagree
+//     and there is exactly one media read-resolution authority per response.
+//
+// MEDIA READ RESOLUTION (content media convergence): `media[].url` is the
+// surface the mobile app renders (FeedCard / content detail), so every
+// emitted URL is projected through the shared mediaresolve authority —
+// the same authority for-sale / auction / avatars / chat / resource
+// projections already use. Fail-open: an unresolvable reference is
+// emitted unchanged, never erased.
 func ToContentResponse(content *entity.Content, media []*entity.ContentMedia) ContentResponse {
 	// Derive caption from Caption field
 	caption := ""
@@ -362,7 +374,7 @@ func ToContentResponse(content *entity.Content, media []*entity.ContentMedia) Co
 	for i, m := range media {
 		resp.Media[i] = MediaResponse{
 			ID:       m.ID,
-			URL:      m.MediaURL,
+			URL:      resolveReadableContentMediaReference(m.MediaURL),
 			Type:     string(m.MediaType),
 			Position: m.Position,
 		}
@@ -382,49 +394,15 @@ func ToContentResponseWithProjection(content *entity.Content, media []*entity.Co
 	return resp
 }
 
-// ToContentResponseWithAuthor builds a ContentResponse and attaches the
-// canonical PublicCard ContentCard (Batch 2D). The author UserCard SHOULD be
-// pre-hydrated by the caller via publiccard.BuildOne inside the same
-// transaction that loaded the content; pass nil to emit a card-less response
-// (the legacy flat-field shape).
-//
-// SharedForSale / SharedAuction are intentionally left nil on this surface.
-// The response only carries the canonical resource_projection for resource-
-// bearing content; live commerce-card hydration is a future batch.
-func ToContentResponseWithAuthor(
-	content *entity.Content,
-	media []*entity.ContentMedia,
-	author *publiccard.UserCard,
-) ContentResponse {
-	resp := ToContentResponse(content, media)
-
-	var caption *string
-	if content.Caption != nil && *content.Caption != "" {
-		c := *content.Caption
-		caption = &c
-	}
-	mediaURLs := make([]string, 0, len(media))
-	for _, m := range media {
-		if m.MediaURL != "" {
-			mediaURLs = append(mediaURLs, m.MediaURL)
-		}
-	}
-
-	card := publiccard.NewContentCard(
-		content.ID,
-		"content",
-		caption,
-		mediaURLs,
-		content.Status.PublicLifecycle(),
-		content.CreatedAt,
-		author,
-	)
-	resp.Card = &card
-	return resp
-}
-
 // ToContentResponseWithAuthorAndProjection attaches both the author card and
 // the canonical resource projection.
+//
+// MEDIA READ RESOLUTION: the card media refs are projected from the resolved
+// `media[].url` values produced by ToContentResponse (single authority:
+// resolveReadableContentMediaReference → mediaresolve). The card must never
+// carry the raw persisted `content_media.media_url` reference alongside
+// resolved flat media — that split was the competing authority this
+// convergence removed.
 func ToContentResponseWithAuthorAndProjection(
 	content *entity.Content,
 	media []*entity.ContentMedia,
@@ -438,10 +416,10 @@ func ToContentResponseWithAuthorAndProjection(
 		c := *content.Caption
 		caption = &c
 	}
-	mediaURLs := make([]string, 0, len(media))
-	for _, m := range media {
-		if m.MediaURL != "" {
-			mediaURLs = append(mediaURLs, m.MediaURL)
+	mediaURLs := make([]string, 0, len(resp.Media))
+	for _, m := range resp.Media {
+		if m.URL != "" {
+			mediaURLs = append(mediaURLs, m.URL)
 		}
 	}
 
@@ -588,7 +566,6 @@ func (h *ContentHandler) CreateContent(c *gin.Context) {
 			mediaInputs = make([]contentApp.ContentCreateMediaInput, len(canonical))
 			for i, m := range canonical {
 				mediaInputs[i] = contentApp.ContentCreateMediaInput{URL: m.URL, Type: m.Type}
-				_ = i
 			}
 		}
 
@@ -651,6 +628,29 @@ func (h *ContentHandler) CreateContent(c *gin.Context) {
 	response.Created(c, contentResp)
 }
 
+// resolveReadableContentMediaReference projects a persisted content media
+// reference (content_media.media_url) onto the canonical readable URL using
+// the shared mediaresolve authority. Storage keys and raw bucket URLs become
+// the configured CDN (or presigned GET) URL; valid external absolute URLs are
+// passed through by the resolver itself.
+//
+// Fail-open: when the reference is empty the empty string is returned, and
+// when resolution fails the trimmed raw reference is returned unchanged so a
+// persisted reference can never be erased by a resolution failure. This
+// mirrors the fail-open contract already used by for-sale / auction / chat
+// projections.
+func resolveReadableContentMediaReference(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return ""
+	}
+	resolved, err := mediaresolve.ResolveMediaReadURL(trimmed)
+	if err != nil {
+		return trimmed
+	}
+	return resolved
+}
+
 // UpdateContentRequest holds the request body for updating content.
 // Only caption can be updated - legacy title and body fields removed.
 type UpdateContentRequest struct {
@@ -685,7 +685,9 @@ func bindStrictContentJSON(c *gin.Context, dst any, deprecatedKeys ...string) er
 // Authorization:
 // - Only author can update their content
 //
-// Requires Idempotency-Key header for safe retries.
+// No application-level idempotency: content update is an owner-authorized
+// state replacement of caption/visibility with no repeatable side effects.
+// The Idempotency-Key header is intentionally NOT required on this route.
 func (h *ContentHandler) UpdateContent(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -706,13 +708,6 @@ func (h *ContentHandler) UpdateContent(c *gin.Context) {
 	userID, ok := userIDVal.(uuid.UUID)
 	if !ok {
 		response.InternalServerError(c, "Invalid user ID in context")
-		return
-	}
-
-	// Extract Idempotency-Key header
-	idempotencyKey := c.GetHeader("Idempotency-Key")
-	if idempotencyKey == "" {
-		response.BadRequest(c, "Idempotency-Key header required")
 		return
 	}
 
@@ -927,7 +922,7 @@ func (h *ContentHandler) GetContent(c *gin.Context) {
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		vc = constructContentDetailViewerContext(c, tx)
 		var loadErr error
-		content, loadErr = h.contentService.GetContentPublic(ctx, tx, contentID)
+		content, loadErr = h.contentService.GetContentVisibleToViewer(ctx, tx, userID, contentID)
 		if loadErr != nil {
 			return loadErr
 		}
@@ -1030,51 +1025,6 @@ func (h *ContentHandler) GetContent(c *gin.Context) {
 		// what the legacy gate allowed, not what enforce converted).
 		h.contentDetailShadowRunner.Run(vc, tc, content, evaluator.LegacyContentDetailOutcome200)
 		return
-	}
-
-	// V-VISIBILITY — Viewer-aware visibility enforcement on content detail.
-	// Rules:
-	//   - Owner can always see own content.
-	//   - Followers can see public + followers_only.
-	//   - Strangers/anonymous can see public only.
-	if content.AuthorID != userID {
-		canSee := content.Visibility == entity.VisibilityPublic
-		if !canSee && content.Visibility == entity.VisibilityFollowersOnly && userID != uuid.Nil {
-			var isFollower bool
-			if fErr := h.db.WithTx(ctx, func(tx db.Tx) error {
-				return tx.QueryRow(ctx,
-					`SELECT EXISTS(SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = $2)`,
-					userID, content.AuthorID,
-				).Scan(&isFollower)
-			}); fErr == nil {
-				canSee = isFollower
-			}
-		}
-		if !canSee {
-			response.NotFound(c, "Content not found")
-			return
-		}
-	}
-
-	// BLOCK PARITY — detail must respect same bidirectional block as feed/profile.
-	// No bypass: if viewer blocked author or author blocked viewer, detail is 404
-	// unless caller has explicit block-override capability (admin moderation).
-	if userID != uuid.Nil && content.AuthorID != userID {
-		hasOverride := false
-		if vc != nil && vc.Capability().HasBlockOverrideCapability {
-			hasOverride = true
-		}
-		if !hasOverride {
-			var blocked bool
-			if bErr := h.db.WithTx(ctx, func(tx db.Tx) error {
-				var e error
-				blocked, e = h.checkBidirectionalBlock(ctx, tx, userID, content.AuthorID)
-				return e
-			}); bErr == nil && blocked {
-				response.NotFound(c, "Content not found")
-				return
-			}
-		}
 	}
 
 	contentResp := ToContentResponseWithAuthorAndProjection(content, media, &authorCard, projection)

@@ -68,7 +68,7 @@ func TestSearchProjectionAdapter_ContentTypesAndAuthorParity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			items := contentPreviewsToResponse([]*entity.ContentPreview{tt.preview}, nil, map[uuid.UUID]string{authorID: "active"})
+			items := contentPreviewsToResponseWithProjections([]*entity.ContentPreview{tt.preview}, nil, map[uuid.UUID]string{authorID: "active"}, nil)
 			if len(items) != 1 {
 				t.Fatalf("expected 1 item; got %d", len(items))
 			}

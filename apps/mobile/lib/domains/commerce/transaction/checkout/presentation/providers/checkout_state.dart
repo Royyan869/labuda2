@@ -2,18 +2,21 @@
 library;
 
 import 'package:equatable/equatable.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/domain/entities/checkout_response.dart';
 
 /// Checkout state for state management
+///
+/// Only the facts the checkout UI actually reads live here: the in-flight flag,
+/// the error (message + machine-readable code) and the idempotency key that
+/// must survive a retry. The created order/preview results are returned from the
+/// notifier call and rendered by the screen — they are NOT duplicated into this
+/// state, so there is a single authority for them.
 class CheckoutState extends Equatable {
-  final bool isLoading;
   final String? error;
 
   /// Machine-readable code for [error], when the failure came from a known
   /// API contract (e.g. `EMAIL_VERIFICATION_REQUIRED`). Null when the error
   /// is transport-level or untagged.
   final String? errorCode;
-  final CheckoutResponse? response;
   final bool isCreatingOrder;
 
   /// Idempotency key for the current checkout attempt
@@ -23,27 +26,21 @@ class CheckoutState extends Equatable {
   final String? idempotencyKey;
 
   const CheckoutState({
-    this.isLoading = false,
     this.error,
     this.errorCode,
-    this.response,
     this.isCreatingOrder = false,
     this.idempotencyKey,
   });
 
   CheckoutState copyWith({
-    bool? isLoading,
     String? error,
     String? errorCode,
-    CheckoutResponse? response,
     bool? isCreatingOrder,
     String? idempotencyKey,
   }) {
     return CheckoutState(
-      isLoading: isLoading ?? this.isLoading,
       error: error,
       errorCode: errorCode,
-      response: response ?? this.response,
       isCreatingOrder: isCreatingOrder ?? this.isCreatingOrder,
       idempotencyKey: idempotencyKey ?? this.idempotencyKey,
     );
@@ -51,10 +48,8 @@ class CheckoutState extends Equatable {
 
   @override
   List<Object?> get props => [
-    isLoading,
     error,
     errorCode,
-    response,
     isCreatingOrder,
     idempotencyKey,
   ];

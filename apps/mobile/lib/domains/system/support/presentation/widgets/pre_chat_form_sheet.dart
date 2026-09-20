@@ -58,23 +58,20 @@ class _PreChatFormSheetRefactoredState
   /// PHASE 3 HARDENING: Auto-priority mapping based on category
   /// Maps categories to appropriate priority levels
   SupportPriority _getPriorityForCategory(SupportCategory category) {
-    switch (category) {
-      case SupportCategory.payment:
-        // Payment issues are high priority (money is involved)
-        return SupportPriority.high;
-      case SupportCategory.order:
-        // Order issues are medium-high priority
-        return SupportPriority.medium;
-      case SupportCategory.account:
-        // Account issues are medium priority
-        return SupportPriority.medium;
-      case SupportCategory.technical:
-        // Technical issues are lower priority
-        return SupportPriority.low;
-      case SupportCategory.general:
-        // General inquiries are lowest priority
-        return SupportPriority.low;
-    }
+    return switch (category) {
+      // Money-at-risk categories are high priority.
+      SupportCategory.paymentIssue => SupportPriority.high,
+      SupportCategory.refundRequest => SupportPriority.high,
+      SupportCategory.dispute => SupportPriority.high,
+      // Order and shipping issues affect fulfilment.
+      SupportCategory.orderIssue => SupportPriority.medium,
+      SupportCategory.shippingIssue => SupportPriority.medium,
+      SupportCategory.accountIssue => SupportPriority.medium,
+      // Listing, technical and general inquiries are lower priority.
+      SupportCategory.listingIssue => SupportPriority.low,
+      SupportCategory.technicalIssue => SupportPriority.low,
+      SupportCategory.other => SupportPriority.low,
+    };
   }
 
   /// Update priority when category changes
@@ -101,7 +98,7 @@ class _PreChatFormSheetRefactoredState
     try {
       final repository = ref.read(supportRepositoryProvider);
 
-      final result = await repository.createSupportChat(
+      final result = await repository.createTicket(
         userId: widget.userId,
         userName: widget.userName,
         userAvatar: widget.userAvatar,
@@ -116,7 +113,7 @@ class _PreChatFormSheetRefactoredState
       if (!mounted) return;
 
       if (result.isSuccess) {
-        final chatId = result.dataOrThrow;
+        final ticketId = result.dataOrThrow;
 
         // Close bottom sheet
         Navigator.pop(context);
@@ -127,7 +124,7 @@ class _PreChatFormSheetRefactoredState
         // Navigate to ticket thread screen (email-like, not chat)
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (context) => SupportTicketThreadScreen(ticketId: chatId),
+            builder: (context) => SupportTicketThreadScreen(ticketId: ticketId),
           ),
         );
 

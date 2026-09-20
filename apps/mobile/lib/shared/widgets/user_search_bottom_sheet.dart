@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/features/search/search/search.dart'; // R3.1: Full import for providers and extensions
 import 'package:labuda/features/search/search/data/dto/search_dto.dart'; // R3.1: Import for UserSearchResultDto.toUserSearch() extension
-import 'package:labuda/shared/shared.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/shared.dart';
+import 'package:labuda/shared/helpers/user_identity_formatter.dart';
 
 /// Bottom sheet untuk search dan select users (Instagram style)
 /// Digunakan untuk tag people di create post/request
@@ -355,7 +356,7 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
             : null,
         child: user.avatarUrl == null
             ? Text(
-                UserInitialsHelper.get(userId: user.userId),
+                UserIdentityFormatter.avatarInitials(user.username) ?? '•',
                 style: const TextStyle(
                   color: AppColors.primaryBlue,
                   fontWeight: FontWeight.w600,

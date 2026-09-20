@@ -126,12 +126,23 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 /// backend-derived seller authority, NOT users.role.
 ///
 /// Policy:
-/// - /seller/upgrade is ALWAYS accessible (onboarding entry point for non-sellers)
+/// - /seller/upgrade is ALWAYS accessible (REGISTRATION entry point for
+///   non-sellers). Existing sellers are gated inside the wizard (`existingSeller`),
+///   never redirected away here, because the registration flow itself returns to
+///   this location after onboarding.
+/// - /seller/renewal is the RENEWAL entry point: requires hasSellerProfile and
+///   deliberately does NOT require market authority (its canonical caller is the
+///   expired seller). Non-sellers are redirected to /seller/upgrade.
 /// - All other /seller/* routes require hasMarketAuthority (active subscription)
-/// - /create/for-sale requires the same market authority as other market actions
+/// - /create/for-sale creates a PRIVATE DRAFT (workspace state): requires only
+///   hasSellerProfile. Market authority is NOT required to draft; it is enforced
+///   transactionally at publish (draft → active) by the owning service.
 /// - /verification and /verification/seller are seller-scoped verification surfaces
 ///   and follow the same authority rule
-/// - Users without seller authority are redirected to /seller/upgrade
+/// - Users WITHOUT a seller profile are redirected to /seller/upgrade (registration)
+/// - Existing sellers missing market authority are redirected to /seller/renewal
+///   (payment-only renewal lifecycle — never back into registration) on MARKET
+///   ACTION routes only (draft creation is not one of them)
 /// - Market feature gates are evaluated here for router-level protection
 ///   and rechecked at the screen/mutation boundary
 ///
@@ -203,7 +214,7 @@ String? _authRedirectForLocation(
         // Home (/home) directly — e.g. the Welcome Screen Home action.
         // /home is the canonical Home destination and must never alias or
         // fall back to /for-sale (For Sale catalog) — i.e. no legacy
-        // "listing as Home" mapping may ever return.
+        // "forSale as Home" mapping may ever return.
         '/home',
         '/for-sale',
         '/auction',
@@ -280,15 +291,14 @@ String? _sellerRouteGuardCore(AuthUser? authenticatedUser, String location) {
   }
 
   if (isCreateForSaleRoute) {
+    // PRIVATE DRAFT CREATION = WORKSPACE STATE.
+    // Authority: seller profile only. The backend route gate for POST
+    // /for-sale is the same workspace gate (active account + verified email +
+    // seller profile), and market authority is enforced transactionally at
+    // publish (draft → active). Requiring hasMarketAuthority here blocked
+    // draft creation the canonical contract explicitly allows.
     if (authenticatedUser?.hasSellerProfile == true) {
-      if (authenticatedUser?.hasMarketAuthority == true) {
-        return null;
-      }
-      LoggerService.instance.warning(
-        'User with expired market authority attempted create-for-sale route: '
-        '$location',
-      );
-      return RoutePaths.sellerUpgrade;
+      return null;
     }
 
     LoggerService.instance.warning(
@@ -298,9 +308,28 @@ String? _sellerRouteGuardCore(AuthUser? authenticatedUser, String location) {
   }
 
   // TIER 0: /seller/upgrade — always accessible.
-  // Onboarding entry point for non-sellers; renewal path for expired sellers.
+  // REGISTRATION entry point for non-sellers. Existing sellers are not
+  // router-redirected off this location: the registration flow pushes the
+  // payment WebView and returns here after onboarding creates the profile, so a
+  // router-level redirect would eject a seller from their own in-flight flow.
+  // The wizard fails closed for existing sellers (`existingSeller` gate) and
+  // renewal surfaces never route here.
   if (isSellerRoute && location.startsWith('/seller/upgrade')) {
     return null;
+  }
+
+  // TIER 0.5: /seller/renewal — RENEWAL entry point (payment-only lifecycle).
+  // Gate: hasSellerProfile. Market authority is deliberately NOT required here:
+  // the canonical caller is the EXPIRED seller renewing. Non-sellers are sent
+  // to registration instead.
+  if (isSellerRoute && location.startsWith('/seller/renewal')) {
+    if (authenticatedUser?.hasSellerProfile == true) {
+      return null;
+    }
+    LoggerService.instance.warning(
+      'User without seller profile attempted renewal route: $location',
+    );
+    return RoutePaths.sellerUpgrade;
   }
 
   // TIER 1: WORKSPACE / OBLIGATION routes.
@@ -332,7 +361,9 @@ String? _sellerRouteGuardCore(AuthUser? authenticatedUser, String location) {
 
   // TIER 2: MARKET ACTION routes (shipping setup, promotions, any unlisted /seller/* route).
   // Gate: hasMarketAuthority (active subscription).
-  // Expired sellers cannot create/modify market config until they renew.
+  // Expired sellers cannot create/modify market config until they renew, and
+  // renewal is payment-only — so profile holders go to /seller/renewal, never
+  // back into the registration wizard.
   if (authenticatedUser?.hasMarketAuthority == true) {
     return null;
   }
@@ -340,7 +371,9 @@ String? _sellerRouteGuardCore(AuthUser? authenticatedUser, String location) {
   LoggerService.instance.warning(
     'User without market authority attempted seller market route: $location',
   );
-  return RoutePaths.sellerUpgrade;
+  return authenticatedUser?.hasSellerProfile == true
+      ? RoutePaths.sellerRenewal
+      : RoutePaths.sellerUpgrade;
 }
 
 /// Pure authentication redirect function - FINAL AUTH FLOW OWNER
@@ -583,6 +616,10 @@ class AppRouter implements NavigationHandler {
   @override
   void navigateToSellerUpgrade() =>
       _currentRouter?.push(RoutePaths.sellerUpgrade);
+
+  @override
+  void navigateToSellerRenewal() =>
+      _currentRouter?.push(RoutePaths.sellerRenewal);
 
   @override
   void navigateToExternalProductDetail(String productId) =>

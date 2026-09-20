@@ -1,6 +1,7 @@
 package http
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -8,13 +9,20 @@ import (
 	"github.com/labuda/backend/internal/discovery/search/entity"
 	"github.com/labuda/backend/internal/pkg/mediaref"
 	"github.com/labuda/backend/internal/pkg/publiccard"
+	"github.com/labuda/backend/internal/platform/mediaresolve"
 	contentApp "github.com/labuda/backend/internal/social/content/application"
 )
 
-// searchProjectionAdapter centralizes the current search wire assembly
-// without changing emitted JSON. The legacy wrapper functions in
-// search_handler.go delegate to this adapter so the handler surface stays
-// stable while the projection code becomes easier to audit.
+// searchProjectionAdapter centralizes the current search wire assembly.
+// The legacy wrapper functions in search_handler.go delegate to this adapter
+// so the handler surface stays stable while the projection code becomes easier
+// to audit.
+//
+// The ONLY intentional wire change here is Content media read resolution:
+// /search/content rows carry persisted `content_media.media_url` references,
+// and every media surface on the row is now projected through the shared
+// mediaresolve authority (see resolveSearchContentMediaReadURLs). Commerce
+// (for-sale / auction) rows keep their existing assembly untouched.
 type searchProjectionAdapter struct{}
 
 func newSearchProjectionAdapter() searchProjectionAdapter {
@@ -78,14 +86,6 @@ func (searchProjectionAdapter) forSalePreviewsToResponse(
 	return result
 }
 
-func (searchProjectionAdapter) contentPreviewsToResponse(
-	contents []*entity.ContentPreview,
-	lifecycleOverrides map[uuid.UUID]string,
-	authorLifecycleByID map[uuid.UUID]string,
-) []map[string]interface{} {
-	return searchProjectionAdapter{}.contentPreviewsToResponseWithProjections(contents, lifecycleOverrides, authorLifecycleByID, nil)
-}
-
 func (searchProjectionAdapter) contentPreviewsToResponseWithProjections(
 	contents []*entity.ContentPreview,
 	lifecycleOverrides map[uuid.UUID]string,
@@ -94,7 +94,19 @@ func (searchProjectionAdapter) contentPreviewsToResponseWithProjections(
 ) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(contents))
 	for _, c := range contents {
-		media := buildMediaRefs(c.MediaURLs)
+		// MEDIA READ RESOLUTION: SearchContent loads the persisted
+		// content_media.media_url values. They are projected through the shared
+		// mediaresolve authority — the same authority the converged Content /
+		// feed read surfaces use — and that ONE resolved list feeds all three
+		// media surfaces on the row (flat `media_urls`, canonical `media` refs,
+		// `card.media`), so they can never disagree.
+		//
+		// Search-specific semantics preserved verbatim: the DISTINCT +
+		// ORDER BY media_url ordering produced by SearchContent is untouched,
+		// and an unresolvable/empty reference is emitted as-is rather than
+		// dropped or erased (fail-open, matching the converged surfaces).
+		mediaURLs := resolveSearchContentMediaReadURLs(c.MediaURLs)
+		media := buildMediaRefs(mediaURLs)
 
 		var authorLifecycle string
 		if authorLifecycleByID != nil {
@@ -124,7 +136,7 @@ func (searchProjectionAdapter) contentPreviewsToResponseWithProjections(
 			c.ID,
 			c.Type,
 			contentCaptionPtr,
-			c.MediaURLs,
+			mediaURLs,
 			lifecycle,
 			c.CreatedAt,
 			&authorCard,
@@ -135,7 +147,7 @@ func (searchProjectionAdapter) contentPreviewsToResponseWithProjections(
 			"author_id":  c.AuthorID.String(),
 			"type":       c.Type,
 			"caption":    c.Caption,
-			"media_urls": c.MediaURLs,
+			"media_urls": mediaURLs,
 			"created_at": c.CreatedAt.Format(time.RFC3339),
 			"author":     authorCard,
 			"media":      media,
@@ -240,4 +252,36 @@ func buildMediaRefs(urls []string) []mediaref.MediaRef {
 		media = append(media, mediaref.MediaRef{URL: u})
 	}
 	return media
+}
+
+// resolveSearchContentMediaReadURLs projects persisted Content media
+// references (content_media.media_url, as loaded by SearchContent) onto the
+// canonical readable URL using the shared mediaresolve authority.
+//
+// This is the Search Content read surface's adoption of the already-locked
+// Content media authority — no new resolver, URL builder, or media-type
+// detector is introduced here.
+//
+// Fail-open (identical posture to the converged Content / feed surfaces): an
+// empty reference stays empty and an unresolvable reference is emitted trimmed
+// and unchanged, so a persisted reference is never erased and the emitted array
+// keeps the exact length/order SearchContent produced.
+func resolveSearchContentMediaReadURLs(urls []string) []string {
+	if len(urls) == 0 {
+		return urls
+	}
+	resolved := make([]string, 0, len(urls))
+	for _, raw := range urls {
+		trimmed := strings.TrimSpace(raw)
+		if trimmed == "" {
+			resolved = append(resolved, "")
+			continue
+		}
+		value := trimmed
+		if readURL, err := mediaresolve.ResolveMediaReadURL(trimmed); err == nil {
+			value = readURL
+		}
+		resolved = append(resolved, value)
+	}
+	return resolved
 }

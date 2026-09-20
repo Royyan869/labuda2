@@ -192,7 +192,6 @@ class _RecordingChatRepository extends Fake implements ChatRepository {
   @override
   Future<Result<Chat>> getOrCreateChat({
     required List<String> participantIds,
-    ShareReference? context,
   }) async {
     getOrCreateChatCallCount++;
     participantIdsCalls.add(List.of(participantIds));

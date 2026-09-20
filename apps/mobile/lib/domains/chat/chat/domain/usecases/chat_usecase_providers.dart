@@ -3,7 +3,6 @@ import 'package:labuda/domains/chat/chat/domain/usecases/get_chat_usecase.dart';
 import 'package:labuda/domains/chat/chat/domain/usecases/get_messages_usecase.dart';
 import 'package:labuda/domains/chat/chat/domain/usecases/send_message_usecase.dart';
 import 'package:labuda/domains/chat/chat/domain/usecases/mark_messages_read_usecase.dart';
-import 'package:labuda/domains/chat/chat/domain/usecases/manage_presence_usecase.dart';
 import 'package:labuda/domains/chat/chat/domain/usecases/link_order_to_chat_usecase.dart';
 import 'package:labuda/domains/chat/chat/domain/usecases/get_or_create_commerce_chat_usecase.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,12 +35,6 @@ final markMessagesReadUseCaseProvider = Provider<MarkMessagesAsReadUseCase>((
 ) {
   final repository = ref.watch(chatRepositoryProvider);
   return MarkMessagesAsReadUseCase(repository);
-});
-
-// Manage Presence UseCase Provider
-final managePresenceUseCaseProvider = Provider<ManagePresenceUseCase>((ref) {
-  final repository = ref.watch(chatRepositoryProvider);
-  return ManagePresenceUseCase(repository);
 });
 
 // Link Order to Chat UseCase Provider

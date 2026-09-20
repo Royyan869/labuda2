@@ -195,15 +195,13 @@ class AvatarImageProcessor {
     }
   }
 
-  /// Upload avatar to AWS S3
+  /// Upload avatar to AWS S3 — canonical fixed-key flow.
   static Future<void> uploadAvatar(
     dynamic imageData, // Can be Uint8List or String (file path)
     String userId,
     Function(String? avatarUrl) onAvatarUpdated,
   ) async {
     try {
-      await _cleanupOldAvatarFiles(userId);
-
       final extension = kIsWeb ? 'png' : 'jpg';
       final contentType = kIsWeb ? 'image/png' : 'image/jpeg';
       final key = 'images/avatars/$userId.$extension';
@@ -212,21 +210,25 @@ class AvatarImageProcessor {
       String? downloadUrl;
 
       if (imageData is Uint8List) {
-        // Cropped bytes from FlutterImageCropper or WebImageCropper
-        final result = await s3Service.uploadImageBytesWithKey(
+        // Cropped bytes from FlutterImageCropper or WebImageCropper — honors fixed key.
+        final result = await s3Service.uploadImageBytesWithFixedKey(
           imageData,
           key,
           contentType: contentType,
         );
         if (result.isSuccess) {
-          downloadUrl = result.data;
+          downloadUrl = result.data!.url;
         }
       } else if (imageData is String) {
         // File path (for backward compatibility)
         final file = File(imageData);
-        final result = await s3Service.uploadImageWithKey(file, key);
+        final result = await s3Service.uploadImageWithFixedKey(
+          file,
+          key,
+          mediaLabel: 'avatar',
+        );
         if (result.isSuccess) {
-          downloadUrl = result.data;
+          downloadUrl = result.data!.url;
         }
       } else {
         throw Exception('Invalid image data type');
@@ -289,28 +291,5 @@ class AvatarImageProcessor {
     }
   }
 
-  static Future<void> _cleanupOldAvatarFiles(String userId) async {
-    final currentExt = kIsWeb ? 'png' : 'jpg';
-    final extensionsToClean = [
-      'jpg',
-      'jpeg',
-      'png',
-      'webp',
-      'gif',
-    ].where((ext) => ext != currentExt).toList();
 
-    final s3Service = S3Service();
-
-    for (final ext in extensionsToClean) {
-      try {
-        // Construct S3 URL for deletion
-        final key = 'images/avatars/$userId.$ext';
-        final s3Url =
-            'https://labuda-videos.s3.ap-southeast-1.amazonaws.com/$key';
-        await s3Service.deleteFile(s3Url);
-      } catch (e) {
-        // File doesn't exist, continue
-      }
-    }
-  }
 }

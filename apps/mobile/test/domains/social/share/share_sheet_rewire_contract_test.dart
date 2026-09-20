@@ -106,11 +106,11 @@ void main() {
 
         final cases = <ShareTarget>[
           ShareTarget(
-            id: 'listing-1',
-            type: ExternalShareType.listing,
-            title: 'Listing title',
-            description: 'Listing description',
-            imageUrl: 'https://img.example/listing.jpg',
+            id: 'forSale-1',
+            type: ExternalShareType.forSale,
+            title: 'ForSale title',
+            description: 'ForSale description',
+            imageUrl: 'https://img.example/forSale.jpg',
           ),
           ShareTarget(
             id: 'auction-1',
@@ -135,7 +135,7 @@ void main() {
             caption: 'Shared caption',
             originalContentTitle: target.title,
             originalContentImageURL: target.imageUrl,
-            targetType: target.type.name == 'listing'
+            targetType: target.type.name == 'forSale'
                 ? 'for_sale'
                 : target.type.name,
             targetId: target.id,
@@ -160,7 +160,7 @@ void main() {
       final cases = <ExternalShareType>[
         ExternalShareType.post,
         ExternalShareType.request,
-        ExternalShareType.listing,
+        ExternalShareType.forSale,
         ExternalShareType.auction,
         ExternalShareType.profile,
       ];

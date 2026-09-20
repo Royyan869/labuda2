@@ -161,13 +161,13 @@ void main() {
       expect(resultA.error, isNull);
       expect(resultB.error, isNull);
 
-      final fixedPriceSaleA = resultA.data!.listings.singleWhere(
+      final fixedPriceSaleA = resultA.data!.forSales.singleWhere(
         (item) => item.isPromoted,
       );
       final auctionA = resultA.data!.auctions.singleWhere(
         (item) => item.isPromoted,
       );
-      final fixedPriceSaleB = resultB.data!.listings.singleWhere(
+      final fixedPriceSaleB = resultB.data!.forSales.singleWhere(
         (item) => item.isPromoted,
       );
       final auctionB = resultB.data!.auctions.singleWhere(

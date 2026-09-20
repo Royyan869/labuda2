@@ -74,7 +74,7 @@ Future<ShareReference?> buildFallbackShareReference(
 
   // Convert to ShareReference based on type
   switch (objRef.type) {
-    case 'fixed_price_sale':
+    case 'for_sale':
       return ShareReference.forSale(
         forSaleId: objRef.id,
         title: preview.title,
@@ -149,7 +149,7 @@ ShareReference? _objectPreviewToShareRef(
   ObjectPreview preview,
 ) {
   switch (objRef.type) {
-    case 'fixed_price_sale':
+    case 'for_sale':
       return ShareReference.forSale(
         forSaleId: objRef.id,
         title: preview.title,

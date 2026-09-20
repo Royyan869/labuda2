@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
+import 'package:labuda/domains/social/content/domain/entities/content.dart'
+    show MediaType;
+import 'package:labuda/shared/widgets/carousel_video_player.dart';
 
 class ChatResourceProjectionCard extends StatelessWidget {
   final ChatResourceProjection resourceProjection;
@@ -46,18 +49,7 @@ class ChatResourceProjectionCard extends StatelessWidget {
           ),
         );
       case ChatResourceContentLivePayload():
-        final mediaUrl = payload.media.isNotEmpty
-            ? payload.media.first.url
-            : null;
-        return CommerceMarketplaceCardMedia(
-          imageUrl: mediaUrl,
-          fallback: _placeholderMedia(context, Icons.article_outlined),
-          aspectRatio: 4 / 3,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
-          ),
-        );
+        return _buildContentMedia(context, payload);
       case ChatResourceForSaleLivePayload():
         return CommerceMarketplaceCardMedia(
           imageUrl: payload.imageUrl,
@@ -84,6 +76,58 @@ class ChatResourceProjectionCard extends StatelessWidget {
       default:
         return _placeholderMedia(context, Icons.block_outlined);
     }
+  }
+
+  /// Canonical Content media frame for the chat resource projection card.
+  ///
+  /// [ChatContentMediaRef.mediaType] — the transported persisted
+  /// `content_media.media_type` — is the render authority:
+  /// - image — [CommerceMarketplaceCardMedia], i.e. [StableNetworkImage] / the
+  ///   shared network-media path (`resolveNetworkImageUrl`).
+  /// - video — [CarouselVideoPlayer], the shared video primitive. A video
+  ///   reference must never reach the image decoder.
+  Widget _buildContentMedia(
+    BuildContext context,
+    ChatResourceContentLivePayload payload,
+  ) {
+    const borderRadius = BorderRadius.only(
+      topLeft: Radius.circular(16),
+      topRight: Radius.circular(16),
+    );
+
+    if (payload.media.isEmpty) {
+      return CommerceMarketplaceCardMedia(
+        imageUrl: null,
+        fallback: _placeholderMedia(context, Icons.article_outlined),
+        aspectRatio: 4 / 3,
+        borderRadius: borderRadius,
+      );
+    }
+
+    final media = payload.media.first;
+    if (media.mediaType == MediaType.video) {
+      return ClipRRect(
+        borderRadius: borderRadius,
+        child: AspectRatio(
+          aspectRatio: 4 / 3,
+          child: LayoutBuilder(
+            builder: (context, constraints) => CarouselVideoPlayer(
+              videoUrl: media.url,
+              width: constraints.maxWidth,
+              height: constraints.maxHeight,
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return CommerceMarketplaceCardMedia(
+      imageUrl: media.url,
+      fallback: _placeholderMedia(context, Icons.article_outlined),
+      aspectRatio: 4 / 3,
+      borderRadius: borderRadius,
+    );
   }
 
   Widget _buildValue(BuildContext context) {

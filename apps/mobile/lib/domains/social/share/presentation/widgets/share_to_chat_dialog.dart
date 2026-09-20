@@ -406,7 +406,7 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
           title: target.title,
           imageUrl: target.imageUrl,
         );
-      case ExternalShareType.listing:
+      case ExternalShareType.forSale:
         return ShareReference.forSale(
           forSaleId: target.id,
           title: target.title,

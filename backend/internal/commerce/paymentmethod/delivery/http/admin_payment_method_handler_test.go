@@ -183,9 +183,13 @@ func TestUpdateMethod_InvalidConfig_RejectedBeforeDB(t *testing.T) {
 			"display_name": "X", "enabled": true, "fee_type": "flat",
 			"flat_amount_rupiah": 4000, "midtrans_channels": []string{"totally_fake_channel"},
 		},
-		"forbidden shopeepay channel": {
+		"forbidden shopeepay_paylater channel": {
 			"display_name": "X", "enabled": true, "fee_type": "percent",
-			"percent_bps": 150, "midtrans_channels": []string{"shopeepay"}, "rate_source": "public_baseline",
+			"percent_bps": 150, "midtrans_channels": []string{"shopeepay_paylater"}, "rate_source": "public_baseline",
+		},
+		"forbidden spaylater channel": {
+			"display_name": "X", "enabled": true, "fee_type": "percent",
+			"percent_bps": 150, "midtrans_channels": []string{"spaylater"}, "rate_source": "public_baseline",
 		},
 		"forbidden kredivo channel": {
 			"display_name": "X", "enabled": true, "fee_type": "flat",

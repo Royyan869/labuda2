@@ -67,32 +67,26 @@ class CategoryConfig {
     required this.descriptionId,
   });
 
+  /// Presentation config keyed by the canonical category taxonomy. The keys are
+  /// exactly the nine canonical values — no legacy category exists.
   static const Map<SupportCategory, CategoryConfig> configs = {
-    SupportCategory.payment: CategoryConfig(
-      icon: '💳',
-      emoji: '💰',
-      colorValue: 0xFF10B981, // Green
-      nameEn: 'Payment Issues',
-      nameId: 'Masalah Pembayaran',
-      descriptionId: 'Pembayaran gagal, saldo terpotong, refund',
-    ),
-    SupportCategory.order: CategoryConfig(
+    SupportCategory.orderIssue: CategoryConfig(
       icon: '📦',
       emoji: '📦',
       colorValue: 0xFF3B82F6, // Blue
       nameEn: 'Order Problems',
       nameId: 'Masalah Pesanan',
-      descriptionId: 'Pesanan tidak sesuai, pengiriman, tracking',
+      descriptionId: 'Pesanan tidak sesuai, tidak diterima, tracking',
     ),
-    SupportCategory.technical: CategoryConfig(
-      icon: '🔧',
-      emoji: '⚙️',
-      colorValue: 0xFF8B5CF6, // Purple
-      nameEn: 'Technical Help',
-      nameId: 'Bantuan Teknis',
-      descriptionId: 'App crash, bug, fitur tidak berfungsi',
+    SupportCategory.paymentIssue: CategoryConfig(
+      icon: '💳',
+      emoji: '💰',
+      colorValue: 0xFF10B981, // Green
+      nameEn: 'Payment Issues',
+      nameId: 'Masalah Pembayaran',
+      descriptionId: 'Pembayaran gagal, saldo terpotong, transaksi bermasalah',
     ),
-    SupportCategory.account: CategoryConfig(
+    SupportCategory.accountIssue: CategoryConfig(
       icon: '👤',
       emoji: '🔐',
       colorValue: 0xFFF59E0B, // Orange
@@ -100,12 +94,52 @@ class CategoryConfig {
       nameId: 'Bantuan Akun',
       descriptionId: 'Login, verifikasi, lupa password',
     ),
-    SupportCategory.general: CategoryConfig(
+    SupportCategory.listingIssue: CategoryConfig(
+      icon: '🏷️',
+      emoji: '🏷️',
+      colorValue: 0xFF14B8A6, // Teal
+      nameEn: 'Listing Problems',
+      nameId: 'Masalah Produk',
+      descriptionId: 'Produk tidak tampil, data listing salah',
+    ),
+    SupportCategory.shippingIssue: CategoryConfig(
+      icon: '🚚',
+      emoji: '🚚',
+      colorValue: 0xFF0EA5E9, // Sky
+      nameEn: 'Shipping Issues',
+      nameId: 'Masalah Pengiriman',
+      descriptionId: 'Pengiriman terlambat, paket hilang, ongkir',
+    ),
+    SupportCategory.refundRequest: CategoryConfig(
+      icon: '💸',
+      emoji: '💸',
+      colorValue: 0xFF22C55E, // Green
+      nameEn: 'Refund Request',
+      nameId: 'Permintaan Refund',
+      descriptionId: 'Pengajuan pengembalian dana',
+    ),
+    SupportCategory.dispute: CategoryConfig(
+      icon: '⚖️',
+      emoji: '⚖️',
+      colorValue: 0xFFEF4444, // Red
+      nameEn: 'Dispute',
+      nameId: 'Sengketa',
+      descriptionId: 'Sengketa transaksi dengan pihak lain',
+    ),
+    SupportCategory.technicalIssue: CategoryConfig(
+      icon: '🔧',
+      emoji: '⚙️',
+      colorValue: 0xFF8B5CF6, // Purple
+      nameEn: 'Technical Help',
+      nameId: 'Bantuan Teknis',
+      descriptionId: 'App crash, bug, fitur tidak berfungsi',
+    ),
+    SupportCategory.other: CategoryConfig(
       icon: '❓',
       emoji: '💬',
       colorValue: 0xFF6B7280, // Gray
-      nameEn: 'General Inquiry',
-      nameId: 'Pertanyaan Umum',
+      nameEn: 'Other',
+      nameId: 'Lainnya',
       descriptionId: 'Pertanyaan lain tentang LABUDA',
     ),
   };
@@ -116,8 +150,8 @@ class CategoryConfig {
           icon: '❓',
           emoji: '💬',
           colorValue: 0xFF6B7280,
-          nameEn: 'General',
-          nameId: 'Umum',
+          nameEn: 'Other',
+          nameId: 'Lainnya',
           descriptionId: 'Pertanyaan umum',
         );
   }
@@ -411,20 +445,30 @@ class SupportUtils {
   static SupportCategory? detectCategory(String message) {
     final lowercaseMessage = message.toLowerCase();
 
+    // Refund keywords
+    if (lowercaseMessage.contains('refund') ||
+        lowercaseMessage.contains('pengembalian dana')) {
+      return SupportCategory.refundRequest;
+    }
+
     // Payment keywords
     if (lowercaseMessage.contains('bayar') ||
         lowercaseMessage.contains('payment') ||
-        lowercaseMessage.contains('saldo') ||
-        lowercaseMessage.contains('refund')) {
-      return SupportCategory.payment;
+        lowercaseMessage.contains('saldo')) {
+      return SupportCategory.paymentIssue;
+    }
+
+    // Shipping keywords
+    if (lowercaseMessage.contains('pengiriman') ||
+        lowercaseMessage.contains('kirim') ||
+        lowercaseMessage.contains('ongkir')) {
+      return SupportCategory.shippingIssue;
     }
 
     // Order keywords
     if (lowercaseMessage.contains('pesanan') ||
-        lowercaseMessage.contains('order') ||
-        lowercaseMessage.contains('pengiriman') ||
-        lowercaseMessage.contains('kirim')) {
-      return SupportCategory.order;
+        lowercaseMessage.contains('order')) {
+      return SupportCategory.orderIssue;
     }
 
     // Technical keywords
@@ -432,7 +476,7 @@ class SupportUtils {
         lowercaseMessage.contains('bug') ||
         lowercaseMessage.contains('crash') ||
         lowercaseMessage.contains('tidak bisa')) {
-      return SupportCategory.technical;
+      return SupportCategory.technicalIssue;
     }
 
     // Account keywords
@@ -440,7 +484,7 @@ class SupportUtils {
         lowercaseMessage.contains('account') ||
         lowercaseMessage.contains('login') ||
         lowercaseMessage.contains('password')) {
-      return SupportCategory.account;
+      return SupportCategory.accountIssue;
     }
 
     return null; // Cannot auto-detect, user must select

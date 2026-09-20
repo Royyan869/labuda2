@@ -48,17 +48,25 @@ const (
 // - dispute_open -> completed/refunded for dispute resolution.
 // - shipped -> partially_refunded for partial refund.
 var transitionAllowed = map[Status][]Status{
-	StatusPending:           {StatusPaid, StatusCancelled, StatusExpired},
-	StatusPaid:              {StatusShipped, StatusRefunded, StatusCancelled, StatusCancelledTimeout},                       // Allow timeout cancellation
+	StatusPending: {StatusPaid, StatusCancelled, StatusExpired},
+	// CANONICAL: a PAID order never transitions to "cancelled". Cancel() is the
+	// PRE-PAYMENT transition only (pending_payment -> cancelled) because it
+	// performs no refund and no escrow flip. Once escrow is funded, the terminal
+	// exits are shipped, refunded (refund domain, gateway-backed) and
+	// cancelled_timeout (CancelOverdue: fulfillment deadline, gateway refund +
+	// escrow flip). Allowing paid -> cancelled here re-opened a reachable
+	// money-freeze hole: POST /orders/:id/cancel routed paid-but-not-yet-overdue
+	// orders into Cancel(), producing cancelled + escrow holding with no refund.
+	StatusPaid:              {StatusShipped, StatusRefunded, StatusCancelledTimeout},
 	StatusShipped:           {StatusCompleted, StatusDelivered, StatusRefunded, StatusDisputeOpen, StatusPartiallyRefunded}, // B4A: shipped→completed is canonical buyer path
 	StatusDelivered:         {StatusCompleted, StatusRefunded, StatusDisputeOpen, StatusPartiallyRefunded},                  // Internal checkpoint
-	StatusDisputeOpen:       {StatusCompleted, StatusRefunded, StatusPartiallyRefunded}, // Dispute resolution outcomes
-	StatusCompleted:         {},                                                         // Terminal state
-	StatusCancelled:         {},                                                         // Terminal state
-	StatusCancelledTimeout:  {},                                                         // Terminal state (auto-cancelled due to timeout)
-	StatusRefunded:          {},                                                         // Terminal state
-	StatusPartiallyRefunded: {},                                                         // Terminal state
-	StatusExpired:           {},                                                         // Terminal state
+	StatusDisputeOpen:       {StatusCompleted, StatusRefunded, StatusPartiallyRefunded},                                     // Dispute resolution outcomes
+	StatusCompleted:         {},                                                                                             // Terminal state
+	StatusCancelled:         {},                                                                                             // Terminal state
+	StatusCancelledTimeout:  {},                                                                                             // Terminal state (auto-cancelled due to timeout)
+	StatusRefunded:          {},                                                                                             // Terminal state
+	StatusPartiallyRefunded: {},                                                                                             // Terminal state
+	StatusExpired:           {},                                                                                             // Terminal state
 }
 
 // canTransition checks if a state transition is allowed.
@@ -74,5 +82,3 @@ func canTransition(from, to Status) bool {
 	}
 	return false
 }
-
-

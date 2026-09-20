@@ -40,7 +40,7 @@ class _ErrorListingDatasource extends ForSaleRemoteDatasource {
       'Pilih minimal 1 opsi pengiriman',
       code: 'SHIPPING_OPTION_REQUIRED',
       statusCode: 400,
-      details: <String, dynamic>{'field': 'shipping_setup_ids'},
+      details: <String, dynamic>{'field': 'shipping_option_ids'},
     );
   }
 }
@@ -57,7 +57,7 @@ void main() {
       final result = await repository.createForSale(
         const CreateForSaleRequest(
           title: 'Kohaku',
-          description: 'Listing tanpa shipping',
+          description: 'ForSale tanpa shipping',
           price: 1500000,
           quantity: 1,
         ),

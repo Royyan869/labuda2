@@ -28,7 +28,7 @@ class ChatMapper {
           : null,
       createdAt: dto.createdAt,
       updatedAt: dto.updatedAt,
-      unreadCounts: dto.unreadCounts,
+      unreadCount: dto.unreadCount,
       isActive: dto.isActive,
       status: _stringToChatStatus(dto.status),
       deletedBy: dto.deletedBy,
@@ -71,7 +71,7 @@ class ChatMapper {
           : null,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
-      unreadCounts: entity.unreadCounts,
+      unreadCount: entity.unreadCount,
       isActive: entity.isActive,
       status: _chatStatusToString(entity.status),
       deletedBy: entity.deletedBy,
@@ -175,6 +175,9 @@ class ChatMapper {
       attachmentSellerTrustLifecycle: dto.attachmentSellerTrustLifecycle != null
           ? ContentLifecycleParse.fromWire(dto.attachmentSellerTrustLifecycle)
           : ContentLifecycle.active,
+      // Server-resolved resource representation for the resource this message
+      // references. Null when the message carries no occurrence.
+      resourceProjection: dto.resourceProjection,
     );
   }
 
@@ -391,16 +394,13 @@ class ChatMapper {
     }
   }
 
-  // Support Category conversions
+  // Support Category conversions — canonical wire values only.
   static SupportCategory _stringToSupportCategory(String category) {
-    return SupportCategory.values.firstWhere(
-      (e) => e.name == category,
-      orElse: () => SupportCategory.general,
-    );
+    return SupportCategory.fromWire(category) ?? SupportCategory.other;
   }
 
   static String _supportCategoryToString(SupportCategory category) {
-    return category.name;
+    return category.wireValue;
   }
 
   // Support Priority conversions
@@ -415,16 +415,13 @@ class ChatMapper {
     return priority.name;
   }
 
-  // Support Status conversions
+  // Support Status conversions — canonical lifecycle wire values only.
   static SupportStatus _stringToSupportStatus(String status) {
-    return SupportStatus.values.firstWhere(
-      (e) => e.name == status,
-      orElse: () => SupportStatus.open,
-    );
+    return SupportStatus.fromWire(status) ?? SupportStatus.open;
   }
 
   static String _supportStatusToString(SupportStatus status) {
-    return status.name;
+    return status.wireValue;
   }
 
   // ========================================
@@ -514,7 +511,7 @@ class ChatMapper {
       return {'location': attachment};
     }
 
-    // Note: Object reference attachments (listing, auction, post, request) removed
+    // Note: Object reference attachments (forSale, auction, post, request) removed
     // These should now use ShareReference directly instead of Attachment wrappers
 
     return {};
@@ -548,8 +545,8 @@ class ChatMapper {
         forSaleId: attachment.forSaleId,
         status: attachment.status,
         preview: SharePreviewDto(
-          title: attachment.listingName,
-          imageUrl: attachment.listingImage,
+          title: attachment.forSaleName,
+          imageUrl: attachment.forSaleImage,
         ),
       );
     }
@@ -575,8 +572,8 @@ class ChatMapper {
         forSaleId: attachment.forSaleId,
         status: attachment.status,
         preview: SharePreviewDto(
-          title: attachment.listingName,
-          imageUrl: attachment.listingImage,
+          title: attachment.forSaleName,
+          imageUrl: attachment.forSaleImage,
         ),
       );
     }

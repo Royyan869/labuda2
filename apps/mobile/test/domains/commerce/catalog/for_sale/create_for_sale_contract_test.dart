@@ -2,12 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/for_sale_dto.dart';
 
 void main() {
-  group('Create listing contract', () {
+  group('Create forSale contract', () {
     test(
       'CreateForSaleRequestDto keeps legacy media_urls when typed media is absent',
       () {
         final dto = CreateForSaleRequestDto(
-          title: 'Legacy Listing',
+          title: 'Legacy ForSale',
           description: 'Legacy payload',
           price: 1500000,
           quantity: 1,

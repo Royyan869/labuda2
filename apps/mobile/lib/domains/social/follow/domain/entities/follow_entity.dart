@@ -36,29 +36,25 @@ class Follow extends Equatable {
   }
 }
 
-/// User Profile untuk follow system
+/// User Profile untuk follow system — canonical user identity is username only.
 class FollowableUser extends Equatable {
   final String id;
   final String username;
-  final String displayName;
   final String? avatar;
   final String? bio;
   final UserType userType;
   final int followersCount;
   final int followingCount;
-  // REMOVED: postsCount (not provided by API, deleted in PROFILE PURGE)
   final bool isFollowedByCurrentUser;
   final bool isFollowingCurrentUser;
   final DateTime? lastActiveAt;
 
   /// S5 — Coarsened public lifecycle from backend: "active" | "unavailable" | "removed".
-  /// Defaults to "active" so existing construction sites remain valid.
   final String lifecycle;
 
   const FollowableUser({
     required this.id,
     required this.username,
-    required this.displayName,
     this.avatar,
     this.bio,
     required this.userType,
@@ -76,13 +72,11 @@ class FollowableUser extends Equatable {
   List<Object?> get props => [
     id,
     username,
-    displayName,
     avatar,
     bio,
     userType,
     followersCount,
     followingCount,
-    // REMOVED: postsCount (not provided by API, deleted in PROFILE PURGE)
     isFollowedByCurrentUser,
     isFollowingCurrentUser,
     lastActiveAt,
@@ -92,7 +86,6 @@ class FollowableUser extends Equatable {
   FollowableUser copyWith({
     String? id,
     String? username,
-    String? displayName,
     String? avatar,
     String? bio,
     UserType? userType,
@@ -106,7 +99,6 @@ class FollowableUser extends Equatable {
     return FollowableUser(
       id: id ?? this.id,
       username: username ?? this.username,
-      displayName: displayName ?? this.displayName,
       avatar: avatar ?? this.avatar,
       bio: bio ?? this.bio,
       userType: userType ?? this.userType,

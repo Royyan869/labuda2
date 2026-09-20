@@ -53,7 +53,7 @@ class CreateOrderUseCase {
   ///
   /// Business Rules:
   /// - productId must not be empty
-  /// - fixedPriceSaleId must not be empty
+  /// - forSaleId must not be empty
   /// - pricingToken must not be empty
   /// - shippingAddress must be valid
   Result<void> validateRequest(CheckoutRequest request) {
@@ -63,7 +63,7 @@ class CreateOrderUseCase {
       );
     }
 
-    if (request.fixedPriceSaleId.isEmpty) {
+    if (request.forSaleId.isEmpty) {
       return Result.error(
         'ID produk tidak valid. Silakan pilih produk kembali.',
       );

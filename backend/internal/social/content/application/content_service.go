@@ -36,6 +36,7 @@ type ContentService struct {
 	commerceRefValidator   commerceResponse.Validator // Validates commerce resource references for display
 	outboxRepo             ContentOutboxInserter
 	idempotencyRepo        *idempotencyRepo.Repository
+	blockChecker           BlockChecker
 }
 
 type contentResourceOccurrenceWriter interface {
@@ -84,115 +85,9 @@ func (s *ContentService) SetIdempotencyRepository(r *idempotencyRepo.Repository)
 	s.idempotencyRepo = r
 }
 
-// CreateContent creates a new active content.
-// AUTHORIZATION: Any active user can create content.
-// ENFORCES: Caption must not be empty.
-//
-// Location is preserved when provided.
-func (s *ContentService) CreateContent(
-	ctx context.Context,
-	tx db.Tx,
-	callerID uuid.UUID,
-	caption string,
-	visibility entity.Visibility,
-	city *string,
-	province *string,
-	originalAuthorID *uuid.UUID,
-	tags []string,
-	mentionedUserIDs []uuid.UUID,
-) (*entity.Content, error) {
-
-	// Validate caller
-	if err := auth.ValidateCaller(callerID); err != nil {
-		return nil, err
-	}
-
-	// ACCOUNT STATUS: Check if caller's account is active
-	if err := s.accountStatusChecker.EnsureActive(ctx, callerID); err != nil {
-		return nil, err
-	}
-
-	// Validate caption
-	if caption == "" {
-		return nil, fmt.Errorf("content caption cannot be empty")
-	}
-
-	// Create new active content
-	content := entity.NewContent(callerID, caption)
-	content.Visibility = visibility.Normalize()
-
-	// Preserve location when provided.
-	content.City = city
-	content.Province = province
-	_ = originalAuthorID
-
-	// Persist within transaction
-	if err := s.contentRepo.Create(ctx, tx, content); err != nil {
-		return nil, fmt.Errorf("create content failed: %w", err)
-	}
-
-	// Persist hashtags (fail-open: tag write failure does not abort the content creation).
-	if len(tags) > 0 {
-		if err := s.contentRepo.InsertTags(ctx, tx, content.ID, tags); err != nil {
-			// Non-fatal: content is created successfully; tags can be retried.
-			// Log at warn level — no zap here, rely on caller observability.
-			_ = err
-		} else {
-			content.Tags = tags
-		}
-	}
-
-	// Persist mentioned users — validate each user ID exists, then insert.
-	// Deterministic: if any mentioned user ID is invalid, creation fails.
-	// The transaction rolls back content creation if mention persistence fails.
-	if len(mentionedUserIDs) > 0 {
-		validIDs := make([]uuid.UUID, 0, len(mentionedUserIDs))
-		for _, uid := range mentionedUserIDs {
-			if uid == uuid.Nil {
-				continue
-			}
-			if tx != nil {
-				var exists bool
-				if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)`, uid).Scan(&exists); err != nil {
-					return nil, fmt.Errorf("mention validation failed for user %s: %w", uid, err)
-				}
-				if !exists {
-					return nil, fmt.Errorf("mentioned user %s does not exist", uid)
-				}
-			}
-			validIDs = append(validIDs, uid)
-		}
-		if len(validIDs) > 0 {
-			if err := s.contentRepo.InsertMentionedUsers(ctx, tx, content.ID, validIDs); err != nil {
-				return nil, fmt.Errorf("mention persistence failed: %w", err)
-			}
-			// Emit mention events per valid recipient (dedup, skip self-mention).
-			if s.outboxRepo != nil && tx != nil {
-				seen := map[uuid.UUID]struct{}{}
-				for _, mid := range validIDs {
-					if mid == callerID {
-						continue
-					}
-					if _, dup := seen[mid]; dup {
-						continue
-					}
-					seen[mid] = struct{}{}
-					payload := map[string]any{
-						"content_id":       content.ID.String(),
-						"author_id":        callerID.String(),
-						"mentioned_user_id": mid.String(),
-						"created_at":       content.CreatedAt.UTC().Format(time.RFC3339Nano),
-					}
-					key := fmt.Sprintf("content.mentioned.%s.%s", content.ID.String(), mid.String())
-					if err := s.outboxRepo.InsertTx(ctx, tx, events.EventContentMentioned, payload, key); err != nil {
-						return nil, fmt.Errorf("insert mention outbox event failed: %w", err)
-					}
-				}
-			}
-		}
-	}
-
-	return content, nil
+// SetBlockChecker injects the canonical block checker (SocialRepository.ExistsBlock).
+func (s *ContentService) SetBlockChecker(b BlockChecker) {
+	s.blockChecker = b
 }
 
 // CreateContentWithResourceOccurrence creates content and persists the
@@ -387,12 +282,12 @@ func (s *ContentService) validateContentTarget(
 		return fmt.Errorf("content not found: %w", err)
 	}
 	// Block parity: if viewer blocked source author or vice versa, deny reference creation.
-	// Use repo to fetch author (fail-open if tx is nil or repo unavailable).
-	if viewerID != uuid.Nil {
+	// Canonical: SocialRepository.ExistsBlock (bidirectional, transaction-aware).
+	if viewerID != uuid.Nil && s.blockChecker != nil && tx != nil {
 		if src, sErr := s.contentRepo.GetByID(ctx, tx, targetID); sErr == nil && src != nil && src.AuthorID != viewerID {
-			var blocked bool
-			if tx != nil {
-				_ = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM user_blocks WHERE (blocker_id=$1 AND blocked_id=$2) OR (blocker_id=$2 AND blocked_id=$1))`, viewerID, src.AuthorID).Scan(&blocked)
+			blocked, err := s.blockChecker.ExistsBlock(ctx, tx, viewerID, src.AuthorID)
+			if err != nil {
+				return fmt.Errorf("content not found: %w", err)
 			}
 			if blocked {
 				return fmt.Errorf("content not found: blocked")

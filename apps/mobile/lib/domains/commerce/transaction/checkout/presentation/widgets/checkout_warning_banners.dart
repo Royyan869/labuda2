@@ -12,13 +12,14 @@ class _ShippingClarityBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.primaryBlue.withValues(alpha: 0.08),
+        color: colorScheme.secondary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: AppColors.primaryBlue.withValues(alpha: 0.25),
+          color: colorScheme.secondary.withValues(alpha: 0.25),
           width: 1,
         ),
       ),
@@ -27,7 +28,7 @@ class _ShippingClarityBanner extends StatelessWidget {
           Icon(
             Icons.local_shipping_outlined,
             size: 18,
-            color: AppColors.primaryBlue,
+            color: colorScheme.secondary,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -39,7 +40,7 @@ class _ShippingClarityBanner extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.primaryBlue,
+                    color: colorScheme.secondary,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -47,7 +48,7 @@ class _ShippingClarityBanner extends StatelessWidget {
                   'Setelah pesanan dibuat, penjual akan menginformasikan opsi pengiriman yang tersedia.',
                   style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.neutralGray700,
+                    color: colorScheme.onSurfaceVariant,
                     height: 1.4,
                   ),
                 ),
@@ -75,13 +76,14 @@ class _AuctionWinnerBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.green.withValues(alpha: 0.08),
+        color: AppColors.successGreen.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Colors.green.withValues(alpha: 0.3),
+          color: AppColors.successGreen.withValues(alpha: 0.3),
           width: 1.5,
         ),
       ),
@@ -90,22 +92,26 @@ class _AuctionWinnerBanner extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.15),
+              color: AppColors.successGreen.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.emoji_events, size: 18, color: Colors.green),
+            child: const Icon(
+              Icons.emoji_events,
+              size: 18,
+              color: AppColors.successGreen,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Selamat! Anda Memenangkan Lelang 🎉',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.green.shade700,
+                    color: AppColors.successGreen,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -113,7 +119,7 @@ class _AuctionWinnerBanner extends StatelessWidget {
                   'Lengkapi pembayaran untuk mengamankan kemenangan Anda. Harga final sudah terkunci.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.neutralGray700,
+                    color: colorScheme.onSurfaceVariant,
                     height: 1.3,
                   ),
                 ),
@@ -139,13 +145,14 @@ class _NegotiationWarningBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: 0.08),
+        color: AppColors.statusWarning.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Colors.orange.withValues(alpha: 0.3),
+          color: AppColors.statusWarning.withValues(alpha: 0.3),
           width: 1.5,
         ),
       ),
@@ -154,22 +161,26 @@ class _NegotiationWarningBanner extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.15),
+              color: AppColors.statusWarning.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.info_outline, size: 18, color: Colors.orange),
+            child: const Icon(
+              Icons.info_outline,
+              size: 18,
+              color: AppColors.statusWarning,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Tawaran Sudah Disetujui',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.orange.shade700,
+                    color: AppColors.statusWarning,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -177,7 +188,7 @@ class _NegotiationWarningBanner extends StatelessWidget {
                   'Tawaran sudah disetujui, tetapi belum diamankan. Selesaikan checkout untuk mengunci produk.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.neutralGray700,
+                    color: colorScheme.onSurfaceVariant,
                     height: 1.3,
                   ),
                 ),
@@ -204,6 +215,7 @@ class _StockWarningBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -239,7 +251,7 @@ class _StockWarningBanner extends StatelessWidget {
                   'Barang bisa habis kapan saja. Segera selesaikan pembayaran.',
                   style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.neutralGray700,
+                    color: colorScheme.onSurfaceVariant,
                     height: 1.3,
                   ),
                 ),

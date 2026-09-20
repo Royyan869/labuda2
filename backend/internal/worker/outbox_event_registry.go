@@ -9,9 +9,11 @@ package worker
 // list AND not consumed by a registered handler will fail the registry guard
 // test, preventing silent swallow of typo'd or forgotten event types.
 //
-// RUNTIME BEHAVIOUR: This file does NOT change runtime behaviour. The outbox
-// dispatcher still marks no-handler events as succeeded. This is a test-time
-// regression guard only.
+// RUNTIME BEHAVIOUR: this list IS the runtime contract. An event with no
+// registered handler is a canonical success ONLY when it is listed here
+// (audit / observability events). Any other unhandled event fails dispatch and
+// is routed through the canonical retry → backoff → dead_letter path instead of
+// being silently marked delivered.
 //
 // HOW TO USE:
 // 1. When adding a new outbox event that intentionally has no consumer,
@@ -156,25 +158,15 @@ var AcknowledgedNoHandlerEvents = map[string]NoHandlerEntry{
 	// H2-C: refund.approved now registered in SetupNotificationHandlers
 	// H2-C: refund.rejected now registered in SetupNotificationHandlers
 	// D1A: refund.escalated now registered in SetupNotificationHandlers
+	// Audit-only: emitted by RefundService.emitAdminDecisionOutbox when the ADMIN
+	// records a FINAL decision on an escalated refund (buyer wins / seller wins).
 	"refund.admin_refunded": {
 		Class: NoHandlerAuditOnly,
-		Note:  "admin-initiated refund audit trail",
+		Note:  "admin final refund decision on an escalated refund (buyer wins)",
 	},
 	"refund.admin_released": {
 		Class: NoHandlerAuditOnly,
-		Note:  "admin-initiated release audit trail",
-	},
-
-	// =========================================================================
-	// ORDER — DISPUTE REFUND AUDIT
-	// =========================================================================
-	"order.dispute_refund_initiated": {
-		Class: NoHandlerAuditOnly,
-		Note:  "legacy/parked dispute refund audit trail; not emitted by current runtime",
-	},
-	"order.dispute_partial_refund_initiated": {
-		Class: NoHandlerAuditOnly,
-		Note:  "legacy/parked dispute refund audit trail; not emitted by current runtime",
+		Note:  "admin final refund decision on an escalated refund (seller wins)",
 	},
 
 	// =========================================================================
@@ -208,22 +200,18 @@ var AcknowledgedNoHandlerEvents = map[string]NoHandlerEntry{
 	// removed in Slice 9 cleanup. Canonical enforcement is ModerationEventHandler
 	// via outbox events. These event types were never produced by any active code.
 
-
 	// seller.tier.upgraded — consumed by SetupNotificationHandlers (B1)
 	// seller.tier.downgraded — consumed by SetupNotificationHandlers (B1)
 	// negotiation.cancelled — consumed by SetupNotificationHandlers (B1)
 
 	// =========================================================================
-	// CHAT ROOM EVENTS
+	// CHAT REALTIME EVENTS — NOT LISTED HERE BY DESIGN
 	// =========================================================================
-	"chat.room.created": {
-		Class: NoHandlerFutureHook,
-		Note:  "room-list realtime producer is wired first; consumer will land in the next pass",
-	},
-	"chat.room.updated": {
-		Class: NoHandlerFutureHook,
-		Note:  "room-list realtime producer is wired first; consumer will land in the next pass",
-	},
+	// "chat.message.sent", "chat.room.created" and "chat.room.updated" are owned
+	// by the realtime worker (realtime.OwnedOutboxEventTypes). The outbox worker
+	// excludes that set from its ownership scope, so it can never claim them and
+	// therefore needs no allowlist entry for them — an entry would only mask a
+	// regression in the ownership scope.
 
 	// =========================================================================
 	// SOCIAL GRAPH

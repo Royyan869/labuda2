@@ -8,6 +8,7 @@ import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/governance/seller_inactive_badge.dart';
 import 'package:labuda/shared/widgets/promoted_badge.dart';
 import 'package:labuda/shared/widgets/follow_button.dart';
+import 'package:labuda/shared/widgets/stable_network_image.dart';
 
 /// Widget to display a single search result item
 class SearchResultItem extends ConsumerWidget {
@@ -16,7 +17,7 @@ class SearchResultItem extends ConsumerWidget {
 
   const SearchResultItem({super.key, required this.result, this.onTap});
 
-  /// Canonical governance lifecycle for content rows. Listing/auction/user
+  /// Canonical governance lifecycle for content rows. ForSale/auction/user
   /// rows always render `active` (their lifecycle adoption is a separate
   /// downstream batch — see B5.1 rollout plan).
   ContentLifecycle get _lifecycle => result.type == SearchResultType.content
@@ -26,7 +27,7 @@ class SearchResultItem extends ConsumerWidget {
   /// E9.1 — Content author user-identity lifecycle. Read only from
   /// `metadata['authorLifecycle']` which the adapter sources ONLY from the
   /// `card.author.lifecycle` wire slot on content rows. Any other row type
-  /// stays `active` so this branch never fires on listing/auction/user rows.
+  /// stays `active` so this branch never fires on forSale/auction/user rows.
   /// AXIS BOUNDARY: independent from `metadata['lifecycle']` (item-axis).
   ContentLifecycle get _contentAuthorLifecycle {
     if (result.type != SearchResultType.content) return ContentLifecycle.active;
@@ -41,7 +42,7 @@ class SearchResultItem extends ConsumerWidget {
       ? null
       : _contentAuthorLifecycle.publicRedactionLabel;
 
-  /// E8.4 — Seller user-axis lifecycle for listing/auction rows. Read only
+  /// E8.4 — Seller user-axis lifecycle for forSale/auction rows. Read only
   /// from `metadata['sellerLifecycle']` which the adapter sources ONLY from
   /// the nested `seller.user.lifecycle` wire slot. Top-level
   /// `seller.lifecycle` (seller-trust axis) is never consumed. Any other
@@ -64,7 +65,7 @@ class SearchResultItem extends ConsumerWidget {
       ? null
       : _sellerUserLifecycle.publicRedactionLabel;
 
-  /// Seller-trust axis lifecycle for listing/auction rows (subscription
+  /// Seller-trust axis lifecycle for forSale/auction rows (subscription
   /// expired/lapsed). Read from `metadata['sellerTrustLifecycle']`.
   /// Any other row type stays active so this branch never fires.
   ContentLifecycle get _sellerTrustLifecycle {
@@ -106,6 +107,14 @@ class SearchResultItem extends ConsumerWidget {
     );
   }
 
+  /// Canonical network media path for the result thumbnail.
+  ///
+  /// `result.imageUrl` for content rows is the persisted Content media
+  /// reference projected by the backend (`content_media.media_url`), so it
+  /// renders through [StableNetworkImage] — the same shared widget/resolver the
+  /// converged Content media surfaces use (`resolveNetworkImageUrl`). A raw
+  /// reference is therefore never handed to the image decoder, and no
+  /// search-local URL builder exists.
   Widget _buildImage(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -118,10 +127,10 @@ class SearchResultItem extends ConsumerWidget {
         height: 48,
         color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
         child: result.imageUrl != null
-            ? Image.network(
-                result.imageUrl!,
+            ? StableNetworkImage(
+                imageUrl: result.imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => _buildPlaceholder(),
+                fallback: _buildPlaceholder(),
               )
             : _buildPlaceholder(),
       ),
@@ -145,7 +154,7 @@ class SearchResultItem extends ConsumerWidget {
         result.type == SearchResultType.forSale ||
         result.type == SearchResultType.auction;
     final subtitleMaxLines = sellerSurface ? 2 : 1;
-    // E8.4 — seller user-axis subtitle redaction (listing/auction only).
+    // E8.4 — seller user-axis subtitle redaction (forSale/auction only).
     // E9.1 — content author user-axis subtitle redaction (content only).
     // Both lose to item-axis `isUnavailable` (content tombstone styling).
     // sellerRedactionSubtitle and contentAuthorRedactionSubtitle are

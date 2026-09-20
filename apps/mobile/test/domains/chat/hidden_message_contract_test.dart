@@ -38,7 +38,7 @@ void main() {
           content: 'ini body yang tidak boleh tampil',
           isHidden: true,
           objectReference: ShareReference.forSale(
-            forSaleId: 'listing-1',
+            forSaleId: 'forSale-1',
             title: 'Produk Rahasia',
           ),
           createdAt: DateTime.parse('2026-06-01T00:00:00.000Z'),
@@ -64,7 +64,7 @@ void main() {
         content: 'body visible',
         isHidden: false,
         objectReference: ShareReference.forSale(
-          forSaleId: 'listing-1',
+          forSaleId: 'forSale-1',
           title: 'Produk Tampil',
         ),
         createdAt: DateTime.parse('2026-06-01T00:00:00.000Z'),

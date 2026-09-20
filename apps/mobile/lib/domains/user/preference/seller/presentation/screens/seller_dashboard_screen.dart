@@ -49,6 +49,10 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
     final authState = ref.watch(authControllerProvider);
     final sellerIdentityStatus = ref.watch(sellerIdentityStatusProvider);
     final sellerCapabilityStatus = ref.watch(sellerCapabilityStatusProvider);
+    // Canonical expiry axis. Capability `inactive` is NOT expiry: a freshly
+    // onboarded seller without a settled payment is capability-inactive with
+    // subscription status 'none' and must not see renewal copy (RF-02).
+    final isSubscriptionExpired = ref.watch(isSellerSubscriptionExpiredProvider);
 
     if (authState is! AuthStateAuthenticated) {
       return _buildAuthRequired(context);
@@ -104,7 +108,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
               context,
               isDark,
               sellerId,
-              sellerCapabilityStatus,
+              isSubscriptionExpired,
             ),
           ),
         ],
@@ -255,7 +259,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                   const SizedBox(width: 16),
                   ElevatedButton.icon(
                     onPressed: () {
-                      context.push('/seller/upgrade');
+                      context.push(RoutePaths.sellerUpgrade);
                     },
                     icon: const Icon(Icons.storefront, size: 18),
                     label: const Text('Mulai Jualan'),
@@ -362,7 +366,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
     BuildContext context,
     bool isDark,
     String sellerId,
-    SellerCapabilityStatus sellerCapabilityStatus,
+    bool isSubscriptionExpired,
   ) {
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -394,7 +398,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
           _GettingStartedSection(
             sellerId: sellerId,
             isDark: isDark,
-            sellerCapabilityStatus: sellerCapabilityStatus,
+            isSubscriptionExpired: isSubscriptionExpired,
           ),
 
           const SizedBox(height: 16),
@@ -724,7 +728,7 @@ class _SubscriptionExpiryBanner extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               ElevatedButton.icon(
-                onPressed: () => context.push(RoutePaths.sellerUpgrade),
+                onPressed: () => context.push(RoutePaths.sellerRenewal),
                 icon: const Icon(Icons.refresh_outlined, size: 18),
                 label: const Text('Perpanjang Langganan'),
                 style: ElevatedButton.styleFrom(
@@ -1192,17 +1196,17 @@ class _ActionChip extends StatelessWidget {
 class _GettingStartedSection extends ConsumerWidget {
   final String sellerId;
   final bool isDark;
-  final SellerCapabilityStatus sellerCapabilityStatus;
+  final bool isSubscriptionExpired;
 
   const _GettingStartedSection({
     required this.sellerId,
     required this.isDark,
-    required this.sellerCapabilityStatus,
+    required this.isSubscriptionExpired,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Check if seller has any orders or listings
+    // Check if seller has any orders or forSales
     final allOrdersAsync = ref.watch(
       watchSellerOrdersProvider(sellerId: sellerId, status: null),
     );
@@ -1212,8 +1216,9 @@ class _GettingStartedSection extends ConsumerWidget {
         // Only show getting started if seller has no orders yet
         if (orders.isNotEmpty) return const SizedBox.shrink();
 
-        // Don't show getting started for expired sellers - show renewal message instead
-        if (sellerCapabilityStatus == SellerCapabilityStatus.inactive) {
+        // Only an ENDED subscription replaces getting started with expiry copy.
+        // A capability-inactive seller with status 'none' is not expired.
+        if (isSubscriptionExpired) {
           return _buildExpiredSellerMessage(context, ref, isDark);
         }
 
@@ -1282,7 +1287,7 @@ class _GettingStartedSection extends ConsumerWidget {
               _StepItem(
                 number: 1,
                 title: 'Atur Pengiriman',
-                description: 'Wajib sebelum publish listing pertama Anda',
+                description: 'Wajib sebelum publish forSale pertama Anda',
                 isCompleted: false,
                 isDark: isDark,
                 onTap: () => _navigateToShipping(context),
@@ -1290,11 +1295,11 @@ class _GettingStartedSection extends ConsumerWidget {
               const SizedBox(height: 12),
               _StepItem(
                 number: 2,
-                title: 'Buat Listing',
+                title: 'Buat ForSale',
                 description: 'Tambahkan produk yang ingin Anda jual',
                 isCompleted: false,
                 isDark: isDark,
-                onTap: () => _navigateToCreateListing(context),
+                onTap: () => _navigateToCreateForSale(context),
               ),
               const SizedBox(height: 12),
               _StepItem(
@@ -1382,7 +1387,7 @@ class _GettingStartedSection extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
-            onPressed: () => _navigateToSellerUpgrade(context),
+            onPressed: () => context.push(RoutePaths.sellerRenewal),
             icon: const Icon(Icons.refresh_outlined, size: 18),
             label: const Text('Perpanjang Langganan'),
             style: ElevatedButton.styleFrom(
@@ -1396,11 +1401,7 @@ class _GettingStartedSection extends ConsumerWidget {
     );
   }
 
-  void _navigateToSellerUpgrade(BuildContext context) {
-    context.push(RoutePaths.sellerUpgrade);
-  }
-
-  void _navigateToCreateListing(BuildContext context) {
+  void _navigateToCreateForSale(BuildContext context) {
     Navigator.pushNamed(context, RoutePaths.createForSale);
   }
 
@@ -1761,10 +1762,10 @@ class _QuickActionsSection extends ConsumerWidget {
             Expanded(
               child: _QuickActionCard(
                 icon: Icons.view_list_outlined,
-                label: 'Listing Saya',
+                label: 'ForSale Saya',
                 color: AppColors.successGreen,
                 isDark: isDark,
-                onTap: () => _navigateToListings(context),
+                onTap: () => _navigateToForSales(context),
               ),
             ),
           ],
@@ -1814,7 +1815,7 @@ class _QuickActionsSection extends ConsumerWidget {
     );
   }
 
-  void _navigateToListings(BuildContext context) {
+  void _navigateToForSales(BuildContext context) {
     Navigator.pushNamed(context, RoutePaths.sellerForSales);
   }
 }
@@ -1963,8 +1964,8 @@ class _SellerHelpSection extends ConsumerWidget {
           const SizedBox(height: 12),
           _HelpTile(
             icon: Icons.visibility_outlined,
-            title: 'Listing tidak terlihat?',
-            description: 'Pelajari cara membuat listing yang lebih menarik',
+            title: 'ForSale tidak terlihat?',
+            description: 'Pelajari cara membuat forSale yang lebih menarik',
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -2252,7 +2253,10 @@ class _OrderTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final firstItem = order.items.first;
+    // The GET /orders list surface carries no line items (items[] is emitted
+    // only by GET /orders/:id), so the tile degrades to a neutral label rather
+    // than inventing an item name or crashing on `.first`.
+    final firstItem = order.items.isEmpty ? null : order.items.first;
 
     return InkWell(
       onTap: onTap,
@@ -2272,7 +2276,7 @@ class _OrderTile extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.network(
-                firstItem.listingImage,
+                firstItem?.forSaleImage ?? '',
                 width: 48,
                 height: 48,
                 fit: BoxFit.cover,
@@ -2299,14 +2303,18 @@ class _OrderTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    firstItem.listingName,
+                    firstItem?.forSaleName ?? 'Pesanan',
                     style: const TextStyle(fontWeight: FontWeight.w600),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    AppFormatters.formatCurrency(order.pricing.total),
+                    order.pricing.totalPayableAmount != null
+                        ? AppFormatters.formatCurrency(
+                            order.pricing.totalPayableAmount!,
+                          )
+                        : '—',
                     style: TextStyle(
                       color: AppColors.primaryRed,
                       fontWeight: FontWeight.bold,

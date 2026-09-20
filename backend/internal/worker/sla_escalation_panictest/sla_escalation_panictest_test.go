@@ -167,11 +167,13 @@ func TestSLAWorker_TicketWithNilTimestamps(t *testing.T) {
 	}
 	w, out := newRig(repo)
 
+	// ticket.sla.* event emission was removed (no consumer handler).
+	// The worker must not panic on nil timestamps — that is the invariant.
 	if err := w.ProcessTicketsSLA(context.Background()); err != nil {
 		t.Fatalf("ProcessTicketsSLA returned error: %v", err)
 	}
-	if len(out.snapshot()) == 0 {
-		t.Fatalf("expected first-response breach event for unassigned 90min-old ticket")
+	if len(out.snapshot()) != 0 {
+		t.Fatalf("expected no ticket.sla.* events (emission removed), got %d", len(out.snapshot()))
 	}
 }
 

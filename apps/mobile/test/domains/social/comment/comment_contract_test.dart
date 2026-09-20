@@ -103,14 +103,14 @@ void main() {
       const commerceRequest = CreateCommerceReferenceCommentDto(
         resourceReference: ResourceReferenceRequest(
           resourceType: 'for_sale',
-          resourceId: 'listing-1',
+          resourceId: 'forSale-1',
         ),
         body: 'seller response',
       );
       final listingJson = commerceRequest.toJson();
 
       final resourceRef = listingJson['resource_reference'] as Map<String, dynamic>;
-      expect(resourceRef, containsPair('resource_id', 'listing-1'));
+      expect(resourceRef, containsPair('resource_id', 'forSale-1'));
       expect(resourceRef, containsPair('resource_type', 'for_sale'));
       expect(listingJson, containsPair('body', 'seller response'));
       expect(listingJson.containsKey('share_reference'), isFalse);

@@ -12,13 +12,13 @@ void main() {
     test('reference DTO writes canonical snake_case keys', () {
       final dto = ShareReferenceAttachmentDto(
         targetType: ShareTargetType.forSale,
-        targetId: 'listing-123',
+        targetId: 'forSale-123',
         preview: const SharePreviewDto(title: 'Produk'),
       );
 
       final data = dto.toJson()['data'] as Map<String, dynamic>;
       expect(data['target_type'], 'for_sale');
-      expect(data['target_id'], 'listing-123');
+      expect(data['target_id'], 'forSale-123');
       expect(data.containsKey('targetType'), isFalse);
       expect(data.containsKey('targetId'), isFalse);
     });
@@ -94,9 +94,9 @@ void main() {
     });
 
     test(
-      'parseAttachmentDto rejects legacy listing/auction/post/request types',
+      'parseAttachmentDto rejects legacy forSale/auction/post/request types',
       () {
-        final legacyTypes = <String>['listing', 'auction', 'post', 'request'];
+        final legacyTypes = <String>['forSale', 'auction', 'post', 'request'];
         for (final t in legacyTypes) {
           expect(
             () => parseAttachmentDto({
@@ -149,7 +149,7 @@ void main() {
       final data = dto.toJson()['data'] as Map<String, dynamic>;
       expect(data['negotiation_id'], 'nego-1');
       expect(data['fixed_price_sale_id'], 'fps-1');
-      expect(data.containsKey('listing_id'), isFalse);
+      expect(data.containsKey('for_sale_id'), isFalse);
     });
 
     test('negotiation_result DTO uses fixed_price_sale_id', () {
@@ -163,7 +163,7 @@ void main() {
       final data = dto.toJson()['data'] as Map<String, dynamic>;
       expect(data['negotiation_id'], 'nego-2');
       expect(data['fixed_price_sale_id'], 'fps-2');
-      expect(data.containsKey('listing_id'), isFalse);
+      expect(data.containsKey('for_sale_id'), isFalse);
     });
 
     test('negotiation_offer parses fixed_price_sale_id', () {
@@ -204,7 +204,7 @@ void main() {
       final dto = ShippingQuoteAttachmentDto(
         offerId: 'offer-1',
         linkedItemId: 'item-1',
-        linkedItemType: 'listing',
+        linkedItemType: 'forSale',
         shippingType: 'manual',
         shippingTypeName: 'Ongkir Manual',
         shippingTypeEmoji: '🚚',
@@ -223,9 +223,9 @@ void main() {
       () {
         final listingDto = ShippingQuoteAttachmentDto(
           offerId: 'offer-1',
-          linkedItemId: 'listing-1',
-          linkedItemType: 'listing',
-          linkedItemName: 'Listing title',
+          linkedItemId: 'forSale-1',
+          linkedItemType: 'forSale',
+          linkedItemName: 'ForSale title',
           linkedItemPrice: 1000,
           shippingType: 'manual',
           shippingTypeName: 'Ongkir Manual',
@@ -235,9 +235,9 @@ void main() {
           sellerId: 'seller-1',
         );
         final listingData = listingDto.toJson()['data'] as Map<String, dynamic>;
-        expect(listingData['linked_item_id'], 'listing-1');
-        expect(listingData['linked_item_type'], 'listing');
-        expect(listingData.containsKey('listing_id'), isFalse);
+        expect(listingData['linked_item_id'], 'forSale-1');
+        expect(listingData['linked_item_type'], 'forSale');
+        expect(listingData.containsKey('for_sale_id'), isFalse);
         expect(listingData.containsKey('auction_id'), isFalse);
 
         final auctionDto = ShippingQuoteAttachmentDto(
@@ -257,7 +257,7 @@ void main() {
         expect(auctionData.containsKey('auction_id'), isFalse);
         expect(auctionData['linked_item_id'], 'auction-1');
         expect(auctionData['linked_item_type'], 'auction');
-        expect(auctionData.containsKey('listing_id'), isFalse);
+        expect(auctionData.containsKey('for_sale_id'), isFalse);
       },
     );
 
@@ -268,7 +268,7 @@ void main() {
                 'data': {
                   'offer_id': 'offer-1',
                   'linked_item_id': 'item-1',
-                  'linked_item_type': 'listing',
+                  'linked_item_type': 'forSale',
                   'shipping_type': 'manual',
                   'shipping_type_name': 'Ongkir Manual',
                   'shipping_type_emoji': '🚚',
@@ -290,8 +290,8 @@ void main() {
             'type': 'shipping_quote',
             'data': {
               'offer_id': 'offer-1',
-              'linked_item_id': 'listing-1',
-              'linked_item_type': 'listing',
+              'linked_item_id': 'forSale-1',
+              'linked_item_type': 'forSale',
               'shipping_type': 'manual',
               'shipping_type_name': 'Ongkir Manual',
               'shipping_type_emoji': '🚚',
@@ -310,13 +310,13 @@ void main() {
     });
 
     test(
-      'shipping quote checkout target resolves listing and auction routes',
+      'shipping quote checkout target resolves forSale and auction routes',
       () async {
         final listingQuote = ShippingQuoteAttachment(
           offerId: 'offer-1',
-          linkedItemId: 'listing-1',
-          linkedItemType: 'listing',
-          linkedItemName: 'Listing title',
+          linkedItemId: 'forSale-1',
+          linkedItemType: 'forSale',
+          linkedItemName: 'ForSale title',
           linkedItemPrice: 1000,
           shippingType: 'manual',
           shippingTypeName: 'Ongkir Manual',
@@ -331,7 +331,7 @@ void main() {
           shippingQuote: listingQuote,
           resolveAuctionProductId: (_) async => null,
         );
-        expect(listingTarget?.forSaleId, 'listing-1');
+        expect(listingTarget?.forSaleId, 'forSale-1');
         expect(listingTarget?.auctionId, isNull);
         expect(listingTarget?.productId, isNull);
 
@@ -374,7 +374,7 @@ void main() {
             'type': 'reference',
             'data': {
               'target_type': 'for_sale',
-              'target_id': 'listing-1',
+              'target_id': 'forSale-1',
               'preview': {'title': 'Produk'},
             },
             'seller_trust_lifecycle': 'active',
@@ -392,7 +392,7 @@ void main() {
             'type': 'reference',
             'data': {
               'target_type': 'for_sale',
-              'target_id': 'listing-1',
+              'target_id': 'forSale-1',
               'preview': {'title': 'Produk'},
             },
             'seller_trust_lifecycle': 'active',
@@ -409,8 +409,8 @@ void main() {
         final canonicalCases = <Map<String, Object>>[
           {
             'reference': ShareReference.forSale(
-              forSaleId: 'listing-1',
-              title: 'Listing title',
+              forSaleId: 'forSale-1',
+              title: 'ForSale title',
             ),
             'wireType': 'for_sale',
           },

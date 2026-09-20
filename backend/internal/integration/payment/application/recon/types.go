@@ -199,10 +199,10 @@ type OrderRow struct {
 	// GrossAmount is the canonical buyer-funded escrow base
 	// (orders.total_before_coins_amount = PD + S). orders.escrow_amount is
 	// NOT authoritative (never persisted).
-	GrossAmount  int64
-	HasDispute   bool
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	GrossAmount int64
+	HasDispute  bool
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 // EscrowRow is the canonical projection of one row from escrows. Single row
@@ -239,8 +239,13 @@ type RefundRow struct {
 // from the JSONB payload at resolve time and feed lifecycle-aware D5
 // duplicate detection. Empty strings mean the payload did not carry the
 // field (older webhooks, malformed payloads).
+//
+// IDENTITY (REC-3): one gateway transaction owns SEVERAL rows, one per
+// distinct notification. EventID is therefore the transaction REFERENCE and
+// NotificationKey is the canonical identity of the individual event.
 type WebhookEventRef struct {
-	EventID           string
+	EventID           string // event_id: the gateway TRANSACTION reference (not unique)
+	NotificationKey   string // notification_key: identity of ONE notification (unique)
 	MidtransOrderID   string
 	Status            string
 	TransactionStatus string // payload->>'transaction_status'
@@ -292,10 +297,6 @@ type Thresholds struct {
 	// before D1 can fire. Guards against racing the in-flight webhook.
 	PendingPaymentGrace time.Duration
 
-	// OrphanRecoveryGrace is the window within which an orphaned webhook
-	// event suppresses D6 (orphan_webhook_recovery_worker is still trying).
-	OrphanRecoveryGrace time.Duration
-
 	// StuckRefundGrace is the minimum age of a refund pinned at
 	// gateway_status='pending' before D11 can fire.
 	StuckRefundGrace time.Duration
@@ -342,5 +343,3 @@ type Finding struct {
 	LocalObservedAmount   int64
 	Notes                 string
 }
-
-

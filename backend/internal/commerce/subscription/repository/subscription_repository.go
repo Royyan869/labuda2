@@ -32,9 +32,25 @@ type SellerSubscriptionRepository interface {
 	// GetByID retrieves a subscription by ID without locking.
 	GetByID(ctx context.Context, tx db.Tx, id uuid.UUID) (*subscriptionEntity.SellerSubscription, error)
 
-	// GetLatestByUserID retrieves the most recent subscription for a user,
-	// regardless of status. Returns nil if no subscription exists.
+	// GetLatestByUserID retrieves the current active subscription INTERVAL for a
+	// user: the newest row that is status = 'active' AND currently inside its
+	// [started_at, expires_at) window. Returns nil when the user has no such
+	// interval — including when the user has no subscription row at all.
+	//
+	// This method owns MARKET AUTHORITY semantics.
+	// For the user's latest subscription row REGARDLESS of status (the raw
+	// subscription-state truth reported to clients), use GetMostRecentByUserID.
 	GetLatestByUserID(ctx context.Context, tx db.Tx, userID uuid.UUID) (*subscriptionEntity.SellerSubscription, error)
+
+	// GetMostRecentByUserID returns the user's latest subscription row
+	// REGARDLESS of status ('active' | 'expired' | 'inactive'), ordered by
+	// created_at DESC. Returns nil when the user has never had a subscription row.
+	//
+	// This is the canonical read for REPORTING subscription state (e.g. the user
+	// DTO's seller_subscription_status), keeping "never subscribed" distinct from
+	// "period ended". It is NOT an authority check — market authority comes from
+	// GetLatestByUserID.
+	GetMostRecentByUserID(ctx context.Context, tx db.Tx, userID uuid.UUID) (*subscriptionEntity.SellerSubscription, error)
 
 	// GetLatestByUserIDForUpdate returns the furthest entitlement chain end for a user.
 	// The caller must hold any necessary seller-level lock before invoking this.

@@ -57,9 +57,10 @@ func TestCanonicalCaseRuntime(t *testing.T) {
 	appDB := db.NewFromPool(pool)
 	reportRepo := moderationRepo.NewReportRepository()
 	caseRepo := moderationRepo.NewCaseRepository()
+	decRepo := moderationRepo.NewDecisionRepository()
 	reportService := moderationApp.NewReportService(appDB, reportRepo, caseRepo)
 	caseService := moderationApp.NewCaseService(appDB, caseRepo)
-	handler := moderationHTTP.NewReportHandler(reportService, zap.NewNop())
+	handler := moderationHTTP.NewReportHandlerWithDeps(reportService, appDB, caseRepo, decRepo, zap.NewNop())
 
 	gin.SetMode(gin.TestMode)
 	router := gin.New()

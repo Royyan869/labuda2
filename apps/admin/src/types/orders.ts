@@ -26,7 +26,7 @@ export type EscrowStatus = 'holding' | 'released' | 'refunded'
 /**
  * Source type values from backend
  */
-export type SourceType = 'fixed_price_sale' | 'auction' | 'negotiation'
+export type SourceType = 'for_sale' | 'auction' | 'negotiation'
 
 // Status constants to avoid hardcoded strings
 export const ORDER_STATUS = {
@@ -50,7 +50,7 @@ export const ESCROW_STATUS = {
 } as const
 
 export const SOURCE_TYPE = {
-  FIXED_PRICE_SALE: 'fixed_price_sale',
+  FOR_SALE: 'for_sale',
   AUCTION: 'auction',
   NEGOTIATION: 'negotiation',
 } as const
@@ -63,8 +63,15 @@ export interface OrderListItem {
   order_number: string
   buyer_id: string
   seller_id: string
+  source_type: SourceType
   status: OrderStatus
-  escrow_amount: number
+  escrow_status: EscrowStatus
+  subtotal: number
+  shipping_total: number
+  commission_amount: number
+  service_fee_amount: number
+  total_payable_amount: number
+  total_before_coins_amount: number
   created_at: string
   // Computed fields for display
   buyer_username?: string | null
@@ -183,7 +190,7 @@ export interface OrderDetail {
   commission_amount: number
   service_fee_amount?: number
   total_payable_amount?: number
-  escrow_amount: number
+  total_before_coins_amount: number
   refunded_amount: number
   shipping_option?: string | null
   tracking_number?: string | null
@@ -204,7 +211,7 @@ export interface OrderDetail {
   // Items
   items?: OrderItemDetail[]
   // Shipping source + origin (I1-C1: where shipping cost originated + seller origin)
-  shipping_source?: 'fixed_price_sale' | 'shipping_quote' | null
+  shipping_source?: 'for_sale' | 'shipping_quote' | null
   shipping_origin?: ShippingOriginDetail | null
   // Shipping address
   shipping_address?: ShippingAddressDetail | null
@@ -274,7 +281,7 @@ export const escrowStatusVariants: Record<EscrowStatus, 'success' | 'warning' | 
 }
 
 export const sourceTypeLabels: Record<SourceType, string> = {
-  fixed_price_sale: 'Fixed-Price Sale',
+  for_sale: 'For Sale',
   auction: 'Auction',
   negotiation: 'Negotiation',
 }
@@ -416,7 +423,7 @@ export interface DisputeDetail {
   // Related order info
   order_status?: string | null
   order_escrow_status?: string | null // JSON key: order_escrow_status
-  escrow_amount?: number              // JSON key: escrow_amount (subtotal + shipping)
+  total_before_coins_amount?: number  // Canonical buyer-funded base PD+S
   shipping_reference?: string | null  // Tracking number
   shipping_carrier?: string | null    // Carrier/option name
   // Computed fields for display

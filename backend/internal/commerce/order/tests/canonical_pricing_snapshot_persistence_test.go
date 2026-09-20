@@ -45,9 +45,7 @@ func TestCanonicalPricingSnapshot_DiscountedOrder_RoundTrip(t *testing.T) {
 				quantity, unit_price, subtotal, shipping_total,
 				commission_percent, commission_amount,
 				service_fee_amount, total_payable_amount,
-				discount_amount, discount_code, discount_type, discount_value,
-				escrow_amount,
-				coins_used, coin_discount_amount, total_before_coins_amount,
+				total_before_coins_amount,
 				status, escrow_status, has_dispute,
 				payment_expires_at, preparation_time_snapshot,
 				order_number, created_at, updated_at
@@ -56,16 +54,13 @@ func TestCanonicalPricingSnapshot_DiscountedOrder_RoundTrip(t *testing.T) {
 				1, 100000, 100000, 20000,
 				5, 4500,
 				0, $5,
-				10000, 'SELLER10', 'percentage', '10',
 				$6,
-				0, 0, $7,
 				'pending_payment', 'none', false,
-				$8, 'immediate',
-				'ORD-20260808-TEST01', $9, $9
+				$7, 'immediate',
+				'ORD-20260808-TEST01', $8, $8
 			)
 		`, orderID, buyerID, sellerID, uuid.New(),
 			expectedBuyerVal,  // total_payable = (P-D)+S = 110000
-			expectedBuyerVal,  // escrow_amount
 			expectedBuyerVal,  // total_before_coins = CANONICAL
 			expiry, now,
 		)
@@ -75,19 +70,15 @@ func TestCanonicalPricingSnapshot_DiscountedOrder_RoundTrip(t *testing.T) {
 
 	// Read back
 	var gotSubtotal, gotShipping, gotCommissionPct, gotCommissionAmt int64
-	var gotDiscountAmt int64
-	var gotDiscountCode, gotDiscountType, gotDiscountValue *string
-	var gotEscrowAmt, gotTotalBeforeCoins, gotTotalPayable int64
+	var gotTotalBeforeCoins, gotTotalPayable int64
 	err = testDB.WithTx(ctx, func(tx db.Tx) error {
 		return tx.QueryRow(ctx, `
 			SELECT subtotal, shipping_total, commission_percent, commission_amount,
-			       discount_amount, discount_code, discount_type, discount_value,
-			       escrow_amount, total_before_coins_amount, total_payable_amount
+			       total_before_coins_amount, total_payable_amount
 			FROM orders WHERE id = $1
 		`, orderID).Scan(
 			&gotSubtotal, &gotShipping, &gotCommissionPct, &gotCommissionAmt,
-			&gotDiscountAmt, &gotDiscountCode, &gotDiscountType, &gotDiscountValue,
-			&gotEscrowAmt, &gotTotalBeforeCoins, &gotTotalPayable,
+			&gotTotalBeforeCoins, &gotTotalPayable,
 		)
 	})
 	require.NoError(t, err, "read back discounted order")
@@ -97,27 +88,21 @@ func TestCanonicalPricingSnapshot_DiscountedOrder_RoundTrip(t *testing.T) {
 	assert.Equal(t, int64(20000), gotShipping, "shipping_total = S = 20000")
 	assert.Equal(t, int64(5), gotCommissionPct, "commission_percent = 5")
 	assert.Equal(t, int64(4500), gotCommissionAmt, "commission_amount = C = 4500")
-	assert.Equal(t, int64(10000), gotDiscountAmt, "discount_amount = D = 10000")
-	require.NotNil(t, gotDiscountCode)
-	assert.Equal(t, "SELLER10", *gotDiscountCode)
-	require.NotNil(t, gotDiscountType)
-	assert.Equal(t, "percentage", *gotDiscountType)
-	require.NotNil(t, gotDiscountValue)
-	assert.Equal(t, "10", *gotDiscountValue)
+	// The discount's METADATA is deliberately NOT asserted here: the order row
+	// persists no discount column at all. Only the discount's MONEY consequence
+	// is persisted, carried implicitly by the canonical base below; the canonical
+	// discount-metadata snapshot lives on pricing_tokens.discount_* (proven by
+	// TestCanonicalPricingSnapshot_DiscountMetadataNotOnOrderRow).
 
 	// CANONICAL: BuyerOrderValueBeforeCoins = (P-D)+S = 110000
 	assert.Equal(t, expectedBuyerVal, gotTotalBeforeCoins,
 		"total_before_coins_amount = (P-D)+S = 110000 — CANONICAL buyer base")
 	assert.Equal(t, expectedBuyerVal, gotTotalPayable,
 		"total_payable_amount = (P-D)+S = 110000")
-	assert.Equal(t, expectedBuyerVal, gotEscrowAmt,
-		"escrow_amount = (P-D)+S (forward compat)")
 
 	// ANTI-PROOF: NOT the old P+S+C-D formula
 	assert.NotEqual(t, oldWrongVal, gotTotalBeforeCoins,
 		"total_before_coins MUST NOT = P+S+C-D = 114500")
-	assert.NotEqual(t, oldWrongVal, gotEscrowAmt,
-		"escrow_amount MUST NOT = P+S+C-D = 114500")
 }
 
 func TestCanonicalPricingSnapshot_NoDiscountOrder_RoundTrip(t *testing.T) {
@@ -141,9 +126,7 @@ func TestCanonicalPricingSnapshot_NoDiscountOrder_RoundTrip(t *testing.T) {
 				quantity, unit_price, subtotal, shipping_total,
 				commission_percent, commission_amount,
 				service_fee_amount, total_payable_amount,
-				discount_amount,
-				escrow_amount,
-				coins_used, coin_discount_amount, total_before_coins_amount,
+				total_before_coins_amount,
 				status, escrow_status, has_dispute,
 				payment_expires_at, preparation_time_snapshot,
 				order_number, created_at, updated_at
@@ -152,15 +135,13 @@ func TestCanonicalPricingSnapshot_NoDiscountOrder_RoundTrip(t *testing.T) {
 				1, 100000, 100000, 20000,
 				5, 5000,
 				0, $5,
-				0,
 				$6,
-				0, 0, $7,
 				'pending_payment', 'none', false,
-				$8, 'immediate',
-				'ORD-20260808-TEST02', $9, $9
+				$7, 'immediate',
+				'ORD-20260808-TEST02', $8, $8
 			)
 		`, orderID, buyerID, sellerID, uuid.New(),
-			expectedBuyerVal, expectedBuyerVal, expectedBuyerVal,
+			expectedBuyerVal, expectedBuyerVal,
 			expiry, now,
 		)
 		return execErr
@@ -182,7 +163,15 @@ func TestCanonicalPricingSnapshot_NoDiscountOrder_RoundTrip(t *testing.T) {
 		"commission_amount = 5000 (seller-side, NOT in buyer base)")
 }
 
-func TestCanonicalPricingSnapshot_DiscountMetadataPersisted(t *testing.T) {
+// TestCanonicalPricingSnapshot_DiscountMetadataNotOnOrderRow proves the canonical
+// authority split for discounts. The order row persists only the MONEY
+// consequence of a discount (already folded into total_before_coins_amount);
+// the discount METADATA (code/type/value/amount) is owned by the pricing-token
+// snapshot. A discount column on `orders` would be a second, silently-diverging
+// pricing authority, so the order write table must expose none at all.
+//
+// P=100000, D=50000 (flat), S=20000 → PD=50000, PD+S=70000, F=0 (no payment selection yet).
+func TestCanonicalPricingSnapshot_DiscountMetadataNotOnOrderRow(t *testing.T) {
 	ctx := context.Background()
 	testDB, cleanup := testdb.SetupDB(t)
 	defer cleanup()
@@ -192,6 +181,7 @@ func TestCanonicalPricingSnapshot_DiscountMetadataPersisted(t *testing.T) {
 	insertOrderTestUsers(t, ctx, testDB, sellerID, buyerID)
 
 	orderID := uuid.New()
+	expectedBuyerVal := int64(70000) // (P-D)+S = 70000
 
 	err := testDB.WithTx(ctx, func(tx db.Tx) error {
 		now := time.Now()
@@ -202,46 +192,65 @@ func TestCanonicalPricingSnapshot_DiscountMetadataPersisted(t *testing.T) {
 				quantity, unit_price, subtotal, shipping_total,
 				commission_percent, commission_amount,
 				service_fee_amount, total_payable_amount,
-				discount_amount, discount_code, discount_type, discount_value,
-				escrow_amount,
-				coins_used, coin_discount_amount, total_before_coins_amount,
+				total_before_coins_amount,
 				status, escrow_status, has_dispute,
 				payment_expires_at, preparation_time_snapshot,
 				order_number, created_at, updated_at
 			) VALUES (
 				$1, $2, $3, 'for_sale', $4,
 				1, 100000, 100000, 20000, 5, 5000,
-				0, 120000,
-				10000, 'FLAT50K', 'flat_amount', '50000',
-				120000,
-				0, 0, 120000,
+				0, $5,
+				$6,
 				'pending_payment', 'none', false,
-				$5, 'immediate',
-				'ORD-20260808-TEST03', $6, $6
+				$7, 'immediate',
+				'ORD-20260808-TEST03', $8, $8
 			)
-		`, orderID, buyerID, sellerID, uuid.New(), expiry, now,
+		`, orderID, buyerID, sellerID, uuid.New(),
+			expectedBuyerVal,  // total_payable = (P-D)+S at creation (F=0)
+			expectedBuyerVal,  // total_before_coins = CANONICAL buyer base
+			expiry, now,
 		)
 		return execErr
 	})
-	require.NoError(t, err)
+	require.NoError(t, err, "insert order carrying a discounted money base")
 
-	var gotDiscountAmt int64
-	var gotDiscountCode, gotDiscountType, gotDiscountValue *string
+	// The discount's money effect IS persisted, as money on the canonical base.
+	var gotTotalBeforeCoins int64
 	err = testDB.WithTx(ctx, func(tx db.Tx) error {
 		return tx.QueryRow(ctx, `
-			SELECT discount_amount, discount_code, discount_type, discount_value
+			SELECT total_before_coins_amount
 			FROM orders WHERE id = $1
-		`, orderID).Scan(&gotDiscountAmt, &gotDiscountCode, &gotDiscountType, &gotDiscountValue)
+		`, orderID).Scan(&gotTotalBeforeCoins)
 	})
 	require.NoError(t, err)
+	assert.Equal(t, expectedBuyerVal, gotTotalBeforeCoins,
+		"total_before_coins_amount = (P-D)+S = 70000 — discount persisted as money")
 
-	assert.Equal(t, int64(10000), gotDiscountAmt)
-	require.NotNil(t, gotDiscountCode)
-	assert.Equal(t, "FLAT50K", *gotDiscountCode)
-	require.NotNil(t, gotDiscountType)
-	assert.Equal(t, "flat_amount", *gotDiscountType)
-	require.NotNil(t, gotDiscountValue)
-	assert.Equal(t, "50000", *gotDiscountValue)
+	// The discount METADATA is not an order-persistence concern.
+	var orderDiscountColumns int
+	err = testDB.WithTx(ctx, func(tx db.Tx) error {
+		return tx.QueryRow(ctx, `
+			SELECT COUNT(*) FROM information_schema.columns
+			WHERE table_schema = 'public' AND table_name = 'orders'
+			  AND column_name IN ('discount_code', 'discount_type', 'discount_value', 'discount_amount')
+		`).Scan(&orderDiscountColumns)
+	})
+	require.NoError(t, err)
+	assert.Zero(t, orderDiscountColumns,
+		"orders must persist NO discount metadata column — pricing_tokens.discount_* is the authority")
+
+	// The canonical discount-metadata snapshot is the pricing token.
+	var tokenDiscountColumns int
+	err = testDB.WithTx(ctx, func(tx db.Tx) error {
+		return tx.QueryRow(ctx, `
+			SELECT COUNT(*) FROM information_schema.columns
+			WHERE table_schema = 'public' AND table_name = 'pricing_tokens'
+			  AND column_name IN ('discount_code', 'discount_type', 'discount_value', 'discount_amount')
+		`).Scan(&tokenDiscountColumns)
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 4, tokenDiscountColumns,
+		"pricing_tokens persists the canonical discount metadata snapshot (code/type/value/amount)")
 }
 
 func TestCanonicalPricingSnapshot_CommissionNotInBuyerPath(t *testing.T) {
@@ -266,9 +275,7 @@ func TestCanonicalPricingSnapshot_CommissionNotInBuyerPath(t *testing.T) {
 				quantity, unit_price, subtotal, shipping_total,
 				commission_percent, commission_amount,
 				service_fee_amount, total_payable_amount,
-				discount_amount,
-				escrow_amount,
-				coins_used, coin_discount_amount, total_before_coins_amount,
+				total_before_coins_amount,
 				status, escrow_status, has_dispute,
 				payment_expires_at, preparation_time_snapshot,
 				order_number, created_at, updated_at
@@ -277,15 +284,13 @@ func TestCanonicalPricingSnapshot_CommissionNotInBuyerPath(t *testing.T) {
 				1, 100000, 100000, 20000,
 				5, 5000,
 				0, $5,
-				0,
 				$6,
-				0, 0, $7,
 				'pending_payment', 'none', false,
-				$8, 'immediate',
-				'ORD-20260808-TEST04', $9, $9
+				$7, 'immediate',
+				'ORD-20260808-TEST04', $8, $8
 			)
 		`, orderID, buyerID, sellerID, uuid.New(),
-			expectedBuyerVal, expectedBuyerVal, expectedBuyerVal,
+			expectedBuyerVal, expectedBuyerVal,
 			expiry, now,
 		)
 		return execErr

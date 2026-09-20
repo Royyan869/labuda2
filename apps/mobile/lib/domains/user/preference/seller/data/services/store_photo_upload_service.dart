@@ -48,22 +48,32 @@ class StorePhotoUploadService {
         extra: {'userId': userId, 'imagePath': imagePath},
       );
 
-      // Upload to S3 with fixed key (auto-replaces existing file)
+      // Upload to S3 with canonical fixed key (verified ownership, overwrite).
       final key = '$_storageFolder/$userId.jpg';
-      final result = await _s3Service.uploadImageWithKey(file, key);
+      final result = await _s3Service.uploadImageWithFixedKey(
+        file,
+        key,
+        mediaLabel: 'store photo',
+      );
 
       if (result.isSuccess) {
+        // Persist canonical storage key; read_url is resolved server-side via mediaresolve.
+        final storageKey = result.data!.key;
         _logger.info(
           'Store photo uploaded successfully',
-          extra: {'userId': userId, 'url': result.data},
+          extra: {'userId': userId, 'storageKey': storageKey, 'readUrl': result.data!.url},
         );
-        return Result.success(result.data!);
+        return Result.success(storageKey);
       } else {
         _logger.error(
           'Failed to upload store photo',
-          extra: {'userId': userId, 'error': result.error},
+          extra: {'userId': userId, 'error': result.error, 'code': result.errorCode},
         );
-        return Result.error('Failed to upload store photo: ${result.error}');
+        return Result.error(
+          'Failed to upload store photo: ${result.error}',
+          code: result.errorCode,
+          statusCode: result.statusCode,
+        );
       }
     } catch (e, stackTrace) {
       _logger.error('Failed to upload store photo', stackTrace: stackTrace);
@@ -71,40 +81,9 @@ class StorePhotoUploadService {
     }
   }
 
-  /// Get store photo URL from AWS S3 (with CloudFront CDN)
-  static String getStorePhotoUrl(String userId) {
-    final baseUrl = AppConstants.useCloudFront
-        ? AppConstants.cdnBaseUrl
-        : AppConstants.awsS3BaseUrl;
-
-    // Fixed filename strategy: {userId}.jpg
-    return '$baseUrl/$_storageFolder/$userId.jpg';
-  }
-
-  /// Delete store photo from AWS S3
+  /// Store photo removal clears the DB reference — no S3 delete per locked decision.
   Future<Result<void>> deleteStorePhoto(String userId) async {
-    try {
-      final photoUrl = getStorePhotoUrl(userId);
-
-      _logger.info(
-        'Deleting store photo',
-        extra: {'userId': userId, 'url': photoUrl},
-      );
-
-      final result = await _s3Service.deleteFile(photoUrl);
-
-      if (result.isSuccess) {
-        _logger.info(
-          'Store photo deleted successfully',
-          extra: {'userId': userId},
-        );
-        return Result.success(null);
-      } else {
-        return Result.error('Failed to delete store photo: ${result.error}');
-      }
-    } catch (e, stackTrace) {
-      _logger.error('Failed to delete store photo', stackTrace: stackTrace);
-      return Result.error('Failed to delete store photo: ${e.toString()}');
-    }
+    _logger.info('Store photo removal — DB reference clear only (no S3 delete)', extra: {'userId': userId});
+    return Result.success(null);
   }
 }

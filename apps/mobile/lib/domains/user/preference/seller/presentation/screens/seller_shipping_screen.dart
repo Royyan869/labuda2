@@ -1,7 +1,7 @@
 /// Seller Shipping Setup Screen
 ///
 /// Lets a seller manage their **global** shipping options (the seller-wide
-/// catalog of shipping methods). Listings later select a subset of these
+/// catalog of shipping methods). ForSales later select a subset of these
 /// options at create/edit time (Phase 2).
 ///
 /// Reuses the existing data layer entirely:
@@ -179,7 +179,7 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
         title: const Text('Hapus Opsi Pengiriman'),
         content: Text(
           'Hapus "${opt.displayName}" dari daftar opsi pengiriman Anda? '
-          'Listing yang sebelumnya memilih opsi ini akan kehilangan tautan tersebut.',
+          'ForSale yang sebelumnya memilih opsi ini akan kehilangan tautan tersebut.',
         ),
         actions: [
           TextButton(
@@ -304,7 +304,7 @@ class _EmptyView extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           'Tambahkan opsi pengiriman (kereta, bus, travel, pesawat, atau kustom). '
-          'Listing baru wajib memilih minimal satu opsi sebelum bisa dipublish.',
+          'ForSale baru wajib memilih minimal satu opsi sebelum bisa dipublish.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 14, color: AppColors.neutralGray600),
         ),

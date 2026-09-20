@@ -37,20 +37,19 @@ func sampleReport() *Report {
 		SuppressedNoOrphan: 44,
 		Thresholds: recon.Thresholds{
 			PendingPaymentGrace:       3 * time.Minute,
-			OrphanRecoveryGrace:       2 * time.Minute,
 			StuckRefundGrace:          5 * time.Minute,
 			PendingPaymentExpiryGrace: 1 * time.Minute,
 		},
 		Findings: []recon.Finding{
 			{
-				DriftClass:      recon.DriftD4PartialRefundMismatch,
-				Severity:        recon.SeverityHigh,
-				OrderID:         &oid,
-				MidtransOrderID: "ORDER-LABUDA-001",
-				DetectedAt:      fixedStart,
-				IdempotencyKey:  "recon|D4_partial_refund_mismatch|order=" + oid.String() + "|d=20260512",
-				SuggestedAction: "reconcile refund rows via operator /admin/refunds/{id}/resync-from-gateway",
-				Notes:           "gateway successful refund total=50000, local successful refund total=30000",
+				DriftClass:            recon.DriftD4PartialRefundMismatch,
+				Severity:              recon.SeverityHigh,
+				OrderID:               &oid,
+				MidtransOrderID:       "ORDER-LABUDA-001",
+				DetectedAt:            fixedStart,
+				IdempotencyKey:        "recon|D4_partial_refund_mismatch|order=" + oid.String() + "|d=20260512",
+				SuggestedAction:       "reconcile refund rows via operator /admin/refunds/{id}/resync-from-gateway",
+				Notes:                 "gateway successful refund total=50000, local successful refund total=30000",
 				GatewayObservedAmount: 50_000,
 				LocalObservedAmount:   30_000,
 			},
@@ -301,14 +300,14 @@ func TestTranslateGatewayResponse_EmptyRefundHistory(t *testing.T) {
 
 func TestParseGatewayAmount_EdgeCases(t *testing.T) {
 	cases := map[string]int64{
-		"":             0,
-		"   ":          0,
-		"abc":          0,
-		"100000":       100_000,
-		"100000.00":    100_000,
-		"  50000  ":    50_000,
-		"-10":          -10,
-		"99999999.99":  99_999_999,
+		"":            0,
+		"   ":         0,
+		"abc":         0,
+		"100000":      100_000,
+		"100000.00":   100_000,
+		"  50000  ":   50_000,
+		"-10":         -10,
+		"99999999.99": 99_999_999,
 	}
 	for in, want := range cases {
 		if got := parseGatewayAmount(in); got != want {
@@ -346,5 +345,3 @@ func renderToBytes(t *testing.T, r *Report, mode OutputMode) []byte {
 func renderToString(t *testing.T, r *Report, mode OutputMode) string {
 	return string(renderToBytes(t, r, mode))
 }
-
-

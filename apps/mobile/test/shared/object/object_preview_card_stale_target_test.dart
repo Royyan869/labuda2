@@ -25,7 +25,7 @@ void main() {
               ),
               preResolved: const ObjectPreview(
                 id: 'sale-1',
-                type: 'fixed_price_sale',
+                type: 'for_sale',
                 title: 'Kohaku 50cm',
                 imageUrl: 'https://example.com/sale.jpg',
                 price: 500000,

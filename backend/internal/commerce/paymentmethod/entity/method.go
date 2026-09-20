@@ -137,19 +137,21 @@ const MaxPercentBps int64 = 2000
 // code change (matching the pass's "do not implement every method" scope),
 // not a config edit.
 //
-// PASS_19A owner policy: card payment (credit_card/debit_card) is allowed,
-// but PayLater/installment/deferred-financing products are not. shopeepay
-// (which also fronts Midtrans's ShopeePay/SPayLater grouped channel),
-// akulaku, and kredivo are therefore deliberately absent — never add them
-// back without an explicit owner decision, since the allowlist is the sole
-// enforcement point: ValidateConfig rejects any channel not listed here, so
-// nothing paylater-shaped can ever reach a method row or Snap
-// enabled_payments.
+// PASS_19A owner policy was card-payment vs paylater; Phase 2 (000088) converges buyer
+// payment methods to four canonical wallets: ovo, dana, gopay, shopeepay.
+// PayLater/installment/deferred-financing products (spaylater,
+// shopeepay_installment/paylater, akulaku, kredivo) remain forbidden.
+// The allowlist remains the sole enforcement point: ValidateConfig rejects
+// any channel not listed here, so nothing paylater-shaped can ever reach a
+// method row or Snap enabled_payments.
+//
+// shopeepay is the distinct Midtrans e-wallet channel for ShopeePay (SPay);
+// it does NOT bundle SPayLater — that is a separate, forbidden channel code.
 var AllowedMidtransChannels = map[string]bool{
 	"bca_va": true, "bni_va": true, "bri_va": true, "permata_va": true,
 	"cimb_va": true, "bsi_va": true, "danamon_va": true, "maybank_va": true,
 	"btn_va": true, "other_va": true,
-	"gopay": true, "dana": true, "ovo": true, "linkaja": true,
+	"gopay": true, "dana": true, "ovo": true, "linkaja": true, "shopeepay": true,
 	"other_qris":  true,
 	"credit_card": true, "debit_card": true,
 	"alfamart": true, "indomaret": true,

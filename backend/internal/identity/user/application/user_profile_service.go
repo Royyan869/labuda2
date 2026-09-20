@@ -58,6 +58,9 @@ type SellerState struct {
 	SubscriptionStatus    *string
 	Tier                  *string
 	HasMarketAuthority    bool
+	StoreName             *string
+	StoreImageURL         *string
+	StoreImageUpdatedAt   *time.Time
 }
 
 // UserProfileService handles cross-domain composition for user profiles
@@ -262,12 +265,37 @@ func (s *UserProfileService) GetPublicProfile(ctx context.Context, targetUserID 
 	// "unavailable", everyone else "active". "removed" is reserved for a
 	// future filter-relaxation batch (out of scope for E5.1).
 	lifecycle := string(viewercontext.CoarsenLifecycle(publicInfo.AccountStatus, publicInfo.IsDeleted))
+	// Avatar/cover/store suppression for unavailable lore: identity active only exposes media.
+	var avatarForCard *string
+	var avatarForResponse *string
+	var coverForResponse *string
+	if lifecycle == "active" {
+		avatarForCard = publicInfo.AvatarURL
+		avatarForResponse = resolveMediaReadURL(publicInfo.AvatarURL)
+		coverForResponse = resolveMediaReadURL(publicInfo.CoverPhotoURL)
+	} else {
+		avatarForCard = nil
+		avatarForResponse = nil
+		coverForResponse = nil
+	}
 	identityCard := publiccard.NewWithLifecycle(
 		publicInfo.UserID,
 		publicInfo.Username,
-		publicInfo.AvatarURL,
+		avatarForCard,
 		lifecycle,
 	)
+
+	// Seller public fields — suppressed when lifecycle degraded (redaction boundary).
+	// NULL means no store image; never fallback to avatar_url.
+	// Store image is persisted as canonical storage_key and resolved once via mediaresolve.
+	var pubStoreName *string
+	var pubStoreImageURL *string
+	var pubStoreImageUpdatedAt *time.Time
+	if lifecycle == "active" {
+		pubStoreName = sellerState.StoreName
+		pubStoreImageURL = resolveMediaReadURL(sellerState.StoreImageURL)
+		pubStoreImageUpdatedAt = sellerState.StoreImageUpdatedAt
+	}
 
 	// Build response.
 	//
@@ -281,19 +309,22 @@ func (s *UserProfileService) GetPublicProfile(ctx context.Context, targetUserID 
 	// New consumers MUST read identity.* (in particular identity.lifecycle for
 	// the public lifecycle state).
 	resp := &dto.PublicUserResponse{
-		UserID:         publicInfo.UserID,
-		Username:       publicInfo.Username,
-		Bio:            publicInfo.Bio,
-		AvatarURL:      publicInfo.AvatarURL,
-		CoverPhotoURL:  resolveMediaReadURL(publicInfo.CoverPhotoURL),
-		Location:       publicInfo.Location,
-		FollowersCount: publicInfo.FollowersCount,
-		FollowingCount: publicInfo.FollowingCount,
-		IsSeller:       sellerState.HasMarketAuthority, // derived; uses authority, not just role
-		Roles:          publicInfo.Roles,
-		CreatedAt:      createdAt,
-		Identity:       &identityCard,
-		SellerTier:     publicSellerTier(lifecycle, sellerState),
+		UserID:              publicInfo.UserID,
+		Username:            publicInfo.Username,
+		Bio:                 publicInfo.Bio,
+		AvatarURL:           avatarForResponse,
+		CoverPhotoURL:       coverForResponse,
+		Location:            publicInfo.Location,
+		FollowersCount:      publicInfo.FollowersCount,
+		FollowingCount:      publicInfo.FollowingCount,
+		IsSeller:            sellerState.HasMarketAuthority, // derived; uses authority, not just role
+		Roles:               publicInfo.Roles,
+		CreatedAt:           createdAt,
+		Identity:            &identityCard,
+		SellerTier:          publicSellerTier(lifecycle, sellerState),
+		StoreName:           pubStoreName,
+		StoreImageURL:       pubStoreImageURL,
+		StoreImageUpdatedAt: pubStoreImageUpdatedAt,
 	}
 
 	return resp, nil
@@ -343,7 +374,7 @@ func (s *UserProfileService) getSellerState(ctx context.Context, tx db.Tx, userI
 		HasMarketAuthority:    false,
 	}
 
-	// Check for seller profile
+	// Check for seller profile — also captures store identity for public projection.
 	sellerProfile, err := s.sellerRepo.GetByUserID(ctx, tx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check seller profile: %w", err)
@@ -354,21 +385,48 @@ func (s *UserProfileService) getSellerState(ctx context.Context, tx db.Tx, userI
 			tier := string(sellerProfile.Tier)
 			state.Tier = &tier
 		}
+		if sellerProfile.StoreName != "" {
+			n := sellerProfile.StoreName
+			state.StoreName = &n
+		}
+		if sellerProfile.StoreImageURL != nil && strings.TrimSpace(*sellerProfile.StoreImageURL) != "" {
+			state.StoreImageURL = sellerProfile.StoreImageURL
+		}
+		if sellerProfile.StoreImageUpdatedAt != nil {
+			state.StoreImageUpdatedAt = sellerProfile.StoreImageUpdatedAt
+		}
 	}
 
-	// Check for subscription status
-	subscription, err := s.subscriptionRepo.GetLatestByUserID(ctx, tx, userID)
+	// Market authority comes from the current ACTIVE INTERVAL only (a row that is
+	// status = 'active' and inside its [started_at, expires_at) window).
+	activeSubscription, err := s.subscriptionRepo.GetLatestByUserID(ctx, tx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check seller subscription: %w", err)
 	}
 
-	if subscription != nil {
-		status := string(subscription.Status)
-		state.SubscriptionStatus = &status
-		state.HasActiveSubscription = subscription.Status == subscriptionEntity.StatusActive
+	if activeSubscription != nil {
+		state.HasActiveSubscription = activeSubscription.Status == subscriptionEntity.StatusActive
 	}
 
-	// Determine market authority: has profile + active subscription
+	// Reported subscription state comes from the user's most recent row
+	// REGARDLESS of status, so "never subscribed" ('none') stays distinguishable
+	// from "period ended" ('expired'). Collapsing those two into a single absent
+	// value is what made a freshly onboarded seller (profile created, payment not
+	// settled yet) read as expired and get asked to renew.
+	mostRecent, err := s.subscriptionRepo.GetMostRecentByUserID(ctx, tx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load latest seller subscription: %w", err)
+	}
+
+	if mostRecent != nil {
+		status := string(mostRecent.Status)
+		state.SubscriptionStatus = &status
+	} else {
+		none := "none"
+		state.SubscriptionStatus = &none
+	}
+
+	// Determine market authority: has profile + active subscription interval
 	if state.HasProfile && state.HasActiveSubscription {
 		state.HasMarketAuthority = true
 	}

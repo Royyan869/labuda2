@@ -52,7 +52,7 @@ class SearchState {
   /// All is not a domain collection — when [selectedType] is null (All tab)
   /// this returns an empty list and the UI renders the section overview
   /// from [results] instead. `externalProduct` rows live on the For Sale
-  /// (listing) surface and share its collection.
+  /// (forSale) surface and share its collection.
   List<SearchResult> get selectedDomainResults {
     if (results == null || selectedType == null) return const [];
     switch (selectedType!) {
@@ -60,7 +60,7 @@ class SearchState {
         return results!.users;
       case SearchResultType.forSale:
       case SearchResultType.externalProduct:
-        return results!.listings;
+        return results!.forSales;
       case SearchResultType.auction:
         return results!.auctions;
       case SearchResultType.content:

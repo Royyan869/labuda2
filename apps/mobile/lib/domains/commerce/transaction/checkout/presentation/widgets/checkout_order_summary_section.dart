@@ -2,55 +2,47 @@ part of '../screens/checkout_screen_impl.dart';
 
 /// Order Summary Section
 class _OrderSummarySection extends ConsumerWidget {
-  final String fixedPriceSaleId;
+  final String forSaleId;
+
+  /// The applied backend preview — non-null ONLY while it is current.
   final PreviewOrderResult? previewResult;
-  final bool isTokenExpired;
+  final CheckoutReadiness readiness;
   final Duration? remainingTime;
-  final bool isFetchingPreview;
-  final String? previewError;
   final VoidCallback onRefreshPricing;
-  final bool supportsDiscounts;
   final bool isAuctionCheckout;
 
   const _OrderSummarySection({
-    required this.fixedPriceSaleId,
+    required this.forSaleId,
     this.previewResult,
-    required this.isTokenExpired,
+    required this.readiness,
     this.remainingTime,
-    required this.isFetchingPreview,
-    this.previewError,
     required this.onRefreshPricing,
-    this.supportsDiscounts = true,
     this.isAuctionCheckout = false,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final listingAsync = ref.watch(
-      forSaleDetailProvider(fixedPriceSaleId),
-    );
+    final forSaleAsync = ref.watch(forSaleDetailProvider(forSaleId));
 
-    return listingAsync.when(
-      data: (listing) {
-        if (listing == null) {
+    return forSaleAsync.when(
+      data: (forSale) {
+        if (forSale == null) {
           return const SizedBox.shrink();
         }
         return Column(
           children: [
-            // Token validity indicator with refresh button
+            // Pricing readiness indicator — the ONLY place that explains why
+            // checkout is or is not ready, so it can never disagree with the
+            // action bar or the create-order guard.
             _TokenValidityIndicator(
-              hasPricing: previewResult != null,
-              isTokenExpired: isTokenExpired,
+              readiness: readiness,
               remainingTime: remainingTime,
-              isFetching: isFetchingPreview,
-              error: previewError,
               onRefresh: onRefreshPricing,
             ),
-            if (previewResult != null) const SizedBox(height: 16),
+            const SizedBox(height: 16),
             _OrderSummaryContent(
-              listing: listing,
+              forSale: forSale,
               previewResult: previewResult,
-              supportsDiscounts: supportsDiscounts,
               isAuctionCheckout: isAuctionCheckout,
             ),
           ],
@@ -62,21 +54,15 @@ class _OrderSummarySection extends ConsumerWidget {
   }
 }
 
-/// Token validity indicator widget showing countdown and refresh button
+/// Pricing readiness indicator: truthful per-state copy + refresh affordance.
 class _TokenValidityIndicator extends StatelessWidget {
-  final bool hasPricing;
-  final bool isTokenExpired;
+  final CheckoutReadiness readiness;
   final Duration? remainingTime;
-  final bool isFetching;
-  final String? error;
   final VoidCallback onRefresh;
 
   const _TokenValidityIndicator({
-    required this.hasPricing,
-    required this.isTokenExpired,
+    required this.readiness,
     this.remainingTime,
-    required this.isFetching,
-    this.error,
     required this.onRefresh,
   });
 
@@ -87,145 +73,156 @@ class _TokenValidityIndicator extends StatelessWidget {
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
+  /// No current preview yet, but every prerequisite is satisfied.
+  Widget _buildLoading(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              readiness.message,
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// A checkout prerequisite is missing — the buyer can act on this.
+  Widget _buildPrerequisite(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.secondary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: colorScheme.secondary.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, color: colorScheme.secondary, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  readiness.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.secondary,
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  readiness.message,
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The applied preview cannot be used: it failed, is stale, or expired.
+  Widget _buildRefreshRequired(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isExpired = readiness == CheckoutReadiness.expired;
+    // Expiry is an error condition (canonical `error` role); every other
+    // not-ready reason is a business warning, which Labuda models as its own
+    // status colour rather than a Material role.
+    final accent = isExpired ? colorScheme.error : AppColors.statusWarning;
+    final icon = isExpired
+        ? Icons.timer_off_outlined
+        : Icons.warning_amber_outlined;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: accent),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: accent, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  readiness.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: accent,
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  readiness.message,
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: onRefresh,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: accent,
+              foregroundColor: colorScheme.onPrimary,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              textStyle: const TextStyle(fontSize: 12),
+            ),
+            child: const Text('Refresh'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // ERROR STATE: Show error when preview fetch failed
-    if (error != null && !hasPricing) {
-      return Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.statusWarning.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.statusWarning),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.warning_amber_outlined,
-              color: AppColors.statusWarning,
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Gagal Memuat Harga',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.statusWarning,
-                      fontSize: 14,
-                    ),
-                  ),
-                  Text(
-                    'Tap refresh untuk mencoba lagi',
-                    style: TextStyle(
-                      color: AppColors.neutralGray600,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            ElevatedButton(
-              onPressed: onRefresh,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.statusWarning,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                textStyle: const TextStyle(fontSize: 12),
-              ),
-              child: const Text('Refresh'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // LOADING/FETCHING STATE: Show loading when fetching preview
-    if (!hasPricing || isFetching) {
-      return Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.neutralGray100,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              isFetching ? 'Memperbarui harga...' : 'Memuat harga...',
-              style: TextStyle(color: AppColors.neutralGray600, fontSize: 14),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (isTokenExpired) {
-      // Token expired - show urgent refresh
-      return Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.statusError.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.statusError),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.timer_off_outlined,
-              color: AppColors.statusError,
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Harga Kadaluarsa',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.statusError,
-                      fontSize: 14,
-                    ),
-                  ),
-                  Text(
-                    'Silakan refresh harga terbaru',
-                    style: TextStyle(
-                      color: AppColors.neutralGray600,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            ElevatedButton(
-              onPressed: onRefresh,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.statusError,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                textStyle: const TextStyle(fontSize: 12),
-              ),
-              child: const Text('Refresh'),
-            ),
-          ],
-        ),
-      );
+    final colorScheme = Theme.of(context).colorScheme;
+    switch (readiness) {
+      case CheckoutReadiness.ready:
+        break;
+      case CheckoutReadiness.loading:
+        return _buildLoading(context);
+      case CheckoutReadiness.missingProduct:
+      case CheckoutReadiness.missingAddress:
+      case CheckoutReadiness.missingShipping:
+        return _buildPrerequisite(context);
+      case CheckoutReadiness.error:
+      case CheckoutReadiness.stale:
+      case CheckoutReadiness.expired:
+        return _buildRefreshRequired(context);
     }
 
     // Show countdown with refresh button
@@ -270,7 +267,7 @@ class _TokenValidityIndicator extends StatelessWidget {
                 Text(
                   'Berlaku dalam $timeString',
                   style: TextStyle(
-                    color: AppColors.neutralGray600,
+                    color: colorScheme.onSurfaceVariant,
                     fontSize: 12,
                   ),
                 ),
@@ -280,11 +277,11 @@ class _TokenValidityIndicator extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: onRefresh,
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.neutralGray700,
+              foregroundColor: colorScheme.onSurfaceVariant,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               minimumSize: const Size(0, 32),
               textStyle: const TextStyle(fontSize: 12),
-              side: BorderSide(color: AppColors.neutralGray300),
+              side: BorderSide(color: colorScheme.outlineVariant),
             ),
             icon: const Icon(Icons.refresh, size: 16),
             label: const Text('Refresh'),
@@ -296,26 +293,26 @@ class _TokenValidityIndicator extends StatelessWidget {
 }
 
 class _OrderSummaryContent extends StatelessWidget {
-  final ForSale listing;
+  final ForSale forSale;
   final PreviewOrderResult? previewResult;
-  final bool supportsDiscounts;
   final bool isAuctionCheckout;
 
   const _OrderSummaryContent({
-    required this.listing,
+    required this.forSale,
     this.previewResult,
-    this.supportsDiscounts = true,
     this.isAuctionCheckout = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     // Build koi details display string
     String koiDetailsDisplay = '';
-    if (listing.variety != null || listing.sizeCm != null) {
-      final variety = listing.variety ?? 'Koi';
-      final size = listing.sizeCm != null
-          ? '${listing.sizeCm!.toInt()} cm'
+    if (forSale.variety != null || forSale.sizeCm != null) {
+      final variety = forSale.variety ?? 'Koi';
+      final size = forSale.sizeCm != null
+          ? '${forSale.sizeCm!.toInt()} cm'
           : '';
       koiDetailsDisplay = size.isNotEmpty ? '$variety - $size' : variety;
     }
@@ -327,15 +324,17 @@ class _OrderSummaryContent extends StatelessWidget {
     final serviceFee = hasPricing
         ? (previewResult!.serviceFeeAmount ?? 0.0)
         : 0.0;
-    final coinDiscount = hasPricing ? previewResult!.coinDiscount : 0.0;
-    final discount = hasPricing ? previewResult!.discount : 0.0;
-    final total = hasPricing
-        ? (previewResult!.totalPayableAmount ?? previewResult!.total)
-        : 0.0;
+    // CANONICAL TOTAL: total_payable_amount (PD + S + F) is the buyer's gross
+    // payable and is emitted by the backend on every canonical order/preview
+    // surface. The old `previewResult.total` compatibility alias (which
+    // re-derived P+S+F client side) and the legacy discount / coin rows were
+    // purged: the seller discount is already folded into the canonical money
+    // model, and coins are not an Order snapshot authority.
+    final total = hasPricing ? (previewResult!.totalPayableAmount ?? 0.0) : 0.0;
 
     // SHIPPING MODE INDICATOR: Determine shipping label based on mode
     // - "quote": Manual shipping quote from seller (fixed price)
-    // - "standard": Standard listing shipping options
+    // - "standard": Standard forSale shipping options
     //
     // **DEFENSIVE GUARD:** Source of truth is previewResult.shippingMode (backend snapshot)
     // - UI uses snapshot mode, NOT widget.shippingQuoteId param
@@ -359,9 +358,9 @@ class _OrderSummaryContent extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.neutralWhite,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.neutralGray200),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,20 +380,20 @@ class _OrderSummaryContent extends StatelessWidget {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.15),
+                    color: AppColors.successGreen.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(
-                      color: Colors.green.withValues(alpha: 0.4),
+                      color: AppColors.successGreen.withValues(alpha: 0.4),
                       width: 1,
                     ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.emoji_events,
                         size: 12,
-                        color: Colors.green.shade700,
+                        color: AppColors.successGreen,
                       ),
                       const SizedBox(width: 3),
                       Text(
@@ -402,7 +401,7 @@ class _OrderSummaryContent extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: Colors.green.shade700,
+                          color: AppColors.successGreen,
                         ),
                       ),
                     ],
@@ -416,11 +415,11 @@ class _OrderSummaryContent extends StatelessWidget {
           Row(
             children: [
               // Product Image
-              if (listing.media.isNotEmpty)
+              if (forSale.media.isNotEmpty)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.network(
-                    listing.media.first.originalUrl,
+                    forSale.media.first.originalUrl,
                     width: 60,
                     height: 60,
                     fit: BoxFit.cover,
@@ -428,7 +427,7 @@ class _OrderSummaryContent extends StatelessWidget {
                       return Container(
                         width: 60,
                         height: 60,
-                        color: AppColors.neutralGray200,
+                        color: colorScheme.surfaceContainerHighest,
                         child: const Icon(Icons.image),
                       );
                     },
@@ -442,7 +441,7 @@ class _OrderSummaryContent extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      listing.title,
+                      forSale.title,
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -454,9 +453,9 @@ class _OrderSummaryContent extends StatelessWidget {
                     if (koiDetailsDisplay.isNotEmpty)
                       Text(
                         koiDetailsDisplay,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.neutralGray600,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                   ],
@@ -478,29 +477,24 @@ class _OrderSummaryContent extends StatelessWidget {
               const SizedBox(height: 8),
               _PriceRow('Biaya Layanan Pembayaran', 1, serviceFee),
             ],
-            if (coinDiscount > 0) ...[
-              const SizedBox(height: 8),
-              _PriceRow(
-                'Diskon Koin',
-                1,
-                coinDiscount,
-                isDiscount: true,
-                color: AppColors.coinPrimary,
-              ),
-            ],
-            // SOURCE GUARD: Only show discount row if source supports it AND discount > 0
-            if (supportsDiscounts && discount > 0) ...[
-              const SizedBox(height: 8),
-              _PriceRow('Diskon', 1, discount, isDiscount: true),
-            ],
             const SizedBox(height: 12),
             const Divider(),
             const SizedBox(height: 12),
             // Total
             _PriceRow('Total', 1, total, isTotal: true),
           ] else ...[
-            // Loading state - placeholder values
-            _PriceRow('Subtotal', 1, listing.price),
+            // NON-AUTHORITATIVE LOCAL PROJECTION.
+            // `forSale.price` is NOT the checkout price: it ignores negotiation,
+            // auction settlement, seller discount and payment fee. It is shown
+            // only as an explicitly-labelled temporary estimate while the
+            // backend preview for the CURRENT inputs has not been applied yet.
+            // Nothing here can make checkout READY.
+            _PriceRow(
+              'Subtotal',
+              1,
+              forSale.price,
+              note: 'Harga lokal sementara',
+            ),
             const SizedBox(height: 8),
             const _PriceRow(
               'Biaya Pengiriman',
@@ -519,14 +513,20 @@ class _OrderSummaryContent extends StatelessWidget {
             const Divider(),
             const SizedBox(height: 12),
             // Total
-            _PriceRow('Total', 1, listing.price, isTotal: true),
+            _PriceRow(
+              'Total',
+              1,
+              forSale.price,
+              isTotal: true,
+              note: 'Harga lokal sementara',
+            ),
             const SizedBox(height: 8),
             Center(
               child: Text(
-                'Memuat harga dari server...',
+                'Harga lokal sementara — menunggu harga dari server',
                 style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.neutralGray600,
+                  color: colorScheme.onSurfaceVariant,
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -538,13 +538,17 @@ class _OrderSummaryContent extends StatelessWidget {
   }
 }
 
+/// Single pricing row in the checkout breakdown.
+///
+/// The legacy `isDiscount` / `color` modifiers were purged together with the
+/// obsolete discount row: the seller discount is already embedded in the
+/// canonical backend money model (subtotal / total_before_coins_amount), so
+/// the summary never renders a separate, client-derived discount line.
 class _PriceRow extends StatelessWidget {
   final String label;
   final int quantity;
   final double price;
   final bool isTotal;
-  final bool isDiscount;
-  final Color? color;
   final String? note;
 
   const _PriceRow(
@@ -552,13 +556,12 @@ class _PriceRow extends StatelessWidget {
     this.quantity,
     this.price, {
     this.isTotal = false,
-    this.isDiscount = false,
-    this.color,
     this.note,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final total = quantity * price;
 
     return Column(
@@ -576,37 +579,26 @@ class _PriceRow extends StatelessWidget {
                     style: TextStyle(
                       fontSize: isTotal ? 16 : 14,
                       fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-                      color: isTotal
-                          ? AppColors.primaryRed
-                          : (isDiscount
-                                ? (color ?? AppColors.successGreen)
-                                : null),
-                      decoration: isDiscount
-                          ? TextDecoration.lineThrough
-                          : null,
+                      color: isTotal ? colorScheme.primary : null,
                     ),
                   ),
                   if (note != null)
                     Text(
                       note!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.neutralGray600,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                 ],
               ),
             ),
             Text(
-              isDiscount && total > 0
-                  ? '-${AppFormatters.formatCurrency(total)}'
-                  : AppFormatters.formatCurrency(total),
+              AppFormatters.formatCurrency(total),
               style: TextStyle(
                 fontSize: isTotal ? 18 : 14,
                 fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
-                color: isTotal
-                    ? AppColors.primaryRed
-                    : (isDiscount ? (color ?? AppColors.successGreen) : null),
+                color: isTotal ? colorScheme.primary : null,
               ),
             ),
           ],

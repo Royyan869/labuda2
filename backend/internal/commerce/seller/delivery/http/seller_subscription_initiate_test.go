@@ -86,10 +86,6 @@ func (r *testSubscriptionPaymentRepo) CreatePayment(ctx context.Context, tx db.T
 	}, nil
 }
 
-func (r *testSubscriptionPaymentRepo) FindLatestSubscriptionPayment(ctx context.Context, tx db.Tx, userID uuid.UUID) (*paymentRepository.Payment, error) {
-	return nil, nil
-}
-
 func (r *testSubscriptionPaymentRepo) UpdatePaymentURL(ctx context.Context, tx db.Tx, paymentID uuid.UUID, paymentURL string) error {
 	r.updateCalls++
 	if r.updateFn != nil {
@@ -117,10 +113,6 @@ func (c *testSnapClient) CreateSnapTransaction(req *midtrans.SnapRequest) (*midt
 	return &midtrans.SnapResponse{RedirectURL: "https://midtrans.example/redirect"}, nil
 }
 
-func (c *testSnapClient) GetTransactionStatus(orderID string) (*midtrans.NotificationPayload, error) {
-	return nil, nil
-}
-
 type testSubscriptionRepo struct {
 	config *subscriptionEntity.SellerSubscriptionConfig
 	latest *subscriptionEntity.SellerSubscription
@@ -143,6 +135,10 @@ func (r *testSubscriptionRepo) GetByID(context.Context, db.Tx, uuid.UUID) (*subs
 }
 
 func (r *testSubscriptionRepo) GetLatestByUserID(context.Context, db.Tx, uuid.UUID) (*subscriptionEntity.SellerSubscription, error) {
+	return nil, nil
+}
+
+func (r *testSubscriptionRepo) GetMostRecentByUserID(context.Context, db.Tx, uuid.UUID) (*subscriptionEntity.SellerSubscription, error) {
 	return nil, nil
 }
 

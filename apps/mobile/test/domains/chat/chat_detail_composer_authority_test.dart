@@ -425,7 +425,6 @@ ProviderScope _buildScope({
       typingIndicatorEnabledProvider.overrideWithValue(false),
       isUserBlockedProvider(_otherUserId).overrideWith((ref) => false),
       negotiationNotifierProvider.overrideWith(_FakeNegotiationNotifier.new),
-      presenceProvider.overrideWithValue(const PresenceState()),
       chatDetailProvider(_chatId).overrideWith(() => chatNotifier),
       sellerFPSPagerProvider.overrideWith(
         () => _FakeSellerFPSPagerController(),
@@ -471,7 +470,6 @@ Widget _buildChatCommerceScope({
       typingIndicatorEnabledProvider.overrideWithValue(false),
       isUserBlockedProvider(_otherUserId).overrideWith((ref) => false),
       negotiationNotifierProvider.overrideWith(_FakeNegotiationNotifier.new),
-      presenceProvider.overrideWithValue(const PresenceState()),
       chatDetailProvider(_chatId).overrideWith(() => chatDetailNotifier),
       sellerFPSPagerProvider.overrideWith(
         () => _FakeSellerFPSPagerController(),

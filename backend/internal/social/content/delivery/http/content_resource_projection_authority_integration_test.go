@@ -57,12 +57,7 @@ func TestContentResourceProjectionAuthority_GetContentMatrix(t *testing.T) {
 			ResourceType: contententity.ContentResourceOccurrenceResourceTypeProfile,
 			ResourceID:   targetID,
 		})
-		setLegacyShareReference(t, ctx, tdb.Pool(), contentID, contententity.NewShareReferenceFromProfile(
-			uuid.NewString(),
-			"legacy profile title",
-			"https://example.com/legacy-profile.jpg",
-			false,
-		))
+		assertLegacyShareReferenceColumnAbsent(t, ctx, tdb.Pool())
 
 		data := getContentData(t, handler, viewerContext{userID: viewerID}, contentID)
 		assertProjectionLive(t, data, contententity.ContentResourceOccurrenceResourceTypeProfile, targetID)
@@ -86,12 +81,7 @@ func TestContentResourceProjectionAuthority_GetContentMatrix(t *testing.T) {
 			`, viewerID, targetID)
 			return err
 		}))
-		setLegacyShareReference(t, ctx, tdb.Pool(), contentID, contententity.NewShareReferenceFromProfile(
-			uuid.NewString(),
-			"attractive legacy profile",
-			"https://example.com/legacy-profile-leak.jpg",
-			false,
-		))
+		assertLegacyShareReferenceColumnAbsent(t, ctx, tdb.Pool())
 
 		data := getContentData(t, handler, viewerContext{userID: viewerID}, contentID)
 		assertProjectionTombstone(t, data, contententity.ContentResourceOccurrenceResourceTypeProfile, targetID)
@@ -107,12 +97,7 @@ func TestContentResourceProjectionAuthority_GetContentMatrix(t *testing.T) {
 			ResourceType: contententity.ContentResourceOccurrenceResourceTypeContent,
 			ResourceID:   targetContentID,
 		})
-		setLegacyShareReference(t, ctx, tdb.Pool(), contentID, contententity.NewShareReferenceFromContent(
-			uuid.NewString(),
-			"legacy content title",
-			"https://example.com/legacy-content.jpg",
-			false,
-		))
+		assertLegacyShareReferenceColumnAbsent(t, ctx, tdb.Pool())
 
 		data := getContentData(t, handler, viewerContext{userID: viewerID}, contentID)
 		assertProjectionLive(t, data, contententity.ContentResourceOccurrenceResourceTypeContent, targetContentID)
@@ -137,12 +122,7 @@ func TestContentResourceProjectionAuthority_GetContentMatrix(t *testing.T) {
 			`, viewerID, targetAuthorID)
 			return err
 		}))
-		setLegacyShareReference(t, ctx, tdb.Pool(), contentID, contententity.NewShareReferenceFromContent(
-			uuid.NewString(),
-			"content leak title",
-			"https://example.com/content-leak.jpg",
-			false,
-		))
+		assertLegacyShareReferenceColumnAbsent(t, ctx, tdb.Pool())
 
 		data := getContentData(t, handler, viewerContext{userID: viewerID}, contentID)
 		assertProjectionTombstone(t, data, contententity.ContentResourceOccurrenceResourceTypeContent, targetContentID)
@@ -158,14 +138,7 @@ func TestContentResourceProjectionAuthority_GetContentMatrix(t *testing.T) {
 			ResourceType: contententity.ContentResourceOccurrenceResourceTypeForSale,
 			ResourceID:   saleID,
 		})
-		setLegacyShareReference(t, ctx, tdb.Pool(), contentID, contententity.NewShareReferenceFromForSale(
-			uuid.NewString(),
-			"legacy fps title",
-			"https://example.com/legacy-fps.jpg",
-			true,
-			false,
-			false,
-		))
+		assertLegacyShareReferenceColumnAbsent(t, ctx, tdb.Pool())
 
 		data := getContentData(t, handler, viewerContext{userID: viewerID}, contentID)
 		assertProjectionLive(t, data, contententity.ContentResourceOccurrenceResourceTypeForSale, saleID)
@@ -187,14 +160,7 @@ func TestContentResourceProjectionAuthority_GetContentMatrix(t *testing.T) {
 			`, viewerID, sellerID)
 			return err
 		}))
-		setLegacyShareReference(t, ctx, tdb.Pool(), contentID, contententity.NewShareReferenceFromForSale(
-			uuid.NewString(),
-			"legacy fps leak",
-			"https://example.com/legacy-fps-leak.jpg",
-			true,
-			false,
-			false,
-		))
+		assertLegacyShareReferenceColumnAbsent(t, ctx, tdb.Pool())
 
 		data := getContentData(t, handler, viewerContext{userID: viewerID}, contentID)
 		assertProjectionTombstone(t, data, contententity.ContentResourceOccurrenceResourceTypeForSale, saleID)
@@ -204,14 +170,7 @@ func TestContentResourceProjectionAuthority_GetContentMatrix(t *testing.T) {
 	t.Run("fixed price sale missing source tombstones despite legacy blob", func(t *testing.T) {
 		viewerID := seedVisibilityHTTPUser(t, ctx, appDB, "active")
 		contentID, missingSaleID := createContentWithMissingForSaleOccurrence(t, ctx, tdb, handler, viewerID, "fps missing source")
-		setLegacyShareReference(t, ctx, tdb.Pool(), contentID, contententity.NewShareReferenceFromForSale(
-			uuid.NewString(),
-			"legacy fps missing source",
-			"https://example.com/legacy-fps-missing.jpg",
-			true,
-			false,
-			false,
-		))
+		assertLegacyShareReferenceColumnAbsent(t, ctx, tdb.Pool())
 
 		data := getContentData(t, handler, viewerContext{userID: viewerID}, contentID)
 		assertProjectionTombstone(t, data, contententity.ContentResourceOccurrenceResourceTypeForSale, missingSaleID)
@@ -227,14 +186,7 @@ func TestContentResourceProjectionAuthority_GetContentMatrix(t *testing.T) {
 			ResourceType: contententity.ContentResourceOccurrenceResourceTypeAuction,
 			ResourceID:   auctionID,
 		})
-		setLegacyShareReference(t, ctx, tdb.Pool(), contentID, contententity.NewShareReferenceFromAuction(
-			uuid.NewString(),
-			"legacy auction title",
-			"https://example.com/legacy-auction.jpg",
-			true,
-			false,
-			false,
-		))
+		assertLegacyShareReferenceColumnAbsent(t, ctx, tdb.Pool())
 
 		data := getContentData(t, handler, viewerContext{userID: viewerID}, contentID)
 		assertProjectionLive(t, data, contententity.ContentResourceOccurrenceResourceTypeAuction, auctionID)
@@ -256,14 +208,7 @@ func TestContentResourceProjectionAuthority_GetContentMatrix(t *testing.T) {
 			`, viewerID, sellerID)
 			return err
 		}))
-		setLegacyShareReference(t, ctx, tdb.Pool(), contentID, contententity.NewShareReferenceFromAuction(
-			uuid.NewString(),
-			"legacy auction leak",
-			"https://example.com/legacy-auction-leak.jpg",
-			true,
-			false,
-			false,
-		))
+		assertLegacyShareReferenceColumnAbsent(t, ctx, tdb.Pool())
 
 		data := getContentData(t, handler, viewerContext{userID: viewerID}, contentID)
 		assertProjectionTombstone(t, data, contententity.ContentResourceOccurrenceResourceTypeAuction, auctionID)
@@ -419,10 +364,11 @@ func createOrdinaryContentRow(
 
 	var contentID uuid.UUID
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		content, err := handler.contentService.CreateContent(
+		content, _, err := handler.contentService.CreateContentIdempotent(
 			ctx,
 			tx,
 			authorID,
+			uuid.NewString(),
 			caption,
 			contententity.VisibilityPublic,
 			nil,
@@ -486,10 +432,11 @@ func createContentWithMissingForSaleOccurrence(
 	var contentID uuid.UUID
 	missingSaleID := uuid.New()
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		content, err := handler.contentService.CreateContent(
+		content, _, err := handler.contentService.CreateContentIdempotent(
 			ctx,
 			tx,
 			authorID,
+			uuid.NewString(),
 			caption,
 			contententity.VisibilityPublic,
 			nil,
@@ -521,10 +468,14 @@ func createContentWithMissingForSaleOccurrence(
 	return contentID, missingSaleID
 }
 
-func setLegacyShareReference(t *testing.T, ctx context.Context, pool *pgxpool.Pool, contentID uuid.UUID, shareRef *contententity.ShareReference) {
+// assertLegacyShareReferenceColumnAbsent guards the canonical-read contract: the
+// legacy `contents.share_reference` preview blob must not exist, so every legacy
+// projection assertion in this suite is verified against a schema that cannot
+// carry a legacy blob. Content preview blobs are never constructed server-side
+// (no Content share-reference constructor exists) — the canonical Content read
+// authority is the viewer-aware resource projection.
+func assertLegacyShareReferenceColumnAbsent(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {
 	t.Helper()
-	_ = contentID
-	_ = shareRef
 
 	var shareRefExists bool
 	require.NoError(t, pool.QueryRow(ctx, `

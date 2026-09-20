@@ -90,15 +90,6 @@ func NewDispatcherWithRoomResolver(
 // The filter is IO-bound and called outside the hub lock. Stale subscribe-time
 // lifecycle MUST NOT be trusted here (ADR-005).
 func (d *Dispatcher) Dispatch(eventType string, payload []byte) error {
-	if eventType != EventTypeChatMessageSent &&
-		eventType != EventTypeChatRoomCreated &&
-		eventType != EventTypeChatRoomUpdated {
-		d.log.Debug("Skipping non-chat event",
-			zap.String("event_type", eventType),
-		)
-		return nil
-	}
-
 	if eventType == EventTypeChatRoomCreated || eventType == EventTypeChatRoomUpdated {
 		recipientID, roomPayload, err := d.resolveRoomEventRoute(payload)
 		if err != nil {
@@ -129,6 +120,15 @@ func (d *Dispatcher) Dispatch(eventType string, payload []byte) error {
 		)
 
 		return nil
+	}
+
+	if eventType != EventTypeChatMessageSent {
+		// OWNERSHIP SAFETY: the worker claims only realtime-owned event types
+		// (OwnedOutboxEventTypes), so an unknown type here means the ownership
+		// declaration and this dispatcher are out of sync. Failing loudly routes
+		// the event through the canonical retry/backoff path instead of silently
+		// marking it delivered.
+		return fmt.Errorf("realtime dispatcher has no delivery for owned event type %q", eventType)
 	}
 
 	roomID, messageID, err := d.resolveEventRoute(context.Background(), eventType, payload)
@@ -268,39 +268,3 @@ func (d *Dispatcher) resolveEventRoute(
 	}
 	return roomID, messageID, nil
 }
-
-// DispatchMany processes multiple events in batch.
-// Returns count of successfully dispatched events.
-func (d *Dispatcher) DispatchMany(events []EventToDispatch) (successCount int, err error) {
-	for _, e := range events {
-		if dispatchErr := d.Dispatch(e.EventType, e.Payload); dispatchErr != nil {
-			d.log.Error("Failed to dispatch event",
-				zap.String("event_id", e.ID.String()),
-				zap.String("event_type", e.EventType),
-				zap.Error(dispatchErr),
-			)
-			err = dispatchErr
-		} else {
-			successCount++
-		}
-	}
-	return successCount, err
-}
-
-// EventToDispatch represents an event to be dispatched.
-type EventToDispatch struct {
-	ID        uuid.UUID
-	EventType string
-	Payload   []byte
-}
-
-// ParseEventToDispatch creates an EventToDispatch from raw outbox data.
-func ParseEventToDispatch(id uuid.UUID, eventType string, payload []byte) EventToDispatch {
-	return EventToDispatch{
-		ID:        id,
-		EventType: eventType,
-		Payload:   payload,
-	}
-}
-
-

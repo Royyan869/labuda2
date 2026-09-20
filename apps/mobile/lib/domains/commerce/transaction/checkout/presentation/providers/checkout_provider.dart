@@ -6,6 +6,7 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/domains/commerce/transaction/checkout/domain/entities/checkout_request.dart';
 import 'package:labuda/domains/commerce/transaction/checkout/domain/entities/checkout_response.dart';
+// Re-exports CheckoutException (defined next to the repository implementation).
 import 'package:labuda/domains/commerce/transaction/checkout/data/checkout_providers.dart';
 import 'package:labuda/domains/commerce/transaction/checkout/domain/usecases/checkout_usecase_providers.dart';
 import 'package:labuda/domains/commerce/transaction/checkout/presentation/providers/checkout_state.dart';
@@ -58,11 +59,7 @@ class CheckoutNotifier extends Notifier<CheckoutState> {
       final response = result.data!;
       _logger?.info('Order created successfully: ${response.orderId}');
       // Clear idempotency key on success
-      state = state.copyWith(
-        isCreatingOrder: false,
-        response: response,
-        idempotencyKey: null,
-      );
+      state = state.copyWith(isCreatingOrder: false, idempotencyKey: null);
       return response;
     } on CheckoutException catch (e) {
       _logger?.error('Failed to create order: ${e.message}');
@@ -82,19 +79,9 @@ class CheckoutNotifier extends Notifier<CheckoutState> {
     }
   }
 
-  /// Reset the checkout state
-  void reset() {
-    state = const CheckoutState();
-  }
-
   /// Clear error but preserve idempotency key for retry
   void clearError() {
     state = state.copyWith(error: null);
-  }
-
-  /// Clear idempotency key (call when starting a new checkout attempt)
-  void clearIdempotencyKey() {
-    state = state.copyWith(idempotencyKey: null);
   }
 }
 
@@ -107,37 +94,3 @@ class CheckoutNotifier extends Notifier<CheckoutState> {
 ///        ref.read(checkoutNotifierProvider.notifier).createOrder(...) to create order
 final checkoutNotifierProvider =
     NotifierProvider<CheckoutNotifier, CheckoutState>(CheckoutNotifier.new);
-
-// =============================================================================
-// CHECKOUT CONTROLLER (Business Logic)
-// =============================================================================
-
-/// Checkout Controller
-///
-/// Handles business logic for checkout flow
-class CheckoutController {
-  final CheckoutRepository _repository;
-  final ILoggerService? _logger;
-
-  CheckoutController(this._repository, {ILoggerService? logger})
-    : _logger = logger;
-
-  /// Create order with the given checkout request
-  Future<CheckoutResponse> createOrder(CheckoutRequest request) async {
-    try {
-      final response = await _repository.createOrder(request);
-      _logger?.info('Order created successfully: ${response.orderId}');
-      return response;
-    } catch (e, stackTrace) {
-      _logger?.error('Failed to create order: $e', stackTrace: stackTrace);
-      rethrow;
-    }
-  }
-}
-
-/// Provider for CheckoutController
-final checkoutControllerProvider = Provider<CheckoutController>((ref) {
-  final repository = ref.watch(checkoutRepositoryProvider);
-  final logger = ref.watch(loggerServiceProvider);
-  return CheckoutController(repository, logger: logger);
-});

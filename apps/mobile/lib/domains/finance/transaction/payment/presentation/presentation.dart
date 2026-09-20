@@ -13,8 +13,6 @@
 library;
 
 // Widgets
-export 'widgets/payment_method_tile.dart';
-export 'widgets/payment_method_selector_sheet.dart';
 export 'widgets/payment_method_picker_sheet.dart';
 
 // Payment initiation (PAYMENT INITIATION FLOW)

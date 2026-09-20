@@ -232,7 +232,7 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
             child: TabBarView(
               controller: _tabController,
               children: [
-                _ListingTab(
+                _ForSaleTab(
                   searchQuery: _searchQuery,
                   selectedItems: _selectedItems,
                   onToggleSelection: _toggleSelection,
@@ -291,13 +291,13 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
   }
 }
 
-/// Listing Tab
-class _ListingTab extends ConsumerWidget {
+/// ForSale Tab
+class _ForSaleTab extends ConsumerWidget {
   final String searchQuery;
   final List<ShareReference> selectedItems;
   final Function(ShareReference, String) onToggleSelection;
 
-  const _ListingTab({
+  const _ForSaleTab({
     required this.searchQuery,
     required this.selectedItems,
     required this.onToggleSelection,
@@ -309,7 +309,7 @@ class _ListingTab extends ConsumerWidget {
     final currentUserId = ref.watch(currentUserIdProvider);
 
     // Watch seller for-sales
-    final listingsAsync = currentUserId.isEmpty
+    final forSalesAsync = currentUserId.isEmpty
         ? const AsyncValue.data(<ForSale>[])
         : ref.watch(
             sellerForSalesProvider(
@@ -317,12 +317,12 @@ class _ListingTab extends ConsumerWidget {
             ),
           );
 
-    return listingsAsync.when(
-      data: (listings) {
-        // Filter: only active listings (not sold, not withdrawn) + search query
-        final filteredListings = listings.where((l) {
-          // AVAILABILITY ENFORCEMENT: Only show listings that are available for commerce
-          // This prevents sellers from attaching sold/withdrawn listings to content
+    return forSalesAsync.when(
+      data: (forSales) {
+        // Filter: only active forSales (not sold, not withdrawn) + search query
+        final filteredForSales = forSales.where((l) {
+          // AVAILABILITY ENFORCEMENT: Only show forSales that are available for commerce
+          // This prevents sellers from attaching sold/withdrawn forSales to content
           final isAvailable = l.status == ForSaleStatus.active;
           final matchesSearch =
               searchQuery.isEmpty ||
@@ -330,44 +330,44 @@ class _ListingTab extends ConsumerWidget {
           return isAvailable && matchesSearch;
         }).toList();
 
-        if (filteredListings.isEmpty) {
+        if (filteredForSales.isEmpty) {
           return _EmptyState(
             icon: Icons.collections_bookmark_outlined,
-            message: 'Tidak ada listing',
+            message: 'Tidak ada forSale',
           );
         }
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: filteredListings.length,
+          itemCount: filteredForSales.length,
           itemBuilder: (context, index) {
-            final listing = filteredListings[index];
+            final forSale = filteredForSales[index];
             final isSelected = selectedItems.any(
               (item) =>
                   item.targetType == ShareTargetType.forSale &&
-                  item.targetId == listing.forSaleId,
+                  item.targetId == forSale.forSaleId,
             );
 
             return LinkListItem(
-              imageUrl: listing.media.firstOrNull?.originalUrl,
-              title: listing.title,
-              subtitle: listing.description,
-              price: listing.price > 0
-                  ? 'Rp${listing.price.toStringAsFixed(0)}'
+              imageUrl: forSale.media.firstOrNull?.originalUrl,
+              title: forSale.title,
+              subtitle: forSale.description,
+              price: forSale.price > 0
+                  ? 'Rp${forSale.price.toStringAsFixed(0)}'
                   : null,
-              badge: listing.status.displayName,
+              badge: forSale.status.displayName,
               badgeColor: AppColors.primaryGreen,
               isSelected: isSelected,
               onTap: () => onToggleSelection(
                 ShareReference.forSale(
-                  forSaleId: listing.forSaleId,
-                  title: listing.title,
-                  imageUrl: listing.media.firstOrNull?.originalUrl,
+                  forSaleId: forSale.forSaleId,
+                  title: forSale.title,
+                  imageUrl: forSale.media.firstOrNull?.originalUrl,
                   isAvailable: true, // Filtered to active only
                   isSold: false, // Filtered out sold
                   isDeleted: false, // No deleted status in ForSaleStatus
                 ),
-                listing.forSaleId,
+                forSale.forSaleId,
               ),
             );
           },
@@ -376,7 +376,7 @@ class _ListingTab extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stack) => _EmptyState(
         icon: Icons.error_outline,
-        message: 'Gagal memuat listing',
+        message: 'Gagal memuat forSale',
       ),
     );
   }

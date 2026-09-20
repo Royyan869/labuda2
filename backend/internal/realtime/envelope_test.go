@@ -124,29 +124,6 @@ func TestMarshalChatRoomUpdated_CanonicalEnvelope(t *testing.T) {
 	requireStringField(t, env.Data, "last_message_at", "2026-06-14T00:02:00Z")
 }
 
-func TestMarshalChatRoomRemoved_CanonicalEnvelope(t *testing.T) {
-	env := decodeEnvelope(t, marshalChatRoomRemoved(ChatRoomRemovedPayload{
-		RoomID:    uuid.NewString(),
-		Reason:    "visibility_changed",
-		UpdatedAt: "2026-06-14T00:03:00Z",
-	}))
-
-	if env.Type != "chat.room.removed" {
-		t.Fatalf("type=%q want chat.room.removed", env.Type)
-	}
-	requireStringField(t, env.Data, "reason", "visibility_changed")
-	requireStringField(t, env.Data, "updated_at", "2026-06-14T00:03:00Z")
-	if _, ok := env.Data["context"]; ok {
-		t.Fatal("removed payload must not include context")
-	}
-	if _, ok := env.Data["last_message"]; ok {
-		t.Fatal("removed payload must not include last_message")
-	}
-	if _, ok := env.Data["unread_count"]; ok {
-		t.Fatal("removed payload must not include unread_count")
-	}
-}
-
 func TestMarshalWSError_CanonicalEnvelope(t *testing.T) {
 	env := decodeEnvelope(t, marshalWSError("client-msg-err", "rate_limit_exceeded", "subscribe"))
 

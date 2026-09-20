@@ -73,7 +73,7 @@ func (r *negotiationFakeChatRepo) GetMessageByID(context.Context, interface{}, u
 func (r *negotiationFakeChatRepo) ListMessagesByRoom(context.Context, interface{}, uuid.UUID, *time.Time, *uuid.UUID, int) ([]*chatEntity.ChatMessage, error) {
 	return nil, nil
 }
-func (r *negotiationFakeChatRepo) GetMessageByIdempotencyKey(context.Context, interface{}, string) (*chatEntity.ChatMessage, error) {
+func (r *negotiationFakeChatRepo) GetMessageByIdempotencyKey(context.Context, interface{}, uuid.UUID, string) (*chatEntity.ChatMessage, error) {
 	return nil, chatRepo.ErrMessageNotFound
 }
 func (r *negotiationFakeChatRepo) SoftHideForModeration(context.Context, interface{}, uuid.UUID, uuid.UUID, string) error {
@@ -100,6 +100,13 @@ func (r *negotiationFakeChatRepo) ListReadStatesByRoom(context.Context, interfac
 func (r *negotiationFakeChatRepo) GetUnreadCountByRoomAndUser(context.Context, interface{}, uuid.UUID, uuid.UUID) (int, error) {
 	return 0, nil
 }
+func (r *negotiationFakeChatRepo) GetUnreadCountsByRoomIDs(_ context.Context, _ interface{}, roomIDs []uuid.UUID, _ uuid.UUID) (map[uuid.UUID]int, error) {
+	out := make(map[uuid.UUID]int, len(roomIDs))
+	for _, id := range roomIDs {
+		out[id] = 0
+	}
+	return out, nil
+}
 
 var _ chatRepo.Repository = (*negotiationFakeChatRepo)(nil)
 
@@ -119,9 +126,6 @@ func (f *negotiationFakeSocialRepo) ExistsFollow(context.Context, interface{}, u
 }
 func (f *negotiationFakeSocialRepo) AcquireFollowLock(context.Context, interface{}, uuid.UUID, uuid.UUID) error {
 	return nil
-}
-func (f *negotiationFakeSocialRepo) IsBlockedBy(context.Context, interface{}, uuid.UUID, uuid.UUID) (bool, error) {
-	return false, nil
 }
 func (f *negotiationFakeSocialRepo) ListFollowers(context.Context, interface{}, uuid.UUID, int, *time.Time) ([]uuid.UUID, error) {
 	return nil, nil

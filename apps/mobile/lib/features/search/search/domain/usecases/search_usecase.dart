@@ -9,7 +9,7 @@ import 'package:labuda/features/search/search/domain/repositories/search_reposit
 /// **RESPONSIBILITY:** Execute the canonical unified search for a query.
 ///
 /// SECTION-BASED ALL (canonical): the only unified-search command is
-/// [searchAll]. It returns per-domain collections (users, listings,
+/// [searchAll]. It returns per-domain collections (users, forSales,
 /// auctions, contents) that keep their canonical backend ordering; the
 /// All tab renders them as independent sections. There is no per-type
 /// re-search that merges back into unified state and no cross-domain

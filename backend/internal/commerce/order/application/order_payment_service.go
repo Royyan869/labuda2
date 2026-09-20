@@ -14,10 +14,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/commerce/order/entity"
 	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
-	escrowEntity "github.com/labuda/backend/internal/core/escrow/entity"
 	coinsentity "github.com/labuda/backend/internal/incentive/coins/entity"
 	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
 )
 
 // OrderPaymentService handles payment operations for orders.
@@ -103,8 +101,9 @@ type OrderPaymentService struct {
 	gatewayRefundInitiator GatewayRefundInitiator
 
 	// coinsSpendReader resolves the canonical coins spent (K) for an order
-	// from the coins domain (coins_transactions), NOT from orders.coins_used
-	// (dead, never persisted). Wired via SetCoinsSpendReader; nil-safe (K=0).
+	// from the coins domain (coins_transactions). The order persists no coins
+	// snapshot at all, so the coins domain is the only place K can come from.
+	// Wired via SetCoinsSpendReader; nil-safe (K=0).
 	coinsSpendReader CoinsSpendReader
 }
 
@@ -113,7 +112,7 @@ type OrderPaymentService struct {
 // coinsRepo.FindSpendByReference against coins_transactions
 // (reference_type='order_spend', reference_id=order_id), matching the worker's
 // CoinsRefundRequiredHandler.findSpendTransaction. K is a coin-subsystem
-// concern and must never be read from orders.coins_used.
+// concern: the order carries no coins snapshot to read it from.
 type CoinsSpendReader interface {
 	FindSpendByReference(ctx context.Context, tx db.Tx, userID uuid.UUID, referenceID uuid.UUID) (*coinsentity.CoinsTransaction, error)
 }
@@ -181,14 +180,17 @@ var ErrGatewayRefundInitiatorNotConfigured = fmt.Errorf("gateway refund initiato
 // be aborted by the caller (return the error up); the local state never
 // pretends a refund happened when the gateway refused.
 //
-// systemUserID is the platform identity recorded as the admin on the refund
-// row (typically auth.SystemCallerID). idempotencyKey MUST be deterministic
-// per (orderID, trigger) so replays converge to a single refund row.
+// reviewerID is the human admin who decided this refund, recorded as
+// refunds.reviewed_by. Automatic platform/system refunds have no human reviewer
+// and MUST pass uuid.Nil (persisted as NULL) — auth.SystemCallerID is an
+// authorization/audit sentinel and is never a persistable users.id.
+// idempotencyKey MUST be deterministic per (orderID, trigger) so replays
+// converge to a single refund row.
 func (s *OrderPaymentService) InitiateGatewayRefundForOrder(
 	ctx context.Context,
 	tx db.Tx,
 	order *entity.Order,
-	systemUserID uuid.UUID,
+	reviewerID uuid.UUID,
 	refundAmount int64,
 	reason string,
 	idempotencyKey string,
@@ -206,12 +208,16 @@ func (s *OrderPaymentService) InitiateGatewayRefundForOrder(
 	// CANONICAL SNAPSHOT DERIVATION: PD = TotalBeforeCoins - S where
 	// TotalBeforeCoins = (P-D)+S is the persisted, token-validated buyer
 	// funding base. orders.discount_amount is NOT authoritative (never
-	// persisted). K is resolved from the coins domain, never from
-	// orders.coins_used.
-	pd := order.TotalBeforeCoinsAmount.Int64() - order.ShippingTotal.Int64()
-	if pd <= 0 {
-		pd = order.Subtotal.Int64()
+	// persisted). K is resolved from the coins domain; the order carries no
+	// coins snapshot.
+	//
+	// FAIL CLOSED: no fallback to Subtotal (P). PD is derived ONLY through the
+	// order entity's canonical derivation; an order without a valid buyer-funded
+	// base has no derivable PD and must not dispatch a refund.
+	if !order.HasCanonicalMoneyBase() {
+		return fmt.Errorf("InitiateGatewayRefundForOrder: canonical money base invalid (order_id=%s total_before_coins=%d shipping=%d) — no P fallback", order.ID.String(), order.TotalBeforeCoinsAmount.Int64(), order.ShippingTotal.Int64())
 	}
+	pd := order.DiscountedProductAmount().Int64()
 	sVal := order.ShippingTotal.Int64()
 	cVal := order.CommissionAmount.Int64()
 	kVal, err := s.coinsSpendForOrder(ctx, tx, order.BuyerID, order.ID)
@@ -223,7 +229,7 @@ func (s *OrderPaymentService) InitiateGatewayRefundForOrder(
 		order.ID,
 		order.BuyerID,
 		order.SellerID,
-		systemUserID,
+		reviewerID,
 		refundAmount, // productAmount (legacy single-amount callers)
 		0,            // shippingAmount (legacy single-amount callers)
 		pd,
@@ -262,24 +268,6 @@ func (s *OrderPaymentService) RefundToBuyer(
 	order *entity.Order,
 ) error {
 	_, _, err := s.escrowService.RefundGatewayEscrow(ctx, tx, order.ID)
-	return err
-}
-
-// PartialRefundLedger flips the order's escrow to "released" (terminal)
-// when a portion is refunded to the buyer and the remainder released to the
-// seller (e.g., partial dispute resolution). No balance mutation;
-// ledger entries are written separately via the refund pipeline + order
-// release ledger.
-//
-// NOT idempotent against re-execution that changes the split: callers must
-// commit a single partial-refund decision.
-func (s *OrderPaymentService) PartialRefundLedger(
-	ctx context.Context,
-	tx db.Tx,
-	order *entity.Order,
-	refundAmount money.Money,
-) error {
-	_, _, err := s.escrowService.PartialRefundGatewayEscrow(ctx, tx, order.ID, refundAmount.Int64())
 	return err
 }
 
@@ -325,10 +313,10 @@ func (s *OrderPaymentService) ReleaseGatewayEscrowToSeller(
 	// amount-match guard stays consistent.
 	gross := order.TotalBeforeCoinsAmount.Int64()
 	if gross <= 0 {
-		// Legacy rows / test fixtures without a persisted buyer base: fall
-		// back to the previous product+shipping+commission gross so the
-		// release remains functional for pre-convergence rows.
-		gross = order.Subtotal.Int64() + order.ShippingTotal.Int64() + order.CommissionAmount.Int64()
+		// FAIL CLOSED: no fallback to P+S or P+S+C. Without the persisted
+		// canonical buyer-funded base (PD + S) there is no funded gross to
+		// release, so no money may move.
+		return nil, fmt.Errorf("ReleaseGatewayEscrowToSeller: canonical buyer-funded base invalid (order_id=%s total_before_coins=%d) — refusing to release without the pricing-token base", order.ID.String(), gross)
 	}
 	commission := order.CommissionAmount.Int64()
 	if commission > gross {
@@ -358,17 +346,4 @@ func (s *OrderPaymentService) ReleaseGatewayEscrowToSeller(
 		SellerNet:     sellerNet,
 		NewlyReleased: newly,
 	}, nil
-}
-
-// PartialRefundEscrow flips the escrow to "released" (terminal) for partial
-// split dispute resolution: buyer is refunded item price, seller is released
-// shipping. No balance mutation; ledger entries are written elsewhere.
-func (s *OrderPaymentService) PartialRefundEscrow(
-	ctx context.Context,
-	tx db.Tx,
-	orderID uuid.UUID,
-	refundAmount int64,
-) (*escrowEntity.Escrow, error) {
-	escrow, _, err := s.escrowService.PartialRefundGatewayEscrow(ctx, tx, orderID, refundAmount)
-	return escrow, err
 }

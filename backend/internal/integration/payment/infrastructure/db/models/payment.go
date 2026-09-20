@@ -44,9 +44,16 @@ func (PaymentDB) TableName() string {
 // This is the NEW financial-grade webhook event tracking model
 // GORM tags removed - migration now handled via SQL
 type PaymentWebhookEventDB struct {
-	ID              uuid.UUID  `json:"id"`
-	Provider        string     `json:"provider"`
-	EventID         string     `json:"event_id"`
+	ID       uuid.UUID `json:"id"`
+	Provider string    `json:"provider"`
+	// EventID is the Midtrans gateway TRANSACTION reference (transaction_id).
+	// It is NOT unique: one transaction emits several notifications as its
+	// status advances (REC-3).
+	EventID string `json:"event_id"`
+	// NotificationKey is the canonical identity of ONE notification and the
+	// table's uniqueness authority (migration 000098, pkg/midtrans
+	// NotificationIdentity).
+	NotificationKey string     `json:"notification_key"`
 	MidtransOrderID *string    `json:"midtrans_order_id,omitempty"`
 	PaymentID       *uuid.UUID `json:"payment_id,omitempty"`
 	SignatureKey    string     `json:"signature_key"`
@@ -95,14 +102,6 @@ func (e *PaymentWebhookEventDB) MarkAsFailed(errMsg string) {
 	e.Status = "failed"
 	e.ProcessedAt = &now
 	e.ErrorMessage = &errMsg
-}
-
-// MarkAsOrphaned marks the event as orphaned (payment not found)
-func (e *PaymentWebhookEventDB) MarkAsOrphaned(reason string) {
-	now := time.Now()
-	e.Status = "orphaned"
-	e.ProcessedAt = &now
-	e.ErrorMessage = &reason
 }
 
 // MarkAsManualReview marks the event as requiring manual review.

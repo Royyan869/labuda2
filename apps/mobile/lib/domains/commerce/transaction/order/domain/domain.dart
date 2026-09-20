@@ -20,9 +20,8 @@ export 'entities/order_source.dart';
 export 'entities/refund_request.dart';
 export 'entities/order_page_result.dart';
 export 'entities/refund_history_page_result.dart';
-export 'entities/order_confirmation.dart';
 // ShippingProof is owned by shipping domain (features/shipping/domain/repositories/shipping_repository.dart)
 
 // Re-export core types used by order domain
 export 'package:labuda/core/common/types/payment_types.dart'
-    show PaymentMethodType, PaymentStatus, PaymentChannel;
+    show PaymentMethodType, PaymentStatus;

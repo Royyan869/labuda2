@@ -1,22 +1,10 @@
-import { RefreshCw, Users, Inbox } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { RefreshCw } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table'
-import { useSupportStats, useSupportAdmins } from '@/hooks/useSupportOverview'
-import { formatDate } from '@/lib/utils'
+import { useSupportStats } from '@/hooks/useSupportOverview'
 
 export function SupportOverviewPage() {
-  const { stats, loading: statsLoading, error: statsError, refetch: refetchStats } = useSupportStats()
-  const { admins, loading: adminsLoading, error: adminsError, refetch: refetchAdmins } = useSupportAdmins()
-
-  const loading = statsLoading || adminsLoading
-  const error = statsError || adminsError
-
-  const refetch = () => {
-    refetchStats()
-    refetchAdmins()
-  }
+  const { stats, loading, error, refetch } = useSupportStats()
 
   if (loading) {
     return (
@@ -34,7 +22,7 @@ export function SupportOverviewPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Support Overview</h1>
-          <p className="text-gray-600 mt-1">Ticket statistics and admin workload</p>
+          <p className="text-gray-600 mt-1">Ticket statistics across the support queue</p>
         </div>
         <Card>
           <CardContent className="p-6">
@@ -57,7 +45,7 @@ export function SupportOverviewPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Support Overview</h1>
-          <p className="text-gray-600 mt-1">Ticket statistics and admin workload</p>
+          <p className="text-gray-600 mt-1">Ticket statistics across the support queue</p>
         </div>
         <Button variant="secondary" onClick={refetch} className="gap-2">
           <RefreshCw className="h-4 w-4" />
@@ -65,7 +53,10 @@ export function SupportOverviewPage() {
         </Button>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid.
+          Agent workload is deliberately NOT a separate admin pool: assignment
+          authority is support_tickets.assigned_admin_id, so per-agent load is
+          read from the tickets themselves (filter the ticket list by agent). */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
@@ -112,60 +103,6 @@ export function SupportOverviewPage() {
           </Card>
         </div>
       )}
-
-      {/* Admin Workload */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Support Admins
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {admins.length === 0 ? (
-            <div className="text-center py-12">
-              <Inbox className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Support Admins</h3>
-              <p className="text-gray-600">No support admin records found.</p>
-            </div>
-          ) : (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Admin ID</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Active Tickets</TableHead>
-                    <TableHead>Last Assigned</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {admins.map((admin) => (
-                    <TableRow key={admin.id}>
-                      <TableCell className="font-mono text-sm">
-                        {admin.id.slice(0, 8)}...
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={admin.is_active ? 'success' : 'default'}>
-                          {admin.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className={admin.active_ticket_count > 5 ? 'font-bold text-amber-600' : ''}>
-                          {admin.active_ticket_count}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600">
-                        {admin.last_assigned_at ? formatDate(admin.last_assigned_at) : '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   )
 }

@@ -11,7 +11,7 @@ import 'package:equatable/equatable.dart';
 /// - Chat is only a transport layer for proposals, not the owner
 ///
 /// **DISPLAY FIELDS (UI-ONLY CACHE):**
-/// - listingName, listingImage, buyerName, buyerAvatar, sellerAvatar
+/// - forSaleName, forSaleImage, buyerName, buyerAvatar, sellerAvatar
 /// - These are NOT provided by backend API
 /// - Mobile app populates these from chat context for UI display only
 /// - For any commerce logic, always resolve via backend canonical flow
@@ -28,8 +28,8 @@ class Negotiation extends Equatable {
   final String id;
   final String chatId;
   final String fixedPriceSaleId;
-  final String listingName;
-  final String? listingImage;
+  final String forSaleName;
+  final String? forSaleImage;
   final double originalPrice;
 
   /// Buyer info
@@ -54,7 +54,7 @@ class Negotiation extends Equatable {
   ///
   /// **CONVERSION TO CHECKOUT:**
   /// When status is accepted, buyer can proceed to checkout using:
-  /// - PreviewOrderParams.forNegotiation(negotiationId, fixedPriceSaleId, ...)
+  /// - PreviewOrderParams(negotiationId: ..., sourceType: ..., sourceId: ...)
   /// - Backend validates negotiation state and returns pricing token
   /// - Order creation requires valid pricing token (10 min expiry)
   /// - Backend stores OrderID in NegotiationSession to prevent duplicate settlement
@@ -72,8 +72,8 @@ class Negotiation extends Equatable {
     required this.id,
     required this.chatId,
     required this.fixedPriceSaleId,
-    required this.listingName,
-    this.listingImage,
+    required this.forSaleName,
+    this.forSaleImage,
     required this.originalPrice,
     required this.buyerId,
     required this.buyerName,
@@ -147,8 +147,8 @@ class Negotiation extends Equatable {
     id,
     chatId,
     fixedPriceSaleId,
-    listingName,
-    listingImage,
+    forSaleName,
+    forSaleImage,
     originalPrice,
     buyerId,
     buyerName,
@@ -171,8 +171,8 @@ class Negotiation extends Equatable {
     String? id,
     String? chatId,
     String? fixedPriceSaleId,
-    String? listingName,
-    String? listingImage,
+    String? forSaleName,
+    String? forSaleImage,
     double? originalPrice,
     String? buyerId,
     String? buyerName,
@@ -194,8 +194,8 @@ class Negotiation extends Equatable {
       id: id ?? this.id,
       chatId: chatId ?? this.chatId,
       fixedPriceSaleId: fixedPriceSaleId ?? this.fixedPriceSaleId,
-      listingName: listingName ?? this.listingName,
-      listingImage: listingImage ?? this.listingImage,
+      forSaleName: forSaleName ?? this.forSaleName,
+      forSaleImage: forSaleImage ?? this.forSaleImage,
       originalPrice: originalPrice ?? this.originalPrice,
       buyerId: buyerId ?? this.buyerId,
       buyerName: buyerName ?? this.buyerName,

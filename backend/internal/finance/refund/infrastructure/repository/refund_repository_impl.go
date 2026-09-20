@@ -68,7 +68,10 @@ func (r *RefundRepositoryImpl) Create(
 		refund.AdminApprovedPercent,
 		refund.AdminApprovedAmount,
 		refund.AdminNotes,
-		refund.ReviewedBy,
+		// Canonical attribution: uuid.Nil persists as SQL NULL. An automatic
+		// system refund has no human reviewer and MUST store reviewed_by = NULL;
+		// only a genuine human decision carries a real users.id.
+		nullableUUID(refund.ReviewedBy),
 		refund.AdminReviewedAt,
 		refund.FinalRefundAmount,
 		refund.RefundedProductAmount,
@@ -283,30 +286,6 @@ func (r *RefundRepositoryImpl) GetByGatewayRefundID(
 	return refund, nil
 }
 
-// GetSuccessfulRefundTotalByOrder returns the cumulative amount of successful
-// refunds already recorded for an order. Gateway success is authoritative;
-// final_refund_amount is used as the stored canonical amount once success lands.
-func (r *RefundRepositoryImpl) GetSuccessfulRefundTotalByOrder(
-	ctx context.Context,
-	tx db.Tx,
-	orderID uuid.UUID,
-	excludeRefundID *uuid.UUID,
-) (int64, error) {
-	var total int64
-	err := tx.QueryRow(ctx, `
-		SELECT COALESCE(SUM(final_refund_amount), 0)
-		FROM refunds
-		WHERE order_id = $1
-		  AND gateway_status = $2
-		  AND final_refund_amount IS NOT NULL
-		  AND ($3::uuid IS NULL OR id <> $3)
-	`, orderID, string(entity.GatewayRefundSucceeded), excludeRefundID).Scan(&total)
-	if err != nil {
-		return 0, fmt.Errorf("get successful refund total by order failed: %w", err)
-	}
-	return total, nil
-}
-
 // GetCumulativeProductRefundByOrder returns the cumulative product-portion
 // refunded across all gateway-succeeded refunds for the order, excluding the
 // given refund ID (typically the in-flight row being processed).
@@ -485,229 +464,49 @@ func (r *RefundRepositoryImpl) Update(
 	return nil
 }
 
-// ListByBuyer retrieves refunds for a buyer with pagination.
-func (r *RefundRepositoryImpl) ListByBuyer(
-	ctx context.Context,
-	tx db.Tx,
-	buyerID uuid.UUID,
-	limit int,
-	offset int64,
-) ([]*entity.Refund, error) {
-	rows, err := tx.Query(ctx, `
-		SELECT id, order_id, seller_id, reason, description, status,
-		       requested_amount,
-		       seller_approved_percent, seller_approved_amount, seller_notes, seller_reviewed_at,
-		       admin_approved_percent, admin_approved_amount, admin_notes, reviewed_by, admin_reviewed_at,
-		       final_refund_amount,
-		       opened_at, approved_at, rejected_at, refunded_at,
-		       created_at, updated_at
-		FROM refunds
-		WHERE buyer_id = $1
-		ORDER BY created_at DESC
-		LIMIT $2 OFFSET $3
-	`, buyerID, limit, offset)
-
-	if err != nil {
-		return nil, fmt.Errorf("list refunds by buyer failed: %w", err)
-	}
-	defer rows.Close()
-
-	var refunds []*entity.Refund
-	for rows.Next() {
-		var id, orderID, sellerID uuid.UUID
-		var reason, status string
-		var description *string
-		var requestedAmount int64
-		var sellerApprovedPercent *int
-		var sellerApprovedAmount *int64
-		var sellerNotes *string
-		var sellerReviewedAt *time.Time
-		var adminApprovedPercent *int
-		var adminApprovedAmount *int64
-		var adminNotes *string
-		var reviewedBy *uuid.UUID
-		var adminReviewedAt *time.Time
-		var finalRefundAmount *int64
-		var openedAt, approvedAt, rejectedAt, refundedAt *time.Time
-		var createdAt, updatedAt time.Time
-
-		if err := rows.Scan(
-			&id, &orderID, &sellerID, &reason, &description, &status,
-			&requestedAmount,
-			&sellerApprovedPercent, &sellerApprovedAmount, &sellerNotes, &sellerReviewedAt,
-			&adminApprovedPercent, &adminApprovedAmount, &adminNotes, &reviewedBy, &adminReviewedAt,
-			&finalRefundAmount,
-			&openedAt, &approvedAt, &rejectedAt, &refundedAt,
-			&createdAt, &updatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scan refund failed: %w", err)
-		}
-
-		// Handle nullable reviewedBy
-		var reviewedByID uuid.UUID
-		if reviewedBy != nil {
-			reviewedByID = *reviewedBy
-		}
-
-		refund := &entity.Refund{
-			ID:                    id,
-			OrderID:               orderID,
-			BuyerID:               buyerID,
-			SellerID:              sellerID,
-			Reason:                entity.RefundReason(reason),
-			Description:           description,
-			EvidenceURLs:          []string{}, // Not loaded in list view
-			Status:                entity.RefundStatus(status),
-			RequestedAmount:       requestedAmount,
-			SellerApprovedPercent: sellerApprovedPercent,
-			SellerApprovedAmount:  sellerApprovedAmount,
-			SellerNotes:           sellerNotes,
-			SellerReviewedAt:      sellerReviewedAt,
-			AdminApprovedPercent:  adminApprovedPercent,
-			AdminApprovedAmount:   adminApprovedAmount,
-			AdminNotes:            adminNotes,
-			ReviewedBy:            reviewedByID,
-			AdminReviewedAt:       adminReviewedAt,
-			FinalRefundAmount:     finalRefundAmount,
-			OpenedAt:              *openedAt,
-			ApprovedAt:            approvedAt,
-			RejectedAt:            rejectedAt,
-			RefundedAt:            refundedAt,
-			CreatedAt:             createdAt,
-			UpdatedAt:             updatedAt,
-		}
-
-		refunds = append(refunds, refund)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate refunds failed: %w", err)
-	}
-
-	return refunds, nil
-}
-
-// ListBySeller retrieves refunds for a seller with pagination.
-func (r *RefundRepositoryImpl) ListBySeller(
-	ctx context.Context,
-	tx db.Tx,
-	sellerID uuid.UUID,
-	limit int,
-	offset int64,
-) ([]*entity.Refund, error) {
-	rows, err := tx.Query(ctx, `
-		SELECT id, order_id, buyer_id, reason, description, status,
-		       requested_amount,
-		       seller_approved_percent, seller_approved_amount, seller_notes, seller_reviewed_at,
-		       admin_approved_percent, admin_approved_amount, admin_notes, reviewed_by, admin_reviewed_at,
-		       final_refund_amount,
-		       opened_at, approved_at, rejected_at, refunded_at,
-		       created_at, updated_at
-		FROM refunds
-		WHERE seller_id = $1
-		ORDER BY created_at DESC
-		LIMIT $2 OFFSET $3
-	`, sellerID, limit, offset)
-
-	if err != nil {
-		return nil, fmt.Errorf("list refunds by seller failed: %w", err)
-	}
-	defer rows.Close()
-
-	var refunds []*entity.Refund
-	for rows.Next() {
-		var id, orderID, buyerID uuid.UUID
-		var reason, status string
-		var description *string
-		var requestedAmount int64
-		var sellerApprovedPercent *int
-		var sellerApprovedAmount *int64
-		var sellerNotes *string
-		var sellerReviewedAt *time.Time
-		var adminApprovedPercent *int
-		var adminApprovedAmount *int64
-		var adminNotes *string
-		var reviewedBy *uuid.UUID
-		var adminReviewedAt *time.Time
-		var finalRefundAmount *int64
-		var openedAt, approvedAt, rejectedAt, refundedAt *time.Time
-		var createdAt, updatedAt time.Time
-
-		if err := rows.Scan(
-			&id, &orderID, &buyerID, &reason, &description, &status,
-			&requestedAmount,
-			&sellerApprovedPercent, &sellerApprovedAmount, &sellerNotes, &sellerReviewedAt,
-			&adminApprovedPercent, &adminApprovedAmount, &adminNotes, &reviewedBy, &adminReviewedAt,
-			&finalRefundAmount,
-			&openedAt, &approvedAt, &rejectedAt, &refundedAt,
-			&createdAt, &updatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scan refund failed: %w", err)
-		}
-
-		// Handle nullable reviewedBy
-		var reviewedByID uuid.UUID
-		if reviewedBy != nil {
-			reviewedByID = *reviewedBy
-		}
-
-		refund := &entity.Refund{
-			ID:                    id,
-			OrderID:               orderID,
-			BuyerID:               buyerID,
-			SellerID:              sellerID,
-			Reason:                entity.RefundReason(reason),
-			Description:           description,
-			EvidenceURLs:          []string{}, // Not loaded in list view
-			Status:                entity.RefundStatus(status),
-			RequestedAmount:       requestedAmount,
-			SellerApprovedPercent: sellerApprovedPercent,
-			SellerApprovedAmount:  sellerApprovedAmount,
-			SellerNotes:           sellerNotes,
-			SellerReviewedAt:      sellerReviewedAt,
-			AdminApprovedPercent:  adminApprovedPercent,
-			AdminApprovedAmount:   adminApprovedAmount,
-			AdminNotes:            adminNotes,
-			ReviewedBy:            reviewedByID,
-			AdminReviewedAt:       adminReviewedAt,
-			FinalRefundAmount:     finalRefundAmount,
-			OpenedAt:              *openedAt,
-			ApprovedAt:            approvedAt,
-			RejectedAt:            rejectedAt,
-			RefundedAt:            refundedAt,
-			CreatedAt:             createdAt,
-			UpdatedAt:             updatedAt,
-		}
-
-		refunds = append(refunds, refund)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate refunds failed: %w", err)
-	}
-
-	return refunds, nil
-}
-
-// HasActiveRefundByOrderID returns true if the order has a refund in a
-// non-terminal status. Terminal = 'refunded' or 'admin_released'.
-// H2-F2a: Used by auto-complete guard to prevent releasing escrow while
-// refund negotiation or gateway settlement is in flight.
-func (r *RefundRepositoryImpl) HasActiveRefundByOrderID(
+// HasRefundBlockingRelease reports whether the order has a refund that must be
+// respected before the order lifecycle may release money to the seller.
+//
+// This is the SQL mirror of entity.Refund.BlocksOrderRelease(refundWindowOpen)
+// and the SINGLE query used by every consumer that asks that question (order
+// completion guard, auto-complete worker, order read path).
+//
+// It blocks when either:
+//   - a final decision owes the buyer money and the gateway has not settled it
+//     yet (gateway_status <> 'succeeded' covers unsubmitted / pending / failed),
+//     because releasing to the seller now would pay the same money twice; or
+//   - the refund decision is still open AND the order's own refund window is
+//     still open. The window is owned by the order domain
+//     (Order.IsRefundWindowOpen) and is passed in by the caller.
+//
+// Once the order's refund window closes, an undecided refund no longer blocks
+// the order: the normal lifecycle owns the outcome (locked business truth —
+// seller reject + no escalation may end through normal completion).
+func (r *RefundRepositoryImpl) HasRefundBlockingRelease(
 	ctx context.Context,
 	tx db.Tx,
 	orderID uuid.UUID,
+	refundWindowOpen bool,
 ) (bool, error) {
 	var exists bool
 	err := tx.QueryRow(ctx, `
 		SELECT EXISTS (
-			SELECT 1 FROM refunds
-			WHERE order_id = $1
-			  AND status NOT IN ('refunded', 'admin_released')
+			SELECT 1 FROM refunds r
+			WHERE r.order_id = $1
+			  AND (
+			        (
+			          r.status IN `+entity.RefundOwesBuyerStatusList+`
+			          AND r.gateway_status <> 'succeeded'
+			        )
+			     OR (
+			          r.status IN `+entity.RefundDecisionOpenStatusList+`
+			          AND $2::boolean
+			        )
+			      )
 		)
-	`, orderID).Scan(&exists)
+	`, orderID, refundWindowOpen).Scan(&exists)
 	if err != nil {
-		return false, fmt.Errorf("check active refund by order_id failed: %w", err)
+		return false, fmt.Errorf("check refund blocking release by order_id failed: %w", err)
 	}
 	return exists, nil
 }

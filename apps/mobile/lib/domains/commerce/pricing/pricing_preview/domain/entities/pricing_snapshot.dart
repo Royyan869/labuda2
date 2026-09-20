@@ -6,7 +6,7 @@ import 'package:equatable/equatable.dart';
 
 /// Pricing Snapshot — complete pricing breakdown from backend.
 ///
-/// Phase 2E-C3 (2026-06-21): removed stale listingId field — backend never returns it.
+/// Phase 2E-C3 (2026-06-21): removed stale forSaleId field — backend never returns it.
 class PricingSnapshot extends Equatable {
   final String token;
   final DateTime expiresAt;

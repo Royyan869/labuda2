@@ -12,45 +12,55 @@ import 'package:labuda/domains/user/preference/seller/domain/entities/seller_sta
 /// Features:
 /// - Vertical list layout (not grid)
 /// - Universal content composer entry for all users
-/// - State-based options (Seller-only for Listing, Auction)
+/// - State-based options (Seller-only for ForSale, Auction)
 /// - Close via: drag down, tap outside, or back button
 /// - No cancel button needed
 ///
 /// **STATE MAPPING:**
 /// - unknown: neutral loading/pending row
 /// - nonSeller: "Mulai Jualan" CTA
-/// - seller + active: "Jual Koi (Listing)", "Lelang (Auction)" enabled
-/// - seller + inactive: "Jual Koi (Listing)", "Lelang (Auction)" disabled + "Perpanjang Langganan" CTA
+/// - seller + active: "Jual Koi (For Sale)", "Lelang (Auction)" enabled
+/// - seller + inactive: "Jual Koi (For Sale)", "Lelang (Auction)" disabled, plus a
+///   subscription CTA whose COPY follows the canonical expiry axis:
+///   expired subscription → "Perpanjang Langganan" / "Langganan berakhir",
+///   not yet active ('none') → "Aktifkan Langganan" / "Langganan belum aktif".
+///   Capability `inactive` alone never claims expiry (RF-02).
 class CreateContentBottomSheet extends StatelessWidget {
   final VoidCallback onCreateContent;
-  final VoidCallback? onCreateListing;
+  final VoidCallback? onCreateForSale;
   final VoidCallback? onCreateAuction;
   final VoidCallback? onStartSelling;
   final VoidCallback? onRenewSubscription;
   final SellerIdentityStatus sellerIdentityStatus;
   final SellerCapabilityStatus sellerCapabilityStatus;
 
+  /// Canonical expiry axis (`sellerSubscriptionStatus == 'expired'`).
+  /// Gates the expiry wording only — the capability axis still gates access.
+  final bool isSubscriptionExpired;
+
   const CreateContentBottomSheet({
     super.key,
     required this.onCreateContent,
-    this.onCreateListing,
+    this.onCreateForSale,
     this.onCreateAuction,
     this.onStartSelling,
     this.onRenewSubscription,
     required this.sellerIdentityStatus,
     required this.sellerCapabilityStatus,
+    this.isSubscriptionExpired = false,
   });
 
   /// Show the bottom sheet
   static void show({
     required BuildContext context,
     required VoidCallback onCreateContent,
-    VoidCallback? onCreateListing,
+    VoidCallback? onCreateForSale,
     VoidCallback? onCreateAuction,
     VoidCallback? onStartSelling,
     VoidCallback? onRenewSubscription,
     required SellerIdentityStatus sellerIdentityStatus,
     required SellerCapabilityStatus sellerCapabilityStatus,
+    bool isSubscriptionExpired = false,
   }) {
     showModalBottomSheet(
       context: context,
@@ -60,12 +70,13 @@ class CreateContentBottomSheet extends StatelessWidget {
       isDismissible: true,
       builder: (context) => CreateContentBottomSheet(
         onCreateContent: onCreateContent,
-        onCreateListing: onCreateListing,
+        onCreateForSale: onCreateForSale,
         onCreateAuction: onCreateAuction,
         onStartSelling: onStartSelling,
         onRenewSubscription: onRenewSubscription,
         sellerIdentityStatus: sellerIdentityStatus,
         sellerCapabilityStatus: sellerCapabilityStatus,
+        isSubscriptionExpired: isSubscriptionExpired,
       ),
     );
   }
@@ -174,17 +185,17 @@ class CreateContentBottomSheet extends StatelessWidget {
           },
       ),
 
-      // ACTIVE: Show enabled listing/auction options
+      // ACTIVE: Show enabled forSale/auction options
       if (isActiveSeller) ...[
         _CreateOption(
           icon: Icons.store_outlined,
-          label: 'Jual Koi (Listing)',
+          label: 'Jual Koi (For Sale)',
           description: 'Jual koi langsung atau tawar harga',
           color: AppColors.primaryGreen,
-          onTap: onCreateListing != null
+          onTap: onCreateForSale != null
               ? () {
                   Navigator.pop(context);
-                  onCreateListing!();
+                  onCreateForSale!();
                 }
               : null,
         ),
@@ -202,27 +213,36 @@ class CreateContentBottomSheet extends StatelessWidget {
         ),
       ],
 
-      // EXPIRED: Show disabled listing/auction options with "Perpanjang Langganan" CTA
+      // NO ACTIVE SUBSCRIPTION: forSale/auction stay disabled. Copy follows the
+      // canonical expiry axis — only an ENDED period is "berakhir/perpanjang".
       if (isInactiveSeller) ...[
         _CreateOption(
           icon: Icons.store_outlined,
-          label: 'Jual Koi (Listing)',
-          description: 'Langganan berakhir - perpanjang untuk menjual',
+          label: 'Jual Koi (For Sale)',
+          description: isSubscriptionExpired
+              ? 'Langganan berakhir - perpanjang untuk menjual'
+              : 'Langganan belum aktif - aktifkan untuk menjual',
           color: AppColors.neutralGray400,
-          onTap: null, // Disabled - subscription expired
+          onTap: null, // Disabled - no active subscription
         ),
         _CreateOption(
           icon: Icons.gavel_outlined,
           label: 'Lelang (Auction)',
-          description: 'Langganan berakhir - perpanjang untuk lelang',
+          description: isSubscriptionExpired
+              ? 'Langganan berakhir - perpanjang untuk lelang'
+              : 'Langganan belum aktif - aktifkan untuk lelang',
           color: AppColors.neutralGray400,
-          onTap: null, // Disabled - subscription expired
+          onTap: null, // Disabled - no active subscription
         ),
         if (onRenewSubscription != null)
           _CreateOption(
             icon: Icons.refresh_outlined,
-            label: 'Perpanjang Langganan',
-            description: 'Perbarui langganan untuk jual dan lelang koi',
+            label: isSubscriptionExpired
+                ? 'Perpanjang Langganan'
+                : 'Aktifkan Langganan',
+            description: isSubscriptionExpired
+                ? 'Perbarui langganan untuk jual dan lelang koi'
+                : 'Berlangganan untuk mulai jual dan lelang koi',
             color: AppColors.primaryRed,
             onTap: () {
               Navigator.pop(context);

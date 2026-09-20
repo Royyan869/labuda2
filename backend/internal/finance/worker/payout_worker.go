@@ -666,8 +666,8 @@ func (w *PayoutWorker) markSubmissionFailed(
 			}
 
 			entries := []ledgerintf.Entry{
-				{AccountID: withdrawalCommittedID, Amount: amountMoney.Neg()},
-				{AccountID: sellerPayableID, Amount: amountMoney},
+				{AccountID: withdrawalCommittedID, Amount: amountMoney},
+				{AccountID: sellerPayableID, Amount: amountMoney.Neg()},
 			}
 			if err := w.ledgerRepo.CreateTransaction(ctx, tx, idempotencyKey, "WITHDRAWAL_FAIL_RETURN", withdrawalID, nil, nil, entries); err != nil {
 				return fmt.Errorf("return funds to seller: %w", err)

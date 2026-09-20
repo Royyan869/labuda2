@@ -186,7 +186,7 @@ class ShareRepositoryApi implements ShareRepository {
       case ExternalShareType.post:
       case ExternalShareType.request:
         return 'content';
-      case ExternalShareType.listing:
+      case ExternalShareType.forSale:
         return 'for_sale';
       case ExternalShareType.auction:
         return 'auction';

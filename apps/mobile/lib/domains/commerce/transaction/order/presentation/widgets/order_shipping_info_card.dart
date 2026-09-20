@@ -486,15 +486,13 @@ class _ShippingHelpSection extends ConsumerWidget {
                   icon: Icons.chat_bubble_outline,
                   label: 'Chat Penjual',
                   onTap: () {
-                    // Navigate to seller chat (already implemented in order detail)
-                    final currentUserId = userId;
-                    if (currentUserId == null) return;
-
-                    final otherUserId = currentUserId == order.sellerId
-                        ? order.buyerId
-                        : order.sellerId;
-
-                    context.go('/chat?userId=$otherUserId&orderId=${order.id}');
+                    if (userId == null) return;
+                    openOrderCommerceChat(
+                      context: context,
+                      ref: ref,
+                      order: order,
+                      currentUserId: userId,
+                    );
                   },
                   isDark: isDark,
                 ),

@@ -142,14 +142,13 @@ func NewAlertDetectionWorker(
 		NewSubscriptionOrphanedPaymentRule(db, log),
 		NewSubscriptionConversionRateRule(db, log),
 		NewSubscriptionLifecycleRule(db, log),
-		NewStaleDisputeFreezeRule(db, log), // O2: stale freeze operator visibility
-		NewOutboxDLQSpikeRule(db, log),     // B23: outbox dead-letter spike detection
-		NewOutboxStuckRule(db, log),          // B23: outbox stuck-processing detection
-		NewSellerNonShipmentRule(db, log),    // Seller non-shipment alert (observational)
-		NewEscrowStuckRule(db, log),          // FIX-2: escrow holding age detection
-		NewOrderPaidStuckRule(db, log),       // FIX-3: order paid age detection
-		NewOrderShippedStuckRule(db, log),    // FIX-3: order shipped age detection
-		NewDisputeOpenStuckRule(db, log),     // FIX-3: dispute under_review age detection
+		NewOutboxDLQSpikeRule(db, log),    // B23: outbox dead-letter spike detection
+		NewOutboxStuckRule(db, log),       // B23: outbox stuck-processing detection
+		NewSellerNonShipmentRule(db, log), // Seller non-shipment alert (observational)
+		NewEscrowStuckRule(db, log),       // FIX-2: escrow holding age detection
+		NewOrderPaidStuckRule(db, log),    // FIX-3: order paid age detection
+		NewOrderShippedStuckRule(db, log), // FIX-3: order shipped age detection
+		NewDisputeOpenStuckRule(db, log),  // FIX-3: dispute under_review age detection
 	}
 
 	return w

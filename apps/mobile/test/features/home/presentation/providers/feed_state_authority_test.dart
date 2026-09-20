@@ -683,7 +683,7 @@ void main() {
           {
             'type': 'promoted_for_sale',
             'contract_id': 'pi-1',
-            'target_type': 'listing',
+            'target_type': 'forSale',
             'title': 'Nice Koi',
           },
           {
@@ -750,15 +750,15 @@ void main() {
       expect(item.type, FeedItemType.content);
     });
 
-    test('promoted type with unknown kind maps to promotedListing (default)', () {
-      // Production: _mapPromotedType defaults unknown types to promotedListing.
+    test('promoted type with unknown kind maps to promotedForSale (default)', () {
+      // Production: _mapPromotedType defaults unknown types to promotedForSale.
       final dto = PromotedFeedItemDto(
         type: 'promoted_unknown',
         contractId: 'pi-1',
-        targetType: 'listing',
+        targetType: 'forSale',
       );
       final item = dto.toFeedItem();
-      expect(item.type, FeedItemType.promotedListing);
+      expect(item.type, FeedItemType.promotedForSale);
     });
   });
 }

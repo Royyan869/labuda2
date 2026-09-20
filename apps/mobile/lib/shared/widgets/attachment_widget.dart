@@ -224,7 +224,7 @@ class AttachmentWidget extends ConsumerWidget {
               children: [
                 // Product Name
                 Text(
-                  offer.listingName,
+                  offer.forSaleName,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
@@ -602,7 +602,7 @@ class AttachmentWidget extends ConsumerWidget {
               children: [
                 // Product Name
                 Text(
-                  result.listingName,
+                  result.forSaleName,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
@@ -769,7 +769,7 @@ class AttachmentWidget extends ConsumerWidget {
     // - ACTIVE: "Penawaran Aktif" (green badge) - usable for checkout
     // - EXPIRED: "Kadaluarsa" (red badge) - past validity period
     // - USED: "Sudah digunakan" (gray badge) - already used in an order
-    // - INVALID: "Item tidak tersedia" (orange badge) - listing unavailable
+    // - INVALID: "Item tidak tersedia" (orange badge) - forSale unavailable
     String statusLabel;
     Color statusColor;
     Color statusBgColor;

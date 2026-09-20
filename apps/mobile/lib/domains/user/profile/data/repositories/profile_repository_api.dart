@@ -23,8 +23,8 @@ class ProfileRepositoryApi implements IProfileRepository {
   ProfileRepositoryApi({
     required UserApiDatasource datasource,
     required ILoggerService logger,
-  }) : _datasource = datasource,
-       _logger = logger;
+  })  : _datasource = datasource,
+        _logger = logger;
 
   // ========================================
   // Profile CRUD Operations
@@ -33,21 +33,17 @@ class ProfileRepositoryApi implements IProfileRepository {
   @override
   Future<Result<ProfileEntity?>> getProfile(String userId) async {
     final result = await _datasource.getUserById(userId);
-
-    return result.fold(
-      (error) {
-        // Return null for not found, error for other failures
-        if (error.contains('not found') || error.contains('404')) {
-          return Result.success(null);
-        }
-        _logger.error('Failed to get profile: $error');
-        return Result.error(error);
-      },
-      (response) {
-        final profile = UserApiMapper.toProfileEntity(response);
-        return Result.success(profile);
-      },
-    );
+    if (result.isError) {
+      final error = result.error ?? 'Unknown error';
+      if (error.contains('not found') || error.contains('404')) {
+        return Result.success(null);
+      }
+      _logger.error('Failed to get profile: $error');
+      return Result.error(error);
+    }
+    final response = result.data as UserApiResponse;
+    final profile = UserApiMapper.toProfileEntity(response);
+    return Result.success(profile);
   }
 
   @override
@@ -234,25 +230,6 @@ class ProfileRepositoryApi implements IProfileRepository {
   // ========================================
   // Business/Seller Specific Operations
   // ========================================
-
-  @override
-  Future<Result<ProfileEntity>> updateFarmInfo(
-    String userId,
-    FarmInfo farmInfo,
-  ) async {
-    final result = await _datasource.updateFarmInfo(userId, farmInfo);
-
-    return result.fold(
-      (error) {
-        _logger.error('Failed to update farm info: $error');
-        return Result.error(error);
-      },
-      (response) {
-        final profile = UserApiMapper.toProfileEntity(response);
-        return Result.success(profile);
-      },
-    );
-  }
 
   @override
   Future<Result<List<ProfileEntity>>> getVerifiedSellers({

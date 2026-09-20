@@ -14,12 +14,7 @@ abstract class ChatRepository {
   // ========================================
 
   /// Get or create chat between two users
-  ///
-  /// **SOCIAL FIX 1.1:** Context now uses ShareReference for all object references.
-  Future<Result<Chat>> getOrCreateChat({
-    required List<String> participantIds,
-    ShareReference? context,
-  });
+  Future<Result<Chat>> getOrCreateChat({required List<String> participantIds});
 
   /// Get chat by ID
   Future<Result<Chat>> getChatById(String chatId);
@@ -130,29 +125,6 @@ abstract class ChatRepository {
 
   /// Stream typing indicators
   Stream<Map<String, bool>> watchTypingIndicators(String chatId);
-
-  // ========================================
-  // Presence
-  // ========================================
-
-  /// Update user's online status
-  Future<Result<bool>> updateUserPresence({
-    required String userId,
-    required bool isOnline,
-    DateTime? lastSeen,
-  });
-
-  /// Get user's online status
-  Future<Result<bool>> getUserOnlineStatus(String userId);
-
-  /// Get user's last seen time
-  Future<Result<DateTime?>> getUserLastSeen(String userId);
-
-  /// Start presence tracking
-  Future<Result<bool>> startPresenceTracking(String userId);
-
-  /// Stop presence tracking
-  Future<Result<bool>> stopPresenceTracking(String userId);
 
   // ========================================
   // Support Ticket (Optional)

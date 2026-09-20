@@ -36,43 +36,5 @@ func (a AuctionSettlementType) String() string {
 	return string(a)
 }
 
-// IsBuyNow returns true if this is a buy_now settlement.
-func (a AuctionSettlementType) IsBuyNow() bool {
-	return a == AuctionSettlementBuyNow
-}
-
-// IsBidWin returns true if this is a bid_win settlement.
-func (a AuctionSettlementType) IsBidWin() bool {
-	return a == AuctionSettlementBidWin
-}
-
-// AllowsDiscounts returns true if this settlement type allows promotional discounts.
-// Both buy_now and bid_win settlements allow discounts.
-func (a AuctionSettlementType) AllowsDiscounts() bool {
-	return a == AuctionSettlementBuyNow || a == AuctionSettlementBidWin
-}
-
-// AllowsCoins returns true if this settlement type allows coins discount.
-// Both buy_now and bid_win settlements allow coins (owner canonical 2026-06-16).
-func (a AuctionSettlementType) AllowsCoins() bool {
-	return a == AuctionSettlementBuyNow || a == AuctionSettlementBidWin
-}
-
-// Ptr returns a pointer to this AuctionSettlementType.
-func (a AuctionSettlementType) Ptr() *AuctionSettlementType {
-	return &a
-}
-
-// AuctionSettlementBuyNowPtr returns a pointer to AuctionSettlementBuyNow.
-func AuctionSettlementBuyNowPtr() *AuctionSettlementType {
-	buyNow := AuctionSettlementBuyNow
-	return &buyNow
-}
-
-// AuctionSettlementBidWinPtr returns a pointer to AuctionSettlementBidWin.
-func AuctionSettlementBidWinPtr() *AuctionSettlementType {
-	bidWin := AuctionSettlementBidWin
-	return &bidWin
-}
 
 

@@ -20,11 +20,34 @@ import (
 	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
 	"github.com/labuda/backend/internal/config"
 	paymentrepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
-	"github.com/labuda/backend/internal/integration/payment/reconciliation"
 	"github.com/labuda/backend/internal/platform/logger"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/midtrans"
 	"github.com/labuda/backend/pkg/testdb"
+)
+
+// paymentReconResult / paymentReconOutcome* are TEST-ONLY labels for the
+// canonical reconciliation flow exercised through the canonical webhook
+// service (HandleWebhook). The former
+// production `integration/payment/reconciliation` type package was purged:
+// REC-5 discovery is the only production payment-recovery authority and no
+// production code produced these outcomes.
+type paymentReconResult struct {
+	PaymentID     uuid.UUID
+	ReferenceType string
+	PaymentStatus string
+	GatewayStatus string
+	TransactionID string
+	Outcome       string
+	Notes         string
+}
+
+const (
+	paymentReconOutcomeSuccessFinalized = "success_finalized"
+	paymentReconOutcomeTerminalFailure  = "terminal_failure"
+	paymentReconOutcomeUncertain        = "uncertain"
+	paymentReconOutcomeAlreadyTerminal  = "already_terminal"
+	paymentReconOutcomeUnsupported      = "unsupported"
 )
 
 type lookupResponder func(orderID string) (*midtrans.NotificationPayload, int, error)
@@ -85,65 +108,71 @@ func newReconciliationHarness(t *testing.T, responder lookupResponder) *paymentS
 	return h
 }
 
-func (h *paymentSettlementHarness) reconcilePayment(ctx context.Context, paymentID uuid.UUID) (reconciliation.Result, error) {
+func (h *paymentSettlementHarness) reconcilePayment(ctx context.Context, paymentID uuid.UUID) (paymentReconResult, error) {
 	var payment *paymentrepo.Payment
 	if err := h.tdb.WithTx(ctx, func(tx db.Tx) error {
 		var err error
 		payment, err = h.paymentRepo.GetByID(ctx, tx, paymentID)
 		return err
 	}); err != nil {
-		return reconciliation.Result{}, err
+		return paymentReconResult{}, err
 	}
 	if payment == nil {
-		return reconciliation.Result{}, fmt.Errorf("payment not found: %s", paymentID)
+		return paymentReconResult{}, fmt.Errorf("payment not found: %s", paymentID)
 	}
 
-	result := reconciliation.Result{
+	result := paymentReconResult{
 		PaymentID:     payment.ID,
 		ReferenceType: payment.ReferenceType,
 		PaymentStatus: payment.Status,
 		TransactionID: payment.MidtransOrderID,
 	}
 	if payment.IsFailed() || payment.IsSettled() {
-		result.Outcome = reconciliation.OutcomeAlreadyTerminal
+		result.Outcome = paymentReconOutcomeAlreadyTerminal
 		return result, nil
 	}
 	if h.midtransClient == nil {
-		result.Outcome = reconciliation.OutcomeUncertain
+		result.Outcome = paymentReconOutcomeUncertain
 		result.Notes = "midtrans client not configured"
 		return result, nil
 	}
 
-	gatewayStatus, err := h.midtransClient.GetTransactionStatus(payment.MidtransOrderID)
+	providerStatus, err := h.midtransClient.QueryProviderState(payment.MidtransOrderID)
 	if err != nil {
-		result.Outcome = reconciliation.OutcomeUncertain
-		if strings.Contains(strings.ToLower(err.Error()), "status 404") {
-			result.Notes = "not found"
-		} else {
-			result.Notes = err.Error()
-		}
+		result.Outcome = paymentReconOutcomeUncertain
+		result.Notes = err.Error()
+		return result, nil
+	}
+	if providerStatus == nil || providerStatus.State == midtrans.ProviderStateNotPresent {
+		// A reachable gateway with no record of the order is not a failure.
+		result.Outcome = paymentReconOutcomeUncertain
+		result.Notes = "not found"
 		return result, nil
 	}
 
+	gatewayStatus := providerStatus.Notification
 	result.GatewayStatus = strings.ToLower(gatewayStatus.TransactionStatus)
 	result.TransactionID = gatewayStatus.TransactionID
 
-	switch {
-	case h.midtransClient.IsTransactionSuccess(gatewayStatus.TransactionStatus):
-		if _, err := h.webhookService.ReplayVerifiedWebhookFromGateway(ctx, paymentID, "127.0.0.1"); err != nil {
-			return result, err
-		}
-		result.Outcome = reconciliation.OutcomeSuccessFinalized
-	case h.midtransClient.IsTransactionFailed(gatewayStatus.TransactionStatus):
+	switch providerStatus.State {
+	case midtrans.ProviderStateSettled:
+		// Drive the canonical webhook with a gateway-signed payload; the webhook
+		// owns settlement, finalization and idempotency.
 		gatewayStatus.SignatureKey = h.midtransClient.BuildWebhookSignature(gatewayStatus)
 		if err := h.webhookService.HandleWebhook(ctx, gatewayStatus, "127.0.0.1"); err != nil {
 			return result, err
 		}
-		result.Outcome = reconciliation.OutcomeTerminalFailure
-	case h.midtransClient.IsTransactionPending(gatewayStatus.TransactionStatus):
-		result.Outcome = reconciliation.OutcomeUncertain
+		result.Outcome = paymentReconOutcomeSuccessFinalized
+	case midtrans.ProviderStateFailed:
+		gatewayStatus.SignatureKey = h.midtransClient.BuildWebhookSignature(gatewayStatus)
+		if err := h.webhookService.HandleWebhook(ctx, gatewayStatus, "127.0.0.1"); err != nil {
+			return result, err
+		}
+		result.Outcome = paymentReconOutcomeTerminalFailure
+	case midtrans.ProviderStatePending:
+		result.Outcome = paymentReconOutcomeUncertain
 	default:
-		result.Outcome = reconciliation.OutcomeUnsupported
+		result.Outcome = paymentReconOutcomeUnsupported
 	}
 
 	return result, nil
@@ -198,7 +227,7 @@ func TestPaymentReconcileAuthoritativeExpireReleasesReservation(t *testing.T) {
 	grossAmount = fmt.Sprintf("%d.00", fx.Payment.GrossAmount.Int64())
 	result, err := h.reconcilePayment(ctx, fx.Payment.ID)
 	require.NoError(t, err)
-	require.Equal(t, reconciliation.OutcomeTerminalFailure, result.Outcome)
+	require.Equal(t, paymentReconOutcomeTerminalFailure, result.Outcome)
 	require.Equal(t, strings.ToLower(string(midtrans.StatusExpire)), result.GatewayStatus)
 
 	payment, err := loadPaymentSnapshotByMidtransOrderID(ctx, h.tdb, fx.MidtransID)
@@ -246,7 +275,7 @@ func TestPaymentReconcileTerminalFailuresReleaseReservation(t *testing.T) {
 			grossAmount = fmt.Sprintf("%d.00", fx.Payment.GrossAmount.Int64())
 			result, err := h.reconcilePayment(ctx, fx.Payment.ID)
 			require.NoError(t, err)
-			require.Equal(t, reconciliation.OutcomeTerminalFailure, result.Outcome)
+			require.Equal(t, paymentReconOutcomeTerminalFailure, result.Outcome)
 
 			payment, err := loadPaymentSnapshotByMidtransOrderID(ctx, h.tdb, fx.MidtransID)
 			require.NoError(t, err)
@@ -275,7 +304,7 @@ func TestPaymentReconcileKZeroFailureSkipsReservationMutation(t *testing.T) {
 	grossAmount = fmt.Sprintf("%d.00", fx.Payment.GrossAmount.Int64())
 	result, err := h.reconcilePayment(ctx, fx.Payment.ID)
 	require.NoError(t, err)
-	require.Equal(t, reconciliation.OutcomeTerminalFailure, result.Outcome)
+	require.Equal(t, paymentReconOutcomeTerminalFailure, result.Outcome)
 
 	payment, err := loadPaymentSnapshotByMidtransOrderID(ctx, h.tdb, fx.MidtransID)
 	require.NoError(t, err)
@@ -334,7 +363,7 @@ func TestPaymentReconcilePendingLookupTimeoutAndNotFoundStayUncertain(t *testing
 			}
 			result, err := h.reconcilePayment(ctx, fx.Payment.ID)
 			require.NoError(t, err)
-			require.Equal(t, reconciliation.OutcomeUncertain, result.Outcome)
+			require.Equal(t, paymentReconOutcomeUncertain, result.Outcome)
 
 			payment, err := loadPaymentSnapshotByMidtransOrderID(ctx, h.tdb, fx.MidtransID)
 			require.NoError(t, err)
@@ -359,7 +388,7 @@ func TestPaymentReconcileSettlementConsumesReservationExactlyOnce(t *testing.T) 
 	grossAmount = fmt.Sprintf("%d.00", fx.Payment.GrossAmount.Int64())
 	result, err := h.reconcilePayment(ctx, fx.Payment.ID)
 	require.NoError(t, err)
-	require.Equal(t, reconciliation.OutcomeSuccessFinalized, result.Outcome)
+	require.Equal(t, paymentReconOutcomeSuccessFinalized, result.Outcome)
 
 	payment, err := loadPaymentSnapshotByMidtransOrderID(ctx, h.tdb, fx.MidtransID)
 	require.NoError(t, err)
@@ -394,11 +423,11 @@ func TestPaymentReconcileDuplicateTerminalFailure_IsIdempotent(t *testing.T) {
 	grossAmount = fmt.Sprintf("%d.00", fx.Payment.GrossAmount.Int64())
 	first, err := h.reconcilePayment(ctx, fx.Payment.ID)
 	require.NoError(t, err)
-	require.Equal(t, reconciliation.OutcomeTerminalFailure, first.Outcome)
+	require.Equal(t, paymentReconOutcomeTerminalFailure, first.Outcome)
 
 	second, err := h.reconcilePayment(ctx, fx.Payment.ID)
 	require.NoError(t, err)
-	require.Equal(t, reconciliation.OutcomeAlreadyTerminal, second.Outcome)
+	require.Equal(t, paymentReconOutcomeAlreadyTerminal, second.Outcome)
 
 	payment, err := loadPaymentSnapshotByMidtransOrderID(ctx, h.tdb, fx.MidtransID)
 	require.NoError(t, err)
@@ -423,7 +452,7 @@ func TestPaymentReconcileProviderNotFoundIsUncertain(t *testing.T) {
 	fx := h.createSettlementFixture(t, 15000, 4000, 20000)
 	result, err := h.reconcilePayment(ctx, fx.Payment.ID)
 	require.NoError(t, err)
-	require.Equal(t, reconciliation.OutcomeUncertain, result.Outcome)
+	require.Equal(t, paymentReconOutcomeUncertain, result.Outcome)
 	require.Contains(t, strings.ToLower(result.Notes), "not found")
 
 	payment, err := loadPaymentSnapshotByMidtransOrderID(ctx, h.tdb, fx.MidtransID)

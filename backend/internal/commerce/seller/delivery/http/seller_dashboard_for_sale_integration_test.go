@@ -3,7 +3,7 @@
 // PASS_21B regression test: GetDashboard counts real for_sales rows.
 // Before PASS_21B this counted rows in the legacy `listings` table, which
 // nothing writes to anymore — every seller's dashboard reported 0 total/
-// active listings regardless of how many real fixed-price sales they had.
+// active For Sale regardless of how many real fixed-price sales they had.
 package http
 
 import (

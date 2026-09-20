@@ -1,11 +1,12 @@
 // DTO Barrel File
-export 'order_dto.dart';
-// Export DTO response types - hide duplicates defined in order_dto.dart
-// But keep ShippingProofDto which is needed by order datasource interface
-export 'order_dto_response.dart'
-    hide ShippingAddressResponseDto, ProductSummaryDto;
+//
+// Only request/response DTOs that are actually part of the Order module's
+// active contract live here:
+//   - refund_dto.dart  → RefundDto / RefundListDto / CreateRefundDto
+//   - dispute_dto.dart → DisputeDto / CreateDisputeDto
+//
+// The canonical Order DTO is OrderApiResponse (data/models/api/
+// order_api_response_dtos.dart). There is exactly one name for it — do not add
+// a second Order response DTO or a typedef alias for it.
 export 'refund_dto.dart';
-export 'order_confirmation_dto.dart';
-// shipping_proof_dto.dart removed - ShippingProof is owned by shipping domain
-// (features/shipping/domain/repositories/shipping_repository.dart)
 export 'dispute_dto.dart';

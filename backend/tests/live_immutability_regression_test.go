@@ -70,9 +70,6 @@ func (liveFakeOrderRepo) GetBlockingOrderByShippingQuoteID(_ context.Context, _ 
 func (liveFakeOrderRepo) CountValidOrdersByShippingQuoteID(_ context.Context, _ db.Tx, _ uuid.UUID) (int64, error) {
 	return 0, nil
 }
-func (liveFakeOrderRepo) GetBySource(_ context.Context, _ db.Tx, _ string, _ uuid.UUID) (*orderEntity.Order, error) {
-	return nil, nil
-}
 func (liveFakeOrderRepo) GetOrderItems(_ context.Context, _ db.Tx, _ uuid.UUID) ([]*orderEntity.OrderItem, error) {
 	return nil, nil
 }
@@ -80,9 +77,6 @@ func (liveFakeOrderRepo) FindOrdersForAutoComplete(_ context.Context, _ db.Tx, _
 	return nil, nil
 }
 func (liveFakeOrderRepo) FindOverdueOrdersForCancel(_ context.Context, _ db.Tx, _ int) ([]uuid.UUID, error) {
-	return nil, nil
-}
-func (liveFakeOrderRepo) GetByOrderNumber(_ context.Context, _ db.Tx, _ string) (*orderEntity.Order, error) {
 	return nil, nil
 }
 func (liveFakeOrderRepo) CreateShippingProofTx(_ context.Context, _ db.Tx, _ *orderEntity.ShippingProof) error {

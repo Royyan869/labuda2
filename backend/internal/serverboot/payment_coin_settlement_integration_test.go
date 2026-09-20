@@ -35,7 +35,6 @@ import (
 	coinsrepointf "github.com/labuda/backend/internal/incentive/coins/repository"
 	paymentapp "github.com/labuda/backend/internal/integration/payment/application"
 	paymentrepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
-	paymentrecon "github.com/labuda/backend/internal/integration/payment/reconciliation"
 	"github.com/labuda/backend/internal/platform/logger"
 	"github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
 	"github.com/labuda/backend/pkg/database"
@@ -453,16 +452,23 @@ func loadUserAccountBalance(ctx context.Context, tdb *testdb.TestDB, accountType
 	return balance, err
 }
 
-func updateSpendAmount(ctx context.Context, tdb *testdb.TestDB, userID, paymentID uuid.UUID, amount int64) error {
+// updateSpendAmount rewrites the amount of the existing canonical order_spend
+// transaction so the replay test can exercise the idempotent path. It is NOT a
+// corruption-detection probe: production does not validate or repair the spend
+// amount on replay — the test proves a replay of FinalizeOrderPayment is a
+// no-op given an existing consumed reservation and an existing canonical spend
+// (no second spend, no second deduction).
+// The canonical spend row uses reference_type='order_spend' and reference_id=orderID.
+func updateSpendAmount(ctx context.Context, tdb *testdb.TestDB, userID, orderID uuid.UUID, amount int64) error {
 	return tdb.WithTx(ctx, func(tx db.Tx) error {
 		_, err := tx.Exec(ctx, `
 			UPDATE coins_transactions
 			SET amount = $3
 			WHERE user_id = $1
 			  AND type = 'spend'
-			  AND reference_type = 'payment_spend'
+			  AND reference_type = 'order_spend'
 			  AND reference_id = $2
-		`, userID, paymentID, amount)
+		`, userID, orderID, amount)
 		return err
 	})
 }
@@ -473,13 +479,29 @@ func (h *paymentSettlementHarness) finalizePaymentTx(ctx context.Context, fx *pa
 	})
 }
 
+// seedOrderTokenCoins writes the canonical K into the order's pricing token,
+// mirroring what POST /orders does (use_coins -> pricing_tokens.coins_used).
+// Payment derives K from this snapshot; the client has no payment-time K.
+func (h *paymentSettlementHarness) seedOrderTokenCoins(t *testing.T, orderID uuid.UUID, coinsToUse int) {
+	t.Helper()
+	require.NoError(t, h.tdb.WithTx(context.Background(), func(tx db.Tx) error {
+		_, err := tx.Exec(context.Background(), `
+			UPDATE pricing_tokens SET coins_used = $1
+			WHERE token = (SELECT pricing_token_id FROM orders WHERE id = $2)
+		`, coinsToUse, orderID)
+		return err
+	}))
+}
+
 func (h *paymentSettlementHarness) runCreatePayment(t *testing.T, orderID uuid.UUID, methodCode string, coinsToUse int) *httptest.ResponseRecorder {
 	t.Helper()
+	// PAY-B: K lives on the pricing token (written at Order creation); the
+	// payment request carries no client coin authority.
+	h.seedOrderTokenCoins(t, orderID, coinsToUse)
 
 	body, err := json.Marshal(gin.H{
 		"order_id":            orderID,
 		"payment_method_code": methodCode,
-		"coins_to_use":        coinsToUse,
 	})
 	require.NoError(t, err)
 
@@ -503,6 +525,15 @@ func (h *paymentSettlementHarness) setWebhookGateway(client *midtrans.Client) {
 	h.midtransClient = client
 	h.handler.midtransClient = client
 	setPrivateField(h.webhookService, "midtransClient", client)
+}
+
+// setSettlementCoinsRepo swaps the coin repository the webhook's canonical
+// settlement service releases reservations through. The service constructs its
+// own repository by default, so this reflection seam is the only way to
+// exercise the fail-closed branch of the terminal-failure path.
+func (h *paymentSettlementHarness) setSettlementCoinsRepo(repo coinsrepointf.CoinsRepository) {
+	settlement := getPrivateField(h.webhookService, "settlementService")
+	setPrivateField(settlement, "coinsRepo", repo)
 }
 
 func (h *paymentSettlementHarness) finalizeOrderPaymentFailure(ctx context.Context, payment *paymentrepo.Payment, failedStatus string) error {
@@ -545,14 +576,8 @@ func TestPaymentCoinSettlement_KPositive_PersistsSpendSnapshotAndLedger(t *testi
 
 	// CANONICAL COIN AUTHORITY: K lives in the coins/payment domain
 	// (payments.coins_to_use, coin_reservations, coins_transactions,
-	// user_coin_balance). orders.coins_used / orders.coin_discount_amount are
-	// dead columns and are NOT financial authority — they are never populated
-	// by production, so assert they remain 0 (not authoritative).
-	orderSnap, err := loadOrderSnapshotByID(ctx, h.tdb, fx.OrderID)
-	require.NoError(t, err)
-	require.Equal(t, int64(0), orderSnap.CoinsUsed)
-	require.Equal(t, int64(0), orderSnap.CoinDiscountAmount)
-
+	// user_coin_balance). The order persists no coins snapshot at all, so the
+	// assertions below read the coins domain only.
 	reservation, err := loadReservationByPaymentID(ctx, h.tdb, payment.ID)
 	require.NoError(t, err)
 	require.NotNil(t, reservation)
@@ -588,11 +613,6 @@ func TestPaymentCoinSettlement_KZero_SkipsReservationAndSpend(t *testing.T) {
 	require.Equal(t, paymentrepo.PaymentStatusSettlement, payment.Status)
 	require.Equal(t, int64(0), payment.CoinsToUse)
 	require.Equal(t, int64(0), payment.CoinDiscountAmount)
-
-	orderSnap, err := loadOrderSnapshotByID(ctx, h.tdb, fx.OrderID)
-	require.NoError(t, err)
-	require.Equal(t, int64(0), orderSnap.CoinsUsed)
-	require.Equal(t, int64(0), orderSnap.CoinDiscountAmount)
 
 	reservation, err := loadReservationByPaymentID(ctx, h.tdb, payment.ID)
 	require.NoError(t, err)
@@ -647,13 +667,9 @@ func TestPaymentCoinSettlement_AvailableBalanceContinuityAndExactlyOneSpend(t *t
 	require.NotNil(t, reservation)
 	require.Equal(t, "consumed", reservation.Status)
 
-	orderSnap, err := loadOrderSnapshotByID(ctx, h.tdb, fx.OrderID)
-	require.NoError(t, err)
-	// CANONICAL COIN AUTHORITY: orders.coins_used / coin_discount_amount are
-	// dead columns, never populated by production, NOT financial authority.
-	require.Equal(t, int64(0), orderSnap.CoinsUsed)
-	require.Equal(t, int64(0), orderSnap.CoinDiscountAmount)
-
+	// CANONICAL COIN AUTHORITY: the order persists no coins snapshot (the dead
+	// orders.coins_used / coin_discount_amount columns were purged), so K is
+	// asserted against the coins domain only, never against the order row.
 	spendCount, err := countCoinSpendRows(ctx, h.tdb, h.buyerID, payment.ReferenceID)
 	require.NoError(t, err)
 	require.Equal(t, int64(1), spendCount)
@@ -841,13 +857,9 @@ func TestPaymentCoinSettlement_ConsumedReplay_ConsistentStateIsIdempotent(t *tes
 	require.NoError(t, err)
 	require.Equal(t, paymentrepo.PaymentStatusSettlement, payment.Status)
 
-	orderSnap, err := loadOrderSnapshotByID(ctx, h.tdb, fx.OrderID)
-	require.NoError(t, err)
-	// CANONICAL COIN AUTHORITY: orders.coins_used / coin_discount_amount are
-	// dead columns, never populated by production, NOT financial authority.
-	require.Equal(t, int64(0), orderSnap.CoinsUsed)
-	require.Equal(t, int64(0), orderSnap.CoinDiscountAmount)
-
+	// CANONICAL COIN AUTHORITY: the order persists no coins snapshot (the dead
+	// orders.coins_used / coin_discount_amount columns were purged), so K is
+	// asserted against the coins domain only, never against the order row.
 	reservation, err := loadReservationByPaymentID(ctx, h.tdb, payment.ID)
 	require.NoError(t, err)
 	require.NotNil(t, reservation)
@@ -887,7 +899,11 @@ func TestPaymentCoinSettlement_ConsumedReservation_StaleFailureDoesNotDowngrade(
 	require.Equal(t, orderentity.StatusPaid, orderStatus)
 }
 
-func TestPaymentCoinSettlement_CorruptedConsumedState_FailsClosed(t *testing.T) {
+// TestPaymentCoinSettlement_CorruptedConsumedState_IdempotentReplay proves that
+// a replay of FinalizeOrderPayment after a spend-amount corruption is a no-op.
+// The balance was already correctly deducted on the first settlement; the
+// corrupted spend row is a stale read that the idempotent path ignores.
+func TestPaymentCoinSettlement_CorruptedConsumedState_IdempotentReplay(t *testing.T) {
 	ctx := context.Background()
 	h := newPaymentSettlementHarness(t)
 
@@ -896,15 +912,30 @@ func TestPaymentCoinSettlement_CorruptedConsumedState_FailsClosed(t *testing.T) 
 
 	payment, err := loadPaymentSnapshotByMidtransOrderID(ctx, h.tdb, fx.MidtransID)
 	require.NoError(t, err)
-	require.NoError(t, updateSpendAmount(ctx, h.tdb, h.buyerID, payment.ID, 9999))
+	// Corrupt the spend row's amount to prove the idempotent replay path
+	// does not re-deduct or fail — the balance was already correctly moved
+	// on the first settlement.
+	require.NoError(t, updateSpendAmount(ctx, h.tdb, h.buyerID, payment.ReferenceID, 9999))
 
+	// Replay must be a no-op: no error, no double deduction.
 	err = h.finalizePaymentTx(ctx, fx, fx.TransactionID)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "integrity violation")
+	require.NoError(t, err)
 
+	// Spend row retains the corrupted value — the replay does not overwrite it.
 	spendAmount, err := loadSpendAmount(ctx, h.tdb, h.buyerID, payment.ReferenceID)
 	require.NoError(t, err)
 	require.Equal(t, int64(9999), spendAmount)
+
+	// Balance remains correct: only deducted once (10000), never re-deducted.
+	balance, err := loadUserCoinBalance(ctx, h.tdb, h.buyerID)
+	require.NoError(t, err)
+	require.Equal(t, int64(10000), balance)
+
+	// Reservation stays consumed — never re-consumed.
+	reservation, err := loadReservationByPaymentID(ctx, h.tdb, payment.ID)
+	require.NoError(t, err)
+	require.NotNil(t, reservation)
+	require.Equal(t, "consumed", reservation.Status)
 }
 
 func TestPaymentCoinSettlement_NonSuccessStatus_ReleasesReservation(t *testing.T) {
@@ -938,10 +969,6 @@ func TestPaymentCoinSettlement_NonSuccessStatus_ReleasesReservation(t *testing.T
 			require.NoError(t, err)
 			require.Equal(t, int64(0), spendCount)
 
-			orderSnap, err := loadOrderSnapshotByID(ctx, h.tdb, fx.OrderID)
-			require.NoError(t, err)
-			require.Equal(t, int64(0), orderSnap.CoinsUsed)
-			require.Equal(t, int64(0), orderSnap.CoinDiscountAmount)
 		})
 	}
 }
@@ -967,11 +994,6 @@ func TestPaymentCoinSettlement_RollsBackWhenEscrowCreateFails(t *testing.T) {
 	spendCount, err := countCoinSpendRows(ctx, h.tdb, h.buyerID, payment.ReferenceID)
 	require.NoError(t, err)
 	require.Equal(t, int64(0), spendCount)
-
-	orderSnap, err := loadOrderSnapshotByID(ctx, h.tdb, fx.OrderID)
-	require.NoError(t, err)
-	require.Equal(t, int64(0), orderSnap.CoinsUsed)
-	require.Equal(t, int64(0), orderSnap.CoinDiscountAmount)
 }
 
 func TestPaymentCoinSettlement_SellerEntitlementStableAcrossKZeroAndKPositive(t *testing.T) {
@@ -1202,28 +1224,27 @@ func TestPaymentCoinSettlement_ConcurrentTerminalWebhookAndReconciliation_Exactl
 	require.Equal(t, orderentity.StatusExpired, orderStatus)
 }
 
+// TestPaymentCoinSettlement_TerminalFailure_RollsBackBeforeReservationRelease
+// drives the REAL canonical failure path (HandleWebhook → settlement service
+// FailPayment) with a coin repository whose release always fails. The whole
+// terminal-failure transaction must roll back: a payment can never be recorded
+// as failed while the buyer's coins stay reserved, and no coin is ever spent.
 func TestPaymentCoinSettlement_TerminalFailure_RollsBackBeforeReservationRelease(t *testing.T) {
 	ctx := context.Background()
 	h := newPaymentSettlementHarness(t)
 
 	fx := h.createSettlementFixture(t, 10000, 4000, 20000)
-	failingCoinsRepo := &failingReleaseReservationCoinsRepo{
+	h.setSettlementCoinsRepo(&failingReleaseReservationCoinsRepo{
 		CoinsRepository: h.coinsRepo,
 		err:             errors.New("forced reservation release failure"),
-	}
-	failingCoinsService := coinsapp.NewCoinsService(failingCoinsRepo, h.db)
-	_ = failingCoinsService
+	})
 
-	err := h.finalizeOrderPaymentFailure(ctx, fx.Payment, string(midtrans.StatusExpire))
-	require.Error(t, err)
+	notif := h.makeWebhookNotification(fx, string(midtrans.StatusExpire))
+	require.Error(t, h.handleWebhook(ctx, notif))
 
 	payment, err := loadPaymentSnapshotByMidtransOrderID(ctx, h.tdb, fx.MidtransID)
 	require.NoError(t, err)
-	require.Equal(t, paymentrepo.PaymentStatusPending, payment.Status)
-
-	orderStatus, err := loadOrderStatusByID(ctx, h.tdb, fx.OrderID)
-	require.NoError(t, err)
-	require.Equal(t, orderentity.StatusPending, orderStatus)
+	require.Equal(t, paymentrepo.PaymentStatusPending, payment.Status, "terminal failure must roll back when coins cannot be released")
 
 	reservation, err := loadReservationByPaymentID(ctx, h.tdb, payment.ID)
 	require.NoError(t, err)
@@ -1390,7 +1411,7 @@ func TestPaymentCoinSettlement_NewPaymentAfterAuthoritativeTerminalFailureUsesFr
 	}))
 	result, err := h.reconcilePayment(ctx, first.Payment.ID)
 	require.NoError(t, err)
-	require.Equal(t, paymentrecon.OutcomeTerminalFailure, result.Outcome)
+	require.Equal(t, paymentReconOutcomeTerminalFailure, result.Outcome)
 
 	firstPayment, err := loadPaymentSnapshotByMidtransOrderID(ctx, h.tdb, first.MidtransID)
 	require.NoError(t, err)
@@ -1514,7 +1535,7 @@ func TestPaymentCoinSettlement_ActiveUncertainPaymentBlocksDuplicateIntentAcross
 			h.setWebhookGateway(newReconciliationMidtransClient(t, tc.responder))
 			result, err := h.reconcilePayment(ctx, firstPayment.ID)
 			require.NoError(t, err)
-			require.Equal(t, paymentrecon.OutcomeUncertain, result.Outcome)
+			require.Equal(t, paymentReconOutcomeUncertain, result.Outcome)
 
 			afterReconcile, err := loadPaymentSnapshotByOrderID(ctx, h.tdb, orderID)
 			require.NoError(t, err)

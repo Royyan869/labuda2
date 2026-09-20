@@ -41,7 +41,6 @@ export type AlertType =
   | 'outbox_stuck'
   | 'reconciliation_drift'
   | 'refund_gateway_failed'
-  | 'stale_dispute_freeze'
   | 'subscription_orphaned_payment'
   | 'subscription_conversion_rate'
   | 'subscription_lifecycle'

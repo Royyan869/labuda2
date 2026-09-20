@@ -1,0 +1,4 @@
+-- NOTE: PostgreSQL does not support removing individual values from an enum type.
+-- The 'gateway_captured_after_order_invalid' value will remain in the enum
+-- but will no longer be used after rollback. A full enum replacement would
+-- require recreating the type and all dependent columns.

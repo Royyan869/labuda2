@@ -55,27 +55,9 @@ func TestIsDisputeEvent(t *testing.T) {
 	}
 }
 
-func TestIsLedgerEvent(t *testing.T) {
-	cases := []struct {
-		eventType string
-		want      bool
-	}{
-		{"ledger.transaction.completed", true},
-		// non-ledger events must not match
-		{events.EventOrderCreated, false},
-		{"dispute.opened", false},
-		{"", false},
-	}
-	for _, tc := range cases {
-		if got := isLedgerEvent(tc.eventType); got != tc.want {
-			t.Errorf("isLedgerEvent(%q) = %v, want %v", tc.eventType, got, tc.want)
-		}
-	}
-}
-
 // ─── event routing ────────────────────────────────────────────────────────────
 
-// TestIsXxxEvent_Disjoint verifies the three classification predicates are
+// TestIsXxxEvent_Disjoint verifies the two classification predicates are
 // mutually exclusive: no event type belongs to more than one category.
 func TestIsXxxEvent_Disjoint(t *testing.T) {
 	allTypes := []string{
@@ -83,7 +65,6 @@ func TestIsXxxEvent_Disjoint(t *testing.T) {
 		events.EventOrderCompleted, "order.cancelled", "order.expired",
 		"order.refunded", "order.partially_refunded",
 		"dispute.opened", "dispute.resolved",
-		"ledger.transaction.completed",
 		"user.banned", "notification.sent", "",
 	}
 	for _, et := range allTypes {
@@ -94,9 +75,6 @@ func TestIsXxxEvent_Disjoint(t *testing.T) {
 		if isDisputeEvent(et) {
 			count++
 		}
-		if isLedgerEvent(et) {
-			count++
-		}
 		if count > 1 {
 			t.Errorf("event type %q matches multiple categories (count=%d)", et, count)
 		}
@@ -105,16 +83,16 @@ func TestIsXxxEvent_Disjoint(t *testing.T) {
 
 // ─── struct field presence (compile-time guard) ───────────────────────────────
 
-// TestOrderSummary_EscrowFields verifies that EscrowAmount and RefundedAmount
+// TestOrderSummary_EscrowFields verifies that TotalBeforeCoinsAmount and RefundedAmount
 // are present on projection.OrderSummary with the correct type (int64).
 // If either field is removed or renamed, this test fails to compile.
 func TestOrderSummary_EscrowFields(t *testing.T) {
 	s := projection.OrderSummary{
-		EscrowAmount:   100_000,
-		RefundedAmount: 0,
+		TotalBeforeCoinsAmount: 100_000,
+		RefundedAmount:         0,
 	}
-	if s.EscrowAmount != 100_000 {
-		t.Fatalf("EscrowAmount = %d, want 100000", s.EscrowAmount)
+	if s.TotalBeforeCoinsAmount != 100_000 {
+		t.Fatalf("TotalBeforeCoinsAmount = %d, want 100000", s.TotalBeforeCoinsAmount)
 	}
 	if s.RefundedAmount != 0 {
 		t.Fatalf("RefundedAmount = %d, want 0", s.RefundedAmount)

@@ -67,29 +67,10 @@ func NewShareReference(targetType ShareTargetType, targetID string, preview Shar
 	}
 }
 
-// NewShareReferenceFromContent creates a share reference from content.
-//
-// LIVE SHARE TRUTH V1: Accepts live status parameters for honest UI rendering.
-// Callers MUST provide actual current status from content entity, not defaults.
-func NewShareReferenceFromContent(
-	contentID string,
-	title string,
-	imageURL string,
-	isDeleted bool,
-) *ShareReference {
-	return &ShareReference{
-		TargetType: ShareTargetTypeContent,
-		TargetID:   contentID,
-		Preview: SharePreview{
-			Title:       title,
-			ImageURL:    imageURL,
-			IsAvailable: !isDeleted, // Content is available if not deleted
-			IsSold:      false,      // Content doesn't have sold state
-			IsClosed:    false,      // Content doesn't have closed state
-			IsDeleted:   isDeleted,
-		},
-	}
-}
+// NOTE: there is deliberately no Content share-reference constructor. Content
+// sharing is expressed canonically as a Content resource occurrence
+// (content_resource_occurrences) and projected by the viewer-aware resource
+// projection resolvers — Content preview blobs are not constructed server-side.
 
 // NewShareReferenceFromForSale creates a share reference from a fixed-price sale.
 //

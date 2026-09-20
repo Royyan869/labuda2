@@ -140,6 +140,12 @@ func FetchMany(
 		if err := rows.Scan(&id, &username, &farmName, &avatarURL, &accountStatus, &isDeleted, &subscriptionStatus, &tier); err != nil {
 			return out, err
 		}
+		// Store image / avatar visibility follows identity lifecycle (active only).
+		isActive := accountStatus == "active" && !isDeleted
+		if !isActive {
+			avatarURL = ""
+			farmName = ""
+		}
 		out[id] = Info{
 			Username:           username,
 			FarmName:           farmName,

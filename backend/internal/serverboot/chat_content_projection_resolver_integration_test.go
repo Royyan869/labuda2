@@ -217,7 +217,7 @@ func (f *contentProjectionFixture) seedForSale(
 ) uuid.UUID {
 	t.Helper()
 
-	productID := f.seedProduct(t, sellerID, "fixture listing product", "fixture listing product")
+	productID := f.seedProduct(t, sellerID, "fixture For Sale product", "fixture For Sale product")
 	id := uuid.New()
 	now := time.Now().UTC()
 	_, err := f.appDB.Pool().Exec(context.Background(), `
@@ -665,9 +665,19 @@ func TestContentProjectionResolver_NestedShareReferences_DoNotRecursePastDepthOn
 	t.Logf("query counts: shallow=%d deep=%d", shallowCount, deepCount)
 }
 
+// The Chat Content projection reads persisted `content_media.media_url`
+// references. Those references are STORAGE references, so every media entry on
+// the live payload must be projected through the canonical mediaresolve
+// authority — and the persisted reference must never surface. `Kind` is the
+// transported persisted `content_media.media_type`, the mobile render authority.
+//
+// The fixture seeds storage references (not absolute URLs) on purpose: under a
+// configured resolver an absolute URL resolves to itself, so an absolute-URL
+// fixture would stay green even if the resolver silently stopped resolving.
 func TestContentProjectionResolver_MediaOrderAndEmptyMedia(t *testing.T) {
 	fx := newContentProjectionFixture(t)
 	ctx := context.Background()
+	configureContentMediaResolver(t)
 
 	viewerID := fx.seedUser(t, "active", nil, "viewer", nil)
 	authorID := fx.seedUser(t, "active", nil, "media_author", nil)
@@ -675,9 +685,20 @@ func TestContentProjectionResolver_MediaOrderAndEmptyMedia(t *testing.T) {
 	orderedCaption := "ordered media"
 	orderedCreatedAt := time.Date(2026, time.August, 8, 11, 0, 0, 0, time.UTC)
 	orderedContentID := fx.seedContent(t, authorID, entity.VisibilityPublic, entity.StatusActive, false, nil, &orderedCaption, orderedCreatedAt, nil, nil)
-	fx.seedMedia(t, orderedContentID, 3, "https://cdn.example.test/media-3.jpg", "video")
-	fx.seedMedia(t, orderedContentID, 1, "https://cdn.example.test/media-1.jpg", "image")
-	fx.seedMedia(t, orderedContentID, 2, "https://cdn.example.test/media-2.jpg", "image")
+
+	// Persisted storage references, exactly as the Content upload path writes
+	// them. Position 4 is blank: it cannot resolve to a readable URL, so it must
+	// not surface as a media entry.
+	const (
+		imageFirstReference  = "images/1749600000011_media-first.jpg"
+		imageSecondReference = "images/1749600000012_media-second.jpg"
+		videoReference       = "images/1749600000013_media-video.mp4"
+		blankReference       = "   "
+	)
+	fx.seedMedia(t, orderedContentID, 3, videoReference, "video")
+	fx.seedMedia(t, orderedContentID, 1, imageFirstReference, "image")
+	fx.seedMedia(t, orderedContentID, 2, imageSecondReference, "image")
+	fx.seedMedia(t, orderedContentID, 4, blankReference, "image")
 
 	emptyContentID := fx.seedContent(t, authorID, entity.VisibilityPublic, entity.StatusActive, false, nil, nil, orderedCreatedAt.Add(1*time.Minute), nil, nil)
 
@@ -694,10 +715,27 @@ func TestContentProjectionResolver_MediaOrderAndEmptyMedia(t *testing.T) {
 		payload := requireLiveContentProjection(t, proj)
 		switch proj.Identity.ResourceID {
 		case orderedContentID:
-			require.Equal(t, 3, len(payload.Media))
-			require.Equal(t, "https://cdn.example.test/media-1.jpg", payload.Media[0].URL)
-			require.Equal(t, "https://cdn.example.test/media-2.jpg", payload.Media[1].URL)
-			require.Equal(t, "https://cdn.example.test/media-3.jpg", payload.Media[2].URL)
+			require.Len(t, payload.Media, 3, "the unresolvable blank reference must be dropped")
+
+			require.Equal(t, testContentMediaCDNBase+"/"+imageFirstReference, payload.Media[0].URL)
+			require.Equal(t, testContentMediaCDNBase+"/"+imageSecondReference, payload.Media[1].URL)
+			require.Equal(t, testContentMediaCDNBase+"/"+videoReference, payload.Media[2].URL)
+
+			require.NotNil(t, payload.Media[0].Kind)
+			require.Equal(t, "image", *payload.Media[0].Kind)
+			require.NotNil(t, payload.Media[1].Kind)
+			require.Equal(t, "image", *payload.Media[1].Kind)
+			require.NotNil(t, payload.Media[2].Kind)
+			require.Equal(t, "video", *payload.Media[2].Kind,
+				"Kind must transport the persisted content_media.media_type")
+
+			// NEGATIVE: no persisted storage reference may surface as a read URL.
+			for _, persistedReference := range []string{imageFirstReference, imageSecondReference, videoReference} {
+				for _, media := range payload.Media {
+					require.NotEqual(t, persistedReference, media.URL,
+						"the persisted content media reference must never be emitted raw")
+				}
+			}
 		case emptyContentID:
 			require.NotNil(t, payload.Media)
 			require.Empty(t, payload.Media)

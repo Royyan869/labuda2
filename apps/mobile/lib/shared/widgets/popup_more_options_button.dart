@@ -4,7 +4,7 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 
 /// Content type for more options menu
-enum PopupMoreOptionsContentType { content, profile, listing, auction }
+enum PopupMoreOptionsContentType { content, profile, forSale, auction }
 
 /// Reusable Popup More Options Button (3 dots menu using PopupMenuButton)
 ///
@@ -148,12 +148,12 @@ class PopupMoreOptionsButton extends StatelessWidget {
 
     // Edit option (for creator)
     // For Content: Controlled by onEdit callback
-    // For Listing: Always allow edit (both private and for sale)
+    // For ForSale: Always allow edit (both private and for sale)
     // For Auction: Controlled by onEdit callback (only draft/scheduled)
     if (isCreator && onEdit != null) {
       final canEdit =
           contentType == PopupMoreOptionsContentType.content ||
-          contentType == PopupMoreOptionsContentType.listing ||
+          contentType == PopupMoreOptionsContentType.forSale ||
           contentType == PopupMoreOptionsContentType.auction;
 
       if (canEdit) {

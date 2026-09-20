@@ -16,7 +16,7 @@
 /// ═══════════════════════════════════════════════════════════════════════════════
 /// - These values are BUYER EXPECTATIONS set before purchase
 /// - Order gets a SNAPSHOT of these values at creation time
-/// - Seller changing listing/auction preparation time later does NOT affect existing orders
+/// - Seller changing forSale/auction preparation time later does NOT affect existing orders
 /// ═══════════════════════════════════════════════════════════════════════════════
 library;
 

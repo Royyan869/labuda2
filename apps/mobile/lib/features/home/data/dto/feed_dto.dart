@@ -296,15 +296,15 @@ class FeedMediaDto {
 ///
 /// Hand-written (no json_serializable) because the wire shape is entirely
 /// different from organic FeedItemDto. Covers three target types:
-/// - promoted_listing: listing card with price
+/// - promoted_for_sale: forSale card with price
 /// - promoted_auction: auction card with bidding info
 /// - promoted_external: external product with URL
 class PromotedFeedItemDto {
-  final String type; // promoted_listing, promoted_auction, promoted_external
+  final String type; // promoted_for_sale, promoted_auction, promoted_external
   /// Canonical contract identity (promotion_contracts.id) carried on the
   /// wire as `contract_id`. The legacy `promotion_instance_id` key is purged.
   final String contractId;
-  final String targetType; // listing, auction, external_product
+  final String targetType; // forSale, auction, external_product
 
   /// Canonical exposure identity. Present ONLY on canonical promotion cards
   /// (server-issued when the card was included in the feed response). When
@@ -321,7 +321,7 @@ class PromotedFeedItemDto {
   final String? sellerFarmName;
   final String? sellerLifecycle;
 
-  // Listing-specific (canonical: for_sale_id from backend)
+  // ForSale-specific (canonical: for_sale_id from backend)
   final String? forSaleId;
   final int? pricePerUnit;
 

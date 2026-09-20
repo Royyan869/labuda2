@@ -48,9 +48,19 @@ class UserApiMapper {
     );
   }
 
-  /// Convert UserApiResponse to ProfileEntity
-  static ProfileEntity toProfileEntity(UserApiResponse response) {
+  /// Convert UserApiResponse to ProfileEntity — canonical seller identity is
+  /// the public projection (UserApiResponse.store* via GET /users/{id}).
+  static ProfileEntity toProfileEntity(
+    UserApiResponse response, {
+    FarmInfo? farmInfo,
+  }) {
     final profile = response.profile;
+    final canonicalFarm = (response.storeName != null && response.storeName!.trim().isNotEmpty)
+        ? FarmInfo(
+            farmName: response.storeName!.trim(),
+            farmPhotoUrl: response.storeImageUrl,
+          )
+        : null;
 
     return ProfileEntity(
       id: profile?.id ?? response.id,
@@ -67,7 +77,7 @@ class UserApiMapper {
       ),
       verification: _createVerificationInfo(response),
       contactInfo: _mapContactInfo(response),
-      farmInfo: null, // TODO: Fetch from separate endpoint
+      farmInfo: canonicalFarm ?? farmInfo,
     );
   }
 

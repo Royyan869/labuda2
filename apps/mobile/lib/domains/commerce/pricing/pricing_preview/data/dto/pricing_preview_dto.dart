@@ -72,7 +72,7 @@ class PricingPreviewResponseDto {
 /// Request body for POST /api/v1/pricing/preview
 ///
 /// Backend requires: product_id, source_type, source_id (all binding:"required").
-/// source_type = 'fixed_price_sale' | 'auction' | 'negotiation'
+/// source_type = 'for_sale' | 'auction' | 'negotiation'
 /// source_id   = FixedPriceSale ID | Auction ID | Negotiation ID
 class PricingPreviewRequestDto {
   final String productId;
@@ -101,7 +101,7 @@ class PricingPreviewRequestDto {
       'source_type': sourceType,
       'source_id': sourceId,
       'quantity': quantity,
-      if (shippingSetupId != null) 'shipping_setup_id': shippingSetupId,
+      if (shippingSetupId != null) 'shipping_option_id': shippingSetupId,
       if (shippingQuoteId != null) 'shipping_quote_id': shippingQuoteId,
       'address_id': addressId,
       if (discountCode != null) 'discount_code': discountCode,
@@ -130,7 +130,7 @@ class NegotiationPricingPreviewRequestDto {
   Map<String, dynamic> toJson() {
     return {
       'negotiation_id': negotiationId,
-      if (shippingSetupId != null) 'shipping_setup_id': shippingSetupId,
+      if (shippingSetupId != null) 'shipping_option_id': shippingSetupId,
       if (shippingQuoteId != null) 'shipping_quote_id': shippingQuoteId,
       'address_id': addressId,
     };

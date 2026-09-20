@@ -74,28 +74,33 @@ class ShippingCoverageMapper {
 }
 
 /// Mapper untuk Delivery Option DTO → Entity
+///
+/// Wire vocabulary (`shipping_option_id`, `name`, `transport_type`) is translated
+/// here onto the canonical shipping domain vocabulary (`shippingSetupId`,
+/// `displayName`, `type`).
 class DeliveryOptionMapper {
   /// Convert DTO to Entity
   static DeliveryOption toEntity(DeliveryOptionDto dto) {
     return DeliveryOption(
-      shippingSetupId: dto.shippingSetupId,
-      displayName: dto.displayName,
-      type: dto.type,
+      shippingSetupId: dto.shippingOptionId,
+      displayName: dto.name,
+      type: dto.transportType,
       rate: dto.rate,
-      notes: dto.notes,
-      source: dto.source,
     );
   }
 
   /// Convert Check Delivery Request to JSON
+  ///
+  /// Canonical wire keys for POST /api/v1/shipping/check:
+  ///   product_id (uuid), province_code (2-digit BPS), city_code (4-digit BPS).
+  /// The request carries no city name — the backend resolves coverage from codes.
   static Map<String, dynamic> checkDeliveryToJson(
     CheckDeliveryRequest request,
   ) {
     return {
       'product_id': request.productId,
-      'province_id': request.provinceId,
-      'city_id': request.cityId,
-      'city_name': request.cityName,
+      'province_code': request.provinceId,
+      'city_code': request.cityId,
     };
   }
 

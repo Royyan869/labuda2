@@ -48,7 +48,7 @@ func NewProjectionAdminHandler(w *ProjectionWorker, log *zap.Logger) *Projection
 //	  "pending_count":     int,   // outbox events not yet projected
 //	  "processed_count":   int,   // events in projection_tracker
 //	  "order_count":       int,   // rows in order_summaries
-//	  "account_count":     int    // rows in account_balances
+//
 //	}
 func (h *ProjectionAdminHandler) GetStatus(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
@@ -67,7 +67,6 @@ func (h *ProjectionAdminHandler) GetStatus(c *gin.Context) {
 		"pending_count":     status.PendingCount,
 		"processed_count":   status.ProcessedCount,
 		"order_count":       status.OrderCount,
-		"account_count":     status.AccountCount,
 	})
 }
 
@@ -101,14 +100,12 @@ func (h *ProjectionAdminHandler) Rebuild(c *gin.Context) {
 
 	h.log.Info("projection_rebuild_complete",
 		zap.Int("order_count", status.OrderCount),
-		zap.Int("account_count", status.AccountCount),
 		zap.Int("processed_count", status.ProcessedCount),
 	)
 
 	c.JSON(http.StatusOK, gin.H{
 		"rebuilt":         true,
 		"order_count":     status.OrderCount,
-		"account_count":   status.AccountCount,
 		"processed_count": status.ProcessedCount,
 		"pending_count":   status.PendingCount,
 	})

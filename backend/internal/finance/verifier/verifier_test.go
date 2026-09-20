@@ -25,7 +25,7 @@ func TestOpeningBalanceMetadataForBankSettlement(t *testing.T) {
 				ID:            uuid.MustParse("00000000-0000-0000-0000-000000000003"),
 				TransactionID: txID,
 				AccountID:     accountID,
-				EntryType:     "credit",
+				EntryType:     "debit",
 				Amount:        1_000_000,
 				BalanceAfter:  8_999_999_999_000_000,
 				CreatedAt:     10,
@@ -35,7 +35,7 @@ func TestOpeningBalanceMetadataForBankSettlement(t *testing.T) {
 				ID:            uuid.MustParse("00000000-0000-0000-0000-000000000011"),
 				TransactionID: txID,
 				AccountID:     counterID,
-				EntryType:     "debit",
+				EntryType:     "credit",
 				Amount:        1_000_000,
 				BalanceAfter:  1_000_000,
 				CreatedAt:     10,
@@ -97,8 +97,8 @@ func TestPaymentSettlementResidueStrictFailsForensicWarns(t *testing.T) {
 			{ID: cutoverTx, ReferenceType: "payment_settlement", CreatedAt: 10},
 		},
 		Entries: []LedgerEntry{
-			{ID: uuid.MustParse("20000000-0000-0000-0000-000000000006"), TransactionID: cutoverTx, AccountID: counterA, EntryType: "debit", Amount: 100, BalanceAfter: 100, CreatedAt: 10, RowOrder: "(0,1)"},
-			{ID: uuid.MustParse("20000000-0000-0000-0000-000000000007"), TransactionID: cutoverTx, AccountID: counterB, EntryType: "credit", Amount: 100, BalanceAfter: 8_999_999_999_999_900, CreatedAt: 10, RowOrder: "(0,2)"},
+			{ID: uuid.MustParse("20000000-0000-0000-0000-000000000006"), TransactionID: cutoverTx, AccountID: counterA, EntryType: "credit", Amount: 100, BalanceAfter: 100, CreatedAt: 10, RowOrder: "(0,1)"},
+			{ID: uuid.MustParse("20000000-0000-0000-0000-000000000007"), TransactionID: cutoverTx, AccountID: counterB, EntryType: "debit", Amount: 100, BalanceAfter: 8_999_999_999_999_900, CreatedAt: 10, RowOrder: "(0,2)"},
 		},
 	}
 	if !Verify(snapshot, ModeStrict).HasFailures() {
@@ -109,7 +109,7 @@ func TestPaymentSettlementResidueStrictFailsForensicWarns(t *testing.T) {
 	}
 }
 
-// TestDoubleEntryImbalanceFailsStrict verifies that a transaction whose debit
+ // TestDoubleEntryImbalanceFailsStrict verifies that a transaction whose debit
 // and credit amounts differ is always caught in strict mode. This is a
 // CI-safe fixture test (no DB required).
 func TestDoubleEntryImbalanceFailsStrict(t *testing.T) {
@@ -153,17 +153,17 @@ func TestPayoutOutboxCorrelationIsOptional(t *testing.T) {
 			{ID: committedID, AccountType: finance.AccountWithdrawalCommitted, Balance: 100},
 		},
 		Withdrawals: []Withdrawal{
-			{ID: withdrawalID, SellerID: sellerID, Amount: 100, Status: "approved"},
+			{ID: withdrawalID, SellerID: sellerID, Amount: 100, Status: "PROCESSING"},
 		},
 		Transactions: []LedgerTransaction{
-			{ID: requestTxID, ReferenceType: "withdrawal_request", ReferenceID: &withdrawalID, CreatedAt: 9},
-			{ID: commitTxID, ReferenceType: "withdrawal_commit", ReferenceID: &withdrawalID, CreatedAt: 10},
+			{ID: requestTxID, ReferenceType: "withdrawal_request", ReferenceID: &withdrawalID, CreatedAt: 9, TotalDebit: 100, TotalCredit: 100},
+			{ID: commitTxID, ReferenceType: "withdrawal_commit", ReferenceID: &withdrawalID, CreatedAt: 10, TotalDebit: 100, TotalCredit: 100},
 		},
 		Entries: []LedgerEntry{
-			{ID: uuid.MustParse("40000000-0000-0000-0000-000000000006"), TransactionID: requestTxID, AccountID: bankID, EntryType: "credit", Amount: 100, BalanceAfter: 8_999_999_999_999_900, CreatedAt: 9, RowOrder: "(0,1)"},
-			{ID: uuid.MustParse("40000000-0000-0000-0000-000000000007"), TransactionID: requestTxID, AccountID: pendingID, EntryType: "debit", Amount: 100, BalanceAfter: 100, CreatedAt: 9, RowOrder: "(0,2)"},
-			{ID: uuid.MustParse("40000000-0000-0000-0000-000000000010"), TransactionID: commitTxID, AccountID: pendingID, EntryType: "credit", Amount: 100, BalanceAfter: 0, CreatedAt: 10, RowOrder: "(0,3)"},
-			{ID: uuid.MustParse("40000000-0000-0000-0000-000000000011"), TransactionID: commitTxID, AccountID: committedID, EntryType: "debit", Amount: 100, BalanceAfter: 100, CreatedAt: 10, RowOrder: "(0,4)"},
+			{ID: uuid.MustParse("40000000-0000-0000-0000-000000000006"), TransactionID: requestTxID, AccountID: bankID, EntryType: "debit", Amount: 100, BalanceAfter: 8_999_999_999_999_900, CreatedAt: 9, RowOrder: "(0,1)"},
+			{ID: uuid.MustParse("40000000-0000-0000-0000-000000000007"), TransactionID: requestTxID, AccountID: pendingID, EntryType: "credit", Amount: 100, BalanceAfter: 100, CreatedAt: 9, RowOrder: "(0,2)"},
+			{ID: uuid.MustParse("40000000-0000-0000-0000-000000000010"), TransactionID: commitTxID, AccountID: pendingID, EntryType: "debit", Amount: 100, BalanceAfter: 0, CreatedAt: 10, RowOrder: "(0,3)"},
+			{ID: uuid.MustParse("40000000-0000-0000-0000-000000000011"), TransactionID: commitTxID, AccountID: committedID, EntryType: "credit", Amount: 100, BalanceAfter: 100, CreatedAt: 10, RowOrder: "(0,4)"},
 		},
 	}
 	if Verify(snapshot, ModeStrict).HasFailures() {
@@ -210,20 +210,20 @@ func TestPromotionFinancialInvariants_PositiveLifecycle(t *testing.T) {
 		},
 		Entries: []LedgerEntry{
 			// funding: BANK_SETTLEMENT -30000 -> PROMOTE_BALANCE +30000
-			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000020"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000010"), AccountID: bankID, EntryType: "credit", Amount: 30_000, BalanceAfter: afterFunding, CreatedAt: 1, RowOrder: "(0,1)"},
-			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000021"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000010"), AccountID: promoteID, EntryType: "debit", Amount: 30_000, BalanceAfter: 30_000, CreatedAt: 1, RowOrder: "(0,2)"},
+			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000020"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000010"), AccountID: bankID, EntryType: "debit", Amount: 30_000, BalanceAfter: afterFunding, CreatedAt: 1, RowOrder: "(0,1)"},
+			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000021"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000010"), AccountID: promoteID, EntryType: "credit", Amount: 30_000, BalanceAfter: 30_000, CreatedAt: 1, RowOrder: "(0,2)"},
 			// allocation: PROMOTE_BALANCE -30000 -> PROMOTION_ALLOCATION +30000
-			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000022"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000011"), AccountID: promoteID, EntryType: "credit", Amount: 30_000, BalanceAfter: 0, CreatedAt: 2, RowOrder: "(0,1)"},
-			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000023"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000011"), AccountID: allocID, EntryType: "debit", Amount: 30_000, BalanceAfter: 30_000, CreatedAt: 2, RowOrder: "(0,2)"},
+			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000022"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000011"), AccountID: promoteID, EntryType: "debit", Amount: 30_000, BalanceAfter: 0, CreatedAt: 2, RowOrder: "(0,1)"},
+			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000023"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000011"), AccountID: allocID, EntryType: "credit", Amount: 30_000, BalanceAfter: 30_000, CreatedAt: 2, RowOrder: "(0,2)"},
 			// QI #1: charge 7
-			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000024"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000012"), AccountID: allocID, EntryType: "credit", Amount: 7, BalanceAfter: 29_993, CreatedAt: 3, RowOrder: "(0,1)"},
-			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000025"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000012"), AccountID: platformID, EntryType: "debit", Amount: 7, BalanceAfter: 7, CreatedAt: 3, RowOrder: "(0,2)"},
+			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000024"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000012"), AccountID: allocID, EntryType: "debit", Amount: 7, BalanceAfter: 29_993, CreatedAt: 3, RowOrder: "(0,1)"},
+			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000025"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000012"), AccountID: platformID, EntryType: "credit", Amount: 7, BalanceAfter: 7, CreatedAt: 3, RowOrder: "(0,2)"},
 			// QI #2: charge 8
-			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000026"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000013"), AccountID: allocID, EntryType: "credit", Amount: 8, BalanceAfter: 29_985, CreatedAt: 4, RowOrder: "(0,1)"},
-			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000027"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000013"), AccountID: platformID, EntryType: "debit", Amount: 8, BalanceAfter: 15, CreatedAt: 4, RowOrder: "(0,2)"},
+			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000026"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000013"), AccountID: allocID, EntryType: "debit", Amount: 8, BalanceAfter: 29_985, CreatedAt: 4, RowOrder: "(0,1)"},
+			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000027"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000013"), AccountID: platformID, EntryType: "credit", Amount: 8, BalanceAfter: 15, CreatedAt: 4, RowOrder: "(0,2)"},
 			// release: remaining 29985 back to PROMOTE_BALANCE
-			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000028"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000014"), AccountID: allocID, EntryType: "credit", Amount: 29_985, BalanceAfter: 0, CreatedAt: 5, RowOrder: "(0,1)"},
-			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000029"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000014"), AccountID: promoteID, EntryType: "debit", Amount: 29_985, BalanceAfter: 29_985, CreatedAt: 5, RowOrder: "(0,2)"},
+			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000028"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000014"), AccountID: allocID, EntryType: "debit", Amount: 29_985, BalanceAfter: 0, CreatedAt: 5, RowOrder: "(0,1)"},
+			{ID: uuid.MustParse("60000000-0000-0000-0000-000000000029"), TransactionID: uuid.MustParse("60000000-0000-0000-0000-000000000014"), AccountID: promoteID, EntryType: "credit", Amount: 29_985, BalanceAfter: 29_985, CreatedAt: 5, RowOrder: "(0,2)"},
 		},
 		// Phase 3 canonical facts backing the promotion_qi ledger charges:
 		// the Qualified Impression Reconciliation section requires every

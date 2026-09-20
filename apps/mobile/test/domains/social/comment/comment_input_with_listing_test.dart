@@ -19,7 +19,7 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         CommentInputWithCommerceReference(
-          onSubmit: (body, listing) {
+          onSubmit: (body, forSale) {
             submitCount += 1;
             return completer.future;
           },
@@ -51,7 +51,7 @@ void main() {
 
     await tester.pumpWidget(
       _wrap(
-        CommentInputWithCommerceReference(onSubmit: (body, listing) => completer.future),
+        CommentInputWithCommerceReference(onSubmit: (body, forSale) => completer.future),
       ),
     );
 

@@ -52,7 +52,7 @@ func insertNegotiationTestForSale(t *testing.T, ctx context.Context, pool *pgxpo
 	productID := uuid.New()
 	_, err := pool.Exec(ctx, `
 		INSERT INTO products (id, seller_id, title, description, variety, preparation_time, created_at, updated_at)
-		VALUES ($1, $2, 'Test Koi', 'test fixture', 'showa', 'same_day', NOW(), NOW())
+		VALUES ($1, $2, 'Test Koi', 'test fixture', 'showa', 'immediate', NOW(), NOW())
 	`, productID, sellerID)
 	if err != nil {
 		t.Fatalf("insert test product: %v", err)

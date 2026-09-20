@@ -9,9 +9,9 @@ import 'package:labuda/domains/commerce/catalog/auction/domain/repositories/auct
 /// `CreateAuctionRequest` contract (internal/commerce/auction/delivery/http)
 /// — this is a regression guard against the exact silent mismatch PASS_18D
 /// found (missing shipping_setup_ids; wrong images/category keys), and
-/// against the rejected "auction created from listing" design (PASS_21B):
+/// against the rejected "auction created from forSale" design (PASS_21B):
 /// the backend creates the Product inline from item fields, so there must
-/// never be a product_id/listing_id key on this request.
+/// never be a product_id/for_sale_id key on this request.
 void main() {
   group('Create auction contract', () {
     test(
@@ -66,12 +66,12 @@ void main() {
         expect(json.containsKey('condition'), isFalse);
 
         // Regression guard (PASS_21B): auction must never be sourced from a
-        // Listing — the backend creates the Product inline, so there is no
-        // product_id/listing_id key on this request at all.
+        // ForSale — the backend creates the Product inline, so there is no
+        // product_id/for_sale_id key on this request at all.
         expect(json.containsKey('product_id'), isFalse);
         expect(json.containsKey('productId'), isFalse);
-        expect(json.containsKey('listing_id'), isFalse);
-        expect(json.containsKey('listingId'), isFalse);
+        expect(json.containsKey('for_sale_id'), isFalse);
+        expect(json.containsKey('forSaleId'), isFalse);
       },
     );
 
@@ -120,7 +120,7 @@ void main() {
     );
 
     test(
-      'AuctionMapper.toCreateDto threads koiDetails and shippingSetupIds through to the DTO, with no product/listing ID',
+      'AuctionMapper.toCreateDto threads koiDetails and shippingSetupIds through to the DTO, with no product/forSale ID',
       () {
         final params = CreateAuctionParams(
           sellerId: 'seller-1',
@@ -162,7 +162,7 @@ void main() {
         expect(json['media_urls'], const ['https://cdn.example.com/a.jpg']);
         expect(json['preparation_note'], 'Handle with care');
         expect(json.containsKey('product_id'), isFalse);
-        expect(json.containsKey('listing_id'), isFalse);
+        expect(json.containsKey('for_sale_id'), isFalse);
       },
     );
 

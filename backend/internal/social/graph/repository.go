@@ -58,10 +58,6 @@ type SocialRepository interface {
 	// This MUST be called before ExistsBlock in follow operations to prevent race conditions.
 	AcquireFollowLock(ctx context.Context, tx interface{}, userA, userB uuid.UUID) error
 
-	// IsBlockedBy checks if blockerID has blocked targetID (directional check).
-	// Returns true if blockerID -> targetID block exists.
-	IsBlockedBy(ctx context.Context, tx interface{}, blockerID, targetID uuid.UUID) (bool, error)
-
 	// InsertMute creates a new mute relationship.
 	// Returns nil on success, including if mute already exists (idempotent).
 	InsertMute(ctx context.Context, tx interface{}, muterID, mutedID uuid.UUID) error

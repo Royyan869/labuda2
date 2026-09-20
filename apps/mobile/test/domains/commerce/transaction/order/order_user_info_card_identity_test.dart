@@ -1,7 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart';
 import 'package:labuda/domains/commerce/transaction/order/presentation/widgets/order_widgets.dart';
+
+/// Canonical Order fixture: the card derives the buyer/seller identity from the
+/// order itself, so identity assertions must travel through `Order`.
+Order _order({
+  String? sellerUsername,
+  String? sellerFarmName,
+  String? sellerAvatarUrl,
+}) {
+  return Order(
+    id: 'order-1',
+    buyerId: 'buyer-1',
+    sellerId: 'seller-1',
+    items: const [],
+    status: OrderStatus.pending,
+    paymentMethod: PaymentMethodType.bankTransfer,
+    paymentStatus: PaymentStatus.pending,
+    shippingInfo: const ShippingInfo(
+      recipientName: 'Buyer',
+      phone: '08123',
+      address: 'Address',
+      method: ShippingMethod.courier,
+      shippingCost: 10000,
+    ),
+    pricing: const OrderPricing(
+      subtotal: 100000,
+      shippingCost: 10000,
+      commissionAmount: 0,
+      totalBeforeCoinsAmount: 110000,
+      totalPayableAmount: 110000,
+    ),
+    createdAt: DateTime(2026, 6, 1),
+    source: OrderSource.forSale,
+    sellerUsername: sellerUsername,
+    sellerFarmName: sellerFarmName,
+    sellerAvatarUrl: sellerAvatarUrl,
+  );
+}
 
 Widget _wrap({
   required String sellerUsername,
@@ -12,12 +50,12 @@ Widget _wrap({
     child: MaterialApp(
       home: Scaffold(
         body: OrderUserInfoCard(
+          order: _order(
+            sellerUsername: sellerUsername,
+            sellerFarmName: sellerFarmName,
+            sellerAvatarUrl: sellerAvatarUrl,
+          ),
           currentUserId: 'buyer-1',
-          sellerId: 'seller-1',
-          buyerId: 'buyer-1',
-          sellerUsername: sellerUsername,
-          sellerFarmName: sellerFarmName,
-          sellerAvatarUrl: sellerAvatarUrl,
           isDark: false,
         ),
       ),
@@ -64,11 +102,11 @@ void main() {
         child: MaterialApp(
           home: Scaffold(
             body: OrderUserInfoCard(
+              order: _order(
+                sellerUsername: 'yayan',
+                sellerFarmName: 'Farm Koi Nusantara',
+              ),
               currentUserId: 'buyer-1',
-              sellerId: 'seller-1',
-              buyerId: 'buyer-1',
-              sellerUsername: 'yayan',
-              sellerFarmName: 'Farm Koi Nusantara',
               isDark: false,
             ),
           ),

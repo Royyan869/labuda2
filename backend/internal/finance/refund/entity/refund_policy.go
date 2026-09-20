@@ -26,13 +26,20 @@ type RefundPolicyResult struct {
 	CashRefund     int64 // Rpd + Rs (excludes C and F)
 }
 
+// OrderSnapshot carries ONLY the canonical buyer-side money components.
 type OrderSnapshot struct {
-	Subtotal         int64 // PD
-	ShippingTotal    int64 // S
-	CommissionAmount int64 // C (seller-side, NOT buyer refund)
+	// DiscountedProduct is PD = (P − D), the DISCOUNTED product value.
+	// It is the canonical PD and must never be fed the order's undiscounted
+	// Subtotal (P): the producer derives it exclusively from the persisted
+	// buyer-funded base (order.DiscountedProductAmount() = base − S).
+	DiscountedProduct int64
+	ShippingTotal     int64 // S
+	CommissionAmount  int64 // C (seller-side, NOT buyer refund)
 }
 
-func (o OrderSnapshot) ProductGross() int64 { return o.Subtotal + o.ShippingTotal }
+// ProductGross returns the canonical buyer-funded base PD + S, excluding the
+// seller-side commission C and the non-refundable buyer payment fee F.
+func (o OrderSnapshot) ProductGross() int64 { return o.DiscountedProduct + o.ShippingTotal }
 
 type ErrAdminReviewRequired struct{ Reason RefundReason }
 func (e *ErrAdminReviewRequired) Error() string {
@@ -43,13 +50,13 @@ func ResolveRefundPolicy(reason RefundReason, order OrderSnapshot) RefundPolicyR
 	switch reason {
 	case RefundReasonItemDamaged, RefundReasonDefectiveItem:
 		return RefundPolicyResult{
-			PolicyType: RefundPolicyProductOnly, ProductAmount: order.Subtotal,
-			ShippingAmount: 0, CashRefund: order.Subtotal,
+			PolicyType: RefundPolicyProductOnly, ProductAmount: order.DiscountedProduct,
+			ShippingAmount: 0, CashRefund: order.DiscountedProduct,
 		}
 	case RefundReasonItemNotReceived, RefundReasonWrongItem:
 		return RefundPolicyResult{
-			PolicyType: RefundPolicyFull, ProductAmount: order.Subtotal,
-			ShippingAmount: order.ShippingTotal, CashRefund: order.Subtotal + order.ShippingTotal,
+			PolicyType: RefundPolicyFull, ProductAmount: order.DiscountedProduct,
+			ShippingAmount: order.ShippingTotal, CashRefund: order.DiscountedProduct + order.ShippingTotal,
 		}
 	default:
 		return RefundPolicyResult{PolicyType: RefundPolicyAdminReviewRequired}

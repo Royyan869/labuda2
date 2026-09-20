@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:labuda/core/src/router/modules/base_module.dart';
 import 'package:labuda/core/src/router/route_paths.dart';
 import 'package:labuda/domains/commerce/transaction/checkout/checkout.dart';
+import 'package:labuda/domains/finance/transaction/payment/presentation/screens/payment_webview_screen.dart';
 
 /// Checkout Module - Transaction flow routes
 ///
@@ -40,7 +41,7 @@ class CheckoutModule extends BaseModule {
 
         return CheckoutScreen(
           productId: productId,
-          fixedPriceSaleId: forSaleId,
+          forSaleId: forSaleId,
           negotiationId: negotiationId,
           auctionId: auctionId,
           shippingQuoteId: shippingQuoteId,
@@ -63,6 +64,23 @@ class CheckoutModule extends BaseModule {
           orderId: orderId,
           orderNumber: orderNumber,
           returnToChat: returnToChat,
+        );
+      },
+    ),
+
+    // Payment WebView - SINGLE CANONICAL PAYMENT PRESENTATION SURFACE.
+    // Payment URLs are presented exclusively inside Labuda's internal WebView.
+    // External-browser payment navigation is obsolete and must not be reintroduced.
+    // Payment completion remains backend-authoritative (PaymentResultNotifier).
+    GoRoute(
+      path: RoutePaths.paymentWebview,
+      name: RouteNames.paymentWebview,
+      builder: (context, state) {
+        final url = state.uri.queryParameters['url'] ?? '';
+        final orderId = state.uri.queryParameters['orderId'];
+        return PaymentWebviewScreen(
+          paymentUrl: Uri.decodeComponent(url),
+          orderId: orderId,
         );
       },
     ),

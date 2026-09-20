@@ -23,8 +23,9 @@ order_domain.Order _order() {
     pricing: const order_domain.OrderPricing(
       subtotal: 100000,
       shippingCost: 10000,
-      discount: 0,
-      total: 110000,
+      commissionAmount: 0,
+      totalBeforeCoinsAmount: 110000,
+      totalPayableAmount: 110000,
     ),
     createdAt: DateTime.utc(2026, 7, 1),
     source: order_domain.OrderSource.forSale,

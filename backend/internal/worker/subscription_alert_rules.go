@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
 	alertentity "github.com/labuda/backend/internal/platform/alert/entity"
 	"github.com/labuda/backend/pkg/db"
 	"go.uber.org/zap"
@@ -39,20 +40,21 @@ func (r *SubscriptionOrphanedPaymentRule) Name() string {
 }
 
 func (r *SubscriptionOrphanedPaymentRule) Detect(ctx context.Context, tx db.Tx) (bool, *AnomalyFinding, error) {
-	// Find payments with reference_type='subscription' and status='settlement'
-	// but no matching subscription record
+	// Find settled subscription payments (canonical settled set: settlement or
+	// capture) with no matching subscription record. The status set is injected
+	// from the canonical payment authority instead of restated in SQL.
 	const query = `
 		SELECT COUNT(*)
 		FROM payments p
 		WHERE p.reference_type = 'subscription'
-		  AND p.status = 'settlement'
+		  AND p.status::text = ANY($1::text[])
 		  AND NOT EXISTS (
 		    SELECT 1 FROM seller_subscriptions s WHERE s.payment_id = p.id
 		  );
 	`
 
 	var orphanedCount int
-	err := tx.QueryRow(ctx, query).Scan(&orphanedCount)
+	err := tx.QueryRow(ctx, query, paymentRepo.SettledPaymentStatuses()).Scan(&orphanedCount)
 	if err != nil {
 		return false, nil, fmt.Errorf("query orphaned payments: %w", err)
 	}
@@ -63,7 +65,7 @@ func (r *SubscriptionOrphanedPaymentRule) Detect(ctx context.Context, tx db.Tx) 
 			SELECT p.id, p.user_id, p.payment_number, p.paid_at
 			FROM payments p
 			WHERE p.reference_type = 'subscription'
-			  AND p.status = 'settlement'
+			  AND p.status::text = ANY($1::text[])
 			  AND NOT EXISTS (
 			    SELECT 1 FROM seller_subscriptions s WHERE s.payment_id = p.id
 			  )
@@ -71,7 +73,7 @@ func (r *SubscriptionOrphanedPaymentRule) Detect(ctx context.Context, tx db.Tx) 
 			LIMIT 5;
 		`
 
-		rows, err := tx.Query(ctx, detailQuery)
+		rows, err := tx.Query(ctx, detailQuery, paymentRepo.SettledPaymentStatuses())
 		if err != nil {
 			return false, nil, fmt.Errorf("query orphaned payment details: %w", err)
 		}
@@ -142,9 +144,9 @@ func (r *SubscriptionConversionRateRule) Detect(ctx context.Context, tx db.Tx) (
 	const query = `
 		WITH payment_stats AS (
 		  SELECT
-		    COUNT(*) FILTER (WHERE status = 'settlement') as total_settlement,
+		    COUNT(*) FILTER (WHERE status::text = ANY($1::text[])) as total_settlement,
 		    COUNT(*) FILTER (
-		      WHERE status = 'settlement'
+		      WHERE status::text = ANY($1::text[])
 		      AND EXISTS (SELECT 1 FROM seller_subscriptions s WHERE s.payment_id = payments.id)
 		    ) as converted
 		  FROM payments
@@ -157,7 +159,7 @@ func (r *SubscriptionConversionRateRule) Detect(ctx context.Context, tx db.Tx) (
 	`
 
 	var total, converted int
-	err := tx.QueryRow(ctx, query).Scan(&total, &converted)
+	err := tx.QueryRow(ctx, query, paymentRepo.SettledPaymentStatuses()).Scan(&total, &converted)
 	if err != nil {
 		return false, nil, fmt.Errorf("query conversion rate: %w", err)
 	}

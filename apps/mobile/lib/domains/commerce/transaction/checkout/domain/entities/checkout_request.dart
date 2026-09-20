@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 /// Checkout Request for creating a direct buy order
-/// Carries both the product authority ID and the fixed-price sale surface ID.
+/// Carries both the product authority ID and the for-sale surface ID.
 ///
 /// PRICING TOKEN: Must include the pricing_token from preview response
 /// to ensure the order uses the exact same pricing snapshot that was shown to the user.
@@ -18,9 +18,9 @@ class CheckoutRequest extends Equatable {
   /// Must be provided by the upstream sale/product surface.
   final String? productId;
 
-  /// Canonical fixed-price sale surface ID.
+  /// Canonical for-sale surface ID.
   /// This is the sale surface / source_id authority.
-  final String fixedPriceSaleId;
+  final String forSaleId;
   final int quantity;
   final bool? useCoins; // Client sends true/false, backend calculates amount
   final String? notes;
@@ -41,17 +41,17 @@ class CheckoutRequest extends Equatable {
 
   /// SHIPPING QUOTE ID: Optional shipping quote ID from seller's manual quote
   /// When provided, the preview and order will use the seller's quoted shipping price
-  /// instead of standard listing shipping options
+  /// instead of standard forSale shipping options
   final String? shippingQuoteId;
 
   /// SHIPPING OPTION ID: Standard shipping option selected by buyer.
   /// Required when shippingQuoteId is not provided.
   /// Mutually exclusive with shippingQuoteId.
-  final String? shippingSetupId;
+  final String? shippingOptionId;
 
   const CheckoutRequest({
     this.productId,
-    required this.fixedPriceSaleId,
+    required this.forSaleId,
     this.quantity = 1,
     this.useCoins,
     this.notes,
@@ -60,41 +60,18 @@ class CheckoutRequest extends Equatable {
     this.auctionId,
     this.negotiationId,
     this.shippingQuoteId,
-    this.shippingSetupId,
+    this.shippingOptionId,
   });
 
-  CheckoutRequest copyWith({
-    String? productId,
-    String? fixedPriceSaleId,
-    int? quantity,
-    bool? useCoins,
-    String? notes,
-    String? addressId,
-    String? pricingToken,
-    String? auctionId,
-    String? negotiationId,
-    String? shippingQuoteId,
-    String? shippingSetupId,
-  }) {
-    return CheckoutRequest(
-      productId: productId ?? this.productId,
-      fixedPriceSaleId: fixedPriceSaleId ?? this.fixedPriceSaleId,
-      quantity: quantity ?? this.quantity,
-      useCoins: useCoins ?? this.useCoins,
-      notes: notes ?? this.notes,
-      addressId: addressId ?? this.addressId,
-      pricingToken: pricingToken ?? this.pricingToken,
-      auctionId: auctionId ?? this.auctionId,
-      negotiationId: negotiationId ?? this.negotiationId,
-      shippingQuoteId: shippingQuoteId ?? this.shippingQuoteId,
-      shippingSetupId: shippingSetupId ?? this.shippingSetupId,
-    );
-  }
+  // NOTE: the unused `copyWith` was purged. A checkout request is built exactly
+  // once per submission from the screen state (the pricing token must belong to
+  // the applied preview), so a mutator only invited building a request whose
+  // token no longer matched its inputs.
 
   @override
   List<Object?> get props => [
     productId,
-    fixedPriceSaleId,
+    forSaleId,
     quantity,
     useCoins,
     notes,
@@ -103,6 +80,6 @@ class CheckoutRequest extends Equatable {
     auctionId,
     negotiationId,
     shippingQuoteId,
-    shippingSetupId,
+    shippingOptionId,
   ];
 }

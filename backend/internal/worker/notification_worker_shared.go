@@ -79,6 +79,7 @@ type ChatMessagePayload struct {
 }
 
 // OrderPayload represents the payload for order events.
+// Financial amount total_before_coins_amount is not included — projection re-queries write model.
 type OrderPayload struct {
 	OrderID          string `json:"order_id"`
 	BuyerID          string `json:"buyer_id"`
@@ -90,7 +91,6 @@ type OrderPayload struct {
 	Subtotal         int64  `json:"subtotal"`
 	ShippingTotal    int64  `json:"shipping_total"`
 	CommissionAmount int64  `json:"commission_amount"`
-	EscrowAmount     int64  `json:"escrow_amount"`
 	CreatedAt        int64  `json:"created_at"`
 }
 

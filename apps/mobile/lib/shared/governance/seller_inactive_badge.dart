@@ -1,7 +1,7 @@
 /// SellerInactiveBadge — shared widget for the expired-seller visibility
 /// convergence. Renders a compact "Penjual tidak aktif" pill anywhere the
 /// seller-trust lifecycle is degraded so buyers see clearly that the seller
-/// cannot transact, while listing/auction content stays visible.
+/// cannot transact, while forSale/auction content stays visible.
 ///
 /// AXIS BOUNDARY: this badge is for the SELLER-TRUST axis only (subscription
 /// expired/lapsed). The user-identity axis (banned/suspended/deleted) is

@@ -33,7 +33,7 @@ class FeatureFlags {
   static bool get profile => useGoBackend;
   static bool get order => useGoBackend;
   static bool get payment => useGoBackend;
-  static bool get listing => useGoBackend;
+  static bool get forSale => useGoBackend;
   static bool get auction => useGoBackend;
   static bool get follow => useGoBackend;
   static bool get like => useGoBackend;
@@ -75,7 +75,7 @@ class FeatureFlags {
       'profile': profile,
       'order': order,
       'payment': payment,
-      'listing': listing,
+      'forSale': forSale,
       'auction': auction,
       'follow': follow,
       'like': like,

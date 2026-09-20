@@ -64,9 +64,6 @@ func (m *ownershipMockRepo) GetTicketByID(ctx context.Context, tx interface{}, t
 	}
 	return nil, supportRepo.ErrTicketNotFound
 }
-func (m *ownershipMockRepo) GetOpenTicketByUser(ctx context.Context, tx interface{}, userID uuid.UUID) (*supportEntity.Ticket, error) {
-	return nil, supportRepo.ErrTicketNotFound
-}
 func (m *ownershipMockRepo) ListTickets(ctx context.Context, tx interface{}, filter *supportRepo.TicketFilter, cursorCreatedAt *time.Time, cursorID *uuid.UUID, limit int) ([]*supportEntity.Ticket, error) {
 	return nil, nil
 }
@@ -97,38 +94,17 @@ func (m *ownershipMockRepo) UpdateStatus(ctx context.Context, tx interface{}, ti
 func (m *ownershipMockRepo) UpdateEscalation(ctx context.Context, tx interface{}, ticketID uuid.UUID, escalation supportEntity.Escalation) error {
 	return nil
 }
-func (m *ownershipMockRepo) AssignAdmin(ctx context.Context, tx interface{}, ticketID, adminID uuid.UUID) error {
-	return nil
-}
-func (m *ownershipMockRepo) UnassignAdmin(ctx context.Context, tx interface{}, ticketID uuid.UUID) error {
-	return nil
-}
 func (m *ownershipMockRepo) CreateEvent(ctx context.Context, tx interface{}, event *supportEntity.Event) error {
 	return nil
 }
 func (m *ownershipMockRepo) ListEvents(ctx context.Context, tx interface{}, ticketID uuid.UUID, limit int) ([]*supportEntity.Event, error) {
 	return nil, nil
 }
-func (m *ownershipMockRepo) GetAdmin(ctx context.Context, tx interface{}, adminID uuid.UUID) (*supportEntity.Admin, error) {
-	return nil, nil
+func (m *ownershipMockRepo) ListStatusEventsForTickets(ctx context.Context, tx interface{}, ticketIDs []uuid.UUID) (map[uuid.UUID][]*supportEntity.Event, error) {
+	return make(map[uuid.UUID][]*supportEntity.Event), nil
 }
-func (m *ownershipMockRepo) CreateAdmin(ctx context.Context, tx interface{}, admin *supportEntity.Admin) error {
-	return nil
-}
-func (m *ownershipMockRepo) ListAdmins(ctx context.Context, tx interface{}, isActive *bool) ([]*supportEntity.Admin, error) {
-	return nil, nil
-}
-func (m *ownershipMockRepo) GetAvailableAdmins(ctx context.Context, tx interface{}, maxConcurrent int, limit int) ([]*supportEntity.Admin, error) {
-	return nil, nil
-}
-func (m *ownershipMockRepo) IncrementAdminTicketCount(ctx context.Context, tx interface{}, adminID uuid.UUID) error {
-	return nil
-}
-func (m *ownershipMockRepo) DecrementAdminTicketCount(ctx context.Context, tx interface{}, adminID uuid.UUID) error {
-	return nil
-}
-func (m *ownershipMockRepo) SetAdminActive(ctx context.Context, tx interface{}, adminID uuid.UUID, isActive bool) error {
-	return nil
+func (m *ownershipMockRepo) ListFirstAdminResponsesByTicketIDs(ctx context.Context, tx interface{}, ticketIDs []uuid.UUID) (map[uuid.UUID]*time.Time, error) {
+	return make(map[uuid.UUID]*time.Time), nil
 }
 func (m *ownershipMockRepo) GetTicketStatistics(ctx context.Context, tx interface{}) (*supportRepo.TicketStatistics, error) {
 	return nil, nil
@@ -210,7 +186,7 @@ func TestHandler_GetTicket_OwnershipEnforcement(t *testing.T) {
 	foreignID := uuid.New()
 	ticketID := uuid.New()
 
-	ticket := supportEntity.NewTicket(ownerID, uuid.New(), supportEntity.CategoryPayment, supportEntity.PriorityMedium)
+	ticket := supportEntity.NewTicket(ownerID, uuid.New(), supportEntity.CategoryPaymentIssue, supportEntity.PriorityMedium)
 	ticket.ID = ticketID
 
 	t.Run("owner can read their own ticket", func(t *testing.T) {
@@ -262,7 +238,7 @@ func TestHandler_ListEvents_OwnershipEnforcement(t *testing.T) {
 	foreignID := uuid.New()
 	ticketID := uuid.New()
 
-	ticket := supportEntity.NewTicket(ownerID, uuid.New(), supportEntity.CategoryPayment, supportEntity.PriorityMedium)
+	ticket := supportEntity.NewTicket(ownerID, uuid.New(), supportEntity.CategoryPaymentIssue, supportEntity.PriorityMedium)
 	ticket.ID = ticketID
 
 	t.Run("owner can list events for their own ticket", func(t *testing.T) {
@@ -315,7 +291,7 @@ func TestHandler_ReopenTicket_OwnershipEnforcement(t *testing.T) {
 	ticketID := uuid.New()
 
 	t.Run("owner can reopen their own resolved ticket", func(t *testing.T) {
-		ticket := supportEntity.NewTicket(ownerID, uuid.New(), supportEntity.CategoryPayment, supportEntity.PriorityMedium)
+		ticket := supportEntity.NewTicket(ownerID, uuid.New(), supportEntity.CategoryPaymentIssue, supportEntity.PriorityMedium)
 		ticket.ID = ticketID
 		ticket.Status = supportEntity.StatusResolved
 
@@ -334,7 +310,7 @@ func TestHandler_ReopenTicket_OwnershipEnforcement(t *testing.T) {
 	})
 
 	t.Run("foreign user gets 404 when reopening another users ticket", func(t *testing.T) {
-		ticket := supportEntity.NewTicket(ownerID, uuid.New(), supportEntity.CategoryPayment, supportEntity.PriorityMedium)
+		ticket := supportEntity.NewTicket(ownerID, uuid.New(), supportEntity.CategoryPaymentIssue, supportEntity.PriorityMedium)
 		ticket.ID = ticketID
 		ticket.Status = supportEntity.StatusResolved
 

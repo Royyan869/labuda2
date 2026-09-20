@@ -44,12 +44,18 @@ const SUPPORT_STATUSES: { value: SupportTicketStatus | ''; label: string }[] = [
   { value: 'closed', label: 'Closed' },
 ]
 
+// Canonical category vocabulary — identical to the backend enum and the
+// mobile client. Kept in the same order as the backend taxonomy.
 const SUPPORT_CATEGORIES: { value: SupportCategory | ''; label: string }[] = [
   { value: '', label: 'All Categories' },
   { value: 'order_issue', label: 'Order Issue' },
   { value: 'payment_issue', label: 'Payment Issue' },
   { value: 'account_issue', label: 'Account Issue' },
   { value: 'listing_issue', label: 'Listing Issue' },
+  { value: 'shipping_issue', label: 'Shipping Issue' },
+  { value: 'refund_request', label: 'Refund Request' },
+  { value: 'dispute', label: 'Dispute' },
+  { value: 'technical_issue', label: 'Technical Issue' },
   { value: 'other', label: 'Other' },
 ]
 

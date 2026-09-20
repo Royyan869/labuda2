@@ -1,0 +1,2 @@
+-- Down migration for 000101 is intentionally no-op.
+-- Re-expanding canonical storage keys to absolute CDN URLs would reintroduce legacy authority.

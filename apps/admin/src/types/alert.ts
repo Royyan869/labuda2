@@ -11,7 +11,6 @@ export type AlertType =
   | 'outbox_stuck'
   | 'reconciliation_drift'
   | 'refund_gateway_failed'
-  | 'stale_dispute_freeze'
   | 'subscription_orphaned_payment'
   | 'subscription_conversion_rate'
   | 'subscription_lifecycle'
@@ -36,7 +35,6 @@ export const ALERT_TYPE = {
   OUTBOX_STUCK: 'outbox_stuck',
   RECONCILIATION_DRIFT: 'reconciliation_drift',
   REFUND_GATEWAY_FAILED: 'refund_gateway_failed',
-  STALE_DISPUTE_FREEZE: 'stale_dispute_freeze',
   SUBSCRIPTION_ORPHANED_PAYMENT: 'subscription_orphaned_payment',
   SUBSCRIPTION_CONVERSION_RATE: 'subscription_conversion_rate',
   SUBSCRIPTION_LIFECYCLE: 'subscription_lifecycle',
@@ -118,7 +116,6 @@ export const alertTypeLabels: Record<AlertType, string> = {
   outbox_stuck: 'Outbox Stuck',
   reconciliation_drift: 'Reconciliation Drift',
   refund_gateway_failed: 'Refund Gateway Failed',
-  stale_dispute_freeze: 'Stale Dispute Freeze',
   subscription_orphaned_payment: 'Subscription Orphaned Payment',
   subscription_conversion_rate: 'Subscription Conversion Rate',
   subscription_lifecycle: 'Subscription Lifecycle',

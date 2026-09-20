@@ -60,7 +60,9 @@ class SearchModule extends BaseModule {
     switch (type.toLowerCase()) {
       case 'user':
         return SearchResultType.user;
-      case 'listing':
+      case 'for_sale':
+      case 'for-sale':
+      case 'forSale':
         return SearchResultType.forSale;
       case 'auction':
         return SearchResultType.auction;

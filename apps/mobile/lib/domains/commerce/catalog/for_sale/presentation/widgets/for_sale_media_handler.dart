@@ -1,10 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/ui/src/helpers/media_picker_helper.dart';
 import 'package:labuda/shared/ui/src/screens/custom_camera_screen.dart';
 
-/// ForSale Media Handler — handles image + video selection for For Sale listings.
+/// ForSale Media Handler — handles image + video selection for For Sale forSales.
 ///
 /// Uses canonical upload primitives:
 /// - S3Service.uploadImage() for images
@@ -12,11 +13,16 @@ import 'package:labuda/shared/ui/src/screens/custom_camera_screen.dart';
 ///
 /// Ordering: preserves selection order (sequential upload, no concurrency).
 /// Business rule: photos first, then videos — enforced by caller selection order.
+///
+/// S3 dependency is obtained from the canonical [s3ServiceProvider], not through
+/// direct [S3Service()] construction.
 class ForSaleMediaHandler {
   static const int maxMedia = 10;
   static const int maxImageSizeMb = 10;
   static const int maxVideoSizeMb = 100;
   static const int maxVideoDurationMs = 180000; // 3 minutes
+
+
 
   /// Whether a file is a video based on extension.
   static bool _isVideoFile(File file) {
@@ -100,13 +106,17 @@ class ForSaleMediaHandler {
   /// - S3Service.uploadVideo() for video files
   ///
   /// Preserves selection order (sequential upload, no concurrency).
+  ///
+  /// The S3 service is read from the canonical [s3ServiceProvider] via the
+  /// nearest [ProviderScope] downstream of [context], so tests can override it
+  /// with a fake without changing the handler API.
   Future<List<String>> uploadMedia({
     required BuildContext context,
     required List<File> files,
   }) async {
     if (files.isEmpty) return [];
 
-    final s3Service = S3Service();
+    final s3Service = ProviderScope.containerOf(context, listen: false).read(s3ServiceProvider);
     final List<String> uploadedUrls = [];
     int successCount = 0;
     int failCount = 0;
@@ -179,6 +189,8 @@ class ForSaleMediaHandler {
     int currentMediaCount = 0,
   }) {
     final handler = ForSaleMediaHandler();
+
+
 
     showModalBottomSheet(
       context: context,

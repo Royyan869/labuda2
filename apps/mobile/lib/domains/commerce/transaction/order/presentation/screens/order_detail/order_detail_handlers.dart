@@ -15,7 +15,7 @@ import 'package:labuda/domains/finance/transaction/payment/payment.dart';
 import 'package:labuda/domains/social/rating/rating.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
-import 'package:url_launcher/url_launcher.dart';
+// Payment URLs are presented exclusively inside Labuda's internal WebView.
 
 mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
   /// Generic handler for order actions
@@ -292,9 +292,10 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
       return;
     }
 
-    // SAFETY: Validate order total
-    final payableTotal =
-        order.pricing.totalPayableAmount ?? order.pricing.total;
+    // SAFETY: Validate order total.
+    // Canonical payable is total_payable_amount; when the backend has not
+    // emitted it we fail closed (0) and refuse to start a payment.
+    final payableTotal = order.pricing.totalPayableAmount ?? 0;
 
     if (payableTotal <= 0) {
       if (mounted) {
@@ -342,7 +343,6 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
     final request = InitiatePaymentRequest(
       orderId: order.id,
       paymentMethodCode: selectedMethodCode,
-      coinDiscount: null, // coinDiscount not available on OrderPricing
       priceSnapshotId: order.priceSnapshotId,
     );
 
@@ -364,41 +364,24 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
     await _handlePaymentIntent(intent, order);
   }
 
-  /// Handles payment intent after successful initiation
+  /// Handles payment intent after successful initiation.
   ///
-  /// Launches payment URL (external gateway) and navigates to result screen
+  /// Payment URLs are presented exclusively inside Labuda's internal WebView
+  /// (PaymentWebviewScreen). External-browser payment navigation is obsolete
+  /// and must not be reintroduced. Completion remains backend-authoritative.
   Future<void> _handlePaymentIntent(PaymentIntent intent, Order order) async {
-    // Try to launch payment URL
     final paymentUrl = intent.paymentUrl;
 
-    if (paymentUrl != null && paymentUrl.isNotEmpty) {
-      final launched = await _launchPaymentUrl(paymentUrl);
-      if (!launched) {
-        // URL launch failed - show error dialog with manual navigation option
-        if (mounted) {
-          _showPaymentLaunchErrorDialog(order.id, paymentUrl);
-        }
-        return;
-      }
+    if (paymentUrl != null && paymentUrl.isNotEmpty && mounted) {
+      await context.push(
+        '/payment-webview?url=${Uri.encodeComponent(paymentUrl)}&orderId=${Uri.encodeComponent(order.id)}',
+      );
     }
 
-    // Navigate to payment result screen for status polling
+    // Navigate to payment result screen for status polling (backend-authoritative)
     if (mounted) {
       context.push('/payment-result/${order.id}', extra: order.orderNumber);
     }
-  }
-
-  /// Launches payment URL with proper error handling
-  Future<bool> _launchPaymentUrl(String url) async {
-    try {
-      final uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        return await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-    } catch (e) {
-      debugPrint('Error launching payment URL: $e');
-    }
-    return false;
   }
 
   /// Shows error dialog for payment initiation errors
@@ -413,53 +396,6 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
         ),
         title: Text(title),
         content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Tutup'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Navigate to order list
-              context.push('/orders');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: core.AppColors.primaryRed,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Lihat Pesanan Saya'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Shows error dialog when payment URL cannot be launched
-  void _showPaymentLaunchErrorDialog(String orderId, String paymentUrl) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        icon: Icon(
-          Icons.open_in_browser,
-          color: core.AppColors.statusWarning,
-          size: 48,
-        ),
-        title: const Text('Gagal Membuka Pembayaran'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Tidak dapat membuka halaman pembayaran. Namun pesanan Anda sudah berhasil dibuat.',
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Order ID: ${orderId.substring(0, 8)}...',
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-            ),
-          ],
-        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),

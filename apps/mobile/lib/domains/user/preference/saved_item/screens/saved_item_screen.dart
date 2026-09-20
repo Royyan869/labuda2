@@ -66,7 +66,7 @@ class _SavedItemScreenState extends State<SavedItemScreen> {
             },
             itemBuilder: (context) => [
               const PopupMenuItem(value: null, child: Text('Semua')),
-              const PopupMenuItem(value: 'for_sale', child: Text('Listing')),
+              const PopupMenuItem(value: 'for_sale', child: Text('ForSale')),
               const PopupMenuItem(value: 'auction', child: Text('Auction')),
             ],
           ),

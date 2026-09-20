@@ -18,13 +18,11 @@ export 'src/navigation/i_navigation_registry.dart';
 export 'src/navigation/navigation_registry_impl.dart';
 
 // Interface exports - Only core business interfaces, module-specific interfaces di module masing-masing
-export 'src/interfaces/services/i_payment_service.dart';
 export 'src/interfaces/services/i_notification_service.dart';
 export 'src/interfaces/services/i_local_storage_service.dart';
 export 'src/interfaces/services/i_logger_service.dart';
 export 'src/interfaces/services/i_validation_service.dart';
 export 'src/interfaces/services/i_analytics_repository.dart';
-export 'src/interfaces/services/i_presence_service.dart';
 export 'interfaces/i_notification_trigger.dart';
 export 'interfaces/i_order_payment_handler.dart';
 
@@ -49,10 +47,6 @@ export 'src/localization/localization_helper.dart';
 export 'src/localization/localization_types.dart';
 export 'src/localization/l10n_extension.dart';
 
-// Event exports
-export 'src/events/event_bus.dart';
-export 'src/events/base_event.dart';
-
 // Router exports
 export 'src/router/route_paths.dart';
 export 'src/router/app_router.dart';
@@ -70,10 +64,10 @@ export 'navigation/navigation_provider.dart';
 // Quick Actions Service exports
 export 'src/services/quick_actions_service.dart';
 
-// Presence tracking exports
-export 'src/services/app_presence_service_api.dart';
-export 'src/services/app_lifecycle_observer.dart';
+// Presence tracking exports - canonical (Slice-5)
 export 'src/providers/presence_provider.dart';
+export 'src/presence/presence.dart';
+export 'src/presence/presence_api_datasource.dart';
 
 // API Layer exports (Backend Integration)
 export 'api/api.dart';

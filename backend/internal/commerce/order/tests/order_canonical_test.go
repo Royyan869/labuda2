@@ -3,7 +3,6 @@
 package tests
 
 import (
-	"encoding/json"
 	"context"
 	"fmt"
 	"sync"
@@ -166,14 +165,12 @@ func TestDoubleCheckoutProtection(t *testing.T) {
 					nil, // shippingSetupID: nil for test
 					"JNE",
 					"truck",
-					nil,         // auctionSettlementType
 					"immediate", // preparationTimeSnapshot
 					nil,         // preparationNoteSnapshot
 					nil,         // shippingSource
 					nil,         // shippingQuoteID
 					nil,         // shippingQuotePrice
 					nil,         // pricingTokenID
-					"instant",
 					time.Now(),
 				)
 				order.IdempotencyKey = strPtr(fmt.Sprintf("checkout-%d", idx))
@@ -363,14 +360,12 @@ func TestStockRaceCondition(t *testing.T) {
 					nil, // shippingSetupID: nil for test
 					"JNE",
 					"truck",
-					nil,         // auctionSettlementType
 					"immediate", // preparationTimeSnapshot
 					nil,         // preparationNoteSnapshot
 					nil,         // shippingSource
 					nil,         // shippingQuoteID
 					nil,         // shippingQuotePrice
 					nil,         // pricingTokenID
-					"instant",
 					time.Now(),
 				)
 				order.IdempotencyKey = strPtr(fmt.Sprintf("race-%d", buyerIndex))
@@ -512,14 +507,12 @@ func TestOrderCreationIdempotency(t *testing.T) {
 			nil, // shippingSetupID: nil for test
 			"JNE",
 			"truck",
-			nil,         // auctionSettlementType
 			"immediate", // preparationTimeSnapshot
 			nil,         // preparationNoteSnapshot
 			nil,         // shippingSource
 			nil,         // shippingQuoteID
 			nil,         // shippingQuotePrice
 			nil,         // pricingTokenID
-			"instant",
 			time.Now(),
 		)
 		order.IdempotencyKey = &idempotencyKey
@@ -652,14 +645,12 @@ func TestDifferentBuyersSameIdempotencyKey(t *testing.T) {
 			nil, // shippingSetupID: nil for test
 			"JNE",
 			"truck",
-			nil,         // auctionSettlementType
 			"immediate", // preparationTimeSnapshot
 			nil,         // preparationNoteSnapshot
 			nil,         // shippingSource
 			nil,         // shippingQuoteID
 			nil,         // shippingQuotePrice
 			nil,         // pricingTokenID
-			"instant",
 			time.Now(),
 		)
 		order.IdempotencyKey = &sameKey
@@ -705,14 +696,12 @@ func TestDifferentBuyersSameIdempotencyKey(t *testing.T) {
 			nil, // shippingSetupID: nil for test
 			"JNE",
 			"truck",
-			nil,         // auctionSettlementType
 			"immediate", // preparationTimeSnapshot
 			nil,         // preparationNoteSnapshot
 			nil,         // shippingSource
 			nil,         // shippingQuoteID
 			nil,         // shippingQuotePrice
 			nil,         // pricingTokenID
-			"instant",
 			time.Now(),
 		)
 		order.IdempotencyKey = &sameKey

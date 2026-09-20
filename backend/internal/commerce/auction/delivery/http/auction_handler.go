@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,6 +23,7 @@ import (
 	"github.com/labuda/backend/internal/governance/viewercontext"
 	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
 	"github.com/labuda/backend/internal/identity/auth"
+	coinsapp "github.com/labuda/backend/internal/incentive/coins/application"
 	"github.com/labuda/backend/internal/pkg/blockcheck"
 	"github.com/labuda/backend/internal/pkg/publiccard"
 	"github.com/labuda/backend/internal/pkg/sellerdisplay"
@@ -37,8 +39,17 @@ type AuctionHandler struct {
 	auctionService      *auctionApp.AuctionService
 	productRepo         productRepo.ProductRepository
 	pricingTokenService *pricingtokenapp.PricingTokenService
+	coinBalanceReader   CoinsBalanceReader
 	db                  *db.DB
 	log                 *zap.Logger
+}
+
+// CoinsBalanceReader is the minimal coins-domain surface AuctionHandler needs
+// to resolve the canonical coin redemption (K) at claim-time Order creation.
+// Canonical implementation: coinsRepo.GetActiveBalance. Optional: when unset,
+// use_coins=true fails closed.
+type CoinsBalanceReader interface {
+	GetActiveBalance(ctx context.Context, tx db.Tx, userID uuid.UUID) (int64, error)
 }
 
 // NewAuctionHandler creates a new AuctionHandler.
@@ -59,6 +70,35 @@ func NewAuctionHandler(
 		db:                  database,
 		log:                 log,
 	}
+}
+
+// SetCoinsBalanceReader wires the canonical coins-domain balance reader used to
+// resolve the canonical coin redemption (K) at claim-time Order creation.
+func (h *AuctionHandler) SetCoinsBalanceReader(r CoinsBalanceReader) {
+	h.coinBalanceReader = r
+}
+
+// resolveClaimCoins computes the canonical K for an auction claim order from
+// the buyer's use_coins intent, capped by the live active balance and the
+// token's 20%-of-PD ceiling. Single order-time coin authority.
+func (h *AuctionHandler) resolveClaimCoins(
+	ctx context.Context,
+	tx db.Tx,
+	userID uuid.UUID,
+	useCoins bool,
+	maxCoinsAllowed int64,
+) (int64, error) {
+	if !useCoins {
+		return 0, nil
+	}
+	if h.coinBalanceReader == nil {
+		return 0, fmt.Errorf("coin balance reader not configured")
+	}
+	balance, err := h.coinBalanceReader.GetActiveBalance(ctx, tx, userID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to resolve coin balance: %w", err)
+	}
+	return coinsapp.ResolveOrderRedemption(balance, maxCoinsAllowed, true), nil
 }
 
 // CreateAuctionRequest holds the request body for creating an auction.
@@ -566,7 +606,7 @@ func (h *AuctionHandler) ScheduleAuction(c *gin.Context) {
 			zap.Error(err),
 		)
 		if err == auth.ErrMarketAuthorityRequired {
-			response.Forbidden(c, "Active seller subscription required to schedule auctions")
+			response.MarketAuthorityRequired(c, "Active seller subscription required to schedule auctions")
 			return
 		}
 		if err == auth.ErrSellerRequired {
@@ -677,7 +717,7 @@ func (h *AuctionHandler) PlaceBid(c *gin.Context) {
 
 	if err != nil {
 		if err == auth.ErrMarketAuthorityRequired {
-			response.Forbidden(c, "Seller does not have active market authority")
+			response.MarketAuthorityRequired(c, "Seller does not have active market authority")
 			return
 		}
 
@@ -775,7 +815,6 @@ func (h *AuctionHandler) ClaimAuction(c *gin.Context) {
 			AddressID:       req.AddressID,
 			ShippingSetupID: req.ShippingSetupID,
 			DiscountCode:    req.DiscountCode,
-			UseCoins:        useCoins,
 		})
 		if err != nil {
 			return fmt.Errorf("pricing token generation failed: %w", err)
@@ -797,6 +836,14 @@ func (h *AuctionHandler) ClaimAuction(c *gin.Context) {
 			return fmt.Errorf("pricing token validation failed: %w", err)
 		}
 
+		// Step 3.5: Resolve canonical K at the order layer (same authority as
+		// POST /orders): min(balance, token.MaxCoinsAllowed) when use_coins, else 0.
+		coinsToUse, err := h.resolveClaimCoins(ctx, tx, winnerID, useCoins, validatedToken.MaxCoinsAllowed)
+		if err != nil {
+			return err
+		}
+		validatedToken.CoinsUsed = coinsToUse
+
 		// Step 4: Build pricing snapshot from validated token.
 		pricingSnapshot := buildClaimPricingSnapshot(validatedToken)
 
@@ -815,14 +862,13 @@ func (h *AuctionHandler) ClaimAuction(c *gin.Context) {
 			ShippingSetupID:       req.ShippingSetupID,
 			AuctionSettlementType: settlementType,
 			PricingSnapshot:       pricingSnapshot,
-			UseCoins:              useCoins,
 		})
 		if err != nil {
 			return fmt.Errorf("order creation failed: %w", err)
 		}
 
-		// Step 6: Mark pricing token as consumed.
-		if err := h.pricingTokenService.FinalizeOrderConsumption(ctx, tx, validatedToken, order.ID); err != nil {
+		// Step 6: Mark pricing token as consumed, persisting the canonical K.
+		if err := h.pricingTokenService.FinalizeOrderConsumption(ctx, tx, validatedToken, order.ID, coinsToUse); err != nil {
 			return fmt.Errorf("pricing token consume failed: %w", err)
 		}
 
@@ -902,12 +948,10 @@ func buildClaimPricingSnapshot(token *pricingtokenentity.PricingToken) *orderApp
 		ServiceFeeAmount:      token.ServiceFeeAmount,
 		TotalPayableAmount:    token.TotalPayableAmount,
 		DiscountAmount:        token.DiscountAmount,
-		MaxCoinsAllowed:       token.MaxCoinsAllowed,
-		CoinsUsed:             token.CoinsUsed,
 		OrderValueForCoins:    token.OrderValueForCoins,
 		ShippingSetupName:     token.ShippingSetupName,
 		ShippingTransportType: token.ShippingTransportType,
-		ShippingDestination:   addressSnapshot,
+		AddressSnapshot:       addressSnapshot,
 		ShippingSource:        shippingSource,
 		ShippingQuoteID:       token.ShippingQuoteID,
 		AuctionID:             token.AuctionID,

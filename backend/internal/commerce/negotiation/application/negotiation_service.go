@@ -179,7 +179,7 @@ func (s *NegotiationService) StartNegotiation(
 	// be exactly the resolved seller. A room with an unrelated third party,
 	// a support room (other participant = uuid.Nil), or an unrelated
 	// direct/negotiation room must not be usable to start a negotiation for
-	// this listing — room membership alone is not negotiation authority.
+	// this For Sale — room membership alone is not negotiation authority.
 	if req.RoomOtherParticipantID != sellerID {
 		return nil, &ErrNegotiationRoomMismatch{
 			BuyerID:  req.BuyerID,
@@ -940,7 +940,7 @@ func (s *NegotiationService) validateForSaleAndGetSeller(
 		}
 	}
 
-	// Guard: Listing must be active
+	// Guard: For Sale must be active
 	if forSale.Status != forSaleEntity.ForSaleStatusActive {
 		return uuid.Nil, &ErrResourceNotNegotiable{
 			ResourceType:     resourceType,
@@ -949,7 +949,7 @@ func (s *NegotiationService) validateForSaleAndGetSeller(
 		}
 	}
 
-	// CONTRACT ENFORCEMENT: Listing must have negotiation enabled
+	// CONTRACT ENFORCEMENT: For Sale must have negotiation enabled
 	if !forSale.NegotiationEnabled {
 		return uuid.Nil, &ErrResourceNotNegotiable{
 			ResourceType:     resourceType,

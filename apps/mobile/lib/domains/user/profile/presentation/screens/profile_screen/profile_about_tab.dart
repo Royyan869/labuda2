@@ -8,7 +8,6 @@ import 'package:labuda/domains/user/profile/profile.dart'
     show ProfileAboutData, profileAboutDataProvider;
 import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
 import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
 import 'package:labuda/domains/social/rating/rating.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -133,22 +132,21 @@ class ProfileAboutTab extends ConsumerWidget {
     );
   }
 
+  /// Own-profile seller state — canonical RF-02 authority.
+  ///
+  /// Delegates entirely to `SellerState.fromAuthUser` (seller domain), which
+  /// derives state from the hydrated backend snapshot's two canonical axes:
+  /// IDENTITY (`hasSellerProfile`) and EXPIRY (`sellerSubscriptionStatus`).
+  /// Only `sellerSubscriptionStatus == 'expired'` may produce
+  /// `SellerState.expired()`; capability (`hasMarketAuthority`) false means
+  /// "cannot sell right now", never "subscription ended". `null` here means
+  /// the backend snapshot is not hydrated yet (pending seller-status UI).
   SellerState? _currentAccountSellerState(WidgetRef ref) {
-    final identityStatus = ref.watch(sellerIdentityStatusProvider);
-    final capabilityStatus = ref.watch(sellerCapabilityStatusProvider);
-
-    if (identityStatus == SellerIdentityStatus.unknown ||
-        capabilityStatus == SellerCapabilityStatus.unknown) {
+    final user = ref.watch(authenticatedUserProvider);
+    if (user == null) {
       return null;
     }
-
-    if (identityStatus == SellerIdentityStatus.seller) {
-      return capabilityStatus == SellerCapabilityStatus.active
-          ? const SellerState.active()
-          : const SellerState.expired();
-    }
-
-    return const SellerState.notSeller();
+    return SellerState.fromAuthUser(user);
   }
 
   Widget _buildPendingSellerStatusCard({required bool isDark}) {
@@ -1041,10 +1039,11 @@ class _SocialMediaChip extends StatelessWidget {
 /// Seller Status Badge Widget
 ///
 /// **OWNER:** Profile Domain
-/// **SELLER UX ALIGNMENT:**
-/// - Displays honest seller state from backend
-/// - Shows one of 3 states: NOT_SELLER, ACTIVE, EXPIRED
-/// - For expired sellers, shows renewal CTA
+/// **SELLER UX ALIGNMENT (RF-02):**
+/// - Displays the canonical `SellerState` produced by `SellerState.fromAuthUser`
+/// - 4 states: NOT_SELLER, PENDING_ACTIVATION ('none'), ACTIVE, EXPIRED
+/// - Expiry/renewal copy renders ONLY for EXPIRED (`sellerSubscriptionStatus
+///   == 'expired'`); capability `hasMarketAuthority == false` is never expiry
 class _SellerStatusBadge extends ConsumerWidget {
   final SellerState sellerState;
   final bool isDark;
@@ -1149,6 +1148,8 @@ class _SellerStatusBadge extends ConsumerWidget {
     switch (sellerState.type) {
       case SellerStateType.notSeller:
         return Icons.person_outline;
+      case SellerStateType.pendingActivation:
+        return Icons.hourglass_top_outlined;
       case SellerStateType.active:
         return Icons.store_outlined;
       case SellerStateType.expired:

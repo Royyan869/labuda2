@@ -83,7 +83,7 @@ class ShippingCoverageDto extends Equatable {
   factory ShippingCoverageDto.fromJson(Map<String, dynamic> json) {
     return ShippingCoverageDto(
       id: json['id'] as String,
-      shippingSetupId: json['shipping_setup_id'] as String,
+      shippingSetupId: json['shipping_option_id'] as String,
       provinceCode: json['province_code'] as String,
       provinceName: json['province_name'] as String,
       rate: (json['rate'] as num).toDouble(),
@@ -94,7 +94,7 @@ class ShippingCoverageDto extends Equatable {
 
   Map<String, dynamic> toJson() => {
     'id': id,
-    'shipping_setup_id': shippingSetupId,
+    'shipping_option_id': shippingSetupId,
     'province_code': provinceCode,
     'province_name': provinceName,
     'rate': rate,
@@ -187,73 +187,103 @@ class SellerShippingSetupsEnvelopeDto extends Equatable {
 // =====================================
 
 /// Check Delivery Response DTO
+///
+/// Mirrors the canonical wire contract of POST /api/v1/shipping/check
+/// (backend/internal/commerce/shipping/delivery/http/shipping_handler.go).
+/// `productConfigured` / `count` are wire facts only: no read-time UI state is
+/// derived from them yet.
 class CheckDeliveryResponseDto extends Equatable {
-  final bool available;
+  final String productId;
+  final String province;
+  final String city;
   final List<DeliveryOptionDto> options;
+  final int count;
+  final bool productConfigured;
 
   const CheckDeliveryResponseDto({
-    required this.available,
+    required this.productId,
+    required this.province,
+    required this.city,
     required this.options,
+    required this.count,
+    required this.productConfigured,
   });
 
   factory CheckDeliveryResponseDto.fromJson(Map<String, dynamic> json) {
     return CheckDeliveryResponseDto(
-      available: json['available'] as bool,
+      productId: json['product_id'] as String,
+      province: json['province'] as String,
+      city: json['city'] as String,
       options: (json['options'] as List<dynamic>)
           .map((e) => DeliveryOptionDto.fromJson(e as Map<String, dynamic>))
           .toList(),
+      count: json['count'] as int,
+      productConfigured: json['product_configured'] as bool,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'available': available,
+    'product_id': productId,
+    'province': province,
+    'city': city,
     'options': options.map((e) => e.toJson()).toList(),
+    'count': count,
+    'product_configured': productConfigured,
   };
 
   @override
-  List<Object?> get props => [available, options];
+  List<Object?> get props => [
+    productId,
+    province,
+    city,
+    options,
+    count,
+    productConfigured,
+  ];
 }
 
-/// Delivery Option API DTO
+/// Delivery Option API DTO — one deliverable option in the canonical wire shape.
 class DeliveryOptionDto extends Equatable {
-  final String shippingSetupId;
-  final String displayName;
-  final String type;
+  final String shippingOptionId;
+  final String name;
+  final String transportType;
   final double rate;
-  final String? notes;
-  final String source;
+  final bool isAvailable;
 
   const DeliveryOptionDto({
-    required this.shippingSetupId,
-    required this.displayName,
-    required this.type,
+    required this.shippingOptionId,
+    required this.name,
+    required this.transportType,
     required this.rate,
-    this.notes,
-    required this.source,
+    required this.isAvailable,
   });
 
   factory DeliveryOptionDto.fromJson(Map<String, dynamic> json) {
     return DeliveryOptionDto(
-      shippingSetupId: json['shipping_setup_id'] as String,
-      displayName: json['display_name'] as String,
-      type: json['type'] as String,
+      shippingOptionId: json['shipping_option_id'] as String,
+      name: json['name'] as String,
+      transportType: json['transport_type'] as String,
       rate: (json['rate'] as num).toDouble(),
-      notes: json['notes'] as String?,
-      source: json['source'] as String,
+      isAvailable: json['is_available'] as bool,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'shipping_setup_id': shippingSetupId,
-    'display_name': displayName,
-    'type': type,
+    'shipping_option_id': shippingOptionId,
+    'name': name,
+    'transport_type': transportType,
     'rate': rate,
-    if (notes != null) 'notes': notes,
-    'source': source,
+    'is_available': isAvailable,
   };
 
   @override
-  List<Object?> get props => [shippingSetupId, type, rate, source];
+  List<Object?> get props => [
+    shippingOptionId,
+    name,
+    transportType,
+    rate,
+    isAvailable,
+  ];
 }
 
 // =====================================

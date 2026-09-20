@@ -17,28 +17,37 @@ import (
 	"go.uber.org/zap"
 )
 
-// ChatService defines the interface for sending messages to support tickets.
-type ChatService interface {
-	SendSystemMessage(ctx context.Context, roomID uuid.UUID, body string) error
-}
-
-// ChatMessageService defines the interface for retrieving chat messages.
+// ChatMessageService is the bounded Support↔Chat message seam.
+//
+// SUPPORT BOUNDARY: support rooms have no agent chat participant, so agent
+// access cannot go through Chat's participant check. Authorization is owned by
+// the Support domain (ticket ownership for users, capability for agents) and is
+// enforced by this handler BEFORE either method is called. Both methods persist
+// and read ordinary chat_messages, reusing the canonical Chat transport.
+//
+// SendSupportMessage always persists the real authenticated actor as sender —
+// human agent replies are never represented as system messages.
 type ChatMessageService interface {
-	ListMessages(
+	ListSupportMessages(
 		ctx context.Context,
 		roomID uuid.UUID,
-		userID uuid.UUID,
 		cursorCreatedAt *time.Time,
 		cursorID *uuid.UUID,
 		limit int,
 	) ([]*chatEntity.ChatMessage, error)
+
+	SendSupportMessage(
+		ctx context.Context,
+		roomID, senderID uuid.UUID,
+		body string,
+		idempotencyKey string,
+	) (*chatEntity.ChatMessage, error)
 }
 
 // Handler handles HTTP requests for support operations.
 // W14-B3: Added audit logging for all admin support actions.
 type Handler struct {
 	supportService     *supportApp.Service
-	chatService        ChatService
 	chatMessageService ChatMessageService
 	db                 interface{}
 	log                *zap.Logger
@@ -56,7 +65,6 @@ type AdminAuditLogger interface {
 // W14-B3: Added adminAuditLogger parameter for audit logging.
 func NewHandler(
 	supportService *supportApp.Service,
-	chatService ChatService,
 	chatMessageService ChatMessageService,
 	db interface{},
 	log *zap.Logger,
@@ -67,7 +75,6 @@ func NewHandler(
 	}
 	return &Handler{
 		supportService:     supportService,
-		chatService:        chatService,
 		chatMessageService: chatMessageService,
 		db:                 db,
 		log:                log,
@@ -81,7 +88,9 @@ func NewHandler(
 
 // CreateTicketRequest holds the request body for creating a ticket.
 type CreateTicketRequest struct {
-	Category      string  `json:"category" binding:"required,oneof=payment order technical account general"`
+	// Canonical category vocabulary — identical to the persisted DB enum, the
+	// admin client and the mobile client. No translation layer exists.
+	Category      string  `json:"category" binding:"required,oneof=order_issue payment_issue account_issue listing_issue shipping_issue refund_request dispute technical_issue other"`
 	Priority      string  `json:"priority" binding:"omitempty,oneof=low medium high urgent"`
 	LinkedOrderID *string `json:"linked_order_id"`
 	Subject       *string `json:"subject"`
@@ -95,7 +104,7 @@ type UpdatePriorityRequest struct {
 
 // UpdateCategoryRequest holds the request body for updating category.
 type UpdateCategoryRequest struct {
-	Category string `json:"category" binding:"required,oneof=payment order technical account general"`
+	Category string `json:"category" binding:"required,oneof=order_issue payment_issue account_issue listing_issue shipping_issue refund_request dispute technical_issue other"`
 }
 
 // ResolveTicketRequest holds the request body for resolving a ticket.
@@ -109,10 +118,21 @@ type CloseTicketRequest struct {
 }
 
 // SendMessageRequest holds the request body for sending messages to a ticket.
-// Unified endpoint with type parameter for different message types.
+// Admin/agent endpoint with type parameter for different agent message kinds.
 type SendMessageRequest struct {
 	// Type: "greeting", "system", "agent"
 	Type    string `json:"type" binding:"required,oneof=greeting system agent"`
+	Message string `json:"message" binding:"required"`
+}
+
+// SendUserMessageRequest holds the request body for a user replying to their
+// own support ticket.
+//
+// The sender is ALWAYS the authenticated ticket owner, so the body carries only
+// the message text: there is no sender identity field and no agent message
+// "type" selector. A user reply can never be coerced into a system message or
+// attributed to someone else.
+type SendUserMessageRequest struct {
 	Message string `json:"message" binding:"required"`
 }
 
@@ -191,7 +211,7 @@ func (h *Handler) CreateTicket(c *gin.Context) {
 		return
 	}
 
-	response.Created(c, ticketToResponse(ticket))
+	response.Created(c, ticketToResponse(ticket, nil, nil))
 }
 
 // ListMyTickets handles GET /api/v1/support/tickets
@@ -245,49 +265,33 @@ func (h *Handler) ListMyTickets(c *gin.Context) {
 		return
 	}
 
+	// Batch-fetch status events for SLA computation (single query, no N+1)
+	ticketIDs := make([]uuid.UUID, len(tickets))
+	for i, t := range tickets {
+		ticketIDs[i] = t.ID
+	}
+	eventsByTicket, err := h.supportService.ListStatusEventsForTickets(ctx, ticketIDs)
+	if err != nil {
+		// Fallback: use empty events — SLA will show wall-clock (degraded but non-fatal)
+		eventsByTicket = make(map[uuid.UUID][]*supportEntity.Event)
+	}
+
+	// Batch-fetch first admin response timestamps for SLA-F04 (single query,
+	// no N+1). Missing entries mean "no admin response yet".
+	firstAdminResponses, err := h.supportService.ListFirstAdminResponsesByTicketIDs(ctx, ticketIDs)
+	if err != nil {
+		firstAdminResponses = make(map[uuid.UUID]*time.Time)
+	}
+
 	// Convert to response
 	data := make([]map[string]interface{}, len(tickets))
 	for i, ticket := range tickets {
-		data[i] = ticketToResponse(ticket)
+		data[i] = ticketToResponse(ticket, eventsByTicket[ticket.ID], firstAdminResponses[ticket.ID])
 	}
 
 	response.Success(c, gin.H{
 		"data": data,
 	})
-}
-
-// GetMyTicket handles GET /api/v1/support/tickets/my/open
-//
-// Gets the current user's open ticket.
-func (h *Handler) GetMyOpenTicket(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	userIDVal, exists := c.Get("userID")
-	if !exists {
-		response.Unauthorized(c, "User not authenticated")
-		return
-	}
-	userID, ok := userIDVal.(uuid.UUID)
-	if !ok {
-		response.InternalServerError(c, "Invalid user ID in context")
-		return
-	}
-
-	ticket, err := h.supportService.GetMyOpenTicket(ctx, userID)
-	if err != nil {
-		if err == supportRepo.ErrTicketNotFound {
-			response.NotFound(c, "No open ticket found")
-			return
-		}
-		h.log.Error("Failed to get open ticket",
-			zap.String("user_id", userID.String()),
-			zap.Error(err),
-		)
-		response.InternalServerError(c, "Failed to retrieve ticket")
-		return
-	}
-
-	response.Success(c, ticketToResponse(ticket))
 }
 
 // GetTicket handles GET /api/v1/support/tickets/:id
@@ -331,7 +335,20 @@ func (h *Handler) GetTicket(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, ticketToResponse(ticket))
+	// Fetch status events for canonical SLA computation
+	events, err := h.supportService.ListEvents(ctx, ticketID, 100)
+	if err != nil {
+		events = nil // fallback to empty
+	}
+
+	// Canonical first-response authority (SLA-F04): batch fetch the first
+	// valid admin response message timestamp (single query, no N+1).
+	firstAdminResponses, err := h.supportService.ListFirstAdminResponsesByTicketIDs(ctx, []uuid.UUID{ticketID})
+	if err != nil {
+		firstAdminResponses = make(map[uuid.UUID]*time.Time)
+	}
+
+	response.Success(c, ticketToResponse(ticket, events, firstAdminResponses[ticketID]))
 }
 
 // ListEvents handles GET /api/v1/support/tickets/:id/events
@@ -422,7 +439,7 @@ func (h *Handler) ReopenTicket(c *gin.Context) {
 
 	req := &supportApp.ReopenTicketRequest{
 		TicketID: ticketID,
-		UserID:   userID,
+		ActorID:  userID,
 	}
 
 	ticket, err := h.supportService.ReopenTicket(ctx, req)
@@ -439,7 +456,73 @@ func (h *Handler) ReopenTicket(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, ticketToResponse(ticket))
+	response.Success(c, ticketToResponse(ticket, nil, nil))
+}
+
+// AdminReopenTicket handles PUT /api/v1/admin/support/tickets/:id/reopen
+//
+// Reopens a resolved ticket (resolved -> open) on behalf of the authenticated
+// agent. The reopen capability is enforced by middleware; the agent is recorded
+// as the event actor. A closed ticket is terminal and is rejected.
+func (h *Handler) AdminReopenTicket(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	actor := middleware.GetActorFromContext(c)
+	if actor == nil {
+		response.Unauthorized(c, "Authentication required")
+		return
+	}
+	if !actor.HasCapability(capability.CapSupportTicketResolve.String()) {
+		response.Forbidden(c, "Insufficient permissions: support.ticket.resolve required")
+		return
+	}
+
+	adminIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	adminID, ok := adminIDVal.(uuid.UUID)
+	if !ok {
+		response.Unauthorized(c, "Invalid user ID in context")
+		return
+	}
+
+	ticketID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid ticket ID")
+		return
+	}
+
+	req := &supportApp.ReopenTicketRequest{
+		TicketID: ticketID,
+		ActorID:  adminID,
+		IsAdmin:  true,
+	}
+
+	ticket, err := h.supportService.ReopenTicket(ctx, req)
+	if err != nil {
+		if err == supportRepo.ErrCannotReopenTicket {
+			response.BadRequest(c, "Ticket cannot be reopened")
+			return
+		}
+		if err == supportRepo.ErrTicketNotFound {
+			response.NotFound(c, "Ticket not found")
+			return
+		}
+		response.InternalServerError(c, "Failed to reopen ticket")
+		return
+	}
+
+	// W14-B3: Log the agent-initiated reopen to the audit trail.
+	h.adminAuditLogger.LogSafe(ctx, adminID,
+		"support_ticket_reopened", "support_ticket", ticketID,
+		map[string]interface{}{
+			"new_status": string(ticket.Status),
+		},
+	)
+
+	response.Success(c, ticketToResponse(ticket, nil, nil))
 }
 
 // ========================================================================
@@ -530,10 +613,28 @@ func (h *Handler) ListAllTickets(c *gin.Context) {
 		return
 	}
 
+	// Batch-fetch status events for SLA computation (single query, no N+1)
+	ticketIDs := make([]uuid.UUID, len(tickets))
+	for i, t := range tickets {
+		ticketIDs[i] = t.ID
+	}
+	eventsByTicket, err := h.supportService.ListStatusEventsForTickets(ctx, ticketIDs)
+	if err != nil {
+		// Fallback: use empty events — SLA will show wall-clock (degraded but non-fatal)
+		eventsByTicket = make(map[uuid.UUID][]*supportEntity.Event)
+	}
+
+	// Batch-fetch first admin response timestamps for SLA-F04 (single query,
+	// no N+1). Missing entries mean "no admin response yet".
+	firstAdminResponses, err := h.supportService.ListFirstAdminResponsesByTicketIDs(ctx, ticketIDs)
+	if err != nil {
+		firstAdminResponses = make(map[uuid.UUID]*time.Time)
+	}
+
 	// Convert to response
 	data := make([]map[string]interface{}, len(tickets))
 	for i, ticket := range tickets {
-		data[i] = ticketToResponse(ticket)
+		data[i] = ticketToResponse(ticket, eventsByTicket[ticket.ID], firstAdminResponses[ticket.ID])
 	}
 
 	response.Success(c, gin.H{
@@ -608,7 +709,7 @@ func (h *Handler) ClaimTicket(c *gin.Context) {
 		},
 	)
 
-	response.Success(c, ticketToResponse(ticket))
+	response.Success(c, ticketToResponse(ticket, nil, nil))
 }
 
 // ResolveTicket handles PUT /api/v1/support/tickets/:id/resolve
@@ -955,22 +1056,21 @@ func (h *Handler) AdminGetTicket(c *gin.Context) {
 		return
 	}
 
-	// Compute accurate SLA metrics with message data for detail view
-	slaMetrics := h.computeAccurateSLAMetrics(ctx, enrichedTicket.Ticket)
-
-	// Convert enriched ticket to response with accurate SLA
-	resp := enrichedTicketToResponse(enrichedTicket)
-	resp["sla"] = map[string]interface{}{
-		"first_response_time_seconds": formatDurationSeconds(slaMetrics.FirstResponseTime),
-		"first_response_overdue":      slaMetrics.FirstResponseOverdue,
-		"resolution_time_seconds":     formatDurationSeconds(slaMetrics.ResolutionTime),
-		"resolution_overdue":          slaMetrics.ResolutionOverdue,
-		"is_overdue":                  slaMetrics.IsOverdue,
-		"next_action":                 slaMetrics.NextAction,
-		"waiting_time_seconds":        int64(slaMetrics.WaitingTime.Seconds()),
-		"active_time_seconds":         int64(slaMetrics.ActiveTime.Seconds()),
+	// Canonical SLA: fetch status-change events for this ticket and compute
+	// with waiting_user pause semantics (same as list/dashboard).
+	eventsResp, err := h.supportService.ListStatusEventsForTickets(ctx, []uuid.UUID{ticketID})
+	if err != nil {
+		eventsResp = make(map[uuid.UUID][]*supportEntity.Event)
 	}
 
+	// Canonical first-response authority (SLA-F04): batch fetch the first
+	// valid admin response message timestamp (single query, no N+1).
+	firstAdminResponses, err := h.supportService.ListFirstAdminResponsesByTicketIDs(ctx, []uuid.UUID{ticketID})
+	if err != nil {
+		firstAdminResponses = make(map[uuid.UUID]*time.Time)
+	}
+
+	resp := enrichedTicketToResponse(enrichedTicket, eventsResp[ticketID], firstAdminResponses[ticketID])
 	response.Success(c, resp)
 }
 
@@ -1014,22 +1114,13 @@ func (h *Handler) AdminListMessages(c *gin.Context) {
 		return
 	}
 
-	adminIDVal, exists := c.Get("userID")
-	if !exists {
-		response.Unauthorized(c, "User not authenticated")
-		return
-	}
-	adminID, ok := adminIDVal.(uuid.UUID)
-	if !ok {
-		response.InternalServerError(c, "Invalid user ID in context")
-		return
-	}
-
 	if h.chatMessageService != nil {
-		messages, err := h.chatMessageService.ListMessages(
+		// Support-domain read seam: the actor was capability-checked above, so
+		// no chat participant check is applied (agents are not chat
+		// participants of support rooms).
+		messages, err := h.chatMessageService.ListSupportMessages(
 			ctx,
 			ticket.ChatRoomID,
-			adminID,
 			nil,
 			nil,
 			limit,
@@ -1079,66 +1170,6 @@ func (h *Handler) GetStatistics(c *gin.Context) {
 	}
 
 	response.Success(c, statsToResponse(stats))
-}
-
-// ListAdmins handles GET /api/v1/support/admins
-//
-// Lists all support admins (admin only).
-func (h *Handler) ListAdmins(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	isActiveStr := c.Query("is_active")
-	var isActive *bool
-	if isActiveStr != "" {
-		active := isActiveStr == "true"
-		isActive = &active
-	}
-
-	admins, err := h.supportService.ListAdmins(ctx, isActive)
-	if err != nil {
-		response.InternalServerError(c, "Failed to retrieve admins")
-		return
-	}
-
-	// Convert to response
-	data := make([]map[string]interface{}, len(admins))
-	for i, admin := range admins {
-		data[i] = adminToResponse(admin)
-	}
-
-	response.Success(c, gin.H{
-		"data": data,
-	})
-}
-
-// GetAvailableAdmins handles GET /api/v1/support/admins/available
-//
-// Lists admins who can take more tickets (admin only).
-func (h *Handler) GetAvailableAdmins(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	limit := 10
-	if limitStr := c.Query("limit"); limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
-			limit = l
-		}
-	}
-
-	admins, err := h.supportService.GetAvailableAdmins(ctx, limit)
-	if err != nil {
-		response.InternalServerError(c, "Failed to retrieve available admins")
-		return
-	}
-
-	// Convert to response
-	data := make([]map[string]interface{}, len(admins))
-	for i, admin := range admins {
-		data[i] = adminToResponse(admin)
-	}
-
-	response.Success(c, gin.H{
-		"data": data,
-	})
 }
 
 // ========================================================================
@@ -1193,32 +1224,6 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		return
 	}
 
-	// Send the message via chat service
-	if h.chatService != nil {
-		if err := h.chatService.SendSystemMessage(ctx, ticket.ChatRoomID, req.Message); err != nil {
-			h.log.Error("Failed to send message",
-				zap.String("ticket_id", ticketID.String()),
-				zap.String("message_type", req.Type),
-				zap.Error(err),
-			)
-			response.InternalServerError(c, "Failed to send message")
-			return
-		}
-	}
-
-	var messageTypeName string
-	switch req.Type {
-	case "greeting":
-		messageTypeName = "Greeting message"
-	case "system":
-		messageTypeName = "System message"
-	case "agent":
-		messageTypeName = "Agent message"
-	default:
-		messageTypeName = "Message"
-	}
-
-	// W14-B3: Log support message sent to audit trail
 	adminIDVal, exists := c.Get("userID")
 	if !exists {
 		response.Unauthorized(c, "User not authenticated")
@@ -1229,18 +1234,51 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		response.Unauthorized(c, "Invalid user ID in context")
 		return
 	}
+
+	if h.chatMessageService == nil {
+		response.InternalServerError(c, "Message service unavailable")
+		return
+	}
+
+	// Admin reply is a REAL admin-authored message: the authenticated agent ID
+	// is persisted as sender. It is never represented as a system message.
+	if _, err := h.chatMessageService.SendSupportMessage(
+		ctx,
+		ticket.ChatRoomID,
+		adminID,
+		req.Message,
+		uuid.New().String(),
+	); err != nil {
+		h.log.Error("Failed to send support message",
+			zap.String("ticket_id", ticketID.String()),
+			zap.Error(err),
+		)
+		response.InternalServerError(c, "Failed to send message")
+		return
+	}
+
+	// Canonical lifecycle: an agent reply means the ticket is waiting for the
+	// user. Best-effort — the message is already persisted.
+	if ticket.AssignedAdminID != nil && *ticket.AssignedAdminID == adminID && ticket.Status == supportEntity.StatusInProgress {
+		if err := h.supportService.SetWaitingForUser(ctx, ticketID, adminID); err != nil {
+			h.log.Error("Failed to transition ticket to waiting_user after agent reply",
+				zap.String("ticket_id", ticketID.String()),
+				zap.Error(err),
+			)
+		}
+	}
+
+	// W14-B3: Log support message sent to audit trail
 	h.adminAuditLogger.LogSafe(ctx, adminID,
 		"support_message_sent", "support_ticket", ticketID,
 		map[string]interface{}{
-			"message_type": req.Type,
 			"chat_room_id": ticket.ChatRoomID.String(),
 		},
 	)
 
-	response.SuccessWithMessage(c, messageTypeName+" sent", gin.H{
+	response.SuccessWithMessage(c, "Message sent", gin.H{
 		"ticket_id":    ticketID,
 		"chat_room_id": ticket.ChatRoomID,
-		"message_type": req.Type,
 	})
 }
 
@@ -1335,7 +1373,7 @@ func (h *Handler) EscalateToDispute(c *gin.Context) {
 		},
 	)
 
-	response.SuccessWithMessage(c, "Ticket escalated to dispute successfully", ticketToResponse(ticket))
+	response.SuccessWithMessage(c, "Ticket escalated to dispute successfully", ticketToResponse(ticket, nil, nil))
 }
 
 // ListMessages handles GET /api/v1/support/tickets/:id/messages
@@ -1345,36 +1383,15 @@ func (h *Handler) EscalateToDispute(c *gin.Context) {
 //
 // Query parameters:
 //   - limit: number of messages to return (default: 100, max: 500)
+//
+// ListMessages handles GET /api/v1/support/tickets/:id/messages
+//
+// Returns the conversation for the authenticated ticket owner.
+// SECURITY: a user may only read their own ticket's conversation. Ownership is
+// verified before the Support read seam is used.
 func (h *Handler) ListMessages(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	ticketID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		response.BadRequest(c, "Invalid ticket ID")
-		return
-	}
-
-	// Parse limit
-	limit := 100
-	if limitStr := c.Query("limit"); limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 500 {
-			limit = l
-		}
-	}
-
-	// Get ticket to find chat room ID
-	ticket, err := h.supportService.GetTicket(ctx, ticketID)
-	if err != nil {
-		if err == supportRepo.ErrTicketNotFound {
-			response.NotFound(c, "Ticket not found")
-			return
-		}
-		response.InternalServerError(c, "Failed to retrieve ticket")
-		return
-	}
-
-	// For support tickets, we need to allow admins to read messages
-	// Get the requesting user's ID (admin or ticket owner)
 	userIDVal, exists := c.Get("userID")
 	if !exists {
 		response.Unauthorized(c, "User not authenticated")
@@ -1386,44 +1403,136 @@ func (h *Handler) ListMessages(c *gin.Context) {
 		return
 	}
 
-	// Use chat message service to retrieve messages
-	// Since this is a support ticket room, we allow access to both the ticket owner and admins
-	if h.chatMessageService != nil {
-		messages, err := h.chatMessageService.ListMessages(
-			ctx,
-			ticket.ChatRoomID,
-			userID,
-			nil, // No cursor - get all messages
-			nil,
-			limit,
-		)
-		if err != nil {
-			h.log.Error("Failed to list messages",
-				zap.String("ticket_id", ticketID.String()),
-				zap.String("chat_room_id", ticket.ChatRoomID.String()),
-				zap.Error(err),
-			)
-			response.InternalServerError(c, "Failed to retrieve messages")
-			return
-		}
-
-		// Convert to response
-		data := make([]map[string]interface{}, len(messages))
-		for i, msg := range messages {
-			data[i] = supportMessageToResponse(msg, ticket.UserID)
-		}
-
-		response.Success(c, gin.H{
-			"data": data,
-		})
+	ticketID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid ticket ID")
 		return
 	}
 
-	// Fallback if chat message service is not available
+	limit := 100
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 500 {
+			limit = l
+		}
+	}
+
+	ticket, err := h.supportService.GetTicket(ctx, ticketID)
+	if err != nil {
+		if err == supportRepo.ErrTicketNotFound {
+			response.NotFound(c, "Ticket not found")
+			return
+		}
+		response.InternalServerError(c, "Failed to retrieve ticket")
+		return
+	}
+
+	// Ownership authority: never leak another user's conversation.
+	if ticket.UserID != userID {
+		response.NotFound(c, "Ticket not found")
+		return
+	}
+
+	if h.chatMessageService == nil {
+		response.InternalServerError(c, "Message service unavailable")
+		return
+	}
+
+	messages, err := h.chatMessageService.ListSupportMessages(
+		ctx,
+		ticket.ChatRoomID,
+		nil,
+		nil,
+		limit,
+	)
+	if err != nil {
+		h.log.Error("Failed to list messages",
+			zap.String("ticket_id", ticketID.String()),
+			zap.String("chat_room_id", ticket.ChatRoomID.String()),
+			zap.Error(err),
+		)
+		response.InternalServerError(c, "Failed to retrieve messages")
+		return
+	}
+
+	data := make([]map[string]interface{}, len(messages))
+	for i, msg := range messages {
+		data[i] = supportMessageToResponse(msg, ticket.UserID)
+	}
+
 	response.Success(c, gin.H{
-		"data":         []interface{}{},
-		"chat_room_id": ticket.ChatRoomID.String(),
-		"message":      "Chat message service not available",
+		"data": data,
+	})
+}
+
+// SendMyMessage handles POST /api/v1/support/tickets/:id/messages (user).
+//
+// The authenticated ticket owner posts a reply into their own support
+// conversation. Messages are ordinary chat_messages — the Support ticket owns
+// identity/lifecycle, Chat owns transport.
+// SECURITY: ownership is verified before writing.
+func (h *Handler) SendMyMessage(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		response.InternalServerError(c, "Invalid user ID in context")
+		return
+	}
+
+	ticketID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid ticket ID")
+		return
+	}
+
+	var req SendUserMessageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+
+	ticket, err := h.supportService.GetTicket(ctx, ticketID)
+	if err != nil {
+		if err == supportRepo.ErrTicketNotFound {
+			response.NotFound(c, "Ticket not found")
+			return
+		}
+		response.InternalServerError(c, "Failed to retrieve ticket")
+		return
+	}
+
+	if ticket.UserID != userID {
+		response.NotFound(c, "Ticket not found")
+		return
+	}
+
+	if h.chatMessageService == nil {
+		response.InternalServerError(c, "Message service unavailable")
+		return
+	}
+
+	if _, err := h.chatMessageService.SendSupportMessage(
+		ctx,
+		ticket.ChatRoomID,
+		userID,
+		req.Message,
+		uuid.New().String(),
+	); err != nil {
+		h.log.Error("Failed to send user support message",
+			zap.String("ticket_id", ticketID.String()),
+			zap.Error(err),
+		)
+		response.InternalServerError(c, "Failed to send message")
+		return
+	}
+
+	response.SuccessWithMessage(c, "Message sent", gin.H{
+		"ticket_id": ticketID,
 	})
 }
 
@@ -1431,8 +1540,8 @@ func (h *Handler) ListMessages(c *gin.Context) {
 // RESPONSE MAPPERS
 // ========================================================================
 
-func enrichedTicketToResponse(enriched *supportApp.TicketEnriched) map[string]interface{} {
-	resp := ticketToResponse(enriched.Ticket)
+func enrichedTicketToResponse(enriched *supportApp.TicketEnriched, statusEvents []*supportEntity.Event, firstAdminResponseAt *time.Time) map[string]interface{} {
+	resp := ticketToResponse(enriched.Ticket, statusEvents, firstAdminResponseAt)
 
 	if enriched.OrderInfo != nil {
 		resp["order_info"] = map[string]interface{}{
@@ -1456,9 +1565,10 @@ func enrichedTicketToResponse(enriched *supportApp.TicketEnriched) map[string]in
 	return resp
 }
 
-func ticketToResponse(ticket *supportEntity.Ticket) map[string]interface{} {
-	// Compute simplified SLA metrics (without message data for performance)
-	slaMetrics := ticket.ComputeSLAMetricsSimple()
+func ticketToResponse(ticket *supportEntity.Ticket, statusEvents []*supportEntity.Event, firstAdminResponseAt *time.Time) map[string]interface{} {
+	// Canonical SLA: compute from status-change events (excludes waiting_user
+	// time) and the first valid admin response message timestamp (SLA-F04).
+	slaMetrics := ticket.ComputeSLAMetricsFromEvents(statusEvents, firstAdminResponseAt)
 
 	return map[string]interface{}{
 		"id":                ticket.ID,
@@ -1466,6 +1576,8 @@ func ticketToResponse(ticket *supportEntity.Ticket) map[string]interface{} {
 		"username":          ticket.Username,
 		"seller_farm_name":  ticket.SellerFarmName,
 		"chat_room_id":      ticket.ChatRoomID,
+		"subject":           ticket.Subject,
+		"description":       ticket.Description,
 		"category":          ticket.Category.String(),
 		"priority":          ticket.Priority.String(),
 		"status":            ticket.Status.String(),
@@ -1480,7 +1592,7 @@ func ticketToResponse(ticket *supportEntity.Ticket) map[string]interface{} {
 		"resolution_notes":  ticket.ResolutionNotes,
 		"close_reason":      ticket.CloseReason,
 		"metadata":          ticket.Metadata,
-		// SLA metrics (simplified for list view)
+		// SLA metrics (canonical — excludes waiting_user time)
 		"sla": map[string]interface{}{
 			"first_response_time_seconds": formatDurationSeconds(slaMetrics.FirstResponseTime),
 			"first_response_overdue":      slaMetrics.FirstResponseOverdue,
@@ -1488,6 +1600,8 @@ func ticketToResponse(ticket *supportEntity.Ticket) map[string]interface{} {
 			"resolution_overdue":          slaMetrics.ResolutionOverdue,
 			"is_overdue":                  slaMetrics.IsOverdue,
 			"next_action":                 slaMetrics.NextAction,
+			"waiting_time_seconds":        int64(slaMetrics.WaitingTime.Seconds()),
+			"active_time_seconds":         int64(slaMetrics.ActiveTime.Seconds()),
 		},
 	}
 }
@@ -1503,17 +1617,6 @@ func eventToResponse(event *supportEntity.Event) map[string]interface{} {
 		"notes":      event.Notes,
 		"metadata":   event.Metadata,
 		"created_at": event.CreatedAt.UTC().Format(time.RFC3339),
-	}
-}
-
-func adminToResponse(admin *supportEntity.Admin) map[string]interface{} {
-	return map[string]interface{}{
-		"id":                  admin.ID,
-		"is_active":           admin.IsActive,
-		"active_ticket_count": admin.ActiveTicketCount,
-		"last_assigned_at":    formatTimePtr(admin.LastAssignedAt),
-		"created_at":          admin.CreatedAt.UTC().Format(time.RFC3339),
-		"updated_at":          admin.UpdatedAt.UTC().Format(time.RFC3339),
 	}
 }
 
@@ -1553,59 +1656,6 @@ func formatDurationSeconds(d *time.Duration) *int64 {
 	return &seconds
 }
 
-// convertMessagesToSLAEvents converts chat messages to SLA MessageEvent format.
-func convertMessagesToSLAEvents(messages []*chatEntity.ChatMessage, ticketOwnerID uuid.UUID) []supportEntity.MessageEvent {
-	events := make([]supportEntity.MessageEvent, 0, len(messages))
-
-	for _, msg := range messages {
-		// Skip system messages
-		if msg.SenderID == uuid.Nil {
-			continue
-		}
-
-		isAdmin := msg.SenderID != ticketOwnerID
-
-		events = append(events, supportEntity.MessageEvent{
-			Timestamp:   msg.CreatedAt,
-			SenderID:    msg.SenderID.String(),
-			IsAdmin:     isAdmin,
-			MessageType: string(msg.MessageType),
-		})
-	}
-
-	return events
-}
-
-// computeAccurateSLAMetrics computes SLA metrics using actual message data.
-// Used for ticket detail views where accuracy is important.
-func (h *Handler) computeAccurateSLAMetrics(ctx context.Context, ticket *supportEntity.Ticket) supportEntity.SLAMetrics {
-	// Default to simplified if no message service
-	if h.chatMessageService == nil {
-		return ticket.ComputeSLAMetricsSimple()
-	}
-
-	// Fetch messages for accurate SLA calculation
-	messages, err := h.chatMessageService.ListMessages(
-		ctx,
-		ticket.ChatRoomID,
-		ticket.UserID,
-		nil, // No cursor
-		nil,
-		500, // Get all messages
-	)
-
-	if err != nil || len(messages) == 0 {
-		// Fallback to simplified if we can't fetch messages
-		return ticket.ComputeSLAMetricsSimple()
-	}
-
-	// Convert messages to SLA events
-	slaEvents := convertMessagesToSLAEvents(messages, ticket.UserID)
-
-	// Compute accurate SLA with message data
-	return ticket.ComputeSLAMetrics(slaEvents)
-}
-
 // supportMessageToResponse converts a chat message to support message response.
 // Includes sender context for determining if message is from user, admin, or system.
 func supportMessageToResponse(msg *chatEntity.ChatMessage, ticketOwnerID uuid.UUID) map[string]interface{} {
@@ -1617,16 +1667,16 @@ func supportMessageToResponse(msg *chatEntity.ChatMessage, ticketOwnerID uuid.UU
 		"created_at":   msg.CreatedAt.UTC().Format(time.RFC3339),
 	}
 
-	// Determine sender type for support context
-	var senderType string
-	if msg.SenderID == uuid.Nil {
-		senderType = "system"
-	} else if msg.SenderID == ticketOwnerID {
-		senderType = "user"
+	// Sender type for the support context. A support conversation has exactly
+	// two real parties — the ticket owner and authorised agents — and every
+	// message row has a NOT NULL sender FK, so persisted sender identity vs
+	// ticket ownership is the complete classification. The client never has to
+	// guess.
+	if msg.SenderID == ticketOwnerID {
+		resp["sender_type"] = "user"
 	} else {
-		senderType = "admin"
+		resp["sender_type"] = "admin"
 	}
-	resp["sender_type"] = senderType
 
 	// Tombstone for moderated/hidden messages on support user-facing surfaces.
 	// Preserve timeline structure, suppress content payload.
@@ -1645,5 +1695,3 @@ func supportMessageToResponse(msg *chatEntity.ChatMessage, ticketOwnerID uuid.UU
 
 	return resp
 }
-
-

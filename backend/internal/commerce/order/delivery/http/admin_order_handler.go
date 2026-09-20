@@ -174,6 +174,8 @@ type OrderDetailResponse struct {
 	CommissionAmount   int64      `json:"commission_amount"`
 	ServiceFeeAmount   int64      `json:"service_fee_amount"`
 	TotalPayableAmount int64      `json:"total_payable_amount"`
+	// TotalBeforeCoinsAmount is the canonical buyer-funded base PD+S.
+	TotalBeforeCoinsAmount int64      `json:"total_before_coins_amount"`
 	RefundedAmount     int64      `json:"refunded_amount"`
 	ShippingSetup     *string    `json:"shipping_option,omitempty"`
 	TrackingNumber     *string    `json:"tracking_number,omitempty"`
@@ -219,23 +221,31 @@ type OrderDetailResponse struct {
 
 // OrderItemDetail represents an order item for admin view.
 type OrderItemDetail struct {
-	ProductID        uuid.UUID `json:"product_id"`
-	ProductTitle     string    `json:"product_title"`
-	Quantity         int       `json:"quantity"`
-	UnitPrice        int64     `json:"unit_price"`
-	Subtotal         int64     `json:"subtotal"`
-	SnapshotImageURL *string   `json:"snapshot_image_url,omitempty"`
+	ProductID    uuid.UUID `json:"product_id"`
+	ProductTitle string    `json:"product_title"`
+	Quantity     int       `json:"quantity"`
+	// UnitPrice is orders_items.unit_price_snapshot (the frozen unit price).
+	UnitPrice int64 `json:"unit_price"`
+	// Subtotal is DERIVED (unit_price_snapshot × quantity) — order_items
+	// persists no per-item subtotal column.
+	Subtotal int64 `json:"subtotal"`
+	// SnapshotImageURL has no canonical persisted source: order_items does not
+	// freeze product media, so this stays nil (omitted from JSON) until a
+	// canonical media snapshot exists.
+	SnapshotImageURL *string `json:"snapshot_image_url,omitempty"`
 }
 
-// ShippingAddressDetail represents shipping address for admin view.
+// ShippingAddressDetail represents the ORDER's shipping address snapshot for
+// admin view. Canonical source: orders.address_snapshot. It deliberately has no
+// id: the immutable snapshot carries no address identity, and orders has no
+// shipping_address_id pointing at a mutable identity row.
 type ShippingAddressDetail struct {
-	ID            uuid.UUID `json:"id"`
-	RecipientName string    `json:"recipient_name"`
-	Phone         string    `json:"phone"`
-	Province      string    `json:"province"`
-	City          string    `json:"city"`
-	Address       string    `json:"address"`
-	PostalCode    string    `json:"postal_code"`
+	RecipientName string `json:"recipient_name"`
+	Phone         string `json:"phone"`
+	Province      string `json:"province"`
+	City          string `json:"city"`
+	Address       string `json:"address"`
+	PostalCode    string `json:"postal_code"`
 }
 
 // ShippingOriginDetail represents seller's farm/warehouse address for admin view.
@@ -316,8 +326,10 @@ func (h *AdminOrderHandler) GetOrderDetail(c *gin.Context) {
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		// Get order from orders table (not projection, for full detail)
 		//
-		// WARNING: refunded_amount from orders table is NON-AUTHORITATIVE.
-		// This is a legacy column for display only.
+		// CANONICAL SOURCES — no legacy orders columns are read here:
+		//   dispute status   → disputes row (fetched below; orders has no dispute_status)
+		//   shipping address → orders.address_snapshot (immutable creation snapshot)
+		//   refunded amount  → refunds domain (gateway-succeeded refunds)
 		// For financial truth, query the Ledger service.
 		//
 		// Payment = transaction record (what happened)
@@ -326,31 +338,36 @@ func (h *AdminOrderHandler) GetOrderDetail(c *gin.Context) {
 		var sourceType, status, escrowStatus string
 		var hasDispute bool
 		var disputeStatus *string
-		var subtotal, shippingTotal, commissionAmount, serviceFeeAmount, totalPayableAmount, refundedAmount int64
+		var subtotal, shippingTotal, commissionAmount, serviceFeeAmount, totalPayableAmount, totalBeforeCoinsAmount int64
+		// refundedAmount is the canonical refund-domain total (gateway-succeeded
+		// refunds only), never the purged orders.refunded_amount column.
+		var refundedAmount int64
 		var shippingSetupName, shippingReference *string
 		var shippingSource *string
-		var originSnapshotJSON []byte
+		var originSnapshotJSON, destinationSnapshotJSON []byte
 		var autoReleaseAt *time.Time
 		var createdAt, updatedAt time.Time
 		var orderNumber *string
 
 		err := tx.QueryRow(ctx, `
 			SELECT id, buyer_id, seller_id, source_type, source_id,
-		       status, escrow_status, has_dispute, dispute_status,
-		       subtotal, shipping_total, commission_amount, service_fee_amount, total_payable_amount,
-		       refunded_amount,
-			       shipping_option_name, tracking_number,
+		       status, escrow_status, has_dispute,
+	       subtotal, shipping_total, commission_amount, service_fee_amount, total_payable_amount,
+	       total_before_coins_amount,
+		       shipping_option_name, tracking_number,
 			       shipping_source, shipping_origin_snapshot,
+			       address_snapshot,
 			       auto_release_at, created_at, updated_at,
 			       order_number
 			FROM orders WHERE id = $1
 		`, orderID).Scan(
 			&id, &buyerID, &sellerID, &sourceType, &sourceID,
-			&status, &escrowStatus, &hasDispute, &disputeStatus,
+			&status, &escrowStatus, &hasDispute,
 			&subtotal, &shippingTotal, &commissionAmount, &serviceFeeAmount, &totalPayableAmount,
-			&refundedAmount,
+			&totalBeforeCoinsAmount,
 			&shippingSetupName, &shippingReference,
 			&shippingSource, &originSnapshotJSON,
+			&destinationSnapshotJSON,
 			&autoReleaseAt, &createdAt, &updatedAt,
 			&orderNumber,
 		)
@@ -386,6 +403,21 @@ func (h *AdminOrderHandler) GetOrderDetail(c *gin.Context) {
 			}
 		}
 
+		// Canonical refunded total: orders.refunded_amount is purged, so the sum of
+		// gateway-succeeded refunds IS the authority (same definition as the refund
+		// domain's cumulative helpers and the order_summaries projection). It is
+		// resolved before the response literal so RefundedAmount can never silently
+		// fall back to the zero value.
+		if qErr := tx.QueryRow(ctx, `
+			SELECT COALESCE(SUM(COALESCE(rf.refunded_product_amount, rf.final_refund_amount)
+			                  + COALESCE(rf.refunded_shipping_amount, 0)), 0)
+			FROM refunds rf
+			WHERE rf.order_id = $1
+			  AND rf.gateway_status = 'succeeded'
+		`, orderID).Scan(&refundedAmount); qErr != nil {
+			return fmt.Errorf("canonical refunded amount for order failed: %w", qErr)
+		}
+
 		orderNumStr := ""
 		if orderNumber != nil {
 			orderNumStr = *orderNumber
@@ -405,8 +437,9 @@ func (h *AdminOrderHandler) GetOrderDetail(c *gin.Context) {
 			Subtotal:           subtotal,
 			ShippingTotal:      shippingTotal,
 			CommissionAmount:   commissionAmount,
-			ServiceFeeAmount:   serviceFeeAmount,
-			TotalPayableAmount: totalPayableAmount,
+			ServiceFeeAmount:       serviceFeeAmount,
+			TotalPayableAmount:     totalPayableAmount,
+			TotalBeforeCoinsAmount: totalBeforeCoinsAmount,
 			RefundedAmount:     refundedAmount,
 			ShippingSetup:     shippingSetupName,
 			TrackingNumber:     shippingReference,
@@ -469,9 +502,14 @@ func (h *AdminOrderHandler) GetOrderDetail(c *gin.Context) {
 			detail.SellerFarmName = &sellerFarmName
 		}
 
-		// Fetch order items
+		// Fetch order items — CANONICAL order_items shape. The table persists only
+		// (id, order_id, product_id, name, unit_price_snapshot, quantity,
+		// created_at): there is no unit_price, no per-item subtotal and no media
+		// column. Per-item subtotal is therefore DERIVED from the persisted price
+		// snapshot, and snapshot_image_url stays empty because the order snapshot
+		// does not freeze product media.
 		rows, err := tx.Query(ctx, `
-			SELECT product_id, name, quantity, unit_price, subtotal, snapshot_image_url
+			SELECT product_id, name, quantity, unit_price_snapshot
 			FROM order_items WHERE order_id = $1
 		`, orderID)
 		if err == nil {
@@ -481,36 +519,39 @@ func (h *AdminOrderHandler) GetOrderDetail(c *gin.Context) {
 				var item OrderItemDetail
 				if err := rows.Scan(
 					&item.ProductID, &item.ProductTitle, &item.Quantity,
-					&item.UnitPrice, &item.Subtotal, &item.SnapshotImageURL,
+					&item.UnitPrice,
 				); err == nil {
+					item.Subtotal = item.UnitPrice * int64(item.Quantity)
 					items = append(items, item)
 				}
 			}
 			detail.Items = items
 		}
 
-		// Fetch shipping address
-		var addressID uuid.UUID
-		var recipientName, phone, province, city, address, postalCode string
-		err = tx.QueryRow(ctx, `
-			SELECT sa.id, sa.recipient_name, sa.phone, sa.province,
-			       sa.city, sa.address, sa.postal_code
-			FROM shipping_addresses sa
-			INNER JOIN orders o ON o.shipping_address_id = sa.id
-			WHERE o.id = $1
-		`, orderID).Scan(
-			&addressID, &recipientName, &phone, &province,
-			&city, &address, &postalCode,
-		)
-		if err == nil {
-			detail.ShippingAddress = &ShippingAddressDetail{
-				ID:            addressID,
-				RecipientName: recipientName,
-				Phone:         phone,
-				Province:      province,
-				City:          city,
-				Address:       address,
-				PostalCode:    postalCode,
+		// Shipping address — CANONICAL SOURCE: orders.address_snapshot, the
+		// immutable snapshot frozen at order creation (same source the Order
+		// entity exposes as AddressSnapshot). There is no orders
+		// shipping_address_id column and no shipping_addresses table in the
+		// canonical schema; the snapshot carries no address identity, so only the
+		// snapshot's own fields are exposed.
+		if destinationSnapshotJSON != nil {
+			var snap struct {
+				RecipientName string `json:"recipient_name"`
+				Phone         string `json:"phone"`
+				ProvinceName  string `json:"province_name"`
+				CityName      string `json:"city_name"`
+				StreetAddress string `json:"street_address"`
+				PostalCode    string `json:"postal_code"`
+			}
+			if err := json.Unmarshal(destinationSnapshotJSON, &snap); err == nil {
+				detail.ShippingAddress = &ShippingAddressDetail{
+					RecipientName: snap.RecipientName,
+					Phone:         snap.Phone,
+					Province:      snap.ProvinceName,
+					City:          snap.CityName,
+					Address:       snap.StreetAddress,
+					PostalCode:    snap.PostalCode,
+				}
 			}
 		}
 
@@ -537,6 +578,9 @@ func (h *AdminOrderHandler) GetOrderDetail(c *gin.Context) {
 					OpenedAt:    openedAt,
 					ResolvedAt:  resolvedAt,
 				}
+				// Canonical dispute status: the disputes row is the only authority
+				// (orders has no dispute_status column).
+				detail.DisputeStatus = &disputeStatus
 			}
 		}
 

@@ -48,7 +48,7 @@ class FakeSellerAuctionsPagerController extends SellerAuctionsPagerController {
 ForSale _testForSale(String id) => ForSale(
       forSaleId: id,
       title: 'Test ForSale $id',
-      description: 'A test listing',
+      description: 'A test forSale',
       price: 50000,
       stock: 1,
       sellerId: 'seller-1',
@@ -77,12 +77,12 @@ GoRouter _testRouter({required String mode}) {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ElevatedButton(
-                    key: const ValueKey('cancel-create-listing'),
+                    key: const ValueKey('cancel-create-forSale'),
                     onPressed: () => GoRouter.of(context).pop(),
                     child: const Text('Cancel'),
                   ),
                   ElevatedButton(
-                    key: const ValueKey('success-create-listing'),
+                    key: const ValueKey('success-create-forSale'),
                     onPressed: () =>
                         GoRouter.of(context).pop(_testForSale('new-fps-id')),
                     child: const Text('Create'),
@@ -213,7 +213,7 @@ void main() {
         expect(find.text('Create ForSale'), findsOneWidget);
 
         // Tap Cancel → pop without result
-        await tester.tap(find.byKey(const ValueKey('cancel-create-listing')));
+        await tester.tap(find.byKey(const ValueKey('cancel-create-forSale')));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
 
@@ -228,7 +228,7 @@ void main() {
     // ── SUCCESS ─────────────────────────────────────────────────────────
 
     testWidgets(
-      'SUCCESS: route returns Listing, listing becomes selected, tap Send fires once',
+      'SUCCESS: route returns ForSale, forSale becomes selected, tap Send fires once',
       (tester) async {
         int submitCount = 0;
         String? sentBody;
@@ -246,7 +246,7 @@ void main() {
         await tester.pump();
 
         // Enter draft text
-        await tester.enterText(find.byType(TextField), 'check out this listing');
+        await tester.enterText(find.byType(TextField), 'check out this forSale');
         await tester.pump();
 
         // Tap attach button to open CommerceResourcePicker
@@ -267,8 +267,8 @@ void main() {
         // Create ForSale route should be visible
         expect(find.text('Create ForSale'), findsOneWidget);
 
-        // Tap Create → pop with Listing
-        await tester.tap(find.byKey(const ValueKey('success-create-listing')));
+        // Tap Create → pop with ForSale
+        await tester.tap(find.byKey(const ValueKey('success-create-forSale')));
         await tester.pump();
         await tester.pump(const Duration(seconds: 2));
 
@@ -276,9 +276,9 @@ void main() {
         expect(submitCount, 0);
 
         // The selected resource preview should be visible — this proves the
-        // Listing result was captured by the production code (no automatic send).
+        // ForSale result was captured by the production code (no automatic send).
         expect(find.text('Test ForSale new-fps-id'), findsOneWidget,
-            reason: 'Listing result must be captured as selected resource');
+            reason: 'ForSale result must be captured as selected resource');
 
         // Tap Send
         await tester.tap(find.byKey(const ValueKey('comment-send-button')));
@@ -287,7 +287,7 @@ void main() {
 
         // Submit count becomes exactly 1
         expect(submitCount, 1);
-        expect(sentBody, 'check out this listing');
+        expect(sentBody, 'check out this forSale');
         expect(sentResource, isNotNull);
         expect(sentResource!.resourceType, ResourceType.forSale);
         expect(sentResource!.resourceId, 'new-fps-id');

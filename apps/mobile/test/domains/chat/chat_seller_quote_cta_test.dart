@@ -1,11 +1,11 @@
 /// Invariants for the seller quote CTA fix (Pass 1D-F1).
 ///
 /// Verified behavior:
-///   1. Seller of this specific listing sees "Kirim Tawaran" button.
+///   1. Seller of this specific forSale sees "Kirim Tawaran" button.
 ///   2. Buyer (different user) does not see "Kirim Tawaran" but sees buyer CTAs.
-///   3. Non-listing chat hides all commerce CTAs.
-///   4. Listing detail loading → CTA hidden, no crash.
-///   5. Listing detail error  → CTA hidden, no crash.
+///   3. Non-forSale chat hides all commerce CTAs.
+///   4. ForSale detail loading → CTA hidden, no crash.
+///   5. ForSale detail error  → CTA hidden, no crash.
 ///   6. Send-message path is unchanged.
 library;
 
@@ -51,7 +51,7 @@ ForSale _fakeListing({required String sellerId}) => ForSale(
   forSaleId: _fixedPriceSaleId,
   productId: _productId,
   title: 'Koi Test',
-  description: 'Test listing',
+  description: 'Test forSale',
   price: 500000,
   stock: 1,
   sellerId: sellerId,
@@ -67,10 +67,6 @@ Chat _chatWithListingContext() => Chat(
   participantAvatars: const {},
   createdAt: DateTime.utc(2026, 6, 1),
   status: ChatStatus.active,
-  context: ShareReference.forSale(
-    forSaleId: _fixedPriceSaleId,
-    title: 'Koi Test',
-  ),
 );
 
 Chat _chatWithoutContext() => Chat(
@@ -119,7 +115,7 @@ Widget _buildApp({
 // ---------------------------------------------------------------------------
 
 void main() {
-  testWidgets('invariant 1 — seller of this listing sees Kirim Tawaran CTA', (
+  testWidgets('invariant 1 — seller of this forSale sees Kirim Tawaran CTA', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -150,7 +146,7 @@ void main() {
     },
   );
 
-  testWidgets('invariant 3 — non-listing chat shows no commerce CTAs', (
+  testWidgets('invariant 3 — non-forSale chat shows no commerce CTAs', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -162,7 +158,7 @@ void main() {
   });
 
   testWidgets(
-    'invariant 4 — listing loading state hides CTA and does not crash',
+    'invariant 4 — forSale loading state hides CTA and does not crash',
     (tester) async {
       await tester.pumpWidget(
         _buildApp(
@@ -179,7 +175,7 @@ void main() {
   );
 
   testWidgets(
-    'invariant 5 — listing error state hides CTA and does not crash',
+    'invariant 5 — forSale error state hides CTA and does not crash',
     (tester) async {
       await tester.pumpWidget(
         _buildApp(

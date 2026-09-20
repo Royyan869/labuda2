@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	subscriptionApp "github.com/labuda/backend/internal/commerce/subscription/application"
 	"github.com/labuda/backend/internal/audit"
+	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
 	"github.com/labuda/backend/internal/platform/capability"
 	"github.com/labuda/backend/internal/platform/response"
 	"github.com/labuda/backend/pkg/db"
@@ -39,7 +40,8 @@ func fetchPaymentForRecovery(ctx context.Context, tx db.Tx, paymentID uuid.UUID)
 //
 // POST /admin/seller-subscriptions/recover/:payment_id
 //   - Requires capability: seller.subscription.recover
-//   - Validates: reference_type = 'subscription', status IN ('settlement', 'capture')
+//   - Validates: reference_type = 'subscription' and the payment is settled by the
+//     canonical payment predicate (settlement or capture)
 //   - Delegates to canonical ProcessSuccessfulPayment (idempotent)
 //   - Audit logs every successful recovery
 type AdminSubscriptionRecoveryHandler struct {
@@ -118,9 +120,10 @@ func (h *AdminSubscriptionRecoveryHandler) Recover(c *gin.Context) {
 		return
 	}
 
-	if p.Status != "settlement" && p.Status != "capture" {
+	// Canonical settled predicate — never a hand-written status list.
+	if !paymentRepo.IsSettledStatus(p.Status) {
 		response.BadRequest(c, fmt.Sprintf(
-			"Payment %s is not settled (status=%s); only settlement/capture payments can be recovered",
+			"Payment %s is not settled (status=%s); only settled (settlement/capture) payments can be recovered",
 			paymentIDStr, p.Status,
 		))
 		return

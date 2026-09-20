@@ -11,7 +11,7 @@ import '../dto/negotiation_dto.dart';
 ///
 /// **FIELDS NOT IN BACKEND RESPONSE:**
 /// - chatId: populated from chatRoomId context at call site
-/// - listingName, listingImage: populated from UI context
+/// - forSaleName, forSaleImage: populated from UI context
 /// - buyerName, buyerAvatar, sellerAvatar: populated from chat context
 /// - originalPrice: not tracked by backend, populated from fixed-price sale context
 /// - offers: not provided by backend, reconstructed from chat messages
@@ -31,7 +31,7 @@ class NegotiationMapper {
       id: dto.id,
       chatId: chatRoomId.isNotEmpty ? chatRoomId : (dto.chatRoomId ?? ''),
       fixedPriceSaleId: dto.forSaleId ?? dto.resourceId,
-      listingName: '', // POPULATED SEPARATELY from UI context
+      forSaleName: '', // POPULATED SEPARATELY from UI context
       originalPrice: dto.currentPrice?.toDouble() ?? 0,
       buyerId: dto.buyerId,
       buyerName: '', // POPULATED SEPARATELY from chat context

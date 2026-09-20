@@ -1,37 +1,26 @@
 part of 'order_widgets_impl.dart';
 
 class OrderUserInfoCard extends ConsumerWidget {
+  final Order order;
   final String currentUserId;
-  final String sellerId;
-  final String buyerId;
-  final String? sellerUsername;
-  final String? sellerFarmName;
-  final String? sellerAvatarUrl;
   final bool isDark;
 
   const OrderUserInfoCard({
     super.key,
+    required this.order,
     required this.currentUserId,
-    required this.sellerId,
-    required this.buyerId,
-    this.sellerUsername,
-    this.sellerFarmName,
-    this.sellerAvatarUrl,
     required this.isDark,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Determine which user info to show based on current user
-    final isSeller = currentUserId == sellerId;
-    final isBuyer = currentUserId == buyerId;
+    final isSeller = currentUserId == order.sellerId;
+    final isBuyer = currentUserId == order.buyerId;
 
     // Show the other party's info
     final showSellerInfo = isBuyer;
     final showBuyerInfo = isSeller;
-
-    // Determine the other party's ID for chat
-    final otherPartyId = isSeller ? buyerId : sellerId;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -56,7 +45,7 @@ class OrderUserInfoCard extends ConsumerWidget {
               ),
               // Chat button for continuity - Contact the other party
               _ChatButton(
-                otherPartyId: otherPartyId,
+                order: order,
                 currentUserId: currentUserId,
                 isDark: isDark,
               ),
@@ -66,15 +55,19 @@ class OrderUserInfoCard extends ConsumerWidget {
           if (showSellerInfo)
             _UserInfoTile(
               label: 'Penjual',
-              userId: sellerId,
-              sellerUsername: sellerUsername,
-              sellerFarmName: sellerFarmName,
-              sellerAvatarUrl: sellerAvatarUrl,
+              userId: order.sellerId,
+              sellerUsername: order.sellerUsername,
+              sellerFarmName: order.sellerFarmName,
+              sellerAvatarUrl: order.sellerAvatarUrl,
               showSellerIdentity: true,
               isDark: isDark,
             ),
           if (showBuyerInfo)
-            _UserInfoTile(label: 'Pembeli', userId: buyerId, isDark: isDark),
+            _UserInfoTile(
+              label: 'Pembeli',
+              userId: order.buyerId,
+              isDark: isDark,
+            ),
         ],
       ),
     );
@@ -195,12 +188,12 @@ class _UserInfoTile extends ConsumerWidget {
 /// - Buyer can message seller about their order
 /// - Seller can message buyer about shipping, payment, etc.
 class _ChatButton extends ConsumerWidget {
-  final String otherPartyId;
+  final Order order;
   final String currentUserId;
   final bool isDark;
 
   const _ChatButton({
-    required this.otherPartyId,
+    required this.order,
     required this.currentUserId,
     required this.isDark,
   });
@@ -216,46 +209,14 @@ class _ChatButton extends ConsumerWidget {
       return;
     }
 
-    // Show loading
-    showDialog(
+    // Canonical Order → commerce chat entry point (same authority as every
+    // other Order chat affordance: order-linked room + `/chat/<room-id>`).
+    await openOrderCommerceChat(
       context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+      ref: ref,
+      order: order,
+      currentUserId: currentUserId,
     );
-
-    try {
-      // Get or create chat using chat repository
-      final chatRepository = ref.read(chatRepositoryProvider);
-      final result = await chatRepository.getOrCreateChat(
-        participantIds: [currentUserId, otherPartyId],
-      );
-
-      if (!context.mounted) return;
-
-      // Close loading
-      Navigator.of(context).pop();
-
-      if (result.isSuccess && result.data != null) {
-        final chat = result.data!;
-        // Navigate to chat screen
-        context.push('/chat/${chat.id}');
-      } else {
-        // Show error - check if user is blocked
-        final error = result.error ?? 'Failed to open chat';
-        final errorMessage = error.toLowerCase().contains('blocked')
-            ? 'Tidak dapat mengirim pesan. Pengguna ini telah memblokir Anda.'
-            : error;
-        AppSnackBar.showError(context, errorMessage);
-      }
-    } catch (e) {
-      if (!context.mounted) return;
-
-      // Close loading
-      Navigator.of(context).pop();
-
-      // Show error
-      AppSnackBar.showError(context, 'Terjadi kesalahan. Coba lagi.');
-    }
   }
 
   @override

@@ -50,14 +50,16 @@ func (s Status) IsOpen() bool {
 // waiting_user -> resolved (admin resolves while waiting)
 // resolved -> closed (close)
 // resolved -> open (reopen)
-// closed -> open (reopen)
+//
+// closed is TERMINAL: a closed case is never reopened. A new problem is a new
+// ticket. This is what separates `resolved` (reopenable) from `closed`.
 func (s Status) CanTransitionTo(new Status) bool {
 	transitions := map[Status][]Status{
 		StatusOpen:        {StatusInProgress},
 		StatusInProgress:  {StatusWaitingUser, StatusResolved},
 		StatusWaitingUser: {StatusInProgress, StatusResolved},
 		StatusResolved:    {StatusClosed, StatusOpen},
-		StatusClosed:      {StatusOpen},
+		StatusClosed:      {},
 	}
 
 	allowed, exists := transitions[s]

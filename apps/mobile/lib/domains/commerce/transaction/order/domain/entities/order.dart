@@ -447,7 +447,6 @@ class Order extends Equatable {
   // Payment & Shipping
   final PaymentMethodType paymentMethod;
   final PaymentStatus paymentStatus;
-  final PaymentChannel? paymentChannel;
   final int tokenRegenerationCount;
   final ShippingInfo shippingInfo;
   final OrderPricing pricing;
@@ -462,7 +461,7 @@ class Order extends Equatable {
 
   // Shipping Readiness Snapshot - frozen at order creation time
   // This preserves the buyer's expectation at purchase time, even if seller
-  // later changes the listing/auction preparation time
+  // later changes the forSale/auction preparation time
   final PreparationTime preparationTimeSnapshot;
   final String? preparationNoteSnapshot;
   final DateTime?
@@ -520,7 +519,7 @@ class Order extends Equatable {
   // STAGE 3 — IDENTITY FIELDS (Phase 5)
   // ===========================================================================
   // Owner Truth identity scalars from Stage 1 backend payload, populated by
-  // the order mapper (OrderMapper.toOrder + OrderResponseDto.toEntity).
+  // the order mapper (OrderMapper.toOrder) from the canonical OrderApiResponse.
   // All nullable: old payloads may not carry them, and Stage 3 explicitly
   // forbids fake fallback. UI consumption is deferred to Stage 4.
   // - sellerUsername  ← seller_username   (account/user identity)
@@ -549,8 +548,7 @@ class Order extends Equatable {
     this.lastStatusChangeAt,
     this.lastStatusChangedBy,
     required this.paymentMethod,
-    required this.paymentStatus,
-    this.paymentChannel,
+    required    this.paymentStatus,
     this.tokenRegenerationCount = 0,
     required this.shippingInfo,
     required this.pricing,
@@ -601,7 +599,9 @@ class Order extends Equatable {
     this.paymentId,
   });
 
-  double get totalAmount => pricing.total;
+  // NOTE: Money has ONE canonical representation per field. Read
+  // `pricing.totalPayableAmount` (PD + S + F) or `pricing.totalBeforeCoinsAmount`
+  // (PD + S) directly from OrderPricing. No alias, no client-side derivation.
 
   // ============================================================
   // BACKWARD COMPATIBILITY: These getters are kept for existing code
@@ -639,7 +639,6 @@ class Order extends Equatable {
     lastStatusChangedBy,
     paymentMethod,
     paymentStatus,
-    paymentChannel,
     tokenRegenerationCount,
     shippingInfo,
     pricing,
@@ -702,7 +701,6 @@ class Order extends Equatable {
     String? lastStatusChangedBy,
     PaymentMethodType? paymentMethod,
     PaymentStatus? paymentStatus,
-    PaymentChannel? paymentChannel,
     int? tokenRegenerationCount,
     ShippingInfo? shippingInfo,
     OrderPricing? pricing,
@@ -764,7 +762,6 @@ class Order extends Equatable {
       lastStatusChangedBy: lastStatusChangedBy ?? this.lastStatusChangedBy,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       paymentStatus: paymentStatus ?? this.paymentStatus,
-      paymentChannel: paymentChannel ?? this.paymentChannel,
       tokenRegenerationCount:
           tokenRegenerationCount ?? this.tokenRegenerationCount,
       shippingInfo: shippingInfo ?? this.shippingInfo,

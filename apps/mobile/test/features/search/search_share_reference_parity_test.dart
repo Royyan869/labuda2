@@ -30,9 +30,9 @@ Map<String, dynamic> _fixedPriceSaleProjection({
 }) {
   return <String, dynamic>{
     'state': 'LIVE',
-    'resource_type': 'fixed_price_sale',
+    'resource_type': 'for_sale',
     'resource_id': resourceId,
-    'fixed_price_sale': <String, dynamic>{
+    'for_sale': <String, dynamic>{
       'title': title,
       'media': <Map<String, dynamic>>[],
       'thumbnail_url': thumbnail,

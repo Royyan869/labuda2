@@ -1,9 +1,9 @@
-// ⚠️ STANDBY WORKER
-// DO NOT ENABLE WITHOUT BUSINESS VALIDATION
-// This worker is intentionally disabled pending business validation of outbox processing.
-// Worker is initialized but not started in dependencies_core.go.
+// OUTBOX WORKER — DEFAULT OWNER of every claimable outbox event type except the
+// realtime-owned set (realtime.OwnedOutboxEventTypes), which is owned by the
+// realtime worker. See repository.EventOwnershipScope for the claim contract.
 //
-// To enable: Remove this comment and uncomment .Start() call in dependencies_core.go
+// Lifecycle: constructed and started unconditionally in
+// internal/serverboot/dependencies.go (workerStartups).
 package worker
 
 import (
@@ -25,6 +25,7 @@ import (
 	"github.com/labuda/backend/internal/platform/events"
 	"github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
 	"github.com/labuda/backend/internal/presence"
+	"github.com/labuda/backend/internal/realtime"
 	dbpkg "github.com/labuda/backend/pkg/db"
 	"go.uber.org/zap"
 )
@@ -77,6 +78,7 @@ type OutboxWorker struct {
 	db                      *dbpkg.DB
 	outboxRepo              *repository.OutboxRepository
 	dispatcher              *OutboxDispatcher
+	ownershipScope          repository.EventOwnershipScope
 	log                     *zap.Logger
 	pollInterval            time.Duration
 	batchSize               int
@@ -166,6 +168,7 @@ func NewOutboxWorker(
 		db:                      db,
 		outboxRepo:              repository.NewOutboxRepository(db),
 		dispatcher:              NewOutboxDispatcher(log),
+		ownershipScope:          repository.EventOwnershipScope{Exclude: realtime.OwnedOutboxEventTypes},
 		log:                     log,
 		pollInterval:            cfg.PollInterval,
 		batchSize:               cfg.BatchSize,
@@ -310,12 +313,14 @@ func (w *OutboxWorker) processOutboxBatch() {
 		}
 	}()
 
-	// Step 1: Fetch events in a short transaction
+	// Step 1: Fetch events in a short transaction.
+	// OWNERSHIP: scoped to the event types this worker owns, so it can never
+	// claim an event owned by another consumer (e.g. the realtime worker).
 	var events []repository.Event
 	err := w.db.WithTx(ctx, func(tx dbpkg.Tx) error {
 		var err error
 		// NO SQL in worker - use repository method
-		events, err = w.outboxRepo.FetchPendingBatch(ctx, tx, w.batchSize)
+		events, err = w.outboxRepo.FetchPendingBatch(ctx, tx, w.batchSize, w.ownershipScope)
 		return err
 	})
 
@@ -707,16 +712,20 @@ func (f *fanoutHandler) Handle(ctx context.Context, event platformevent.OutboxEv
 
 // DispatchResult describes which branch the dispatcher took.
 // It exists so the outbox worker can distinguish "handler delivered" from
-// "no handler registered" without changing the at-least-once delivery contract
-// (both are still treated as canonical success at the row-status layer).
+// "acknowledged no-handler event" without changing the at-least-once delivery
+// contract for acknowledged events.
 type DispatchResult string
 
 const (
 	// DispatchResultHandled means a registered handler returned nil.
 	DispatchResultHandled DispatchResult = "handled"
-	// DispatchResultNoHandler means no handler was registered for the event
-	// type. The event is marked succeeded (existing behaviour) but the worker
-	// emits a separate observability signal so this is not silent.
+	// DispatchResultNoHandler means the event type is explicitly acknowledged in
+	// AcknowledgedNoHandlerEvents as intentionally handlerless (audit /
+	// observability only). Such an event is a canonical success and the worker
+	// emits a separate observability signal for it.
+	//
+	// An UNACKNOWLEDGED handlerless event never produces this result: it returns
+	// an error so it cannot be silently marked delivered.
 	DispatchResultNoHandler DispatchResult = "no_handler"
 )
 
@@ -746,14 +755,29 @@ func (d *OutboxDispatcher) DispatchWithResult(ctx context.Context, event reposit
 
 	handler, exists := d.handlers[event.EventType]
 	if !exists {
-		// Unknown event type - log warning but don't fail. The worker pairs this
-		// branch with an outbox_no_handler_total counter increment so this is
-		// observable, not silent.
-		d.log.Warn("No handler registered for event type, skipping",
+		// NO-HANDLER SAFETY: a claimed event with no handler is a success ONLY
+		// when it is explicitly acknowledged as intentionally handlerless
+		// (AcknowledgedNoHandlerEvents — audit / observability events). Any other
+		// unhandled event is a configuration defect and must never be swallowed:
+		// returning an error routes it through the canonical retry → backoff →
+		// dead_letter path, where it is visible instead of silently delivered.
+		if entry, acknowledged := AcknowledgedNoHandlerEvents[event.EventType]; acknowledged {
+			d.log.Debug("No handler registered for acknowledged no-handler event type",
+				zap.String("event_type", event.EventType),
+				zap.String("event_id", event.ID.String()),
+				zap.String("class", string(entry.Class)),
+			)
+			return DispatchResultNoHandler, nil
+		}
+
+		d.log.Error("No handler registered for unacknowledged event type",
 			zap.String("event_type", event.EventType),
 			zap.String("event_id", event.ID.String()),
 		)
-		return DispatchResultNoHandler, nil
+		return DispatchResultNoHandler, fmt.Errorf(
+			"no handler registered for event type %q and it is not an acknowledged no-handler event",
+			event.EventType,
+		)
 	}
 
 	// Convert repository.Event to OutboxEvent
@@ -915,7 +939,7 @@ func (w *OutboxWorker) SetupModerationHandlers(
 
 	w.log.Info("Moderation event handlers registered (with enforcement + notification fanout)")
 	return w
-}
+}
 
 // SetupRefundFailedAlertHandler registers the money.refund_failed event handler.
 //

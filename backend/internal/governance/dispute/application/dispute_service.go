@@ -61,20 +61,6 @@ type OpenDisputeInput struct {
 	ReasonCode  string  // 🔥 TASK 1: Standardized reason code (required)
 }
 
-// DisputeFreezeAuthority is the finance-domain surface used by DisputeService
-// to coordinate dispute freeze bookkeeping when policy requires it. Defined
-// as an interface so the governance/dispute package does not import
-// finance/application directly (one-way dependency). The concrete
-// implementation is *FinanceService wired in cmd/core_server/dependencies_core.go.
-type DisputeFreezeAuthority interface {
-	// CreateDisputeFreeze records a dispute freeze for compatibility with
-	// legacy dispute-freeze bookkeeping.
-	// frozenAmount is the seller's economic entitlement (BuyerBase − commission).
-	CreateDisputeFreeze(ctx context.Context, tx db.Tx, disputeID, sellerID, orderID uuid.UUID, frozenAmount int64) error
-	// ReleaseDisputeFreeze marks the freeze as released. Idempotent.
-	ReleaseDisputeFreeze(ctx context.Context, tx db.Tx, disputeID uuid.UUID) error
-}
-
 // DisputeService handles dispute lifecycle operations.
 //
 // All financial operations (escrow freezing, refunds, releases) are delegated
@@ -82,14 +68,13 @@ type DisputeFreezeAuthority interface {
 //
 // CRITICAL HARDENING: Uses live escrow state for validation (not cached Order.EscrowStatus).
 type DisputeService struct {
-	disputeRepo     disputeRepo.DisputeRepository
-	orderRepo       *orderRepo.OrderRepository
-	orderService    *orderApp.OrderService
-	escrowService   *escrowApp.EscrowService // CRITICAL: For live escrow validation
-	outboxRepo      *outboxRepo.OutboxRepository
-	abuseService    *DisputeAbuseService   // 🔥 TASK 3: Abuse monitoring
-	freezeAuthority DisputeFreezeAuthority // TASK 48: dispute freeze bookkeeping helper
-	logger          *zap.Logger            // Optional; defaults to Nop
+	disputeRepo   disputeRepo.DisputeRepository
+	orderRepo     *orderRepo.OrderRepository
+	orderService  *orderApp.OrderService
+	escrowService *escrowApp.EscrowService // CRITICAL: For live escrow validation
+	outboxRepo    *outboxRepo.OutboxRepository
+	abuseService  *DisputeAbuseService // 🔥 TASK 3: Abuse monitoring
+	logger        *zap.Logger          // Optional; defaults to Nop
 }
 
 // NewDisputeService creates a new DisputeService.
@@ -119,12 +104,6 @@ func (s *DisputeService) log() *zap.Logger {
 		return s.logger
 	}
 	return zap.NewNop()
-}
-
-// SetFreezeAuthority wires the finance-domain freeze surface. When unset,
-// dispute freeze bookkeeping is skipped.
-func (s *DisputeService) SetFreezeAuthority(a DisputeFreezeAuthority) {
-	s.freezeAuthority = a
 }
 
 // OpenDispute opens a new dispute for an order.
@@ -400,8 +379,9 @@ func (s *DisputeService) ResolveDispute(
 		if err := s.disputeRepo.Update(ctx, tx, dispute); err != nil {
 			return fmt.Errorf("failed to update dispute: %w", err)
 		}
-		// Pre-release seller-wins: release escrow → SELLER_PAYABLE.
-		if err := s.orderService.ReleaseFromDispute(ctx, tx, dispute.OrderID); err != nil {
+		// Pre-release seller-wins: record the final admin decision on the order's
+		// refund process (if any) and release escrow → SELLER_PAYABLE.
+		if err := s.orderService.ReleaseFromDispute(ctx, tx, dispute.OrderID, adminID); err != nil {
 			return fmt.Errorf("failed to release: %w", err)
 		}
 

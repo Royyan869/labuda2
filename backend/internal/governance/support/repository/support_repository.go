@@ -29,10 +29,6 @@ type Repository interface {
 	// Returns ErrTicketNotFound if not found.
 	GetTicketByID(ctx context.Context, tx interface{}, ticketID uuid.UUID) (*entity.Ticket, error)
 
-	// GetOpenTicketByUser retrieves the current open ticket for a user.
-	// Returns ErrTicketNotFound if no open ticket exists.
-	GetOpenTicketByUser(ctx context.Context, tx interface{}, userID uuid.UUID) (*entity.Ticket, error)
-
 	// GetTicketByChatRoomID retrieves the active ticket linked to a chat room.
 	// Returns ErrTicketNotFound if no active ticket exists for the room.
 	GetTicketByChatRoomID(ctx context.Context, tx interface{}, chatRoomID uuid.UUID) (*entity.Ticket, error)
@@ -81,12 +77,6 @@ type Repository interface {
 	// UpdateEscalation updates the ticket escalation level.
 	UpdateEscalation(ctx context.Context, tx interface{}, ticketID uuid.UUID, escalation entity.Escalation) error
 
-	// AssignAdmin directly assigns an admin to a ticket (admin operation).
-	AssignAdmin(ctx context.Context, tx interface{}, ticketID, adminID uuid.UUID) error
-
-	// UnassignAdmin removes the admin assignment from a ticket.
-	UnassignAdmin(ctx context.Context, tx interface{}, ticketID uuid.UUID) error
-
 	// ========================================================================
 	// EVENT OPERATIONS
 	// ========================================================================
@@ -97,32 +87,23 @@ type Repository interface {
 	// ListEvents lists all events for a ticket.
 	ListEvents(ctx context.Context, tx interface{}, ticketID uuid.UUID, limit int) ([]*entity.Event, error)
 
+	// ListStatusEventsForTickets batch-fetches status-change events for multiple
+	// tickets in a single query. Returns events keyed by ticket_id. Used by list
+	// and dashboard views to compute resolution SLA without N+1 queries.
+	ListStatusEventsForTickets(ctx context.Context, tx interface{}, ticketIDs []uuid.UUID) (map[uuid.UUID][]*entity.Event, error)
+
+	// ListFirstAdminResponsesByTicketIDs batch-fetches the first valid admin
+	// response timestamp for multiple tickets in a single query. Canonical
+	// authority: the earliest non-deleted chat_messages row, sender role =
+	// 'admin', in the ticket's own support conversation (one ticket = one
+	// support room). Returns ticket_id → first response; tickets without any
+	// admin response are absent from the map. Used by list/detail/dashboard
+	// views to compute first-response SLA without N+1 queries (SLA-F04).
+	ListFirstAdminResponsesByTicketIDs(ctx context.Context, tx interface{}, ticketIDs []uuid.UUID) (map[uuid.UUID]*time.Time, error)
+
 	// ========================================================================
-	// ADMIN OPERATIONS
+	// STATISTICS
 	// ========================================================================
-
-	// GetAdmin retrieves a support admin by ID.
-	// Returns ErrAdminNotFound if not found.
-	GetAdmin(ctx context.Context, tx interface{}, adminID uuid.UUID) (*entity.Admin, error)
-
-	// CreateAdmin creates a new support admin record.
-	CreateAdmin(ctx context.Context, tx interface{}, admin *entity.Admin) error
-
-	// ListAdmins lists all support admins with optional active filter.
-	ListAdmins(ctx context.Context, tx interface{}, isActive *bool) ([]*entity.Admin, error)
-
-	// GetAvailableAdmins returns admins who can take more tickets.
-	// Ordered by active_ticket_count ASC, last_assigned_at ASC.
-	GetAvailableAdmins(ctx context.Context, tx interface{}, maxConcurrent int, limit int) ([]*entity.Admin, error)
-
-	// IncrementAdminTicketCount increments the active ticket count for an admin.
-	IncrementAdminTicketCount(ctx context.Context, tx interface{}, adminID uuid.UUID) error
-
-	// DecrementAdminTicketCount decrements the active ticket count for an admin.
-	DecrementAdminTicketCount(ctx context.Context, tx interface{}, adminID uuid.UUID) error
-
-	// SetAdminActive sets the admin's active status.
-	SetAdminActive(ctx context.Context, tx interface{}, adminID uuid.UUID, isActive bool) error
 
 	// GetTicketStatistics returns statistics about tickets.
 	GetTicketStatistics(ctx context.Context, tx interface{}) (*TicketStatistics, error)
@@ -161,9 +142,6 @@ var (
 
 	// ErrInvalidStatusTransition is returned when an invalid status transition is attempted.
 	ErrInvalidStatusTransition = errorString("invalid status transition")
-
-	// ErrAdminNotFound is returned when a support admin is not found.
-	ErrAdminNotFound = errorString("support admin not found")
 
 	// ErrInvalidPriority is returned when an invalid priority is provided.
 	ErrInvalidPriority = errorString("invalid priority")

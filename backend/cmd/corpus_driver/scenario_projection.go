@@ -69,8 +69,8 @@ func runScenarioProjection(deps *serverboot.Dependencies, db *database.DB, log *
 		return printVerdict(results)
 	}
 	pass("step2.pre_status", fmt.Sprintf(
-		"order_summaries=%d  account_balances=%d  pending=%d",
-		pre.OrderCount, pre.AccountCount, pre.PendingCount,
+		"order_summaries=%d  pending=%d",
+		pre.OrderCount, pre.PendingCount,
 	))
 
 	// ── STEP 3: Write-model row count (ground truth) ─────────────────────────
@@ -98,8 +98,8 @@ func runScenarioProjection(deps *serverboot.Dependencies, db *database.DB, log *
 		return printVerdict(results)
 	}
 	pass("step5.post_status", fmt.Sprintf(
-		"order_summaries=%d  account_balances=%d  pending=%d  processed=%d",
-		post.OrderCount, post.AccountCount, post.PendingCount, post.ProcessedCount,
+		"order_summaries=%d  pending=%d  processed=%d",
+		post.OrderCount, post.PendingCount, post.ProcessedCount,
 	))
 
 	// ── STEP 6: Row count convergence ────────────────────────────────────────

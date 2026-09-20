@@ -80,6 +80,7 @@ class RoutePaths {
   // Seller For Sale management surface (V1)
   static const String sellerForSales = '/seller/for-sale';
   static const String sellerUpgrade = '/seller/upgrade';
+  static const String sellerRenewal = '/seller/renewal';
   static const String sellerVerification = '/verification/seller';
   static const String sellerEarnings = '/seller/earnings';
   static const String sellerShipping = '/seller/shipping';
@@ -102,6 +103,7 @@ class RoutePaths {
   // Checkout routes
   static const String checkout = '/checkout/:forSaleId';
   static const String paymentResult = '/payment-result/:orderId';
+  static const String paymentWebview = '/payment-webview';
 }
 
 class RouteNames {
@@ -168,6 +170,7 @@ class RouteNames {
   // Seller For Sale management surface (V1)
   static const String sellerForSales = 'sellerForSales';
   static const String sellerUpgrade = 'sellerUpgrade';
+  static const String sellerRenewal = 'sellerRenewal';
   static const String sellerVerification = 'sellerVerification';
   static const String sellerEarnings = 'sellerEarnings';
   static const String sellerBankAccounts = 'sellerBankAccounts';
@@ -180,4 +183,5 @@ class RouteNames {
   // Checkout route names
   static const String checkout = 'checkout';
   static const String paymentResult = 'paymentResult';
+  static const String paymentWebview = 'paymentWebview';
 }

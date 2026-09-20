@@ -27,17 +27,17 @@ List<SearchResult> _domain(SearchResultType type, int count, String prefix) {
 
 UnifiedSearchResults _results({
   List<SearchResult> users = const [],
-  List<SearchResult> listings = const [],
+  List<SearchResult> forSales = const [],
   List<SearchResult> auctions = const [],
   List<SearchResult> contents = const [],
 }) {
   return UnifiedSearchResults(
     users: users,
-    listings: listings,
+    forSales: forSales,
     auctions: auctions,
     contents: contents,
     totalCount:
-        users.length + listings.length + auctions.length + contents.length,
+        users.length + forSales.length + auctions.length + contents.length,
     query: 'koi',
   );
 }
@@ -69,7 +69,7 @@ void main() {
       () {
         final sections = buildAllTabSections(
           _results(
-            listings: _domain(SearchResultType.forSale, 9, 'fs'),
+            forSales: _domain(SearchResultType.forSale, 9, 'fs'),
             auctions: _domain(SearchResultType.auction, 7, 'a'),
             contents: _domain(SearchResultType.content, 6, 'c'),
           ),
@@ -103,7 +103,7 @@ void main() {
       final sections = buildAllTabSections(
         _results(
           users: [_item(SearchResultType.user, 'z-user'), _item(SearchResultType.user, 'a-user')],
-          listings: [_item(SearchResultType.forSale, 'm-listing')],
+          forSales: [_item(SearchResultType.forSale, 'm-forSale')],
         ),
       );
       final userSection = sections.firstWhere(
@@ -132,7 +132,7 @@ void main() {
       final sections = buildAllTabSections(
         _results(
           users: _domain(SearchResultType.user, 3, 'u'),
-          listings: const [],
+          forSales: const [],
           auctions: const [],
           contents: _domain(SearchResultType.content, 2, 'c'),
         ),
@@ -152,7 +152,7 @@ void main() {
       final sections = buildAllTabSections(
         _results(
           users: _domain(SearchResultType.user, 3, 'u'),
-          listings: _domain(SearchResultType.forSale, 5, 'fs'),
+          forSales: _domain(SearchResultType.forSale, 5, 'fs'),
           auctions: _domain(SearchResultType.auction, 5, 'a'),
           contents: _domain(SearchResultType.content, 5, 'c'),
         ),

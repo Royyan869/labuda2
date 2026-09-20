@@ -190,10 +190,6 @@ func (m *mockSocialRepository) InsertMute(ctx context.Context, tx interface{}, m
 	return nil
 }
 
-func (m *mockSocialRepository) IsBlockedBy(ctx context.Context, tx interface{}, blockerID, targetID uuid.UUID) (bool, error) {
-	return false, nil
-}
-
 func (m *mockSocialRepository) ListMuted(ctx context.Context, tx interface{}, userID uuid.UUID, limit int, cursor *time.Time) ([]uuid.UUID, error) {
 	return []uuid.UUID{}, nil
 }

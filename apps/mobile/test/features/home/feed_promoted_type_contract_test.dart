@@ -50,27 +50,27 @@ void main() {
     VisibilityDetectorController.instance.updateInterval = Duration.zero;
   });
 
-  testWidgets('promoted listing renders PromotedListingCard', (tester) async {
+  testWidgets('promoted forSale renders PromotedForSaleCard', (tester) async {
     await _pumpFactory(
       tester,
       _baseItem(
-        id: 'promo-listing-1',
-        content: 'promoted listing',
-        type: FeedItemType.promotedListing,
+        id: 'promo-forSale-1',
+        content: 'promoted forSale',
+        type: FeedItemType.promotedForSale,
         additionalData: const {
           'contractId': 'pi-1',
-          'targetType': 'listing',
-          'forSaleId': 'listing-1',
+          'targetType': 'forSale',
+          'forSaleId': 'forSale-1',
           'pricePerUnit': 150000,
-          'imageUrl': 'https://example.com/listing.jpg',
+          'imageUrl': 'https://example.com/forSale.jpg',
           'sellerUsername': 'seller_user',
           'sellerFarmName': 'Farm Name',
-          'title': 'promoted listing',
+          'title': 'promoted forSale',
         },
       ),
     );
 
-    expect(find.byType(PromotedListingCard), findsOneWidget);
+    expect(find.byType(PromotedForSaleCard), findsOneWidget);
     expect(find.byType(PromotedAuctionCard), findsNothing);
     expect(find.byType(PromotedExternalCard), findsNothing);
     expect(find.byType(FeedCard), findsNothing);
@@ -101,7 +101,7 @@ void main() {
     );
 
     expect(find.byType(PromotedAuctionCard), findsOneWidget);
-    expect(find.byType(PromotedListingCard), findsNothing);
+    expect(find.byType(PromotedForSaleCard), findsNothing);
     expect(find.byType(PromotedExternalCard), findsNothing);
     expect(find.byType(FeedCard), findsNothing);
   });
@@ -124,27 +124,27 @@ void main() {
     );
 
     expect(find.byType(PromotedExternalCard), findsOneWidget);
-    expect(find.byType(PromotedListingCard), findsNothing);
+    expect(find.byType(PromotedForSaleCard), findsNothing);
     expect(find.byType(PromotedAuctionCard), findsNothing);
     expect(find.byType(FeedCard), findsNothing);
   });
 
-  testWidgets('promoted listing renders split seller identity', (tester) async {
+  testWidgets('promoted forSale renders split seller identity', (tester) async {
     await _pumpFactory(
       tester,
       _baseItem(
-        id: 'promo-listing-2',
-        content: 'promoted listing 2',
-        type: FeedItemType.promotedListing,
+        id: 'promo-forSale-2',
+        content: 'promoted forSale 2',
+        type: FeedItemType.promotedForSale,
         additionalData: const {
           'contractId': 'pi-4',
-          'targetType': 'listing',
-          'forSaleId': 'listing-2',
+          'targetType': 'forSale',
+          'forSaleId': 'forSale-2',
           'pricePerUnit': 150000,
-          'imageUrl': 'https://example.com/listing.jpg',
+          'imageUrl': 'https://example.com/forSale.jpg',
           'sellerUsername': 'seller_user',
           'sellerFarmName': 'Farm Name',
-          'title': 'promoted listing 2',
+          'title': 'promoted forSale 2',
         },
       ),
     );
@@ -152,23 +152,23 @@ void main() {
     expect(find.text('@seller_user • Farm Name'), findsOneWidget);
   });
 
-  testWidgets('promoted listing renders split seller identity only', (
+  testWidgets('promoted forSale renders split seller identity only', (
     tester,
   ) async {
     await _pumpFactory(
       tester,
       _baseItem(
-        id: 'promo-listing-3',
-        content: 'promoted listing 3',
-        type: FeedItemType.promotedListing,
+        id: 'promo-forSale-3',
+        content: 'promoted forSale 3',
+        type: FeedItemType.promotedForSale,
         additionalData: const {
           'contractId': 'pi-5',
-          'targetType': 'listing',
-          'forSaleId': 'listing-3',
+          'targetType': 'forSale',
+          'forSaleId': 'forSale-3',
           'pricePerUnit': 150000,
-          'imageUrl': 'https://example.com/listing.jpg',
+          'imageUrl': 'https://example.com/forSale.jpg',
           'sellerUsername': 'seller_user',
-          'title': 'promoted listing 3',
+          'title': 'promoted forSale 3',
         },
       ),
     );

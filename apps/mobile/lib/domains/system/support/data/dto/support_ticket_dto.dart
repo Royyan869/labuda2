@@ -22,6 +22,8 @@ class SupportTicketDto {
   final String supportCategory;
   final String supportPriority;
   final String supportStatus;
+  final String? subject;
+  final String? description;
   final String? linkedOrderId;
   final String? assignedToAdmin;
   final String? assignedAdminName;
@@ -46,6 +48,8 @@ class SupportTicketDto {
     required this.supportCategory,
     required this.supportPriority,
     required this.supportStatus,
+    this.subject,
+    this.description,
     this.linkedOrderId,
     this.assignedToAdmin,
     this.assignedAdminName,
@@ -60,33 +64,42 @@ class SupportTicketDto {
     this.lastMessage,
   });
 
-  /// Create from Map (API response or Firestore)
+  /// Create from the canonical Support API response.
+  ///
+  /// The wire contract is the Go backend's snake_case response: id, user_id,
+  /// username, category, priority, status, subject, description, chat_room_id,
+  /// linked_order_id, assigned_admin_id, created_at, updated_at, assigned_at,
+  /// resolved_at, closed_at, resolution_notes, close_reason. Category, priority
+  /// and status carry canonical wire values only — no client-side translation.
   factory SupportTicketDto.fromMap(String id, Map<String, dynamic> data) {
+    final userId = data['user_id'] as String? ?? '';
+    final username = data['username'] as String? ?? '';
+
     return SupportTicketDto(
       id: id,
-      type: data['type'] as String? ?? 'support',
-      participantIds: List<String>.from(data['participantIds'] ?? []),
-      participantNames: Map<String, dynamic>.from(
-        data['participantNames'] ?? {},
-      ),
-      participantAvatars: Map<String, dynamic>.from(
-        data['participantAvatars'] ?? {},
-      ),
-      supportCategory: data['supportCategory'] as String? ?? 'general',
-      supportPriority: data['supportPriority'] as String? ?? 'medium',
-      supportStatus: data['supportStatus'] as String? ?? 'open',
-      linkedOrderId: data['linkedOrderId'] as String?,
-      assignedToAdmin: data['assignedToAdmin'] as String?,
-      assignedAdminName: data['assignedAdminName'] as String?,
-      createdAt: data['createdAt'],
-      updatedAt: data['updatedAt'],
-      assignedAt: data['assignedAt'],
-      resolvedAt: data['resolvedAt'],
-      resolvedBy: data['resolvedBy'] as String?,
-      firstResponseAt: data['firstResponseAt'],
-      isActive: data['isActive'] as bool? ?? true,
-      status: data['status'] as String? ?? 'active',
-      lastMessage: data['lastMessage'] as Map<String, dynamic>?,
+      type: 'support',
+      participantIds: userId.isEmpty ? const <String>[] : <String>[userId],
+      participantNames: userId.isEmpty
+          ? const <String, dynamic>{}
+          : <String, dynamic>{userId: username},
+      participantAvatars: const <String, dynamic>{},
+      supportCategory: data['category'] as String? ?? 'other',
+      supportPriority: data['priority'] as String? ?? 'medium',
+      supportStatus: data['status'] as String? ?? 'open',
+      subject: data['subject'] as String?,
+      description: data['description'] as String?,
+      linkedOrderId: data['linked_order_id'] as String?,
+      assignedToAdmin: data['assigned_admin_id'] as String?,
+      assignedAdminName: null,
+      createdAt: data['created_at'],
+      updatedAt: data['updated_at'],
+      assignedAt: data['assigned_at'],
+      resolvedAt: data['resolved_at'],
+      resolvedBy: null,
+      firstResponseAt: null,
+      isActive: true,
+      status: 'active',
+      lastMessage: null,
     );
   }
 
@@ -145,18 +158,15 @@ class SupportTicketDto {
       userId: userId,
       userName: userName,
       userAvatar: userAvatar,
-      category: SupportCategory.values.firstWhere(
-        (e) => e.name == supportCategory,
-        orElse: () => SupportCategory.general,
-      ),
+      category: SupportCategory.fromWire(supportCategory) ??
+          SupportCategory.other,
       priority: SupportPriority.values.firstWhere(
         (e) => e.name == supportPriority,
         orElse: () => SupportPriority.medium,
       ),
-      status: SupportStatus.values.firstWhere(
-        (e) => e.name == supportStatus,
-        orElse: () => SupportStatus.open,
-      ),
+      status: SupportStatus.fromWire(supportStatus) ?? SupportStatus.open,
+      subject: subject,
+      description: description,
       linkedOrderId: linkedOrderId,
       assignedToAdmin: assignedToAdmin,
       assignedAdminName: assignedAdminName,
@@ -202,9 +212,11 @@ class SupportTicketDto {
       participantIds: participantIds,
       participantNames: participantNames,
       participantAvatars: participantAvatars,
-      supportCategory: entity.category.name,
+      supportCategory: entity.category.wireValue,
       supportPriority: entity.priority.name,
-      supportStatus: entity.status.name,
+      supportStatus: entity.status.wireValue,
+      subject: entity.subject,
+      description: entity.description,
       linkedOrderId: entity.linkedOrderId,
       assignedToAdmin: entity.assignedToAdmin,
       assignedAdminName: entity.assignedAdminName,

@@ -1,11 +1,11 @@
-// E8.2 — Mobile listing-detail seller user-axis lifecycle ingestion tests.
+// E8.2 — Mobile forSale-detail seller user-axis lifecycle ingestion tests.
 //
 // Scope is pinned to three seams:
-//   1) the wire shape parser that walks `listing.seller.user.lifecycle`
+//   1) the wire shape parser that walks `forSale.seller.user.lifecycle`
 //      into ForSaleResponseDto.sellerUserLifecycle,
 //   2) the mapper that converts the wire string into the canonical
-//      ContentLifecycle enum on the Listing entity,
-//   3) the axis-boundary contract — top-level `listing.seller.lifecycle`
+//      ContentLifecycle enum on the ForSale entity,
+//   3) the axis-boundary contract — top-level `forSale.seller.lifecycle`
 //      MUST NOT be read on this surface.
 //
 // Widget-level golden tests for the rendered seller redaction would
@@ -42,7 +42,7 @@ Map<String, dynamic> _baseListingJson({Map<String, dynamic>? forSale}) {
 
 void main() {
   group('E8.2 — ForSaleResponseDto.sellerUserLifecycle wire extraction', () {
-    test('absent listing.seller.user → sellerUserLifecycle null', () {
+    test('absent forSale.seller.user → sellerUserLifecycle null', () {
       final dto = ForSaleResponseDto.fromJson(_baseListingJson());
       expect(dto.sellerUserLifecycle, isNull);
     });
@@ -157,7 +157,7 @@ void main() {
     });
   });
 
-  group('E8.2 — Mapper threads sellerUserLifecycle into Listing entity', () {
+  group('E8.2 — Mapper threads sellerUserLifecycle into ForSale entity', () {
     test('null wire → ContentLifecycle.unavailable (FAIL CLOSED)', () {
       final dto = ForSaleResponseDto.fromJson(_baseListingJson());
       final entity = ForSaleDtoMapper.toEntity(dto);

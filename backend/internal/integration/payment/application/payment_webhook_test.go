@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/labuda/backend/pkg/db"
+	"github.com/labuda/backend/pkg/midtrans"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,7 +42,7 @@ func TestParseGrossAmount(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := parseGrossAmount(tt.input)
+			result := midtrans.ParseGrossAmount(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -219,7 +220,6 @@ var _ interface{ Code() string } = (*mockPgError)(nil)
 // PROMOTION WEBHOOK GOVERNANCE ALIGNMENT
 // =============================================================================
 
-
 // TestWebhookNoDefaultOperabilityChecker is a structural regression test.
 //
 // payment_webhook.go must NOT reference DefaultOperabilityChecker anywhere.
@@ -291,12 +291,12 @@ func TestWebhookPromotionPackageBranchIsForbidden(t *testing.T) {
 // unit truth: an order total of Rp103,000 (as sent by Midtrans in its
 // webhook notification) parses to exactly 103000 — no /100 division.
 func TestParseGrossAmount_RupiahOrderTotalRoundTrips(t *testing.T) {
-	assert.Equal(t, int64(103000), parseGrossAmount("103000.00"))
+	assert.Equal(t, int64(103000), midtrans.ParseGrossAmount("103000.00"))
 }
 
 // TestWebhookAmountValidationNoCentsDivision is a structural regression
 // test for the PASS_18H fix. STEP 6 (amount validation) must compare
-// payment.GrossAmount.Int64() directly against parseGrossAmount(...) with
+// payment.GrossAmount.Int64() directly against midtrans.ParseGrossAmount(...) with
 // no /100 (or any other) scaling applied to either side. Reintroducing a
 // division here would silently undercharge/under-validate every real
 // Midtrans transaction by 100x, so this is asserted at the source level.
@@ -404,5 +404,3 @@ func TestSubscriptionBranchNotNestedInBilling(t *testing.T) {
 			subscriptionDepth, billingDepth)
 	}
 }
-
-

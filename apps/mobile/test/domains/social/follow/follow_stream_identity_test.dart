@@ -12,7 +12,7 @@ import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart'
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 
 class _NoopApiClient extends ApiClient {
-  _NoopApiClient() : super.testing(baseUrl: 'https://example.com');
+  _NoopApiClient() : super(baseUrl: 'https://example.com');
 }
 
 class _ScriptedFollowDatasource extends FollowApiDatasource {
@@ -81,7 +81,7 @@ FollowableUser _activeUser(
     userType: UserType.buyer,
     followersCount: followersCount,
     followingCount: followingCount,
-    lifecycle: ContentLifecycle.active,
+    lifecycle: 'active',
   );
 }
 
@@ -91,7 +91,7 @@ FollowableUser _unavailableUser(String id) {
     username: '',
     avatar: null,
     userType: UserType.buyer,
-    lifecycle: ContentLifecycle.unavailable,
+    lifecycle: 'unavailable',
   );
 }
 
@@ -101,7 +101,7 @@ FollowableUser _removedUser(String id) {
     username: '',
     avatar: null,
     userType: UserType.buyer,
-    lifecycle: ContentLifecycle.removed,
+    lifecycle: 'removed',
   );
 }
 

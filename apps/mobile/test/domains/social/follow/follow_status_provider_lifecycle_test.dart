@@ -270,7 +270,7 @@ AuthUser _authUser({required String id, required String username}) {
     accountStatus: AccountStatus.active,
     roles: const [UserRole.user],
     provider: AuthProvider.email,
-    lifecycle: ContentLifecycle.active,
+    lifecycle: 'active',
   );
 }
 

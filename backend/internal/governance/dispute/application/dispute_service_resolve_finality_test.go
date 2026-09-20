@@ -54,9 +54,13 @@ func (resolveFinalityRow) Scan(dest ...any) error {
 			*v = uuid.Nil
 		case *string:
 			switch i {
-			case 14: // status; shifted from 12 → 14 by service_fee_amount+total_payable_amount
+			// Index map must mirror OrderRepository.GetForUpdate's SELECT list:
+			// 0 id..14 total_before_coins_amount, 15 status, 16 escrow_status.
+			// Drift here silently stops the finality guard from firing, so the
+			// test would reach the dispute branch instead of blocking.
+			case 15: // status
 				*v = string(orderEntity.StatusCompleted)
-			case 15: // escrow_status
+			case 16: // escrow_status
 				*v = string(orderEntity.EscrowStatusReleased)
 			default:
 				*v = ""

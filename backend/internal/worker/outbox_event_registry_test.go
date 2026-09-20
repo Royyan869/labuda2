@@ -2,12 +2,14 @@ package worker
 
 import (
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap/zaptest"
 
 	"github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/labuda/backend/internal/realtime"
 )
 
 // =============================================================================
@@ -119,8 +121,6 @@ var knownProducedEvents = []string{
 	"verification.document.rejected",
 
 	// Order — dispute refund audit
-	"order.dispute_refund_initiated",
-	"order.dispute_partial_refund_initiated",
 
 	// Dispute lifecycle
 	"dispute.opened",
@@ -166,9 +166,15 @@ var knownProducedEvents = []string{
 	"auction.response",
 
 	// Chat events
+	// "chat.message.sent", "chat.room.created" and "chat.room.updated" each carry
+	// exactly one durable effect (WebSocket delivery) and are owned by the
+	// realtime worker — see realtime.OwnedOutboxEventTypes.
 	"chat.room.created",
 	"chat.message.sent",
 	"chat.room.updated",
+	// "chat.message.notification" is the notification effect of the same sent
+	// message, owned by the outbox worker.
+	"chat.message.notification",
 
 	// Presence events
 	"presence.last_seen_record",
@@ -273,7 +279,7 @@ var knownConsumedEvents = []string{
 	"comment.reply",
 	"seller.response",
 	"auction.response",
-	"chat.message.sent",
+	"chat.message.notification",
 
 	// SetupNotificationHandlers — order
 	"order.created",
@@ -381,8 +387,15 @@ var knownConsumedEvents = []string{
 // to either a handler or the allowlist.
 func TestRegistryGuard_AllProducedEventsAccountedFor(t *testing.T) {
 	consumedSet := toSet(knownConsumedEvents)
+	realtimeOwned := toSet(realtime.OwnedOutboxEventTypes)
 
 	for _, eventType := range knownProducedEvents {
+		// OWNERSHIP: realtime-owned event types are accounted for by the realtime
+		// worker's claim scope, not by an outbox dispatcher handler.
+		if _, ownedByRealtime := realtimeOwned[eventType]; ownedByRealtime {
+			continue
+		}
+
 		_, isConsumed := consumedSet[eventType]
 		_, isAllowlisted := AcknowledgedNoHandlerEvents[eventType]
 
@@ -391,6 +404,49 @@ func TestRegistryGuard_AllProducedEventsAccountedFor(t *testing.T) {
 				"  → If it should have a handler, register it in outbox_worker.go\n"+
 				"  → If no handler needed, add to AcknowledgedNoHandlerEvents in outbox_event_registry.go",
 				eventType)
+		}
+	}
+}
+
+// TestRegistryGuard_EveryRealtimeOwnedEventIsProduced verifies the ownership
+// declaration does not carry event types that no producer emits.
+func TestRegistryGuard_EveryRealtimeOwnedEventIsProduced(t *testing.T) {
+	producedSet := toSet(knownProducedEvents)
+
+	for _, eventType := range realtime.OwnedOutboxEventTypes {
+		if _, isProduced := producedSet[eventType]; !isProduced {
+			t.Errorf("STALE ownership entry: %q is owned by the realtime worker but no producer emits it", eventType)
+		}
+	}
+}
+
+// TestRegistryGuard_OneOwnerPerEventType proves the invariant
+// ONE OUTBOX EVENT TYPE = ONE OWNING CONSUMER: a realtime-owned event type must
+// not simultaneously be an outbox dispatcher handler, and must not be allowlisted
+// as an outbox no-handler event. Either would mean two consumers own one event
+// type, which is exactly the competing-claim defect this ownership model removes.
+func TestRegistryGuard_OneOwnerPerEventType(t *testing.T) {
+	if len(realtime.OwnedOutboxEventTypes) == 0 {
+		t.Fatal("realtime ownership declaration is empty: every claimable event type must have exactly one owner")
+	}
+
+	consumedSet := toSet(knownConsumedEvents)
+
+	for _, eventType := range realtime.OwnedOutboxEventTypes {
+		if _, isOutboxHandler := consumedSet[eventType]; isOutboxHandler {
+			t.Errorf("DUPLICATE OWNERSHIP: %q is owned by the realtime worker but is also registered as an outbox handler", eventType)
+		}
+		if _, isAllowlisted := AcknowledgedNoHandlerEvents[eventType]; isAllowlisted {
+			t.Errorf("DUPLICATE OWNERSHIP: %q is owned by the realtime worker and must not be allowlisted for the outbox worker", eventType)
+		}
+	}
+
+	// The reverse direction: no outbox-owned event may appear in the realtime
+	// ownership declaration.
+	ownedByRealtime := toSet(realtime.OwnedOutboxEventTypes)
+	for eventType := range consumedSet {
+		if _, ownedByRealtime := ownedByRealtime[eventType]; ownedByRealtime {
+			t.Errorf("DUPLICATE OWNERSHIP: %q is both an outbox handler and realtime-owned", eventType)
 		}
 	}
 }
@@ -465,10 +521,11 @@ func TestRegistryGuard_UnknownEventWouldFail(t *testing.T) {
 	// If we reach here, the unknown event would have been flagged. ✓
 }
 
-// TestRegistryGuard_DispatcherRejectsUnknownAtRuntime verifies that the
-// dispatcher returns DispatchResultNoHandler for events not in the handler map.
-// This proves the runtime observability signal exists.
-func TestRegistryGuard_DispatcherRejectsUnknownAtRuntime(t *testing.T) {
+// TestRegistryGuard_UnacknowledgedNoHandlerEventFails verifies NO-HANDLER
+// SAFETY: a claimed event with no handler and no allowlist entry must NOT be
+// treated as delivered. It returns an error so the worker routes it through the
+// canonical retry → backoff → dead_letter path instead of silently swallowing it.
+func TestRegistryGuard_UnacknowledgedNoHandlerEventFails(t *testing.T) {
 	d := NewOutboxDispatcher(zaptest.NewLogger(t))
 
 	// Register one handler so the map isn't empty
@@ -479,8 +536,35 @@ func TestRegistryGuard_DispatcherRejectsUnknownAtRuntime(t *testing.T) {
 		EventType: "unknown.typo.event",
 		Payload:   []byte(`{}`),
 	})
+	if err == nil {
+		t.Fatal("expected error for unacknowledged handlerless event, got nil")
+	}
+	if !strings.Contains(err.Error(), "not an acknowledged no-handler event") {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if result != DispatchResultNoHandler {
+		t.Errorf("result = %s, want %s", result, DispatchResultNoHandler)
+	}
+}
+
+// TestRegistryGuard_AcknowledgedNoHandlerEventSucceeds verifies the other half of
+// NO-HANDLER SAFETY: an event explicitly acknowledged as intentionally
+// handlerless (audit / observability) remains a canonical success.
+func TestRegistryGuard_AcknowledgedNoHandlerEventSucceeds(t *testing.T) {
+	const acknowledged = "money.released"
+	if entry, ok := AcknowledgedNoHandlerEvents[acknowledged]; !ok || entry.Class != NoHandlerAuditOnly {
+		t.Fatalf("test setup error: %q must be an acknowledged audit-only no-handler event", acknowledged)
+	}
+
+	d := NewOutboxDispatcher(zaptest.NewLogger(t))
+
+	result, err := d.DispatchWithResult(nil, repository.Event{
+		ID:        uuid.New(),
+		EventType: acknowledged,
+		Payload:   []byte(`{}`),
+	})
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("expected acknowledged no-handler event to succeed, got %v", err)
 	}
 	if result != DispatchResultNoHandler {
 		t.Errorf("result = %s, want %s", result, DispatchResultNoHandler)

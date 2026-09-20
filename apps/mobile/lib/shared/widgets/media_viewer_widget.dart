@@ -2,52 +2,41 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:labuda/core/src/theme/app_colors.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/shared/utils/media_extensions.dart';
-import 'app_image.dart';
+import 'stable_network_image.dart';
 import 'media_viewer_video_player.dart';
-import 'media_viewer_utils.dart';
 
 /// Shared Media Viewer Widget untuk fullscreen image/video viewing
+///
+/// CANONICAL CONTENT MEDIA SURFACE:
+/// - [MediaEntity.type] is the render authority. A `MediaType.video` entity
+///   renders through [MediaViewerVideoPlayer]; an image entity renders
+///   through [StableNetworkImage] (the shared network-media path that
+///   projects the reference through `resolveNetworkImageUrl`). A video
+///   reference is never handed to the image decoder, and the render decision
+///   is never inferred from a file extension.
 ///
 /// Features:
 /// - Instagram-style fullscreen viewer dengan black background
 /// - Swipe navigation untuk multiple images/videos
 /// - Pinch to zoom untuk images dengan InteractiveViewer
 /// - Video playback controls dengan play/pause dan progress bar
-/// - Auto-detection untuk image vs video berdasarkan file extension
-/// - Navigation arrows untuk easier navigation
 /// - Media counter di AppBar
 /// - Smooth page transitions
 /// - Error handling dan retry untuk video loading
-///
-/// Refactored into modular components:
-/// - MediaViewerVideoPlayer: For video playback
-/// - MediaViewerNavigation: For navigation arrows and indicators
 class MediaViewerWidget extends StatefulWidget {
-  /// Media URLs as string list (for backward compatibility)
-  final List<String>? mediaUrls;
-
-  /// Media entities (new canonical approach)
-  final List<MediaEntity>? media;
+  /// Canonical media entities. The list is the render authority — order and
+  /// type come straight from the persisted Content media projection.
+  final List<MediaEntity> media;
 
   final int initialIndex;
   final String? title;
 
   const MediaViewerWidget({
     super.key,
-    this.mediaUrls,
-    this.media,
+    required this.media,
     this.initialIndex = 0,
     this.title,
-
-    /// Asserts that at least one media source is provided
-  }) : assert(
-         mediaUrls != null || media != null,
-         'Either mediaUrls or media must be provided',
-       );
-
-  /// Get the actual list of URLs to display
-  List<String> get displayUrls => media?.urls ?? mediaUrls ?? const [];
+  });
 
   @override
   State<MediaViewerWidget> createState() => _MediaViewerWidgetState();
@@ -81,7 +70,7 @@ class _MediaViewerWidgetState extends State<MediaViewerWidget> {
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
         title: Text(
-          widget.title ?? '${_currentIndex + 1} / ${widget.displayUrls.length}',
+          widget.title ?? '${_currentIndex + 1} / ${widget.media.length}',
           style: const TextStyle(
             color: AppColors.light,
             fontSize: 16,
@@ -97,14 +86,14 @@ class _MediaViewerWidgetState extends State<MediaViewerWidget> {
             _buildMediaPageView(),
 
             // Bottom page indicators - disabled for cleaner fullscreen view
-            // if (widget.displayUrls.length > 1)
+            // if (widget.media.length > 1)
             //   Positioned(
             //     bottom: 16,
             //     left: 0,
             //     right: 0,
             //     child: MediaViewerIndicators(
             //       currentIndex: _currentIndex,
-            //       totalItems: widget.displayUrls.length,
+            //       totalItems: widget.media.length,
             //     ),
             //   ),
           ],
@@ -116,62 +105,63 @@ class _MediaViewerWidgetState extends State<MediaViewerWidget> {
   Widget _buildMediaPageView() {
     return PageView.builder(
       controller: _pageController,
-      itemCount: widget.displayUrls.length,
+      itemCount: widget.media.length,
       onPageChanged: (index) {
         setState(() {
           _currentIndex = index;
         });
       },
       itemBuilder: (context, index) {
-        return Center(child: _buildMediaItem(widget.displayUrls[index]));
+        return Center(child: _buildMediaItem(widget.media[index]));
       },
     );
   }
 
-  /// Build media item (image atau video) untuk fullscreen viewer
-  Widget _buildMediaItem(String mediaUrl) {
-    final isVideo = MediaViewerUtils.isVideoUrl(mediaUrl);
-
-    if (isVideo) {
-      return MediaViewerVideoPlayer(videoUrl: mediaUrl);
-    } else {
-      // Image dengan blur background (Instagram style)
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          // Background blur layer menggunakan ImageFiltered
-          ClipRect(
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(
-                sigmaX: 20,
-                sigmaY: 20,
-                tileMode: TileMode.decal,
-              ),
-              child: AppImage(
-                imageUrl: mediaUrl,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-              ),
-            ),
-          ),
-          // Dark overlay
-          Container(color: Colors.black.withValues(alpha: 0.1)),
-          // Main image centered dengan InteractiveViewer untuk zoom
-          Center(
-            child: InteractiveViewer(
-              minScale: 0.5,
-              maxScale: 3.0,
-              child: AppImage(
-                imageUrl: mediaUrl,
-                fit: BoxFit.contain,
-                width: double.infinity,
-                height: double.infinity,
-              ),
-            ),
-          ),
-        ],
-      );
+  /// Build media item (image atau video) untuk fullscreen viewer.
+  ///
+  /// [MediaEntity.type] is the render authority — no extension sniffing, no
+  /// fallback decoder for video references.
+  Widget _buildMediaItem(MediaEntity media) {
+    if (media.type == MediaType.video) {
+      return MediaViewerVideoPlayer(videoUrl: media.originalUrl);
     }
+    return _buildImage(media.originalUrl);
+  }
+
+  /// Image frame: blurred backdrop + zoomable canonical image. Both layers
+  /// render through [StableNetworkImage], the shared network-media path.
+  Widget _buildImage(String imageUrl) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Background blur layer
+        ClipRect(
+          child: ImageFiltered(
+            imageFilter: ImageFilter.blur(
+              sigmaX: 20,
+              sigmaY: 20,
+              tileMode: TileMode.decal,
+            ),
+            child: StableNetworkImage(
+              imageUrl: imageUrl,
+              fit: BoxFit.cover,
+              fallback: const SizedBox.shrink(),
+            ),
+          ),
+        ),
+        // Dark overlay
+        Container(color: Colors.black.withValues(alpha: 0.1)),
+        // Main image centered dengan InteractiveViewer untuk zoom
+        InteractiveViewer(
+          minScale: 0.5,
+          maxScale: 3.0,
+          child: StableNetworkImage(
+            imageUrl: imageUrl,
+            fit: BoxFit.contain,
+            fallback: const SizedBox.shrink(),
+          ),
+        ),
+      ],
+    );
   }
 }

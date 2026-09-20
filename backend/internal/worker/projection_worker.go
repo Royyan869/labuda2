@@ -7,7 +7,6 @@
 //
 // Canonical projection scope:
 //   - order_summaries  — order list for buyer, seller, admin
-//   - account_balances — DORMANT; no readers until finance dashboard is built
 //   - projection_tracker — idempotency guard for event consumption
 //
 // To enable: set env PROJECTION_WORKER=true (or omit DISABLE_PROJECTION_WORKER).
@@ -16,7 +15,6 @@ package worker
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -382,9 +380,6 @@ func (w *ProjectionWorker) handleEvent(
 	case isDisputeEvent(event.EventType):
 		return w.handleDisputeEvent(ctx, tx, event)
 
-	case isLedgerEvent(event.EventType):
-		return w.handleLedgerEvent(ctx, tx, event)
-
 	default:
 		// Unknown event type - log but don't fail
 		w.log.Debug("Unknown event type for projection, skipping",
@@ -437,7 +432,15 @@ func (w *ProjectionWorker) handleOrderEvent(
 		       d.status as dispute_status, d.reason as dispute_reason,
 		       d.opened_at as dispute_opened_at, d.resolved_at as dispute_resolved_at,
 		       o.subtotal, o.shipping_total, o.commission_amount,
-		       o.total_before_coins_amount, o.refunded_amount,
+		       o.service_fee_amount, o.total_payable_amount,
+		       o.total_before_coins_amount,
+		       -- refunded_amount = canonical refund-domain total (gateway-succeeded refunds only);
+		       -- orders.refunded_amount was never written and is purged.
+		       COALESCE((SELECT SUM(COALESCE(rf.refunded_product_amount, rf.final_refund_amount)
+		                            + COALESCE(rf.refunded_shipping_amount, 0))
+		                 FROM refunds rf
+		                 WHERE rf.order_id = o.id
+		                   AND rf.gateway_status = 'succeeded'), 0),
 		       o.shipping_option_name, o.shipping_transport_type,
 		       o.auto_release_at, o.created_at, o.updated_at
 		FROM orders o
@@ -450,7 +453,8 @@ func (w *ProjectionWorker) handleOrderEvent(
 		&summary.Status, &summary.EscrowStatus, &summary.HasDispute,
 		&summary.DisputeStatus, &summary.DisputeReason, &summary.DisputeOpenedAt, &summary.DisputeResolvedAt,
 		&summary.Subtotal, &summary.ShippingTotal, &summary.CommissionAmount,
-		&summary.EscrowAmount, &summary.RefundedAmount,
+		&summary.ServiceFeeAmount, &summary.TotalPayableAmount,
+		&summary.TotalBeforeCoinsAmount, &summary.RefundedAmount,
 		&summary.ShippingSetupName, &summary.ShippingTransportType,
 		&summary.AutoReleaseAt, &summary.CreatedAt, &summary.UpdatedAt,
 	)
@@ -515,7 +519,15 @@ func (w *ProjectionWorker) handleDisputeEvent(
 		       d.status as dispute_status, d.reason as dispute_reason,
 		       d.opened_at as dispute_opened_at, d.resolved_at as dispute_resolved_at,
 		       o.subtotal, o.shipping_total, o.commission_amount,
-		       o.total_before_coins_amount, o.refunded_amount,
+		       o.service_fee_amount, o.total_payable_amount,
+		       o.total_before_coins_amount,
+		       -- refunded_amount = canonical refund-domain total (gateway-succeeded refunds only);
+		       -- orders.refunded_amount was never written and is purged.
+		       COALESCE((SELECT SUM(COALESCE(rf.refunded_product_amount, rf.final_refund_amount)
+		                            + COALESCE(rf.refunded_shipping_amount, 0))
+		                 FROM refunds rf
+		                 WHERE rf.order_id = o.id
+		                   AND rf.gateway_status = 'succeeded'), 0),
 		       o.shipping_option_name, o.shipping_transport_type,
 		       o.auto_release_at, o.created_at, o.updated_at
 		FROM disputes d
@@ -528,7 +540,8 @@ func (w *ProjectionWorker) handleDisputeEvent(
 		&summary.Status, &summary.EscrowStatus, &summary.HasDispute,
 		&summary.DisputeStatus, &summary.DisputeReason, &summary.DisputeOpenedAt, &summary.DisputeResolvedAt,
 		&summary.Subtotal, &summary.ShippingTotal, &summary.CommissionAmount,
-		&summary.EscrowAmount, &summary.RefundedAmount,
+		&summary.ServiceFeeAmount, &summary.TotalPayableAmount,
+		&summary.TotalBeforeCoinsAmount, &summary.RefundedAmount,
 		&summary.ShippingSetupName, &summary.ShippingTransportType,
 		&summary.AutoReleaseAt, &summary.CreatedAt, &summary.UpdatedAt,
 	)
@@ -567,82 +580,6 @@ func (w *ProjectionWorker) handleDisputeEvent(
 // =============================================================================
 // LEDGER EVENT HANDLERS
 // =============================================================================
-
-// isLedgerEvent checks if an event is a ledger-related event
-func isLedgerEvent(eventType string) bool {
-	switch eventType {
-	case "ledger.transaction.completed":
-		return true
-	default:
-		return false
-	}
-}
-
-// handleLedgerEvent processes ledger events by RE-QUERYING financial_accounts.
-// This mirrors the write model account balances without recalculation.
-func (w *ProjectionWorker) handleLedgerEvent(
-	ctx context.Context,
-	tx db.Tx,
-	event outboxRepo.Event,
-) error {
-	// Extract affected account_ids from event payload
-	var payload struct {
-		AccountIDs []uuid.UUID `json:"account_ids"`
-	}
-
-	if err := json.Unmarshal(event.Payload, &payload); err != nil {
-		// If payload doesn't contain account_ids, try to extract from aggregate_id
-		// Some events may only reference a single account
-		payload.AccountIDs = []uuid.UUID{event.AggregateID}
-	}
-
-	if len(payload.AccountIDs) == 0 {
-		return fmt.Errorf("ledger event payload missing account_ids")
-	}
-
-	// RE-QUERY each account from financial_accounts (write model)
-	// This ensures projection mirrors the actual account balance
-	for _, accountID := range payload.AccountIDs {
-		var balance projection.AccountBalance
-
-		query := `
-			SELECT id, user_id, account_type, balance,
-			       COALESCE(currency, 'IDR') as currency,
-			       NOW() as updated_at
-			FROM financial_accounts
-			WHERE id = $1
-		`
-
-		err := tx.QueryRow(ctx, query, accountID).Scan(
-			&balance.ID, &balance.UserID, &balance.AccountType,
-			&balance.Balance, &balance.Currency, &balance.UpdatedAt,
-		)
-
-		if err != nil {
-			if err == pgx.ErrNoRows {
-				// Account may have been deleted - skip
-				w.log.Debug("Account not found in write model, skipping projection",
-					zap.String("account_id", accountID.String()),
-				)
-				continue
-			}
-			return fmt.Errorf("query account from write model failed: %w", err)
-		}
-
-		// Upsert to read model (overwrite-based)
-		if err := w.projectionRepo.UpsertAccountBalance(ctx, tx, &balance); err != nil {
-			return fmt.Errorf("upsert account balance failed for account %s: %w",
-				accountID, err)
-		}
-	}
-
-	w.log.Debug("Account balances projected",
-		zap.String("event_id", event.ID.String()),
-		zap.Int("accounts_updated", len(payload.AccountIDs)),
-	)
-
-	return nil
-}
 
 // =============================================================================
 // MANUAL PROCESSING
@@ -741,14 +678,7 @@ func (w *ProjectionWorker) RebuildAll(ctx context.Context) error {
 	// Step 2: Rebuild order_summaries from orders table
 	if err := w.rebuildOrderSummaries(ctx); err != nil {
 		return fmt.Errorf("rebuild order summaries failed: %w", err)
-	}
-
-	// Step 3: Rebuild account_balances from financial_accounts table
-	if err := w.rebuildAccountBalances(ctx); err != nil {
-		return fmt.Errorf("rebuild account balances failed: %w", err)
-	}
-
-	// Step 4: Mark only events EXISTING at rebuild time as processed
+	}		// Step 3: Mark only events EXISTING at rebuild time as processed
 	// New events that arrived during rebuild will be processed by worker normally
 	if err := w.markOutboxProcessedUpTo(ctx, maxOutboxID); err != nil {
 		return fmt.Errorf("mark outbox processed failed: %w", err)
@@ -767,6 +697,9 @@ func (w *ProjectionWorker) rebuildOrderSummaries(ctx context.Context) error {
 	w.log.Info("Rebuilding order_summaries...")
 
 	// Query all orders joined with disputes and insert into order_summaries.
+	// The column set MUST mirror projection.Repository.UpsertOrderSummary:
+	// a full rebuild must not silently zero service_fee_amount /
+	// total_payable_amount (schema authority: 000095).
 	// LEFT JOIN ensures orders without disputes are included (dispute columns = NULL).
 	query := `
 		INSERT INTO order_summaries (
@@ -774,7 +707,8 @@ func (w *ProjectionWorker) rebuildOrderSummaries(ctx context.Context) error {
 			status, escrow_status, has_dispute,
 			dispute_status, dispute_reason, dispute_opened_at, dispute_resolved_at,
 			subtotal, shipping_total, commission_amount,
-			escrow_amount, refunded_amount,
+			service_fee_amount, total_payable_amount,
+			total_before_coins_amount, refunded_amount,
 			shipping_option_name, shipping_transport_type,
 			auto_release_at, created_at, updated_at
 		)
@@ -782,7 +716,15 @@ func (w *ProjectionWorker) rebuildOrderSummaries(ctx context.Context) error {
 		       o.status, o.escrow_status, o.has_dispute,
 		       d.status, d.reason, d.opened_at, d.resolved_at,
 		       o.subtotal, o.shipping_total, o.commission_amount,
-		       o.total_before_coins_amount, o.refunded_amount,
+		       o.service_fee_amount, o.total_payable_amount,
+		       o.total_before_coins_amount,
+		       -- refunded_amount = canonical refund-domain total (gateway-succeeded refunds only);
+		       -- orders.refunded_amount was never written and is purged.
+		       COALESCE((SELECT SUM(COALESCE(rf.refunded_product_amount, rf.final_refund_amount)
+		                            + COALESCE(rf.refunded_shipping_amount, 0))
+		                 FROM refunds rf
+		                 WHERE rf.order_id = o.id
+		                   AND rf.gateway_status = 'succeeded'), 0),
 		       o.shipping_option_name, o.shipping_transport_type,
 		       o.auto_release_at, o.created_at, o.updated_at
 		FROM orders o
@@ -802,7 +744,9 @@ func (w *ProjectionWorker) rebuildOrderSummaries(ctx context.Context) error {
 			subtotal = EXCLUDED.subtotal,
 			shipping_total = EXCLUDED.shipping_total,
 			commission_amount = EXCLUDED.commission_amount,
-			escrow_amount = EXCLUDED.escrow_amount,
+			service_fee_amount = EXCLUDED.service_fee_amount,
+			total_payable_amount = EXCLUDED.total_payable_amount,
+			total_before_coins_amount = EXCLUDED.total_before_coins_amount,
 			refunded_amount = EXCLUDED.refunded_amount,
 			shipping_option_name = EXCLUDED.shipping_option_name,
 			shipping_transport_type = EXCLUDED.shipping_transport_type,
@@ -814,28 +758,7 @@ func (w *ProjectionWorker) rebuildOrderSummaries(ctx context.Context) error {
 	return err
 }
 
-func (w *ProjectionWorker) rebuildAccountBalances(ctx context.Context) error {
-	w.log.Info("Rebuilding account_balances...")
 
-	query := `
-		INSERT INTO account_balances (
-			id, user_id, account_type, balance, currency, updated_at
-		)
-		SELECT id, user_id, account_type, balance,
-		       COALESCE(currency, 'IDR') as currency,
-		       NOW() as updated_at
-		FROM financial_accounts
-		ON CONFLICT (id) DO UPDATE SET
-			user_id = EXCLUDED.user_id,
-			account_type = EXCLUDED.account_type,
-			balance = EXCLUDED.balance,
-			currency = EXCLUDED.currency,
-			updated_at = EXCLUDED.updated_at
-	`
-
-	_, err := w.db.Pool().Exec(ctx, query)
-	return err
-}
 
 func (w *ProjectionWorker) markCurrentOutboxProcessed(ctx context.Context) error {
 	w.log.Info("Marking current outbox events as processed...")
@@ -912,9 +835,8 @@ func (w *ProjectionWorker) GetProjectionStatus(
 	// Count projection table sizes
 	err = w.db.Pool().QueryRow(ctx, `
 		SELECT
-			(SELECT COUNT(*) FROM order_summaries) as orders,
-			(SELECT COUNT(*) FROM account_balances) as accounts
-	`).Scan(&status.OrderCount, &status.AccountCount)
+			(SELECT COUNT(*) FROM order_summaries) as orders
+	`).Scan(&status.OrderCount)
 	if err != nil {
 		return nil, fmt.Errorf("get projection counts failed: %w", err)
 	}
@@ -928,7 +850,6 @@ type ProjectionStatus struct {
 	PendingCount    int
 	ProcessedCount  int
 	OrderCount      int
-	AccountCount    int
 }
 
 

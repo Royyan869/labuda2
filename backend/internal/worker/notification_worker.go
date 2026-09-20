@@ -61,7 +61,7 @@ type DeliveryLogger interface {
 // - events.EventCommentCreated - User A comments on User B's content
 // - "comment.reply" - User A replies to User B's comment
 // - "seller.response" - Seller responds to a request with fixed-price sale reference
-// - "chat.message.sent" - User A sends a message to User B
+// - "chat.message.notification" - User A sends a message to User B
 type NotificationEventHandler struct {
 	db                   Transactor
 	blockChecker         BlockChecker
@@ -202,7 +202,7 @@ func (h *NotificationEventHandler) Handle(ctx context.Context, event platformeve
 	case events.EventContentMentioned:
 		info, err = h.handleContentMentioned(ctx, event.Payload)
 
-	case "chat.message.sent":
+	case events.EventChatMessageNotification:
 		info, err = h.handleChatMessage(ctx, event.Payload)
 
 	// =============================================================================
@@ -627,7 +627,10 @@ func (w *OutboxWorker) SetupNotificationHandlers(
 		events.EventSellerResponse,
 		events.EventAuctionResponse,
 		events.EventContentMentioned,
-		"chat.message.sent",
+		// Chat notification effect. The WebSocket realtime effect of the same
+		// message is a separate outbox event owned by the realtime worker, so
+		// this handler and the realtime worker never compete for one row.
+		events.EventChatMessageNotification,
 	}, handler)
 
 	// =============================================================================

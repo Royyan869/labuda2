@@ -3,6 +3,7 @@ package midtrans
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
@@ -454,62 +455,6 @@ func (c *Client) CreateSnapTransaction(req *SnapRequest) (*SnapResponse, error) 
 	return &snapResp, nil
 }
 
-// GetTransactionStatus gets the status of a transaction
-func (c *Client) GetTransactionStatus(orderID string) (*NotificationPayload, error) {
-	// P0-11: Circuit breaker - fail fast if circuit is open
-	if !c.cb.allowRequest() {
-		c.log.Warn("Midtrans circuit breaker is open - failing fast",
-			zap.String("state", c.cb.getState().String()),
-		)
-		return nil, fmt.Errorf("midtrans circuit breaker is %s - service unavailable", c.cb.getState())
-	}
-
-	url := fmt.Sprintf("%s/%s/status", c.getCoreAPIURL(), orderID)
-
-	httpReq, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	httpReq.Header.Set("Accept", "application/json")
-	httpReq.SetBasicAuth(c.serverKey, "")
-
-	resp, err := c.httpClient.Do(httpReq)
-	if err != nil {
-		// P0-11: Record failure on network error
-		c.cb.onFailure()
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		// P0-11: Record failure on read error
-		c.cb.onFailure()
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		// P0-11: Record failure on API error
-		c.cb.onFailure()
-		return nil, &APIError{
-			Operation:  "get_transaction_status",
-			StatusCode: resp.StatusCode,
-			Body:       string(body),
-		}
-	}
-
-	var status NotificationPayload
-	if err := json.Unmarshal(body, &status); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	// P0-11: Record success
-	c.cb.onSuccess()
-
-	return &status, nil
-}
-
 // VerifySignature verifies the signature from Midtrans webhook
 func (c *Client) VerifySignature(notification *NotificationPayload) bool {
 	return c.BuildWebhookSignature(notification) == notification.SignatureKey
@@ -527,21 +472,60 @@ func (c *Client) BuildWebhookSignature(notification *NotificationPayload) string
 	return hex.EncodeToString(hash[:])
 }
 
-// IsTransactionSuccess checks if the transaction status indicates success
-func (c *Client) IsTransactionSuccess(status string) bool {
-	return status == string(StatusCapture) || status == string(StatusSettlement)
-}
+// notificationIdentitySeparator joins the identity fields. 0x1F (unit
+// separator) cannot occur in any of them: they are provider identifiers, fixed
+// status tokens, numeric strings, or a merchant-generated order id.
+const notificationIdentitySeparator = "\x1f"
 
-// IsTransactionPending checks if the transaction is pending
-func (c *Client) IsTransactionPending(status string) bool {
-	return status == string(StatusPending)
-}
+// NotificationIdentity returns the canonical identity of ONE notification
+// event (REC-3). It is the idempotency authority for webhook ingestion: two
+// deliveries of the same notification content produce the same identity, while
+// a different status transition or a different refund of the SAME gateway
+// transaction produces a different one.
+//
+// WHY A DERIVED IDENTITY: the Midtrans notification payload contains no
+// provider-assigned notification id, and one gateway transaction legitimately
+// emits several notifications as its status advances (pending → settlement,
+// settlement → deny on reversal, …). Keying idempotency on transaction_id
+// conflated all of them and silently discarded every notification after the
+// first.
+//
+// INCLUDED — every field that can distinguish one signal from another:
+// transaction_id, transaction_status, status_code, fraud_status, gross_amount,
+// payment_type, order_id, refund_key, refund_amount, refund_chargeback_id.
+//
+// EXCLUDED on purpose:
+//   - transaction_time / status_message: a timestamp and free text that do not
+//     distinguish a signal and could differ between redeliveries of the same
+//     notification, which would break idempotency;
+//   - merchant_id / currency: constant per merchant and transaction;
+//   - signature_key: derived from order_id + status_code + gross_amount, so it
+//     adds no distinguishing information. Authenticity stays a separate
+//     control (VerifySignature).
+//
+// LOCKSTEP: migration 000098 backfills the same tuple in SQL with the same
+// field order, the same 0x1F separator and md5. Changing either side alone
+// breaks the determinism of that backfill.
+func NotificationIdentity(n *NotificationPayload) string {
+	if n == nil {
+		return ""
+	}
 
-// IsTransactionFailed checks if the transaction failed
-func (c *Client) IsTransactionFailed(status string) bool {
-	return status == string(StatusDeny) ||
-		status == string(StatusCancel) ||
-		status == string(StatusExpire)
+	canonical := strings.Join([]string{
+		n.TransactionID,
+		n.TransactionStatus,
+		n.StatusCode,
+		n.FraudStatus,
+		n.GrossAmount,
+		n.PaymentType,
+		n.OrderID,
+		n.RefundKey,
+		n.RefundAmount,
+		n.RefundChargeID,
+	}, notificationIdentitySeparator)
+
+	sum := md5.Sum([]byte(canonical))
+	return hex.EncodeToString(sum[:])
 }
 
 // Helper methods
@@ -787,6 +771,9 @@ func (c *Client) RefundWithKey(
 // IsRefundNotification reports whether the webhook transaction_status
 // indicates a refund acknowledgement (full or partial). Used by the
 // payment webhook dispatcher to route refund acks to RefundService.
-func (c *Client) IsRefundNotification(status string) bool {
-	return status == string(StatusRefund) || status == "partial_refund"
+//
+// Refund acks are routed BEFORE provider-state classification: they describe
+// money already returned and are neither a settlement nor a failure signal.
+func IsRefundNotification(status string) bool {
+	return status == string(StatusRefund) || status == string(StatusPartialRefund)
 }

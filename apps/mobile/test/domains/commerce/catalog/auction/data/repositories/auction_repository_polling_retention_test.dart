@@ -131,7 +131,7 @@ class _NoopLogger implements ILoggerService {
 class _NoopAuctionRemoteDatasource extends AuctionRemoteDatasource {
   _NoopAuctionRemoteDatasource()
     : super(
-        ApiClient.testing(baseUrl: 'https://example.com/api/v1'),
+        ApiClient(baseUrl: 'https://example.com/api/v1'),
         logger: _NoopLogger(),
       );
 }

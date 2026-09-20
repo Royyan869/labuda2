@@ -25,6 +25,7 @@ import (
 	disputeEntity "github.com/labuda/backend/internal/governance/dispute/entity"
 	addressentity "github.com/labuda/backend/internal/identity/address/entity"
 	"github.com/labuda/backend/internal/identity/auth"
+	coinsapp "github.com/labuda/backend/internal/incentive/coins/application"
 	idempotencyRepo "github.com/labuda/backend/internal/platform/idempotency/repository"
 	"github.com/labuda/backend/internal/platform/response"
 	pricingtokenapp "github.com/labuda/backend/internal/pricing/token/application"
@@ -44,8 +45,17 @@ type OrderHandler struct {
 	auctionRepo         *auctionRepoImpl.AuctionRepository
 	roleChecker         auth.RoleChecker
 	idempotencyRepo     *idempotencyRepo.Repository
+	coinBalanceReader   CoinsBalanceReader
 	db                  *db.DB
 	log                 *zap.Logger
+}
+
+// CoinsBalanceReader is the minimal coins-domain surface OrderHandler needs to
+// resolve the canonical coin redemption (K) at Order creation. The canonical
+// implementation is coinsRepo.GetActiveBalance — the coins domain owns the
+// balance. Optional: when unset, use_coins=true fails closed.
+type CoinsBalanceReader interface {
+	GetActiveBalance(ctx context.Context, tx db.Tx, userID uuid.UUID) (int64, error)
 }
 
 // NewOrderHandler creates a new OrderHandler.
@@ -75,6 +85,12 @@ func NewOrderHandler(
 		db:                  db,
 		log:                 log,
 	}
+}
+
+// SetCoinsBalanceReader wires the canonical coins-domain balance reader used to
+// resolve the canonical coin redemption (K) at Order creation.
+func (h *OrderHandler) SetCoinsBalanceReader(r CoinsBalanceReader) {
+	h.coinBalanceReader = r
 }
 
 // ListMyOrdersRequest holds the query parameters for ListMyOrders.
@@ -237,10 +253,13 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 	var activeRefundSummary *orderDTO.ActiveRefundSummary
 	var orderItems []*orderEntity.OrderItem
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
-		// Check for active (non-terminal) refund on this order
+		// Check for a refund process still in progress on this order.
+		// CANONICAL: "in progress" = the refund decision is not final yet, or the
+		// money owed to the buyer has not settled at the gateway yet. This drives
+		// both the active-refund card and CTA gating (see dto.buildDecisionV2ForOrder).
 		if h.refundService != nil {
 			existingRefund, _ := h.refundService.GetRefundByOrderID(ctx, tx, order.ID)
-			if existingRefund != nil && !existingRefund.IsTerminal() {
+			if existingRefund != nil && (existingRefund.AwaitsDecision() || existingRefund.IsSettlementPending()) {
 				hasActiveRefund = true
 				s := string(existingRefund.Status)
 				activeRefundStatus = &s
@@ -609,7 +628,7 @@ func (h *OrderHandler) CreateDispute(c *gin.Context) {
 		// Buyer must wait for seller refund decision, or escalate from rejected refund.
 		if h.refundService != nil {
 			existingRefund, _ := h.refundService.GetRefundByOrderID(ctx, tx, orderID)
-			if existingRefund != nil && !existingRefund.IsTerminal() && !existingRefund.IsRejected() {
+			if existingRefund != nil && existingRefund.AwaitsDecision() && !existingRefund.IsRejected() {
 				return fmt.Errorf("cannot open dispute: order has an active refund request (status: %s). Wait for seller decision or escalate after rejection", existingRefund.Status)
 			}
 		}
@@ -759,7 +778,13 @@ func (h *OrderHandler) CreateRefund(c *gin.Context) {
 			if err != nil {
 				return fmt.Errorf("order not found: %w", err)
 			}
-			requestedAmount = order.Subtotal.Int64() + order.ShippingTotal.Int64()
+			// CANONICAL: default requested amount is the buyer-funded base
+			// PD + S (total_before_coins_amount), excluding the payment fee F.
+			// FAIL CLOSED: no P+S fallback for orders without a valid base.
+			if !order.HasCanonicalMoneyBase() {
+				return fmt.Errorf("order money base invalid (total_before_coins=%d shipping=%d)", order.TotalBeforeCoinsAmount.Int64(), order.ShippingTotal.Int64())
+			}
+			requestedAmount = order.TotalBeforeCoinsAmount.Int64()
 		}
 
 		input := refundApp.CreateRefundInput{
@@ -774,7 +799,7 @@ func (h *OrderHandler) CreateRefund(c *gin.Context) {
 			return err
 		}
 
-		// Build response matching RefundResponse shape for mobile
+		// Build the same refund payload shape returned by the refund endpoints
 		refundResult = map[string]interface{}{
 			"id":               refund.ID,
 			"order_id":         refund.OrderID,
@@ -862,6 +887,13 @@ type CreateOrderRequest struct {
 	// Pricing token (required for ALL orders to prevent price manipulation)
 	// The token must have been obtained from the pricing preview endpoint
 	PricingToken *string `json:"pricing_token,omitempty"`
+
+	// UseCoins is the buyer's coin-redemption intent at Order creation. It is
+	// the ONE order-time representation of coin intent. The backend computes the
+	// canonical K (min(balance, token.MaxCoinsAllowed)) and persists it on the
+	// pricing token; payment derives K from that snapshot and never accepts an
+	// independent client K.
+	UseCoins bool `json:"use_coins"`
 }
 
 // CreateOrder handles POST /api/v1/orders
@@ -1040,6 +1072,16 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			return fmt.Errorf("pricing token validation failed: %w", err)
 		}
 
+		// Step 1.5: RESOLVE CANONICAL COIN REDEMPTION (K) AT ORDER LAYER
+		// The buyer expresses intent with use_coins. K is computed here — the
+		// ONLY order-time coin authority — as min(balance, token.MaxCoinsAllowed),
+		// then persisted on the pricing token by FinalizeOrderConsumption below.
+		coinsToUse, err := h.resolveOrderCoins(ctx, tx, userID, req.UseCoins, validatedToken.MaxCoinsAllowed)
+		if err != nil {
+			return err
+		}
+		validatedToken.CoinsUsed = coinsToUse
+
 		// Step 2: Build pricing snapshot from validated token
 		// This snapshot is the ONLY source of truth for order pricing
 		pricingSnapshot = buildPricingSnapshotFromToken(validatedToken)
@@ -1133,8 +1175,9 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			return fmt.Errorf("source_type must be for_sale or auction")
 		}
 
-		// Step 5: Mark token used with the real order ID in the same transaction.
-		if err := h.pricingTokenService.FinalizeOrderConsumption(ctx, tx, validatedToken, order.ID); err != nil {
+		// Step 5: Mark token used with the real order ID in the same transaction,
+		// persisting the canonical K so payment can derive from it.
+		if err := h.pricingTokenService.FinalizeOrderConsumption(ctx, tx, validatedToken, order.ID, coinsToUse); err != nil {
 			return fmt.Errorf("pricing token consume failed: %w", err)
 		}
 
@@ -1161,7 +1204,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 				return
 			}
 
-			response.Created(c, existingOrder)
+			response.Created(c, orderDTO.OrderToCreateResponse(existingOrder))
 			return
 		}
 
@@ -1182,7 +1225,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 				return
 			}
 
-			response.Created(c, existingOrder)
+			response.Created(c, orderDTO.OrderToCreateResponse(existingOrder))
 			return
 		}
 
@@ -1244,12 +1287,16 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			response.NotFound(c, "Negotiation session not found")
 			return
 		}
+		if errors.Is(err, auth.ErrMarketAuthorityRequired) {
+			response.MarketAuthorityRequired(c, "Seller does not have active market authority")
+			return
+		}
 
 		response.InternalServerError(c, "Failed to create order")
 		return
 	}
 
-	response.Created(c, order)
+	response.Created(c, orderDTO.OrderToCreateResponse(order))
 }
 
 func (h *OrderHandler) recoverOrderFromUsedPricingToken(
@@ -1593,6 +1640,30 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 //
 // CRITICAL: The token is the SINGLE SOURCE OF TRUTH for all pricing data.
 // No frontend values are used in pricing calculations.
+// resolveOrderCoins computes the canonical K for an order from the buyer's
+// checkout intent. use_coins=false -> K=0. use_coins=true -> K capped by the
+// buyer's live active balance and the token's 20%-of-PD ceiling. This is the
+// single order-time coin authority; there is no payment-time coin decision.
+func (h *OrderHandler) resolveOrderCoins(
+	ctx context.Context,
+	tx db.Tx,
+	userID uuid.UUID,
+	useCoins bool,
+	maxCoinsAllowed int64,
+) (int64, error) {
+	if !useCoins {
+		return 0, nil
+	}
+	if h.coinBalanceReader == nil {
+		return 0, fmt.Errorf("coin balance reader not configured")
+	}
+	balance, err := h.coinBalanceReader.GetActiveBalance(ctx, tx, userID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to resolve coin balance: %w", err)
+	}
+	return coinsapp.ResolveOrderRedemption(balance, maxCoinsAllowed, true), nil
+}
+
 func buildPricingSnapshotFromToken(token *pricingtokenentity.PricingToken) *orderApp.PricingSnapshot {
 	// Determine shipping source
 	var shippingSource *string
@@ -1623,12 +1694,10 @@ func buildPricingSnapshotFromToken(token *pricingtokenentity.PricingToken) *orde
 		ServiceFeeAmount:      token.ServiceFeeAmount,
 		TotalPayableAmount:    token.TotalPayableAmount,
 		DiscountAmount:        token.DiscountAmount,
-		MaxCoinsAllowed:       token.MaxCoinsAllowed,
-		CoinsUsed:             token.CoinsUsed,
 		OrderValueForCoins:    token.OrderValueForCoins,
 		ShippingSetupName:     token.ShippingSetupName,
 		ShippingTransportType: token.ShippingTransportType,
-		ShippingDestination:   addressSnapshot,
+		AddressSnapshot:       addressSnapshot,
 		ShippingSource:        shippingSource,
 		ShippingQuoteID:       token.ShippingQuoteID,
 		ChatID:                nil, // Set during chat checkout if needed

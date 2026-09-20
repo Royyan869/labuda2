@@ -9,8 +9,4 @@ library;
 
 // Re-export all public providers from the notifier
 export 'support_notifier.dart'
-    show
-        supportRepositoryProvider,
-        supportTicketProvider,
-        supportCreateChatProvider,
-        supportReopenTicketProvider;
+    show supportRepositoryProvider, supportTicketProvider;

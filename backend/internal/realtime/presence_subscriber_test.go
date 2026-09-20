@@ -19,20 +19,51 @@ import (
 
 func TestMarshalPresenceChanged_UsesCanonicalEnvelope(t *testing.T) {
 	seenAt := time.Date(2026, time.August, 11, 10, 0, 0, 0, time.UTC)
+	userID := uuid.New()
 	payload := marshalPresenceChanged(presence.State{
-		UserID:     uuid.New(),
+		UserID:     userID,
 		IsOnline:   true,
 		LastSeenAt: &seenAt,
 		Version:    42,
 	})
 
-	var envelope map[string]any
+	var envelope WSEnvelope
 	require.NoError(t, json.Unmarshal(payload, &envelope))
-	require.Equal(t, "presence.changed", envelope["type"])
-	state, ok := envelope["state"].(map[string]any)
-	require.True(t, ok)
-	require.Equal(t, true, state["is_online"])
-	require.Equal(t, float64(42), state["version"])
+	require.NotEmpty(t, envelope.ID)
+	require.Equal(t, "presence.changed", envelope.Type)
+	require.NotEmpty(t, envelope.Timestamp)
+	require.Equal(t, "server", envelope.From)
+	require.NotNil(t, envelope.Data)
+	require.Equal(t, userID.String(), envelope.Data["user_id"])
+	require.Equal(t, true, envelope.Data["is_online"])
+	require.Equal(t, float64(42), envelope.Data["version"])
+	require.NotNil(t, envelope.Data["last_seen_at"])
+
+	// null last_seen_at when offline without timestamp
+	payload2 := marshalPresenceChanged(presence.State{
+		UserID:   uuid.New(),
+		IsOnline: false,
+		Version:  2,
+	})
+	var envelope2 WSEnvelope
+	require.NoError(t, json.Unmarshal(payload2, &envelope2))
+	require.Equal(t, "presence.changed", envelope2.Type)
+	require.Equal(t, float64(2), envelope2.Data["version"])
+	require.Equal(t, false, envelope2.Data["is_online"])
+	require.Nil(t, envelope2.Data["last_seen_at"])
+
+	// Negative: raw presence JSON (old format) must NOT be valid outbound frame
+	rawOld := map[string]any{
+		"type":  "presence.changed",
+		"state": map[string]any{"user_id": userID.String(), "is_online": true, "version": 42},
+	}
+	rawPayload, _ := json.Marshal(rawOld)
+	var rawEnvelope WSEnvelope
+	require.NoError(t, json.Unmarshal(rawPayload, &rawEnvelope))
+	// old format lacks required envelope fields id/timestamp/from/data
+	require.Empty(t, rawEnvelope.ID)
+	require.Empty(t, rawEnvelope.From)
+	require.Nil(t, rawEnvelope.Data)
 }
 
 func newRealtimePresenceRepo(t *testing.T) (*testdb.TestDB, *presence.RedisRepository) {
@@ -166,9 +197,14 @@ func TestPresenceSubscriber_DistributesPresenceChangedAcrossInstances(t *testing
 
 	select {
 	case msg := <-connB.Send:
-		var envelope map[string]any
+		var envelope WSEnvelope
 		require.NoError(t, json.Unmarshal(msg, &envelope))
-		require.Equal(t, "presence.changed", envelope["type"])
+		require.Equal(t, "presence.changed", envelope.Type)
+		require.NotEmpty(t, envelope.ID)
+		require.NotEmpty(t, envelope.Timestamp)
+		require.Equal(t, "server", envelope.From)
+		require.Equal(t, targetID.String(), envelope.Data["user_id"])
+		require.Equal(t, true, envelope.Data["is_online"])
 	case <-time.After(5 * time.Second):
 		t.Fatal("watcher on instance B did not receive presence.changed")
 	}
@@ -198,9 +234,11 @@ func TestPresenceSubscriber_DistributesPresenceChangedAcrossInstances(t *testing
 
 	select {
 	case msg := <-connB.Send:
-		var envelope map[string]any
+		var envelope WSEnvelope
 		require.NoError(t, json.Unmarshal(msg, &envelope))
-		require.Equal(t, "presence.changed", envelope["type"])
+		require.Equal(t, "presence.changed", envelope.Type)
+		require.Equal(t, false, envelope.Data["is_online"])
+		require.Equal(t, float64(2), envelope.Data["version"])
 	case <-time.After(5 * time.Second):
 		t.Fatal("watcher on instance B did not receive newer presence.changed")
 	}

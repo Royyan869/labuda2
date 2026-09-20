@@ -22,6 +22,17 @@ Future<void> openCommerceChat({
   required ShareReference reference,
   required String sellerId,
   bool autoOpenNegotiation = false,
+
+  /// Truthful failure signal for the CALLER's surface.
+  ///
+  /// Room resolution can fail for real business reasons — the other
+  /// participant blocked this user, a messaging restriction, or a transport
+  /// failure. Without this hook the room silently fails to open and the CTA
+  /// that opened it becomes a lying affordance on the surface the buyer is
+  /// looking at. Callers pass their own surface-appropriate copy; when omitted,
+  /// behaviour is unchanged (the failure stays on the canonical chat list
+  /// state).
+  void Function(String error)? onFailure,
 }) async {
   final router = GoRouter.of(context);
   final authState = ref.read(authControllerProvider);
@@ -54,7 +65,10 @@ Future<void> openCommerceChat({
       .read(chatListProvider.notifier)
       .getOrCreateChat(userId: currentUserId, otherUserId: sellerId);
 
-  if (chat == null) return;
+  if (chat == null) {
+    onFailure?.call(ref.read(chatListProvider).error ?? 'Gagal membuka chat');
+    return;
+  }
 
   final uri = Uri(path: '/chat/${chat.id}');
   router.push(

@@ -194,29 +194,6 @@ class AuctionRepositoryImpl implements AuctionRepository {
   }
 
   @override
-  Future<RepositoryResult<Auction>> updateAuctionStatus({
-    required String auctionId,
-    required AuctionStatus status,
-  }) async {
-    try {
-      if (status == AuctionStatus.active) {
-        await _datasource.scheduleAuction(auctionId);
-        final refreshed = await _datasource.getAuctionById(auctionId);
-        return RepositoryResult.success(AuctionMapper.toEntity(refreshed));
-      }
-
-      // For other status changes, use update endpoint
-      final dto = UpdateAuctionDto();
-      final result = await _datasource.updateAuction(auctionId, dto);
-      final entity = AuctionMapper.toEntity(result);
-      return RepositoryResult.success(entity);
-    } catch (e) {
-      _logger.error('Failed to update auction status: $e');
-      return RepositoryResult.error(e.toString());
-    }
-  }
-
-  @override
   Future<RepositoryResult<void>> cancelAuction({
     required String auctionId,
     required String sellerId,

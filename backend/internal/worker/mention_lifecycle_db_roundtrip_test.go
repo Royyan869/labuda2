@@ -19,6 +19,7 @@ import (
 	contentRepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
 	"github.com/labuda/backend/internal/platform/event"
 	"github.com/labuda/backend/internal/platform/events"
+	idempotencyRepo "github.com/labuda/backend/internal/platform/idempotency/repository"
 	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
 	socialrepo "github.com/labuda/backend/internal/social/graph/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
@@ -57,6 +58,7 @@ func setupMentionRoundtripFixture(t *testing.T) *mentionRoundtripFixture {
 		nil, // invariantLogger
 	)
 	contentService.SetOutboxInserter(outboxRepository)
+	contentService.SetIdempotencyRepository(idempotencyRepo.NewRepository())
 
 	workerHandler := NewNotificationEventHandler(
 		appDB,
@@ -134,17 +136,19 @@ func TestMentionLifecycle_DBRoundtrip(t *testing.T) {
 	var contentID uuid.UUID
 
 	err := fixture.appDB.WithTx(ctx, func(tx db.Tx) error {
-		content, err := fixture.contentSvc.CreateContent(
+		content, _, err := fixture.contentSvc.CreateContentIdempotent(
 			ctx,
 			tx,
 			authorID,
+			uuid.NewString(),
 			"Hello @mentioned user!",
 			contentEntity.VisibilityPublic,
-			nil, nil, nil, nil,
+			nil, nil, nil,
 			[]uuid.UUID{mentionedID},
+			nil,
 		)
 		if err != nil {
-			return fmt.Errorf("CreateContent failed: %w", err)
+			return fmt.Errorf("CreateContentIdempotent failed: %w", err)
 		}
 		contentID = content.ID
 		return nil
@@ -280,12 +284,14 @@ func TestMentionLifecycle_SelfMention_NoNotification(t *testing.T) {
 
 	var contentID uuid.UUID
 	err := fixture.appDB.WithTx(ctx, func(tx db.Tx) error {
-		content, err := fixture.contentSvc.CreateContent(
+		content, _, err := fixture.contentSvc.CreateContentIdempotent(
 			ctx, tx, userA,
+			uuid.NewString(),
 			"Self-mention test",
 			contentEntity.VisibilityPublic,
-			nil, nil, nil, nil,
+			nil, nil, nil,
 			[]uuid.UUID{userA},
+			nil,
 		)
 		if err != nil {
 			return err

@@ -14,7 +14,7 @@ typedef ApiResult<T> = ({T? data, String? error});
 /// - Search history management
 ///
 /// SEARCH CONTRACT:
-/// - Supports: Listing, Auction, User, Content
+/// - Supports: ForSale, Auction, User, Content
 /// - No AI/semantic search
 /// - No hashtag search
 abstract class SearchRepository {
@@ -58,7 +58,7 @@ abstract class SearchRepository {
   /// GET /api/v1/search/for-sale
   ///
   /// Returns ONLY the fields actually emitted by /search/for-sale —
-  /// no fabricated quantity / status / visibility / listing_type.
+  /// no fabricated quantity / status / visibility / for_sale_type.
   Future<ApiResult<List<ForSaleSearchResult>>> searchForSale({
     required String query,
     String? cursor,
@@ -87,7 +87,7 @@ abstract class SearchRepository {
   /// SECTION-BASED ALL (canonical): this is the single execution authority
   /// for a search query. It runs each canonical domain search in parallel
   /// and returns the results as separate domain collections ([users],
-  /// [listings], [auctions], [contents]), each in its own canonical backend
+  /// [forSales], [auctions], [contents]), each in its own canonical backend
   /// order. There is no cross-domain flattening and no unified relevance
   /// ranking.
   ///

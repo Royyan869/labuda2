@@ -359,8 +359,6 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   }
 
   Future<void> _handleMarkAllRead() async {
-    // Mark all as read - iterate through chats and mark each as read
-    final chatListState = ref.read(chatListProvider);
     final userId = ref.read(currentUserIdProvider);
 
     if (userId.isEmpty) {
@@ -370,18 +368,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
       return;
     }
 
-    for (final chat in chatListState.chats) {
-      final unreadCount = chat.unreadCounts[userId] ?? 0;
-      if (unreadCount > 0) {
-        try {
-          await ref
-              .read(chatDetailProvider(chat.id).notifier)
-              .markAsRead(userId);
-        } catch (_) {
-          // Continue even if one fails
-        }
-      }
-    }
+    await ref.read(chatListProvider.notifier).markAllRead(userId);
+
     if (mounted) {
       AppSnackBar.showSuccess(context, 'Semua chat ditandai sudah dibaca');
     }

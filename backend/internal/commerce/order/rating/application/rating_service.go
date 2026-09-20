@@ -123,9 +123,9 @@ func (s *RatingService) CreateRating(
 	// Only "completed" orders can be rated
 	if order.Status != "completed" {
 		return nil, &ratingEntity.ErrOrderNotCompleted{
-			OrderID:   order.ID,
-			Status:    order.Status,
-			OrderType: order.OrderType,
+			OrderID:    order.ID,
+			Status:     order.Status,
+			SourceType: order.SourceType,
 		}
 	}
 

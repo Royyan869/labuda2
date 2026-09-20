@@ -32,30 +32,47 @@ Future<void> _checkoutFetchPreview(
     return;
   }
 
-  // CONCURRENCY GUARD: Prevent overlapping preview fetches
+  // CONCURRENCY GUARD: never run two preview requests at once, but never drop
+  // an input change either. A request that arrives while one is in flight is
+  // QUEUED and re-issued with the latest inputs when the current one completes
+  // — the latest inputs always win.
   if (state._isFetchingPreview) {
-    // A fetch is already in progress, skip this one
-    // The debounce timer will naturally limit rapid calls
+    state._previewRefreshQueued = true;
     return;
   }
 
-  // Listing availability check applies only to fixed-price-sale path.
+  // ForSale availability check applies only to the for-sale path.
   // For auction checkout (auctionId != null), the backend validates auction state.
   if (state.widget.auctionId == null) {
-    final listingAsync = state.ref.read(
-      forSaleDetailProvider(state.widget.fixedPriceSaleId),
-    );
-    final listing = listingAsync.value;
+    // Await the canonical detail future: a transient cache miss must not kill
+    // the preview pipeline silently (that produced an endless spinner).
+    ForSale? forSale;
+    try {
+      forSale = await state.ref.read(
+        forSaleDetailProvider(state.widget.forSaleId).future,
+      );
+    } catch (_) {
+      forSale = null;
+    }
+    if (!state.mounted) return;
 
-    if (listing == null) {
-      if (isManualRefresh && state.mounted) {
+    if (forSale == null) {
+      // No product authority → pricing cannot be computed. Fail closed into a
+      // retryable readiness state instead of a permanent loading state.
+      state._updateState(() {
+        state._previewError = 'Produk tidak ditemukan';
+      });
+      if (isManualRefresh) {
         AppSnackBar.showError(state.context, 'Produk tidak ditemukan');
       }
       return;
     }
 
-    if (!listing.isAvailable) {
-      if (isManualRefresh && state.mounted) {
+    if (!forSale.isAvailable) {
+      state._updateState(() {
+        state._previewError = 'Produk tidak tersedia';
+      });
+      if (isManualRefresh) {
         AppSnackBar.showError(state.context, 'Produk tidak tersedia');
       }
       return;
@@ -71,79 +88,70 @@ Future<void> _checkoutFetchPreview(
     });
   }
 
+  // Canonical preview inputs. This is the SAME builder that produces the
+  // request signature, so "what was requested" and "what is current" can never
+  // drift apart. Only fields that actually determine backend pricing are
+  // carried: notes and coin intent are ORDER-CREATION inputs (they never reach
+  // POST /pricing/preview), so they must not invalidate a preview.
+  final previewParams = state._buildPreviewParams();
+
+  // R1 — CANONICAL PREVIEW RESOLUTION.
+  //
+  // Two defects lived here and both had the same symptom (checkout stuck on
+  // "Memuat harga", `_previewResult` never populated, "Buat Pesanan"
+  // permanently disabled):
+  //
+  // 1. The provider family KEY IS BUILT FROM THE CURRENT INPUTS, so a request
+  //    starts in AsyncLoading. Reading it without awaiting returned AsyncLoading
+  //    forever and `hasValue` stayed false.
+  // 2. `provider.future` must never be awaited on a provider that Riverpod may
+  //    auto-retry: the retry loop keeps the future pending, so a real backend
+  //    failure was indistinguishable from a slow request. The preview boundary
+  //    therefore disables auto-retry (see `orderPreviewProvider`), which makes
+  //    the awaited future settle on both outcomes — data OR a real error.
+  //
+  // The request is also issued via `refresh`: a preview is a backend price
+  // SNAPSHOT, not a cached answer, so every fetch must reach the canonical
+  // boundary. (Re-reading a cached result would keep an expired token alive and
+  // would reset the expiry countdown without a new token behind it.)
+  final requestSignature = state._buildCheckoutSignature();
+
   try {
-    // Derive source_type and source_id from commerce context.
-    // Backend GeneratePreviewRequest requires both fields (binding:"required").
-    final String sourceType;
-    final String sourceId;
-    if (state.widget.auctionId != null && state.widget.auctionId!.isNotEmpty) {
-      sourceType = 'auction';
-      sourceId = state.widget.auctionId!;
-    } else {
-      sourceType = 'fixed_price_sale';
-      sourceId = state.widget.fixedPriceSaleId;
+    final previewResult = await state.ref.refresh(
+      orderPreviewProvider(previewParams).future,
+    );
+    if (!state.mounted) return;
+
+    // R1.1 — STALE / OUT-OF-ORDER PROTECTION.
+    //
+    // If the preview inputs changed while this request was in flight, this
+    // result no longer describes what the buyer is looking at. It MUST be
+    // discarded (never applied, never submitted) and a refresh must be
+    // queued so the latest inputs win — no silently dropped refresh.
+    if (requestSignature != state._buildCheckoutSignature()) {
+      state._previewRefreshQueued = true;
+      return;
     }
 
-    // Create preview params with address_id for backend-side resolution
-    final previewParams = PreviewOrderParams(
-      productId: productId,
-      quantity: 1,
-      addressId: state._selectedAddressId,
-      discountCode: state._appliedDiscount?.code,
-      useCoins: state._useCoins,
-      notes: state._notesController.text.trim().isEmpty
-          ? null
-          : state._notesController.text.trim(),
-      negotiationId: state.widget.negotiationId,
-      auctionId: state.widget.auctionId,
-      sourceType: sourceType,
-      sourceId: sourceId,
-      shippingQuoteId: state.widget.shippingQuoteId,
-      shippingSetupId: state.widget.shippingQuoteId == null
-          ? state._selectedShippingSetupId
-          : null,
-    );
+    state._updateState(() {
+      state._previewResult = previewResult;
+      state._previewSignature = requestSignature;
+      state._previewTokenCreatedAt = DateTime.now();
+      // Reset auto-refresh flag since we have a fresh token
+      state._hasAutoRefreshed = false;
+      // **STOCK WARNING UX FIX 2:** Mark stock warning as shown after first successful preview
+      state._hasShownStockWarning = true;
+    });
 
-    // Call preview API via provider
-    final previewAsync = state.ref.read(orderPreviewProvider(previewParams));
+    // Start countdown timer
+    state._startExpiryCountdown();
 
-    // Update state with preview result
-    if (previewAsync.hasValue && previewAsync.value != null) {
-      if (state.mounted) {
-        state._updateState(() {
-          state._previewResult = previewAsync.value;
-          state._previewTokenCreatedAt = DateTime.now();
-          // Reset auto-refresh flag since we have a fresh token
-          state._hasAutoRefreshed = false;
-          // **STOCK WARNING UX FIX 2:** Mark stock warning as shown after first successful preview
-          state._hasShownStockWarning = true;
-        });
-
-        // Start countdown timer
-        state._startExpiryCountdown();
-
-        if (isManualRefresh) {
-          AppSnackBar.showSuccess(state.context, 'Harga berhasil diperbarui');
-        }
-      }
-    } else if (previewAsync.hasError) {
-      // SAFETY: Explicit error handling - store error state
-      final error = previewAsync.error;
-      if (state.mounted) {
-        state._updateState(() {
-          state._previewError = error?.toString() ?? 'Gagal memuat harga';
-        });
-        // Show error only on manual refresh
-        if (isManualRefresh) {
-          AppSnackBar.showError(
-            state.context,
-            'Gagal memperbarui harga. Silakan coba lagi',
-          );
-        }
-      }
+    if (isManualRefresh) {
+      AppSnackBar.showSuccess(state.context, 'Harga berhasil diperbarui');
     }
   } catch (e) {
-    // SAFETY: Explicit error state
+    // TRUTHFUL FAILURE: the readiness projection turns this into an
+    // actionable retry state instead of a permanent spinner.
     if (state.mounted) {
       state._updateState(() {
         state._previewError = e.toString();
@@ -157,11 +165,21 @@ Future<void> _checkoutFetchPreview(
       }
     }
   } finally {
-    // CONCURRENCY GUARD: Always clear fetching flag
+    // CONCURRENCY GUARD: always release the in-flight lock, then honor a
+    // queued refresh so no input change is silently dropped.
     if (state.mounted) {
       state._updateState(() {
         state._isFetchingPreview = false;
       });
+    }
+    final shouldRefreshQueued = state._previewRefreshQueued;
+    state._previewRefreshQueued = false;
+    if (shouldRefreshQueued &&
+        state.mounted &&
+        state._previewSignature != state._buildCheckoutSignature()) {
+      // The queued refresh came from a real pricing-input change, so re-issue
+      // the request with the latest inputs. The latest result wins.
+      await _checkoutFetchPreview(state);
     }
   }
 }
@@ -174,16 +192,21 @@ Future<void> _checkoutHandleCreateOrder(_CheckoutScreenState state) async {
   state._isSubmitting = true;
 
   try {
-    // Listing validation applies only to fixed-price-sale path.
+    // ForSale validation applies only to the for-sale path.
     // For auction checkout (auctionId != null), backend validates auction state
     // and seller authority — Guard 6 still rejects inactive sellers.
     if (state.widget.auctionId == null) {
-      final listingAsync = state.ref.read(
-        forSaleDetailProvider(state.widget.fixedPriceSaleId),
-      );
-      final listing = listingAsync.value;
+      ForSale? forSale;
+      try {
+        forSale = await state.ref.read(
+          forSaleDetailProvider(state.widget.forSaleId).future,
+        );
+      } catch (_) {
+        forSale = null;
+      }
+      if (!state.mounted) return;
 
-      if (listing == null) {
+      if (forSale == null) {
         state._showOrderError(
           'Produk tidak ditemukan',
           suggestion: 'Silakan kembali dan pilih produk lain',
@@ -191,7 +214,7 @@ Future<void> _checkoutHandleCreateOrder(_CheckoutScreenState state) async {
         return;
       }
 
-      if (!listing.isAvailable) {
+      if (!forSale.isAvailable) {
         state._showOrderError(
           'Produk tidak tersedia',
           suggestion: 'Produk mungkin telah terjual atau dihapus oleh penjual',
@@ -202,7 +225,7 @@ Future<void> _checkoutHandleCreateOrder(_CheckoutScreenState state) async {
       // SELLER TRUST GATE: Block checkout when seller subscription expired.
       // Backend Guard 6 also rejects, but this gives a specific user-facing message
       // instead of a generic "order creation failed" error.
-      if (listing.sellerTrustLifecycle != ContentLifecycle.active) {
+      if (forSale.sellerTrustLifecycle != ContentLifecycle.active) {
         state._showOrderError(
           'Penjual tidak aktif',
           suggestion:
@@ -213,90 +236,81 @@ Future<void> _checkoutHandleCreateOrder(_CheckoutScreenState state) async {
       }
     }
 
-    // VALIDATION: Check if preview result is available
-    // This ensures pricing comes from backend, not from listing.price
-    if (state._previewResult == null) {
+    // STRICT VALIDATION: Validate forSaleId first
+    if (state.widget.forSaleId.isEmpty) {
       state._showOrderError(
-        'Harga belum dimuat',
-        suggestion: 'Mohon tunggu harga dimuat dari server',
-      );
-      return;
-    }
-
-    // TOKEN EXPIRY CHECK: Check if pricing token has expired
-    if (state._isTokenExpired()) {
-      state._showTokenExpiredDialog();
-      return;
-    }
-
-    // STRICT VALIDATION: Check pricingToken exists
-    // This ensures order uses the exact pricing snapshot from preview
-    if (state._previewResult!.pricingToken == null ||
-        state._previewResult!.pricingToken!.isEmpty) {
-      state._showOrderError(
-        'Token harga tidak valid',
-        suggestion: 'Silakan muat ulang harga dengan tombol "Refresh Harga"',
-      );
-      return;
-    }
-
-    if (productId == null || productId.isEmpty) {
-      state._showOrderError(
-        'ID produk tidak tersedia',
-        suggestion:
-            'Checkout ini membutuhkan product authority dari backend. '
-            'Silakan buka kembali dari sumber yang menyediakan ID produk.',
-      );
-      return;
-    }
-
-    // STRICT VALIDATION: Validate fixedPriceSaleId first
-    if (state.widget.fixedPriceSaleId.isEmpty) {
-      state._showOrderError(
-        'Listing tidak valid',
+        'ForSale tidak valid',
         suggestion: 'Silakan kembali dan pilih produk lain',
       );
       return;
     }
 
+    // READINESS GATE — the single authority for "may this order be created?".
+    //
+    // This replaces the ad-hoc product/address/shipping/preview/token checks
+    // with one truthful projection: prerequisites, preview presence, preview
+    // IDENTITY (current inputs), token expiry and token usability. A pricing
+    // token from a preview that no longer matches the current inputs can never
+    // be submitted, and a permanently loading preview can never masquerade as
+    // "almost ready".
+    final readiness = state._readiness;
+    switch (readiness) {
+      case CheckoutReadiness.ready:
+        break;
+      case CheckoutReadiness.missingProduct:
+        state._showOrderError(
+          'ID produk tidak tersedia',
+          suggestion:
+              'Checkout ini membutuhkan product authority dari backend. '
+              'Silakan buka kembali dari sumber yang menyediakan ID produk.',
+        );
+        return;
+      case CheckoutReadiness.missingAddress:
+        AppSnackBar.showError(
+          state.context,
+          'Pilih alamat pengiriman terlebih dahulu',
+        );
+        return;
+      case CheckoutReadiness.missingShipping:
+        AppSnackBar.showError(
+          state.context,
+          'Pilih opsi pengiriman terlebih dahulu',
+        );
+        return;
+      case CheckoutReadiness.loading:
+        state._showOrderError(
+          'Harga belum dimuat',
+          suggestion: 'Mohon tunggu harga dimuat dari server',
+        );
+        return;
+      case CheckoutReadiness.error:
+      case CheckoutReadiness.stale:
+        state._showOrderError(readiness.title, suggestion: readiness.message);
+        return;
+      case CheckoutReadiness.expired:
+        state._showTokenExpiredDialog();
+        return;
+    }
+
     final notifier = state.ref.read(checkoutNotifierProvider.notifier);
-
-    // Validate saved address is selected
-    if (state._selectedAddressId == null || state._selectedAddressId!.isEmpty) {
-      AppSnackBar.showError(
-        state.context,
-        'Pilih alamat pengiriman terlebih dahulu',
-      );
-      return;
-    }
-
-    // Validate shipping option selected (for standard checkout only)
-    if (state.widget.shippingQuoteId == null &&
-        (state._selectedShippingSetupId == null ||
-            state._selectedShippingSetupId!.isEmpty)) {
-      AppSnackBar.showError(
-        state.context,
-        'Pilih opsi pengiriman terlebih dahulu',
-      );
-      return;
-    }
 
     final request = CheckoutRequest(
       productId: productId,
-      fixedPriceSaleId: state.widget.fixedPriceSaleId,
+      forSaleId: state.widget.forSaleId,
       quantity: 1,
       useCoins: state._useCoins ? true : null,
       notes: state._notesController.text.trim().isEmpty
           ? null
           : state._notesController.text.trim(),
       addressId: state._selectedAddressId!,
+      // Guaranteed by readiness == ready (current + unexpired + usable token).
       pricingToken: state._previewResult!.pricingToken!,
       // Pass commerce context through to order creation
       auctionId: state.widget.auctionId,
       negotiationId: state.widget.negotiationId,
       shippingQuoteId: state.widget.shippingQuoteId,
-      shippingSetupId: state.widget.shippingQuoteId == null
-          ? state._selectedShippingSetupId
+      shippingOptionId: state.widget.shippingQuoteId == null
+          ? state._selectedShippingOptionId
           : null,
     );
 
@@ -369,13 +383,16 @@ Future<void> _checkoutHandleCreateOrder(_CheckoutScreenState state) async {
       return;
     }
 
-    // Launch the payment URL from the payment intent
+    // Payment URLs are presented exclusively inside Labuda's internal WebView.
+    // External-browser payment navigation is obsolete and must not be reintroduced.
     final paymentUrl = paymentIntent.paymentUrl;
-    if (paymentUrl != null && paymentUrl.isNotEmpty) {
-      await state._launchPaymentUrl(paymentUrl, orderResponse.orderId);
+    if (paymentUrl != null && paymentUrl.isNotEmpty && state.mounted) {
+      await state.context.push(
+        '/payment-webview?url=${Uri.encodeComponent(paymentUrl)}&orderId=${Uri.encodeComponent(orderResponse.orderId)}',
+      );
     }
 
-    // Navigate to payment result screen to poll for status
+    // Navigate to payment result screen to poll for status (backend-authoritative)
     if (state.mounted) {
       final paymentResultUri =
           state.widget.returnToChat != null &&

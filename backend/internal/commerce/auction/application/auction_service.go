@@ -1007,7 +1007,6 @@ type CreateOrderFromAuctionInput struct {
 	ProvinceCode          string                            // Deprecated: Use AddressID instead
 	CityCode              string                            // Deprecated: Use AddressID instead
 	DiscountCode          *string                           // Optional discount code
-	UseCoins              bool                              // Whether to use coins
 	AuctionSettlementType orderEntity.AuctionSettlementType // buy_now vs bid_win
 	PricingSnapshot       *orderApp.PricingSnapshot         // REQUIRED: Pricing snapshot from validated pricing token
 	IdempotencyKey        *string                           // Optional: HTTP idempotency key for safe retries

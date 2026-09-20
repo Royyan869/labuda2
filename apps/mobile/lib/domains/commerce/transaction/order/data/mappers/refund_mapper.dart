@@ -40,11 +40,4 @@ class RefundMapper {
       evidence: evidence,
     );
   }
-
-  /// Convert refund percentage to RefundActionDto
-  ///
-  /// Format: "50%" for partial refund, "reject" for rejection
-  static RefundActionDto toRefundActionDto(String response) {
-    return RefundActionDto(response: response);
-  }
 }

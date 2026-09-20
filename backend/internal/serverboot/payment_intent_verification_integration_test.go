@@ -75,8 +75,6 @@ type orderSnapshot struct {
 	ServiceFeeAmount   int64
 	TotalPayableAmount int64
 	TotalBeforeCoins   int64
-	CoinsUsed          int64
-	CoinDiscountAmount int64
 }
 
 type reservationSnapshot struct {
@@ -291,12 +289,26 @@ func (h *paymentIntentHarness) createOrder(t *testing.T) uuid.UUID {
 	return createCanonicalOrder(t, context.Background(), h.tdb, h.orderRepo, h.buyerID, h.sellerID)
 }
 
+// seedOrderTokenCoins writes the canonical K into the order's pricing token,
+// mirroring what POST /orders does (use_coins -> pricing_tokens.coins_used).
+// Payment derives K from this snapshot; the client has no payment-time K.
+func (h *paymentIntentHarness) seedOrderTokenCoins(t *testing.T, orderID uuid.UUID, coinsToUse int) {
+	t.Helper()
+	require.NoError(t, h.tdb.WithTx(context.Background(), func(tx db.Tx) error {
+		_, err := tx.Exec(context.Background(), `
+			UPDATE pricing_tokens SET coins_used = $1
+			WHERE token = (SELECT pricing_token_id FROM orders WHERE id = $2)
+		`, coinsToUse, orderID)
+		return err
+	}))
+}
+
 func (h *paymentIntentHarness) runCreatePayment(t *testing.T, orderID uuid.UUID, methodCode string, coinsToUse int) *httptest.ResponseRecorder {
 	t.Helper()
+	h.seedOrderTokenCoins(t, orderID, coinsToUse)
 	body, err := json.Marshal(gin.H{
 		"order_id":            orderID,
 		"payment_method_code": methodCode,
-		"coins_to_use":        coinsToUse,
 	})
 	require.NoError(t, err)
 
@@ -314,10 +326,11 @@ func (h *paymentIntentHarness) runCreatePayment(t *testing.T, orderID uuid.UUID,
 
 func (h *paymentIntentHarness) runListPaymentMethods(t *testing.T, orderID uuid.UUID, coinsToUse int) listPaymentMethodsEnvelope {
 	t.Helper()
+	h.seedOrderTokenCoins(t, orderID, coinsToUse)
 
 	recorder := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(recorder)
-	req := httptest.NewRequest(http.MethodGet, "/payments/methods?order_id="+orderID.String()+fmt.Sprintf("&coins_to_use=%d", coinsToUse), nil)
+	req := httptest.NewRequest(http.MethodGet, "/payments/methods?order_id="+orderID.String(), nil)
 	req = req.WithContext(context.Background())
 	c.Request = req
 	c.Set("userID", h.buyerID)
@@ -435,17 +448,14 @@ func loadPricingTokenSnapshotByTokenID(ctx context.Context, tdb *testdb.TestDB, 
 func loadOrderSnapshotByID(ctx context.Context, tdb *testdb.TestDB, orderID uuid.UUID) (*orderSnapshot, error) {
 	var order orderSnapshot
 	err := tdb.WithTx(ctx, func(tx db.Tx) error {
-		return tx.QueryRow(ctx, `
-			SELECT service_fee_amount, total_payable_amount,
-			       total_before_coins_amount, coins_used, coin_discount_amount
-			FROM orders
-			WHERE id = $1
-		`, orderID).Scan(
+		return tx.QueryRow(ctx, `		SELECT service_fee_amount, total_payable_amount,
+		       total_before_coins_amount
+		FROM orders
+		WHERE id = $1
+	`, orderID).Scan(
 			&order.ServiceFeeAmount,
 			&order.TotalPayableAmount,
 			&order.TotalBeforeCoins,
-			&order.CoinsUsed,
-			&order.CoinDiscountAmount,
 		)
 	})
 	if err != nil {
@@ -582,14 +592,12 @@ func createPaymentIntentOrderWithToken(
 		nil,
 		"JNE Reguler",
 		"reguler",
-		nil,         // auctionSettlementType
 		"immediate", // preparationTimeSnapshot
 		nil,         // preparationNoteSnapshot
 		nil,         // shippingSource
 		nil,         // shippingQuoteID
 		nil,         // shippingQuotePrice
 		&tokenID,    // pricingTokenID
-		"default",
 		time.Now().Add(1*time.Hour),
 	)
 
@@ -649,8 +657,6 @@ func TestCreatePayment_BasicFlowAndPreviewAuthority(t *testing.T) {
 	require.Equal(t, int64(4000), orderAfterPayment.ServiceFeeAmount)
 	require.Equal(t, int64(96000), orderAfterPayment.TotalPayableAmount)
 	require.Equal(t, canonicalBuyerBase, orderAfterPayment.TotalBeforeCoins)
-	require.Equal(t, int64(0), orderAfterPayment.CoinsUsed)
-	require.Equal(t, int64(0), orderAfterPayment.CoinDiscountAmount)
 
 	firstPayment, err := loadPaymentSnapshotByOrderID(ctx, h.tdb, paymentOrderID)
 	require.NoError(t, err)
@@ -712,10 +718,14 @@ func TestCreatePayment_BasicFlowAndPreviewAuthority(t *testing.T) {
 	require.NotNil(t, zeroPayment.PaymentMethodCode)
 	require.Equal(t, "bank_transfer", *zeroPayment.PaymentMethodCode)
 
-	invalidOrderID := h.createOrder(t)
-	invalidResp := h.runCreatePayment(t, invalidOrderID, "bank_transfer", 22001)
-	require.Equal(t, http.StatusBadRequest, invalidResp.Code)
-	require.Contains(t, invalidResp.Body.String(), "coins_to_use exceeds max allowed")
+	// PAY-B: POST /orders can never persist K above the token's 20% ceiling, so a
+	// token snapshot that violates the bound is a corrupted invariant. Payment
+	// creation must fail closed (500) and never call Midtrans.
+	corruptedTokenOrderID := h.createOrder(t)
+	corruptedResp := h.runCreatePayment(t, corruptedTokenOrderID, "bank_transfer", 22001)
+	require.Equal(t, http.StatusInternalServerError, corruptedResp.Code)
+	require.Contains(t, corruptedResp.Body.String(), "exceeds max allowed")
+	require.Equal(t, int32(1), atomic.LoadInt32(&successGateway.calls), "corrupted coin snapshot must not reach Midtrans")
 
 	insufficientOrderID := h.createOrder(t)
 	insufficientResp := h.runCreatePayment(t, insufficientOrderID, "bank_transfer", 15000)
@@ -782,23 +792,26 @@ func TestCreatePayment_ShippingPositivePricingTokenCoinCap(t *testing.T) {
 	require.Equal(t, int64(18000), createdPayment.CoinsToUse)
 	require.Equal(t, int64(18000), createdPayment.CoinDiscountAmount)
 
-	previewTooMuch := httptest.NewRecorder()
-	previewCtx, _ := gin.CreateTestContext(previewTooMuch)
+	// PAY-B NEGATIVE: the stale client `coins_to_use` query parameter is no longer
+	// an authority. The pricing-token snapshot (K=18000) drives the preview, so a
+	// client-supplied 18001 is ignored entirely.
+	previewIgnoresClientK := httptest.NewRecorder()
+	previewCtx, _ := gin.CreateTestContext(previewIgnoresClientK)
 	previewReq := httptest.NewRequest(http.MethodGet, "/payments/methods?order_id="+orderID.String()+"&coins_to_use=18001", nil)
 	previewReq = previewReq.WithContext(context.Background())
 	previewCtx.Request = previewReq
 	previewCtx.Set("userID", h.buyerID)
 	h.handler.ListPaymentMethods(previewCtx)
-	require.Equal(t, http.StatusBadRequest, previewTooMuch.Code)
-	require.Contains(t, previewTooMuch.Body.String(), "coins_to_use exceeds max allowed (18000)")
+	require.Equal(t, http.StatusOK, previewIgnoresClientK.Code)
+	require.Contains(t, previewIgnoresClientK.Body.String(), `"coins_to_use":18000`)
+	require.NotContains(t, previewIgnoresClientK.Body.String(), `"coins_to_use":18001`)
 
-	createTooMuch := h.runCreatePayment(t, orderID, "bank_transfer", 18001)
-	require.Equal(t, http.StatusBadRequest, createTooMuch.Code)
-	require.Contains(t, createTooMuch.Body.String(), "coins_to_use exceeds max allowed (18000)")
-
-	createWayTooMuch := h.runCreatePayment(t, orderID, "bank_transfer", 28000)
-	require.Equal(t, http.StatusBadRequest, createWayTooMuch.Code)
-	require.Contains(t, createWayTooMuch.Body.String(), "coins_to_use exceeds max allowed (18000)")
+	// A corrupted token snapshot (K above the token's own 20% ceiling) is an
+	// integrity violation, not a client error: payment creation fails closed.
+	corruptedOrderID := h.createOrder(t)
+	createTooMuch := h.runCreatePayment(t, corruptedOrderID, "bank_transfer", 18001)
+	require.Equal(t, http.StatusInternalServerError, createTooMuch.Code)
+	require.Contains(t, createTooMuch.Body.String(), "exceeds max allowed")
 }
 
 func TestCreatePayment_ActiveIntentReuseConflictAndPercentagePreview(t *testing.T) {
@@ -903,8 +916,7 @@ func TestCreatePayment_RollbackWhenReservationInsertFails(t *testing.T) {
 	require.Equal(t, int64(0), order.ServiceFeeAmount)
 	require.Equal(t, canonicalBuyerBase, order.TotalPayableAmount)
 	require.Equal(t, canonicalBuyerBase, order.TotalBeforeCoins)
-	require.Equal(t, int64(0), order.CoinsUsed)
-	require.Equal(t, int64(0), order.CoinDiscountAmount)
+
 }
 
 func TestCreatePayment_DefinitiveValidationRefusalCompensationAndUncertainOutcome(t *testing.T) {

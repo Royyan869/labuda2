@@ -1,10 +1,10 @@
 /// Profile Store Tab - Commerce surface for seller profiles
 ///
-/// Displays seller's commerce items (listings, auctions) in sub-tabs.
+/// Displays seller's commerce items (forSales, auctions) in sub-tabs.
 /// This is a PUBLIC VIEW surface, not a management dashboard.
 ///
 /// Structure:
-/// - Dijual (For Sale): Shows seller's active listings
+/// - Dijual (For Sale): Shows seller's active forSales
 /// - Lelang (Auction): Shows seller's active auctions
 library;
 
@@ -46,7 +46,7 @@ class _ProfileStoreTabState extends ConsumerState<ProfileStoreTab> {
 }
 
 // =============================================================================
-// FOR SALE TAB - Shows seller's listings
+// FOR SALE TAB - Shows seller's forSales
 // =============================================================================
 
 class _ForSaleTab extends ConsumerWidget {
@@ -66,7 +66,7 @@ class _ForSaleTab extends ConsumerWidget {
 
     return forSalesAsync.when(
       data: (forSales) {
-        // Filter to show only active listings (public view)
+        // Filter to show only active forSales (public view)
         final activeForSales = forSales
             .where((forSale) => forSale.status == ForSaleStatus.active)
             .toList();
@@ -85,7 +85,7 @@ class _ForSaleTab extends ConsumerWidget {
             itemBuilder: (context, index) {
               final forSale = activeForSales[index];
               return ForSaleCard(
-                listing: forSale,
+                forSale: forSale,
                 onTap: () => _navigateToForSaleDetail(ref, forSale.forSaleId),
               );
             },
@@ -99,7 +99,7 @@ class _ForSaleTab extends ConsumerWidget {
           children: [
             Icon(Icons.error_outline, size: 48, color: AppColors.statusError),
             const SizedBox(height: 16),
-            Text('Gagal memuat listing', style: AppTypography.bodyLarge),
+            Text('Gagal memuat forSale', style: AppTypography.bodyLarge),
             const SizedBox(height: 8),
             Text(
               error.toString(),
@@ -120,8 +120,8 @@ class _ForSaleTab extends ConsumerWidget {
         SizedBox(
           height: MediaQuery.of(context).size.height * 0.5,
           child: EmptyStateWidget.list(
-            title: 'Belum ada listing',
-            subtitle: 'Seller ini belum memiliki listing aktif',
+            title: 'Belum ada forSale',
+            subtitle: 'Seller ini belum memiliki forSale aktif',
           ),
         ),
       ],

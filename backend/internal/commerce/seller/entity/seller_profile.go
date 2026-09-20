@@ -34,12 +34,14 @@ const (
 // - store_name is required
 // - tier defaults to 'basic'
 type SellerProfile struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
-	StoreName string
-	Tier      Tier
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID                   uuid.UUID
+	UserID               uuid.UUID
+	StoreName            string
+	StoreImageURL        *string
+	StoreImageUpdatedAt  *time.Time
+	Tier                 Tier
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
 }
 
 

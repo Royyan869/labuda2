@@ -1611,11 +1611,7 @@ class AuthController extends Notifier<AuthState> {
       }
     }
 
-    // Presence: stop tracking BEFORE socket closes (sends offline status
-    // while connection is still live). Non-fatal: don't block logout.
-    try {
-      ref.read(presenceManagerProvider.notifier).clearUser();
-    } catch (_) {}
+    // Presence is server-derived via WS lease; no mobile writer needed.
 
     // Tier 4 (Runtime Honesty): close the WebSocket on logout so the
     // session no longer holds a connection authenticated with the
@@ -1682,9 +1678,6 @@ class AuthController extends Notifier<AuthState> {
       await _localStorage.clearLabudaCredential();
     } catch (_) {}
     try {
-      ref.read(presenceManagerProvider.notifier).clearUser();
-    } catch (_) {}
-    try {
       final ws = ref.read(webSocketServiceProvider);
       await ws.disconnect().timeout(const Duration(seconds: 3));
     } catch (_) {}
@@ -1702,7 +1695,7 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
-  /// Activate WebSocket connection and presence tracking after successful
+  /// Activate WebSocket connection after successful
   /// backend sync. Called once per login; idempotent on re-entry (WS guards
   /// duplicate connect, presence handles same-user no-op).
   ///
@@ -1737,15 +1730,6 @@ class AuthController extends Notifier<AuthState> {
       }),
     );
 
-    // Presence: start tracking user online status
-    try {
-      ref.read(presenceManagerProvider.notifier).setUser(userId);
-    } catch (e) {
-      _logger.log(
-        '[AUTH] Presence setUser failed (non-fatal): $e',
-        level: LogLevel.warning,
-      );
-    }
   }
 
   /// ðŸ”„ DEGRADED MODE: Manually retry backend sync after failure

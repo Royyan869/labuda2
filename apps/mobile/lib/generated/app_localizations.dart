@@ -1763,8 +1763,8 @@ abstract class AppLocalizations {
   /// Pro seller feature 1
   ///
   /// In en, this message translates to:
-  /// **'Unlimited collection listings'**
-  String get unlimitedProductListings;
+  /// **'Unlimited For Sale'**
+  String get unlimitedForSale;
 
   /// Pro seller feature 2
   ///
@@ -1787,8 +1787,8 @@ abstract class AppLocalizations {
   /// Pro seller feature 6
   ///
   /// In en, this message translates to:
-  /// **'Featured listings'**
-  String get featuredListings;
+  /// **'Featured For Sale'**
+  String get featuredForSale;
 
   /// Pro seller feature 7
   ///
@@ -2249,7 +2249,7 @@ abstract class AppLocalizations {
   /// Article: Become seller content
   ///
   /// In en, this message translates to:
-  /// **'To become a seller on LABUDA:\n\n1. Go to Settings → Upgrade to Seller\n2. Choose your plan (Basic or Pro)\n3. Fill in your business information\n4. Complete payment for the subscription\n5. Wait for verification approval\n\nOnce approved, you can start listing your koi for sale!'**
+  /// **'To become a seller on LABUDA:\n\n1. Go to Settings → Upgrade to Seller\n2. Choose your plan (Basic or Pro)\n3. Fill in your business information\n4. Complete payment for the subscription\n5. Wait for verification approval\n\nOnce approved, you can start creating For Sale for your koi for sale!'**
   String get articleBecomeSellerContent;
 
   /// Article: Cancel order
@@ -2303,14 +2303,14 @@ abstract class AppLocalizations {
   /// Article: Create listing
   ///
   /// In en, this message translates to:
-  /// **'How to create a listing?'**
-  String get articleCreateListing;
+  /// **'How to create a For Sale?'**
+  String get articleCreateForSale;
 
   /// Article: Create listing content
   ///
   /// In en, this message translates to:
-  /// **'To create a new listing:\n\n1. Tap the + button on the home screen\n2. Select \'Listing\'\n3. Add photos of your koi (multiple angles recommended)\n4. Fill in details (variety, size, price, location)\n5. Write a description\n6. Publish your listing\n\nYour listing will be visible to buyers immediately!'**
-  String get articleCreateListingContent;
+  /// **'To create a new For Sale:\n\n1. Tap the + button on the home screen\n2. Select \'For Sale\'\n3. Add photos of your koi (multiple angles recommended)\n4. Fill in details (variety, size, price, location)\n5. Write a description\n6. Publish your For Sale\n\nYour For Sale will be visible to buyers immediately!'**
+  String get articleCreateForSaleContent;
 
   /// Article: Shipping setup
   ///

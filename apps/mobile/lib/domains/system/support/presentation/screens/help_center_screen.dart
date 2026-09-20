@@ -93,7 +93,7 @@ The seller will review your request. If rejected, you can escalate to admin for 
 4. Complete payment for the subscription
 5. Wait for verification approval
 
-Once approved, you can start listing your koi for sale!''';
+Once approved, you can start forSale your koi for sale!''';
 
   static const String articleCancelOrder = 'How to cancel an order?';
   static const String articleCancelOrderContent =
@@ -133,17 +133,17 @@ If the issue persists, contact support with your order number.''';
 
 The exact time depends on your payment method. GoPay refunds are usually faster than bank transfers.''';
 
-  static const String articleCreateListing = 'How to create a listing?';
-  static const String articleCreateListingContent = '''To create a new listing:
+  static const String articleCreateForSale = 'How to create a forSale?';
+  static const String articleCreateForSaleContent = '''To create a new forSale:
 
 1. Tap the + button on the home screen
-2. Select 'Listing'
+2. Select 'ForSale'
 3. Add photos of your koi (multiple angles recommended)
 4. Fill in details (variety, size, price, location)
 5. Write a description
-6. Publish your listing
+6. Publish your forSale
 
-Your listing will be visible to buyers immediately!''';
+Your forSale will be visible to buyers immediately!''';
 
   static const String articleShippingSetup = 'How to set up shipping?';
   static const String articleShippingSetupContent = '''To set up shipping:
@@ -151,8 +151,8 @@ Your listing will be visible to buyers immediately!''';
 1. Go to Settings → Pengiriman (or Seller Dashboard → Atur Pengiriman)
 2. Add a shipping option (train, bus, travel, plane, or custom)
 3. Add province coverage with the rate you charge for each province
-4. Toggle the option active to make it available for your listings
-5. When creating a listing, choose which of your options apply to that listing
+4. Toggle the option active to make it available for your forSales
+5. When creating a forSale, choose which of your options apply to that forSale
 
 Shipping is seller-managed: you decide the options, rates, and courier.
 For irregular cases (large fish, special handling), send a shipping quote to the buyer in chat as a fallback.
@@ -238,23 +238,23 @@ Next steps:
 
 👉 Contact Support for withdrawal issues''';
 
-  static const String articleListingNotVisible =
-      'Why is my listing not visible?';
-  static const String articleListingNotVisibleContent =
-      '''Your listing may not be visible because:
+  static const String articleForSaleNotVisible =
+      'Why is my forSale not visible?';
+  static const String articleForSaleNotVisibleContent =
+      '''Your forSale may not be visible because:
 
 1. Not yet published - Check status is "Active"
 2. Incomplete information - Fill all required fields
-3. Pending review - Some listings need approval
+3. Pending review - Some forSales need approval
 4. Search ranking - Optimize title and description
 
 Next steps:
-• Go to My Listings → Check listing status
-• Edit listing to complete missing information
+• Go to My ForSales → Check forSale status
+• Edit forSale to complete missing information
 • Use clear photos and detailed descriptions
-• Share listing link to social media
+• Share forSale link to social media
 
-👉 Contact Support if listing is active but not shown''';
+👉 Contact Support if forSale is active but not shown''';
 
   static const String articleSellerPaymentPending =
       'Payment from order not received?';
@@ -794,9 +794,9 @@ class HelpCategoryScreen extends StatelessWidget {
             content: _Strings.articleBecomeSellerContent,
           ),
           HelpArticle(
-            title: _Strings.articleCreateListing,
+            title: _Strings.articleCreateForSale,
             category: _Strings.selling,
-            content: _Strings.articleCreateListingContent,
+            content: _Strings.articleCreateForSaleContent,
           ),
           HelpArticle(
             title: _Strings.articleShippingSetup,
@@ -810,9 +810,9 @@ class HelpCategoryScreen extends StatelessWidget {
             content: _Strings.articleWithdrawalFailedContent,
           ),
           HelpArticle(
-            title: _Strings.articleListingNotVisible,
+            title: _Strings.articleForSaleNotVisible,
             category: _Strings.selling,
-            content: _Strings.articleListingNotVisibleContent,
+            content: _Strings.articleForSaleNotVisibleContent,
           ),
           HelpArticle(
             title: _Strings.articleSellerPaymentPending,

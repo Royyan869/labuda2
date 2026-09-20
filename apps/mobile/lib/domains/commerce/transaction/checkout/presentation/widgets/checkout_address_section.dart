@@ -32,14 +32,15 @@ class _SavedAddressPickerSectionState
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final addressesAsync = ref.watch(addressesListProvider);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.neutralWhite,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.neutralGray200),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,7 +57,7 @@ class _SavedAddressPickerSectionState
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Kelola'),
                 style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primaryRed,
+                  foregroundColor: colorScheme.primary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 4,
@@ -106,7 +107,7 @@ class _SavedAddressPickerSectionState
               padding: const EdgeInsets.all(8),
               child: Text(
                 'Gagal memuat alamat: $e',
-                style: TextStyle(color: AppColors.statusError),
+                style: TextStyle(color: colorScheme.error),
               ),
             ),
           ),
@@ -120,15 +121,20 @@ class _SavedAddressPickerSectionState
 class _EmptyAddressPrompt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.neutralGray100,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         children: [
-          Icon(Icons.location_off, size: 32, color: AppColors.neutralGray400),
+          Icon(
+            Icons.location_off,
+            size: 32,
+            color: colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(height: 8),
           const Text(
             'Belum ada alamat pengiriman',
@@ -137,7 +143,7 @@ class _EmptyAddressPrompt extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Tambahkan alamat pengiriman terlebih dahulu',
-            style: TextStyle(fontSize: 12, color: AppColors.neutralGray600),
+            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           ElevatedButton.icon(
@@ -145,8 +151,8 @@ class _EmptyAddressPrompt extends StatelessWidget {
             icon: const Icon(Icons.add, size: 16),
             label: const Text('Tambah Alamat'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryRed,
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
             ),
           ),
         ],
@@ -169,6 +175,7 @@ class _AddressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -177,12 +184,14 @@ class _AddressCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? AppColors.primaryRed : AppColors.neutralGray200,
+            color: isSelected
+                ? colorScheme.primary
+                : colorScheme.outlineVariant,
             width: isSelected ? 2 : 1,
           ),
           color: isSelected
-              ? AppColors.primaryRed.withValues(alpha: 0.05)
-              : AppColors.neutralWhite,
+              ? colorScheme.primary.withValues(alpha: 0.05)
+              : colorScheme.surface,
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,8 +199,8 @@ class _AddressCard extends StatelessWidget {
             Icon(
               isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
               color: isSelected
-                  ? AppColors.primaryRed
-                  : AppColors.neutralGray400,
+                  ? colorScheme.primary
+                  : colorScheme.onSurfaceVariant,
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -213,14 +222,14 @@ class _AddressCard extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryRed.withValues(alpha: 0.1),
+                            color: colorScheme.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             'Utama',
                             style: TextStyle(
                               fontSize: 10,
-                              color: AppColors.primaryRed,
+                              color: colorScheme.primary,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -233,7 +242,7 @@ class _AddressCard extends StatelessWidget {
                     address.phone,
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.neutralGray600,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -243,7 +252,7 @@ class _AddressCard extends StatelessWidget {
                     '${address.province.name} ${address.postalCode}',
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.neutralGray700,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,

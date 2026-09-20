@@ -77,5 +77,3 @@ func TestBuildFindingUsesOrderIDWhenPresent(t *testing.T) {
 	assert.Equal(t, orderID, *f.OrderID)
 	assert.Contains(t, f.IdempotencyKey, orderID.String())
 }
-
-

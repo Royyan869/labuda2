@@ -192,16 +192,16 @@ List<MediaEntity> _detailMedia() {
   final now = DateTime.utc(2026, 1, 1);
   return [
     MediaEntity(
-      id: 'listing-media-1',
+      id: 'forSale-media-1',
       originalUrl:
-          'https://cdn.example.com/gallery/listing-1.jpg?X-Amz-Signature=one',
+          'https://cdn.example.com/gallery/forSale-1.jpg?X-Amz-Signature=one',
       type: MediaType.image,
       createdAt: now,
     ),
     MediaEntity(
-      id: 'listing-media-2',
+      id: 'forSale-media-2',
       originalUrl:
-          'https://cdn.example.com/gallery/listing-2.jpg?X-Amz-Signature=two',
+          'https://cdn.example.com/gallery/forSale-2.jpg?X-Amz-Signature=two',
       type: MediaType.image,
       createdAt: now,
     ),
@@ -209,7 +209,7 @@ List<MediaEntity> _detailMedia() {
 }
 
 Widget _wrap({
-  required ForSale listing,
+  required ForSale forSale,
   required AuthState authState,
   ForSale Function()? listingLoader,
   ThemeData? theme,
@@ -222,8 +222,8 @@ Widget _wrap({
         _FakeSavedItemRepository(),
       ),
       forSaleDetailProvider(
-        listing.forSaleId,
-      ).overrideWith((ref) async => listingLoader?.call() ?? listing),
+        forSale.forSaleId,
+      ).overrideWith((ref) async => listingLoader?.call() ?? forSale),
       userDataProvider.overrideWith((ref, userId) async => _authUser(id: userId)),
       navigationHandlerProvider.overrideWithValue(
         navigationHandler ?? _FakeNavigationHandler(),
@@ -231,7 +231,7 @@ Widget _wrap({
     ],
     child: MaterialApp(
       theme: theme,
-      home: ForSaleDetailScreen(forSaleId: listing.forSaleId),
+      home: ForSaleDetailScreen(forSaleId: forSale.forSaleId),
     ),
   );
 }
@@ -243,8 +243,8 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(320, 640));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final listing = _listing(
-        id: 'listing-1',
+      final forSale = _listing(
+        id: 'forSale-1',
         sellerId: 'seller-1',
         capabilities: _buyerCaps,
         media: _detailMedia(),
@@ -252,7 +252,7 @@ void main() {
 
       await tester.pumpWidget(
         _wrap(
-          listing: listing,
+          forSale: forSale,
           authState: AuthState.authenticated(
             _authUser(id: 'buyer-1'),
             emailVerified: true,
@@ -267,7 +267,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
-      expect(find.text('Detail Listing'), findsOneWidget);
+      expect(find.text('Detail ForSale'), findsOneWidget);
       expect(find.text('Chat'), findsOneWidget);
       expect(find.text('Ajukan Penawaran'), findsOneWidget);
       expect(find.text('Beli Sekarang'), findsOneWidget);
@@ -277,7 +277,7 @@ void main() {
       expect(find.byType(PageView), findsOneWidget);
       expect(find.text('Siap kirim langsung'), findsOneWidget);
       expect(find.textContaining('Packing aman sebelum kirim'), findsOneWidget);
-      expect(find.text(listing.description), findsOneWidget);
+      expect(find.text(forSale.description), findsOneWidget);
       expect(find.byIcon(Icons.more_vert), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
@@ -290,8 +290,8 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     final nav = _FakeNavigationHandler();
-    final listing = _listing(
-      id: 'listing-nav',
+    final forSale = _listing(
+      id: 'forSale-nav',
       sellerId: 'seller-nav-1',
       capabilities: _buyerCaps,
       media: _detailMedia(),
@@ -299,7 +299,7 @@ void main() {
 
     await tester.pumpWidget(
       _wrap(
-        listing: listing,
+        forSale: forSale,
         authState: AuthState.authenticated(
           _authUser(id: 'buyer-nav'),
           emailVerified: true,
@@ -329,15 +329,15 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(320, 640));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final listing = _listing(
-      id: 'listing-no-nego',
+    final forSale = _listing(
+      id: 'forSale-no-nego',
       sellerId: 'seller-no-nego',
       capabilities: _buyerNoNegotiationCaps,
     );
 
     await tester.pumpWidget(
       _wrap(
-        listing: listing,
+        forSale: forSale,
         authState: AuthState.authenticated(
           _authUser(id: 'buyer-no-nego'),
           emailVerified: true,
@@ -359,15 +359,15 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(320, 640));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final listing = _listing(
-        id: 'listing-inactive',
+      final forSale = _listing(
+        id: 'forSale-inactive',
         sellerId: 'seller-inactive',
         capabilities: _sellerInactiveCaps,
       );
 
       await tester.pumpWidget(
         _wrap(
-          listing: listing,
+          forSale: forSale,
           authState: AuthState.authenticated(
             _authUser(id: 'buyer-inactive'),
             emailVerified: true,
@@ -394,15 +394,15 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(360, 640));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final listing = _listing(
-      id: 'listing-owner',
+    final forSale = _listing(
+      id: 'forSale-owner',
       sellerId: 'seller-owner',
       capabilities: _ownerCaps,
     );
 
     await tester.pumpWidget(
       _wrap(
-        listing: listing,
+        forSale: forSale,
         authState: AuthState.authenticated(
           _authUser(id: 'seller-owner'),
           emailVerified: true,
@@ -427,15 +427,15 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(320, 640));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final listing = _listing(
-      id: 'listing-guest',
+    final forSale = _listing(
+      id: 'forSale-guest',
       sellerId: 'seller-guest',
       capabilities: null,
       media: _detailMedia(),
     );
 
     await tester.pumpWidget(
-      _wrap(listing: listing, authState: const AuthState.unauthenticated()),
+      _wrap(forSale: forSale, authState: const AuthState.unauthenticated()),
     );
     // Bounded pumps: media shimmer never settles under fake async.
     await tester.pump();
@@ -458,15 +458,15 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(600, 2200));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final listing = _listing(
-      id: 'listing-report',
+    final forSale = _listing(
+      id: 'forSale-report',
       sellerId: 'seller-report',
       capabilities: _buyerNoNegotiationCaps,
     );
 
     await tester.pumpWidget(
       _wrap(
-        listing: listing,
+        forSale: forSale,
         authState: AuthState.authenticated(
           _authUser(id: 'buyer-report'),
           emailVerified: true,
@@ -484,4 +484,4 @@ void main() {
     expect(find.text('Reporting For Sale'), findsOneWidget);
     expect(find.text('Submit Report'), findsOneWidget);
   });
-}
+}

@@ -95,7 +95,7 @@ func TestChatNotification_ActiveActive_Delivered(t *testing.T) {
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
-		EventType:   "chat.message.sent",
+		EventType:   events.EventChatMessageNotification,
 		AggregateID: roomID,
 		Payload:     makeChatPayload(senderID, recipientID, roomID, messageID),
 	}
@@ -146,7 +146,7 @@ func TestChatNotification_Blocked_NoDelivery(t *testing.T) {
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
-		EventType:   "chat.message.sent",
+		EventType:   events.EventChatMessageNotification,
 		AggregateID: roomID,
 		Payload:     makeChatPayload(senderID, recipientID, roomID, messageID),
 	}
@@ -188,7 +188,7 @@ func TestChatNotification_RecipientSuspended_NoDelivery(t *testing.T) {
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
-		EventType:   "chat.message.sent",
+		EventType:   events.EventChatMessageNotification,
 		AggregateID: roomID,
 		Payload:     makeChatPayload(senderID, recipientID, roomID, messageID),
 	}
@@ -230,7 +230,7 @@ func TestChatNotification_RecipientBanned_NoDelivery(t *testing.T) {
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
-		EventType:   "chat.message.sent",
+		EventType:   events.EventChatMessageNotification,
 		AggregateID: roomID,
 		Payload:     makeChatPayload(senderID, recipientID, roomID, messageID),
 	}
@@ -272,7 +272,7 @@ func TestChatNotification_SenderBanned_NoDelivery(t *testing.T) {
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
-		EventType:   "chat.message.sent",
+		EventType:   events.EventChatMessageNotification,
 		AggregateID: roomID,
 		Payload:     makeChatPayload(senderID, recipientID, roomID, messageID),
 	}
@@ -310,7 +310,7 @@ func TestChatNotification_SelfMessage_NoDelivery(t *testing.T) {
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
-		EventType:   "chat.message.sent",
+		EventType:   events.EventChatMessageNotification,
 		AggregateID: roomID,
 		Payload:     makeChatPayload(userID, userID, roomID, messageID), // sender == recipient
 	}
@@ -336,7 +336,7 @@ func TestChatNotification_InvalidPayload_Error(t *testing.T) {
 
 	event := platformevent.OutboxEvent{
 		ID:        uuid.New(),
-		EventType: "chat.message.sent",
+		EventType: events.EventChatMessageNotification,
 		Payload:   []byte("not-valid-json"),
 	}
 
@@ -378,7 +378,7 @@ func TestChatNotification_SenderSuspended_InAppOnly(t *testing.T) {
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
-		EventType:   "chat.message.sent",
+		EventType:   events.EventChatMessageNotification,
 		AggregateID: roomID,
 		Payload:     makeChatPayload(senderID, recipientID, roomID, messageID),
 	}
@@ -521,7 +521,7 @@ func TestChatMute_RecipientMutedSender_SuppressesDBAndPush(t *testing.T) {
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
-		EventType:   "chat.message.sent",
+		EventType:   events.EventChatMessageNotification,
 		AggregateID: roomID,
 		Payload:     makeChatPayload(senderID, recipientID, roomID, messageID),
 	}
@@ -558,7 +558,7 @@ func TestChatMute_NotMuted_DeliversDBAndPush(t *testing.T) {
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
-		EventType:   "chat.message.sent",
+		EventType:   events.EventChatMessageNotification,
 		AggregateID: roomID,
 		Payload:     makeChatPayload(senderID, recipientID, roomID, messageID),
 	}
@@ -598,7 +598,7 @@ func TestChatMute_SenderMutedRecipient_NoEffect(t *testing.T) {
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
-		EventType:   "chat.message.sent",
+		EventType:   events.EventChatMessageNotification,
 		AggregateID: roomID,
 		Payload:     makeChatPayload(senderID, recipientID, roomID, messageID),
 	}
@@ -632,7 +632,7 @@ func TestChatMute_MutualMute_RecipientSemanticsApply(t *testing.T) {
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
-		EventType:   "chat.message.sent",
+		EventType:   events.EventChatMessageNotification,
 		AggregateID: roomID,
 		Payload:     makeChatPayload(senderID, recipientID, roomID, messageID),
 	}
@@ -666,7 +666,7 @@ func TestChatMute_BlockPlusMute_BlockWins(t *testing.T) {
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
-		EventType:   "chat.message.sent",
+		EventType:   events.EventChatMessageNotification,
 		AggregateID: roomID,
 		Payload:     makeChatPayload(senderID, recipientID, roomID, messageID),
 	}
@@ -702,7 +702,7 @@ func TestChatMute_SuspendedRecipientPlusMute_AccountStatusWins(t *testing.T) {
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
-		EventType:   "chat.message.sent",
+		EventType:   events.EventChatMessageNotification,
 		AggregateID: roomID,
 		Payload:     makeChatPayload(senderID, recipientID, roomID, messageID),
 	}
@@ -770,7 +770,7 @@ func TestChatMute_PolicyError_FailOpen(t *testing.T) {
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
-		EventType:   "chat.message.sent",
+		EventType:   events.EventChatMessageNotification,
 		AggregateID: roomID,
 		Payload:     makeChatPayload(senderID, recipientID, roomID, messageID),
 	}
@@ -803,7 +803,7 @@ func TestChatMute_NoPolicySet_NoChange(t *testing.T) {
 
 	event := platformevent.OutboxEvent{
 		ID:          uuid.New(),
-		EventType:   "chat.message.sent",
+		EventType:   events.EventChatMessageNotification,
 		AggregateID: roomID,
 		Payload:     makeChatPayload(senderID, recipientID, roomID, messageID),
 	}

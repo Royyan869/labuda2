@@ -185,7 +185,7 @@ func TestIntegration_CanonicalSchemaIsNoOp(t *testing.T) {
 
 	dir := resolveMigrationsDir(t)
 
-	// First run applies all 41 migrations
+	// First run applies every migration in the chain
 	if err := Run(ctx, pool, dir); err != nil {
 		t.Fatalf("first Run: %v", err)
 	}
@@ -391,9 +391,37 @@ func TestIntegration_TestdbRecoveryPath(t *testing.T) {
 	var count int
 	_ = pool.QueryRow(ctx, `SELECT COUNT(*) FROM schema_migrations`).Scan(&count)
 	t.Logf("table state STEP 4 (recovered): %d migrations applied", count)
-	if count != 41 {
-		t.Fatalf("expected 41 migrations after recovery, got %d", count)
+	expectedCount, _ := expectedMigrationSet(t)
+	if count != expectedCount {
+		t.Fatalf("expected %d migrations after recovery, got %d", expectedCount, count)
 	}
+}
+
+// expectedMigrationSet derives the expected applied-migration count and max
+// version FROM THE MIGRATION DIRECTORY instead of a literal.
+//
+// WHY: these tests used to assert "41", which went stale at migration 000042
+// and never caught up. A hardcoded number makes this the only test that breaks
+// whenever a legitimate migration is added, hiding real chain breakage behind an
+// expected-number mismatch, and it silently claims the chain was verified while
+// the assertion was meaningless. Deriving the expectation keeps the check
+// exactly as strong — every migration file must be applied, and the highest one
+// must be present — and it stays true as the chain grows.
+func expectedMigrationSet(t *testing.T) (count int, maxVersion int) {
+	t.Helper()
+	migrations, err := LoadMigrations(resolveMigrationsDir(t))
+	if err != nil {
+		t.Fatalf("LoadMigrations: %v", err)
+	}
+	if len(migrations) == 0 {
+		t.Fatal("no migrations found: the chain must not be empty")
+	}
+	for _, m := range migrations {
+		if m.Version > maxVersion {
+			maxVersion = m.Version
+		}
+	}
+	return len(migrations), maxVersion
 }
 
 // --- Test 8: second clean testdb run succeeds ---
@@ -517,12 +545,13 @@ func TestIntegration_FailedMigrationDoesNotPoisonNextRun(t *testing.T) {
 	var finalCount int
 	_ = pool.QueryRow(ctx, `SELECT COUNT(*) FROM schema_migrations`).Scan(&finalCount)
 	t.Logf("table state AFTER recovery Run: %d migrations applied", finalCount)
-	if finalCount != 41 {
-		t.Fatalf("expected 41 applied migrations after recovery, got %d", finalCount)
+	expectedCount, _ := expectedMigrationSet(t)
+	if finalCount != expectedCount {
+		t.Fatalf("expected %d applied migrations after recovery, got %d", expectedCount, finalCount)
 	}
 }
 
-// --- Test: all 41 migrations apply ---
+// --- Test: every migration in the chain applies from a clean schema ---
 
 func TestIntegration_AllMigrationsApply(t *testing.T) {
 	cfg := loadConfig(t)
@@ -535,17 +564,19 @@ func TestIntegration_AllMigrationsApply(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 
+	expectedCount, expectedMaxVersion := expectedMigrationSet(t)
+
 	var count int
 	_ = pool.QueryRow(ctx, `SELECT COUNT(*) FROM schema_migrations`).Scan(&count)
 	t.Logf("table state AFTER: %d migrations applied", count)
-	if count != 41 {
-		t.Fatalf("expected 41 migrations, got %d", count)
+	if count != expectedCount {
+		t.Fatalf("expected %d migrations, got %d", expectedCount, count)
 	}
 
 	var maxVersion int
 	_ = pool.QueryRow(ctx, `SELECT COALESCE(MAX(version), 0) FROM schema_migrations`).Scan(&maxVersion)
-	if maxVersion != 41 {
-		t.Fatalf("expected max version 41, got %d", maxVersion)
+	if maxVersion != expectedMaxVersion {
+		t.Fatalf("expected max version %d, got %d", expectedMaxVersion, maxVersion)
 	}
 }
 

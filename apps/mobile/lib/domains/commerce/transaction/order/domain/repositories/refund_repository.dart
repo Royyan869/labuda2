@@ -30,7 +30,7 @@ abstract class RefundRepository {
     String refundId,
   );
 
-  // Order-scoped refund history listing (used by refund history pager)
+  // Order-scoped refund history forSale (used by refund history pager)
   Future<RepositoryResult<RefundHistoryPageResult>> listOrderRefundHistory(
     ListOrderRefundHistoryParams params,
   );

@@ -11,9 +11,9 @@ void main() {
       ).readAsStringSync();
 
       expect(source, contains('MediaCarouselWidget('));
-      expect(source, contains('media: listing.media'));
+      expect(source, contains('media: forSale.media'));
       expect(source, isNot(contains('VideoPlayerController')));
       expect(source, isNot(contains('Chewie')));
     },
   );
-}
+}

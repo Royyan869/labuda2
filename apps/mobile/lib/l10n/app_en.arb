@@ -1356,8 +1356,8 @@
     "description": "Pro seller price"
   },
 
-  "unlimitedProductListings": "Unlimited collection listings",
-  "@unlimitedProductListings": {
+  "unlimitedForSale": "Unlimited For Sale",
+  "@unlimitedForSale": {
     "description": "Pro seller feature 1"
   },
 
@@ -1376,8 +1376,8 @@
     "description": "Pro seller feature 5"
   },
 
-  "featuredListings": "Featured listings",
-  "@featuredListings": {
+  "featuredForSale": "Featured For Sale",
+  "@featuredForSale": {
     "description": "Pro seller feature 6"
   },
 
@@ -1766,7 +1766,7 @@
     "description": "Article: Become seller"
   },
 
-  "articleBecomeSellerContent": "To become a seller on LABUDA:\n\n1. Go to Settings → Upgrade to Seller\n2. Choose your plan (Basic or Pro)\n3. Fill in your business information\n4. Complete payment for the subscription\n5. Wait for verification approval\n\nOnce approved, you can start listing your koi for sale!",
+  "articleBecomeSellerContent": "To become a seller on LABUDA:\n\n1. Go to Settings → Upgrade to Seller\n2. Choose your plan (Basic or Pro)\n3. Fill in your business information\n4. Complete payment for the subscription\n5. Wait for verification approval\n\nOnce approved, you can start creating For Sale for your koi for sale!",
   "@articleBecomeSellerContent": {
     "description": "Article: Become seller content"
   },
@@ -1811,13 +1811,13 @@
     "description": "Article: Refund time content"
   },
 
-  "articleCreateListing": "How to create a listing?",
-  "@articleCreateListing": {
+  "articleCreateForSale": "How to create a For Sale?",
+  "@articleCreateForSale": {
     "description": "Article: Create listing"
   },
 
-  "articleCreateListingContent": "To create a new listing:\n\n1. Tap the + button on the home screen\n2. Select 'Listing'\n3. Add photos of your koi (multiple angles recommended)\n4. Fill in details (variety, size, price, location)\n5. Write a description\n6. Publish your listing\n\nYour listing will be visible to buyers immediately!",
-  "@articleCreateListingContent": {
+  "articleCreateForSaleContent": "To create a new For Sale:\n\n1. Tap the + button on the home screen\n2. Select 'For Sale'\n3. Add photos of your koi (multiple angles recommended)\n4. Fill in details (variety, size, price, location)\n5. Write a description\n6. Publish your For Sale\n\nYour For Sale will be visible to buyers immediately!",
+  "@articleCreateForSaleContent": {
     "description": "Article: Create listing content"
   },
 

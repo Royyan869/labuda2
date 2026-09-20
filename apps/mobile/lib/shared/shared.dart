@@ -50,7 +50,7 @@ export 'widgets/error_widget.dart'; // ⭐ Error handling
 export 'widgets/app_image.dart'; // ⭐ Image component
 export 'widgets/keyboard_dismiss_wrapper.dart'; // ⭐ Global keyboard dismiss
 // export 'widgets/presence_auth_sync.dart';    // ✅ Removed - migrated to API-based presence
-export 'widgets/online_avatar_widget.dart'; // ⭐ Avatar with online status indicator
+// export 'widgets/online_avatar_widget.dart'; // ✅ Removed - obsolete presence (Slice-5)
 // export 'widgets/quick_create_bar.dart';     // ✅ Removed - using bottom nav + icon instead
 export 'widgets/language_selector.dart'; // ⭐ Language selection
 export 'widgets/theme_selector.dart'; // ⭐ Theme selection
@@ -126,8 +126,7 @@ export 'providers/authenticated_account_provider.dart'; // ⭐ Hydrated account 
 export 'providers/auth_status_providers.dart'; // ⭐ Auth status / guard providers
 export 'src/providers/upload_progress_provider.dart'; // ⭐ Upload progress state management
 
-// Helper exports
-export 'helpers/user_initials_helper.dart'; // ⭐ Consistent user initials generation
+// Helper exports — user_initials_helper removed (converged to user_identity_formatter)
 
 // Utils exports
 export 'utils/currency_input_formatter.dart'; // ⭐ Currency input formatter for Rupiah

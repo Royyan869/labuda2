@@ -273,44 +273,73 @@ void main() {
   });
 
   group('Full pipeline proof — from backend JSON to presenter', () {
+    test('Backend 403 JSON → ErrorInterceptor → ForbiddenException → '
+        'CommerceRestrictionPresenter.isCommerceRestricted → true', () {
+      // Step 1: Backend produces exact JSON (simulate JSON decode as real HTTP would)
+      final backendJson = jsonEncode(_commerceRestrictedBody);
+      final parsedBody = jsonDecode(backendJson) as Map<String, dynamic>;
+
+      // Step 2: ErrorInterceptor parses the Response (real parsing path)
+      final apiException = _runInterceptor(
+        statusCode: 403,
+        body: parsedBody,
+      );
+
+      // Step 3: Verify canonical presenter recognizes it
+      expect(apiException, isA<ForbiddenException>());
+      expect(
+        CommerceRestrictionPresenter.isCommerceRestricted(
+          apiException.code,
+        ),
+        isTrue,
+      );
+
+      // Step 4: Verify canonical constant matches
+      expect(apiException.code, equals(codes.commerceRestricted));
+
+      // Step 5: Verify message preserves backend content — NOT account suspension
+      expect(apiException.message, contains('dibatasi'));
+      expect(
+        apiException.message.toLowerCase(),
+        isNot(contains('diblokir')),
+      );
+      expect(
+        apiException.message.toLowerCase(),
+        isNot(contains('ditangguhkan')),
+      );
+    });
+
     test(
-      'Backend 403 JSON → ErrorInterceptor → ForbiddenException → '
-      'CommerceRestrictionPresenter.isCommerceRestricted → true',
-      () {
-        // Step 1: Backend produces exact JSON (simulate JSON decode as real HTTP would)
-        final backendJson = jsonEncode(_commerceRestrictedBody);
-        final parsedBody = jsonDecode(backendJson) as Map<String, dynamic>;
+        'Backend 403 MARKET_AUTHORITY_REQUIRED → ForbiddenException with code unchanged',
+        () {
+      // Exact backend JSON for the new canonical error contract.
+      const marketAuthorityRequiredBody = {
+        'success': false,
+        'error': {
+          'code': 'MARKET_AUTHORITY_REQUIRED',
+          'message': 'Active seller subscription required to perform market operations.',
+        },
+      };
 
-        // Step 2: ErrorInterceptor parses the Response (real parsing path)
-        final apiException = _runInterceptor(
-          statusCode: 403,
-          body: parsedBody,
-        );
+      final backendJson = jsonEncode(marketAuthorityRequiredBody);
+      final parsedBody = jsonDecode(backendJson) as Map<String, dynamic>;
 
-        // Step 3: Verify canonical presenter recognizes it
-        expect(apiException, isA<ForbiddenException>());
-        expect(
-          CommerceRestrictionPresenter.isCommerceRestricted(
-            apiException.code,
-          ),
-          isTrue,
-        );
+      final apiException = _runInterceptor(
+        statusCode: 403,
+        body: parsedBody,
+      );
 
-        // Step 4: Verify canonical constant matches
-        expect(apiException.code, equals(codes.commerceRestricted));
+      expect(apiException, isA<ForbiddenException>());
 
-        // Step 5: Verify message preserves backend content — NOT account suspension
-        expect(apiException.message, contains('dibatasi'));
-        expect(
-          apiException.message.toLowerCase(),
-          isNot(contains('diblokir')),
-        );
-        expect(
-          apiException.message.toLowerCase(),
-          isNot(contains('ditangguhkan')),
-        );
-      },
-    );
+      final forbidden = apiException as ForbiddenException;
+      expect(forbidden.code, equals(codes.marketAuthorityRequired));
+      expect(forbidden.statusCode, equals(403));
+      expect(forbidden.code, isNot(equals('FORBIDDEN')));
+      expect(
+        CommerceRestrictionPresenter.isCommerceRestricted(forbidden.code),
+        isFalse,
+      );
+    });
   });
 }
 

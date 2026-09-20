@@ -211,8 +211,8 @@ func TestContentAccessVisibilityMatrix_RealDB(t *testing.T) {
 			"non-follower must not comment on a followers_only parent")
 		require.Equal(t, http.StatusCreated, postCommentAsViewer(t, commentHandler, followersOnlyContent, follower).Code,
 			"follower must be able to comment on a followers_only parent")
-		require.Equal(t, http.StatusForbidden, postCommentAsViewer(t, commentHandler, publicContent, blockedViewer).Code,
-			"bidirectional block must deny comment creation")
+		require.Equal(t, http.StatusBadRequest, postCommentAsViewer(t, commentHandler, publicContent, blockedViewer).Code,
+			"bidirectional block must deny comment creation via the canonical service authorization")
 	})
 
 	t.Run("repost target authorization is viewer-aware", func(t *testing.T) {
@@ -231,9 +231,9 @@ func TestContentAccessVisibilityMatrix_RealDB(t *testing.T) {
 			contentID uuid.UUID
 			viewerID  uuid.UUID
 		}{
-			"private source, non-owner":            {contentID: privateContent, viewerID: stranger},
+			"private source, non-owner":           {contentID: privateContent, viewerID: stranger},
 			"followers_only source, non-follower": {contentID: followersOnlyContent, viewerID: stranger},
-			"public source, blocked viewer":        {contentID: publicContent, viewerID: blockedViewer},
+			"public source, blocked viewer":       {contentID: publicContent, viewerID: blockedViewer},
 		} {
 			w := postRepostAsViewer(t, contentHandler, tc.contentID, tc.viewerID)
 			require.NotEqual(t, http.StatusCreated, w.Code,

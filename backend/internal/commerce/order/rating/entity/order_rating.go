@@ -49,14 +49,16 @@ func (e *ErrInvalidRatingValue) Error() string {
 
 // ErrOrderNotCompleted is returned when attempting to rate a non-completed order.
 type ErrOrderNotCompleted struct {
-	OrderID   uuid.UUID
-	Status    string
-	OrderType string
+	OrderID uuid.UUID
+	Status  string
+	// SourceType is the order's canonical source_type (for_sale, seller_quote,
+	// auction, negotiation) — orders has no order_type column.
+	SourceType string
 }
 
 func (e *ErrOrderNotCompleted) Error() string {
-	if e.OrderType != "" {
-		return fmt.Sprintf("cannot rate order: %s is not completed (status: %s, type: %s)", e.OrderID, e.Status, e.OrderType)
+	if e.SourceType != "" {
+		return fmt.Sprintf("cannot rate order: %s is not completed (status: %s, type: %s)", e.OrderID, e.Status, e.SourceType)
 	}
 	return fmt.Sprintf("cannot rate order: %s is not completed (status: %s)", e.OrderID, e.Status)
 }

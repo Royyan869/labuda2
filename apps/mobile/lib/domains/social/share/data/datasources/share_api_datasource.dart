@@ -21,7 +21,7 @@ class ShareApiDatasource {
   ///
   /// SHARE CONTRACT V1: Single canonical path for ALL share types.
   /// - Content shares: target_type=content, target_id=content ID
-  /// - Non-content shares (listing, auction, profile): target_type + target_id
+  /// - Non-content shares (forSale, auction, profile): target_type + target_id
   /// - Backend routes through CreateInternalShare() for all target types
   Future<Map<String, dynamic>> createRepost({
     required String originalContentId,

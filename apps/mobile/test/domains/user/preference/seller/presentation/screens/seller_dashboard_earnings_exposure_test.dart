@@ -198,7 +198,6 @@ SellerEarnings _earnings({
   double pendingRevenue = 0,
   double withdrawalFeeAmount = 5000,
   double? grossPayable = 130000,
-  double? activeDisputeFreeze = 5000,
 }) {
   return SellerEarnings(
     sellerId: _sellerUser().id,
@@ -212,7 +211,6 @@ SellerEarnings _earnings({
     totalCompletedOrders: 0,
     calculatedAt: DateTime.utc(2026, 8, 1),
     grossPayable: grossPayable,
-    activeDisputeFreeze: activeDisputeFreeze,
   );
 }
 

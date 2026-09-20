@@ -2,7 +2,7 @@
 /// Central hub untuk Product dan Auction
 ///
 /// This is a presentation-only module that aggregates
-/// content from other features (listing, auction).
+/// content from other features (forSale, auction).
 library;
 
 export 'presentation/providers/explore_state.dart';

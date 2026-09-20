@@ -8,6 +8,8 @@ import 'package:labuda/domains/user/preference/seller/data/data.dart'
 import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/profile_core_provider.dart';
 import 'package:labuda/domains/user/profile/data/services/cover_photo_upload_service.dart';
+import 'package:labuda/domains/user/preference/seller/data/seller_providers.dart'
+    show sellerRemoteDatasourceProvider;
 import 'package:labuda/domains/user/profile/data/services/avatar_upload_service.dart';
 import 'edit_profile_validators.dart';
 
@@ -117,18 +119,39 @@ mixin EditProfileSaveHandler<T extends ConsumerStatefulWidget>
       fields['coverPhotoUrl'] = coverResult.url;
     }
 
-    // 2. Handle farm info (seller only)
+    // 2. Handle farm info (seller only) — canonical seller identity via PATCH /seller/profile
+    FarmInfo? pendingFarmInfo;
     if (isSeller) {
       final farmResult = await prepareFarmInfo(profile);
       if (farmResult == null) return false; // Error occurred
-      fields['farmInfo'] = farmResult;
+      pendingFarmInfo = farmResult;
     }
 
     // 3. Prepare contact info
     final contactInfo = prepareContactInfo();
     fields['contactInfo'] = contactInfo;
 
-    // 4. Update all fields in a single call
+    // 4a. Persist seller identity via canonical PATCH /seller/profile if needed
+    // Only send store_image_url when it actually changed (new upload or removal) — prevents resending
+    // existing read_url which would be rejected by canonical storage-key validation.
+    if (pendingFarmInfo != null) {
+      try {
+        final sellerDs = ref.read(sellerRemoteDatasourceProvider);
+        final bool imageChanged = isStorePhotoMarkedForRemoval || selectedStorePhotoPath != null;
+        final String? imageToSend = imageChanged
+            ? (isStorePhotoMarkedForRemoval ? '' : pendingFarmInfo.farmPhotoUrl)
+            : null;
+        await sellerDs.updateSellerProfile(
+          storeName: pendingFarmInfo.farmName,
+          storeImageUrl: imageToSend,
+        );
+      } catch (e) {
+        if (mounted) AppSnackBar.showError(context, 'Gagal memperbarui toko: $e');
+        return false;
+      }
+    }
+
+    // 4b. Update remaining profile fields in a single call
     if (fields.isNotEmpty) {
       try {
         await ref.read(profileActionsProvider).updateFields(profile, fields);

@@ -4,15 +4,17 @@ import 'package:dio/dio.dart';
 import 'package:blurhash_dart/blurhash_dart.dart';
 import 'package:image/image.dart' as img;
 import 'package:labuda/core/api/api_client.dart';
+import 'package:labuda/core/api/exceptions/api_exception.dart';
 import 'package:labuda/core/common/result.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'blurhash_cache_service.dart';
 
-/// Result of an S3 upload operation containing both the object key and public URL.
+/// Result of an S3 upload operation containing both the object key and read URL.
 ///
 /// [key] — the raw S3 object key (e.g. `images/1749600000000_photo.jpg`).
 ///          Does not contain scheme or host. Suitable as a DB storage_key.
-/// [url] — the public CDN or S3 URL for display (contains https:// scheme).
+/// [url] — the canonical read/display URL (`read_url` from `/media/upload-url`,
+///          CDN-resolved when configured, else raw S3). Contains https:// scheme.
 class S3UploadResult {
   final String key;
   final String url;
@@ -20,7 +22,7 @@ class S3UploadResult {
   const S3UploadResult({required this.key, required this.url});
 }
 
-/// S3Service — client-side S3 upload/delete service.
+/// S3Service — client-side S3 upload service.
 ///
 /// ## Credential model (SECURE_STORAGE_SECOND_PASS)
 /// AWS credentials are NEVER held by this class. All uploads go through a
@@ -46,12 +48,20 @@ class S3Service {
 
   // Plain Dio for S3 PUT requests. No auth interceptors; the presigned URL
   // carries the AWS credential in its query string.
-  final Dio _rawDio = Dio();
+  Dio _rawDio = Dio();
 
   S3Service();
 
   /// Must be called by [s3ServiceProvider] before any upload.
   static void setApiClient(ApiClient client) => _sharedApiClient = client;
+
+  /// Test seam: inject the transport used for presigned PUT requests.
+  ///
+  /// Presigned PUTs deliberately bypass [ApiClient] (they must not carry the
+  /// Labuda JWT), so they cannot be isolated through `ApiClient.dio`. Production
+  /// never calls this; the default remains a plain [Dio].
+  @visibleForTesting
+  void setRawDioForTest(Dio dio) => _rawDio = dio;
 
   ApiClient get _apiClient {
     final c = _sharedApiClient;
@@ -100,32 +110,39 @@ class S3Service {
 
       // Step 2: PUT file bytes to presigned URL (no AWS auth headers needed).
       final fileBytes = await imageFile.readAsBytes();
-      final putResp = await _rawDio.put(
-        uploadUrl,
-        data: fileBytes,
-        options: Options(headers: {'Content-Type': contentType}),
-      );
-
-      if (putResp.statusCode == 200 || putResp.statusCode == 204) {
-        return Result.success(storageKey);
+      final putResult = await _putToPresignedUrl(uploadUrl, fileBytes, contentType);
+      if (putResult.isError) {
+        return Result.error(
+          putResult.error ?? 'Upload KYC gagal',
+          code: putResult.errorCode,
+          statusCode: putResult.statusCode,
+        );
       }
-      return Result.error('Upload KYC gagal: ${putResp.statusCode}');
+      return Result.success(storageKey);
+    } on DioException catch (e) {
+      final ex = _extractApiException(e);
+      return Result.error(
+        ex.message,
+        code: ex.code,
+        statusCode: ex.statusCode,
+      );
     } catch (e) {
       return Result.error('Gagal upload dokumen KYC');
     }
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // General Media Uploads (presigned PUT, public CDN URL returned)
+  // General Media Uploads (presigned PUT, canonical read_url)
   // ──────────────────────────────────────────────────────────────────────────
 
   /// Requests a presigned PUT URL from the backend for a general media file.
-  /// Returns [_MediaPresignResult] with upload_url, storage_key, and public_url.
+  /// Returns a [Result] with [_MediaPresignResult] on success, preserving
+  /// backend error code/status when available.
   ///
   /// When [storageKey] is provided it is passed to the backend as the desired
   /// canonical fixed key (avatars/stores/profile-covers) — the backend
   /// validates ownership and either honors it or rejects the request.
-  Future<_MediaPresignResult?> _requestMediaPresignURL(
+  Future<Result<_MediaPresignResult>> _requestMediaPresignURL(
     String contentType,
     String folder, {
     String? storageKey,
@@ -139,28 +156,82 @@ class S3Service {
           'storage_key': ?storageKey,
         },
       );
-      final data = resp.data?['data'] as Map<String, dynamic>?;
-      if (data == null) return null;
+      final raw = resp.data;
+      // Handle backend error envelope for non-thrown 4xx (validateStatus <500)
+      if (raw is Map<String, dynamic>) {
+        final success = raw['success'] as bool?;
+        if (success == false && raw['error'] is Map<String, dynamic>) {
+          final err = raw['error'] as Map<String, dynamic>;
+          final code = err['code'] as String?;
+          final message = err['message'] as String? ?? 'Presign failed';
+          return Result.error(
+            message,
+            code: code,
+            statusCode: resp.statusCode,
+          );
+        }
+      }
+      final data = raw?['data'] as Map<String, dynamic>?;
+      if (data == null) {
+        return Result.error(
+          'Gagal mendapatkan URL upload',
+          code: 'EMPTY_DATA',
+          statusCode: resp.statusCode,
+        );
+      }
       final uploadUrl = data['upload_url'] as String?;
       final key = data['storage_key'] as String?;
-      final publicUrl = data['public_url'] as String?;
       final readUrl = data['read_url'] as String?;
       if (uploadUrl == null || key == null) {
-        return null;
+        return Result.error(
+          'Respons URL upload tidak valid',
+          code: 'INVALID_RESPONSE',
+          statusCode: resp.statusCode,
+        );
       }
-      return _MediaPresignResult(
-        uploadUrl: uploadUrl,
-        storageKey: key,
-        publicUrl: publicUrl ?? readUrl ?? '',
-        readUrl: readUrl ?? '',
+      if (readUrl == null || readUrl.isEmpty) {
+        return Result.error(
+          'Respons read_url tidak valid',
+          code: 'INVALID_RESPONSE',
+          statusCode: resp.statusCode,
+        );
+      }
+      return Result.success(
+        _MediaPresignResult(
+          uploadUrl: uploadUrl,
+          storageKey: key,
+          readUrl: readUrl,
+        ),
       );
-    } catch (_) {
-      return null;
+    } on DioException catch (e) {
+      final ex = _extractApiException(e);
+      return Result.error(
+        ex.message,
+        code: ex.code,
+        statusCode: ex.statusCode,
+        details: ex.details is Map<String, dynamic>
+            ? ex.details as Map<String, dynamic>
+            : null,
+      );
+    } catch (e) {
+      return Result.error('Gagal mendapatkan URL upload: ${e.toString()}');
     }
   }
 
-  /// PUT file bytes to an S3 presigned URL. Returns true on success.
-  Future<bool> _putToPresignedUrl(
+  ApiException _extractApiException(DioException e) {
+    try {
+      return _apiClient.extractException(e);
+    } catch (_) {
+      return UnknownApiException(
+        message: e.message ?? 'Presign failed',
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
+
+  /// PUT file bytes to an S3 presigned URL. Returns `Result<void>` preserving
+  /// HTTP status on failure. No GET/HEAD verification is performed.
+  Future<Result<void>> _putToPresignedUrl(
     String presignedUrl,
     Uint8List bytes,
     String contentType,
@@ -171,9 +242,30 @@ class S3Service {
         data: bytes,
         options: Options(headers: {'Content-Type': contentType}),
       );
-      return resp.statusCode == 200 || resp.statusCode == 204;
-    } catch (_) {
-      return false;
+      final code = resp.statusCode;
+      if (code == 200 || code == 204) {
+        return Result.success(null);
+      }
+      return Result.error(
+        'Upload gagal: $code',
+        statusCode: code,
+      );
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      final message = e.message ?? 'Upload gagal';
+      // Raw Dio has no ErrorInterceptor, so use DioException details directly.
+      // For body-provided errors, try to surface S3 message without leaking URL.
+      String? bodyMessage;
+      final data = e.response?.data;
+      if (data is String && data.isNotEmpty && data.length < 500) {
+        bodyMessage = data;
+      }
+      return Result.error(
+        bodyMessage != null ? 'Upload gagal: $bodyMessage' : 'Upload gagal: $message',
+        statusCode: statusCode,
+      );
+    } catch (e) {
+      return Result.error('Upload error: ${e.toString()}');
     }
   }
 
@@ -186,25 +278,37 @@ class S3Service {
         );
       }
       const contentType = 'video/mp4';
-      final presign = await _requestMediaPresignURL(contentType, 'videos');
-      if (presign == null)
-        return Result.error('Gagal mendapatkan URL upload video');
-
+      final presignResult = await _requestMediaPresignURL(contentType, 'videos');
+      if (presignResult.isError) {
+        return Result.error(
+          presignResult.error ?? 'Gagal mendapatkan URL upload video',
+          code: presignResult.errorCode,
+          statusCode: presignResult.statusCode,
+          details: presignResult.errorDetails,
+        );
+      }
+      final presign = presignResult.data!;
       final bytes = await videoFile.readAsBytes();
-      final ok = await _putToPresignedUrl(
+      final putResult = await _putToPresignedUrl(
         presign.uploadUrl,
         bytes,
         contentType,
       );
-      if (!ok) return Result.error('Upload video gagal');
+      if (putResult.isError) {
+        return Result.error(
+          putResult.error ?? 'Upload video gagal',
+          code: putResult.errorCode,
+          statusCode: putResult.statusCode,
+        );
+      }
 
-      return Result.success(presign.publicUrl);
+      return Result.success(presign.readUrl);
     } catch (e) {
       return Result.error('Video upload error');
     }
   }
 
-  /// Upload image and return both the S3 object key and the public URL.
+  /// Upload image and return both the S3 object key and the read URL.
   Future<Result<S3UploadResult>> uploadImageWithMeta(File imageFile) async {
     try {
       if (imageFile.path.startsWith('blob:')) {
@@ -217,28 +321,40 @@ class S3Service {
           _contentTypeFromExt(fileName.split('.').last.toLowerCase()) ??
           'image/jpeg';
 
-      final presign = await _requestMediaPresignURL(contentType, 'images');
-      if (presign == null)
-        return Result.error('Gagal mendapatkan URL upload gambar');
-
+      final presignResult = await _requestMediaPresignURL(contentType, 'images');
+      if (presignResult.isError) {
+        return Result.error(
+          presignResult.error ?? 'Gagal mendapatkan URL upload gambar',
+          code: presignResult.errorCode,
+          statusCode: presignResult.statusCode,
+          details: presignResult.errorDetails,
+        );
+      }
+      final presign = presignResult.data!;
       final bytes = await imageFile.readAsBytes();
-      final ok = await _putToPresignedUrl(
+      final putResult = await _putToPresignedUrl(
         presign.uploadUrl,
         bytes,
         contentType,
       );
-      if (!ok) return Result.error('Upload gambar gagal');
+      if (putResult.isError) {
+        return Result.error(
+          putResult.error ?? 'Upload gambar gagal',
+          code: putResult.errorCode,
+          statusCode: putResult.statusCode,
+        );
+      }
 
-      await _generateAndCacheBlurhash(bytes, presign.publicUrl);
+      await _generateAndCacheBlurhash(bytes, presign.readUrl);
       return Result.success(
-        S3UploadResult(key: presign.storageKey, url: presign.publicUrl),
+        S3UploadResult(key: presign.storageKey, url: presign.readUrl),
       );
     } catch (e) {
       return Result.error('Image upload error');
     }
   }
 
-  /// Upload video and return both the S3 object key and the public URL.
+  /// Upload video and return both the S3 object key and the read URL.
   Future<Result<S3UploadResult>> uploadVideoWithMeta(File videoFile) async {
     try {
       if (videoFile.path.startsWith('blob:')) {
@@ -247,20 +363,32 @@ class S3Service {
         );
       }
       const contentType = 'video/mp4';
-      final presign = await _requestMediaPresignURL(contentType, 'videos');
-      if (presign == null)
-        return Result.error('Gagal mendapatkan URL upload video');
-
+      final presignResult = await _requestMediaPresignURL(contentType, 'videos');
+      if (presignResult.isError) {
+        return Result.error(
+          presignResult.error ?? 'Gagal mendapatkan URL upload video',
+          code: presignResult.errorCode,
+          statusCode: presignResult.statusCode,
+          details: presignResult.errorDetails,
+        );
+      }
+      final presign = presignResult.data!;
       final bytes = await videoFile.readAsBytes();
-      final ok = await _putToPresignedUrl(
+      final putResult = await _putToPresignedUrl(
         presign.uploadUrl,
         bytes,
         contentType,
       );
-      if (!ok) return Result.error('Upload video gagal');
+      if (putResult.isError) {
+        return Result.error(
+          putResult.error ?? 'Upload video gagal',
+          code: putResult.errorCode,
+          statusCode: putResult.statusCode,
+        );
+      }
 
       return Result.success(
-        S3UploadResult(key: presign.storageKey, url: presign.publicUrl),
+        S3UploadResult(key: presign.storageKey, url: presign.readUrl),
       );
     } catch (e) {
       return Result.error('Video upload error');
@@ -280,22 +408,34 @@ class S3Service {
           _contentTypeFromExt(fileName.split('.').last.toLowerCase()) ??
           'image/jpeg';
 
-      final presign = await _requestMediaPresignURL(contentType, 'images');
-      if (presign == null)
-        return Result.error('Gagal mendapatkan URL upload gambar');
-
+      final presignResult = await _requestMediaPresignURL(contentType, 'images');
+      if (presignResult.isError) {
+        return Result.error(
+          presignResult.error ?? 'Gagal mendapatkan URL upload gambar',
+          code: presignResult.errorCode,
+          statusCode: presignResult.statusCode,
+          details: presignResult.errorDetails,
+        );
+      }
+      final presign = presignResult.data!;
       final bytes = await imageFile.readAsBytes();
       final blurhash = await _generateBlurhash(bytes);
-      final ok = await _putToPresignedUrl(
+      final putResult = await _putToPresignedUrl(
         presign.uploadUrl,
         bytes,
         contentType,
       );
-      if (!ok) return Result.error('Upload gambar gagal');
+      if (putResult.isError) {
+        return Result.error(
+          putResult.error ?? 'Upload gambar gagal',
+          code: putResult.errorCode,
+          statusCode: putResult.statusCode,
+        );
+      }
 
       final mediaEntity = MediaEntity(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        originalUrl: presign.publicUrl,
+        originalUrl: presign.readUrl,
         type: MediaType.image,
         blurhash: blurhash,
         createdAt: DateTime.now(),
@@ -306,7 +446,7 @@ class S3Service {
     }
   }
 
-  /// Upload image to S3 (legacy method — returns URL only).
+  /// Upload image to S3 (legacy method — returns URL only, canonical read_url).
   Future<Result<String>> uploadImage(File imageFile) async {
     try {
       if (imageFile.path.startsWith('blob:')) {
@@ -319,36 +459,35 @@ class S3Service {
           _contentTypeFromExt(fileName.split('.').last.toLowerCase()) ??
           'image/jpeg';
 
-      final presign = await _requestMediaPresignURL(contentType, 'images');
-      if (presign == null)
-        return Result.error('Gagal mendapatkan URL upload gambar');
-
+      final presignResult = await _requestMediaPresignURL(contentType, 'images');
+      if (presignResult.isError) {
+        return Result.error(
+          presignResult.error ?? 'Gagal mendapatkan URL upload gambar',
+          code: presignResult.errorCode,
+          statusCode: presignResult.statusCode,
+          details: presignResult.errorDetails,
+        );
+      }
+      final presign = presignResult.data!;
       final bytes = await imageFile.readAsBytes();
-      final ok = await _putToPresignedUrl(
+      final putResult = await _putToPresignedUrl(
         presign.uploadUrl,
         bytes,
         contentType,
       );
-      if (!ok) return Result.error('Upload gambar gagal');
+      if (putResult.isError) {
+        return Result.error(
+          putResult.error ?? 'Upload gambar gagal',
+          code: putResult.errorCode,
+          statusCode: putResult.statusCode,
+        );
+      }
 
-      await _generateAndCacheBlurhash(bytes, presign.publicUrl);
-      return Result.success(presign.publicUrl);
+      await _generateAndCacheBlurhash(bytes, presign.readUrl);
+      return Result.success(presign.readUrl);
     } catch (e) {
       return Result.error('Image upload error');
     }
-  }
-
-  /// Upload image with a fixed key (avatar/cover replacement pattern).
-  ///
-  /// NOTE: fixed-key uploads are not supported by the presigned URL flow
-  /// (backend controls key generation). This falls through to [uploadImage]
-  /// and the [key] parameter is ignored — storage_key is backend-assigned.
-  /// Update callers to use [uploadImageWithMeta] and store the returned key.
-  ///
-  /// @deprecated Use [uploadImageWithFixedKey] which actually requests the
-  /// canonical fixed key from the backend.
-  Future<Result<String>> uploadImageWithKey(File imageFile, String key) async {
-    return uploadImage(imageFile);
   }
 
   /// Upload an image to a canonical fixed storage key (avatar / cover /
@@ -374,27 +513,38 @@ class S3Service {
           'image/jpeg';
 
       final folder = key.contains('/') ? key.split('/').first : 'images';
-      final presign = await _requestMediaPresignURL(
+      final presignResult = await _requestMediaPresignURL(
         contentType,
         folder,
         storageKey: key,
       );
-      if (presign == null) {
-        return Result.error('Gagal mendapatkan URL upload $mediaLabel');
+      if (presignResult.isError) {
+        return Result.error(
+          presignResult.error ?? 'Gagal mendapatkan URL upload $mediaLabel',
+          code: presignResult.errorCode,
+          statusCode: presignResult.statusCode,
+          details: presignResult.errorDetails,
+        );
       }
-
+      final presign = presignResult.data!;
       final bytes = await imageFile.readAsBytes();
-      final ok = await _putToPresignedUrl(
+      final putResult = await _putToPresignedUrl(
         presign.uploadUrl,
         bytes,
         contentType,
       );
-      if (!ok) return Result.error('Upload $mediaLabel gagal');
+      if (putResult.isError) {
+        return Result.error(
+          putResult.error ?? 'Upload $mediaLabel gagal',
+          code: putResult.errorCode,
+          statusCode: putResult.statusCode,
+        );
+      }
 
       return Result.success(
         S3UploadResult(
           key: presign.storageKey,
-          url: presign.readUrl.isNotEmpty ? presign.readUrl : presign.publicUrl,
+          url: presign.readUrl,
         ),
       );
     } catch (e) {
@@ -402,44 +552,49 @@ class S3Service {
     }
   }
 
-  /// Upload image bytes with a fixed key (e.g. QR code generation).
-  /// Falls through to the general image upload path; [key] is ignored.
-  Future<Result<String>> uploadImageBytesWithKey(
+  /// Upload image bytes to a canonical fixed storage key (e.g. cropped avatar bytes).
+  ///
+  /// Honors the supplied [key] via the same fixed-key backend contract as
+  /// [uploadImageWithFixedKey]. Used by [AvatarImageProcessor] for Uint8List payloads.
+  Future<Result<S3UploadResult>> uploadImageBytesWithFixedKey(
     Uint8List imageBytes,
     String key, {
     String contentType = 'image/png',
   }) async {
     try {
-      final presign = await _requestMediaPresignURL(contentType, 'images');
-      if (presign == null)
-        return Result.error('Gagal mendapatkan URL upload gambar');
-
-      final ok = await _putToPresignedUrl(
+      final folder = key.contains('/') ? key.split('/').first : 'images';
+      final presignResult = await _requestMediaPresignURL(
+        contentType,
+        folder,
+        storageKey: key,
+      );
+      if (presignResult.isError) {
+        return Result.error(
+          presignResult.error ?? 'Gagal mendapatkan URL upload gambar',
+          code: presignResult.errorCode,
+          statusCode: presignResult.statusCode,
+          details: presignResult.errorDetails,
+        );
+      }
+      final presign = presignResult.data!;
+      final putResult = await _putToPresignedUrl(
         presign.uploadUrl,
         imageBytes,
         contentType,
       );
-      if (!ok) return Result.error('Upload gambar gagal');
-      return Result.success(presign.publicUrl);
+      if (putResult.isError) {
+        return Result.error(
+          putResult.error ?? 'Upload gambar gagal',
+          code: putResult.errorCode,
+          statusCode: putResult.statusCode,
+        );
+      }
+      return Result.success(
+        S3UploadResult(key: presign.storageKey, url: presign.readUrl),
+      );
     } catch (e) {
       return Result.error('Image upload error');
     }
-  }
-
-  /// Delete a file from S3.
-  ///
-  /// File deletion is handled server-side via S3 lifecycle policies.
-  /// This method is a no-op stub that returns success immediately.
-  Future<Result<void>> deleteFile(String fileUrl) async {
-    // Deletion without AWS credentials is not supported client-side.
-    // Server-side lifecycle policies or a future backend DELETE endpoint
-    // should handle cleanup.
-    return Result.success(null);
-  }
-
-  /// Delete multiple files from S3 (stub — see [deleteFile]).
-  Future<Result<void>> deleteFiles(List<String> fileUrls) async {
-    return Result.success(null);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -496,15 +651,11 @@ class S3Service {
 class _MediaPresignResult {
   final String uploadUrl;
   final String storageKey;
-  final String publicUrl;
-
-  /// Canonical read URL (CDN-resolved) returned by the backend; may be empty
-  /// when the endpoint only provides public_url.
   final String readUrl;
+
   const _MediaPresignResult({
     required this.uploadUrl,
     required this.storageKey,
-    required this.publicUrl,
-    this.readUrl = '',
+    required this.readUrl,
   });
 }

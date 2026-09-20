@@ -13,13 +13,21 @@ export type SupportTicketStatus =
   | 'closed'
 
 /**
- * Support ticket category values
+ * Support ticket category values.
+ *
+ * Canonical vocabulary shared verbatim with the backend enum and the mobile
+ * client. There is no translation layer: these exact strings are accepted by
+ * the API and persisted.
  */
 export type SupportCategory =
   | 'order_issue'
   | 'payment_issue'
   | 'account_issue'
   | 'listing_issue'
+  | 'shipping_issue'
+  | 'refund_request'
+  | 'dispute'
+  | 'technical_issue'
   | 'other'
 
 /**
@@ -60,6 +68,10 @@ export const SUPPORT_CATEGORY = {
   PAYMENT_ISSUE: 'payment_issue',
   ACCOUNT_ISSUE: 'account_issue',
   LISTING_ISSUE: 'listing_issue',
+  SHIPPING_ISSUE: 'shipping_issue',
+  REFUND_REQUEST: 'refund_request',
+  DISPUTE: 'dispute',
+  TECHNICAL_ISSUE: 'technical_issue',
   OTHER: 'other',
 } as const
 
@@ -246,6 +258,10 @@ export const supportCategoryLabels: Record<SupportCategory, string> = {
   payment_issue: 'Payment Issue',
   account_issue: 'Account Issue',
   listing_issue: 'Listing Issue',
+  shipping_issue: 'Shipping Issue',
+  refund_request: 'Refund Request',
+  dispute: 'Dispute',
+  technical_issue: 'Technical Issue',
   other: 'Other',
 }
 

@@ -134,14 +134,6 @@ class _FakeAuctionRepository implements AuctionRepository {
   }
 
   @override
-  Future<RepositoryResult<Auction>> updateAuctionStatus({
-    required String auctionId,
-    required AuctionStatus status,
-  }) async {
-    throw UnimplementedError();
-  }
-
-  @override
   Future<RepositoryResult<List<AuctionBid>>> getAuctionBids({
     required String auctionId,
     int limit = 50,

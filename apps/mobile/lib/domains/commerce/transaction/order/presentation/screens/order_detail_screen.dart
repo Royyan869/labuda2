@@ -15,7 +15,6 @@ import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart'
 import 'package:labuda/domains/commerce/transaction/order/order.dart';
 import 'package:labuda/domains/social/rating/rating.dart';
 import 'package:labuda/domains/system/support/presentation/widgets/pre_chat_form_sheet.dart';
-import 'package:labuda/domains/chat/chat/chat.dart';
 import 'order_detail/order_detail_handlers.dart' show OrderDetailHandlersMixin;
 
 /// Order Detail Screen - Detail pesanan dengan status tracking
@@ -189,12 +188,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
                         // Seller/Buyer Info Card
                         if (currentUserId != null)
                           OrderUserInfoCard(
+                            order: order,
                             currentUserId: currentUserId,
-                            sellerId: order.sellerId,
-                            buyerId: order.buyerId,
-                            sellerUsername: order.sellerUsername,
-                            sellerFarmName: order.sellerFarmName,
-                            sellerAvatarUrl: order.sellerAvatarUrl,
                             isDark: isDark,
                           ),
                         if (currentUserId != null) const SizedBox(height: 16),
@@ -406,79 +401,18 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
   /// Chat with seller/buyer handler for commerce continuity
   ///
   /// BATCH 2B - DIRECT ORDER → CHAT CONTINUITY
-  /// - Finds or creates canonical direct commerce room between buyer and seller
-  /// - Links order to chat (LATEST ACTIVE ORDER RULE)
-  /// - Navigates to chat with order context active
-  void _handleChatSeller(Order order, AuthState authState) async {
+  /// Delegates to the canonical Order → commerce chat entry point, which
+  /// resolves/creates the direct commerce room, links this order to it
+  /// (LATEST ACTIVE ORDER RULE) and navigates to `/chat/<room-id>`.
+  Future<void> _handleChatSeller(Order order, AuthState authState) async {
     if (authState is! AuthStateAuthenticated) return;
 
-    final currentUserId = authState.user.id;
-
-    // Determine the other participant (buyer ↔ seller)
-    // If current user is buyer, other is seller. If seller, other is buyer.
-    final String otherUserId;
-    if (order.buyerId == currentUserId) {
-      otherUserId = order.sellerId;
-    } else if (order.sellerId == currentUserId) {
-      otherUserId = order.buyerId;
-    } else {
-      // User is not a participant in this order (shouldn't happen)
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Anda tidak terlibat dalam pesanan ini'),
-          ),
-        );
-      }
-      return;
-    }
-
-    // Show loading indicator
-    if (mounted) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    try {
-      // Use usecase to handle commerce chat creation and order linking
-      final getOrCreateCommerceChat = ref.read(
-        getOrCreateCommerceChatUseCaseProvider,
-      );
-      final roomResult = await getOrCreateCommerceChat(
-        currentUserId: currentUserId,
-        otherUserId: otherUserId,
-        orderId: order.id,
-      );
-
-      // Close loading dialog
-      if (mounted) Navigator.of(context).pop();
-
-      if (roomResult.isError || !mounted) {
-        if (mounted && roomResult.isError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Gagal membuka chat. Coba lagi.')),
-          );
-        }
-        return;
-      }
-
-      final room = roomResult.data!;
-
-      // Navigate to chat with order context
-      if (mounted) {
-        context.go('/chat/${room.id}');
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.of(context).pop(); // Close loading
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Terjadi kesalahan. Coba lagi.')),
-        );
-      }
-    }
+    await openOrderCommerceChat(
+      context: context,
+      ref: ref,
+      order: order,
+      currentUserId: authState.user.id,
+    );
   }
 
   /// Handle contact seller from order preparation section

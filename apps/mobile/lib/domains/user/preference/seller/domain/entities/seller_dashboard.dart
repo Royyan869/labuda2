@@ -17,9 +17,9 @@ class SellerDashboardStats {
   final double totalRevenue;
   final double pendingRevenue;
   final double refundedRevenue;
-  final int totalListings;
-  final int activeListings;
-  final int soldListings;
+  final int totalForSales;
+  final int activeForSales;
+  final int soldForSales;
   final int totalAuctions;
   final int activeAuctions;
 
@@ -34,9 +34,9 @@ class SellerDashboardStats {
     this.totalRevenue = 0,
     this.pendingRevenue = 0,
     this.refundedRevenue = 0,
-    this.totalListings = 0,
-    this.activeListings = 0,
-    this.soldListings = 0,
+    this.totalForSales = 0,
+    this.activeForSales = 0,
+    this.soldForSales = 0,
     this.totalAuctions = 0,
     this.activeAuctions = 0,
   });
@@ -64,9 +64,9 @@ class SellerDashboardStats {
     double? totalRevenue,
     double? pendingRevenue,
     double? refundedRevenue,
-    int? totalListings,
-    int? activeListings,
-    int? soldListings,
+    int? totalForSales,
+    int? activeForSales,
+    int? soldForSales,
     int? totalAuctions,
     int? activeAuctions,
   }) {
@@ -81,9 +81,9 @@ class SellerDashboardStats {
       totalRevenue: totalRevenue ?? this.totalRevenue,
       pendingRevenue: pendingRevenue ?? this.pendingRevenue,
       refundedRevenue: refundedRevenue ?? this.refundedRevenue,
-      totalListings: totalListings ?? this.totalListings,
-      activeListings: activeListings ?? this.activeListings,
-      soldListings: soldListings ?? this.soldListings,
+      totalForSales: totalForSales ?? this.totalForSales,
+      activeForSales: activeForSales ?? this.activeForSales,
+      soldForSales: soldForSales ?? this.soldForSales,
       totalAuctions: totalAuctions ?? this.totalAuctions,
       activeAuctions: activeAuctions ?? this.activeAuctions,
     );
@@ -103,9 +103,9 @@ class SellerDashboardStats {
           totalRevenue == other.totalRevenue &&
           pendingRevenue == other.pendingRevenue &&
           refundedRevenue == other.refundedRevenue &&
-          totalListings == other.totalListings &&
-          activeListings == other.activeListings &&
-          soldListings == other.soldListings &&
+          totalForSales == other.totalForSales &&
+          activeForSales == other.activeForSales &&
+          soldForSales == other.soldForSales &&
           totalAuctions == other.totalAuctions &&
           activeAuctions == other.activeAuctions;
 
@@ -121,9 +121,9 @@ class SellerDashboardStats {
     totalRevenue,
     pendingRevenue,
     refundedRevenue,
-    totalListings,
-    activeListings,
-    soldListings,
+    totalForSales,
+    activeForSales,
+    soldForSales,
     totalAuctions,
     activeAuctions,
   );

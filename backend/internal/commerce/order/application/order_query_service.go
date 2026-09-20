@@ -78,7 +78,6 @@ type OrderListItem struct {
 	SellerUsername     string     `json:"seller_username"`
 	SellerFarmName     string     `json:"seller_farm_name"`
 	SellerAvatarURL    string     `json:"seller_avatar_url"`
-	OrderType          string     `json:"order_type"`
 	Status             string     `json:"status"`
 	EscrowStatus       string     `json:"escrow_status"`     // Canonical escrow state (projection may lag)
 	HasActiveRefund    bool       `json:"has_active_refund"` // true if order has active (non-terminal) refund
@@ -308,10 +307,9 @@ func (s *OrderQueryService) convertToListItem(
 		ID:                 summary.ID,
 		BuyerID:            summary.BuyerID,
 		SellerID:           summary.SellerID,
-		BuyerName:          "",                 // TODO: Add user name to projection
-		BuyerAvatar:        nil,                // TODO: Add user avatar to projection
-		SellerAvatar:       nil,                // TODO: Add user avatar to projection
-		OrderType:          summary.SourceType, // Use source type as order type
+		BuyerName:          "",  // TODO: Add user name to projection
+		BuyerAvatar:        nil, // TODO: Add user avatar to projection
+		SellerAvatar:       nil, // TODO: Add user avatar to projection
 		Status:             summary.Status,
 		EscrowStatus:       summary.EscrowStatus,
 		HasActiveRefund:    false, // TODO: Query from refund service
@@ -525,10 +523,11 @@ type AdminOrderSummary struct {
 	Subtotal           int64      `json:"subtotal"`
 	ShippingTotal      int64      `json:"shipping_total"`
 	CommissionAmount   int64      `json:"commission_amount"`
-	ServiceFeeAmount   int64      `json:"service_fee_amount"`
-	TotalPayableAmount int64      `json:"total_payable_amount"`
-	RefundedAmount     int64      `json:"refunded_amount"`
-	ShippingSetup      *string    `json:"shipping_option,omitempty"`
+	ServiceFeeAmount       int64      `json:"service_fee_amount"`
+	TotalPayableAmount     int64      `json:"total_payable_amount"`
+	TotalBeforeCoinsAmount int64      `json:"total_before_coins_amount"`
+	RefundedAmount         int64      `json:"refunded_amount"`
+	ShippingSetup          *string    `json:"shipping_option,omitempty"`
 	AutoReleaseAt      *time.Time `json:"auto_release_at,omitempty"`
 	CreatedAt          time.Time  `json:"created_at"`
 	UpdatedAt          time.Time  `json:"updated_at"`
@@ -630,12 +629,16 @@ func (s *OrderQueryService) ListAllOrdersForAdmin(
 			Subtotal:           s.Subtotal,
 			ShippingTotal:      s.ShippingTotal,
 			CommissionAmount:   s.CommissionAmount,
-			ServiceFeeAmount:   s.ServiceFeeAmount,
-			TotalPayableAmount: s.TotalPayableAmount,
-			ShippingSetup:      shippingSetup,
-			AutoReleaseAt:      s.AutoReleaseAt,
-			CreatedAt:          s.CreatedAt,
-			UpdatedAt:          s.UpdatedAt,
+			ServiceFeeAmount:       s.ServiceFeeAmount,
+			TotalPayableAmount:     s.TotalPayableAmount,
+			TotalBeforeCoinsAmount: s.TotalBeforeCoinsAmount,
+			// Canonical refund total projected from the refunds domain
+			// (gateway-succeeded refunds); orders.refunded_amount is purged.
+			RefundedAmount: s.RefundedAmount,
+			ShippingSetup:  shippingSetup,
+			AutoReleaseAt:  s.AutoReleaseAt,
+			CreatedAt:      s.CreatedAt,
+			UpdatedAt:      s.UpdatedAt,
 		}
 
 		// Phase 5 Stage 1 — SELLER/FARM CONTRACT CONVERGENCE:
@@ -800,12 +803,25 @@ func (s *OrderQueryService) listByBuyerFromWriteModel(
 	query := `
 		SELECT id, buyer_id, seller_id, source_type::text, source_id,
 		       status::text, escrow_status::text, has_dispute,
-		       subtotal, shipping_total, commission_amount, service_fee_amount, total_payable_amount,
-		       COALESCE(shipping_option_name, ''), COALESCE(shipping_transport_type, ''),
-		       auto_release_at, created_at, updated_at,
-		       order_number
-		FROM orders
-		WHERE buyer_id = $1`
+	       subtotal, shipping_total, commission_amount, service_fee_amount, total_payable_amount,
+	       total_before_coins_amount,
+	       COALESCE(shipping_option_name, ''), COALESCE(shipping_transport_type, ''),
+	       auto_release_at, created_at, updated_at,
+	       order_number,
+	       -- refunded_amount = canonical refund-domain total (gateway-succeeded
+	       -- refunds only). The orders write table persists no refunded_amount
+	       -- column, so the write-model list paths resolve it from the refunds
+	       -- table -- the same authority the admin detail endpoint uses --
+	       -- instead of leaving the field silently at its zero value.
+	       -- COALESCE(refunded_product_amount, final_refund_amount) is the product
+	       -- portion; refunded_shipping_amount is the shipping portion.
+	       (SELECT COALESCE(SUM(COALESCE(rf.refunded_product_amount, rf.final_refund_amount)
+	                            + COALESCE(rf.refunded_shipping_amount, 0)), 0)
+	          FROM refunds rf
+	         WHERE rf.order_id = orders.id
+	           AND rf.gateway_status = 'succeeded') AS refunded_amount
+	FROM orders
+	WHERE buyer_id = $1`
 	args := []interface{}{buyerID}
 	argIdx := 2
 
@@ -843,12 +859,25 @@ func (s *OrderQueryService) listBySellerFromWriteModel(
 	query := `
 		SELECT id, buyer_id, seller_id, source_type::text, source_id,
 		       status::text, escrow_status::text, has_dispute,
-		       subtotal, shipping_total, commission_amount, service_fee_amount, total_payable_amount,
-		       COALESCE(shipping_option_name, ''), COALESCE(shipping_transport_type, ''),
-		       auto_release_at, created_at, updated_at,
-		       order_number
-		FROM orders
-		WHERE seller_id = $1`
+	       subtotal, shipping_total, commission_amount, service_fee_amount, total_payable_amount,
+	       total_before_coins_amount,
+	       COALESCE(shipping_option_name, ''), COALESCE(shipping_transport_type, ''),
+	       auto_release_at, created_at, updated_at,
+	       order_number,
+	       -- refunded_amount = canonical refund-domain total (gateway-succeeded
+	       -- refunds only). The orders write table persists no refunded_amount
+	       -- column, so the write-model list paths resolve it from the refunds
+	       -- table -- the same authority the admin detail endpoint uses --
+	       -- instead of leaving the field silently at its zero value.
+	       -- COALESCE(refunded_product_amount, final_refund_amount) is the product
+	       -- portion; refunded_shipping_amount is the shipping portion.
+	       (SELECT COALESCE(SUM(COALESCE(rf.refunded_product_amount, rf.final_refund_amount)
+	                            + COALESCE(rf.refunded_shipping_amount, 0)), 0)
+	          FROM refunds rf
+	         WHERE rf.order_id = orders.id
+	           AND rf.gateway_status = 'succeeded') AS refunded_amount
+	FROM orders
+	WHERE seller_id = $1`
 	args := []interface{}{sellerID}
 	argIdx := 2
 
@@ -981,11 +1010,23 @@ func (s *OrderQueryService) listAllFromWriteModel(
 	dataArgs := append(args, filters.PageSize, offset)
 	dataQuery := `
 		SELECT id, buyer_id, seller_id, source_type::text, source_id,
-		       status::text, escrow_status::text, has_dispute,
-		       subtotal, shipping_total, commission_amount, service_fee_amount, total_payable_amount,
-		       COALESCE(shipping_option_name, ''), COALESCE(shipping_transport_type, ''),
-		       auto_release_at, created_at, updated_at,
-		       order_number
+		       status::text, escrow_status::text, has_dispute,	       subtotal, shipping_total, commission_amount, service_fee_amount, total_payable_amount,
+	       total_before_coins_amount,
+	       COALESCE(shipping_option_name, ''), COALESCE(shipping_transport_type, ''),
+	       auto_release_at, created_at, updated_at,
+	       order_number,
+	       -- refunded_amount = canonical refund-domain total (gateway-succeeded
+	       -- refunds only). The orders write table persists no refunded_amount
+	       -- column, so the write-model list paths resolve it from the refunds
+	       -- table -- the same authority the admin detail endpoint uses --
+	       -- instead of leaving the field silently at its zero value.
+	       -- COALESCE(refunded_product_amount, final_refund_amount) is the product
+	       -- portion; refunded_shipping_amount is the shipping portion.
+	       (SELECT COALESCE(SUM(COALESCE(rf.refunded_product_amount, rf.final_refund_amount)
+	                            + COALESCE(rf.refunded_shipping_amount, 0)), 0)
+	          FROM refunds rf
+	         WHERE rf.order_id = orders.id
+	           AND rf.gateway_status = 'succeeded') AS refunded_amount
 		FROM orders` + where +
 		fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
 
@@ -1003,11 +1044,12 @@ func (s *OrderQueryService) listAllFromWriteModel(
 }
 
 // scanWriteModelOrders scans rows from the orders table into []*projection.OrderSummary.
-// The SELECT list must be exactly (19 columns):
+// The SELECT list must be exactly (20 columns):
 //
 //	id, buyer_id, seller_id, source_type::text, source_id,
 //	status::text, escrow_status::text, has_dispute,
 //	subtotal, shipping_total, commission_amount, service_fee_amount, total_payable_amount,
+//	total_before_coins_amount,
 //	COALESCE(shipping_option_name,''), COALESCE(shipping_transport_type,''),
 //	auto_release_at, created_at, updated_at,
 //	order_number
@@ -1026,9 +1068,11 @@ func scanWriteModelOrders(rows interface {
 			&s.ID, &s.BuyerID, &s.SellerID, &s.SourceType, &sourceID,
 			&s.Status, &s.EscrowStatus, &s.HasDispute,
 			&s.Subtotal, &s.ShippingTotal, &s.CommissionAmount, &s.ServiceFeeAmount, &s.TotalPayableAmount,
+			&s.TotalBeforeCoinsAmount,
 			&s.ShippingSetupName, &s.ShippingTransportType,
 			&s.AutoReleaseAt, &s.CreatedAt, &s.UpdatedAt,
 			&s.OrderNumber,
+			&s.RefundedAmount,
 		); err != nil {
 			return nil, fmt.Errorf("scan order (write model) failed: %w", err)
 		}

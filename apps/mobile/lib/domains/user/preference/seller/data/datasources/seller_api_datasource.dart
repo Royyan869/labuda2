@@ -179,8 +179,6 @@ class SellerApiDatasource {
         withdrawalFeeAmount:
             (data['withdrawal_fee_amount'] as num?)?.toDouble() ?? 0.0,
         grossPayable: (data['gross_payable'] as num?)?.toDouble(),
-        activeDisputeFreeze: (data['active_dispute_freeze'] as num?)
-            ?.toDouble(),
         withdrawableBalance: (data['withdrawable_balance'] as num?)?.toDouble(),
       );
     } on ApiException catch (e) {

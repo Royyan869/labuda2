@@ -1,7 +1,7 @@
 /// Koi Varieties Constants - Centralized Source of Truth
 ///
 /// Single source of truth untuk semua koi varieties di aplikasi.
-/// Digunakan oleh modul katalog dan discovery (listing/auction/promotion).
+/// Digunakan oleh modul katalog dan discovery (forSale/auction/promotion).
 ///
 /// Data reference: VARIETY_KOI.md
 class KoiVarieties {
@@ -123,7 +123,7 @@ class KoiVarieties {
     'Shusui',
   ];
 
-  /// Preset categories for listing/auction filters
+  /// Preset categories for forSale/auction filters
   /// Simplified grouping untuk category creation
   static const Map<String, List<String>> categoryPresets = {
     'Gosanke': ['Kohaku', 'Sanke', 'Showa'],

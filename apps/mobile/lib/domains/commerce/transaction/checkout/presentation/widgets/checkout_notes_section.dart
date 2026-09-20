@@ -1,20 +1,24 @@
 part of '../screens/checkout_screen_impl.dart';
 
 /// Notes Section
+///
+/// Notes travel to POST /orders (an order-creation input). They are NOT part of
+/// the pricing contract, so editing them must not invalidate the applied
+/// backend pricing preview.
 class _NotesSection extends StatelessWidget {
   final TextEditingController notesController;
-  final VoidCallback? onNotesChanged;
 
-  const _NotesSection({required this.notesController, this.onNotesChanged});
+  const _NotesSection({required this.notesController});
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.neutralWhite,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.neutralGray200),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -28,7 +32,6 @@ class _NotesSection extends StatelessWidget {
             controller: notesController,
             hintText: 'Tambahkan catatan untuk seller...',
             maxLines: 3,
-            onChanged: onNotesChanged != null ? (_) => onNotesChanged!() : null,
           ),
         ],
       ),

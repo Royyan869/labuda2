@@ -55,7 +55,7 @@ func appendAll(dst []Finding, src []Finding) []Finding {
 // ---------------------------------------------------------------------------
 
 // D1: gateway settled / captured, local payment still pending past the grace
-// window, with no orphaned-webhook recovery in flight.
+// window.
 func detectD1(s Snapshot) []Finding {
 	if !s.Gateway.Available {
 		return nil
@@ -70,9 +70,6 @@ func detectD1(s Snapshot) []Finding {
 		return nil
 	}
 	if s.Payment.CreatedAt.Add(s.Thresholds.PendingPaymentGrace).After(s.Now) {
-		return nil
-	}
-	if orphanRecoveryInFlight(s) {
 		return nil
 	}
 	return []Finding{
@@ -185,11 +182,17 @@ func detectD5(s Snapshot) []Finding {
 			continue
 		}
 		// A settled webhook missing a payload transaction_id cannot be
-		// deduplicated against legitimate retries — fall back to event_id
-		// so we don't silently miss a real attacker-injected duplicate.
+		// deduplicated against legitimate retries — fall back to the
+		// notification identity, which is what deduplicates an identical
+		// redelivery, so we don't silently miss a real injected duplicate.
+		//
+		// REC-3: several notification rows for ONE transaction_id are now normal
+		// (pending → settlement → …), so a row count is NOT evidence of a second
+		// settlement. Only a distinct gateway transaction_id still is, which is
+		// exactly what this key preserves.
 		key := w.TransactionID
 		if key == "" {
-			key = "event:" + w.EventID
+			key = "event:" + w.NotificationKey
 		}
 		distinctTxIDs[key] = struct{}{}
 	}
@@ -202,23 +205,19 @@ func detectD5(s Snapshot) []Finding {
 	}
 	return []Finding{
 		buildFinding(s, DriftD5DuplicateSettlement, SeverityHigh,
-			"manual investigation — verify event_id UNIQUE constraint and webhook signature integrity",
+			"manual investigation — verify each gateway transaction_id maps to the order's one payment (notification_key is the event identity) and webhook signature integrity",
 			fmt.Sprintf("%d distinct gateway transaction_id values attest settlement for midtrans_order_id=%s", len(distinctTxIDs), mtID),
 			0, 0, nil),
 	}
 }
 
-// D6: gateway reports a terminal state for the order but no webhook row
-// exists at all (or all rows are failed terminal). Orphan-aware: suppressed
-// while an orphaned webhook is within recovery grace.
+// D6: gateway reports a terminal state for the order but no live webhook row
+// exists (or all rows are failed/unreconciled terminal).
 func detectD6(s Snapshot) []Finding {
 	if !s.Gateway.Available {
 		return nil
 	}
 	if !gatewayIsTerminal(s.Gateway.TransactionStatus) {
-		return nil
-	}
-	if orphanRecoveryInFlight(s) {
 		return nil
 	}
 	if hasNonFailedWebhook(s.Webhooks) {
@@ -514,22 +513,6 @@ func findGatewayRefundEntry(entries []GatewayRefundEntry, r RefundRow) *GatewayR
 	return nil
 }
 
-func orphanRecoveryInFlight(s Snapshot) bool {
-	grace := s.Thresholds.OrphanRecoveryGrace
-	if grace <= 0 {
-		return false
-	}
-	for _, w := range s.Webhooks {
-		if w.Status != WebhookStatusOrphaned {
-			continue
-		}
-		if w.ReceivedAt.Add(grace).After(s.Now) {
-			return true
-		}
-	}
-	return false
-}
-
 func hasNonFailedWebhook(webhooks []WebhookEventRef) bool {
 	for _, w := range webhooks {
 		if w.Status == WebhookStatusSucceeded ||
@@ -618,5 +601,3 @@ func buildIdempotencyKey(class DriftClass, now time.Time, orderID, refundID *uui
 		return fmt.Sprintf("recon|%s|mt=%s|d=%s", class, midtransOrderID, bucket)
 	}
 }
-
-

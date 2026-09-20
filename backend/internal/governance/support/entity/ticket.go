@@ -26,6 +26,8 @@ type Ticket struct {
 	Priority        Priority
 	Status          Status
 	Escalation      Escalation
+	Subject         *string
+	Description     *string
 	LinkedOrderID   *uuid.UUID
 	AssignedAdminID *uuid.UUID
 	CreatedAt       time.Time
@@ -92,8 +94,10 @@ func (t *Ticket) CanBeClaimed() bool {
 }
 
 // CanBeReopened returns true if the ticket can be reopened.
+// Only a RESOLVED ticket can be reopened (resolved -> open). A CLOSED ticket
+// is terminal: a new problem requires a new ticket.
 func (t *Ticket) CanBeReopened() bool {
-	return t.Status == StatusResolved || t.Status == StatusClosed
+	return t.Status == StatusResolved
 }
 
 // Claim assigns an admin to the ticket and changes status to in_progress.
@@ -142,7 +146,7 @@ func (t *Ticket) Close(reason *string) bool {
 	return true
 }
 
-// Reopen changes the ticket status from resolved/closed back to open.
+// Reopen changes the ticket status from resolved back to open.
 func (t *Ticket) Reopen() bool {
 	if !t.CanBeReopened() {
 		return false

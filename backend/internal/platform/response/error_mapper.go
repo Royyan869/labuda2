@@ -470,6 +470,14 @@ func MapErrorToResponse(err error) ErrorMapping {
 		}
 	}
 
+	if errors.Is(err, auth.ErrMarketAuthorityRequired) {
+		return ErrorMapping{
+			StatusCode: http.StatusForbidden,
+			Code:       ErrCodeMarketAuthorityRequired,
+			Message:    "Active seller subscription required to perform market operations.",
+		}
+	}
+
 	// Payment domain errors
 	if errors.Is(err, paymentrepo.ErrInvalidStatusTransition) {
 		return ErrorMapping{

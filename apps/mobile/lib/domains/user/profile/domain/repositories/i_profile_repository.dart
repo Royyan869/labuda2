@@ -71,12 +71,6 @@ abstract class IProfileRepository {
   // Business/Seller Specific Operations
   // ========================================
 
-  /// Update farm information for sellers
-  Future<Result<ProfileEntity>> updateFarmInfo(
-    String userId,
-    FarmInfo farmInfo,
-  );
-
   /// Get verified sellers
   Future<Result<List<ProfileEntity>>> getVerifiedSellers({
     int limit = 20,

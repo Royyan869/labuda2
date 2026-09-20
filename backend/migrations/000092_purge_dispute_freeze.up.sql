@@ -1,0 +1,14 @@
+-- CLEANUP: Dispute Freeze is an obsolete design; drop its dedicated table.
+--
+-- Verified via repo-wide grep (backend/) before this migration was written:
+-- no repository, service, handler, worker, verifier, alert rule, or raw-SQL
+-- query in backend/internal references dispute_freezes. The only remaining
+-- references were the table's own DDL in 000001_canonical_schema, the dev
+-- truncation list in cmd/dev-reset-data/main.go, and this purge.
+--
+-- Business truth: once escrow is released, the money credited to
+-- SELLER_PAYABLE belongs to the seller. No dispute-freeze mechanism may hold
+-- it back, and no dispute-after-release flow exists (post-release disputes are
+-- rejected by DisputeService). The table is dropped so the dead design cannot
+-- be revived from schema, constraints, or indexes.
+DROP TABLE IF EXISTS dispute_freezes;

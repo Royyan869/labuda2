@@ -237,7 +237,9 @@ func TestRegisterFanout_EmptyHandlers_NoOp(t *testing.T) {
 	d := NewOutboxDispatcher(zaptest.NewLogger(t))
 	d.RegisterFanout("test.event") // no handlers
 
-	// Should be no-handler for this event type.
+	// Registering zero handlers registers nothing, so the event type has no
+	// handler. NO-HANDLER SAFETY: an unacknowledged handlerless event must fail
+	// rather than be reported as delivered.
 	event := repository.Event{
 		ID:        uuid.New(),
 		EventType: "test.event",
@@ -245,8 +247,8 @@ func TestRegisterFanout_EmptyHandlers_NoOp(t *testing.T) {
 	}
 
 	result, err := d.DispatchWithResult(context.Background(), event)
-	if err != nil {
-		t.Fatalf("error = %v", err)
+	if err == nil {
+		t.Fatal("expected dispatch to fail for an unacknowledged handlerless event")
 	}
 	if result != DispatchResultNoHandler {
 		t.Errorf("result = %s, want %s", result, DispatchResultNoHandler)
@@ -257,7 +259,10 @@ func TestRegisterFanout_EmptyHandlers_NoOp(t *testing.T) {
 // NO-HANDLER PATH
 // =============================================================================
 
-func TestDispatch_NoHandler_ReturnsNoHandlerResult(t *testing.T) {
+// TestDispatch_UnacknowledgedNoHandler_Fails proves a claimed event with no
+// handler and no allowlist entry is NOT a success: it returns an error so the
+// worker retries and eventually dead-letters it, instead of silently dropping it.
+func TestDispatch_UnacknowledgedNoHandler_Fails(t *testing.T) {
 	d := NewOutboxDispatcher(zaptest.NewLogger(t))
 
 	event := repository.Event{
@@ -267,6 +272,30 @@ func TestDispatch_NoHandler_ReturnsNoHandlerResult(t *testing.T) {
 	}
 
 	result, err := d.DispatchWithResult(context.Background(), event)
+	if err == nil {
+		t.Fatal("unacknowledged handlerless event must not be treated as delivered")
+	}
+	if result != DispatchResultNoHandler {
+		t.Errorf("result = %s, want %s", result, DispatchResultNoHandler)
+	}
+}
+
+// TestDispatch_AcknowledgedNoHandler_Succeeds proves the only accepted
+// handlerless success: an event explicitly acknowledged in
+// AcknowledgedNoHandlerEvents as intentionally handlerless (audit-only).
+func TestDispatch_AcknowledgedNoHandler_Succeeds(t *testing.T) {
+	const acknowledged = "money.released"
+	if _, ok := AcknowledgedNoHandlerEvents[acknowledged]; !ok {
+		t.Fatalf("test setup error: %q must be an acknowledged no-handler event", acknowledged)
+	}
+
+	d := NewOutboxDispatcher(zaptest.NewLogger(t))
+
+	result, err := d.DispatchWithResult(context.Background(), repository.Event{
+		ID:        uuid.New(),
+		EventType: acknowledged,
+		Payload:   []byte(`{}`),
+	})
 	if err != nil {
 		t.Fatalf("error = %v", err)
 	}

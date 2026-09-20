@@ -16,9 +16,12 @@ class _FakeAuthController extends AuthController {
   AuthState build() => _state;
 }
 
+/// The three seller axes are passed independently on purpose: workspace
+/// (profile), capability (market authority) and expiry (subscription status).
 AuthUser _seller({
   required bool hasSellerProfile,
   required bool hasMarketAuthority,
+  required String sellerSubscriptionStatus,
 }) {
   final now = DateTime.utc(2026, 1, 1);
   return AuthUser(
@@ -32,7 +35,7 @@ AuthUser _seller({
     roles: const [UserRole.user],
     provider: AuthProvider.email,
     hasSellerProfile: hasSellerProfile,
-    sellerSubscriptionStatus: hasMarketAuthority ? 'active' : 'expired',
+    sellerSubscriptionStatus: sellerSubscriptionStatus,
     hasMarketAuthority: hasMarketAuthority,
     sellerTier: SellerTier.sellerElite,
     isIdVerified: false,
@@ -58,7 +61,7 @@ void main() {
       await tester.pumpWidget(_wrap(const AuthState.loading()));
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.text('Buat Listing'), findsNothing);
+      expect(find.text('Buat ForSale'), findsNothing);
     });
 
     testWidgets('unauthenticated state shows the login gate', (tester) async {
@@ -66,7 +69,7 @@ void main() {
 
       expect(find.text('Login Diperlukan'), findsOneWidget);
       expect(find.text('Silakan login untuk melanjutkan.'), findsOneWidget);
-      expect(find.text('Buat Listing'), findsNothing);
+      expect(find.text('Buat ForSale'), findsNothing);
     });
 
     testWidgets('restricted account follows the canonical restricted flow', (
@@ -75,42 +78,119 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           AuthState.accountRestricted(
-            _seller(hasSellerProfile: true, hasMarketAuthority: true),
+            _seller(
+              hasSellerProfile: true,
+              hasMarketAuthority: true,
+              sellerSubscriptionStatus: 'active',
+            ),
             restrictionType: AccountStatus.suspended,
           ),
         ),
       );
 
       expect(find.text('Akun Ditangguhkan'), findsOneWidget);
-      expect(find.text('Buat Listing'), findsNothing);
+      expect(find.text('Buat ForSale'), findsNothing);
     });
 
     testWidgets('non-seller gets the seller registration gate', (tester) async {
       await tester.pumpWidget(
         _wrap(
           AuthState.authenticated(
-            _seller(hasSellerProfile: false, hasMarketAuthority: false),
+            _seller(
+              hasSellerProfile: false,
+              hasMarketAuthority: false,
+              sellerSubscriptionStatus: 'none',
+            ),
             emailVerified: true,
           ),
         ),
       );
 
       expect(find.text('Jadi Seller Dulu'), findsOneWidget);
-      expect(find.text('Buat Listing'), findsNothing);
+      // Discriminator for "the create form is NOT reachable" (the form's first
+      // section title; the submit button is lazily built further down).
+      expect(find.text('Informasi Dasar'), findsNothing);
+      expect(find.byType(TextFormField), findsNothing);
     });
 
-    testWidgets('expired seller gets the renewal gate', (tester) async {
+    // -----------------------------------------------------------------------
+    // DRAFT = WORKSPACE. The create screen writes a PRIVATE DRAFT, so market
+    // authority must not gate entry (backend POST /for-sale uses the workspace
+    // gate; capability is enforced at publish: draft → active).
+    // -----------------------------------------------------------------------
+    testWidgets(
+      'seller with a profile but no market authority reaches the create form',
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            AuthState.authenticated(
+              _seller(
+                hasSellerProfile: true,
+                hasMarketAuthority: false,
+                sellerSubscriptionStatus: 'none',
+              ),
+              emailVerified: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Entry allowed: the draft form renders.
+        expect(find.text('Informasi Dasar'), findsOneWidget);
+        expect(find.byType(TextFormField), findsWidgets);
+        // No market-authority gate copy of any kind.
+        expect(find.text('Langganan Seller Habis'), findsNothing);
+        expect(find.text('Perpanjang Langganan'), findsNothing);
+        expect(find.text('Langganan Belum Aktif'), findsNothing);
+        expect(find.text('Aktifkan Langganan'), findsNothing);
+        expect(find.text('Jadi Seller Dulu'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'expired-subscription seller with a profile also reaches the create form',
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            AuthState.authenticated(
+              _seller(
+                hasSellerProfile: true,
+                hasMarketAuthority: false,
+                sellerSubscriptionStatus: 'expired',
+              ),
+              emailVerified: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Informasi Dasar'), findsOneWidget);
+        expect(find.byType(TextFormField), findsWidgets);
+        expect(find.text('Langganan Seller Habis'), findsNothing);
+        expect(find.text('Perpanjang Langganan'), findsNothing);
+      },
+    );
+
+    testWidgets('active seller still reaches the create form', (tester) async {
       await tester.pumpWidget(
         _wrap(
           AuthState.authenticated(
-            _seller(hasSellerProfile: true, hasMarketAuthority: false),
+            _seller(
+              hasSellerProfile: true,
+              hasMarketAuthority: true,
+              sellerSubscriptionStatus: 'active',
+            ),
             emailVerified: true,
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
-      expect(find.text('Langganan Seller Habis'), findsOneWidget);
-      expect(find.text('Buat Listing'), findsNothing);
+      expect(find.text('Informasi Dasar'), findsOneWidget);
+      expect(find.byType(TextFormField), findsWidgets);
+      expect(find.text('Langganan Seller Habis'), findsNothing);
+      expect(find.text('Langganan Belum Aktif'), findsNothing);
+      expect(find.text('Perpanjang Langganan'), findsNothing);
     });
   });
 }

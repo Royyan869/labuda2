@@ -121,7 +121,7 @@ void main() {
         ChatInputArea(
           chatId: _chatId,
           messageController: controller,
-          hasSendableMedia: true,
+          canSendMedia: true,
           onSendMessage:
               (content, {MessageType type = MessageType.text}) async {
                 capturedContent = content;

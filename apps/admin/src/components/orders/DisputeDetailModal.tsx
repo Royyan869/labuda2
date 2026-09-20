@@ -314,7 +314,7 @@ export function DisputeDetailModal({ isOpen, onClose, disputeData, onResolutionC
               )}
 
               {/* Order Context */}
-              {(dispute?.order_status || dispute?.escrow_amount != null || dispute?.shipping_reference) && (
+              {(dispute?.order_status || dispute?.total_before_coins_amount != null || dispute?.shipping_reference) && (
                 <div className="border-t border-gray-100 pt-4 space-y-3">
                   <div className="grid grid-cols-2 gap-4">
                     {dispute?.order_status && (
@@ -329,10 +329,10 @@ export function DisputeDetailModal({ isOpen, onClose, disputeData, onResolutionC
                         <p className="text-sm capitalize">{dispute.order_escrow_status.replace(/_/g, ' ')}</p>
                       </div>
                     )}
-                    {dispute?.escrow_amount != null && (
+                    {dispute?.total_before_coins_amount != null && (
                       <div>
                         <p className="text-sm text-gray-500">Escrow at Risk</p>
-                        <p className="text-sm font-semibold text-orange-700">{formatRupiah(dispute.escrow_amount)}</p>
+                        <p className="text-sm font-semibold text-orange-700">{formatRupiah(dispute.total_before_coins_amount)}</p>
                       </div>
                     )}
                     {dispute?.shipping_carrier && (

@@ -29,13 +29,19 @@ abstract class SupportRepository {
   // ============================================
 
   /// Create support chat/ticket
-  /// Returns chatId of created ticket
-  Future<SupportResult<String>> createSupportChat({
+  ///
+  /// The Support API is the sole authority for ticket creation. `userId`,
+  /// `userName` and `userAvatar` are local display/context hints only — the
+  /// backend derives ownership from the authenticated session. `category` uses
+  /// the canonical taxonomy and is serialized as its canonical wire value.
+  /// Returns the id of the created ticket (not a chat room id).
+  Future<SupportResult<String>> createTicket({
     required String userId,
     required String userName,
     String? userAvatar,
     required SupportCategory category,
     SupportPriority priority = SupportPriority.medium,
+    String? subject,
     String? description,
     String? linkedOrderId,
   });
@@ -46,6 +52,12 @@ abstract class SupportRepository {
 
   /// Get ticket by ID
   Future<SupportResult<SupportTicket>> getTicket(String ticketId);
+
+  /// List the authenticated user's own tickets.
+  ///
+  /// The Support API is the identity authority for the ticket list. The chat
+  /// room list must not be used to discover Support tickets.
+  Future<SupportResult<List<SupportTicket>>> getMyTickets({int limit = 50});
 
   // REMOVED: watchTickets() - Admin-only endpoint
   // REMOVED: watchUnclaimedTicketsCount() - Admin-only endpoint
@@ -71,10 +83,19 @@ abstract class SupportRepository {
   // MESSAGE OPERATIONS
   // ============================================
 
-  /// Get ticket messages (conversation thread) - Read-only for users
+  /// Get ticket messages (conversation thread)
   Future<SupportResult<List<SupportMessage>>> getMessages(
     String ticketId, {
     int limit = 100,
+  });
+
+  /// Send a reply into the authenticated user's own ticket conversation.
+  ///
+  /// Only the message text is supplied — the backend derives the sender from
+  /// the authenticated session. The client never sends a sender identity.
+  Future<SupportResult<void>> sendMessage({
+    required String ticketId,
+    required String message,
   });
 
   // REMOVED: sendGreetingMessage() - Admin-only endpoint

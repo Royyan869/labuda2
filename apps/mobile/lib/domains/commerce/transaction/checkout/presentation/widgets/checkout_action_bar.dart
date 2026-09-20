@@ -4,8 +4,13 @@ part of '../screens/checkout_screen_impl.dart';
 class _CheckoutBottomBar extends StatelessWidget {
   final bool isCreatingOrder;
   final bool isSubmitting;
-  final bool isPricingAvailable;
-  final bool isTokenExpired;
+
+  /// Readiness of the pricing step (see CheckoutReadiness). This is the single
+  /// gate for the primary action: a local price can never enable it.
+  final bool isReady;
+
+  /// Why the action is unavailable. Empty when [isReady].
+  final String disabledReason;
   final PreviewOrderResult? previewResult;
   final VoidCallback onCreateOrder;
   final bool isAuctionWinner;
@@ -13,8 +18,8 @@ class _CheckoutBottomBar extends StatelessWidget {
   const _CheckoutBottomBar({
     required this.isCreatingOrder,
     required this.isSubmitting,
-    required this.isPricingAvailable,
-    this.isTokenExpired = false,
+    required this.isReady,
+    this.disabledReason = '',
     this.previewResult,
     required this.onCreateOrder,
     this.isAuctionWinner = false,
@@ -23,7 +28,7 @@ class _CheckoutBottomBar extends StatelessWidget {
   /// Builds the button text based on auction winner context
   String _buildButtonText(BuildContext context) {
     if (previewResult != null) {
-      final total = previewResult!.total
+      final total = (previewResult!.totalPayableAmount ?? 0)
           .toStringAsFixed(0)
           .replaceAllMapped(
             RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
@@ -42,21 +47,18 @@ class _CheckoutBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Combine both state locks for immediate UI feedback
-    // Disable when: submitting, creating order, no pricing available, OR token expired
-    final isDisabled =
-        isSubmitting ||
-        isCreatingOrder ||
-        !isPricingAvailable ||
-        isTokenExpired;
+    // Combine the submission locks with the readiness projection. The reason
+    // shown to the buyer is the same value the create-order guard enforces.
+    final isDisabled = isSubmitting || isCreatingOrder || !isReady;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.neutralWhite,
+        color: colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -82,18 +84,18 @@ class _CheckoutBottomBar extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Rp ${previewResult!.total.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}',
-                      style: const TextStyle(
+                      'Rp ${(previewResult!.totalPayableAmount ?? 0).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}',
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.primaryRed,
+                        color: colorScheme.primary,
                       ),
                     ),
                   ],
                 ),
               ),
             ],
-            if (!isPricingAvailable && !isCreatingOrder)
+            if (!isCreatingOrder && disabledReason.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
@@ -101,15 +103,15 @@ class _CheckoutBottomBar extends StatelessWidget {
                     Icon(
                       Icons.info_outline,
                       size: 16,
-                      color: AppColors.neutralGray600,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Memuat harga dari server...',
+                        disabledReason,
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.neutralGray600,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -122,21 +124,23 @@ class _CheckoutBottomBar extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: isDisabled ? null : onCreateOrder,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryRed,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.neutralGray300,
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                  disabledBackgroundColor: colorScheme.onSurface.withValues(
+                    alpha: 0.12,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 child: isCreatingOrder
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
+                            colorScheme.onPrimary,
                           ),
                         ),
                       )

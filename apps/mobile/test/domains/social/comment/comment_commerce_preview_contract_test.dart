@@ -30,7 +30,7 @@ void main() {
     test('rejected legacy target type fails closed (zero-legacy)', () {
       expect(
         () => ShareReference.fromJson(const {
-          'targetType': 'listing',
+          'targetType': 'forSale',
           'targetId': 'sale-1',
           'preview': {'title': 'x'},
         }),

@@ -124,10 +124,6 @@ func (m *roomUpdatedMockSocialRepo) AcquireFollowLock(context.Context, interface
 	return nil
 }
 
-func (m *roomUpdatedMockSocialRepo) IsBlockedBy(context.Context, interface{}, uuid.UUID, uuid.UUID) (bool, error) {
-	return m.blocked, nil
-}
-
 func (m *roomUpdatedMockSocialRepo) InsertMute(context.Context, interface{}, uuid.UUID, uuid.UUID) error {
 	return nil
 }
@@ -173,6 +169,13 @@ type roomUpdatedMockRepo struct {
 	getRoomByOrderIDRoom     *chatEntity.ChatRoom
 	getRoomByOrderIDErr      error
 	updateLinkedOrderIDCalls int
+
+	// Actor-scoped idempotency model: mirrors
+	// UNIQUE(sender_id, idempotency_key) + ON CONFLICT DO NOTHING.
+	// Key format: senderID.String() + "|" + idempotencyKey.
+	idempotencyIndex           map[string]*chatEntity.ChatMessage
+	getMessageByKeyCalls       int
+	failFirstIdempotencyLookup bool
 }
 
 func (r *roomUpdatedMockRepo) CreateRoom(_ context.Context, _ interface{}, room *chatEntity.ChatRoom) error {
@@ -240,8 +243,18 @@ func (r *roomUpdatedMockRepo) UpdateRoomLinkedOrderId(_ context.Context, _ inter
 	return nil
 }
 
-func (r *roomUpdatedMockRepo) CreateMessage(context.Context, interface{}, *chatEntity.ChatMessage) error {
+func (r *roomUpdatedMockRepo) CreateMessage(_ context.Context, _ interface{}, message *chatEntity.ChatMessage) error {
 	r.createMessageCalls++
+	if r.idempotencyIndex == nil {
+		r.idempotencyIndex = map[string]*chatEntity.ChatMessage{}
+	}
+	key := idempotencyIndexKey(message.SenderID, message.IdempotencyKey)
+	if _, exists := r.idempotencyIndex[key]; exists {
+		// Mirrors ON CONFLICT (sender_id, idempotency_key) DO NOTHING:
+		// the row already exists for this sender.
+		return chatRepo.ErrDuplicateMessage
+	}
+	r.idempotencyIndex[key] = message
 	return nil
 }
 
@@ -259,8 +272,25 @@ func (r *roomUpdatedMockRepo) ListMessagesByRoom(context.Context, interface{}, u
 	return r.messages, nil
 }
 
-func (r *roomUpdatedMockRepo) GetMessageByIdempotencyKey(context.Context, interface{}, string) (*chatEntity.ChatMessage, error) {
+func (r *roomUpdatedMockRepo) GetMessageByIdempotencyKey(_ context.Context, _ interface{}, senderID uuid.UUID, idempotencyKey string) (*chatEntity.ChatMessage, error) {
+	r.getMessageByKeyCalls++
+	r.getMessageByKeyRequests = append(r.getMessageByKeyRequests, idempotencyIndexKey(senderID, idempotencyKey))
+	if r.failFirstIdempotencyLookup && r.getMessageByKeyCalls == 1 {
+		// Deterministic race simulation: the winner row is not yet visible on
+		// the first lookup, but is present by the time the insert conflicts.
+		return nil, chatRepo.ErrMessageNotFound
+	}
+	if r.idempotencyIndex != nil {
+		if message, ok := r.idempotencyIndex[idempotencyIndexKey(senderID, idempotencyKey)]; ok {
+			return message, nil
+		}
+	}
 	return nil, chatRepo.ErrMessageNotFound
+}
+
+// idempotencyIndexKey mirrors the canonical actor-scoped uniqueness authority.
+func idempotencyIndexKey(senderID uuid.UUID, idempotencyKey string) string {
+	return senderID.String() + "|" + idempotencyKey
 }
 
 func (r *roomUpdatedMockRepo) SoftHideForModeration(_ context.Context, _ interface{}, messageID uuid.UUID, deletedBy uuid.UUID, reason string) error {
@@ -368,6 +398,23 @@ func (r *roomUpdatedMockRepo) GetUnreadCountByRoomAndUser(
 	return 0, nil
 }
 
+func (r *roomUpdatedMockRepo) GetUnreadCountsByRoomIDs(
+	ctx context.Context,
+	tx interface{},
+	roomIDs []uuid.UUID,
+	userID uuid.UUID,
+) (map[uuid.UUID]int, error) {
+	out := make(map[uuid.UUID]int, len(roomIDs))
+	for _, roomID := range roomIDs {
+		count, err := r.GetUnreadCountByRoomAndUser(ctx, tx, roomID, userID)
+		if err != nil {
+			return nil, err
+		}
+		out[roomID] = count
+	}
+	return out, nil
+}
+
 var _ db.Tx = (*roomUpdatedMockTx)(nil)
 var _ OutboxInserter = (*roomUpdatedMockOutbox)(nil)
 var _ socialRepo.SocialRepository = (*roomUpdatedMockSocialRepo)(nil)
@@ -424,19 +471,35 @@ func TestSendMessage_EmitsRoomUpdatedOutboxEvents(t *testing.T) {
 	if repo.upsertReadStateCalls != 1 {
 		t.Fatalf("UpsertReadState calls=%d want 1", repo.upsertReadStateCalls)
 	}
-	if len(outbox.inserts) != 3 {
-		t.Fatalf("outbox inserts=%d want 3", len(outbox.inserts))
+	// OWNERSHIP: one business action → two durable effects, one owning consumer
+	// each, plus the two viewer-scoped room-list summaries.
+	if len(outbox.inserts) != 4 {
+		t.Fatalf("outbox inserts=%d want 4 (1 realtime + 1 notification + 2 room.updated)", len(outbox.inserts))
 	}
 
-	var messageSentFound bool
+	var realtimeFound bool
+	var notificationFound bool
 	var messageCreatedAt string
 	roomUpdatedByRecipient := map[string]roomUpdatedOutboxInsert{}
 	for _, insert := range outbox.inserts {
 		switch insert.eventType {
 		case "chat.message.sent":
-			messageSentFound = true
-			requireOutboxFieldString(t, insert.payload, "recipient_id", recipientID.String())
+			// Realtime effect: minimal WebSocket signal (the client re-fetches
+			// the message over REST once it sees the signal).
+			realtimeFound = true
+			requireOutboxFieldString(t, insert.payload, "room_id", room.ID.String())
+			requireOutboxFieldString(t, insert.payload, "message_id", msg.ID.String())
+			if len(insert.payload) != 2 {
+				t.Fatalf("realtime payload must carry only room_id+message_id, got %v", insert.payload)
+			}
+		case "chat.message.notification":
+			// Notification effect: carries sender + recipient because the
+			// notification handler evaluates mute/block/lifecycle at delivery time.
+			notificationFound = true
+			requireOutboxFieldString(t, insert.payload, "room_id", room.ID.String())
+			requireOutboxFieldString(t, insert.payload, "message_id", msg.ID.String())
 			requireOutboxFieldString(t, insert.payload, "sender_id", senderID.String())
+			requireOutboxFieldString(t, insert.payload, "recipient_id", recipientID.String())
 			messageCreatedAt = requireOutboxFieldStringReturn(t, insert.payload, "created_at")
 		case "chat.room.updated":
 			roomUpdatedByRecipient[requireOutboxFieldStringReturn(t, insert.payload, "recipient_id")] = insert
@@ -445,8 +508,11 @@ func TestSendMessage_EmitsRoomUpdatedOutboxEvents(t *testing.T) {
 		}
 	}
 
-	if !messageSentFound {
-		t.Fatal("expected chat.message.sent event")
+	if !realtimeFound {
+		t.Fatal("expected chat.message.sent realtime event")
+	}
+	if !notificationFound {
+		t.Fatal("expected chat.message.notification event")
 	}
 	if len(roomUpdatedByRecipient) != 2 {
 		t.Fatalf("room.updated recipients=%d want 2", len(roomUpdatedByRecipient))
@@ -540,32 +606,46 @@ func TestSendMessage_AttachmentOnly_EmitsMinimalChatMessageSentOutbox(t *testing
 	if msg == nil {
 		t.Fatal("expected message result")
 	}
-	if len(outbox.inserts) != 3 {
-		t.Fatalf("outbox inserts=%d want 3", len(outbox.inserts))
+	if len(outbox.inserts) != 4 {
+		t.Fatalf("outbox inserts=%d want 4 (1 realtime + 1 notification + 2 room.updated)", len(outbox.inserts))
 	}
 
-	var messageSentFound bool
+	var realtimeFound bool
+	var notificationFound bool
 	for _, insert := range outbox.inserts {
 		switch insert.eventType {
 		case "chat.message.sent":
-			messageSentFound = true
+			realtimeFound = true
+			requireOutboxFieldString(t, insert.payload, "room_id", room.ID.String())
+			requireOutboxFieldString(t, insert.payload, "message_id", msg.ID.String())
+		case "chat.message.notification":
+			notificationFound = true
 			requireOutboxFieldString(t, insert.payload, "room_id", room.ID.String())
 			requireOutboxFieldString(t, insert.payload, "message_id", msg.ID.String())
 			requireOutboxFieldString(t, insert.payload, "sender_id", senderID.String())
 			requireOutboxFieldString(t, insert.payload, "recipient_id", recipientID.String())
 			requireOutboxFieldString(t, insert.payload, "message_type", string(chatEntity.MessageTypeNegotiationProposal))
 			requireOutboxFieldString(t, insert.payload, "created_at", msg.CreatedAt.UTC().Format(time.RFC3339))
-			if _, ok := insert.payload["attachment_json"]; ok {
-				t.Fatal("did not expect attachment_json on chat.message.sent payload")
-			}
-			if _, ok := insert.payload["body"]; ok {
-				t.Fatal("did not expect body on chat.message.sent payload")
-			}
+		case "chat.room.updated":
+			continue
+		default:
+			t.Fatalf("unexpected event type %q", insert.eventType)
+		}
+
+		// Neither durable message effect may carry the raw attachment payload.
+		if _, ok := insert.payload["attachment_json"]; ok {
+			t.Fatalf("did not expect attachment_json on %s payload", insert.eventType)
+		}
+		if _, ok := insert.payload["body"]; ok {
+			t.Fatalf("did not expect body on %s payload", insert.eventType)
 		}
 	}
 
-	if !messageSentFound {
-		t.Fatal("expected chat.message.sent event")
+	if !realtimeFound {
+		t.Fatal("expected chat.message.sent realtime event")
+	}
+	if !notificationFound {
+		t.Fatal("expected chat.message.notification event")
 	}
 }
 

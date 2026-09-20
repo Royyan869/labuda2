@@ -145,14 +145,6 @@ func proportionalFloor(amount, numerator, denominator int64) int64 {
 	return (amount * numerator) / denominator
 }
 
-// MaxGatewayRefund returns PD + S - K, the maximum cumulative gateway cash refund.
-func MaxGatewayRefund(pd, s, k int64) int64 {
-	if max := pd + s - k; max > 0 {
-		return max
-	}
-	return 0
-}
-
 func parseMidtransRefundAmount(raw string) (int64, error) {
 	if raw == "" {
 		return 0, fmt.Errorf("empty amount")

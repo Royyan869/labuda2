@@ -150,8 +150,14 @@ void main() {
       expect(RefundStatus.sellerRejected.apiValue, 'seller_rejected');
     });
 
-    test('rejected apiValue is rejected', () {
-      expect(RefundStatus.rejected.apiValue, 'rejected');
+    test('rejected apiValue is the canonical admin_released', () {
+      // Canonical backend `refunds.status` vocabulary:
+      // admin buyer-wins = admin_refunded, admin seller-wins = admin_released.
+      expect(RefundStatus.rejected.apiValue, 'admin_released');
+    });
+
+    test('parse admin_released returns rejected', () {
+      expect(RefundStatus.parse('admin_released'), RefundStatus.rejected);
     });
 
     test('parse seller_rejected returns sellerRejected', () {

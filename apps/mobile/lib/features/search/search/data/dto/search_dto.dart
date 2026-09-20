@@ -176,7 +176,7 @@ class ContentSearchResponseDto {
 ///   "id": "...",
 ///   "author_id": "...",
 ///   "author": { "id": "...", "username": "...", "avatar_url": "..." },
-///   "type": "content|listing|auction",
+///   "type": "content|forSale|auction",
 ///   "caption": "...",
 ///   "media_urls": ["..."],
 ///   "created_at": "..."
@@ -188,7 +188,14 @@ class ContentSearchResultDto extends Equatable {
   final String? authorAvatarUrl;
   final String type;
   final String? caption;
+
+  /// Media URLs for the row. The backend already projected these through the
+  /// canonical mediaresolve read authority, so they arrive as readable URLs for
+  /// the search surface. This layer MUST NOT build, rewrite, or type-infer
+  /// media; rendering goes through the canonical `StableNetworkImage` /
+  /// `resolveNetworkImageUrl` path.
   final List<String> mediaUrls;
+
   final DateTime createdAt;
   final double? price;
   final ContentResourceProjection? resourceProjection;
@@ -616,7 +623,7 @@ class AuctionSearchResultDto extends Equatable {
 //   GET /api/v1/search/for-sale.
 // - DO NOT reuse For Sale detail DTOs/mappers: those fabricate
 //   quantity/status/visibility fields the search surface never emits.
-// - Optional `author`, `media`, `listing` blocks are tolerated
+// - Optional `author`, `media`, `forSale` blocks are tolerated
 //   (Phase C horizontal additive refs) but never depended on.
 
 /// For Sale search response — canonical backend contract for
@@ -690,7 +697,7 @@ class ForSaleSearchResponseDto {
 /// }
 ///
 /// DELIBERATELY NOT PARSED (backend does not emit on this surface):
-/// - quantity, status, visibility, listing_type, updated_at
+/// - quantity, status, visibility, for_sale_type, updated_at
 /// - engagement counts
 class ForSaleSearchResultDto extends Equatable {
   final String id;
@@ -708,17 +715,17 @@ class ForSaleSearchResultDto extends Equatable {
   final String? sellerFarmName;
   final String? sellerAvatarUrl;
 
-  /// E8.4 — Canonical seller user-identity lifecycle on listing search rows.
+  /// E8.4 — Canonical seller user-identity lifecycle on forSale search rows.
   ///
-  /// Sourced ONLY from the nested wire slot `listing.seller.user.lifecycle`.
+  /// Sourced ONLY from the nested wire slot `forSale.seller.user.lifecycle`.
   /// Tolerant: null / missing / empty → null (mapper coerces to active).
   ///
   /// AXIS BOUNDARY: this field carries the user-identity axis only.
   final String? sellerUserLifecycle;
 
-  /// Seller-trust axis lifecycle on listing search rows.
+  /// Seller-trust axis lifecycle on forSale search rows.
   ///
-  /// Sourced from top-level `listing.seller.lifecycle` populated by
+  /// Sourced from top-level `forSale.seller.lifecycle` populated by
   /// NewSellerCardWithBothLifecycles (search_handler.go). Null → active.
   final String? sellerTrustLifecycle;
 
@@ -832,7 +839,7 @@ class SearchHistoryDto {
 /// - promoted_external: external product with URL
 class PromotedSearchItemDto {
   final String
-  type; // promoted_fixed_price_sale, promoted_auction, promoted_external
+  type; // promoted_for_sale, promoted_auction, promoted_external
   /// Canonical contract identity (promotion_contracts.id) carried on the
   /// wire as `contract_id`. The legacy `promotion_instance_id` key is purged.
   final String contractId;
@@ -846,7 +853,7 @@ class PromotedSearchItemDto {
   final String? sellerFarmName;
   final String? sellerLifecycle;
 
-  // Listing-specific (canonical: for_sale_id from backend)
+  // ForSale-specific (canonical: for_sale_id from backend)
   final String? forSaleId;
   final int? pricePerUnit;
 

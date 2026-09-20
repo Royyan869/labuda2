@@ -27,6 +27,8 @@ import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/e
 // STUBBED: seller_stubs.dart imports removed - stub screens disabled in routes
 import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_upgrade_wizard_screen.dart'
     show SellerUpgradeWizardScreen;
+import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_renewal_screen.dart'
+    show SellerRenewalScreen;
 
 import 'base_module.dart';
 
@@ -43,7 +45,9 @@ import 'base_module.dart';
 /// - Seller Promotions & External Products
 ///
 /// Module ini accessible oleh users dengan seller profile (hasCreatedSellerProfile).
-/// /seller/upgrade is always accessible (onboarding entry point).
+/// /seller/upgrade is always accessible (REGISTRATION entry point for
+/// non-sellers; existing sellers are gated inside the wizard itself).
+/// /seller/renewal is the payment-only RENEWAL lifecycle for existing sellers.
 /// Route guards: router-level (app_router.dart) + screen-level (auth check in build method).
 class SellerModule extends BaseModule {
   @override
@@ -72,11 +76,18 @@ class SellerModule extends BaseModule {
       builder: (context, state) => const SellerEarningsScreen(),
     ),
 
-    // Seller Upgrade Route (functional)
+    // Seller Upgrade Route (REGISTRATION lifecycle only — never renewal)
     GoRoute(
       path: RoutePaths.sellerUpgrade,
       name: RouteNames.sellerUpgrade,
       builder: (context, state) => const SellerUpgradeWizardScreen(),
+    ),
+
+    // Seller Renewal Route (canonical payment-only RENEWAL lifecycle)
+    GoRoute(
+      path: RoutePaths.sellerRenewal,
+      name: RouteNames.sellerRenewal,
+      builder: (context, state) => const SellerRenewalScreen(),
     ),
 
     // Seller Verification Route (REAL implementation - required for withdrawal)

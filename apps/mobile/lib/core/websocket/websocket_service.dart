@@ -466,16 +466,4 @@ class WebSocketService {
     await send(message);
   }
 
-  // Update presence
-  Future<void> updatePresence(String status) async {
-    final message = WebSocketMessage(
-      type: MessageType.presence,
-      from: '',
-      data: {
-        'status': status, // 'online' or 'offline'
-      },
-    );
-
-    await send(message);
-  }
 }

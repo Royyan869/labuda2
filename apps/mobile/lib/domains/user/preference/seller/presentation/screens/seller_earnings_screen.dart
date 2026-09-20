@@ -88,14 +88,6 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                   : null,
             ),
 
-            // Balance breakdown: shown when freeze reduces withdrawable.
-            if (earnings.hasBalanceBreakdown &&
-                (earnings.activeDisputeFreeze ?? 0) > 0)
-              Padding(
-                padding: const EdgeInsets.only(top: 12, bottom: 4),
-                child: _buildBalanceBreakdown(earnings),
-              ),
-
             const SizedBox(height: 16),
 
             // Total Earned Card
@@ -233,90 +225,6 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  /// Balance breakdown card: shows why available balance < gross payable.
-  /// Only rendered when dispute freeze > 0.
-  Widget _buildBalanceBreakdown(SellerEarnings earnings) {
-    final gross = earnings.grossPayable ?? 0;
-    final freeze = earnings.activeDisputeFreeze ?? 0;
-
-    return Card(
-      elevation: 1,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.info_outline, size: 18, color: Colors.orange),
-                const SizedBox(width: 8),
-                Text(
-                  'Rincian Saldo',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.neutralGray800,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildBreakdownRow(
-              'Saldo Kotor',
-              AppFormatters.formatCurrency(gross),
-              AppColors.neutralGray800,
-            ),
-            if (freeze > 0)
-              _buildBreakdownRow(
-                'Pembekuan Sengketa',
-                '- ${AppFormatters.formatCurrency(freeze)}',
-                Colors.orange,
-              ),
-            const Divider(height: 16),
-            _buildBreakdownRow(
-              'Dapat Ditarik',
-              AppFormatters.formatCurrency(earnings.availableBalance),
-              AppColors.primaryRed,
-              bold: true,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBreakdownRow(
-    String label,
-    String value,
-    Color valueColor, {
-    bool bold = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.neutralGray600,
-              fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 13,
-              color: valueColor,
-              fontWeight: bold ? FontWeight.bold : FontWeight.w500,
-            ),
-          ),
-        ],
       ),
     );
   }

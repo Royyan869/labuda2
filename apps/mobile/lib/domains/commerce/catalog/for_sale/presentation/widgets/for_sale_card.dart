@@ -14,20 +14,20 @@ import 'package:labuda/shared/utils/commerce_seller_identity.dart';
 ///
 /// NOT for seller management surfaces — use SellerForSaleManagementCard there.
 class ForSaleCard extends StatelessWidget {
-  final ForSale listing;
+  final ForSale forSale;
   final VoidCallback onTap;
 
-  const ForSaleCard({super.key, required this.listing, required this.onTap});
+  const ForSaleCard({super.key, required this.forSale, required this.onTap});
 
   CommerceSellerIdentity? get _sellerIdentity => buildCommerceSellerIdentity(
-    username: listing.sellerUsername,
-    storeName: listing.sellerFarmName,
+    username: forSale.sellerUsername,
+    storeName: forSale.sellerFarmName,
   );
 
-  bool get _isSellerDegraded => listing.sellerUserLifecycle.isDegraded;
+  bool get _isSellerDegraded => forSale.sellerUserLifecycle.isDegraded;
 
   String? get _sellerLine1 => _isSellerDegraded
-      ? listing.sellerUserLifecycle.publicRedactionLabel
+      ? forSale.sellerUserLifecycle.publicRedactionLabel
       : _sellerIdentity?.line1;
 
   String? get _sellerLine2 => _isSellerDegraded ? null : _sellerIdentity?.line2;
@@ -52,12 +52,12 @@ class ForSaleCard extends StatelessWidget {
                 color: isDark
                     ? AppColors.darkGray700
                     : AppColors.neutralGray200,
-                child: listing.media.isNotEmpty
+                child: forSale.media.isNotEmpty
                     ? Stack(
                         fit: StackFit.expand,
                         children: [
                           Image.network(
-                            listing.media.first.originalUrl,
+                            forSale.media.first.originalUrl,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
                               return Icon(
@@ -70,7 +70,7 @@ class ForSaleCard extends StatelessWidget {
                             },
                           ),
                           // Video badge
-                          if (listing.media.first.type == MediaType.video)
+                          if (forSale.media.first.type == MediaType.video)
                             Positioned(
                               top: 8,
                               right: 8,
@@ -107,7 +107,7 @@ class ForSaleCard extends StatelessWidget {
                 children: [
                   // Title
                   Text(
-                    listing.title,
+                    forSale.title,
                     style: AppTypography.bodyLarge.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -117,7 +117,7 @@ class ForSaleCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   // Description
                   Text(
-                    listing.description,
+                    forSale.description,
                     style: AppTypography.bodySmall.copyWith(
                       color: isDark
                           ? AppColors.neutralGray400
@@ -165,8 +165,8 @@ class ForSaleCard extends StatelessWidget {
                   // Only when user-axis NOT already degraded (which fully
                   // redacts identity above).
                   if (shouldShowSellerInactiveBadge(
-                    sellerTrustLifecycle: listing.sellerTrustLifecycle,
-                    sellerUserLifecycle: listing.sellerUserLifecycle,
+                    sellerTrustLifecycle: forSale.sellerTrustLifecycle,
+                    sellerUserLifecycle: forSale.sellerUserLifecycle,
                   )) ...[
                     const SizedBox(height: 4),
                     const SellerInactiveBadge(),
@@ -174,7 +174,7 @@ class ForSaleCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   // Price
                   Text(
-                    listing.formattedPrice,
+                    forSale.formattedPrice,
                     style: AppTypography.bodyMedium.copyWith(
                       fontWeight: FontWeight.w600,
                       color: AppColors.primaryRed,

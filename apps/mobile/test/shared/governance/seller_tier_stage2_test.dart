@@ -1,4 +1,4 @@
-// Stage 2 seller tier badge — listing/auction lifecycle-gate tests.
+// Stage 2 seller tier badge — forSale/auction lifecycle-gate tests.
 //
 // Scope:
 //   1) SellerTierBadge dark-mode color variant (no crash, renders correctly).

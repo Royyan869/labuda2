@@ -11,7 +11,7 @@ class ObjectPreview extends Equatable {
   /// Unique identifier
   final String id;
 
-  /// Type of object (listing, auction, content, profile)
+  /// Type of object (forSale, auction, content, profile)
   final String type;
 
   /// Display title
@@ -20,7 +20,7 @@ class ObjectPreview extends Equatable {
   /// Image URL (if available)
   final String? imageUrl;
 
-  /// Price (for listings and auctions)
+  /// Price (for forSales and auctions)
   final int? price;
 
   /// Current status
@@ -45,18 +45,18 @@ class ObjectPreview extends Equatable {
     this.isDeleted = false,
   });
 
-  /// Create from a listing entity
-  factory ObjectPreview.fromListing(Map<String, dynamic> listing) {
-    final status = listing['status'] as String? ?? 'unknown';
+  /// Create from a forSale entity
+  factory ObjectPreview.fromForSale(Map<String, dynamic> forSale) {
+    final status = forSale['status'] as String? ?? 'unknown';
     return ObjectPreview(
-      id: listing['id'] as String,
-      type: 'listing',
-      title: listing['title'] as String? ?? '',
+      id: forSale['id'] as String,
+      type: 'forSale',
+      title: forSale['title'] as String? ?? '',
       imageUrl:
-          listing['media'] is List && (listing['media'] as List).isNotEmpty
-          ? (listing['media'] as List).first['originalUrl'] as String?
+          forSale['media'] is List && (forSale['media'] as List).isNotEmpty
+          ? (forSale['media'] as List).first['originalUrl'] as String?
           : null,
-      price: listing['price'] as int?,
+      price: forSale['price'] as int?,
       status: status,
       isAvailable: status == 'available',
       isSold: status == 'sold',

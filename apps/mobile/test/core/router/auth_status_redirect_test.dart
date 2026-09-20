@@ -215,7 +215,7 @@ void main() {
   group('Unauthenticated guest may open canonical Home (GUEST HOME)', () {
     // Owner canonical truth: guests on the Welcome Screen may tap Home and
     // must land on the canonical Home (/home). Home intent must NEVER
-    // resolve to /for-sale (For Sale) or any legacy listing destination.
+    // resolve to /for-sale (For Sale) or any legacy forSale destination.
     const unauthPlaceholder = AuthStateUnauthenticated();
 
     test('/home → no redirect (guest reaches canonical Home)', () {

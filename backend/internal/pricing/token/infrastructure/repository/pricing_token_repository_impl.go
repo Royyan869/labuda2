@@ -325,21 +325,25 @@ func (r *PricingTokenRepositoryImpl) GetByTokenForUpdate(
 	}, nil
 }
 
-// MarkAsUsedTx marks a token as used and links it to an order within a transaction.
+// MarkAsUsedTx marks a token as used, links it to an order, and persists the
+// canonical coins redeemed (K) into coins_used within a transaction. K is
+// decided once at Order creation; this is the sole writer of coins_used.
 func (r *PricingTokenRepositoryImpl) MarkAsUsedTx(
 	ctx context.Context,
 	tx db.Tx,
 	tokenID uuid.UUID,
 	orderID uuid.UUID,
+	coinsUsed int64,
 ) error {
 	result, err := tx.Exec(ctx, `
 		UPDATE pricing_tokens
 		SET is_used = true,
 		    used_at = NOW(),
 		    order_id = $2,
+		    coins_used = $3,
 		    updated_at = NOW()
 		WHERE id = $1 AND is_used = false
-	`, tokenID, orderID)
+	`, tokenID, orderID, coinsUsed)
 
 	if err != nil {
 		return fmt.Errorf("mark pricing token as used failed: %w", err)

@@ -54,7 +54,7 @@ void main() {
               participantNames: {'user_2': 'alice'},
               participantAvatars: {'user_2': null},
               createdAt: DateTime(2026, 6, 2),
-              unreadCounts: {'__room_unread__': 3},
+              unreadCount: 3,
             ),
             Chat(
               id: 'room_b',
@@ -62,42 +62,12 @@ void main() {
               participantNames: {'user_3': 'bob'},
               participantAvatars: {'user_3': null},
               createdAt: DateTime(2026, 6, 2),
-              unreadCounts: {'__room_unread__': 5},
+              unreadCount: 5,
             ),
           ],
         );
 
         expect(container.read(totalUnreadCountProvider), 8);
-      },
-    );
-
-    test(
-      'UnreadCount notifier syncs from chats without aggregate API call',
-      () {
-        final container = ProviderContainer();
-        addTearDown(container.dispose);
-
-        final unreadNotifier = container.read(unreadCountProvider.notifier);
-        unreadNotifier.syncFromChats([
-          Chat(
-            id: 'room_x',
-            participantIds: ['u1', 'u2'],
-            participantNames: {'u2': 'alice'},
-            participantAvatars: {'u2': null},
-            createdAt: DateTime(2026, 6, 2),
-            unreadCounts: {'__room_unread__': 2},
-          ),
-          Chat(
-            id: 'room_y',
-            participantIds: ['u1', 'u3'],
-            participantNames: {'u3': 'bob'},
-            participantAvatars: {'u3': null},
-            createdAt: DateTime(2026, 6, 2),
-            unreadCounts: {'__room_unread__': 1},
-          ),
-        ], 'u1');
-
-        expect(container.read(unreadCountProvider), {'room_x': 2, 'room_y': 1});
       },
     );
 

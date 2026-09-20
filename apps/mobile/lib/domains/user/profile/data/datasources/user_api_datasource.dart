@@ -142,14 +142,20 @@ class UserApiDatasource extends BaseApiRepository {
     );
   }
 
-  /// Get multiple users by IDs
+  /// Get multiple users by IDs — canonical batch uses sequential GET /users/{id}
+  /// (no dedicated POST /users/batch backend route; the single public
+  /// projection is the sole truth). Sequential preserves lifecycle/redaction
+  /// parity with the single path.
   Future<Result<List<UserApiResponse>>> getMultipleUsers(
     List<String> userIds,
   ) async {
-    return executeListRequest(
-      () => apiClient.post('/users/batch', data: {'user_ids': userIds}),
-      itemParser: (json) => UserApiResponse.fromJson(json),
-    );
+    if (userIds.isEmpty) return Result.success(<UserApiResponse>[]);
+    final results = <UserApiResponse>[];
+    for (final id in userIds) {
+      final r = await getUserById(id);
+      r.fold((_) {}, (resp) => results.add(resp));
+    }
+    return Result.success(results);
   }
 
   /// Get verified sellers
@@ -186,30 +192,6 @@ class UserApiDatasource extends BaseApiRepository {
       // REMOVED: averageRating (use rating module instead, deleted in PROFILE PURGE)
       // REMOVED: totalReviews (use rating module instead, deleted in PROFILE PURGE)
       // REMOVED: collectionsCount, transactionsCount (PROFILE PURGE)
-    );
-  }
-
-  // ========================================
-  // Farm/Seller Operations
-  // ========================================
-
-  /// Update farm info for seller
-  Future<Result<UserApiResponse>> updateFarmInfo(
-    String userId,
-    FarmInfo farmInfo,
-  ) async {
-    return executeRequest(
-      () => apiClient.patch(
-        '/users/$userId/farm',
-        data: {
-          'farm_name': farmInfo.farmName,
-          'farm_photo_url': farmInfo.farmPhotoUrl,
-          'farm_website': farmInfo.farmWebsite,
-          'specialties': farmInfo.specialties,
-          'established_date': farmInfo.establishedDate?.toIso8601String(),
-        },
-      ),
-      parser: (data) => UserApiResponse.fromJson(data as Map<String, dynamic>),
     );
   }
 

@@ -197,7 +197,7 @@ class _CommentInputWithCommerceReferenceState
       context,
       sellerId: widget.sellerId,
       selectedResourceId: _selectedResource?.resourceId,
-      onCreateNewListing: () async {
+      onCreateNewForSale: () async {
         Navigator.of(context).pop(); // close picker
         // Use GoRouter for canonical navigation
         final result = await context.pushNamed(RoutePaths.createForSale);

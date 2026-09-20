@@ -22,7 +22,6 @@ class _DiscountSection extends ConsumerWidget {
   final double subtotal;
   final void Function(Discount? discount, double amount) onDiscountApplied;
   final Discount? appliedDiscount;
-  final double appliedDiscountAmount;
 
   const _DiscountSection({
     required this.sellerId,
@@ -30,11 +29,11 @@ class _DiscountSection extends ConsumerWidget {
     required this.subtotal,
     required this.onDiscountApplied,
     required this.appliedDiscount,
-    required this.appliedDiscountAmount,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -99,7 +98,7 @@ class _DiscountSection extends ConsumerWidget {
                         _getDiscountDescription(appliedDiscount!),
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.neutralGray700,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],

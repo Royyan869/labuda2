@@ -5,13 +5,10 @@
 /// PHASE 1F: Payment domain closure - using unified PaymentStatus from core
 library;
 
-import 'package:labuda/core/core.dart'
-    as core
-    show PaymentChannel, ILoggerService;
+import 'package:labuda/core/core.dart' as core show ILoggerService;
 
 import '../../domain/entities/payment.dart';
 import '../../domain/entities/payment_intent.dart';
-import '../../domain/entities/payment_method.dart';
 import '../../domain/failures/payment_failure.dart';
 import '../../domain/repositories/payment_repository.dart';
 import '../mappers/payment_mapper.dart';
@@ -121,23 +118,6 @@ class PaymentRepositoryImpl implements PaymentRepository {
       );
       return RepositoryResult.failure(UnknownFailure(e.toString()));
     }
-  }
-
-  @override
-  List<PaymentMethod> getAvailablePaymentMethods() {
-    return PaymentMapper.getAllPaymentMethods();
-  }
-
-  @override
-  double calculateFee(core.PaymentChannel channel, double amount) {
-    // Legacy stub: checkout fee authority lives on the backend now.
-    return 0.0;
-  }
-
-  @override
-  double calculateTotal(core.PaymentChannel channel, double amount) {
-    // Legacy stub: checkout total is provided by backend snapshots.
-    return amount;
   }
 
   /// Map API error to PaymentFailure

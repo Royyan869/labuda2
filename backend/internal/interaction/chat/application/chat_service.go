@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -12,6 +13,7 @@ import (
 	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	infraRepo "github.com/labuda/backend/internal/interaction/chat/infrastructure/repository"
 	chatRepo "github.com/labuda/backend/internal/interaction/chat/repository"
+	"github.com/labuda/backend/internal/platform/events"
 	"github.com/labuda/backend/internal/realtime"
 	socialRepo "github.com/labuda/backend/internal/social/graph"
 	infraSocialRepo "github.com/labuda/backend/internal/social/graph/infrastructure/repository"
@@ -74,6 +76,10 @@ type Service struct {
 	orderReader          OrderOwnershipReader       // Order buyer/seller lookup for LinkOrderToChat authorization
 	log                  *zap.Logger                // Optional logger for warnings
 	commerceRefValidator commerceResponse.Validator // Validates commerce resource references for display
+	// occurrenceFallbacks builds the server-side display fallback snapshot
+	// persisted alongside a message resource occurrence. It is a
+	// communication-surface representation only — never business authority.
+	occurrenceFallbacks *OccurrenceFallbackBuilders
 }
 
 // OutboxInserter defines the interface for inserting outbox events.
@@ -118,6 +124,13 @@ func (s *Service) SetCommerceReferenceValidator(v commerceResponse.Validator) {
 	s.commerceRefValidator = v
 }
 
+// SetOccurrenceFallbackBuilders injects the server-side display fallback
+// builders used when persisting a message resource occurrence. The builders
+// produce communication-surface snapshots only — no Commerce business state.
+func (s *Service) SetOccurrenceFallbackBuilders(b *OccurrenceFallbackBuilders) {
+	s.occurrenceFallbacks = b
+}
+
 // NewServiceWithDefaults creates a chat service with the default repository.
 func NewServiceWithDefaults(
 	db Transactor,
@@ -128,7 +141,7 @@ func NewServiceWithDefaults(
 	orderReader OrderOwnershipReader,
 	log *zap.Logger,
 ) *Service {
-	return NewService(
+	service := NewService(
 		db,
 		infraRepo.NewChatRepository(),
 		infraSocialRepo.NewSocialRepository(),
@@ -139,6 +152,11 @@ func NewServiceWithDefaults(
 		orderReader,
 		log,
 	)
+	// The default fallback builders are self-contained SQL builders (no
+	// injected domain dependencies), so the production/default wiring can
+	// always supply server-built display snapshots.
+	service.occurrenceFallbacks = NewDefaultOccurrenceFallbackBuilders()
+	return service
 }
 
 // ========================================================================
@@ -269,35 +287,28 @@ func (s *Service) getOrCreateDirectRoomTx(
 // RoomTypeNegotiation and the Postgres 'negotiation' enum value are
 // intentionally retained to correctly read back any pre-existing rows.
 
-// GetOrCreateSupportRoom gets or creates a support room for a user.
+// CreateSupportTicketRoom creates a NEW support conversation for exactly one
+// support ticket.
 //
-// Transaction flow:
-// 1. BEGIN
-// 2. Try to get existing support room
-// 3. If not found, create new room
-// 4. COMMIT
+// CANONICAL INVARIANT: one ticket = one support room. There is no
+// get-or-create and no per-user coalescing — every ticket creation provisions
+// its own room.
 //
-// Business rules:
-//   - One support room per user
-//   - participant_a = user, participant_b = system UUID (Nil)
-//   - room_type = 'support'
-//   - Room-level commerce context is NOT stored; support ticket linkage is
-//     carried by support_tickets.chat_room_id / linked_order_id on the ticket.
-func (s *Service) GetOrCreateSupportRoom(ctx context.Context, userID uuid.UUID) (*chatEntity.ChatRoom, error) {
+// SUPPORT BOUNDARY: support rooms have a single human participant (the ticket
+// owner). Agent-side read/write is authorized by the Support domain and flows
+// through the bounded support message seam below, so no agent is modelled as a
+// chat participant.
+func (s *Service) CreateSupportTicketRoom(ctx context.Context, ownerID uuid.UUID) (*chatEntity.ChatRoom, error) {
 	var room *chatEntity.ChatRoom
 	err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		var err error
-		var created bool
-		room, created, err = s.getOrCreateSupportRoomTx(ctx, tx, userID)
-		if err != nil {
+		room = chatEntity.NewSupportRoom(ownerID)
+		if err := s.repo.CreateRoom(ctx, tx, room); err != nil {
+			return fmt.Errorf("failed to create support room: %w", err)
+		}
+		if err := s.emitChatRoomCreatedEvents(ctx, tx, room); err != nil {
 			return err
 		}
-		if created {
-			if err := s.emitChatRoomCreatedEvents(ctx, tx, room); err != nil {
-				return err
-			}
-		}
-		return err
+		return nil
 	})
 
 	if err != nil {
@@ -305,47 +316,6 @@ func (s *Service) GetOrCreateSupportRoom(ctx context.Context, userID uuid.UUID) 
 	}
 
 	return room, nil
-}
-
-// getOrCreateSupportRoomTx is the internal transaction-aware version of GetOrCreateSupportRoom.
-//
-// IMPORTANT: This method does NOT manage its own transaction.
-// The caller must provide a valid tx from an ongoing transaction.
-func (s *Service) getOrCreateSupportRoomTx(
-	ctx context.Context,
-	tx db.Tx,
-	userID uuid.UUID,
-) (*chatEntity.ChatRoom, bool, error) {
-	// Try to get existing support room first
-	existingRoom, err := s.repo.GetSupportRoom(ctx, tx, userID)
-	if err == nil {
-		return existingRoom, false, nil
-	}
-	if err != chatRepo.ErrRoomNotFound {
-		return nil, false, fmt.Errorf("failed to get support room: %w", err)
-	}
-
-	// Room doesn't exist, create new one
-	newRoom := chatEntity.NewChatRoom(
-		chatEntity.RoomTypeSupport,
-		userID,
-		uuid.Nil, // System UUID as participant_b
-	)
-
-	if err := s.repo.CreateRoom(ctx, tx, newRoom); err != nil {
-		// CRITICAL: Handle race condition - if unique violation occurred,
-		// another transaction created the same room. Fetch and return it.
-		if err == chatRepo.ErrDuplicateRoom {
-			existingRoom, fetchErr := s.repo.GetSupportRoom(ctx, tx, userID)
-			if fetchErr != nil {
-				return nil, false, fmt.Errorf("room created by another request but fetch failed: %w", fetchErr)
-			}
-			return existingRoom, false, nil
-		}
-		return nil, false, fmt.Errorf("failed to create support room: %w", err)
-	}
-
-	return newRoom, true, nil
 }
 
 // SendSystemMessage sends a system message to a room.
@@ -394,6 +364,75 @@ func (s *Service) SendSystemMessage(ctx context.Context, roomID uuid.UUID, body 
 
 		return nil
 	})
+}
+
+// SendSupportMessage persists a support conversation message on behalf of an
+// authenticated actor (the ticket owner or an authorized support agent).
+//
+// SUPPORT BOUNDARY: unlike SendMessage it does NOT require chat participation,
+// because support-room authorization is owned by the Support domain and is
+// enforced there (ticket ownership for users, capability + assignment for
+// agents) before this method is ever called. The real actor ID is always
+// persisted as the message sender — human replies are never represented as
+// system messages.
+//
+// Routing: messages are ordinary chat_messages in a support room, so the
+// canonical Chat transport (realtime fanout, ordering, pagination) is reused.
+// Support rooms emit no chat notifications; Support owns notification.
+func (s *Service) SendSupportMessage(
+	ctx context.Context,
+	roomID, senderID uuid.UUID,
+	body string,
+	idempotencyKey string,
+) (*chatEntity.ChatMessage, error) {
+	return s.sendMessage(
+		ctx,
+		roomID,
+		senderID,
+		chatEntity.MessageTypeText,
+		&body,
+		nil,
+		idempotencyKey,
+		nil,
+		false,
+	)
+}
+
+// ListSupportMessages lists messages in a support room for an authorized
+// support actor (ticket owner or support agent).
+//
+// SUPPORT BOUNDARY: chat participation is intentionally NOT checked here.
+// Support-room authorization is owned by the Support domain, which calls this
+// only after verifying ticket ownership (user) or capability + assignment
+// (agent). Standard rooms must use ListMessages, which enforces participation.
+func (s *Service) ListSupportMessages(
+	ctx context.Context,
+	roomID uuid.UUID,
+	cursorCreatedAt *time.Time,
+	cursorID *uuid.UUID,
+	limit int,
+) ([]*chatEntity.ChatMessage, error) {
+	var messages []*chatEntity.ChatMessage
+	err := s.db.WithTx(ctx, func(tx db.Tx) error {
+		// Verify the room exists and is a support room — never let this seam
+		// read a non-support conversation by accident.
+		room, err := s.repo.GetRoomByID(ctx, tx, roomID)
+		if err != nil {
+			return fmt.Errorf("room not found: %w", err)
+		}
+		if room.RoomType != chatEntity.RoomTypeSupport {
+			return chatRepo.ErrParticipantMismatch
+		}
+
+		messages, err = s.repo.ListMessagesByRoom(ctx, tx, roomID, cursorCreatedAt, cursorID, limit)
+		return err
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return messages, nil
 }
 
 // GetRoom retrieves a room by ID.
@@ -643,6 +682,41 @@ func (s *Service) SendMessage(
 	attachmentJSON map[string]interface{},
 	idempotencyKey string,
 ) (*chatEntity.ChatMessage, error) {
+	return s.sendMessage(ctx, roomID, senderID, messageType, body, attachmentJSON, idempotencyKey, nil, true)
+}
+
+// SendMessageWithResourceOccurrence sends a message that additionally records a
+// resource occurrence (communication reference) for the referenced
+// profile/content/for_sale/auction. The occurrence is persisted atomically
+// with the message. Chat stores identity + operation + a server-built display
+// fallback only — never Commerce business authority.
+func (s *Service) SendMessageWithResourceOccurrence(
+	ctx context.Context,
+	roomID, senderID uuid.UUID,
+	messageType chatEntity.MessageType,
+	body *string,
+	attachmentJSON map[string]interface{},
+	idempotencyKey string,
+	resourceOccurrence *chatEntity.ResourceOccurrenceIdentity,
+) (*chatEntity.ChatMessage, error) {
+	return s.sendMessage(ctx, roomID, senderID, messageType, body, attachmentJSON, idempotencyKey, resourceOccurrence, true)
+}
+
+// sendMessage is the single canonical implementation behind SendMessage and
+// SendMessageWithResourceOccurrence.
+func (s *Service) sendMessage(
+	ctx context.Context,
+	roomID, senderID uuid.UUID,
+	messageType chatEntity.MessageType,
+	body *string,
+	attachmentJSON map[string]interface{},
+	idempotencyKey string,
+	resourceOccurrence *chatEntity.ResourceOccurrenceIdentity,
+	// requireParticipant enforces the standard chat participant check. Support
+	// rooms set this to false because agent authorization is owned by the
+	// Support domain and flows through SendSupportMessage.
+	requireParticipant bool,
+) (*chatEntity.ChatMessage, error) {
 	if idempotencyKey == "" {
 		return nil, chatRepo.ErrInvalidIdempotencyKey
 	}
@@ -700,8 +774,8 @@ func (s *Service) SendMessage(
 			return fmt.Errorf("room not found: %w", err)
 		}
 
-		// Verify sender is a participant
-		if !room.HasParticipant(senderID) {
+		// Verify sender is a participant (standard rooms only).
+		if requireParticipant && !room.HasParticipant(senderID) {
 			return chatRepo.ErrParticipantMismatch
 		}
 
@@ -726,11 +800,21 @@ func (s *Service) SendMessage(
 			}
 		}
 
-		// Check for existing message by idempotency key
-		existingMessage, err := s.repo.GetMessageByIdempotencyKey(ctx, tx, idempotencyKey)
+		// Idempotency authority is the actor-scoped pair
+		// (sender_id, idempotency_key) — UNIQUE(sender_id, idempotency_key),
+		// migration 000032. The incoming command fingerprint (computed with the
+		// same canonical formula used to persist the row) decides replay vs
+		// conflict for that pair.
+		incomingFingerprint := chatEntity.ComputeCommandFingerprint(senderID, messageType, body, attachmentJSON)
+
+		existingMessage, err := s.repo.GetMessageByIdempotencyKey(ctx, tx, senderID, idempotencyKey)
 		if err == nil {
+			if existingMessage.CommandFingerprint != incomingFingerprint {
+				// Same sender + same key + different command: never replay.
+				return chatRepo.ErrIdempotencyKeyConflict
+			}
 			message = existingMessage
-			return nil // Return existing message (idempotent)
+			return nil // Idempotent replay of the same command
 		}
 		if err != chatRepo.ErrMessageNotFound {
 			return fmt.Errorf("failed to check idempotency: %w", err)
@@ -747,7 +831,32 @@ func (s *Service) SendMessage(
 		)
 
 		if err := s.repo.CreateMessage(ctx, tx, newMessage); err != nil {
+			// Concurrent duplicate from the same sender: a racing transaction
+			// persisted the winner row. Converge on it using the same
+			// fingerprint rule (replay on match, conflict on mismatch).
+			if err == chatRepo.ErrDuplicateMessage {
+				existingMessage, lookupErr := s.repo.GetMessageByIdempotencyKey(ctx, tx, senderID, idempotencyKey)
+				if lookupErr != nil {
+					return fmt.Errorf("resolve concurrent idempotent message: %w", lookupErr)
+				}
+				if existingMessage.CommandFingerprint != incomingFingerprint {
+					return chatRepo.ErrIdempotencyKeyConflict
+				}
+				message = existingMessage
+				return nil
+			}
 			return fmt.Errorf("failed to create message: %w", err)
+		}
+
+		// Persist the resource occurrence (communication reference) for this
+		// message inside the same transaction. Chat stores only the message
+		// identity, the operation, the resource identity, and a server-built
+		// DISPLAY fallback — never Commerce business state. The owning domain
+		// remains the authority for price/availability/lifecycle.
+		if resourceOccurrence != nil {
+			if err := s.persistResourceOccurrence(ctx, tx, newMessage.ID, resourceOccurrence); err != nil {
+				return err
+			}
 		}
 
 		// Update room's last_message_at
@@ -761,22 +870,54 @@ func (s *Service) SendMessage(
 			return fmt.Errorf("failed to upsert read state: %w", err)
 		}
 
-		// Emit outbox event for notification delivery
-		// Recipient is the other participant
+		// ONE SENT MESSAGE → TWO DURABLE EFFECTS, ONE OWNING CONSUMER EACH.
+		//
+		// Both effects are emitted inside THIS transaction, so a message can
+		// never be persisted without its required events. Each effect is a
+		// separate outbox event because one outbox event type has exactly one
+		// owning consumer — a single row with two competing consumers would
+		// silently lose one of the two effects.
+		//
+		//   realtime     (realtime.EventTypeChatMessageSent)  → realtime worker  → WebSocket delivery
+		//   notification (events.EventChatMessageNotification) → outbox worker   → in-app + push
+		//
+		// Recipient is the other participant.
 		recipientID := room.OtherParticipant(senderID)
-		payload := map[string]any{
-			"room_id":      roomID.String(),
-			"message_id":   newMessage.ID.String(),
-			"sender_id":    senderID.String(),
-			"recipient_id": recipientID.String(),
-			"message_type": string(newMessage.MessageType),
-			"created_at":   newMessage.CreatedAt.UTC().Format(time.RFC3339),
+
+		// Effect 1 — WebSocket realtime signal. Minimal by contract: the client
+		// re-fetches the message over REST once it sees the signal.
+		realtimePayload := map[string]any{
+			"room_id":    roomID.String(),
+			"message_id": newMessage.ID.String(),
+		}
+		realtimeKey := fmt.Sprintf("realtime.%s", newMessage.ID.String())
+		if err := s.outboxRepo.InsertTx(ctx, tx, realtime.EventTypeChatMessageSent, realtimePayload, realtimeKey); err != nil {
+			return fmt.Errorf("insert chat.message.sent outbox event failed: %w", err)
 		}
 
-		// Idempotency key: chat.message.sent.{messageID}
-		outboxIdempotencyKey := fmt.Sprintf("chat.message.sent.%s", newMessage.ID.String())
-		if err := s.outboxRepo.InsertTx(ctx, tx, "chat.message.sent", payload, outboxIdempotencyKey); err != nil {
-			return fmt.Errorf("insert outbox event failed: %w", err)
+		// Effect 2 — notification (in-app + push). Carries sender and recipient
+		// because the notification handler evaluates mute/block/lifecycle at
+		// delivery time.
+		//
+		// SUPPORT BOUNDARY: support rooms do NOT emit chat notifications. The
+		// Support domain is the single notification authority for support — it
+		// emits support.ticket.* events with the correct recipient
+		// (support.ticket_waiting_user → user, support.ticket.user_responded →
+		// assigned agent). Emitting chat.message.notification here too would
+		// create a second, competing notification path.
+		if room.RoomType != chatEntity.RoomTypeSupport {
+			notificationPayload := map[string]any{
+				"room_id":      roomID.String(),
+				"message_id":   newMessage.ID.String(),
+				"sender_id":    senderID.String(),
+				"recipient_id": recipientID.String(),
+				"message_type": string(newMessage.MessageType),
+				"created_at":   newMessage.CreatedAt.UTC().Format(time.RFC3339),
+			}
+			notificationKey := fmt.Sprintf("notification.%s", newMessage.ID.String())
+			if err := s.outboxRepo.InsertTx(ctx, tx, events.EventChatMessageNotification, notificationPayload, notificationKey); err != nil {
+				return fmt.Errorf("insert chat.message.notification outbox event failed: %w", err)
+			}
 		}
 
 		// Emit room-list update events for each real participant.
@@ -810,13 +951,7 @@ func (s *Service) SendMessage(
 			}
 			supportKey := fmt.Sprintf("support.user_replied.%s", newMessage.ID.String())
 			if err := s.outboxRepo.InsertTx(ctx, tx, "support.user_replied", supportPayload, supportKey); err != nil {
-				// Non-fatal: ticket transition is best-effort, message delivery is primary
-				if s.log != nil {
-					s.log.Warn("failed to emit support.user_replied event",
-						zap.String("room_id", roomID.String()),
-						zap.Error(err),
-					)
-				}
+				return fmt.Errorf("insert support.user_replied outbox event failed: %w", err)
 			}
 		}
 
@@ -852,6 +987,72 @@ func (s *Service) SendTextMessage(
 		nil,
 		idempotencyKey,
 	)
+}
+
+// persistResourceOccurrence writes the message→resource occurrence row.
+//
+// BOUNDARY: Chat owns the COMMUNICATION reference only — message identity, the
+// operation, and the resource identity. The persisted fallback_snapshot is a
+// server-built DISPLAY representation; it is never Commerce business authority
+// (no price/stock/availability/order/payment state). The DB CHECK constraints
+// enforce exactly-one-typed-source and restrict direct commerce inserts to
+// for_sale/auction.
+func (s *Service) persistResourceOccurrence(
+	ctx context.Context,
+	tx db.Tx,
+	messageID uuid.UUID,
+	identity *chatEntity.ResourceOccurrenceIdentity,
+) error {
+	if !identity.Operation.IsValid() || !identity.ResourceType.IsValid() || identity.ResourceID == uuid.Nil {
+		return chatRepo.ErrInvalidResourceOccurrence
+	}
+	if identity.Operation == chatEntity.ResourceOccurrenceOperationDirectCommerceInsertChat &&
+		!identity.ResourceType.CanDirectCommerceInsert() {
+		return chatRepo.ErrInvalidResourceOccurrence
+	}
+
+	var fallbackSnapshot json.RawMessage = json.RawMessage(`{}`)
+	if s.occurrenceFallbacks != nil {
+		built, err := s.occurrenceFallbacks.BuildFallback(ctx, tx, identity.ResourceType, identity.ResourceID)
+		if err != nil {
+			return fmt.Errorf("build resource occurrence fallback: %w", err)
+		}
+		fallbackSnapshot = built
+	}
+
+	var profileID, contentID, forSaleID, auctionID *uuid.UUID
+	switch identity.ResourceType {
+	case chatEntity.ResourceOccurrenceResourceTypeProfile:
+		profileID = &identity.ResourceID
+	case chatEntity.ResourceOccurrenceResourceTypeContent:
+		contentID = &identity.ResourceID
+	case chatEntity.ResourceOccurrenceResourceTypeForSale:
+		forSaleID = &identity.ResourceID
+	case chatEntity.ResourceOccurrenceResourceTypeAuction:
+		auctionID = &identity.ResourceID
+	default:
+		return chatRepo.ErrInvalidResourceOccurrence
+	}
+
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO chat_message_resource_occurrences (
+			message_id, operation, profile_source_id, content_source_id,
+			for_sale_source_id, auction_source_id, fallback_snapshot, created_at
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+	`,
+		messageID,
+		string(identity.Operation),
+		profileID,
+		contentID,
+		forSaleID,
+		auctionID,
+		fallbackSnapshot,
+	); err != nil {
+		return fmt.Errorf("persist resource occurrence: %w", err)
+	}
+
+	return nil
 }
 
 // ListMessages lists messages in a room.
@@ -992,49 +1193,26 @@ func (s *Service) GetReadState(ctx context.Context, roomID, userID uuid.UUID) (*
 
 // GetUnreadCount calculates the unread message count for a user in a room.
 //
-// IMPORTANT: This is a read-only computation.
-// We do NOT store unread_count in the database.
+// This is a read-only projection over chat_messages + chat_read_states +
+// user_mutes; unread is never stored in the database. The COUNT formula lives
+// in exactly one place — the repository's GetUnreadCountsByRoomIDs — and this
+// method only enforces the room/participant boundary before delegating.
 //
-// MUTE SUPPRESSION (C6C): Messages from senders that the user has muted are
-// excluded from the unread count. The messages still exist and are visible
-// when the user opens the room — only the count computation is affected.
-// This aligns with Option B mute semantics: suppress notifications + badge,
-// but preserve message history.
-//
-// Returns 0 if there's no read state (all messages are unread).
+// MUTE SUPPRESSION: messages from senders the viewer has muted are excluded
+// from the count. They remain visible in history — only the count is affected.
 func (s *Service) GetUnreadCount(ctx context.Context, roomID, userID uuid.UUID) (int, error) {
 	var count int
 	err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		// Verify room exists and user is participant
 		room, err := s.repo.GetRoomByID(ctx, tx, roomID)
 		if err != nil {
 			return fmt.Errorf("room not found: %w", err)
 		}
-
 		if !room.HasParticipant(userID) {
 			return chatRepo.ErrParticipantMismatch
 		}
 
-		// Mute exclusion subquery: exclude messages from senders the user has muted.
-		// Uses NOT IN with a correlated subquery against user_mutes.
-		// If user has no mutes, the subquery returns empty set (no filtering).
-		const muteExclusion = `AND sender_id NOT IN (SELECT muted_id FROM user_mutes WHERE muter_id = `
-
-		// Get read state
-		readState, err := s.repo.GetReadState(ctx, tx, roomID, userID)
-		if err != nil {
-			if err == chatRepo.ErrReadStateNotFound {
-				// No read state means all messages are unread
-				// Count all messages in room (excluding muted senders)
-				query := `SELECT COUNT(*) FROM chat_messages WHERE room_id = $1 AND deleted_at IS NULL ` + muteExclusion + `$2)`
-				return tx.QueryRow(ctx, query, roomID, userID).Scan(&count)
-			}
-			return fmt.Errorf("failed to get read state: %w", err)
-		}
-
-		// Count messages created after last_read_at (excluding muted senders)
-		query := `SELECT COUNT(*) FROM chat_messages WHERE room_id = $1 AND deleted_at IS NULL AND created_at > $2 ` + muteExclusion + `$3)`
-		return tx.QueryRow(ctx, query, roomID, readState.LastReadAt, userID).Scan(&count)
+		count, err = s.repo.GetUnreadCountByRoomAndUser(ctx, tx, roomID, userID)
+		return err
 	})
 
 	if err != nil {
@@ -1042,6 +1220,29 @@ func (s *Service) GetUnreadCount(ctx context.Context, roomID, userID uuid.UUID) 
 	}
 
 	return count, nil
+}
+
+// GetUnreadCountsByRooms calculates unread counts for several rooms for one
+// viewer in a single batch query (room-list badges). It delegates to the same
+// canonical repository authority as GetUnreadCount.
+//
+// No per-room participant check is performed: callers pass the viewer's own
+// room set (already authorized/filtered).
+func (s *Service) GetUnreadCountsByRooms(
+	ctx context.Context,
+	roomIDs []uuid.UUID,
+	userID uuid.UUID,
+) (map[uuid.UUID]int, error) {
+	var counts map[uuid.UUID]int
+	err := s.db.WithTx(ctx, func(tx db.Tx) error {
+		var txErr error
+		counts, txErr = s.repo.GetUnreadCountsByRoomIDs(ctx, tx, roomIDs, userID)
+		return txErr
+	})
+	if err != nil {
+		return nil, err
+	}
+	return counts, nil
 }
 
 // SoftHideForModeration soft-hides a chat message and emits room-list updates.

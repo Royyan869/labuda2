@@ -18,10 +18,7 @@ import 'package:labuda/domains/user/preference/seller/domain/entities/seller_ear
 import 'package:labuda/domains/user/preference/seller/domain/entities/seller_subscription.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_dashboard_screen.dart';
 import 'package:labuda/domains/user/preference/seller/seller_di.dart';
-import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/address_list_provider.dart';
 import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/models/wilayah_models.dart';
 import 'package:labuda/shared/providers/authenticated_account_provider.dart';
 
 const _sellerId = 'seller-queue-001';
@@ -83,8 +80,8 @@ OrderItem _orderItem({required String id, required String label}) {
   return OrderItem(
     id: id,
     productId: 'product-$id',
-    listingName: label,
-    listingImage: 'https://example.com/$id.jpg',
+    forSaleName: label,
+    forSaleImage: 'https://example.com/$id.jpg',
     price: 100000,
   );
 }
@@ -112,35 +109,12 @@ Order _order({
     pricing: const OrderPricing(
       subtotal: 100000,
       shippingCost: 10000,
-      discount: 0,
-      total: 110000,
+      commissionAmount: 0,
+      totalBeforeCoinsAmount: 110000,
+      totalPayableAmount: 110000,
     ),
     createdAt: now,
-    source: OrderSource.fixedPriceSale,
-  );
-}
-
-AddressEntity _senderAddress() {
-  final now = DateTime.now();
-  return AddressEntity(
-    id: 'address-sender-1',
-    userId: _sellerId,
-    purpose: AddressPurpose.sender,
-    recipientName: 'Farm Sentosa',
-    phone: '08123456789',
-    province: const Province(id: '33', name: 'Jawa Tengah'),
-    city: const City(id: '3301', name: 'Kabupaten Demak', provinceId: '33'),
-    district: const District(id: '330101', name: 'Mranggen', cityId: '3301'),
-    village: const Village(
-      id: '3301012001',
-      name: 'Rowosari',
-      districtId: '330101',
-    ),
-    streetAddress: 'Jl. Melati No. 12',
-    postalCode: '59511',
-    isPrimary: true,
-    createdAt: now,
-    updatedAt: now,
+    source: OrderSource.forSale,
   );
 }
 
@@ -197,7 +171,6 @@ SellerEarnings _earnings() {
     totalCompletedOrders: 0,
     calculatedAt: now,
     grossPayable: 130000,
-    activeDisputeFreeze: 5000,
   );
 }
 
@@ -206,7 +179,6 @@ dynamic _dashboardOverrides({
   required List<Order> pendingOrders,
   required List<Order> paidOrders,
   required SellerVerificationV2State verificationState,
-  required Result<AddressEntity?> senderAddressResult,
   required ShippingSetupsListState shippingState,
   required SellerSubscription subscription,
   required SellerUpgradeConfigEntity upgradeConfig,
@@ -235,9 +207,6 @@ dynamic _dashboardOverrides({
       sellerId: _sellerId,
       status: OrderStatus.paid,
     ).overrideWith((ref) => Stream.value(paidOrders)),
-    primarySenderAddressProvider(_sellerId).overrideWith(
-      (ref) async => senderAddressResult,
-    ),
     sellerSubscriptionFutureProvider(_sellerId).overrideWith(
       (ref) async => subscription,
     ),
@@ -385,7 +354,6 @@ void main() {
           verificationState: const SellerVerificationV2State(
             status: SellerVerificationStatus.needsResubmission,
           ),
-          senderAddressResult: Result.success(null),
           shippingState: const ShippingSetupsListLoaded([]),
           subscription: _subscription(expiresIn: const Duration(days: -1)),
           upgradeConfig: _upgradeConfig(),
@@ -419,7 +387,6 @@ void main() {
           verificationState: const SellerVerificationV2State(
             status: SellerVerificationStatus.needsResubmission,
           ),
-          senderAddressResult: Result.success(null),
           shippingState: const ShippingSetupsListLoaded([]),
           subscription: _subscription(expiresIn: const Duration(days: -1)),
           upgradeConfig: _upgradeConfig(),
@@ -438,7 +405,6 @@ void main() {
           verificationState: const SellerVerificationV2State(
             status: SellerVerificationStatus.needsResubmission,
           ),
-          senderAddressResult: Result.success(null),
           shippingState: const ShippingSetupsListLoaded([]),
           subscription: _subscription(expiresIn: const Duration(days: -1)),
           upgradeConfig: _upgradeConfig(),
@@ -464,7 +430,6 @@ void main() {
           verificationState: const SellerVerificationV2State(
             status: SellerVerificationStatus.needsResubmission,
           ),
-          senderAddressResult: Result.success(null),
           shippingState: const ShippingSetupsListLoaded([]),
           subscription: _subscription(expiresIn: const Duration(days: -1)),
           upgradeConfig: _upgradeConfig(),
@@ -483,7 +448,6 @@ void main() {
           verificationState: const SellerVerificationV2State(
             status: SellerVerificationStatus.needsResubmission,
           ),
-          senderAddressResult: Result.success(null),
           shippingState: const ShippingSetupsListLoaded([]),
           subscription: _subscription(expiresIn: const Duration(days: -1)),
           upgradeConfig: _upgradeConfig(),
@@ -504,7 +468,6 @@ void main() {
           verificationState: const SellerVerificationV2State(
             status: SellerVerificationStatus.needsResubmission,
           ),
-          senderAddressResult: Result.success(null),
           shippingState: const ShippingSetupsListLoaded([]),
           subscription: _subscription(expiresIn: const Duration(days: -1)),
           upgradeConfig: _upgradeConfig(),
@@ -525,7 +488,6 @@ void main() {
           verificationState: const SellerVerificationV2State(
             status: SellerVerificationStatus.needsResubmission,
           ),
-          senderAddressResult: Result.success(null),
           shippingState: const ShippingSetupsListLoaded([]),
           subscription: _subscription(expiresIn: const Duration(days: -1)),
           upgradeConfig: _upgradeConfig(),
@@ -546,7 +508,6 @@ void main() {
           verificationState: const SellerVerificationV2State(
             status: SellerVerificationStatus.needsResubmission,
           ),
-          senderAddressResult: Result.success(null),
           shippingState: const ShippingSetupsListLoaded([]),
           subscription: _subscription(expiresIn: const Duration(days: -1)),
           upgradeConfig: _upgradeConfig(),
@@ -570,7 +531,6 @@ void main() {
         verificationState: const SellerVerificationV2State(
           status: SellerVerificationStatus.needsResubmission,
         ),
-        senderAddressResult: Result.success(null),
         shippingState: const ShippingSetupsListLoaded([]),
         subscription: _subscription(expiresIn: const Duration(days: -1)),
         upgradeConfig: _upgradeConfig(),
@@ -606,7 +566,6 @@ void main() {
           verificationState: const SellerVerificationV2State(
             status: SellerVerificationStatus.approved,
           ),
-          senderAddressResult: Result.success(_senderAddress()),
           shippingState: ShippingSetupsListLoaded([_activeShippingSetup()]),
           subscription: _subscription(expiresIn: const Duration(days: 5)),
           upgradeConfig: _upgradeConfig(renewalReminderDays: 7),
@@ -636,7 +595,6 @@ void main() {
           verificationState: const SellerVerificationV2State(
             status: SellerVerificationStatus.approved,
           ),
-          senderAddressResult: Result.success(_senderAddress()),
           shippingState: ShippingSetupsListLoaded([_activeShippingSetup()]),
           subscription: _subscription(expiresIn: const Duration(days: 60)),
           upgradeConfig: _upgradeConfig(),

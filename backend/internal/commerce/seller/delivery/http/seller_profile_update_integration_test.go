@@ -70,30 +70,30 @@ func (s *SellerHandlerTestSuite) TestSellerProfileUpdate_CanonicalMutationMatrix
 			name:             "store name-only update succeeds",
 			body:             map[string]any{"store_name": "Seller Prime"},
 			initialStoreName: "Seller Farm",
-			initialImage:     strPtr("https://example.com/store-old.jpg"),
+			initialImage:     strPtr("images/stores/00000000-0000-0000-0000-000000000000.jpg"),
 			wantStoreName:    "Seller Prime",
-			wantStoreImage:   strPtr("https://example.com/store-old.jpg"),
+			wantStoreImage:   strPtr("images/stores/00000000-0000-0000-0000-000000000000.jpg"),
 			wantImageBump:    false,
 		},
 		{
 			name:             "store image-only update succeeds",
-			body:             map[string]any{"store_image_url": "https://example.com/store-new.jpg"},
+			body:             map[string]any{"store_image_url": ""}, // placeholder, set per-user in run
 			initialStoreName: "Seller Farm",
-			initialImage:     strPtr("https://example.com/store-old.jpg"),
+			initialImage:     strPtr("images/stores/00000000-0000-0000-0000-000000000000.jpg"),
 			wantStoreName:    "Seller Farm",
-			wantStoreImage:   strPtr("https://example.com/store-new.jpg"),
+			wantStoreImage:   nil, // placeholder
 			wantImageBump:    true,
 		},
 		{
 			name: "store name and store image update atomically",
 			body: map[string]any{
 				"store_name":      "Seller Prime",
-				"store_image_url": "https://example.com/store-new.jpg",
+				"store_image_url": "",
 			},
 			initialStoreName: "Seller Farm",
-			initialImage:     strPtr("https://example.com/store-old.jpg"),
+			initialImage:     strPtr("images/stores/00000000-0000-0000-0000-000000000000.jpg"),
 			wantStoreName:    "Seller Prime",
-			wantStoreImage:   strPtr("https://example.com/store-new.jpg"),
+			wantStoreImage:   nil,
 			wantImageBump:    true,
 		},
 		{
@@ -112,14 +112,33 @@ func (s *SellerHandlerTestSuite) TestSellerProfileUpdate_CanonicalMutationMatrix
 			userID := uuid.New()
 			avatar := strPtr("https://example.com/avatar-old.jpg")
 			cover := strPtr("https://example.com/cover-old.jpg")
+			// For store-image cases, generate per-user canonical key to satisfy ownership validation.
+			body := tc.body
+			wantImage := tc.wantStoreImage
+			initialImage := tc.initialImage
+			// Canonical key for this user
+			canonicalKey := "images/stores/" + userID.String() + ".jpg"
+			if tc.name == "store image-only update succeeds" {
+				body = map[string]any{"store_image_url": canonicalKey}
+				wantImage = strPtr(canonicalKey)
+				initialImage = strPtr(canonicalKey)
+			} else if tc.name == "store name and store image update atomically" {
+				body = map[string]any{"store_name": "Seller Prime", "store_image_url": canonicalKey}
+				wantImage = strPtr(canonicalKey)
+				initialImage = strPtr(canonicalKey)
+			} else if tc.name == "store name-only update succeeds" {
+				// keep initial as canonical for this user to avoid cross-user mismatch
+				initialImage = strPtr(canonicalKey)
+				wantImage = strPtr(canonicalKey)
+			}
 			require.NoError(
 				s.T(),
-				s.seedSellerUpdateFixture(ctx, userID, tc.initialStoreName, tc.initialImage, avatar, cover),
+				s.seedSellerUpdateFixture(ctx, userID, tc.initialStoreName, initialImage, avatar, cover),
 			)
 			beforeStoreImageUpdatedAt := s.queryPersistedStoreImageUpdatedAt(ctx, userID)
 			require.NotNil(s.T(), beforeStoreImageUpdatedAt)
 
-			payload, err := json.Marshal(tc.body)
+			payload, err := json.Marshal(body)
 			require.NoError(s.T(), err)
 
 			w := s.performSellerProfileRequest(userID, bytes.NewReader(payload))
@@ -131,7 +150,7 @@ func (s *SellerHandlerTestSuite) TestSellerProfileUpdate_CanonicalMutationMatrix
 			require.NoError(s.T(), json.Unmarshal(w.Body.Bytes(), &resp))
 			require.Equal(s.T(), userID, resp.Data.UserID)
 			assert.Equal(s.T(), tc.wantStoreName, resp.Data.StoreName)
-			assert.Equal(s.T(), tc.wantStoreImage, resp.Data.StoreImageURL)
+			assert.Equal(s.T(), wantImage, resp.Data.StoreImageURL)
 
 			err = s.db.WithTx(ctx, func(tx db.Tx) error {
 				profile, err := s.sellerRepo.GetByUserID(ctx, tx, userID)
@@ -139,7 +158,7 @@ func (s *SellerHandlerTestSuite) TestSellerProfileUpdate_CanonicalMutationMatrix
 				require.NotNil(s.T(), profile)
 
 				assert.Equal(s.T(), tc.wantStoreName, profile.StoreName)
-				assert.Equal(s.T(), tc.wantStoreImage, profile.StoreImageURL)
+				assert.Equal(s.T(), wantImage, profile.StoreImageURL)
 				afterStoreImageUpdatedAt := profile.StoreImageUpdatedAt
 				require.NotNil(s.T(), afterStoreImageUpdatedAt)
 				if tc.wantImageBump {
@@ -212,16 +231,16 @@ func (s *SellerHandlerTestSuite) TestSellerProfileUpdate_AuthorityAndIdentityGua
 
 		require.NoError(
 			s.T(),
-			s.seedSellerUpdateFixture(ctx, userA, "Store A", strPtr("https://example.com/store-a.jpg"), avatarA, coverA),
+			s.seedSellerUpdateFixture(ctx, userA, "Store A", strPtr("images/stores/"+userA.String()+".jpg"), avatarA, coverA),
 		)
 		require.NoError(
 			s.T(),
-			s.seedSellerUpdateFixture(ctx, userB, "Store B", strPtr("https://example.com/store-b.jpg"), avatarB, coverB),
+			s.seedSellerUpdateFixture(ctx, userB, "Store B", strPtr("images/stores/"+userB.String()+".jpg"), avatarB, coverB),
 		)
 
 		payload, err := json.Marshal(map[string]any{
 			"store_name":      "Store A Prime",
-			"store_image_url": "https://example.com/store-a-new.jpg",
+			"store_image_url": "images/stores/" + userA.String() + ".jpg",
 		})
 		require.NoError(s.T(), err)
 
@@ -240,7 +259,7 @@ func (s *SellerHandlerTestSuite) TestSellerProfileUpdate_AuthorityAndIdentityGua
 			assert.Equal(s.T(), "Store B", profileB.StoreName)
 			assert.Equal(
 				s.T(),
-				strPtr("https://example.com/store-b.jpg"),
+				strPtr("images/stores/"+userB.String()+".jpg"),
 				profileB.StoreImageURL,
 			)
 

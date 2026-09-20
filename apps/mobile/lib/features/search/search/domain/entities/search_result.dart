@@ -104,7 +104,7 @@ class SearchResult extends Equatable {
 /// that backs a per-type tab.
 class UnifiedSearchResults extends Equatable {
   final List<SearchResult> users;
-  final List<SearchResult> listings;
+  final List<SearchResult> forSales;
   final List<SearchResult> auctions;
   final List<SearchResult> contents;
   final int totalCount;
@@ -113,7 +113,7 @@ class UnifiedSearchResults extends Equatable {
 
   const UnifiedSearchResults({
     this.users = const [],
-    this.listings = const [],
+    this.forSales = const [],
     this.auctions = const [],
     this.contents = const [],
     required this.totalCount,
@@ -124,7 +124,7 @@ class UnifiedSearchResults extends Equatable {
   @override
   List<Object?> get props => [
     users,
-    listings,
+    forSales,
     auctions,
     contents,
     totalCount,
@@ -135,7 +135,7 @@ class UnifiedSearchResults extends Equatable {
   /// Check if there are no results in any domain
   bool get isEmpty =>
       users.isEmpty &&
-      listings.isEmpty &&
+      forSales.isEmpty &&
       auctions.isEmpty &&
       contents.isEmpty;
 

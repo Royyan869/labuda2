@@ -1,10 +1,7 @@
 package http
 
 import (
-	"fmt"
-
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/integration/payment/application"
 	"github.com/labuda/backend/internal/platform/response"
 	"github.com/labuda/backend/pkg/midtrans"
@@ -77,77 +74,16 @@ func (h *PaymentWebhookHandler) HandleMidtransWebhook(c *gin.Context) {
 			zap.String("transaction_id", notification.TransactionID),
 			zap.Error(err),
 		)
-		// Still return 200 OK - webhook is recorded as failed
-		// Midtrans will not retry
+		// The failure was already recorded durably (REC-1): HandleWebhook writes
+		// payment_webhook_events.status='failed' in an independent transaction
+		// after the processing transaction rolls back.
 	}
 
-	// Always return 200 OK to prevent Midtrans retry
-	// Failed webhooks are recorded for manual reconciliation
+	// Always return 200 OK to prevent Midtrans retry.
+	//
+	// Midtrans does not retry a 200, so a processing failure is NOT recovered by
+	// redelivery — it is surfaced through the durable record above for operator
+	// reconciliation. Changing this status would change gateway retry behaviour
+	// and is deliberately out of REC-1's scope.
 	response.Success(c, gin.H{"status": "received"})
 }
-
-// HandleMidtransWebhookRaw handles POST /webhooks/payment/midtrans/raw
-// Alternative endpoint that returns the raw processing result
-// Useful for debugging and monitoring
-func (h *PaymentWebhookHandler) HandleMidtransWebhookRaw(c *gin.Context) {
-	ctx := c.Request.Context()
-	clientIP := c.ClientIP()
-
-	var notification midtrans.NotificationPayload
-	if err := c.ShouldBindJSON(&notification); err != nil {
-		response.BadRequest(c, "invalid payload")
-		return
-	}
-
-	err := h.webhookService.HandleWebhook(ctx, &notification, clientIP)
-	if err != nil {
-		response.RespondWithError(c, h.log, err)
-		return
-	}
-
-	response.Success(c, gin.H{
-		"status":             "success",
-		"order_id":           notification.OrderID,
-		"transaction_id":     notification.TransactionID,
-		"transaction_status": notification.TransactionStatus,
-	})
-}
-
-// HandleMidtransWebhookDevReplay replays a verified Midtrans success payload
-// through the canonical webhook path. This endpoint is dev-only and exists
-// to repair local delivery when the public notification URL is stale or
-// unreachable.
-func (h *PaymentWebhookHandler) HandleMidtransWebhookDevReplay(c *gin.Context) {
-	ctx := c.Request.Context()
-	clientIP := c.ClientIP()
-
-	paymentIDStr := c.Param("payment_id")
-	paymentID, err := uuid.Parse(paymentIDStr)
-	if err != nil {
-		response.BadRequest(c, "invalid payment_id")
-		return
-	}
-
-	payload, err := h.webhookService.ReplayVerifiedWebhookFromGateway(ctx, paymentID, clientIP)
-	if err != nil {
-		h.log.Warn("dev webhook replay failed",
-			zap.String("payment_id", paymentIDStr),
-			zap.Error(err),
-		)
-		response.BadRequest(c, fmt.Sprintf("webhook replay failed: %v", err))
-		return
-	}
-
-	response.Success(c, gin.H{
-		"status":             "replayed",
-		"payment_id":         paymentIDStr,
-		"midtrans_order_id":  payload.OrderID,
-		"transaction_id":     payload.TransactionID,
-		"transaction_status": payload.TransactionStatus,
-		"fraud_status":       payload.FraudStatus,
-		"gross_amount":       payload.GrossAmount,
-		"safe_to_activate":   true,
-	})
-}
-
-

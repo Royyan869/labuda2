@@ -89,30 +89,6 @@ type MetricsCollector struct {
 	// projectionEventsProcessedTotal counts projection worker dispositions.
 	projectionEventsProcessedTotal *prometheus.CounterVec
 
-	// orphanWebhookRecoveredTotal counts successful orphan recovery outcomes.
-	orphanWebhookRecoveredTotal *prometheus.CounterVec
-
-	// orphanWebhookRetryTotal counts retry scheduling decisions.
-	orphanWebhookRetryTotal *prometheus.CounterVec
-
-	// orphanWebhookFailedTotal counts technical recovery failures.
-	orphanWebhookFailedTotal *prometheus.CounterVec
-
-	// orphanWebhookManualReviewTotal counts unknown-status manual review handoffs.
-	orphanWebhookManualReviewTotal *prometheus.CounterVec
-
-	// orphanWebhookQuarantinedTotal counts malformed payload quarantine outcomes.
-	orphanWebhookQuarantinedTotal *prometheus.CounterVec
-
-	// orphanWebhookTerminalFailureTotal counts terminal-failure queue placements.
-	orphanWebhookTerminalFailureTotal *prometheus.CounterVec
-
-	// orphanWebhookProcessingDurationSeconds tracks recovery latency by outcome.
-	orphanWebhookProcessingDurationSeconds *prometheus.HistogramVec
-
-	// orphanWebhookBacklogCount surfaces the current orphan backlog size.
-	orphanWebhookBacklogCount prometheus.Gauge
-
 	// workerRunning is a 0/1 gauge per stable worker_name (set by Start/Stop).
 	workerRunning *prometheus.GaugeVec
 
@@ -177,7 +153,7 @@ func NewMetricsCollector(monitoringService *MonitoringService) *MetricsCollector
 		orphanedPaymentCount: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: metricsNamespace,
 			Name:      "orphaned_payment_count",
-			Help:      "Number of payments with reference_type='subscription' and status='settlement' but no matching subscription record.",
+			Help:      "Number of settled subscription payments (canonical settled set: settlement or capture) with no matching subscription record.",
 		}),
 		paymentSubscriptionConversionRate: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: metricsNamespace,
@@ -258,47 +234,6 @@ func NewMetricsCollector(monitoringService *MonitoringService) *MetricsCollector
 			Name:      "projection_events_processed_total",
 			Help:      "Total events handled by the projection worker, labelled by result (processed|skipped|failed).",
 		}, []string{"result"}),
-		orphanWebhookRecoveredTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Namespace: metricsNamespace,
-			Name:      "orphan_webhook_recovered_total",
-			Help:      "Total orphaned webhook events recovered into the canonical payment flow, labelled by outcome.",
-		}, []string{"outcome"}),
-		orphanWebhookRetryTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Namespace: metricsNamespace,
-			Name:      "orphan_webhook_retry_total",
-			Help:      "Total orphaned webhook events scheduled for retry, labelled by outcome.",
-		}, []string{"outcome"}),
-		orphanWebhookFailedTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Namespace: metricsNamespace,
-			Name:      "orphan_webhook_failed_total",
-			Help:      "Total technical failures during orphan recovery, labelled by outcome.",
-		}, []string{"outcome"}),
-		orphanWebhookManualReviewTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Namespace: metricsNamespace,
-			Name:      "orphan_webhook_manual_review_total",
-			Help:      "Total orphaned webhooks routed to manual review, labelled by outcome.",
-		}, []string{"outcome"}),
-		orphanWebhookQuarantinedTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Namespace: metricsNamespace,
-			Name:      "orphan_webhook_quarantined_total",
-			Help:      "Total malformed orphan payloads quarantined, labelled by outcome.",
-		}, []string{"outcome"}),
-		orphanWebhookTerminalFailureTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Namespace: metricsNamespace,
-			Name:      "orphan_webhook_terminal_failure_total",
-			Help:      "Total orphan events moved into terminal review after retry exhaustion, labelled by outcome.",
-		}, []string{"outcome"}),
-		orphanWebhookProcessingDurationSeconds: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Namespace: metricsNamespace,
-			Name:      "orphan_webhook_processing_duration_seconds",
-			Help:      "End-to-end orphan recovery duration, labelled by outcome.",
-			Buckets:   prometheus.ExponentialBuckets(0.005, 2, 12),
-		}, []string{"outcome"}),
-		orphanWebhookBacklogCount: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: metricsNamespace,
-			Name:      "orphan_webhook_backlog_count",
-			Help:      "Current count of orphaned webhook events awaiting recovery.",
-		}),
 		workerRunning: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: metricsNamespace,
 			Name:      "worker_running",
@@ -377,7 +312,6 @@ func (mc *MetricsCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- mc.outboxArchivedTotal
 	ch <- mc.outboxStuckEventsRecoveredTotal
 	ch <- mc.outboxArchiveBatchDuration
-	ch <- mc.orphanWebhookBacklogCount
 
 	mc.outboxEventsProcessedTotal.Collect(ch)
 	mc.outboxHandlerFailuresTotal.Collect(ch)
@@ -386,13 +320,6 @@ func (mc *MetricsCollector) Collect(ch chan<- prometheus.Metric) {
 	mc.outboxProcessingDurationSeconds.Collect(ch)
 	mc.outboxRetryAttemptsAtTerminal.Collect(ch)
 	mc.projectionEventsProcessedTotal.Collect(ch)
-	mc.orphanWebhookRecoveredTotal.Collect(ch)
-	mc.orphanWebhookRetryTotal.Collect(ch)
-	mc.orphanWebhookFailedTotal.Collect(ch)
-	mc.orphanWebhookManualReviewTotal.Collect(ch)
-	mc.orphanWebhookQuarantinedTotal.Collect(ch)
-	mc.orphanWebhookTerminalFailureTotal.Collect(ch)
-	mc.orphanWebhookProcessingDurationSeconds.Collect(ch)
 	mc.workerRunning.Collect(ch)
 	mc.workerLastActivityTimestampSeconds.Collect(ch)
 }
@@ -472,46 +399,6 @@ func (mc *MetricsCollector) RecordProjectionEventProcessed(result string) {
 	mc.projectionEventsProcessedTotal.WithLabelValues(result).Inc()
 }
 
-// SetOrphanWebhookBacklog sets the current orphan webhook backlog size.
-func (mc *MetricsCollector) SetOrphanWebhookBacklog(count int) {
-	mc.orphanWebhookBacklogCount.Set(float64(count))
-}
-
-// RecordOrphanWebhookRecovered records a recovered orphan webhook event.
-func (mc *MetricsCollector) RecordOrphanWebhookRecovered(count int) {
-	mc.orphanWebhookRecoveredTotal.WithLabelValues("recovered").Add(float64(count))
-}
-
-// RecordOrphanWebhookRetry records an orphan webhook retry decision.
-func (mc *MetricsCollector) RecordOrphanWebhookRetry(count int) {
-	mc.orphanWebhookRetryTotal.WithLabelValues("retry").Add(float64(count))
-}
-
-// RecordOrphanWebhookFailed records a technical orphan recovery failure.
-func (mc *MetricsCollector) RecordOrphanWebhookFailed(count int) {
-	mc.orphanWebhookFailedTotal.WithLabelValues("failed").Add(float64(count))
-}
-
-// RecordOrphanWebhookManualReview records an unknown-status manual review handoff.
-func (mc *MetricsCollector) RecordOrphanWebhookManualReview(count int) {
-	mc.orphanWebhookManualReviewTotal.WithLabelValues("manual_review").Add(float64(count))
-}
-
-// RecordOrphanWebhookQuarantined records a malformed-payload quarantine outcome.
-func (mc *MetricsCollector) RecordOrphanWebhookQuarantined(count int) {
-	mc.orphanWebhookQuarantinedTotal.WithLabelValues("quarantined").Add(float64(count))
-}
-
-// RecordOrphanWebhookTerminalFailure records a terminal-review queue placement.
-func (mc *MetricsCollector) RecordOrphanWebhookTerminalFailure(count int) {
-	mc.orphanWebhookTerminalFailureTotal.WithLabelValues("terminal_failure").Add(float64(count))
-}
-
-// RecordOrphanWebhookProcessingDuration records the end-to-end orphan recovery latency.
-func (mc *MetricsCollector) RecordOrphanWebhookProcessingDuration(result string, d time.Duration) {
-	mc.orphanWebhookProcessingDurationSeconds.WithLabelValues(result).Observe(d.Seconds())
-}
-
 // SetWorkerRunning sets the running gauge for a stable worker_name.
 // Pass true on Start, false on Stop.
 func (mc *MetricsCollector) SetWorkerRunning(workerName string, running bool) {
@@ -528,5 +415,3 @@ func (mc *MetricsCollector) SetWorkerRunning(workerName string, running bool) {
 func (mc *MetricsCollector) RecordWorkerHeartbeat(workerName string) {
 	mc.workerLastActivityTimestampSeconds.WithLabelValues(workerName).Set(float64(time.Now().Unix()))
 }
-
-

@@ -961,34 +961,32 @@ func (s *OrderCreationService) CreateFromAuction(
 
 	order := orderentity.NewOrderFromSource(
 		input.BuyerID,
-		product.SellerID,                           // IMPORTANT: Use canonical auction product seller, NOT input.AuctionSellerID
-		orderentity.OrderSourceAuction,             // Source type = auction
-		input.AuctionID,                            // Source ID = auction ID
-		nil,                                        // No negotiation ID
-		1,                                          // Quantity = 1
-		winningBidAmount,                           // Unit price = winning bid
-		snapshot.Subtotal,                          // Subtotal from pricing snapshot
-		snapshot.ShippingTotal,                     // Shipping from pricing snapshot
-		snapshot.CommissionPercent,                 // Commission percent from pricing snapshot
-		snapshot.CommissionAmount,                  // Commission amount from pricing snapshot
-		snapshot.ServiceFeeAmount,                  // Buyer service fee from pricing snapshot
-		snapshot.TotalPayableAmount,                // Buyer gross payable from pricing snapshot
-		shippingSetupID,                            // NULLABLE: pointer to shipping option ID
-		snapshot.ShippingSetupName,                 // Option name from pricing snapshot
-		snapshot.ShippingTransportType,             // Transport type from pricing snapshot
-		&input.AuctionSettlementType,               // Settlement type marker
-		product.PreparationTime,                    // SNAPSHOT: Freeze preparation time from canonical product
-		product.PreparationNote,                    // SNAPSHOT: Freeze preparation note from canonical product
-		snapshot.ShippingSource,                    // Shipping source from pricing snapshot
-		shippingQuoteID,                            // TASK F: Quote ID
-		shippingQuotePrice,                         // TASK F: Quote price snapshot
-		&snapshot.TokenID,                          // Store pricing token ID (prevents double-ordering)
-		snapshot.PaymentMethod,                     // PHASE 2: Payment method from pricing snapshot
+		product.SellerID,               // IMPORTANT: Use canonical auction product seller, NOT input.AuctionSellerID
+		orderentity.OrderSourceAuction, // Source type = auction
+		input.AuctionID,                // Source ID = auction ID
+		nil,                            // No negotiation ID
+		1,                              // Quantity = 1
+		winningBidAmount,               // Unit price = winning bid
+		snapshot.Subtotal,              // Subtotal from pricing snapshot
+		snapshot.ShippingTotal,         // Shipping from pricing snapshot
+		snapshot.CommissionPercent,     // Commission percent from pricing snapshot
+		snapshot.CommissionAmount,      // Commission amount from pricing snapshot
+		snapshot.ServiceFeeAmount,      // Buyer service fee from pricing snapshot
+		snapshot.EscrowAmount,          // CANONICAL buyer-funded base PD + S (fee excluded)
+		shippingSetupID,                // NULLABLE: pointer to shipping option ID
+		snapshot.ShippingSetupName,     // Option name from pricing snapshot
+		snapshot.ShippingTransportType, // Transport type from pricing snapshot
+		product.PreparationTime,        // SNAPSHOT: Freeze preparation time from canonical product
+		product.PreparationNote,        // SNAPSHOT: Freeze preparation note from canonical product
+		snapshot.ShippingSource,        // Shipping source from pricing snapshot
+		shippingQuoteID,                // TASK F: Quote ID
+		shippingQuotePrice,             // TASK F: Quote price snapshot
+		&snapshot.TokenID,              // Store pricing token ID (prevents double-ordering)
 		auctionOrderPaymentExpiry(input, snapshot), // Canonical auction payment deadline
 	)
 
 	// Apply shipping destination snapshot
-	order.ApplyShippingDestination(addressSnapshot)
+	order.ApplyAddressSnapshot(addressSnapshot)
 
 	// Apply shipping origin snapshot from saleSurface.FarmAddressID
 	farmAddressSnapshot, err := s.getAuctionFarmAddressSnapshot(ctx, tx, product)
@@ -1126,7 +1124,6 @@ func idempotentOrderRecovery(existing *orderentity.Order, requestedPricingTokenI
 // FIELDS:
 // - Base pricing: UnitPrice, Subtotal, Shipping, Commission
 // - Discount: DiscountAmount (for order value calculation)
-// - Coins: MaxCoinsAllowed (calculated at token generation, used directly at order layer)
 // - Shipping details: Option name, type, expedition, ETA
 // - Destination: Address snapshot
 // - Shipping source: "for_sale" or "shipping_quote"
@@ -1145,12 +1142,10 @@ type PricingSnapshot struct {
 	ServiceFeeAmount      money.Money // Flat buyer checkout service fee
 	TotalPayableAmount    money.Money // EscrowAmount + ServiceFeeAmount
 	DiscountAmount        money.Money // Discount amount for order value calculation
-	MaxCoinsAllowed       int64       // Maximum coins allowed (from pricing token, pre-calculated)
-	CoinsUsed             int64       // Coins requested for settlement; persisted later by payment settlement
-	OrderValueForCoins    int64       // Pre-calculated for coins service: subtotal + shipping - discount
+	OrderValueForCoins    int64       // Pre-calculated for coins service: PD = (P - D); shipping excluded
 	ShippingSetupName     string
 	ShippingTransportType string
-	ShippingDestination   *addressentity.AddressSnapshot // Shipping address snapshot
+	AddressSnapshot       *addressentity.AddressSnapshot // Shipping address snapshot (orders.address_snapshot)
 	ShippingSource        *string                        // "for_sale" or "shipping_quote"
 	ShippingQuoteID       *uuid.UUID                     // TASK A-G: Set when using shipping quote
 	ChatID                *uuid.UUID                     // TASK A-G: Chat context for validation
@@ -1716,23 +1711,21 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 		snapshot.CommissionPercent,      // Commission percent from pricing snapshot
 		snapshot.CommissionAmount,       // Commission amount from pricing snapshot
 		snapshot.ServiceFeeAmount,       // Buyer service fee from pricing snapshot
-		snapshot.TotalPayableAmount,     // Buyer gross payable from pricing snapshot
+		snapshot.EscrowAmount,           // CANONICAL buyer-funded base PD + S (fee excluded)
 		shippingSetupID,                 // NULLABLE: nil when using a manual shipping quote
 		snapshot.ShippingSetupName,      // Option name from pricing snapshot
 		snapshot.ShippingTransportType,  // Transport type from pricing snapshot
-		nil,                             // Not an auction order
 		string(forSale.PreparationTime), // SNAPSHOT: Freeze preparation time from sale surface
 		forSale.PreparationNote,         // SNAPSHOT: Freeze preparation note from sale surface
 		snapshot.ShippingSource,         // Shipping source from pricing snapshot
 		shippingQuoteID,                 // TASK F: Quote ID
 		shippingQuotePrice,              // TASK F: Quote price snapshot
 		&snapshot.TokenID,               // Store pricing token ID (prevents double-ordering)
-		snapshot.PaymentMethod,          // PHASE 2: Payment method from pricing snapshot
 		calculatePaymentExpiry(snapshot.PaymentMethod, time.Now()), // PHASE 2: Calculate expiry based on payment method
 	)
 
 	// Apply shipping destination snapshot
-	order.ApplyShippingDestination(addressSnapshot)
+	order.ApplyAddressSnapshot(addressSnapshot)
 
 	// Apply shipping origin snapshot from saleSurface.FarmAddressID
 	farmAddressSnapshot, err := s.getFarmAddressSnapshot(ctx, tx, forSale)
@@ -1756,7 +1749,9 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 	// ============================================================
 
 	// Use pre-calculated order value from pricing snapshot (no recalculation)
-	// Formula: subtotal + shipping - discount (calculated at token generation)
+	// Uses the pre-calculated canonical coin base PD = (P - D) from the pricing
+	// token (shipping is NOT part of the coin base; see
+	// pricing/token/application/canonical_pricing_formula_test.go).
 	orderValueForCoins := snapshot.OrderValueForCoins
 
 	// PRE-GENERATE ORDER ID
@@ -1808,15 +1803,10 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 }
 
 // buildOrderPayload creates a JSON-serializable payload for order events.
+// Note: financial amount total_before_coins_amount is intentionally NOT serialized
+// here — projection re-queries the write model and notification handlers only need IDs.
+// The previous escrow_amount payload field was obsolete (no consumer) and has been purged.
 func buildOrderPayload(order *orderentity.Order) []byte {
-	// CANONICAL ESCROW AMOUNT: escrow_amount = total_before_coins_amount = PD + S.
-	// Commission C is a seller/platform-side allocation, NOT buyer-funded cash;
-	// the rejected model (P+S+C) must not appear in the outbox payload.
-	escrowAmount := order.TotalBeforeCoinsAmount.Int64()
-	if escrowAmount <= 0 {
-		escrowAmount = order.Subtotal.Int64() + order.ShippingTotal.Int64()
-	}
-
 	payload := map[string]interface{}{
 		"order_id":          order.ID.String(),
 		"buyer_id":          order.BuyerID.String(),
@@ -1828,7 +1818,6 @@ func buildOrderPayload(order *orderentity.Order) []byte {
 		"subtotal":          order.Subtotal.Int64(),
 		"shipping_total":    order.ShippingTotal.Int64(),
 		"commission_amount": order.CommissionAmount.Int64(),
-		"escrow_amount":     escrowAmount,
 		"created_at":        order.CreatedAt.Unix(),
 	}
 	data, _ := json.Marshal(payload)

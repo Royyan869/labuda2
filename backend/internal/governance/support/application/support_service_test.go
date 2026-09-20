@@ -52,7 +52,6 @@ func (m *mockRow) Scan(dest ...any) error {
 type mockRepository struct {
 	tickets      map[uuid.UUID]*entity.Ticket
 	events       map[uuid.UUID][]*entity.Event
-	admins       map[uuid.UUID]*entity.Admin
 	createError  error
 	getError     error
 	claimError   error
@@ -66,7 +65,6 @@ func newMockRepository() *mockRepository {
 	return &mockRepository{
 		tickets: make(map[uuid.UUID]*entity.Ticket),
 		events:  make(map[uuid.UUID][]*entity.Event),
-		admins:  make(map[uuid.UUID]*entity.Admin),
 	}
 }
 
@@ -87,15 +85,6 @@ func (m *mockRepository) GetTicketByID(ctx context.Context, tx interface{}, tick
 		return nil, supportRepo.ErrTicketNotFound
 	}
 	return ticket, nil
-}
-
-func (m *mockRepository) GetOpenTicketByUser(ctx context.Context, tx interface{}, userID uuid.UUID) (*entity.Ticket, error) {
-	for _, ticket := range m.tickets {
-		if ticket.UserID == userID && ticket.IsOpen() {
-			return ticket, nil
-		}
-	}
-	return nil, supportRepo.ErrTicketNotFound
 }
 
 func (m *mockRepository) ListTickets(ctx context.Context, tx interface{}, filter *supportRepo.TicketFilter, cursorCreatedAt *time.Time, cursorID *uuid.UUID, limit int) ([]*entity.Ticket, error) {
@@ -225,27 +214,6 @@ func (m *mockRepository) UpdateStatus(ctx context.Context, tx interface{}, ticke
 	return nil
 }
 
-func (m *mockRepository) AssignAdmin(ctx context.Context, tx interface{}, ticketID, adminID uuid.UUID) error {
-	ticket, exists := m.tickets[ticketID]
-	if !exists {
-		return supportRepo.ErrTicketNotFound
-	}
-	ticket.AssignedAdminID = &adminID
-	ticket.UpdatedAt = time.Now()
-	return nil
-}
-
-func (m *mockRepository) UnassignAdmin(ctx context.Context, tx interface{}, ticketID uuid.UUID) error {
-	ticket, exists := m.tickets[ticketID]
-	if !exists {
-		return supportRepo.ErrTicketNotFound
-	}
-	ticket.AssignedAdminID = nil
-	ticket.Status = entity.StatusOpen
-	ticket.UpdatedAt = time.Now()
-	return nil
-}
-
 func (m *mockRepository) CreateEvent(ctx context.Context, tx interface{}, event *entity.Event) error {
 	if m.events == nil {
 		m.events = make(map[uuid.UUID][]*entity.Event)
@@ -262,69 +230,18 @@ func (m *mockRepository) ListEvents(ctx context.Context, tx interface{}, ticketI
 	return events, nil
 }
 
-func (m *mockRepository) GetAdmin(ctx context.Context, tx interface{}, adminID uuid.UUID) (*entity.Admin, error) {
-	admin, exists := m.admins[adminID]
-	if !exists {
-		return nil, supportRepo.ErrAdminNotFound
-	}
-	return admin, nil
-}
-
-func (m *mockRepository) CreateAdmin(ctx context.Context, tx interface{}, admin *entity.Admin) error {
-	m.admins[admin.ID] = admin
-	return nil
-}
-
-func (m *mockRepository) ListAdmins(ctx context.Context, tx interface{}, isActive *bool) ([]*entity.Admin, error) {
-	var result []*entity.Admin
-	for _, admin := range m.admins {
-		if isActive == nil || admin.IsActive == *isActive {
-			result = append(result, admin)
+func (m *mockRepository) ListStatusEventsForTickets(ctx context.Context, tx interface{}, ticketIDs []uuid.UUID) (map[uuid.UUID][]*entity.Event, error) {
+	result := make(map[uuid.UUID][]*entity.Event)
+	for _, id := range ticketIDs {
+		if events, exists := m.events[id]; exists {
+			result[id] = events
 		}
 	}
 	return result, nil
 }
 
-func (m *mockRepository) GetAvailableAdmins(ctx context.Context, tx interface{}, maxConcurrent int, limit int) ([]*entity.Admin, error) {
-	var result []*entity.Admin
-	for _, admin := range m.admins {
-		if admin.IsActive && admin.ActiveTicketCount < maxConcurrent {
-			result = append(result, admin)
-			if len(result) >= limit {
-				break
-			}
-		}
-	}
-	return result, nil
-}
-
-func (m *mockRepository) IncrementAdminTicketCount(ctx context.Context, tx interface{}, adminID uuid.UUID) error {
-	admin, exists := m.admins[adminID]
-	if !exists {
-		return supportRepo.ErrAdminNotFound
-	}
-	admin.ActiveTicketCount++
-	return nil
-}
-
-func (m *mockRepository) DecrementAdminTicketCount(ctx context.Context, tx interface{}, adminID uuid.UUID) error {
-	admin, exists := m.admins[adminID]
-	if !exists {
-		return supportRepo.ErrAdminNotFound
-	}
-	if admin.ActiveTicketCount > 0 {
-		admin.ActiveTicketCount--
-	}
-	return nil
-}
-
-func (m *mockRepository) SetAdminActive(ctx context.Context, tx interface{}, adminID uuid.UUID, isActive bool) error {
-	admin, exists := m.admins[adminID]
-	if !exists {
-		return supportRepo.ErrAdminNotFound
-	}
-	admin.IsActive = isActive
-	return nil
+func (m *mockRepository) ListFirstAdminResponsesByTicketIDs(ctx context.Context, tx interface{}, ticketIDs []uuid.UUID) (map[uuid.UUID]*time.Time, error) {
+	return make(map[uuid.UUID]*time.Time), nil
 }
 
 func (m *mockRepository) GetTicketStatistics(ctx context.Context, tx interface{}) (*supportRepo.TicketStatistics, error) {
@@ -382,7 +299,6 @@ func (m *mockRepository) FindDisputesForSLACheck(ctx context.Context, tx db.Tx, 
 type mockChatService struct {
 	room      *chatEntity.ChatRoom
 	roomError error
-	msgError  error
 }
 
 func (m *mockChatService) CreateSupportTicketRoom(ctx context.Context, userID uuid.UUID) (*chatEntity.ChatRoom, error) {
@@ -396,10 +312,6 @@ func (m *mockChatService) CreateSupportTicketRoom(ctx context.Context, userID uu
 		}
 	}
 	return m.room, nil
-}
-
-func (m *mockChatService) SendSystemMessage(ctx context.Context, roomID uuid.UUID, body string) error {
-	return m.msgError
 }
 
 // mockTransactor is a mock database transactor.
@@ -443,7 +355,7 @@ func TestService_CreateTicket(t *testing.T) {
 
 		req := &CreateTicketRequest{
 			UserID:   userID,
-			Category: entity.CategoryPayment,
+			Category: entity.CategoryPaymentIssue,
 			Priority: entity.PriorityMedium,
 			Subject:  &subject,
 		}
@@ -457,10 +369,11 @@ func TestService_CreateTicket(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, ticket)
 		assert.Equal(t, userID, ticket.UserID)
-		assert.Equal(t, entity.CategoryPayment, ticket.Category)
+		assert.Equal(t, entity.CategoryPaymentIssue, ticket.Category)
 		assert.Equal(t, entity.PriorityMedium, ticket.Priority)
 		assert.Equal(t, entity.StatusOpen, ticket.Status)
-		assert.Equal(t, subject, ticket.Metadata["subject"].(string))
+		require.NotNil(t, ticket.Subject)
+		assert.Equal(t, subject, *ticket.Subject)
 	})
 
 	t.Run("rejects duplicate open ticket", func(t *testing.T) {
@@ -468,7 +381,7 @@ func TestService_CreateTicket(t *testing.T) {
 
 		req := &CreateTicketRequest{
 			UserID:   userID,
-			Category: entity.CategoryPayment,
+			Category: entity.CategoryPaymentIssue,
 			Priority: entity.PriorityMedium,
 		}
 
@@ -480,6 +393,58 @@ func TestService_CreateTicket(t *testing.T) {
 		assert.ErrorIs(t, err, supportRepo.ErrDuplicateOpenTicket)
 
 		repo.createError = nil
+	})
+}
+
+// TestService_CreateTicket_RejectsInvalidTaxonomy proves the domain-level
+// guarantee: an invalid category or priority is rejected BEFORE any support
+// room is provisioned, so an invalid request can never leave an orphan room.
+func TestService_CreateTicket_RejectsInvalidTaxonomy(t *testing.T) {
+	ctx := context.Background()
+	repo := newMockRepository()
+	chatSvc := &mockChatService{}
+	transactor := &mockTransactor{}
+
+	service := &Service{
+		repo:        repo,
+		chatService: chatSvc,
+		outboxRepo:  &mockOutboxInserter{},
+		db:          transactor,
+		log:         zap.NewNop(),
+	}
+
+	t.Run("legacy category is rejected before room provisioning", func(t *testing.T) {
+		_, err := service.CreateTicket(ctx, &CreateTicketRequest{
+			UserID:   uuid.New(),
+			Category: entity.Category("payment"),
+			Priority: entity.PriorityMedium,
+		})
+
+		require.ErrorIs(t, err, supportRepo.ErrInvalidCategory)
+		assert.Nil(t, chatSvc.room, "no support room may be provisioned for an invalid category")
+		assert.Empty(t, repo.tickets)
+	})
+
+	t.Run("unknown priority is rejected before room provisioning", func(t *testing.T) {
+		_, err := service.CreateTicket(ctx, &CreateTicketRequest{
+			UserID:   uuid.New(),
+			Category: entity.CategoryOrderIssue,
+			Priority: entity.Priority("critical"),
+		})
+
+		require.ErrorIs(t, err, supportRepo.ErrInvalidPriority)
+		assert.Nil(t, chatSvc.room, "no support room may be provisioned for an invalid priority")
+		assert.Empty(t, repo.tickets)
+	})
+
+	t.Run("empty priority defaults to medium", func(t *testing.T) {
+		ticket, err := service.CreateTicket(ctx, &CreateTicketRequest{
+			UserID:   uuid.New(),
+			Category: entity.CategoryOrderIssue,
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, entity.PriorityMedium, ticket.Priority)
 	})
 }
 
@@ -502,7 +467,7 @@ func TestService_ClaimTicket(t *testing.T) {
 		userID := uuid.New()
 		adminID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		repo.tickets[ticket.ID] = ticket
 
 		req := &ClaimTicketRequest{
@@ -523,7 +488,7 @@ func TestService_ClaimTicket(t *testing.T) {
 		userID := uuid.New()
 		adminID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		otherAdminID := uuid.New()
 		ticket.AssignedAdminID = &otherAdminID
 		ticket.Status = entity.StatusInProgress
@@ -560,7 +525,7 @@ func TestService_ResolveTicket(t *testing.T) {
 		userID := uuid.New()
 		adminID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		ticket.AssignedAdminID = &adminID
 		ticket.Status = entity.StatusInProgress
 		repo.tickets[ticket.ID] = ticket
@@ -584,7 +549,7 @@ func TestService_ResolveTicket(t *testing.T) {
 		userID := uuid.New()
 		adminID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		repo.tickets[ticket.ID] = ticket
 
 		req := &ResolveTicketRequest{
@@ -617,8 +582,9 @@ func TestService_CloseTicket(t *testing.T) {
 		userID := uuid.New()
 		adminID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		ticket.Status = entity.StatusResolved
+		ticket.AssignedAdminID = &adminID
 		now := time.Now()
 		ticket.ResolvedAt = &now
 		repo.tickets[ticket.ID] = ticket
@@ -642,8 +608,9 @@ func TestService_CloseTicket(t *testing.T) {
 		userID := uuid.New()
 		adminID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		ticket.Status = entity.StatusInProgress
+		ticket.AssignedAdminID = &adminID
 		repo.tickets[ticket.ID] = ticket
 
 		req := &CloseTicketRequest{
@@ -676,7 +643,7 @@ func TestService_ReopenTicket(t *testing.T) {
 	t.Run("reopens resolved ticket successfully", func(t *testing.T) {
 		userID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		ticket.Status = entity.StatusResolved
 		now := time.Now()
 		ticket.ResolvedAt = &now
@@ -686,7 +653,7 @@ func TestService_ReopenTicket(t *testing.T) {
 
 		req := &ReopenTicketRequest{
 			TicketID: ticket.ID,
-			UserID:   userID,
+			ActorID:  userID,
 		}
 
 		reopenedTicket, err := service.ReopenTicket(ctx, req)
@@ -698,10 +665,10 @@ func TestService_ReopenTicket(t *testing.T) {
 		assert.Nil(t, reopenedTicket.ResolvedAt)
 	})
 
-	t.Run("reopens closed ticket successfully", func(t *testing.T) {
+	t.Run("closed ticket is terminal and cannot be reopened", func(t *testing.T) {
 		userID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		ticket.Status = entity.StatusClosed
 		now := time.Now()
 		ticket.ClosedAt = &now
@@ -709,25 +676,27 @@ func TestService_ReopenTicket(t *testing.T) {
 
 		req := &ReopenTicketRequest{
 			TicketID: ticket.ID,
-			UserID:   userID,
+			ActorID:  userID,
 		}
 
 		_, err := service.ReopenTicket(ctx, req)
 
-		require.NoError(t, err)
-		assert.Equal(t, entity.StatusOpen, ticket.Status)
+		// A closed case is final: a new problem is a new ticket.
+		require.Error(t, err)
+		assert.Equal(t, supportRepo.ErrCannotReopenTicket, err)
+		assert.Equal(t, entity.StatusClosed, repo.tickets[ticket.ID].Status)
 	})
 
 	t.Run("fails when ticket cannot be reopened", func(t *testing.T) {
 		userID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		ticket.Status = entity.StatusInProgress
 		repo.tickets[ticket.ID] = ticket
 
 		req := &ReopenTicketRequest{
 			TicketID: ticket.ID,
-			UserID:   userID,
+			ActorID:  userID,
 		}
 
 		_, err := service.ReopenTicket(ctx, req)
@@ -754,7 +723,7 @@ func TestService_ReopenTicket_OwnershipCheck(t *testing.T) {
 	t.Run("owner can reopen their own ticket", func(t *testing.T) {
 		ownerID := uuid.New()
 
-		ticket := entity.NewTicket(ownerID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(ownerID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		ticket.Status = entity.StatusResolved
 		now := time.Now()
 		ticket.ResolvedAt = &now
@@ -762,7 +731,7 @@ func TestService_ReopenTicket_OwnershipCheck(t *testing.T) {
 
 		req := &ReopenTicketRequest{
 			TicketID: ticket.ID,
-			UserID:   ownerID,
+			ActorID:  ownerID,
 		}
 
 		reopenedTicket, err := service.ReopenTicket(ctx, req)
@@ -776,7 +745,7 @@ func TestService_ReopenTicket_OwnershipCheck(t *testing.T) {
 		ownerID := uuid.New()
 		foreignID := uuid.New()
 
-		ticket := entity.NewTicket(ownerID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(ownerID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		ticket.Status = entity.StatusResolved
 		now := time.Now()
 		ticket.ResolvedAt = &now
@@ -784,7 +753,7 @@ func TestService_ReopenTicket_OwnershipCheck(t *testing.T) {
 
 		req := &ReopenTicketRequest{
 			TicketID: ticket.ID,
-			UserID:   foreignID,
+			ActorID:  foreignID,
 		}
 
 		_, err := service.ReopenTicket(ctx, req)
@@ -796,7 +765,7 @@ func TestService_ReopenTicket_OwnershipCheck(t *testing.T) {
 	t.Run("nonexistent ticket returns not found", func(t *testing.T) {
 		req := &ReopenTicketRequest{
 			TicketID: uuid.New(),
-			UserID:   uuid.New(),
+			ActorID:  uuid.New(),
 		}
 
 		_, err := service.ReopenTicket(ctx, req)
@@ -825,7 +794,7 @@ func TestService_UpdatePriority(t *testing.T) {
 		userID := uuid.New()
 		actorID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		repo.tickets[ticket.ID] = ticket
 
 		err := service.UpdatePriority(ctx, ticket.ID, entity.PriorityHigh, &actorID)
@@ -854,13 +823,13 @@ func TestService_UpdateCategory(t *testing.T) {
 		userID := uuid.New()
 		actorID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		repo.tickets[ticket.ID] = ticket
 
-		err := service.UpdateCategory(ctx, ticket.ID, entity.CategoryTechnical, &actorID)
+		err := service.UpdateCategory(ctx, ticket.ID, entity.CategoryTechnicalIssue, &actorID)
 
 		require.NoError(t, err)
-		assert.Equal(t, entity.CategoryTechnical, ticket.Category)
+		assert.Equal(t, entity.CategoryTechnicalIssue, ticket.Category)
 	})
 }
 
@@ -881,11 +850,11 @@ func TestService_GetStatistics(t *testing.T) {
 		userID := uuid.New()
 
 		// Add some test tickets
-		ticket1 := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket1 := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		ticket1.Status = entity.StatusOpen
 		repo.tickets[ticket1.ID] = ticket1
 
-		ticket2 := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket2 := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		ticket2.Status = entity.StatusResolved
 		repo.tickets[ticket2.ID] = ticket2
 
@@ -930,9 +899,15 @@ func TestEntity_TicketStateTransitions(t *testing.T) {
 		assert.True(t, ticket.Status.CanTransitionTo(entity.StatusOpen))
 	})
 
-	t.Run("can transition from closed to open", func(t *testing.T) {
+	t.Run("closed is terminal and cannot transition to open", func(t *testing.T) {
 		ticket := &entity.Ticket{Status: entity.StatusClosed}
-		assert.True(t, ticket.Status.CanTransitionTo(entity.StatusOpen))
+		assert.False(t, ticket.Status.CanTransitionTo(entity.StatusOpen),
+			"a closed case is final; a new problem is a new ticket")
+	})
+
+	t.Run("closed is terminal and cannot transition to in_progress", func(t *testing.T) {
+		ticket := &entity.Ticket{Status: entity.StatusClosed}
+		assert.False(t, ticket.Status.CanTransitionTo(entity.StatusInProgress))
 	})
 }
 
@@ -941,7 +916,7 @@ func TestEntity_TicketClaim(t *testing.T) {
 		userID := uuid.New()
 		adminID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 
 		result := ticket.Claim(adminID)
 
@@ -955,7 +930,7 @@ func TestEntity_TicketClaim(t *testing.T) {
 		userID := uuid.New()
 		adminID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		otherAdminID := uuid.New()
 		ticket.AssignedAdminID = &otherAdminID
 		ticket.Status = entity.StatusInProgress
@@ -970,7 +945,7 @@ func TestEntity_TicketResolve(t *testing.T) {
 	t.Run("successfully resolves ticket", func(t *testing.T) {
 		userID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		ticket.Status = entity.StatusInProgress
 
 		notes := "Resolved"
@@ -987,7 +962,7 @@ func TestEntity_TicketClose(t *testing.T) {
 	t.Run("successfully closes resolved ticket", func(t *testing.T) {
 		userID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		ticket.Status = entity.StatusResolved
 		now := time.Now()
 		ticket.ResolvedAt = &now
@@ -1007,7 +982,7 @@ func TestEntity_TicketReopen(t *testing.T) {
 		userID := uuid.New()
 		adminID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		ticket.Status = entity.StatusResolved
 		now := time.Now()
 		ticket.ResolvedAt = &now
@@ -1046,25 +1021,6 @@ func TestEntity_TicketIsOpen(t *testing.T) {
 	t.Run("closed ticket is not open", func(t *testing.T) {
 		ticket := &entity.Ticket{Status: entity.StatusClosed}
 		assert.False(t, ticket.IsOpen())
-	})
-}
-
-func TestEntity_AdminCanTakeMoreTickets(t *testing.T) {
-	t.Run("admin with no tickets can take more", func(t *testing.T) {
-		admin := entity.NewAdmin(uuid.New())
-		assert.True(t, admin.CanTakeMoreTickets(10))
-	})
-
-	t.Run("admin at capacity cannot take more", func(t *testing.T) {
-		admin := entity.NewAdmin(uuid.New())
-		admin.ActiveTicketCount = 10
-		assert.False(t, admin.CanTakeMoreTickets(10))
-	})
-
-	t.Run("inactive admin cannot take tickets", func(t *testing.T) {
-		admin := entity.NewAdmin(uuid.New())
-		admin.IsActive = false
-		assert.False(t, admin.CanTakeMoreTickets(10))
 	})
 }
 
@@ -1110,7 +1066,7 @@ func TestService_SetWaitingForUser(t *testing.T) {
 		userID := uuid.New()
 		adminID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		ticket.AssignedAdminID = &adminID
 		ticket.Status = entity.StatusInProgress
 		repo.tickets[ticket.ID] = ticket
@@ -1131,7 +1087,7 @@ func TestService_SetWaitingForUser(t *testing.T) {
 		adminID := uuid.New()
 		otherAdminID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		ticket.AssignedAdminID = &otherAdminID
 		ticket.Status = entity.StatusInProgress
 		repo.tickets[ticket.ID] = ticket
@@ -1167,7 +1123,7 @@ func TestService_AllStateTransitionsCreateEvents(t *testing.T) {
 		// 1. Create ticket -> ticket_created event
 		createReq := &CreateTicketRequest{
 			UserID:   userID,
-			Category: entity.CategoryPayment,
+			Category: entity.CategoryPaymentIssue,
 			Priority: entity.PriorityMedium,
 		}
 		ticket, err := service.CreateTicket(ctx, createReq)
@@ -1207,7 +1163,27 @@ func TestService_AllStateTransitionsCreateEvents(t *testing.T) {
 		require.NotNil(t, resolveEvent)
 		assert.Equal(t, entity.EventTypeTicketResolved, resolveEvent.EventType)
 
-		// 4. Close ticket -> ticket_closed event
+		// 4. Reopen the resolved ticket -> ticket_reopened event
+		reopenReq := &ReopenTicketRequest{
+			TicketID: ticket.ID,
+			ActorID:  userID,
+		}
+		reopened, err := service.ReopenTicket(ctx, reopenReq)
+		require.NoError(t, err)
+		assert.Equal(t, entity.StatusOpen, reopened.Status)
+
+		eventsAfterReopen := repo.events[ticket.ID]
+		reopenEvent := findLastEventByType(eventsAfterReopen, entity.EventTypeTicketReopened)
+		require.NotNil(t, reopenEvent)
+		assert.Equal(t, entity.EventTypeTicketReopened, reopenEvent.EventType)
+
+		// 5. resolved -> in_progress -> resolved -> closed, then confirm the
+		//    closed ticket is terminal: it has no reopen transition at all.
+		_, err = service.ClaimTicket(ctx, &ClaimTicketRequest{TicketID: ticket.ID, AdminID: adminID})
+		require.NoError(t, err)
+		err = service.ResolveTicket(ctx, resolveReq)
+		require.NoError(t, err)
+
 		reason := "User confirmed"
 		closeReq := &CloseTicketRequest{
 			TicketID:    ticket.ID,
@@ -1222,25 +1198,17 @@ func TestService_AllStateTransitionsCreateEvents(t *testing.T) {
 		require.NotNil(t, closeEvent)
 		assert.Equal(t, entity.EventTypeTicketClosed, closeEvent.EventType)
 
-		// 5. Reopen ticket -> ticket_reopened event
-		reopenReq := &ReopenTicketRequest{
-			TicketID: ticket.ID,
-			UserID:   userID,
-		}
 		_, err = service.ReopenTicket(ctx, reopenReq)
-		require.NoError(t, err)
-
-		eventsAfterReopen := repo.events[ticket.ID]
-		reopenEvent := findLastEventByType(eventsAfterReopen, entity.EventTypeTicketReopened)
-		require.NotNil(t, reopenEvent)
-		assert.Equal(t, entity.EventTypeTicketReopened, reopenEvent.EventType)
+		require.Error(t, err)
+		assert.Equal(t, supportRepo.ErrCannotReopenTicket, err)
+		assert.Equal(t, entity.StatusClosed, repo.tickets[ticket.ID].Status)
 	})
 
 	t.Run("priority change creates priority_changed event", func(t *testing.T) {
 		userID := uuid.New()
 		actorID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		repo.tickets[ticket.ID] = ticket
 
 		err := service.UpdatePriority(ctx, ticket.ID, entity.PriorityHigh, &actorID)
@@ -1256,10 +1224,10 @@ func TestService_AllStateTransitionsCreateEvents(t *testing.T) {
 		userID := uuid.New()
 		actorID := uuid.New()
 
-		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+		ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 		repo.tickets[ticket.ID] = ticket
 
-		err := service.UpdateCategory(ctx, ticket.ID, entity.CategoryTechnical, &actorID)
+		err := service.UpdateCategory(ctx, ticket.ID, entity.CategoryTechnicalIssue, &actorID)
 		require.NoError(t, err)
 
 		events := repo.events[ticket.ID]
@@ -1303,7 +1271,7 @@ func TestCreateTicket_OutboxFailure_RollsBackTransaction(t *testing.T) {
 
 	req := &CreateTicketRequest{
 		UserID:   userID,
-		Category: entity.CategoryPayment,
+		Category: entity.CategoryPaymentIssue,
 		Priority: entity.PriorityMedium,
 		Subject:  &subject,
 	}
@@ -1362,7 +1330,7 @@ func TestResolveTicket_OutboxFailure_RollsBackTransaction(t *testing.T) {
 	}
 
 	adminID := uuid.New()
-	ticket := entity.NewTicket(uuid.New(), uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+	ticket := entity.NewTicket(uuid.New(), uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 	ticket.AssignedAdminID = &adminID
 	ticket.Status = entity.StatusInProgress
 	repo.tickets[ticket.ID] = ticket
@@ -1390,15 +1358,17 @@ func TestCloseTicket_OutboxFailure_RollsBackTransaction(t *testing.T) {
 		log:         zap.NewNop(),
 	}
 
-	ticket := entity.NewTicket(uuid.New(), uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+	ticket := entity.NewTicket(uuid.New(), uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 	ticket.Status = entity.StatusResolved
+	closeAdminID := uuid.New()
+	ticket.AssignedAdminID = &closeAdminID
 	now := time.Now()
 	ticket.ResolvedAt = &now
 	repo.tickets[ticket.ID] = ticket
 
 	err := service.CloseTicket(ctx, &CloseTicketRequest{
 		TicketID: ticket.ID,
-		AdminID:  uuid.New(),
+		AdminID:  closeAdminID,
 	})
 
 	assert.Error(t, err)
@@ -1420,7 +1390,7 @@ func TestSetWaitingForUser_OutboxFailure_RollsBackTransaction(t *testing.T) {
 	}
 
 	adminID := uuid.New()
-	ticket := entity.NewTicket(uuid.New(), uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+	ticket := entity.NewTicket(uuid.New(), uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 	ticket.AssignedAdminID = &adminID
 	ticket.Status = entity.StatusInProgress
 	repo.tickets[ticket.ID] = ticket
@@ -1463,7 +1433,7 @@ func TestSetWaitingForUser_RepeatedCycles_UniqueIdempotencyKeys(t *testing.T) {
 	}
 
 	adminID := uuid.New()
-	ticket := entity.NewTicket(uuid.New(), uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+	ticket := entity.NewTicket(uuid.New(), uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 	ticket.AssignedAdminID = &adminID
 	ticket.Status = entity.StatusInProgress
 	repo.tickets[ticket.ID] = ticket
@@ -1503,7 +1473,7 @@ func TestResolveTicket_RepeatedCycles_UniqueIdempotencyKeys(t *testing.T) {
 
 	adminID := uuid.New()
 	userID := uuid.New()
-	ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPayment, entity.PriorityMedium)
+	ticket := entity.NewTicket(userID, uuid.New(), entity.CategoryPaymentIssue, entity.PriorityMedium)
 	ticket.AssignedAdminID = &adminID
 	ticket.Status = entity.StatusInProgress
 	repo.tickets[ticket.ID] = ticket

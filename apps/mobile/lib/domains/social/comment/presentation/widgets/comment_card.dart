@@ -21,6 +21,7 @@ import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/object/object_preview.dart' as obj;
 import 'package:labuda/shared/object/presentation/widgets/object_preview_card.dart';
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/shared/helpers/user_identity_formatter.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
 import 'package:labuda/domains/system/report/presentation/dialogs/report_submission_dialog.dart';
 
@@ -232,7 +233,7 @@ class CommentCard extends ConsumerWidget {
                 )
               : (userAvatar == null
                     ? Text(
-                        UserInitialsHelper.fromName(userName),
+                        UserIdentityFormatter.avatarInitials(userName) ?? '•',
                         style: const TextStyle(
                           color: AppColors.primaryRed,
                           fontWeight: FontWeight.bold,

@@ -54,6 +54,19 @@ func NewOccurrenceFallbackBuilders(
 	}
 }
 
+// NewDefaultOccurrenceFallbackBuilders returns the canonical builder set backed
+// by the SQL-based builders. These builders produce COMMUNICATION-SURFACE
+// display snapshots only (identity/title/image/store label) — never Commerce
+// business truth (price, stock, availability, order/payment state).
+func NewDefaultOccurrenceFallbackBuilders() *OccurrenceFallbackBuilders {
+	return NewOccurrenceFallbackBuilders(
+		&defaultProfileFallbackBuilder{},
+		&defaultContentFallbackBuilder{},
+		&defaultFPSFallbackBuilder{},
+		&defaultAuctionFallbackBuilder{},
+	)
+}
+
 // BuildFallback dispatches to the correct builder based on resource type.
 func (b *OccurrenceFallbackBuilders) BuildFallback(
 	ctx context.Context,
@@ -122,39 +135,39 @@ func (b *defaultProfileFallbackBuilder) BuildProfileFallback(ctx context.Context
 }
 
 // defaultContentFallbackBuilder builds Content fallbacks.
+//
+// BOUNDARY: the Content fallback snapshot carries DISPLAY identity only
+// (caption excerpt + author identity). Content media is NEVER transported here:
+// a persisted `content_media.media_url` is a storage reference that must be
+// projected through the canonical mediaresolve authority by the Content read
+// surfaces (see chat_content_projection_resolver.go), so a raw reference must
+// not leak into an unrelated display snapshot.
 type defaultContentFallbackBuilder struct{}
 
 func (b *defaultContentFallbackBuilder) BuildContentFallback(ctx context.Context, tx db.Tx, contentID uuid.UUID) (json.RawMessage, error) {
 	type contentFallback struct {
-		CaptionExcerpt     *string `json:"caption_excerpt"`
-		FirstMediaURL      *string `json:"first_media_url"`
-		AuthorUsername     string  `json:"author_username"`
-		AuthorAvatarURL    *string `json:"author_avatar_url"`
+		CaptionExcerpt  *string `json:"caption_excerpt"`
+		AuthorUsername  string  `json:"author_username"`
+		AuthorAvatarURL *string `json:"author_avatar_url"`
 	}
 	var fb contentFallback
 	var caption *string
-	var firstMediaURL *string
 	var authorUsername string
 	var authorAvatar *string
 	err := tx.QueryRow(ctx, `
 		SELECT c.caption,
-		       (SELECT cm.media_url FROM content_media cm
-		         WHERE cm.content_id = c.id ORDER BY cm.position LIMIT 1) AS first_media_url,
 		       COALESCE(up.username, '') AS author_username,
 		       up.avatar_url AS author_avatar_url
 		FROM contents c
 		LEFT JOIN user_profiles up ON up.user_id = c.author_id
 		WHERE c.id = $1
-	`, contentID).Scan(&caption, &firstMediaURL, &authorUsername, &authorAvatar)
+	`, contentID).Scan(&caption, &authorUsername, &authorAvatar)
 	if err != nil {
 		return nil, fmt.Errorf("build content fallback: %w", err)
 	}
 	if caption != nil && *caption != "" {
 		excerpt := truncateCaption(*caption, 200)
 		fb.CaptionExcerpt = &excerpt
-	}
-	if firstMediaURL != nil && *firstMediaURL != "" {
-		fb.FirstMediaURL = firstMediaURL
 	}
 	fb.AuthorUsername = authorUsername
 	if authorAvatar != nil && *authorAvatar != "" {

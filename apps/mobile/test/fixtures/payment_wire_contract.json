@@ -1,0 +1,73 @@
+{
+  "_authority": "backend/internal/serverboot/dependencies.go — CorePaymentHandler.CreatePayment / GetPayment gin.H responses. This file is the SINGLE cross-language definition of the payment wire contract: the Go test backend/internal/serverboot/payment_wire_contract_test.go proves the canonical handler emits exactly these keys, and the Dart test apps/mobile/test/domains/finance/transaction/payment/data/dto/payment_wire_contract_test.dart proves the mobile parsers consume them. Do not duplicate this shape anywhere else.",
+
+  "create_payment_request": {
+    "order_id": "5c1e2f3a-4b5c-4d6e-8f90-1a2b3c4d5e6f",
+    "payment_method_code": "bank_transfer",
+    "price_snapshot_id": "b1d2c3e4-0000-4000-8000-9a8b7c6d5e4f"
+  },
+
+  "create_payment": {
+    "handler": "func (h *CorePaymentHandler) CreatePayment(",
+    "forbidden_response_keys": ["id", "amount", "currency", "net_amount", "coin_discount", "total_amount", "base_amount"],
+    "response": {
+      "payment_id": "9f6f0b0a-1d2e-4c3b-8a4f-2b7c1e5d6a90",
+      "payment_number": "PAY-1767225600000000000",
+      "status": "pending",
+      "payment_url": "https://app.sandbox.midtrans.com/snap/v4/redirection/1a2b3c4d-5e6f",
+      "payment_method_code": "bank_transfer",
+      "buyer_payment_fee_amount": 4000,
+      "gross_amount": 114000,
+      "coins_to_use": 0,
+      "coin_discount_amount": 0,
+      "reference_type": "order",
+      "reference_id": "5c1e2f3a-4b5c-4d6e-8f90-1a2b3c4d5e6f",
+      "expired_at": "2026-09-19T10:00:00Z"
+    }
+  },
+
+  "list_payment_methods": {
+    "handler": "func (h *CorePaymentHandler) ListPaymentMethods(",
+    "forbidden_response_keys": ["total_before_coins_amount", "total_amount", "net_amount"],
+    "response": {
+      "order_id": "5c1e2f3a-4b5c-4d6e-8f90-1a2b3c4d5e6f",
+      "base_amount": 110000,
+      "coins_to_use": 0,
+      "methods": [
+        {
+          "method_code": "bank_transfer",
+          "display_name": "Transfer Bank (Virtual Account)",
+          "coins_to_use": 0,
+          "cash_amount": 110000,
+          "buyer_payment_fee_amount": 4000,
+          "total_payable_amount": 114000
+        }
+      ]
+    }
+  },
+
+  "get_payment": {
+    "handler": "func (h *CorePaymentHandler) GetPayment(",
+    "forbidden_response_keys": ["net_amount", "coin_discount", "midtrans_status", "buyer_payment_fee_amount"],
+    "response": {
+      "id": "9f6f0b0a-1d2e-4c3b-8a4f-2b7c1e5d6a90",
+      "payment_number": "PAY-1767225600000000000",
+      "user_id": "3e0d1c2b-4a59-4876-9e01-2b3c4d5e6f70",
+      "gross_amount": 114000,
+      "coins_to_use": 0,
+      "coin_discount_amount": 0,
+      "status": "pending",
+      "midtrans_order_id": "LAB-2f1e0d3c-4b5a-4968-8776-1a2b3c4d5e6f",
+      "midtrans_transaction_id": null,
+      "midtrans_payment_type": null,
+      "reference_type": "order",
+      "reference_id": "5c1e2f3a-4b5c-4d6e-8f90-1a2b3c4d5e6f",
+      "created_at": "2026-09-18T10:00:00Z",
+      "paid_at": null,
+      "expired_at": "2026-09-19T10:00:00Z",
+      "payment_url": "https://app.sandbox.midtrans.com/snap/v4/redirection/1a2b3c4d-5e6f",
+      "price_snapshot_id": "b1d2c3e4-0000-4000-8000-9a8b7c6d5e4f",
+      "updated_at": "2026-09-18T10:00:05Z"
+    }
+  }
+}

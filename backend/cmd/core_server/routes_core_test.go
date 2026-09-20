@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -47,11 +48,32 @@ func loadEnvFromParents(t *testing.T) {
 	}
 }
 
+// fixedPaymentCallbackHealth is the injected payment-callback readiness view
+// used by handler tests: it keeps readiness deterministic and offline. The real
+// probe (DNS + outbound HTTP) is exercised separately by
+// payment_callback_health_test.go and by the runtime proof.
+func fixedPaymentCallbackHealth() PaymentCallbackHealth {
+	return PaymentCallbackHealth{
+		State:           callbackStateReady,
+		Degraded:        false,
+		Configured:      true,
+		Host:            "labuda-dev.example.com",
+		Path:            canonicalPaymentWebhookPath,
+		RouteMounted:    true,
+		DNSResolves:     true,
+		OutboundProbe:   callbackOutboundReachable,
+		OutboundDetail:  "http_status=404",
+		PublicIngress:   notVerifiableFromProcess,
+		GatewayDelivery: notVerifiableFromProcess,
+	}
+}
+
 func performReadinessRequest(t *testing.T, db *database.DB, redisClient *pkgRedis.Client) (int, map[string]interface{}) {
 	t.Helper()
 
 	router := gin.New()
-	router.GET("/health/ready", readinessHandler(&config.Config{}, db, redisClient))
+	router.GET("/health/ready", readinessHandler(&config.Config{}, db, redisClient,
+		func(_ context.Context, _ *config.Config) PaymentCallbackHealth { return fixedPaymentCallbackHealth() }))
 
 	req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
 	rec := httptest.NewRecorder()
@@ -144,5 +166,92 @@ func TestReadinessHandler_NilRedisClientSkipsCheck(t *testing.T) {
 	}
 	if ready, _ := body["ready"].(bool); !ready {
 		t.Fatalf("expected ready=true when checks are skipped, got body=%v", body)
+	}
+}
+
+// --- INFRA-2: payment callback readiness in the canonical readiness surface ---
+
+// TestReadinessHandler_ExposesPaymentCallbackState proves the canonical
+// readiness response carries the factual payment-callback view, and that the
+// two facts this process cannot establish are labelled unverifiable rather than
+// reported as healthy.
+func TestReadinessHandler_ExposesPaymentCallbackState(t *testing.T) {
+	code, body := performReadinessRequest(t, nil, nil)
+	if code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d (body=%v)", code, body)
+	}
+
+	raw, ok := body["payment_callback"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected a payment_callback object in the readiness body, got %v", body)
+	}
+	if raw["state"] != callbackStateReady {
+		t.Errorf("expected state=%s, got %v", callbackStateReady, raw["state"])
+	}
+	if raw["public_ingress"] != notVerifiableFromProcess {
+		t.Errorf("public_ingress must stay explicitly unverifiable, got %v", raw["public_ingress"])
+	}
+	if raw["gateway_delivery"] != notVerifiableFromProcess {
+		t.Errorf("gateway_delivery must stay explicitly unverifiable, got %v", raw["gateway_delivery"])
+	}
+}
+
+// TestReadinessHandler_DegradedCallbackFailsReadinessOutsideDevelopment proves
+// the fail-closed verdict reaches HTTP: a callback defect is 503 outside
+// development, while development stays 200 with degraded=true so local work is
+// never blocked.
+func TestReadinessHandler_DegradedCallbackFailsReadinessOutsideDevelopment(t *testing.T) {
+	degraded := fixedPaymentCallbackHealth()
+	degraded.State = callbackStateHostUnresolved
+	degraded.Degraded = true
+	degraded.DNSResolves = false
+	degraded.OutboundProbe = callbackOutboundSkipped
+	degraded.Reason = "test: callback host does not resolve"
+
+	render := func(env string, callback PaymentCallbackHealth) (int, map[string]interface{}) {
+		t.Helper()
+		router := gin.New()
+		router.GET("/health/ready", readinessHandler(
+			&config.Config{Server: config.ServerConfig{Env: env}}, nil, nil,
+			func(_ context.Context, _ *config.Config) PaymentCallbackHealth { return callback }))
+
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/health/ready", nil))
+
+		var body map[string]interface{}
+		if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+			t.Fatalf("failed to decode readiness response body: %v", err)
+		}
+		return rec.Code, body
+	}
+
+	code, body := render("development", degraded)
+	if code != http.StatusOK {
+		t.Fatalf("development must stay 200, got %d (body=%v)", code, body)
+	}
+	if ready, _ := body["ready"].(bool); !ready {
+		t.Errorf("development must stay ready=true, got body=%v", body)
+	}
+	if isDegraded, _ := body["degraded"].(bool); !isDegraded {
+		t.Errorf("development must still report degraded=true, got body=%v", body)
+	}
+
+	for _, env := range []string{"staging", "production"} {
+		code, body := render(env, degraded)
+		if code != http.StatusServiceUnavailable {
+			t.Errorf("env=%s: expected 503 when the payment callback is undeliverable, got %d (body=%v)", env, code, body)
+		}
+		if ready, _ := body["ready"].(bool); ready {
+			t.Errorf("env=%s: expected ready=false, got body=%v", env, body)
+		}
+	}
+
+	// A healthy callback view must keep non-development readiness green: this
+	// bounds the fail-closed behavior to genuine defects.
+	for _, env := range []string{"staging", "production"} {
+		code, body := render(env, fixedPaymentCallbackHealth())
+		if code != http.StatusOK {
+			t.Errorf("env=%s: a healthy callback view must not fail readiness, got %d (body=%v)", env, code, body)
+		}
 	}
 }

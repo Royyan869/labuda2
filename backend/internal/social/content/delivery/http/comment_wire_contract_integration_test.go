@@ -48,6 +48,7 @@ func newCommentWireTestHandler(appDB *db.DB) *CommentHandler {
 		commentListHTTPAccountChecker{},
 		nil,
 	)
+	contentService.SetIdempotencyRepository(idempotencyRepo.NewRepository())
 	commentService := contentapp.NewCommentService(
 		contentrepo.NewContentRepository(),
 		contentrepo.NewCommentRepository(),

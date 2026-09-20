@@ -1,15 +1,11 @@
 /// Order Parameter Types
 ///
-/// Parameter types for Order repository operations.
-/// These types were originally intended to be in admin_stubs.dart
-/// but have been moved to the Order domain for proper DDD layering.
-///
-/// RECOVERY: Created to fix compile errors from missing types.
+/// Parameter types for the canonical Order repository operations
+/// exercised by the buyer/seller order flow.
 library;
 
 import 'order_pricing.dart';
 import 'order_status.dart';
-import 'shipping_info.dart';
 import 'refund_request.dart' show RefundReason, RefundStatus;
 
 // ==================== PREVIEW ORDER ====================
@@ -27,7 +23,7 @@ class PreviewOrderParams {
   final String? auctionId;
   final String? discountCode;
 
-  /// Source type for pricing preview: 'fixed_price_sale' | 'auction' | 'negotiation'
+  /// Source type for pricing preview: 'for_sale' | 'auction' | 'negotiation'
   /// Required by backend GeneratePreviewRequest (binding:"required")
   final String? sourceType;
 
@@ -39,7 +35,7 @@ class PreviewOrderParams {
   /// When provided, the preview will use the seller's quoted shipping price
   final String? shippingQuoteId;
 
-  /// Standard shipping option ID selected by buyer from listing options.
+  /// Standard shipping option ID selected by buyer from forSale options.
   /// Mutually exclusive with shippingQuoteId — backend requires exactly one.
   final String? shippingSetupId;
 
@@ -57,21 +53,6 @@ class PreviewOrderParams {
     this.shippingQuoteId,
     this.shippingSetupId,
   });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'product_id': productId,
-      'quantity': quantity,
-      if (addressId != null) 'address_id': addressId,
-      'use_coins': useCoins,
-      'notes': notes,
-      'negotiation_id': negotiationId,
-      'auction_id': auctionId,
-      'discount_code': discountCode,
-      if (shippingQuoteId != null) 'shipping_quote_id': shippingQuoteId,
-      if (shippingSetupId != null) 'shipping_setup_id': shippingSetupId,
-    };
-  }
 }
 
 /// Result of order preview operation
@@ -86,7 +67,7 @@ class PreviewOrderParams {
 /// **SHIPPING MODE INDICATOR (UI CONTRACT FIX):**
 /// - `shippingMode` indicates the shipping source for proper UI display:
 ///   - "quote": Manual shipping quote from seller (no shipping option selection)
-///   - "standard": Standard listing shipping options (user selects shipping)
+///   - "standard": Standard forSale shipping options (user selects shipping)
 /// - This allows UI to hide shipping dropdown when using quote and prevent dual source confusion
 class PreviewOrderResult {
   final OrderPricing pricing;
@@ -106,7 +87,7 @@ class PreviewOrderResult {
   // ============================================================================
   // Indicates the shipping source for UI to properly display:
   // - "quote": Manual shipping quote from seller (no shipping option selection)
-  // - "standard": Standard listing shipping options (user selects shipping)
+  // - "standard": Standard forSale shipping options (user selects shipping)
   final String shippingMode;
 
   const PreviewOrderResult({
@@ -122,144 +103,19 @@ class PreviewOrderResult {
     this.shippingMode = 'standard',
   });
 
-  factory PreviewOrderResult.fromJson(Map<String, dynamic> json) {
-    return PreviewOrderResult(
-      pricing: OrderPricing(
-        subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0.0,
-        shippingCost: (json['shipping_cost'] as num?)?.toDouble() ?? 0.0,
-        serviceFeeAmount:
-            (json['service_fee_amount'] as num?)?.toDouble() ??
-            (json['admin_fee'] as num?)?.toDouble(),
-        adminFee: (json['admin_fee'] as num?)?.toDouble(),
-        paymentFee: (json['payment_fee'] as num?)?.toDouble(),
-        discount: (json['discount'] as num?)?.toDouble() ?? 0.0,
-        total: (json['total'] as num?)?.toDouble() ?? 0.0,
-        totalPayableAmount: (json['total_payable_amount'] as num?)?.toDouble(),
-        discountCode: json['discount_code'] as String?,
-        discountDescription: json['discount_description'] as String?,
-      ),
-      isValid: json['is_valid'] as bool? ?? true,
-      errorMessage: json['error_message'] as String?,
-      validationErrors: (json['validation_errors'] as List<dynamic>?)
-          ?.map((e) => e.toString())
-          .toList(),
-      isAvailable: json['is_available'] as bool? ?? true,
-      expiresAt: json['expires_at'] != null
-          ? DateTime.parse(json['expires_at'] as String)
-          : null,
-      pricingToken: json['pricing_token'] as String?,
-      sellerId: json['seller_id'] as String?,
-      buyerId: json['buyer_id'] as String?,
-      shippingMode: json['shipping_mode'] as String? ?? 'standard',
-    );
-  }
-
-  // Convenience getters for pricing fields
+  // Convenience getters for pricing fields.
+  // The legacy `total` alias was purged: the canonical buyer payable is
+  // `totalPayableAmount` (PD + S + F) as emitted by the backend preview.
   double get subtotal => pricing.subtotal;
   double get shippingCost => pricing.shippingCost;
+  double get commissionAmount => pricing.commissionAmount;
   double? get serviceFeeAmount => pricing.serviceFeeAmount;
-  double? get adminFee => pricing.adminFee;
-  double? get paymentFee => pricing.paymentFee;
-  double get discount => pricing.discount;
-  double get total => pricing.total;
   double? get totalPayableAmount => pricing.totalPayableAmount;
-
-  // Note: coinDiscount is not part of OrderPricing, keeping for compatibility
-  double get coinDiscount => 0.0;
+  double? get totalBeforeCoinsAmount => pricing.totalBeforeCoinsAmount;
 
   /// Returns true if this preview uses a shipping quote (fixed price)
   /// instead of standard shipping options
   bool get isUsingShippingQuote => shippingMode == 'quote';
-
-  Map<String, dynamic> toJson() {
-    return {
-      'subtotal': pricing.subtotal,
-      'shipping_cost': pricing.shippingCost,
-      'service_fee_amount': pricing.serviceFeeAmount,
-      'admin_fee': pricing.adminFee,
-      'payment_fee': pricing.paymentFee,
-      'discount': pricing.discount,
-      'total': pricing.total,
-      'total_payable_amount': pricing.totalPayableAmount,
-      'discount_code': pricing.discountCode,
-      'discount_description': pricing.discountDescription,
-      'is_valid': isValid,
-      'error_message': errorMessage,
-      'validation_errors': validationErrors,
-      'is_available': isAvailable,
-      'expires_at': expiresAt?.toIso8601String(),
-      'pricing_token': pricingToken,
-      'seller_id': sellerId,
-      'buyer_id': buyerId,
-      'shipping_mode': shippingMode,
-    };
-  }
-}
-
-// ==================== CREATE ORDER ====================
-
-/// Order item parameters for order creation
-class OrderItemParams {
-  final String productId;
-  final int quantity;
-
-  const OrderItemParams({required this.productId, required this.quantity});
-
-  Map<String, dynamic> toJson() {
-    return {'product_id': productId, 'quantity': quantity};
-  }
-}
-
-/// Parameters for creating an order
-/// TRUTHFUL: This type is required by active order creation flow
-/// Repository implementation uses: items, shippingInfo, discountCode, useCoins, notes, pricingToken
-class CreateOrderParams {
-  final List<OrderItemParams> items;
-  final ShippingInfo shippingInfo;
-  final String pricingToken;
-  final String? discountCode;
-  final bool? useCoins;
-  final String? notes;
-  final String? auctionId;
-  final String? negotiationId;
-
-  const CreateOrderParams({
-    required this.items,
-    required this.shippingInfo,
-    required this.pricingToken,
-    this.discountCode,
-    this.useCoins,
-    this.notes,
-    this.auctionId,
-    this.negotiationId,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'items': items.map((e) => e.toJson()).toList(),
-      'shipping_info': {
-        'recipient_name': shippingInfo.recipientName,
-        'phone': shippingInfo.phone,
-        'address': shippingInfo.address,
-        'province_id': shippingInfo.provinceId,
-        'city_id': shippingInfo.cityId,
-        'district_id': shippingInfo.districtId,
-        'village_id': shippingInfo.villageId,
-        'postal_code': shippingInfo.postalCode,
-        'latitude': shippingInfo.latitude,
-        'longitude': shippingInfo.longitude,
-        'method': shippingInfo.method.name,
-        'courier_name': shippingInfo.courierName,
-        'shipping_setup_id': shippingInfo.shippingSetupId,
-      },
-      'pricing_token': pricingToken,
-      if (discountCode != null) 'discount_code': discountCode,
-      if (useCoins != null) 'use_coins': useCoins,
-      if (notes != null) 'notes': notes,
-      if (auctionId != null) 'auction_id': auctionId,
-      if (negotiationId != null) 'negotiation_id': negotiationId,
-    };
-  }
 }
 
 // ==================== GET ORDERS ====================
@@ -293,62 +149,14 @@ class GetOrdersParams {
     if (startDate != null) {
       params['start_date'] = startDate!.toIso8601String();
     }
-    if (endDate != null) params['end_date'] = endDate!.toIso8601String();
+    if (endDate != null) {
+      params['end_date'] = endDate!.toIso8601String();
+    }
     if (page != null) params['page'] = page;
     if (pageSize != null) params['page_size'] = pageSize;
     if (limit != null) params['limit'] = limit;
     if (searchQuery != null) params['search'] = searchQuery;
     return params;
-  }
-}
-
-// ==================== GET ORDER STATS ====================
-
-/// Parameters for getting order statistics
-class GetOrderStatsParams {
-  final String sellerId;
-  final DateTime? startDate;
-  final DateTime? endDate;
-
-  const GetOrderStatsParams({
-    required this.sellerId,
-    this.startDate,
-    this.endDate,
-  });
-
-  /// Alias for sellerId - matches API datasource parameter
-  bool get asSeller => true;
-
-  Map<String, dynamic> toQueryParams() {
-    final params = <String, dynamic>{'seller_id': sellerId};
-    if (startDate != null) {
-      params['start_date'] = startDate!.toIso8601String();
-    }
-    if (endDate != null) params['end_date'] = endDate!.toIso8601String();
-    return params;
-  }
-}
-
-// ==================== UPDATE ORDER STATUS ====================
-
-/// Parameters for updating order status
-class UpdateOrderStatusParams {
-  final String orderId;
-  final OrderStatus status;
-  final String? reason;
-
-  const UpdateOrderStatusParams({
-    required this.orderId,
-    required this.status,
-    this.reason,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'order_id': orderId,
-      'status': status.name,
-      if (reason != null) 'reason': reason,
-    };
   }
 }
 
@@ -407,97 +215,6 @@ class MarkAsShippedParams {
   }
 }
 
-// ==================== MARK AS DELIVERED ====================
-
-/// Parameters for marking order as delivered
-class MarkAsDeliveredParams {
-  final String orderId;
-  final String? deliveryNote;
-
-  const MarkAsDeliveredParams({required this.orderId, this.deliveryNote});
-
-  Map<String, dynamic> toJson() {
-    return {
-      'order_id': orderId,
-      if (deliveryNote != null) 'delivery_note': deliveryNote,
-    };
-  }
-}
-
-// ==================== PROCESS PAYMENT ====================
-
-/// Parameters for processing payment
-class ProcessPaymentParams {
-  final String paymentMethod;
-  final String? paymentToken;
-  final double? amount;
-
-  const ProcessPaymentParams({
-    required this.paymentMethod,
-    this.paymentToken,
-    this.amount,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'payment_method': paymentMethod,
-      if (paymentToken != null) 'payment_token': paymentToken,
-      if (amount != null) 'amount': amount,
-    };
-  }
-}
-
-// ==================== UPDATE PAYMENT TOKEN ====================
-
-/// Parameters for updating payment token
-/// TRUTHFUL: Required by repository interface for payment token refresh
-class UpdatePaymentTokenParams {
-  final String orderId;
-  final String paymentToken;
-
-  const UpdatePaymentTokenParams({
-    required this.orderId,
-    required this.paymentToken,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {'order_id': orderId, 'payment_token': paymentToken};
-  }
-}
-
-// ==================== UPDATE SHIPPING INFO ====================
-
-/// Parameters for updating shipping information
-/// TRUTHFUL: Required by repository interface for shipping info updates
-class UpdateShippingInfoParams {
-  final String recipientName;
-  final String phone;
-  final String address;
-  final String? city;
-  final String? province;
-  final String? postalCode;
-
-  const UpdateShippingInfoParams({
-    required this.recipientName,
-    required this.phone,
-    required this.address,
-    this.city,
-    this.province,
-    this.postalCode,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'recipient_name': recipientName,
-      'phone': phone,
-      'address': address,
-      if (city != null) 'city': city,
-      if (province != null) 'province': province,
-      if (postalCode != null) 'postal_code': postalCode,
-    };
-  }
-}
-
 // ==================== WATCH ORDERS ====================
 
 /// Parameters for watching orders via stream
@@ -541,7 +258,7 @@ class CreateRefundParams {
   }
 }
 
-/// Parameters for listing refunds
+/// Parameters for forSale refunds
 class ListRefundsParams {
   final String? orderId;
   final RefundStatus? status;
@@ -565,49 +282,6 @@ class ListRefundsParams {
     if (page != null) params['page'] = page;
     if (pageSize != null) params['page_size'] = pageSize;
     return params;
-  }
-}
-
-// ==================== ORDER STATS ====================
-
-/// Order statistics entity
-class OrderStats {
-  final int totalOrders;
-  final int pendingOrders;
-  final int completedOrders;
-  final int cancelledOrders;
-  final int shippedOrders;
-  final double totalRevenue;
-
-  const OrderStats({
-    required this.totalOrders,
-    required this.pendingOrders,
-    required this.completedOrders,
-    required this.cancelledOrders,
-    this.shippedOrders = 0,
-    required this.totalRevenue,
-  });
-
-  factory OrderStats.fromJson(Map<String, dynamic> json) {
-    return OrderStats(
-      totalOrders: json['total_orders'] as int? ?? 0,
-      pendingOrders: json['pending_orders'] as int? ?? 0,
-      completedOrders: json['completed_orders'] as int? ?? 0,
-      cancelledOrders: json['cancelled_orders'] as int? ?? 0,
-      shippedOrders: json['shipped_orders'] as int? ?? 0,
-      totalRevenue: (json['total_revenue'] as num?)?.toDouble() ?? 0.0,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'total_orders': totalOrders,
-      'pending_orders': pendingOrders,
-      'completed_orders': completedOrders,
-      'cancelled_orders': cancelledOrders,
-      'shipped_orders': shippedOrders,
-      'total_revenue': totalRevenue,
-    };
   }
 }
 

@@ -147,7 +147,7 @@ func TestContentPreviewsToResponse_AuthorLifecycle(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			items := contentPreviewsToResponse([]*entity.ContentPreview{preview}, nil, tt.authorLifecycleByID)
+			items := contentPreviewsToResponseWithProjections([]*entity.ContentPreview{preview}, nil, tt.authorLifecycleByID, nil)
 			if len(items) != 1 {
 				t.Fatalf("expected 1 item; got %d", len(items))
 			}
@@ -183,7 +183,7 @@ func TestContentPreviewsToResponse_LegacyFieldsPreserved(t *testing.T) {
 	preview := makeTestContentPreview(authorID)
 	lifecycleMap := map[uuid.UUID]string{authorID: "active"}
 
-	items := contentPreviewsToResponse([]*entity.ContentPreview{preview}, nil, lifecycleMap)
+	items := contentPreviewsToResponseWithProjections([]*entity.ContentPreview{preview}, nil, lifecycleMap, nil)
 	if len(items) != 1 {
 		t.Fatalf("expected 1 item; got %d", len(items))
 	}
@@ -217,7 +217,7 @@ func TestContentPreviewsToResponse_ContentLifecycleOverrideUnchanged(t *testing.
 	lifecycleOverrides := map[uuid.UUID]string{contentID: "removed"}
 	authorLifecycleMap := map[uuid.UUID]string{authorID: "active"}
 
-	items := contentPreviewsToResponse([]*entity.ContentPreview{preview}, lifecycleOverrides, authorLifecycleMap)
+	items := contentPreviewsToResponseWithProjections([]*entity.ContentPreview{preview}, lifecycleOverrides, authorLifecycleMap, nil)
 	if len(items) != 1 {
 		t.Fatalf("expected 1 item; got %d", len(items))
 	}

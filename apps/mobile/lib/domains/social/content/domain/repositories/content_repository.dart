@@ -169,7 +169,7 @@ class ContentSearchResult {
   });
 }
 
-/// Cursor-paginated result for profile content listing.
+/// Cursor-paginated result for profile content forSale.
 ///
 /// Returned by [ContentRepository.getContentsByAuthorPaged].
 /// [nextCursor] is opaque; pass verbatim as [cursor] on the next call.
@@ -189,4 +189,4 @@ class ContentAuthorPage {
 // FeedResult removed (BATCH C2):
 // Content domain does not provide "feed" functionality.
 // For social timeline, use Home/Feed domain (/api/v1/feed).
-// For content listing, use specific methods: getContents(), getContentsByAuthor(), etc.
+// For content forSale, use specific methods: getContents(), getContentsByAuthor(), etc.

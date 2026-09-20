@@ -30,20 +30,17 @@ func reseedCanonicalPaymentMethods(ctx context.Context, t *testing.T, testDB *te
 			    (method_code, display_name, enabled, fee_type, flat_amount_rupiah, percent_bps, min_fee_rupiah, max_fee_rupiah,
 			     midtrans_channels, sort_order, rate_source, rate_source_note)
 			VALUES
-			    ('bank_transfer', 'Transfer Bank (Virtual Account)', true, 'flat', 4000, 0, NULL, NULL,
-			        ARRAY['bca_va', 'bni_va', 'bri_va', 'permata_va', 'other_va'], 10,
+			    ('gopay', 'GoPay', true, 'percent', 0, 150, NULL, NULL,
+			        ARRAY['gopay'], 10,
 			        'public_baseline', 'test seed'),
-			    ('qris', 'QRIS', true, 'percent', 0, 70, 500, NULL,
-			        ARRAY['other_qris'], 20,
-			        'public_baseline', 'test seed'),
-			    ('credit_card', 'Kartu Kredit/Debit', true, 'percent_plus_flat', 2000, 290, NULL, NULL,
-			        ARRAY['credit_card'], 30,
+			    ('ovo', 'OVO', true, 'percent', 0, 150, NULL, NULL,
+			        ARRAY['ovo'], 20,
 			        'public_baseline', 'test seed'),
 			    ('dana', 'DANA', true, 'percent', 0, 150, NULL, NULL,
 			        ARRAY['dana'], 25,
 			        'public_baseline', 'test seed'),
-			    ('convenience_store', 'Indomaret / Alfamart', true, 'flat', 5000, 0, NULL, NULL,
-			        ARRAY['alfamart', 'indomaret'], 40,
+			    ('shopeepay', 'ShopeePay', true, 'percent', 0, 150, NULL, NULL,
+			        ARRAY['shopeepay'], 30,
 			        'public_baseline', 'test seed')
 			ON CONFLICT (method_code) DO NOTHING
 		`)
@@ -59,11 +56,9 @@ func reseedCanonicalPaymentMethods(ctx context.Context, t *testing.T, testDB *te
 // the correct fee formula and rate_source for each method, against a real
 // Postgres instance running the full migration chain.
 //
-// PASS_19A owner policy: the active baseline is exactly bank_transfer, qris,
-// dana, convenience_store, and credit_card (card payment). ShopeePay,
-// SPayLater, Kredivo, and Akulaku PayLater are forbidden and must never
-// appear.
-//
+// Phase 2 canonical baseline is exactly four wallets: gopay, ovo, dana,
+// shopeepay (each 1:1 wallet→channel, percent 150bps public_baseline).
+// PayLater/installment products remain forbidden and must never appear.
 // Requires PostgreSQL (see pkg/testdb) — run with: go test -tags integration
 func TestPaymentMethodRepository_SeedData_DBProven(t *testing.T) {
 	ctx := context.Background()
@@ -83,8 +78,8 @@ func TestPaymentMethodRepository_SeedData_DBProven(t *testing.T) {
 		t.Fatalf("ListEnabled: %v", err)
 	}
 
-	if len(methods) != 5 {
-		t.Fatalf("expected 5 seeded enabled methods (bank_transfer, qris, dana, convenience_store, credit_card), got %d", len(methods))
+	if len(methods) != 4 {
+		t.Fatalf("expected 4 seeded enabled methods (gopay, ovo, dana, shopeepay), got %d", len(methods))
 	}
 
 	byCode := make(map[string]entity.Method, len(methods))
@@ -92,83 +87,29 @@ func TestPaymentMethodRepository_SeedData_DBProven(t *testing.T) {
 		byCode[m.Code] = m
 	}
 
-	forbidden := []string{"shopeepay", "spaylater", "kredivo", "akulaku"}
+	forbidden := []string{"spaylater", "shopeepay_paylater", "kredivo", "akulaku", "bank_transfer", "qris", "credit_card", "convenience_store"}
 	for _, code := range forbidden {
 		if _, ok := byCode[code]; ok {
-			t.Fatalf("forbidden method %q must never be seeded/enabled", code)
+			t.Fatalf("forbidden/legacy method %q must never be seeded/enabled (Phase 2 purge)", code)
 		}
 	}
 
-	bankTransfer, ok := byCode["bank_transfer"]
-	if !ok {
-		t.Fatal("missing seeded method: bank_transfer")
-	}
-	if bankTransfer.FeeType != entity.FeeTypeFlat || bankTransfer.FlatAmount.Int64() != 4000 {
-		t.Fatalf("bank_transfer: got fee_type=%s flat=%d, want flat/4000", bankTransfer.FeeType, bankTransfer.FlatAmount.Int64())
-	}
-	if bankTransfer.RateSource != entity.RateSourcePublicBaseline {
-		t.Fatalf("bank_transfer: rate_source = %q, want public_baseline", bankTransfer.RateSource)
-	}
-
-	qris, ok := byCode["qris"]
-	if !ok {
-		t.Fatal("missing seeded method: qris")
-	}
-	if qris.FeeType != entity.FeeTypePercent || qris.PercentBps != 70 {
-		t.Fatalf("qris: got fee_type=%s bps=%d, want percent/70", qris.FeeType, qris.PercentBps)
-	}
-	if qris.MinFee == nil || qris.MinFee.Int64() != 500 {
-		t.Fatalf("qris: expected min_fee_rupiah=500")
-	}
-	if qris.RateSource != entity.RateSourcePublicBaseline {
-		t.Fatalf("qris: rate_source = %q, want public_baseline", qris.RateSource)
-	}
-
-	dana, ok := byCode["dana"]
-	if !ok {
-		t.Fatal("missing seeded method: dana")
-	}
-	if dana.FeeType != entity.FeeTypePercent || dana.PercentBps != 150 {
-		t.Fatalf("dana: got fee_type=%s bps=%d, want percent/150", dana.FeeType, dana.PercentBps)
-	}
-	if dana.RateSource != entity.RateSourcePublicBaseline {
-		t.Fatalf("dana: rate_source = %q, want public_baseline", dana.RateSource)
-	}
-	for _, ch := range dana.MidtransChannels {
-		if ch != "dana" {
-			t.Fatalf("dana: unexpected midtrans channel %q", ch)
+	for _, code := range []string{"gopay", "ovo", "dana", "shopeepay"} {
+		m, ok := byCode[code]
+		if !ok {
+			t.Fatalf("missing seeded method: %s", code)
 		}
-	}
-
-	cstore, ok := byCode["convenience_store"]
-	if !ok {
-		t.Fatal("missing seeded method: convenience_store")
-	}
-	if cstore.FeeType != entity.FeeTypeFlat || cstore.FlatAmount.Int64() != 5000 {
-		t.Fatalf("convenience_store: got fee_type=%s flat=%d, want flat/5000", cstore.FeeType, cstore.FlatAmount.Int64())
-	}
-	for _, ch := range cstore.MidtransChannels {
-		if ch != "alfamart" && ch != "indomaret" {
-			t.Fatalf("convenience_store: unexpected midtrans channel %q (paylater/unsafe channel leaked into seed)", ch)
+		if m.FeeType != entity.FeeTypePercent || m.PercentBps != 150 {
+			t.Fatalf("%s: got fee_type=%s bps=%d, want percent/150", code, m.FeeType, m.PercentBps)
 		}
-	}
-
-	creditCard, ok := byCode["credit_card"]
-	if !ok {
-		t.Fatal("missing seeded method: credit_card (card payment must remain enabled per PASS_19A addendum)")
-	}
-	if creditCard.FeeType != entity.FeeTypePercentPlusFlat || creditCard.PercentBps != 290 || creditCard.FlatAmount.Int64() != 2000 {
-		t.Fatalf("credit_card: got fee_type=%s bps=%d flat=%d, want percent_plus_flat/290/2000",
-			creditCard.FeeType, creditCard.PercentBps, creditCard.FlatAmount.Int64())
-	}
-	if creditCard.RateSource != entity.RateSourcePublicBaseline {
-		t.Fatalf("credit_card: rate_source = %q, want public_baseline", creditCard.RateSource)
-	}
-	// Card payment must map only to the safe card channel — never a
-	// paylater/installment product riding along on the same method row.
-	for _, ch := range creditCard.MidtransChannels {
-		if ch != "credit_card" && ch != "debit_card" {
-			t.Fatalf("credit_card: unexpected midtrans channel %q (paylater/unsafe channel leaked into card method)", ch)
+		if m.RateSource != entity.RateSourcePublicBaseline {
+			t.Fatalf("%s: rate_source = %q, want public_baseline", code, m.RateSource)
+		}
+		if len(m.MidtransChannels) != 1 || m.MidtransChannels[0] != code {
+			t.Fatalf("%s: MidtransChannels = %v, want [%s] (1:1 wallet)", code, m.MidtransChannels, code)
+		}
+		if !m.Enabled {
+			t.Fatalf("%s must be enabled", code)
 		}
 	}
 
@@ -180,6 +121,14 @@ func TestPaymentMethodRepository_SeedData_DBProven(t *testing.T) {
 	})
 	if err != ErrMethodNotFound {
 		t.Fatalf("GetByCode(unknown) = %v, want ErrMethodNotFound", err)
+	}
+	// Legacy bucket codes must also be not-found after Phase 2 purge.
+	err = testDB.WithTx(ctx, func(tx db.Tx) error {
+		_, err := repo.GetByCode(ctx, tx, "bank_transfer")
+		return err
+	})
+	if err != ErrMethodNotFound {
+		t.Fatalf("GetByCode(bank_transfer) = %v, want ErrMethodNotFound after purge", err)
 	}
 }
 
@@ -199,13 +148,13 @@ func TestPaymentMethodRepository_AdminUpdate_DBProven(t *testing.T) {
 
 	repo := NewPaymentMethodRepository()
 
-	// Disable qris and change its fee formula.
+	// Disable ovo and change its fee formula (wallet canonical test).
 	minFee := money.New(1000)
 	var updated *entity.Method
 	err := testDB.WithTx(ctx, func(tx db.Tx) error {
 		var err error
-		updated, err = repo.Update(ctx, tx, "qris", UpdateMethodInput{
-			DisplayName: "QRIS (disabled for test)",
+		updated, err = repo.Update(ctx, tx, "ovo", UpdateMethodInput{
+			DisplayName: "OVO (disabled for test)",
 			Enabled:     false,
 			FeeType:     entity.FeeTypePercent,
 			PercentBps:  100,
@@ -235,7 +184,7 @@ func TestPaymentMethodRepository_AdminUpdate_DBProven(t *testing.T) {
 		t.Fatalf("expected PercentBps = 100, got %d", updated.PercentBps)
 	}
 
-	// ListEnabled must now exclude qris.
+	// ListEnabled must now exclude ovo.
 	var enabled []entity.Method
 	err = testDB.WithTx(ctx, func(tx db.Tx) error {
 		var err error
@@ -246,15 +195,15 @@ func TestPaymentMethodRepository_AdminUpdate_DBProven(t *testing.T) {
 		t.Fatalf("ListEnabled: %v", err)
 	}
 	for _, m := range enabled {
-		if m.Code == "qris" {
-			t.Fatal("disabled qris must not appear in ListEnabled (buyer-facing)")
+		if m.Code == "ovo" {
+			t.Fatal("disabled ovo must not appear in ListEnabled (buyer-facing)")
 		}
 	}
-	if len(enabled) != 4 {
-		t.Fatalf("expected 4 enabled methods after disabling qris, got %d", len(enabled))
+	if len(enabled) != 3 {
+		t.Fatalf("expected 3 enabled methods after disabling ovo, got %d", len(enabled))
 	}
 
-	// ListAll must still include qris (admin sees disabled methods too).
+	// ListAll must still include ovo (admin sees disabled methods too).
 	var all []entity.Method
 	err = testDB.WithTx(ctx, func(tx db.Tx) error {
 		var err error
@@ -264,23 +213,23 @@ func TestPaymentMethodRepository_AdminUpdate_DBProven(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListAll: %v", err)
 	}
-	if len(all) != 5 {
-		t.Fatalf("expected 5 total methods, got %d", len(all))
+	if len(all) != 4 {
+		t.Fatalf("expected 4 total methods, got %d", len(all))
 	}
 
-	// CountEnabledExcluding("qris") must equal the 4 other enabled methods,
-	// regardless of qris's own current state.
+	// CountEnabledExcluding("ovo") must equal the 3 other enabled methods,
+	// regardless of ovo's own current state.
 	var count int
 	err = testDB.WithTx(ctx, func(tx db.Tx) error {
 		var err error
-		count, err = repo.CountEnabledExcluding(ctx, tx, "qris")
+		count, err = repo.CountEnabledExcluding(ctx, tx, "ovo")
 		return err
 	})
 	if err != nil {
 		t.Fatalf("CountEnabledExcluding: %v", err)
 	}
-	if count != 4 {
-		t.Fatalf("CountEnabledExcluding(qris) = %d, want 4", count)
+	if count != 3 {
+		t.Fatalf("CountEnabledExcluding(ovo) = %d, want 3", count)
 	}
 
 	// Update on an unknown code must surface ErrMethodNotFound.
@@ -307,29 +256,29 @@ func TestPaymentMethodRepository_RateSource_DBProven(t *testing.T) {
 
 	repo := NewPaymentMethodRepository()
 
-	// Seeded rows must default to public_baseline (migration 000007).
-	seeded, err := getMethod(ctx, t, testDB, repo, "bank_transfer")
+	// Seeded rows must default to public_baseline (migration 000088).
+	seeded, err := getMethod(ctx, t, testDB, repo, "gopay")
 	if err != nil {
-		t.Fatalf("GetByCode(bank_transfer): %v", err)
+		t.Fatalf("GetByCode(gopay): %v", err)
 	}
 	if seeded.RateSource != entity.RateSourcePublicBaseline {
-		t.Fatalf("bank_transfer: rate_source = %q, want public_baseline", seeded.RateSource)
+		t.Fatalf("gopay: rate_source = %q, want public_baseline", seeded.RateSource)
 	}
 	if seeded.MerchantVerifiedAt != nil {
-		t.Fatal("bank_transfer: expected merchant_verified_at = nil for an unverified public baseline row")
+		t.Fatal("gopay: expected merchant_verified_at = nil for an unverified public baseline row")
 	}
 
-	// Admin marks bank_transfer merchant_verified with a note and timestamp.
+	// Admin marks gopay merchant_verified with a note and timestamp.
 	verifiedAt := time.Date(2026, 8, 1, 9, 0, 0, 0, time.UTC)
 	var updated *entity.Method
 	err = testDB.WithTx(ctx, func(tx db.Tx) error {
 		var err error
-		updated, err = repo.Update(ctx, tx, "bank_transfer", UpdateMethodInput{
-			DisplayName:        "Transfer Bank (Virtual Account)",
+		updated, err = repo.Update(ctx, tx, "gopay", UpdateMethodInput{
+			DisplayName:        "GoPay",
 			Enabled:            true,
-			FeeType:            entity.FeeTypeFlat,
-			FlatAmount:         money.New(4000),
-			MidtransChannels:   []string{"bca_va"},
+			FeeType:            entity.FeeTypePercent,
+			PercentBps:         150,
+			MidtransChannels:   []string{"gopay"},
 			SortOrder:          10,
 			RateSource:         entity.RateSourceMerchantVerified,
 			RateSourceNote:     "Confirmed against Midtrans merchant dashboard 2026-08-01.",
@@ -353,12 +302,12 @@ func TestPaymentMethodRepository_RateSource_DBProven(t *testing.T) {
 	// An unknown rate_source must be rejected by the DB CHECK constraint —
 	// defense in depth behind the handler's own entity.ValidateConfig check.
 	err = testDB.WithTx(ctx, func(tx db.Tx) error {
-		_, err := repo.Update(ctx, tx, "bank_transfer", UpdateMethodInput{
-			DisplayName:      "Transfer Bank (Virtual Account)",
+		_, err := repo.Update(ctx, tx, "gopay", UpdateMethodInput{
+			DisplayName:      "GoPay",
 			Enabled:          true,
-			FeeType:          entity.FeeTypeFlat,
-			FlatAmount:       money.New(4000),
-			MidtransChannels: []string{"bca_va"},
+			FeeType:          entity.FeeTypePercent,
+			PercentBps:       150,
+			MidtransChannels: []string{"gopay"},
 			SortOrder:        10,
 			RateSource:       entity.RateSource("bogus"),
 		})
@@ -382,18 +331,18 @@ func TestPaymentMethodRepository_Update_NilChannels_DBProven(t *testing.T) {
 
 	repo := NewPaymentMethodRepository()
 
-	// Disable qris with MidtransChannels explicitly nil — the exact shape an
+	// Disable ovo with MidtransChannels explicitly nil — the exact shape an
 	// admin PUT that omits/nulls the field produces (see
 	// admin_payment_method_handler_test.go's
 	// TestUpdateMethod_DisabledWithOmittedChannels_ReachesDB).
 	var updated *entity.Method
 	err := testDB.WithTx(ctx, func(tx db.Tx) error {
 		var err error
-		updated, err = repo.Update(ctx, tx, "qris", UpdateMethodInput{
-			DisplayName:      "QRIS (disabled, nil channels)",
+		updated, err = repo.Update(ctx, tx, "ovo", UpdateMethodInput{
+			DisplayName:      "OVO (disabled, nil channels)",
 			Enabled:          false,
 			FeeType:          entity.FeeTypePercent,
-			PercentBps:       70,
+			PercentBps:       150,
 			MidtransChannels: nil,
 			SortOrder:        20,
 			RateSource:       entity.RateSourceManualOverride,
@@ -419,7 +368,7 @@ func TestPaymentMethodRepository_Update_NilChannels_DBProven(t *testing.T) {
 		var length int
 		scanErr := tx.QueryRow(ctx, `
 			SELECT midtrans_channels IS NULL, COALESCE(array_length(midtrans_channels, 1), 0)
-			FROM payment_methods WHERE method_code = 'qris'
+			FROM payment_methods WHERE method_code = 'ovo'
 		`).Scan(&isNull, &length)
 		if scanErr != nil {
 			return scanErr
@@ -437,7 +386,7 @@ func TestPaymentMethodRepository_Update_NilChannels_DBProven(t *testing.T) {
 	}
 
 	// GetByCode must scan the same non-nil empty slice back.
-	fetched, err := getMethod(ctx, t, testDB, repo, "qris")
+	fetched, err := getMethod(ctx, t, testDB, repo, "ovo")
 	if err != nil {
 		t.Fatalf("GetByCode: %v", err)
 	}
@@ -450,16 +399,16 @@ func TestPaymentMethodRepository_Update_NilChannels_DBProven(t *testing.T) {
 	// rule, which is (and must remain) entity.ValidateConfig's job, enforced
 	// upstream of Update.
 	candidate := entity.Method{
-		Code:             "qris",
-		DisplayName:      "QRIS",
+		Code:             "ovo",
+		DisplayName:      "OVO",
 		Enabled:          true,
 		FeeType:          entity.FeeTypePercent,
-		PercentBps:       70,
+		PercentBps:       150,
 		MidtransChannels: nil,
 		RateSource:       entity.RateSourcePublicBaseline,
 	}
 	if err := entity.ValidateConfig(candidate); err != entity.ErrEnabledMethodNeedsChannels {
-		t.Fatalf("re-enabling qris with nil channels must be rejected by ValidateConfig, got: %v", err)
+		t.Fatalf("re-enabling ovo with nil channels must be rejected by ValidateConfig, got: %v", err)
 	}
 }
 

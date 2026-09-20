@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
 	"go.uber.org/zap"
 )
 
@@ -486,29 +487,32 @@ func (s *MonitoringService) GetSystemHealth(ctx context.Context) (SystemHealthSt
 	}
 
 	// 7. Subscription Orphaned Payment Count
-	// Payments with reference_type='subscription' and status='settlement' but no matching subscription
+	// Settled subscription payments (canonical settled set: settlement or capture)
+	// with no matching subscription record. The status set comes from the canonical
+	// payment authority instead of being restated in SQL.
 	const orphanedPaymentQuery = `
 		SELECT COUNT(*)
 		FROM payments p
 		WHERE p.reference_type = 'subscription'
-		  AND p.status = 'settlement'
+		  AND p.status::text = ANY($1::text[])
 		  AND NOT EXISTS (
 		    SELECT 1 FROM seller_subscriptions s WHERE s.payment_id = p.id
 		  );
 	`
-	err = s.db.QueryRow(ctx, orphanedPaymentQuery).Scan(&status.OrphanedPaymentCount)
+	err = s.db.QueryRow(ctx, orphanedPaymentQuery, paymentRepo.SettledPaymentStatuses()).Scan(&status.OrphanedPaymentCount)
 	if err != nil {
 		return status, fmt.Errorf("orphaned payment check failed: %w", err)
 	}
 
 	// 8. Payment Subscription Conversion Rate
-	// Ratio of successful subscription payments that have corresponding subscriptions
+	// Ratio of settled subscription payments (canonical settled set) that have
+	// corresponding subscriptions
 	const conversionRateQuery = `
 		WITH payment_stats AS (
 		  SELECT
-		    COUNT(*) FILTER (WHERE status = 'settlement') as total_settlement,
+		    COUNT(*) FILTER (WHERE status::text = ANY($1::text[])) as total_settlement,
 		    COUNT(*) FILTER (
-		      WHERE status = 'settlement'
+		      WHERE status::text = ANY($1::text[])
 		      AND EXISTS (SELECT 1 FROM seller_subscriptions s WHERE s.payment_id = payments.id)
 		    ) as converted
 		  FROM payments
@@ -521,7 +525,7 @@ func (s *MonitoringService) GetSystemHealth(ctx context.Context) (SystemHealthSt
 		  END as conversion_rate
 		FROM payment_stats;
 	`
-	err = s.db.QueryRow(ctx, conversionRateQuery).Scan(&status.PaymentSubscriptionConversionRate)
+	err = s.db.QueryRow(ctx, conversionRateQuery, paymentRepo.SettledPaymentStatuses()).Scan(&status.PaymentSubscriptionConversionRate)
 	if err != nil {
 		return status, fmt.Errorf("conversion rate check failed: %w", err)
 	}

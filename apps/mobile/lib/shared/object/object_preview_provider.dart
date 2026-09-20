@@ -27,7 +27,7 @@ final objectPreviewProvider =
       reference,
     ) async {
       switch (reference.type) {
-        case 'fixed_price_sale':
+        case 'for_sale':
           return _resolveFixedPriceSale(ref, reference.id);
 
         case 'auction':
@@ -47,21 +47,21 @@ Future<ObjectPreview?> _resolveFixedPriceSale(
   String fixedPriceSaleId,
 ) async {
   try {
-    final listingAsync = await ref.read(
+    final forSaleAsync = await ref.read(
       forSaleDetailProvider(fixedPriceSaleId).future,
     );
 
-    if (listingAsync == null) return null;
+    if (forSaleAsync == null) return null;
 
     return ObjectPreview(
-      id: listingAsync.forSaleId,
-      type: 'fixed_price_sale',
-      title: listingAsync.title,
-      imageUrl: listingAsync.media.isNotEmpty
-          ? listingAsync.media.first.originalUrl
+      id: forSaleAsync.forSaleId,
+      type: 'for_sale',
+      title: forSaleAsync.title,
+      imageUrl: forSaleAsync.media.isNotEmpty
+          ? forSaleAsync.media.first.originalUrl
           : null,
-      price: listingAsync.price.toInt(),
-      status: listingAsync.status.name,
+      price: forSaleAsync.price.toInt(),
+      status: forSaleAsync.status.name,
     );
   } catch (_) {
     return null;

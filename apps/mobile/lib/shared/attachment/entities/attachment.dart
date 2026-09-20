@@ -15,8 +15,8 @@ import 'package:equatable/equatable.dart';
 ///
 /// **CANONICAL TRUTH:**
 ///    - ShareReference is the CANONICAL cross-domain reference pattern
-///    - All object references (Content, Listing, Auction) now use ShareReference directly
-///    - Deprecated Attachment wrappers (PostAttachment, ListingAttachment, etc.) removed
+///    - All object references (Content, ForSale, Auction) now use ShareReference directly
+///    - Deprecated Attachment wrappers (PostAttachment, ForSaleAttachment, etc.) removed
 ///
 /// 2. WORKFLOW PAYLOAD (domain-specific business state):
 ///    - NegotiationOfferAttachment: active negotiation state (Negotiation domain)
@@ -112,7 +112,7 @@ class LocationAttachment extends Attachment {
 /// **SEMANTIC RULES (CRITICAL):**
 /// - negotiationId adalah CANONICAL reference ke negosiasi (backend authoritative)
 /// - forSaleId adalah CANONICAL reference ke for-sale terkait
-/// - SEMUA field lain (listingName, status, round, price, dll) hanya PREVIEW/CACHE untuk UI
+/// - SEMUA field lain (forSaleName, status, round, price, dll) hanya PREVIEW/CACHE untuk UI
 /// - SEMUA preview data bisa STALE - tidak ada live status provider
 /// - Gunakan negotiationId untuk semua action (accept, counter, reject)
 /// - Backend adalah source of truth untuk status negosiasi
@@ -126,8 +126,8 @@ class NegotiationOfferAttachment extends Attachment {
   final String forSaleId;
 
   /// PREVIEW DATA - bisa stale, gunakan hanya untuk UI display
-  final String listingName;
-  final String? listingImage;
+  final String forSaleName;
+  final String? forSaleImage;
   final double originalPrice;
   final double currentOfferPrice;
   final String lastOfferBy;
@@ -146,8 +146,8 @@ class NegotiationOfferAttachment extends Attachment {
   const NegotiationOfferAttachment({
     required this.negotiationId,
     required this.forSaleId,
-    required this.listingName,
-    this.listingImage,
+    required this.forSaleName,
+    this.forSaleImage,
     required this.originalPrice,
     required this.currentOfferPrice,
     required this.lastOfferBy,
@@ -183,8 +183,8 @@ class NegotiationOfferAttachment extends Attachment {
   List<Object?> get props => [
     negotiationId,
     forSaleId,
-    listingName,
-    listingImage,
+    forSaleName,
+    forSaleImage,
     originalPrice,
     currentOfferPrice,
     lastOfferBy,
@@ -231,7 +231,7 @@ class NegotiationProposalAttachment extends Attachment {
   /// Proposal price in minor units as the backend emits it
   final int price;
 
-  /// Resource type (e.g. "listing"); only present on initial proposal
+  /// Resource type (e.g. "forSale"); only present on initial proposal
   final String? resourceType;
 
   /// Resource id (e.g. fixed-price sale or auction id); only present on initial proposal
@@ -277,7 +277,7 @@ class NegotiationProposalAttachment extends Attachment {
 /// **SEMANTIC RULES (CRITICAL):**
 /// - negotiationId adalah CANONICAL reference ke negosiasi (backend authoritative)
 /// - forSaleId adalah CANONICAL reference ke for-sale terkait
-/// - Field lain (listingName, listingImage, agreedPrice) hanya PREVIEW/CACHE untuk UI
+/// - Field lain (forSaleName, forSaleImage, agreedPrice) hanya PREVIEW/CACHE untuk UI
 /// - Untuk checkout, selalu resolve lewat backend canonical flow dengan negotiationId
 ///
 /// **BATCH R1:** This is a WORKFLOW PAYLOAD, not a true attachment.
@@ -289,8 +289,8 @@ class NegotiationResultAttachment extends Attachment {
   final String forSaleId;
 
   /// PREVIEW DATA - bisa stale, gunakan hanya untuk UI display
-  final String listingName;
-  final String? listingImage;
+  final String forSaleName;
+  final String? forSaleImage;
   final double originalPrice;
   final double? agreedPrice;
   final String status;
@@ -302,8 +302,8 @@ class NegotiationResultAttachment extends Attachment {
   const NegotiationResultAttachment({
     required this.negotiationId,
     required this.forSaleId,
-    required this.listingName,
-    this.listingImage,
+    required this.forSaleName,
+    this.forSaleImage,
     required this.originalPrice,
     this.agreedPrice,
     required this.status,
@@ -317,8 +317,8 @@ class NegotiationResultAttachment extends Attachment {
   List<Object?> get props => [
     negotiationId,
     forSaleId,
-    listingName,
-    listingImage,
+    forSaleName,
+    forSaleImage,
     originalPrice,
     agreedPrice,
     status,

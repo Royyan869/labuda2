@@ -68,15 +68,15 @@ import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_
 /// - Terminal states (sold/withdrawn): visibility field is irrelevant
 ///
 /// The backend enforces this by automatically setting visibility=public on publish.
-/// No manual setting of visibility for active listings is allowed.
+/// No manual setting of visibility for active forSales is allowed.
 /// ═══════════════════════════════════════════════════════════════════════════════
 enum ForSaleVisibility {
-  /// Seller-only visibility (workspace listing)
-  /// This is the ONLY valid visibility for draft listings
+  /// Seller-only visibility (workspace forSale)
+  /// This is the ONLY valid visibility for draft forSales
   private,
 
   /// Market-visible (discoverable by buyers)
-  /// This is the ONLY valid visibility for active listings
+  /// This is the ONLY valid visibility for active forSales
   /// Requires active seller subscription to create/update
   public;
 
@@ -132,7 +132,7 @@ class ForSale extends Equatable {
 
   /// E8.2 — Canonical seller user-identity lifecycle ({active, unavailable,
   /// removed}). Sourced from the wire's nested
-  /// `listing.seller.user.lifecycle` slot populated by E8.1.
+  /// `forSale.seller.user.lifecycle` slot populated by E8.1.
   ///
   /// AXIS BOUNDARY: This field carries ONLY the USER axis (banned/deleted
   /// user). It does NOT capture seller verification/subscription state —
@@ -144,7 +144,7 @@ class ForSale extends Equatable {
 
   /// Expired-seller visibility — canonical seller-trust lifecycle
   /// ({active, unavailable}). Sourced from the wire's top-level
-  /// `listing.seller.lifecycle` slot populated by backend coarsening of
+  /// `forSale.seller.lifecycle` slot populated by backend coarsening of
   /// the latest `seller_subscriptions.status` row.
   ///
   /// AXIS BOUNDARY: SEPARATE from [sellerUserLifecycle]. User-axis
@@ -155,14 +155,14 @@ class ForSale extends Equatable {
   /// keep their existing render behavior.
   final ContentLifecycle sellerTrustLifecycle;
 
-  /// Seller reputation tier — raw wire value from `listing.seller.tier`.
+  /// Seller reputation tier — raw wire value from `forSale.seller.tier`.
   ///
   /// Values: "pro", "elite". Null when backend emits no tier (flag
   /// disabled, user-identity/trust-axis degraded, or tier is Basic).
   ///
   /// RENDER RULE: SellerTierBadge hides for null/basic/unknown. Additional
   /// mobile gate: MUST NOT render when [sellerTrustLifecycle] is not active
-  /// (expired subscription) — see _ListingSellerCard for enforcement.
+  /// (expired subscription) — see _ForSaleSellerCard for enforcement.
   final String? sellerTier;
 
   /// Canonical per-viewer action authority for the detail surface.
@@ -232,7 +232,7 @@ class ForSale extends Equatable {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   /// Available for purchase: must be active (published) AND have stock
-  /// Draft listings are NEVER available for purchase.
+  /// Draft forSales are NEVER available for purchase.
   ///
   /// NOTE: Visibility check is redundant because ACTIVE = PUBLIC ONLY (enforced by backend)
   /// This is the authoritative buyability check - use this everywhere

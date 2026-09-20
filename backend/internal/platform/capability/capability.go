@@ -220,9 +220,6 @@ const (
 	// CapSupportTicketResolve - Can resolve support tickets
 	CapSupportTicketResolve Capability = "support.ticket.resolve"
 
-	// CapSupportAdminAssign - Can reassign tickets to admins
-	CapSupportAdminAssign Capability = "support.admin.assign"
-
 	// CapSupportAdminRead - Can view support admin statistics and lists
 	CapSupportAdminRead Capability = "support.admin.read"
 
@@ -286,7 +283,6 @@ var canonicalCapabilities = []Capability{
 	CapSupportTicketRespond,
 	CapSupportTicketClaim,
 	CapSupportTicketResolve,
-	CapSupportAdminAssign,
 	CapSupportAdminRead,
 	CapSupportTicketEscalate,
 }

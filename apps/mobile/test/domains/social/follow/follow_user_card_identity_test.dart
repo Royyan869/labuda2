@@ -145,7 +145,7 @@ AuthState _authenticatedState({
     isEmailVerified: true,
     roles: const [UserRole.user],
     provider: AuthProvider.email,
-    lifecycle: ContentLifecycle.active,
+    lifecycle: 'active',
   );
   return AuthState.authenticated(user, emailVerified: true);
 }
@@ -179,7 +179,7 @@ void main() {
             username: 'alice',
             avatar: 'https://cdn.example.com/a.jpg',
             userType: UserType.buyer,
-            lifecycle: ContentLifecycle.active,
+            lifecycle: 'active',
           ),
         ),
       ),
@@ -203,7 +203,7 @@ void main() {
             username: '',
             avatar: null,
             userType: UserType.buyer,
-            lifecycle: ContentLifecycle.active,
+            lifecycle: 'active',
           ),
         ),
       ),
@@ -227,7 +227,7 @@ void main() {
             username: 'ghost',
             avatar: 'https://cdn.example.com/g.jpg',
             userType: UserType.buyer,
-            lifecycle: ContentLifecycle.removed,
+            lifecycle: 'removed',
           ),
         ),
       ),

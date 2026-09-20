@@ -87,25 +87,46 @@ func (h *BuyerEscalationHandler) EscalateRefund(c *gin.Context) {
 
 	var result map[string]interface{}
 	txErr := h.database.WithTx(ctx, func(tx db.Tx) error {
-		// Step 1: Escalate refund (ownership + state transition + event)
-		refund, err := h.refundService.EscalateToDispute(ctx, tx, refundID, buyerID)
+		// CANONICAL LOCK ORDER: ORDER → REFUND (never REFUND → ORDER).
+		// 1. Read refund without lock to get metadata for dispute creation
+		// 2. OpenDisputeFromEscalation acquires ORDER lock
+		// 3. EscalateToDispute acquires REFUND lock
+		// This ensures ORDER is locked before REFUND, preventing deadlock with
+		// RefundFromDispute/ReleaseFromDispute which also lock ORDER → REFUND.
+
+		// Step 1: Read refund without lock to get metadata
+		refundRead, err := h.refundService.GetRefund(ctx, tx, refundID)
 		if err != nil {
 			return err
 		}
+		if refundRead == nil {
+			return fmt.Errorf("refund not found")
+		}
 
-		// Step 2: Create linked dispute (order lock + escrow check + persist + event)
-		reasonCode := mapRefundReasonToDisputeCode(refund.Reason)
+		// Ownership check
+		if refundRead.BuyerID != buyerID {
+			return fmt.Errorf("only the buyer can escalate this refund")
+		}
+
+		// Step 2: Create linked dispute FIRST (acquires ORDER lock via OpenDisputeFromEscalation)
+		reasonCode := mapRefundReasonToDisputeCode(refundRead.Reason)
 		dispute, err := h.disputeService.OpenDisputeFromEscalation(
 			ctx, tx,
-			refund.OrderID,
+			refundRead.OrderID,
 			buyerID,
-			string(refund.Reason),
-			refund.Description,
+			string(refundRead.Reason),
+			refundRead.Description,
 			reasonCode,
-			refund.EvidenceURLs,
+			refundRead.EvidenceURLs,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to create dispute: %w", err)
+		}
+
+		// Step 3: Escalate refund SECOND (acquires REFUND lock after ORDER lock)
+		refund, err := h.refundService.EscalateToDispute(ctx, tx, refundID, buyerID)
+		if err != nil {
+			return err
 		}
 
 		result = map[string]interface{}{

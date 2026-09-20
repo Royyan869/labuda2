@@ -6,6 +6,7 @@ import {
   getSupportTicket,
   getSupportTicketMessages,
   listSupportTickets,
+  reopenSupportTicket,
   resolveSupportTicket,
   sendSupportTicketMessage,
   setSupportTicketWaitingForUser,
@@ -193,6 +194,21 @@ export function useSupportTicketActions(ticketId: string) {
     }
   }, [ticketId])
 
+  const reopenTicket = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      await reopenSupportTicket(ticketId)
+      return { success: true }
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to reopen ticket')
+      setError(error)
+      return { success: false, error }
+    } finally {
+      setLoading(false)
+    }
+  }, [ticketId])
+
   const sendMessage = useCallback(async (data: SendMessageRequest) => {
     setLoading(true)
     setError(null)
@@ -286,6 +302,7 @@ export function useSupportTicketActions(ticketId: string) {
   return {
     resolveTicket,
     closeTicket,
+    reopenTicket,
     sendMessage,
     escalateToDispute,
     claimTicket,

@@ -313,12 +313,12 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
                   <div className="flex justify-between font-medium">
                     <span>Buyer Gross Total</span>
                     <span className="text-primary">
-                      {formatRupiah(order.total_payable_amount ?? order.escrow_amount)}
+                      {formatRupiah(order.total_payable_amount ?? order.total_before_coins_amount)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Escrow / Seller Eligible</span>
-                    <span>{formatRupiah(order.escrow_amount)}</span>
+                    <span>{formatRupiah(order.total_before_coins_amount)}</span>
                   </div>
                   {order.refunded_amount > 0 && (
                     <div className="flex justify-between text-sm text-orange-600">

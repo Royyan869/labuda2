@@ -118,6 +118,15 @@ func Forbidden(c *gin.Context, message string) {
 	Error(c, http.StatusForbidden, "FORBIDDEN", message)
 }
 
+// MarketAuthorityRequired sends a 403 Forbidden response for seller
+// market-authority denials (active seller subscription required).
+// Use this for the canonical MARKET_AUTHORITY_REQUIRED contract so mobile
+// and other consumers can branch on a stable machine-readable code instead of
+// generic FORBIDDEN or message substring matching.
+func MarketAuthorityRequired(c *gin.Context, message string) {
+	Error(c, http.StatusForbidden, ErrCodeMarketAuthorityRequired, message)
+}
+
 // NotFound sends a 404 Not Found response
 func NotFound(c *gin.Context, message string) {
 	Error(c, http.StatusNotFound, "NOT_FOUND", message)
@@ -159,6 +168,7 @@ const (
 	ErrCodeTransactionFailed  = "TRANSACTION_FAILED"
 	ErrCodeUnauthorized       = "UNAUTHORIZED"
 	ErrCodeForbidden          = "FORBIDDEN"
+	ErrCodeMarketAuthorityRequired = "MARKET_AUTHORITY_REQUIRED"
 	ErrCodeConflict           = "CONFLICT"
 )
 

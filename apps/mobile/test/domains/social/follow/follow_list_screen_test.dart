@@ -294,7 +294,6 @@ List<FollowableUser> _followersFixture() {
     FollowableUser(
       id: 'user-bob',
       username: 'bob',
-      displayName: 'Bob',
       avatar: null,
       userType: UserType.buyer,
       lifecycle: 'active',
@@ -304,7 +303,6 @@ List<FollowableUser> _followersFixture() {
     FollowableUser(
       id: 'user-empty',
       username: '',
-      displayName: 'User',
       avatar: null,
       userType: UserType.buyer,
       lifecycle: 'active',
@@ -314,7 +312,6 @@ List<FollowableUser> _followersFixture() {
     FollowableUser(
       id: 'user-removed',
       username: 'ghost',
-      displayName: 'Ghost',
       avatar: 'https://cdn.example.com/ghost.jpg',
       userType: UserType.buyer,
       lifecycle: 'removed',
@@ -327,7 +324,6 @@ List<FollowableUser> _followingFixture() {
     FollowableUser(
       id: 'user-charlie',
       username: 'charlie',
-      displayName: 'Charlie',
       avatar: null,
       userType: UserType.buyer,
       lifecycle: 'active',

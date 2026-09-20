@@ -12,7 +12,7 @@ enum ViolationType {
   /// Severity: minor (1 point)
   spam,
 
-  /// Listing fake or misleading products
+  /// ForSale fake or misleading products
   /// Severity: critical (10 points)
   fakeProduct,
 

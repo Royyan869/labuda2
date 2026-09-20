@@ -48,7 +48,7 @@ class ShareTarget {
     switch (type) {
       case ExternalShareType.post:
         return '$base/content/$id';
-      case ExternalShareType.listing:
+      case ExternalShareType.forSale:
         return '$base/for-sale/$id';
       case ExternalShareType.request:
         return '$base/content/$id';
@@ -97,7 +97,7 @@ class ShareTarget {
 
 /// Types of content that can be shared externally
 /// Used for generating share links and rich previews
-enum ExternalShareType { post, listing, request, auction, profile }
+enum ExternalShareType { post, forSale, request, auction, profile }
 
 /// Extension for ExternalShareType helpers
 extension ExternalShareTypeExtension on ExternalShareType {
@@ -108,7 +108,7 @@ extension ExternalShareTypeExtension on ExternalShareType {
     switch (this) {
       case ExternalShareType.post:
         return 'content';
-      case ExternalShareType.listing:
+      case ExternalShareType.forSale:
         return 'for_sale';
       case ExternalShareType.request:
         return 'content';
@@ -123,7 +123,7 @@ extension ExternalShareTypeExtension on ExternalShareType {
     switch (this) {
       case ExternalShareType.post:
         return 'Post';
-      case ExternalShareType.listing:
+      case ExternalShareType.forSale:
         return 'Produk';
       case ExternalShareType.request:
         return 'Request';
@@ -138,8 +138,8 @@ extension ExternalShareTypeExtension on ExternalShareType {
     switch (this) {
       case ExternalShareType.post:
         return 'contents'; // Unified content collection
-      case ExternalShareType.listing:
-        return 'listings';
+      case ExternalShareType.forSale:
+        return 'forSales';
       case ExternalShareType.request:
         return 'contents'; // Requests are now stored in contents collection
       case ExternalShareType.auction:

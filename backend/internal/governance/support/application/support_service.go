@@ -44,17 +44,20 @@ type Service struct {
 	log            *zap.Logger
 }
 
-// ChatService defines the interface for chat integration.
+// ChatService defines the seam between Support and Chat.
+//
+// Support owns the case (identity, lifecycle, assignment, SLA, resolution);
+// Chat owns the conversation (room, messages, transport, persistence). Support
+// never writes synthetic messages into the conversation — the only messages a
+// support room contains are ones a user or a real agent authored.
 type ChatService interface {
-	// CreateSupportTicketRoom creates a NEW unique chat room for each support ticket
-	// CRITICAL: Each ticket gets its own room to prevent thread mixing
+	// CreateSupportTicketRoom provisions a NEW unique chat room for each
+	// support ticket. Each ticket gets its own room to prevent thread mixing.
 	//
 	// Room-level commerce context is NOT stored on chat rooms (removed schema);
 	// ticket linkage is carried by support_tickets.chat_room_id and the
 	// ticket's linked_order_id.
 	CreateSupportTicketRoom(ctx context.Context, userID uuid.UUID) (*chatEntity.ChatRoom, error)
-
-	SendSystemMessage(ctx context.Context, roomID uuid.UUID, body string) error
 }
 
 // OutboxInserter defines the interface for inserting outbox events.
@@ -174,6 +177,21 @@ type CreateTicketRequest struct {
 // - ORDER ↔ CHAT CONTINUITY: linked_order_id is stored in chat room context for mobile retrieval
 // - FINANCIAL BOUNDARY: Does NOT freeze escrow (dispute domain handles escrow operations)
 func (s *Service) CreateTicket(ctx context.Context, req *CreateTicketRequest) (*entity.Ticket, error) {
+	// Validate the canonical taxonomy BEFORE any room is provisioned, so an
+	// invalid category/priority can never leave an orphan support room behind.
+	// The HTTP layer enforces the same vocabulary via request binding; this is
+	// the domain-level guarantee for every caller.
+	if !req.Category.IsValid() {
+		return nil, supportRepo.ErrInvalidCategory
+	}
+	priority := req.Priority
+	if priority == "" {
+		priority = entity.PriorityMedium
+	}
+	if !priority.IsValid() {
+		return nil, supportRepo.ErrInvalidPriority
+	}
+
 	// Validate order ownership if linked_order_id is provided
 	if req.LinkedOrderID != nil {
 		if s.orderService == nil {
@@ -201,18 +219,15 @@ func (s *Service) CreateTicket(ctx context.Context, req *CreateTicketRequest) (*
 		}
 
 		// Step 3: Create the ticket
-		ticket = entity.NewTicket(req.UserID, chatRoom.ID, req.Category, req.Priority)
+		ticket = entity.NewTicket(req.UserID, chatRoom.ID, req.Category, priority)
 		if req.LinkedOrderID != nil {
 			ticket.LinkedOrderID = req.LinkedOrderID
 		}
 
-		// Store subject/description in metadata
-		if req.Subject != nil {
-			ticket.Metadata["subject"] = *req.Subject
-		}
-		if req.Description != nil {
-			ticket.Metadata["description"] = *req.Description
-		}
+		// subject/description are first-class ticket fields — the single
+		// canonical representation (no metadata duplication).
+		ticket.Subject = req.Subject
+		ticket.Description = req.Description
 
 		// Step 4: Persist ticket
 		if err := s.repo.CreateTicket(ctx, tx, ticket); err != nil {
@@ -240,21 +255,12 @@ func (s *Service) CreateTicket(ctx context.Context, req *CreateTicketRequest) (*
 			return fmt.Errorf("create event failed: %w", err)
 		}
 
-		// Step 7: Send initial system message
-		messageBody := "Thank you for contacting support. Your ticket has been created."
-		if req.Subject != nil {
-			messageBody = fmt.Sprintf("Support ticket created: %s", *req.Subject)
-		}
-		if err := s.chatService.SendSystemMessage(ctx, chatRoom.ID, messageBody); err != nil {
-			// Non-fatal error - log but don't fail
-			s.log.Error("failed to send system message",
-				zap.String("ticket_id", ticket.ID.String()),
-				zap.String("chat_room_id", chatRoom.ID.String()),
-				zap.Error(err),
-			)
-		}
+		// NO CONVERSATION SYSTEM MESSAGE. Support lifecycle truth is the ticket
+		// state + its event + the canonical support.ticket.* outbox events
+		// below — never a synthetic message in the conversation. Chat messages
+		// in a support room are authored by the user or by a real agent.
 
-		// Step 8: OUTBOX ATOMIC — emit support.ticket.created in the same transaction.
+		// Step 7: OUTBOX ATOMIC — emit support.ticket.created in the same transaction.
 		// InsertTx failure rolls back the entire transaction — no ticket commits
 		// without its critical admin notification event.
 		if s.outboxRepo != nil {
@@ -396,34 +402,6 @@ func (s *Service) GetTicketEnriched(ctx context.Context, ticketID uuid.UUID) (*T
 	return enriched, nil
 }
 
-// GetMyOpenTicket retrieves the current user's open ticket.
-func (s *Service) GetMyOpenTicket(ctx context.Context, userID uuid.UUID) (*entity.Ticket, error) {
-	var ticket *entity.Ticket
-	err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		var err error
-		ticket, err = s.repo.GetOpenTicketByUser(ctx, tx, userID)
-		return err
-	})
-	return ticket, err
-}
-
-// HasOpenTicket checks if a user has an open ticket.
-func (s *Service) HasOpenTicket(ctx context.Context, userID uuid.UUID) (bool, error) {
-	var ticket *entity.Ticket
-	err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		var err error
-		ticket, err = s.repo.GetOpenTicketByUser(ctx, tx, userID)
-		return err
-	})
-	if err == supportRepo.ErrTicketNotFound {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	return ticket != nil, nil
-}
-
 // ListTickets lists tickets with optional filters.
 func (s *Service) ListTickets(
 	ctx context.Context,
@@ -509,17 +487,8 @@ func (s *Service) ClaimTicket(ctx context.Context, req *ClaimTicketRequest) (*en
 			return fmt.Errorf("create event failed: %w", err)
 		}
 
-		// Step 5: Send greeting message
-		greeting := "Hello! I'll be helping you with your support request."
-		if err := s.chatService.SendSystemMessage(ctx, ticket.ChatRoomID, greeting); err != nil {
-			// Non-fatal error
-			s.log.Error("failed to send system message",
-				zap.String("ticket_id", ticket.ID.String()),
-				zap.String("chat_room_id", ticket.ChatRoomID.String()),
-				zap.String("action", "claim_ticket"),
-				zap.Error(err),
-			)
-		}
+		// NO SYNTHETIC GREETING. The authenticating agent's first real reply is
+		// their greeting; the claim itself is recorded by the ticket event above.
 
 		return nil
 	})
@@ -566,17 +535,8 @@ func (s *Service) ResolveTicket(ctx context.Context, req *ResolveTicketRequest) 
 			return fmt.Errorf("create event failed: %w", err)
 		}
 
-		// Send system message
-		message := "Your support ticket has been marked as resolved."
-		if err := s.chatService.SendSystemMessage(ctx, ticket.ChatRoomID, message); err != nil {
-			// Non-fatal
-			s.log.Error("failed to send system message",
-				zap.String("ticket_id", ticket.ID.String()),
-				zap.String("chat_room_id", ticket.ChatRoomID.String()),
-				zap.String("action", "resolve_ticket"),
-				zap.Error(err),
-			)
-		}
+		// Lifecycle truth is the ticket status + the event above; the
+		// conversation carries only what the user and agents actually wrote.
 
 		// OUTBOX ATOMIC — emit support.ticket.resolved in the same transaction.
 		// Per-transition key allows reopen→resolve cycles to each emit.
@@ -605,8 +565,21 @@ type CloseTicketRequest struct {
 }
 
 // CloseTicket closes a resolved ticket.
+//
+// ASSIGNMENT AUTHORITY: only the assigned support agent may close a ticket.
+// A generic resolve capability must not let one agent close another agent's
+// ticket.
 func (s *Service) CloseTicket(ctx context.Context, req *CloseTicketRequest) error {
 	return s.db.WithTx(ctx, func(tx db.Tx) error {
+		// Verify the caller is the assigned agent before mutating.
+		existing, err := s.repo.GetTicketByID(ctx, tx, req.TicketID)
+		if err != nil {
+			return err
+		}
+		if existing.AssignedAdminID == nil || *existing.AssignedAdminID != req.AdminID {
+			return supportRepo.ErrTicketNotFound // Not authorized to close this ticket
+		}
+
 		// Close the ticket
 		if err := s.repo.CloseTicket(ctx, tx, req.TicketID, req.CloseReason); err != nil {
 			return err
@@ -624,17 +597,8 @@ func (s *Service) CloseTicket(ctx context.Context, req *CloseTicketRequest) erro
 			return fmt.Errorf("create event failed: %w", err)
 		}
 
-		// Send system message
-		message := "Your support ticket has been closed."
-		if err := s.chatService.SendSystemMessage(ctx, ticket.ChatRoomID, message); err != nil {
-			// Non-fatal
-			s.log.Error("failed to send system message",
-				zap.String("ticket_id", ticket.ID.String()),
-				zap.String("chat_room_id", ticket.ChatRoomID.String()),
-				zap.String("action", "close_ticket"),
-				zap.Error(err),
-			)
-		}
+		// Lifecycle truth is the ticket status + the event above; the
+		// conversation carries only what the user and agents actually wrote.
 
 		// OUTBOX ATOMIC — emit support.ticket.closed in the same transaction.
 		// Per-transition key allows reopen→close cycles to each emit.
@@ -656,27 +620,52 @@ func (s *Service) CloseTicket(ctx context.Context, req *CloseTicketRequest) erro
 }
 
 // ReopenTicketRequest contains the parameters for reopening a ticket.
+//
+// TWO ACTORS, ONE TRANSITION: the ticket owner may reopen their own ticket,
+// and a support agent with the resolve capability may reopen any resolved
+// ticket. Both paths run the identical resolved -> open transition, so there is
+// exactly one implementation; only the authorization differs.
+//
+// SECURITY: when IsAdmin is false the ticket owner is verified. When IsAdmin is
+// true the HTTP layer has already enforced the resolve capability and the
+// ownership check does not apply.
 type ReopenTicketRequest struct {
 	TicketID uuid.UUID
-	UserID   uuid.UUID // User who is reopening
+
+	// ActorID is the authenticated actor performing the reopen: the ticket
+	// owner for a user-initiated reopen, or the support agent for an
+	// admin-initiated reopen. It is recorded as the ticket event actor.
+	ActorID uuid.UUID
+
+	// IsAdmin marks an agent-initiated reopen. Capability is enforced by the
+	// HTTP layer before this request is built.
+	IsAdmin bool
 }
 
-// ReopenTicket reopens a resolved or closed ticket.
-// SECURITY: Only the ticket owner may reopen their own ticket.
+// ReopenTicket reopens a RESOLVED ticket.
+//
+// closed is terminal — a closed case is never reopened (the repository encodes
+// that invariant). Reopening returns the ticket to `open` with assignment
+// cleared, so it re-enters the normal claim flow.
+//
+// LIFECYCLE TRUTH: the transition is recorded as a ticket event and the status
+// change travels through the canonical ticket state. No chat system message is
+// produced — Support lifecycle truth never lives in the conversation.
 func (s *Service) ReopenTicket(ctx context.Context, req *ReopenTicketRequest) (*entity.Ticket, error) {
 	var ticket *entity.Ticket
 
 	err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		// Verify ownership before reopening
 		existing, err := s.repo.GetTicketByID(ctx, tx, req.TicketID)
 		if err != nil {
 			return err
 		}
-		if existing.UserID != req.UserID {
+
+		// Ownership authority for owner-initiated reopen.
+		if !req.IsAdmin && existing.UserID != req.ActorID {
 			return supportRepo.ErrTicketNotFound
 		}
 
-		// Reopen the ticket
+		// Reopen the ticket (resolved -> open; closed is rejected).
 		if err := s.repo.ReopenTicket(ctx, tx, req.TicketID); err != nil {
 			return err
 		}
@@ -688,21 +677,9 @@ func (s *Service) ReopenTicket(ctx context.Context, req *ReopenTicketRequest) (*
 		}
 
 		// Create event
-		event := entity.NewReopenedEvent(req.TicketID, &req.UserID)
+		event := entity.NewReopenedEvent(req.TicketID, &req.ActorID)
 		if err := s.repo.CreateEvent(ctx, tx, event); err != nil {
 			return fmt.Errorf("create event failed: %w", err)
-		}
-
-		// Send system message
-		message := "Your support ticket has been reopened."
-		if err := s.chatService.SendSystemMessage(ctx, ticket.ChatRoomID, message); err != nil {
-			// Non-fatal
-			s.log.Error("failed to send system message",
-				zap.String("ticket_id", ticket.ID.String()),
-				zap.String("chat_room_id", ticket.ChatRoomID.String()),
-				zap.String("action", "reopen_ticket"),
-				zap.Error(err),
-			)
 		}
 
 		return nil
@@ -796,17 +773,8 @@ func (s *Service) EscalateToDispute(ctx context.Context, req *EscalateToDisputeR
 			return fmt.Errorf("create event failed: %w", err)
 		}
 
-		// Step 8: Send system message
-		message := "Your support ticket has been escalated to a formal dispute."
-		if err := s.chatService.SendSystemMessage(ctx, ticket.ChatRoomID, message); err != nil {
-			// Non-fatal
-			s.log.Error("failed to send system message",
-				zap.String("ticket_id", ticket.ID.String()),
-				zap.String("chat_room_id", ticket.ChatRoomID.String()),
-				zap.String("action", "escalate_to_dispute"),
-				zap.Error(err),
-			)
-		}
+		// Lifecycle truth is the ticket status/escalation + the event above; the
+		// conversation carries only what the user and agents actually wrote.
 
 		return nil
 	})
@@ -901,9 +869,14 @@ func (s *Service) SetWaitingForUser(ctx context.Context, ticketID uuid.UUID, adm
 		// OUTBOX ATOMIC — emit support.ticket_waiting_user in the same transaction.
 		// Per-transition key allows repeated in_progress→waiting_user cycles to each emit.
 		if s.outboxRepo != nil {
+			// admin_id is the ACTOR of this notification: the human agent whose
+			// reply the user is being told about. Carrying it lets the
+			// notification consumer persist a real actor identity instead of a
+			// uuid.Nil sentinel (which the users FK rejects).
 			payload := map[string]interface{}{
 				"ticket_id":    ticket.ID.String(),
 				"user_id":      ticket.UserID.String(),
+				"admin_id":     adminID.String(),
 				"chat_room_id": ticket.ChatRoomID.String(),
 				"status":       "waiting_user",
 			}
@@ -989,59 +962,8 @@ func strPtr(s string) *string {
 }
 
 // ========================================================================
-// ADMIN OPERATIONS
+// STATISTICS
 // ========================================================================
-
-// GetAdmin retrieves a support admin.
-func (s *Service) GetAdmin(ctx context.Context, adminID uuid.UUID) (*entity.Admin, error) {
-	var admin *entity.Admin
-	err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		var err error
-		admin, err = s.repo.GetAdmin(ctx, tx, adminID)
-		return err
-	})
-	return admin, err
-}
-
-// ListAdmins lists all support admins.
-func (s *Service) ListAdmins(ctx context.Context, isActive *bool) ([]*entity.Admin, error) {
-	var admins []*entity.Admin
-	err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		var err error
-		admins, err = s.repo.ListAdmins(ctx, tx, isActive)
-		return err
-	})
-	return admins, err
-}
-
-// GetAvailableAdmins returns admins who can take more tickets.
-func (s *Service) GetAvailableAdmins(ctx context.Context, limit int) ([]*entity.Admin, error) {
-	if limit <= 0 {
-		limit = 10
-	}
-	var admins []*entity.Admin
-	err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		var err error
-		admins, err = s.repo.GetAvailableAdmins(ctx, tx, MaxConcurrentTicketsPerAdmin, limit)
-		return err
-	})
-	return admins, err
-}
-
-// RegisterAdmin registers a user as a support admin.
-func (s *Service) RegisterAdmin(ctx context.Context, adminID uuid.UUID) error {
-	return s.db.WithTx(ctx, func(tx db.Tx) error {
-		admin := entity.NewAdmin(adminID)
-		return s.repo.CreateAdmin(ctx, tx, admin)
-	})
-}
-
-// SetAdminActive sets the admin's active status.
-func (s *Service) SetAdminActive(ctx context.Context, adminID uuid.UUID, isActive bool) error {
-	return s.db.WithTx(ctx, func(tx db.Tx) error {
-		return s.repo.SetAdminActive(ctx, tx, adminID, isActive)
-	})
-}
 
 // GetStatistics returns ticket statistics.
 func (s *Service) GetStatistics(ctx context.Context) (*supportRepo.TicketStatistics, error) {
@@ -1070,4 +992,33 @@ func (s *Service) ListEvents(ctx context.Context, ticketID uuid.UUID, limit int)
 		return err
 	})
 	return events, err
+}
+
+// ListStatusEventsForTickets batch-fetches status-change events for multiple
+// tickets. Returns events keyed by ticket_id. Used by list/dashboard views
+// to compute canonical resolution SLA without N+1 queries.
+func (s *Service) ListStatusEventsForTickets(ctx context.Context, ticketIDs []uuid.UUID) (map[uuid.UUID][]*entity.Event, error) {
+	var result map[uuid.UUID][]*entity.Event
+	err := s.db.WithTx(ctx, func(tx db.Tx) error {
+		var err error
+		result, err = s.repo.ListStatusEventsForTickets(ctx, tx, ticketIDs)
+		return err
+	})
+	return result, err
+}
+
+// ListFirstAdminResponsesByTicketIDs batch-fetches the first valid admin
+// response timestamp for multiple tickets in a single query. Canonical
+// first-response authority for SLA-F04: the earliest non-deleted admin-role
+// chat message in each ticket's own support conversation. Tickets without any
+// admin response are absent from the returned map. Used by list/detail and
+// dashboard views to compute first-response SLA without N+1 queries.
+func (s *Service) ListFirstAdminResponsesByTicketIDs(ctx context.Context, ticketIDs []uuid.UUID) (map[uuid.UUID]*time.Time, error) {
+	var result map[uuid.UUID]*time.Time
+	err := s.db.WithTx(ctx, func(tx db.Tx) error {
+		var err error
+		result, err = s.repo.ListFirstAdminResponsesByTicketIDs(ctx, tx, ticketIDs)
+		return err
+	})
+	return result, err
 }

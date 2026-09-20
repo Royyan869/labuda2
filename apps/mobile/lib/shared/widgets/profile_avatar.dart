@@ -153,7 +153,10 @@ class ProfileAvatar extends StatelessWidget {
   }
 
   Widget _buildInitialsAvatar(bool isDark) {
-    final displayInitials = initials ?? _generateInitials(userId);
+    if (initials == null || initials!.trim().isEmpty) {
+      return _buildGenericIcon(isDark);
+    }
+    final displayInitials = initials!.trim();
 
     return Container(
       decoration: BoxDecoration(
@@ -179,6 +182,20 @@ class ProfileAvatar extends StatelessWidget {
     );
   }
 
+  Widget _buildGenericIcon(bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        Icons.person,
+        size: size * 0.5,
+        color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+      ),
+    );
+  }
+
   Widget _buildEditIcon(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final iconSize = (size * 0.3).clamp(16.0, 28.0);
@@ -200,11 +217,6 @@ class ProfileAvatar extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _generateInitials(String userId) {
-    // Use centralized UserInitialsHelper for consistency
-    return UserInitialsHelper.fromUserId(userId);
   }
 
   double _getFontSize() {

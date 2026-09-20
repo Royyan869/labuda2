@@ -23,27 +23,27 @@ import 'package:labuda/shared/services/logger_service.dart';
 ///
 /// NEGATIVE PROOF: the legacy promotion discovery service
 /// (/promotions/discover → PromotionDiscoveryService) is purged. Explore must
-/// render organic listings/auctions without any promoted section, and no
+/// render organic forSales/auctions without any promoted section, and no
 /// legacy discovery provider may be referenced.
 class _FakeForSaleRepository implements ForSaleRepository {
-  final List<ForSale> listings;
+  final List<ForSale> forSales;
 
-  _FakeForSaleRepository(this.listings);
+  _FakeForSaleRepository(this.forSales);
 
   @override
   Future<Result<List<ForSale>>> getForSales(GetForSalesParams params) async {
-    return Result.success(listings);
+    return Result.success(forSales);
   }
 
   @override
   Future<Result<ForSale?>> getForSaleById(String forSaleId) async {
-    final listing =
-        listings
+    final forSale =
+        forSales
             .where((item) => item.forSaleId == forSaleId)
             .isEmpty
         ? null
-        : listings.firstWhere((item) => item.forSaleId == forSaleId);
-    return Result.success(listing);
+        : forSales.firstWhere((item) => item.forSaleId == forSaleId);
+    return Result.success(forSale);
   }
 
   @override
@@ -51,8 +51,8 @@ class _FakeForSaleRepository implements ForSaleRepository {
     List<String> forSaleIds,
   ) async {
     return Result.success(
-      listings
-          .where((listing) => forSaleIds.contains(listing.forSaleId))
+      forSales
+          .where((forSale) => forSaleIds.contains(forSale.forSaleId))
           .toList(),
     );
   }
@@ -202,7 +202,7 @@ Auction _auction({required String id, required String title}) {
 
 Widget _wrapExplore({
   required Widget child,
-  required List<ForSale> listings,
+  required List<ForSale> forSales,
   required List<Auction> auctions,
 }) {
   final router = GoRouter(
@@ -231,7 +231,7 @@ Widget _wrapExplore({
     overrides: [
       loggerServiceProvider.overrideWithValue(LoggerService.instance),
       forSaleRepositoryProvider.overrideWithValue(
-        _FakeForSaleRepository(listings),
+        _FakeForSaleRepository(forSales),
       ),
       auctionRepositoryProvider.overrideWithValue(
         _FakeAuctionRepository(auctions),
@@ -242,7 +242,7 @@ Widget _wrapExplore({
 }
 
 void main() {
-  testWidgets('listing tab renders organic listings without promoted section', (
+  testWidgets('forSale tab renders organic forSales without promoted section', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(1080, 2400));
@@ -251,7 +251,7 @@ void main() {
     await tester.pumpWidget(
       _wrapExplore(
         child: const ExploreScreen(initialTab: 0),
-        listings: [
+        forSales: [
           _forSale(id: 'for-sale-1', title: 'Koi A'),
           _forSale(id: 'for-sale-2', title: 'Koi B'),
         ],
@@ -263,18 +263,18 @@ void main() {
     expect(find.text('Koi A'), findsOneWidget);
     expect(find.text('Koi B'), findsOneWidget);
     // Negative proof: no promoted section may exist.
-    expect(find.text('Listing Dipromosikan'), findsNothing);
+    expect(find.text('ForSale Dipromosikan'), findsNothing);
     expect(find.byType(ForSaleCard), findsNWidgets(2));
   });
 
-  testWidgets('listing tab card navigates to for-sale detail', (tester) async {
+  testWidgets('forSale tab card navigates to for-sale detail', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1080, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
       _wrapExplore(
         child: const ExploreScreen(initialTab: 0),
-        listings: [_forSale(id: 'for-sale-1', title: 'Koi A')],
+        forSales: [_forSale(id: 'for-sale-1', title: 'Koi A')],
         auctions: const [],
       ),
     );
@@ -295,7 +295,7 @@ void main() {
     await tester.pumpWidget(
       _wrapExplore(
         child: const ExploreScreen(initialTab: 1),
-        listings: const [],
+        forSales: const [],
         auctions: [
           _auction(id: 'auction-1', title: 'Lelang A'),
           _auction(id: 'auction-2', title: 'Lelang B'),
@@ -318,7 +318,7 @@ void main() {
     await tester.pumpWidget(
       _wrapExplore(
         child: const ExploreScreen(initialTab: 1),
-        listings: const [],
+        forSales: const [],
         auctions: [_auction(id: 'auction-1', title: 'Lelang A')],
       ),
     );
@@ -329,4 +329,4 @@ void main() {
 
     expect(find.text('auction detail auction-1'), findsOneWidget);
   });
-}
+}

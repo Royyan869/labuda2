@@ -14,6 +14,7 @@ class _CoinToggleSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
     final coinState = ref.watch(coinProvider);
 
     // Update coin balance from state
@@ -25,8 +26,9 @@ class _CoinToggleSection extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.neutralWhite,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
+        // Coin brand colour: Labuda Coins has no Material colour-scheme role.
         border: Border.all(
           color: AppColors.coinPrimary.withValues(alpha: 0.3),
           width: 1.5,

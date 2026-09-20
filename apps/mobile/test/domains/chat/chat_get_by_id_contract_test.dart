@@ -197,7 +197,6 @@ ProviderScope _buildChatDetailScope({required ChatRepository repository}) {
       isUserBlockedProvider(_peerUserId).overrideWith((ref) => false),
       negotiationNotifierProvider.overrideWith(_FakeNegotiationNotifier.new),
       chatRepositoryProvider.overrideWithValue(repository),
-      presenceProvider.overrideWithValue(const chat_state.PresenceState()),
     ],
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,

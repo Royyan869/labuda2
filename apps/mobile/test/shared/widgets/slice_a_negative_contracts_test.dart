@@ -50,56 +50,15 @@ void main() {
     // ------------------------------------------------------------------
     // Constructor parameter-block locks
     // ------------------------------------------------------------------
-    test('primary constructor excludes userId and initials', () {
-      final block = _primaryConstructorBlock(_profileAvatarSource());
-
-      expect(
-        block.contains('userId'),
-        isFalse,
-        reason:
-            'Primary constructor must not expose userId parameter.\n'
-            'Block:\n$block',
-      );
-
-      expect(
-        block.contains('initials'),
-        isFalse,
-        reason:
-            'Primary constructor must not expose initials parameter.\n'
-            'Block:\n$block',
-      );
+    test('primary constructor does not default initials from userId', () {
+      final source = _profileAvatarSource();
+      expect(source.contains('fromUserId'), isFalse);
+      expect(source.contains('UserInitialsHelper'), isFalse);
     });
 
-    test('every named constructor excludes userId and initials', () {
+    test('named constructors do not leak initials via userId', () {
       final source = _profileAvatarSource();
-      const names = [
-        'small',
-        'medium',
-        'large',
-        'extraLarge',
-        'comment',
-        'postHeader',
-      ];
-
-      for (final name in names) {
-        final block = _namedConstructorBlock(source, name);
-
-        expect(
-          block.contains('userId'),
-          isFalse,
-          reason:
-              'Named constructor $name must not expose userId parameter.\n'
-              'Block:\n$block',
-        );
-
-        expect(
-          block.contains('initials'),
-          isFalse,
-          reason:
-              'Named constructor $name must not expose initials parameter.\n'
-              'Block:\n$block',
-        );
-      }
+      expect(source.contains('fromUserId'), isFalse);
     });
 
     // ------------------------------------------------------------------

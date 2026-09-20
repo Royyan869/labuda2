@@ -2,7 +2,7 @@
 ///
 /// Unified resolver for checking live status of commerce attachments.
 /// This provides honest, real-time status for:
-/// - Listing attachments (available, sold, withdrawn, unavailable)
+/// - ForSale attachments (available, sold, withdrawn, unavailable)
 /// - Auction attachments (live, ended, inactive)
 ///
 /// **BATCH R1 REALIGNMENT - ATTACHMENT CATEGORY CONTRACT:**
@@ -13,7 +13,7 @@
 ///    - LocationAttachment: No live status (local data only)
 ///
 /// 2. OBJECT REFERENCE (cross-domain references - may have live status):
-///    - Listing (via ShareReference): Has live availability status
+///    - ForSale (via ShareReference): Has live availability status
 ///    - Auction (via ShareReference): Has live auction status
 ///    - Content (via ShareReference): No live status needed (social content)
 ///
@@ -37,7 +37,7 @@
 ///    - LIMITATION: Can be stale - object may have changed since attachment was created
 ///
 /// 2. LIVE STATUS (canonical source):
-///    - Fetched from backend using canonical ID (listingId, auctionId)
+///    - Fetched from backend using canonical ID (forSaleId, auctionId)
 ///    - Always reflects current state of the object
 ///    - Used for: business decisions, honest status indicators
 ///    - SOURCE OF TRUTH: backend API via providers
@@ -60,7 +60,7 @@
 ///
 /// **USAGE:**
 /// ```dart
-/// final status = ref.watch(listingAttachmentStatusProvider(listingId));
+/// final status = ref.watch(forSaleAttachmentStatusProvider(forSaleId));
 /// status.when(
 ///   data: (availability) => _buildAttachmentWithStatus(availability),
 ///   loading: () => _buildLoadingIndicator(),
@@ -78,58 +78,58 @@ import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/a
 import 'package:labuda/shared/attachment/entities/attachment.dart';
 
 // =============================================================================
-// LISTING ATTACHMENT STATUS RESOLUTION
+// FOR SALE ATTACHMENT STATUS RESOLUTION
 // =============================================================================
 
-/// Listing availability status for attachments
+/// ForSale availability status for attachments
 ///
-/// Maps Listing entity status to attachment display states.
-/// This is the SINGLE SOURCE OF TRUTH for listing attachment status display.
-enum ListingAttachmentStatus {
-  /// Listing is available for purchase
+/// Maps ForSale entity status to attachment display states.
+/// This is the SINGLE SOURCE OF TRUTH for forSale attachment status display.
+enum ForSaleAttachmentStatus {
+  /// ForSale is available for purchase
   available,
 
-  /// Listing has been sold (terminal state)
+  /// ForSale has been sold (terminal state)
   soldOut,
 
-  /// Listing was withdrawn by seller (terminal state)
+  /// ForSale was withdrawn by seller (terminal state)
   withdrawn,
 
-  /// Listing is not available (no stock, draft, etc.)
+  /// ForSale is not available (no stock, draft, etc.)
   unavailable,
 
   /// Status could not be determined (error/loading)
   unknown,
 }
 
-/// Listing attachment status with optional display metadata
-class ListingAttachmentStatusData {
-  final ListingAttachmentStatus status;
+/// ForSale attachment status with optional display metadata
+class ForSaleAttachmentStatusData {
+  final ForSaleAttachmentStatus status;
   final String? label;
   final String? message;
   final DateTime? checkedAt;
 
-  const ListingAttachmentStatusData({
+  const ForSaleAttachmentStatusData({
     required this.status,
     this.label,
     this.message,
     this.checkedAt,
   });
 
-  /// Create status from Listing entity
-  factory ListingAttachmentStatusData.fromListing(ForSale? listing) {
-    if (listing == null) {
-      return const ListingAttachmentStatusData(
-        status: ListingAttachmentStatus.unknown,
+  /// Create status from ForSale entity
+  factory ForSaleAttachmentStatusData.fromForSale(ForSale? forSale) {
+    if (forSale == null) {
+      return const ForSaleAttachmentStatusData(
+        status: ForSaleAttachmentStatus.unknown,
         label: 'Tidak Diketahui',
-        message: 'Listing tidak ditemukan',
+        message: 'ForSale tidak ditemukan',
       );
     }
 
-    // Check availability based on Listing.isAvailable (canonical source)
-    if (listing.isAvailable) {
-      return ListingAttachmentStatusData(
-        status: ListingAttachmentStatus.available,
+    // Check availability based on ForSale.isAvailable (canonical source)
+    if (forSale.isAvailable) {
+      return ForSaleAttachmentStatusData(
+        status: ForSaleAttachmentStatus.available,
         label: 'Tersedia',
         message: null,
         checkedAt: DateTime.now(),
@@ -137,28 +137,28 @@ class ListingAttachmentStatusData {
     }
 
     // Check terminal states
-    if (listing.status == ForSaleStatus.sold) {
-      return ListingAttachmentStatusData(
-        status: ListingAttachmentStatus.soldOut,
+    if (forSale.status == ForSaleStatus.sold) {
+      return ForSaleAttachmentStatusData(
+        status: ForSaleAttachmentStatus.soldOut,
         label: 'Terjual',
         message: 'Barang ini sudah terjual',
         checkedAt: DateTime.now(),
       );
     }
 
-    if (listing.status == ForSaleStatus.withdrawn) {
-      return ListingAttachmentStatusData(
-        status: ListingAttachmentStatus.withdrawn,
+    if (forSale.status == ForSaleStatus.withdrawn) {
+      return ForSaleAttachmentStatusData(
+        status: ForSaleAttachmentStatus.withdrawn,
         label: 'Ditarik',
-        message: 'Listing telah ditarik oleh penjual',
+        message: 'ForSale telah ditarik oleh penjual',
         checkedAt: DateTime.now(),
       );
     }
 
     // Check stock
-    if (listing.stock <= 0) {
-      return ListingAttachmentStatusData(
-        status: ListingAttachmentStatus.soldOut,
+    if (forSale.stock <= 0) {
+      return ForSaleAttachmentStatusData(
+        status: ForSaleAttachmentStatus.soldOut,
         label: 'Habis',
         message: 'Stok barang telah habis',
         checkedAt: DateTime.now(),
@@ -166,49 +166,49 @@ class ListingAttachmentStatusData {
     }
 
     // Check visibility (draft/private)
-    if (listing.visibility == ForSaleVisibility.private) {
-      return ListingAttachmentStatusData(
-        status: ListingAttachmentStatus.unavailable,
+    if (forSale.visibility == ForSaleVisibility.private) {
+      return ForSaleAttachmentStatusData(
+        status: ForSaleAttachmentStatus.unavailable,
         label: 'Tidak Tersedia',
-        message: 'Listing ini tidak tersedia saat ini',
+        message: 'ForSale ini tidak tersedia saat ini',
         checkedAt: DateTime.now(),
       );
     }
 
     // Default unavailable
-    return ListingAttachmentStatusData(
-      status: ListingAttachmentStatus.unavailable,
+    return ForSaleAttachmentStatusData(
+      status: ForSaleAttachmentStatus.unavailable,
       label: 'Tidak Tersedia',
       message: 'Barang ini tidak tersedia saat ini',
       checkedAt: DateTime.now(),
     );
   }
 
-  /// Whether the listing can still be purchased
-  bool get isPurchasable => status == ListingAttachmentStatus.available;
+  /// Whether the forSale can still be purchased
+  bool get isPurchasable => status == ForSaleAttachmentStatus.available;
 
   /// Whether to show a warning badge
   bool get shouldShowWarning =>
-      status != ListingAttachmentStatus.available &&
-      status != ListingAttachmentStatus.unknown;
+      status != ForSaleAttachmentStatus.available &&
+      status != ForSaleAttachmentStatus.unknown;
 }
 
-/// Provider for listing attachment status
+/// Provider for forSale attachment status
 ///
-/// Fetches live listing status and returns availability data.
+/// Fetches live forSale status and returns availability data.
 /// Auto-disposes to avoid keeping stale data in memory.
-final listingAttachmentStatusProvider = FutureProvider.autoDispose
-    .family<ListingAttachmentStatusData, String>((ref, listingId) async {
-      final listingAsync = await ref.read(
-        forSaleDetailProvider(listingId).future,
+final forSaleAttachmentStatusProvider = FutureProvider.autoDispose
+    .family<ForSaleAttachmentStatusData, String>((ref, forSaleId) async {
+      final forSaleAsync = await ref.read(
+        forSaleDetailProvider(forSaleId).future,
       );
 
-      return listingAsync != null
-          ? ListingAttachmentStatusData.fromListing(listingAsync)
-          : const ListingAttachmentStatusData(
-              status: ListingAttachmentStatus.unknown,
+      return forSaleAsync != null
+          ? ForSaleAttachmentStatusData.fromForSale(forSaleAsync)
+          : const ForSaleAttachmentStatusData(
+              status: ForSaleAttachmentStatus.unknown,
               label: 'Tidak Diketahui',
-              message: 'Listing tidak ditemukan',
+              message: 'ForSale tidak ditemukan',
             );
     });
 
@@ -381,7 +381,7 @@ Object? attachmentStatusProviderFor(Attachment attachment) {
 
 /// Check if an attachment type supports live status resolution
 bool attachmentSupportsLiveStatus(Attachment attachment) {
-  // **R1.1 HONEST:** Only Listing and Auction have providers (via ShareReference)
+  // **R1.1 HONEST:** Only ForSale and Auction have providers (via ShareReference)
   // Workflow payloads claim support but have NO providers implemented
   // This getter returns the attachment's declared capability, not actual implementation
   return attachment.supportsLiveStatus;

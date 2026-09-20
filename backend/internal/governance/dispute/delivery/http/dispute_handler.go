@@ -377,7 +377,8 @@ type DisputeDetailResponse struct {
 	OrderEscrow *string `json:"order_escrow_status,omitempty"`
 
 	// Order financial and shipping info (for dispute resolution)
-	EscrowAmount      *int64  `json:"escrow_amount,omitempty"`      // Total escrow amount (subtotal + shipping)
+	// CANONICAL: total_before_coins_amount = PD+S = (P-D)+S
+	TotalBeforeCoinsAmount *int64 `json:"total_before_coins_amount,omitempty"` // Canonical buyer-funded base (PD+S)
 	ShippingReference *string `json:"shipping_reference,omitempty"` // Tracking number or phone reference
 	ShippingCarrier   *string `json:"shipping_carrier,omitempty"`   // Shipping option name (JNE, J&T, etc.)
 
@@ -581,17 +582,17 @@ func (h *DisputeHandler) GetDisputeDetail(c *gin.Context) {
 		// Get evidence
 		evidence, _ := h.disputeService.GetDisputeMedia(ctx, tx, disputeID)
 
-		// Get order context
+		// Get order context — canonical buyer base total_before_coins_amount (PD+S)
 		var orderStatus, orderEscrow *string
-		var escrowAmount *int64
+		var totalBeforeCoinsAmount *int64
 		var shippingReference, shippingCarrier *string
 
 		err = tx.QueryRow(ctx, `
 			SELECT status, escrow_status,
-			       (subtotal + shipping_total) as escrow_amount,
+			       total_before_coins_amount,
 			       tracking_number, shipping_option_name
 			FROM orders WHERE id = $1
-		`, dispute.OrderID).Scan(&orderStatus, &orderEscrow, &escrowAmount, &shippingReference, &shippingCarrier)
+		`, dispute.OrderID).Scan(&orderStatus, &orderEscrow, &totalBeforeCoinsAmount, &shippingReference, &shippingCarrier)
 
 		if err != nil {
 			// Order might not exist, continue with nil values
@@ -631,7 +632,7 @@ func (h *DisputeHandler) GetDisputeDetail(c *gin.Context) {
 			OrderStatus:     orderStatus,
 			OrderEscrow:     orderEscrow,
 		}
-		detail.EscrowAmount = escrowAmount
+		detail.TotalBeforeCoinsAmount = totalBeforeCoinsAmount
 		detail.ShippingReference = shippingReference
 		detail.ShippingCarrier = shippingCarrier
 

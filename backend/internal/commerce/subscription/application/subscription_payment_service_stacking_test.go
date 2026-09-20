@@ -126,6 +126,15 @@ func (r *processSellerRepo) EnsureProfileExistsTx(context.Context, db.Tx, uuid.U
 	return r.profile, nil
 }
 
+func (r *processSellerRepo) EnsureProfileExistsTxWithImage(context.Context, db.Tx, uuid.UUID, string, *string) (*sellerEntity.SellerProfile, error) {
+	r.ensureCalls++
+	return r.profile, nil
+}
+
+func (r *processSellerRepo) UpdateSellerProfileTx(context.Context, db.Tx, uuid.UUID, *string, *string) (*sellerEntity.SellerProfile, error) {
+	return r.profile, nil
+}
+
 func (r *processSellerRepo) GetByIDForUpdate(context.Context, db.Tx, uuid.UUID) (*sellerEntity.SellerProfile, error) {
 	return nil, nil
 }
@@ -173,6 +182,10 @@ func (r *processSubscriptionRepo) GetByID(context.Context, db.Tx, uuid.UUID) (*s
 }
 
 func (r *processSubscriptionRepo) GetLatestByUserID(context.Context, db.Tx, uuid.UUID) (*subscriptionEntity.SellerSubscription, error) {
+	return nil, nil
+}
+
+func (r *processSubscriptionRepo) GetMostRecentByUserID(context.Context, db.Tx, uuid.UUID) (*subscriptionEntity.SellerSubscription, error) {
 	return nil, nil
 }
 

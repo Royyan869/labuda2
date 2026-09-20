@@ -21,14 +21,19 @@
 /// ═══════════════════════════════════════════════════════════════════════════════
 /// COMMERCE FLOW
 /// ═══════════════════════════════════════════════════════════════════════════════
-/// 1. User views listing detail / accepts negotiation / accepts seller quote
-/// 2. Preview API called → returns pricing + pricingToken (10 min expiry)
-/// 3. Navigate to CheckoutScreen with pricing token
-/// 4. Review order details (backend-calculated pricing)
-/// 5. Click "Buat Pesanan" → CreateOrder API with pricing token
-/// 6. Backend validates token, creates order, returns paymentUrl
-/// 7. Open payment URL with url_launcher
-/// 8. Navigate to PaymentResultScreen to check payment status
+/// 1. User views forSale detail / accepts negotiation / accepts seller quote, and
+///    navigates to CheckoutScreen with the sale/product identity (NOT a token).
+/// 2. CheckoutScreen calls the canonical pricing preview (`POST /pricing/preview`)
+///    for the CURRENT inputs and receives pricing + pricingToken (10 min expiry).
+///    The pricing is a backend snapshot; a local price is never checkout money.
+/// 3. Review order details — rendered strictly from that applied preview.
+/// 4. Click "Buat Pesanan" → `POST /orders` with the pricing token. The backend
+///    validates the token and returns the created ORDER (id, order_number,
+///    status, canonical pricing snapshot) — NOT a payment URL.
+/// 5. Choose a payment method (`GET /payments/methods`, backend-computed fee) and
+///    initiate payment (`POST /payments`) → payment URL.
+/// 6. Present the payment URL inside Labuda's internal WebView (PaymentWebviewScreen).
+/// 7. Navigate to PaymentResultScreen to check payment status (backend-authoritative).
 ///
 /// ═══════════════════════════════════════════════════════════════════════════════
 library;

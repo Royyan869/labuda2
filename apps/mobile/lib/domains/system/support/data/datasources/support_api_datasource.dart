@@ -21,6 +21,7 @@ import '../dto/support_message_dto.dart';
 /// - PUT    /api/v1/support/tickets/{ticketId}/reopen (reopen own ticket)
 /// - GET    /api/v1/support/tickets/{ticketId}/events (view ticket events)
 /// - GET    /api/v1/support/tickets/{ticketId}/messages (view ticket messages)
+/// - POST   /api/v1/support/tickets/{ticketId}/messages (reply to own ticket)
 class SupportApiDatasource {
   final ApiClient _apiClient;
   final ILoggerService? _logger;
@@ -73,6 +74,20 @@ class SupportApiDatasource {
     }
   }
 
+  /// Extract a JSON array from a response payload.
+  ///
+  /// The canonical Support list endpoints return `{success, data: {data: [...]}}`,
+  /// so the inner array is nested one level inside the standard envelope's
+  /// `data`. A bare array is also accepted (defensive, for non-enveloped
+  /// shapes). Any other shape yields an empty list rather than a cast error.
+  List<dynamic> _extractList(dynamic payload) {
+    if (payload is List) return payload;
+    if (payload is Map<String, dynamic> && payload['data'] is List) {
+      return payload['data'] as List<dynamic>;
+    }
+    return const [];
+  }
+
   /// Execute void request (no return data)
   Future<ApiResult<void>> _executeVoidRequest({
     required Future<Response<dynamic>> Function() request,
@@ -97,15 +112,18 @@ class SupportApiDatasource {
   // TICKET OPERATIONS (Go API)
   // ============================================================
 
-  /// Create support ticket via Go API
+  /// Create support ticket via Go API.
   ///
   /// POST /api/v1/support/tickets
+  ///
+  /// The payload uses the canonical Go contract exactly: `category` carries a
+  /// canonical wire value, and the linked order/reference is sent as
+  /// `linked_order_id`. Ownership/identity is derived by the backend from the
+  /// authenticated session — the client never sends a user id as authority.
   Future<ApiResult<SupportTicketDto>> createTicket({
-    required String userId,
-    required String userName,
-    String? userAvatar,
     required String category,
     required String priority,
+    String? subject,
     String? description,
     String? linkedOrderId,
   }) async {
@@ -113,13 +131,13 @@ class SupportApiDatasource {
       request: () => _apiClient.post(
         '$_basePath/tickets',
         data: {
-          'userId': userId,
-          'userName': userName,
-          'userAvatar': ?userAvatar,
           'category': category,
           'priority': priority,
-          'description': ?description,
-          'linkedOrderId': ?linkedOrderId,
+          if (subject != null && subject.isNotEmpty) 'subject': subject,
+          if (description != null && description.isNotEmpty)
+            'description': description,
+          if (linkedOrderId != null && linkedOrderId.isNotEmpty)
+            'linked_order_id': linkedOrderId,
         },
       ),
       parser: (data) {
@@ -139,6 +157,29 @@ class SupportApiDatasource {
         if (data == null) return null;
         final map = data as Map<String, dynamic>;
         return SupportTicketDto.fromMap(map['id'] as String? ?? '', map);
+      },
+    );
+  }
+
+  /// List the authenticated user's own tickets via the Support API.
+  ///
+  /// GET /api/v1/support/tickets
+  ///
+  /// The Support API is the sole identity authority for the ticket list — the
+  /// chat room list must NOT be used to discover Support tickets.
+  Future<ApiResult<List<SupportTicketDto>>> getMyTickets({
+    int limit = 50,
+  }) async {
+    return _executeRequest<List<SupportTicketDto>>(
+      request: () => _apiClient.get(
+        '$_basePath/tickets',
+        queryParameters: {'limit': limit},
+      ),
+      parser: (data) {
+        return _extractList(data).map((e) {
+          final map = e as Map<String, dynamic>;
+          return SupportTicketDto.fromMap(map['id'] as String? ?? '', map);
+        }).toList();
       },
     );
   }
@@ -195,8 +236,7 @@ class SupportApiDatasource {
         queryParameters: {'limit': limit},
       ),
       parser: (data) {
-        final list = data as List<dynamic>;
-        return list.map((e) {
+        return _extractList(data).map((e) {
           final map = e as Map<String, dynamic>;
           return SupportEventDto.fromMap(map);
         }).toList();
@@ -217,12 +257,30 @@ class SupportApiDatasource {
         queryParameters: {'limit': limit},
       ),
       parser: (data) {
-        final list = data as List<dynamic>;
-        return list.map((e) {
+        return _extractList(data).map((e) {
           final map = e as Map<String, dynamic>;
           return SupportMessageDto.fromMap(map);
         }).toList();
       },
+    );
+  }
+
+  /// Send a reply into the authenticated user's own ticket conversation.
+  ///
+  /// POST /api/v1/support/tickets/{ticketId}/messages
+  ///
+  /// The request body carries ONLY the message text. The backend derives the
+  /// sender from the authenticated session, so the client never supplies a
+  /// sender identity (and one would be ignored server-side anyway).
+  Future<ApiResult<void>> sendMessage({
+    required String ticketId,
+    required String message,
+  }) async {
+    return _executeVoidRequest(
+      request: () => _apiClient.post(
+        '$_basePath/tickets/$ticketId/messages',
+        data: {'message': message},
+      ),
     );
   }
 }

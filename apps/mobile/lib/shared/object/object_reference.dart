@@ -8,7 +8,7 @@ import 'package:equatable/equatable.dart';
 
 /// Canonical reference to a domain object
 class ObjectReference extends Equatable {
-  /// Type of the object (listing, auction, content, profile)
+  /// Type of the object (forSale, auction, content, profile)
   final String type;
 
   /// Unique identifier of the object

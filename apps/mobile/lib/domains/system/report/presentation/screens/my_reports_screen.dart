@@ -1,13 +1,7 @@
 /// My Reports Screen
 ///
-/// PHASE 2: User-facing screen to view submitted reports and their status.
-/// Provides minimal transparency into the moderation process.
-///
-/// Features:
-/// - View all submitted reports
-/// - See report status (pending, under review, resolved, etc.)
-/// - Filter by status
-/// - Pull to refresh
+/// User-facing screen to view submitted reports and their status.
+/// Displays canonical derived state from Case + Decision.
 library;
 
 import 'package:flutter/material.dart';
@@ -26,12 +20,11 @@ class MyReportsScreen extends ConsumerStatefulWidget {
 }
 
 class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
-  ReportStatus? _selectedStatus;
+  ReportDisplayState? _selectedStatus;
 
   @override
   void initState() {
     super.initState();
-    // Load reports on init
     Future.microtask(() => _loadReports());
   }
 
@@ -51,8 +44,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
       appBar: AppBar(
         title: const Text('My Reports'),
         actions: [
-          // Filter button
-          PopupMenuButton<ReportStatus?>(
+          PopupMenuButton<ReportDisplayState?>(
             icon: const Icon(Icons.filter_list),
             tooltip: 'Filter by status',
             onSelected: (status) {
@@ -60,7 +52,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
             },
             itemBuilder: (context) => [
               const PopupMenuItem(value: null, child: Text('All Reports')),
-              ...ReportStatus.values.map(
+              ...ReportDisplayState.values.map(
                 (status) => PopupMenuItem(
                   value: status,
                   child: Text(status.displayName),
@@ -85,7 +77,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
 
     final filteredReports = _selectedStatus == null
         ? state.reports
-        : state.reports.where((r) => r.status == _selectedStatus).toList();
+        : state.reports.where((r) => r.displayState == _selectedStatus).toList();
 
     if (filteredReports.isEmpty) {
       return _buildEmptyView();
@@ -183,7 +175,6 @@ class ReportCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: Target type + Status
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -205,29 +196,23 @@ class ReportCard extends StatelessWidget {
                   ),
                 ],
               ),
-              _buildStatusChip(context, report.status),
+              _buildStatusChip(context, report.displayState),
             ],
           ),
           const SizedBox(height: 12),
-
-          // Target info
-          if (report.targetTitle != null) ...[
-            Text(
-              report.targetTitle!,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: isDark
-                    ? AppColors.neutralWhite
-                    : AppColors.neutralGray900,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+          Text(
+            report.targetTitle,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: isDark
+                  ? AppColors.neutralWhite
+                  : AppColors.neutralGray900,
             ),
-            const SizedBox(height: 8),
-          ],
-
-          // Reason
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 8),
           Row(
             children: [
               Icon(Icons.flag_outlined, size: 14, color: AppColors.primaryRed),
@@ -245,8 +230,6 @@ class ReportCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-
-          // Description (if any)
           if (report.description != null && report.description!.isNotEmpty) ...[
             Text(
               report.description!,
@@ -261,8 +244,6 @@ class ReportCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
           ],
-
-          // Footer: Date
           Text(
             _formatDate(report.createdAt),
             style: TextStyle(fontSize: 12, color: AppColors.neutralGray400),
@@ -272,33 +253,28 @@ class ReportCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusChip(BuildContext context, ReportStatus status) {
+  Widget _buildStatusChip(BuildContext context, ReportDisplayState state) {
     Color bgColor;
     Color textColor;
     IconData icon;
 
-    switch (status) {
-      case ReportStatus.pending:
+    switch (state) {
+      case ReportDisplayState.submitted:
         bgColor = AppColors.warning.withValues(alpha: 0.15);
         textColor = AppColors.warning;
         icon = Icons.schedule;
         break;
-      case ReportStatus.underReview:
+      case ReportDisplayState.underReview:
         bgColor = AppColors.primaryBlue.withValues(alpha: 0.15);
         textColor = AppColors.primaryBlue;
         icon = Icons.search;
         break;
-      case ReportStatus.approved:
-        bgColor = AppColors.successGreen.withValues(alpha: 0.15);
-        textColor = AppColors.successGreen;
-        icon = Icons.check_circle;
-        break;
-      case ReportStatus.rejected:
+      case ReportDisplayState.reviewedNoViolation:
         bgColor = AppColors.neutralGray400.withValues(alpha: 0.15);
         textColor = AppColors.neutralGray500;
-        icon = Icons.cancel;
+        icon = Icons.check_circle_outline;
         break;
-      case ReportStatus.resolved:
+      case ReportDisplayState.reviewedViolation:
         bgColor = AppColors.successGreen.withValues(alpha: 0.15);
         textColor = AppColors.successGreen;
         icon = Icons.done_all;
@@ -317,7 +293,7 @@ class ReportCard extends StatelessWidget {
           Icon(icon, size: 12, color: textColor),
           const SizedBox(width: 4),
           Text(
-            status.displayName,
+            state.displayName,
             style: TextStyle(
               fontSize: 11,
               color: textColor,

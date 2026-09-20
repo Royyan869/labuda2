@@ -85,6 +85,20 @@ type SendMessageRequest struct {
 	Body           string                 `json:"body"`
 	AttachmentJSON map[string]interface{} `json:"attachment_json"`
 	IdempotencyKey string                 `json:"idempotency_key" binding:"required"`
+
+	// ResourceOccurrence is the optional communication reference carried by
+	// the message (the resource the message is about). Preview/snapshot data
+	// is intentionally not accepted — the server builds any display fallback.
+	ResourceOccurrence *resourceOccurrenceRequest `json:"resource_occurrence"`
+}
+
+// resourceOccurrenceRequest is the canonical wire shape for a message
+// resource reference. It carries identity only.
+type resourceOccurrenceRequest struct {
+	Operation    string    `json:"operation"`
+	ResourceType string    `json:"resource_type"`
+	ResourceID   uuid.UUID `json:"resource_id"`
+	Preview      any       `json:"preview,omitempty"`
 }
 
 // MarkAsReadRequest holds the request body for marking messages as read.
@@ -202,13 +216,30 @@ func (h *Handler) ListRooms(c *gin.Context) {
 		latestMessageByRoom = map[uuid.UUID]*chatEntity.ChatMessage{}
 	}
 
-	unreadCountByRoom, unreadErr := h.batchUnreadCounts(ctx, roomIDs, userID)
+	unreadCountByRoom, unreadErr := h.chatService.GetUnreadCountsByRooms(ctx, roomIDs, userID)
 	if unreadErr != nil {
-		h.log.Warn("chat: list-rooms failed to batch load unread counts",
+		h.log.Warn("chat: list-rooms failed to load unread counts",
 			zap.String("user_id", userID.String()),
 			zap.Error(unreadErr),
 		)
 		unreadCountByRoom = map[uuid.UUID]int{}
+	}
+
+	// Resource projection hydration for the room-list preview: the
+	// representation is derived from the latest Chat message's occurrence, not
+	// from an embedded Commerce object. Degrade gracefully (the room list is a
+	// primary surface) — a projection failure must not fail the list.
+	latestMessages := make([]*chatEntity.ChatMessage, 0, len(latestMessageByRoom))
+	for _, msg := range latestMessageByRoom {
+		latestMessages = append(latestMessages, msg)
+	}
+	latestProjections, projErr := h.resolveMessageProjections(ctx, userID, latestMessages)
+	if projErr != nil {
+		h.log.Warn("chat: list-rooms failed to resolve resource projections",
+			zap.String("user_id", userID.String()),
+			zap.Error(projErr),
+		)
+		latestProjections = map[uuid.UUID]*chatApp.ResourceProjection{}
 	}
 
 	// Convert to response
@@ -217,12 +248,129 @@ func (h *Handler) ListRooms(c *gin.Context) {
 		latestMessage := latestMessageByRoom[room.ID]
 		unreadCount := unreadCountByRoom[room.ID]
 
-		data[i] = roomListItemResponse(room, userID, participantCards, latestMessage, unreadCount)
+		data[i] = roomListItemResponse(room, userID, participantCards, latestMessage, unreadCount, latestProjections)
 	}
 
 	response.Success(c, gin.H{
 		"data": data,
 	})
+}
+
+// GetRoom handles GET /api/v1/chat/rooms/:room_id
+//
+// Returns a single chat room for the authenticated participant. This is the
+// canonical single-room read: it uses the existing canonical room reader
+// (chatService.GetRoom) and the same room-summary contract as a room-list item
+// (roomListItemResponse), so the mobile conversation surface can render the
+// room identity it was opened for.
+//
+// Authorization is the existing Chat authority — no parallel rule:
+//   - the caller must be a participant of the room (same as ListMessages);
+//   - a blocked direct room resolves to NotFound, exactly as the room list
+//     hides it and ListMessages denies its messages;
+//   - order-linked and support rooms stay visible (commerce continuity).
+func (h *Handler) GetRoom(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		response.InternalServerError(c, "Invalid user ID in context")
+		return
+	}
+
+	roomID, err := uuid.Parse(c.Param("room_id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid room ID")
+		return
+	}
+
+	room, err := h.chatService.GetRoom(ctx, roomID)
+	if err != nil {
+		if err == chatRepo.ErrRoomNotFound {
+			response.NotFound(c, "Room not found")
+			return
+		}
+		h.log.Error("Failed to get room",
+			zap.String("room_id", roomID.String()),
+			zap.String("user_id", userID.String()),
+			zap.Error(err),
+		)
+		response.InternalServerError(c, "Failed to retrieve room")
+		return
+	}
+
+	// Authorization: participant-only. Same authority and status contract as
+	// ListMessages' ErrParticipantMismatch.
+	if !room.HasParticipant(userID) {
+		response.Forbidden(c, "You are not a participant in this room")
+		return
+	}
+
+	// Block enforcement: deny reads for blocked social rooms.
+	// EXCEPTION: order-linked and support rooms are preserved.
+	if !room.HasOrderContext() && room.RoomType != chatEntity.RoomTypeSupport {
+		other := room.OtherParticipant(userID)
+		var blocked bool
+		_ = h.db.WithTx(ctx, func(tx db.Tx) error {
+			blocked, _ = blockcheck.IsBidirectionallyBlocked(ctx, tx, userID, other)
+			return nil
+		})
+		if blocked {
+			response.NotFound(c, "Room not found")
+			return
+		}
+	}
+
+	// Same hydration contract as a room-list item: participant card, latest
+	// message preview, viewer-scoped unread count, and resource projection.
+	cards := h.hydrateRoomParticipants(ctx, []*chatEntity.ChatRoom{room}, userID)
+
+	latestMessageByRoom, latestErr := h.batchLatestMessages(ctx, []uuid.UUID{room.ID})
+	if latestErr != nil {
+		h.log.Warn("chat: get-room failed to load latest message preview",
+			zap.String("room_id", room.ID.String()),
+			zap.Error(latestErr),
+		)
+		latestMessageByRoom = map[uuid.UUID]*chatEntity.ChatMessage{}
+	}
+
+	unreadCountByRoom, unreadErr := h.chatService.GetUnreadCountsByRooms(ctx, []uuid.UUID{room.ID}, userID)
+	if unreadErr != nil {
+		h.log.Warn("chat: get-room failed to load unread count",
+			zap.String("room_id", room.ID.String()),
+			zap.Error(unreadErr),
+		)
+		unreadCountByRoom = map[uuid.UUID]int{}
+	}
+
+	latestMessage := latestMessageByRoom[room.ID]
+
+	var projections map[uuid.UUID]*chatApp.ResourceProjection
+	if latestMessage != nil {
+		resolved, projErr := h.resolveMessageProjections(ctx, userID, []*chatEntity.ChatMessage{latestMessage})
+		if projErr != nil {
+			h.log.Warn("chat: get-room failed to resolve resource projections",
+				zap.String("room_id", room.ID.String()),
+				zap.Error(projErr),
+			)
+		} else {
+			projections = resolved
+		}
+	}
+
+	response.Success(c, roomListItemResponse(
+		room,
+		userID,
+		cards,
+		latestMessage,
+		unreadCountByRoom[room.ID],
+		projections,
+	))
 }
 
 // GetOrCreateDirectRoom handles POST /api/v1/chat/direct/:user_id
@@ -551,38 +699,21 @@ func (h *Handler) ListMessages(c *gin.Context) {
 		data[i] = messageToResponse(msg, senderCards, sellerLifecycles)
 	}
 
-	// Resource projection hydration: batch-fetch occurrences, resolve
-	// via the canonical aggregate resolver, and attach the projection
-	// envelope to each message response.
-	if len(messages) > 0 {
-		occurrences, err := h.getResourceOccurrencesByMessageIDs(ctx, messages)
-		if err != nil {
-			h.log.Error("Failed to fetch resource occurrences",
-				zap.String("room_id", roomID.String()),
-				zap.Error(err),
-			)
-			response.InternalServerError(c, "Failed to resolve resource projections")
-			return
-		}
-		if len(occurrences) > 0 {
-			if h.resourceProjectionResolver == nil {
-				response.InternalServerError(c, "Resource projection resolver not configured")
-				return
-			}
-			projections, err := h.resourceProjectionResolver.ResolveResourceProjections(ctx, userID, occurrences)
-			if err != nil {
-				h.log.Error("Failed to resolve resource projections",
-					zap.String("room_id", roomID.String()),
-					zap.Error(err),
-				)
-				response.InternalServerError(c, "Failed to resolve resource projections")
-				return
-			}
-			for i, msg := range messages {
-				if proj, ok := projections[msg.ID]; ok {
-					data[i]["resource_projection"] = proj
-				}
-			}
+	// Resource projection hydration: batch-fetch occurrences, resolve via the
+	// canonical aggregate resolver, and attach the projection envelope to each
+	// message response.
+	projections, projErr := h.resolveMessageProjections(ctx, userID, messages)
+	if projErr != nil {
+		h.log.Error("Failed to resolve resource projections",
+			zap.String("room_id", roomID.String()),
+			zap.Error(projErr),
+		)
+		response.InternalServerError(c, "Failed to resolve resource projections")
+		return
+	}
+	for i, msg := range messages {
+		if proj, ok := projections[msg.ID]; ok {
+			data[i]["resource_projection"] = proj
 		}
 	}
 
@@ -653,11 +784,37 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		body = &req.Body
 	}
 
+	// Resource occurrence (communication reference) contract validation.
+	// Chat validates only the REFERENCE CONTRACT + communication permission —
+	// never Commerce business truth (price/availability/lifecycle).
+	var occurrence *chatEntity.ResourceOccurrenceIdentity
+	if req.ResourceOccurrence != nil {
+		if req.ResourceOccurrence.Preview != nil {
+			response.BadRequest(c, "Invalid request: resource_occurrence.preview is not supported")
+			return
+		}
+		op := chatEntity.ResourceOccurrenceOperation(req.ResourceOccurrence.Operation)
+		rt := chatEntity.ResourceOccurrenceResourceType(req.ResourceOccurrence.ResourceType)
+		if !op.IsValid() || !rt.IsValid() || req.ResourceOccurrence.ResourceID == uuid.Nil {
+			response.BadRequest(c, "Invalid request: invalid resource occurrence")
+			return
+		}
+		if op == chatEntity.ResourceOccurrenceOperationDirectCommerceInsertChat && !rt.CanDirectCommerceInsert() {
+			response.BadRequest(c, "Invalid request: invalid resource occurrence")
+			return
+		}
+		occurrence = &chatEntity.ResourceOccurrenceIdentity{
+			Operation:    op,
+			ResourceType: rt,
+			ResourceID:   req.ResourceOccurrence.ResourceID,
+		}
+	}
+
 	// Send message within transaction
 	var message *chatEntity.ChatMessage
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var svcErr error
-		message, svcErr = h.chatService.SendMessage(
+		message, svcErr = h.chatService.SendMessageWithResourceOccurrence(
 			ctx,
 			roomID,
 			senderID,
@@ -665,6 +822,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 			body,
 			req.AttachmentJSON,
 			req.IdempotencyKey,
+			occurrence,
 		)
 		return svcErr
 	})
@@ -672,6 +830,14 @@ func (h *Handler) SendMessage(c *gin.Context) {
 	if err != nil {
 		if err == chatRepo.ErrInvalidIdempotencyKey {
 			response.BadRequest(c, "Idempotency key is required")
+			return
+		}
+		if err == chatRepo.ErrIdempotencyKeyConflict {
+			response.Error(c, 409, "IDEMPOTENCY_KEY_CONFLICT", "This idempotency key was already used with a different message")
+			return
+		}
+		if err == chatRepo.ErrInvalidResourceOccurrence {
+			response.BadRequest(c, "Invalid resource occurrence")
 			return
 		}
 		if err == chatRepo.ErrInvalidMessageType {
@@ -729,7 +895,25 @@ func (h *Handler) SendMessage(c *gin.Context) {
 
 	senderCards := h.hydrateMessageSenders(ctx, []*chatEntity.ChatMessage{message})
 	sellerLifecycles := h.hydrateAttachmentSellerLifecycles(ctx, []*chatEntity.ChatMessage{message})
-	response.Success(c, messageToResponse(message, senderCards, sellerLifecycles))
+	resp := messageToResponse(message, senderCards, sellerLifecycles)
+
+	// Attach the viewer-aware resource projection when the message carries a
+	// resource occurrence. Projection is communication-surface representation
+	// resolved from the owning domain — Chat never becomes Commerce authority.
+	projections, projErr := h.resolveMessageProjections(ctx, senderID, []*chatEntity.ChatMessage{message})
+	if projErr != nil {
+		h.log.Error("Failed to resolve resource projections",
+			zap.String("room_id", roomID.String()),
+			zap.Error(projErr),
+		)
+		response.InternalServerError(c, "Failed to resolve resource projections")
+		return
+	}
+	if proj, ok := projections[message.ID]; ok {
+		resp["resource_projection"] = proj
+	}
+
+	response.Success(c, resp)
 }
 
 // MarkAsRead handles POST /api/v1/chat/rooms/:room_id/read
@@ -889,10 +1073,15 @@ func roomListItemResponse(
 	participantCards map[uuid.UUID]publiccard.UserCard,
 	lastMessage *chatEntity.ChatMessage,
 	unreadCount int,
+	projections map[uuid.UUID]*chatApp.ResourceProjection,
 ) map[string]interface{} {
 	resp := roomToResponse(room, userID, participantCards)
 	if lastMessage != nil {
-		resp["last_message"] = messageToResponse(lastMessage, nil, nil)
+		last := messageToResponse(lastMessage, nil, nil)
+		if proj, ok := projections[lastMessage.ID]; ok {
+			last["resource_projection"] = proj
+		}
+		resp["last_message"] = last
 	} else {
 		resp["last_message"] = nil
 	}
@@ -958,66 +1147,6 @@ func (h *Handler) batchLatestMessages(
 	return out, nil
 }
 
-func (h *Handler) batchUnreadCounts(
-	ctx context.Context,
-	roomIDs []uuid.UUID,
-	userID uuid.UUID,
-) (map[uuid.UUID]int, error) {
-	out := make(map[uuid.UUID]int, len(roomIDs))
-	if len(roomIDs) == 0 {
-		return out, nil
-	}
-	for _, id := range roomIDs {
-		out[id] = 0
-	}
-
-	const q = `
-		WITH target_rooms AS (
-			SELECT UNNEST($1::uuid[]) AS room_id
-		),
-		room_read_states AS (
-			SELECT room_id, last_read_at
-			FROM chat_read_states
-			WHERE user_id = $2 AND room_id = ANY($1)
-		)
-		SELECT
-			tr.room_id,
-			COALESCE(COUNT(m.id), 0) AS unread_count
-		FROM target_rooms tr
-		LEFT JOIN room_read_states rs ON rs.room_id = tr.room_id
-		LEFT JOIN chat_messages m ON
-			m.room_id = tr.room_id
-			AND m.deleted_at IS NULL
-			AND (rs.last_read_at IS NULL OR m.created_at > rs.last_read_at)
-			AND m.sender_id NOT IN (
-				SELECT muted_id FROM user_mutes WHERE muter_id = $2
-			)
-		GROUP BY tr.room_id
-	`
-
-	rows, err := h.db.Pool().Query(ctx, q, roomIDs, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var (
-			roomID uuid.UUID
-			count  int
-		)
-		if err := rows.Scan(&roomID, &count); err != nil {
-			return nil, err
-		}
-		out[roomID] = count
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return out, nil
-}
-
 // messageToResponse converts a message entity to API response.
 //
 // senderCards may be nil; when non-nil, the message's sender_id is looked
@@ -1080,6 +1209,43 @@ func messageToResponse(
 	}
 
 	return resp
+}
+
+// errResourceProjectionResolverNotConfigured is returned when a message carries
+// a resource occurrence but no projection resolver has been wired. The HTTP
+// layer fails closed (500) rather than silently omitting the projection.
+var errResourceProjectionResolverNotConfigured = errors.New("resource projection resolver not configured")
+
+// resolveMessageProjections batch-loads resource occurrences for the given
+// messages and resolves viewer-aware resource projections via the canonical
+// aggregate resolver.
+//
+// This is the SINGLE Chat-side path that turns a message's resource reference
+// into a display projection. Chat never reads Commerce business truth directly
+// here — the resolver delegates to the owning domain.
+//
+// Returns an empty (non-nil) map when no message in the set carries an
+// occurrence.
+func (h *Handler) resolveMessageProjections(
+	ctx context.Context,
+	viewerID uuid.UUID,
+	messages []*chatEntity.ChatMessage,
+) (map[uuid.UUID]*chatApp.ResourceProjection, error) {
+	out := map[uuid.UUID]*chatApp.ResourceProjection{}
+	if len(messages) == 0 {
+		return out, nil
+	}
+	occurrences, err := h.getResourceOccurrencesByMessageIDs(ctx, messages)
+	if err != nil {
+		return nil, err
+	}
+	if len(occurrences) == 0 {
+		return out, nil
+	}
+	if h.resourceProjectionResolver == nil {
+		return nil, errResourceProjectionResolverNotConfigured
+	}
+	return h.resourceProjectionResolver.ResolveResourceProjections(ctx, viewerID, occurrences)
 }
 
 // getResourceOccurrencesByMessageIDs batch-fetches resource occurrences for

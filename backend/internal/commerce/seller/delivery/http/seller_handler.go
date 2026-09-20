@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -58,9 +59,6 @@ type SellerHandler struct {
 	subRepo           subscriptionRepo.SellerSubscriptionRepository
 	frontendURL       string
 
-	// Subscription payment sync — activates settled payments missed by webhook
-	subscriptionPaymentService *subscriptionApp.SellerSubscriptionPaymentService
-
 	// withdrawalFeeProvider returns the canonical configured seller withdrawal
 	// fee (admin-configurable, Rp0 allowed) for the seller earnings display
 	// surface. Wired post-construction via SetWithdrawalFeeProvider.
@@ -69,7 +67,6 @@ type SellerHandler struct {
 
 type subscriptionPaymentRepository interface {
 	FindPendingSubscriptionPayment(ctx context.Context, tx db.Tx, userID uuid.UUID) (*paymentRepository.Payment, error)
-	FindLatestSubscriptionPayment(ctx context.Context, tx db.Tx, userID uuid.UUID) (*paymentRepository.Payment, error)
 	CreatePayment(ctx context.Context, tx db.Tx, input paymentRepository.CreatePaymentInput) (*paymentRepository.Payment, error)
 	UpdatePaymentURL(ctx context.Context, tx db.Tx, paymentID uuid.UUID, paymentURL string) error
 }
@@ -83,7 +80,6 @@ type paymentMethodRepository interface {
 
 type snapTransactionClient interface {
 	CreateSnapTransaction(req *midtrans.SnapRequest) (*midtrans.SnapResponse, error)
-	GetTransactionStatus(orderID string) (*midtrans.NotificationPayload, error)
 }
 
 // NewSellerHandler creates a new SellerHandler.
@@ -98,7 +94,6 @@ func NewSellerHandler(
 	midtransClient *midtrans.Client,
 	subRepo subscriptionRepo.SellerSubscriptionRepository,
 	frontendURL string,
-	subscriptionPaymentService *subscriptionApp.SellerSubscriptionPaymentService,
 ) *SellerHandler {
 	if log == nil {
 		log = zap.NewNop()
@@ -122,7 +117,6 @@ func NewSellerHandler(
 		midtransClient:             midtransClient,
 		subRepo:                    subRepo,
 		frontendURL:                frontendURL,
-		subscriptionPaymentService: subscriptionPaymentService,
 	}
 }
 
@@ -142,12 +136,14 @@ func (h *SellerHandler) SetWithdrawalFeeProvider(p financeapp.WithdrawalFeeProvi
 
 // SellerProfileResponse represents the seller profile response.
 type SellerProfileResponse struct {
-	ID        uuid.UUID   `json:"id"`
-	UserID    uuid.UUID   `json:"user_id"`
-	StoreName string      `json:"store_name"`
-	Tier      entity.Tier `json:"tier"`
-	CreatedAt string      `json:"created_at"`
-	UpdatedAt string      `json:"updated_at"`
+	ID                   uuid.UUID   `json:"id"`
+	UserID               uuid.UUID   `json:"user_id"`
+	StoreName            string      `json:"store_name"`
+	StoreImageURL        *string     `json:"store_image_url"`
+	StoreImageUpdatedAt  *string     `json:"store_image_updated_at,omitempty"`
+	Tier                 entity.Tier `json:"tier"`
+	CreatedAt            string      `json:"created_at"`
+	UpdatedAt            string      `json:"updated_at"`
 }
 
 // SubscriptionResponse represents the seller subscription response.
@@ -190,7 +186,8 @@ func subscriptionConfigToResponse(
 
 // OnboardingRequest represents the seller onboarding request.
 type OnboardingRequest struct {
-	StoreName string `json:"store_name" binding:"required"`
+	StoreName     string  `json:"store_name" binding:"required"`
+	StoreImageURL *string `json:"store_image_url"`
 }
 
 // OnboardingResponse represents the seller onboarding response.
@@ -238,15 +235,124 @@ func (h *SellerHandler) GetProfile(c *gin.Context) {
 	}
 
 	// Map to response DTO
+	var imageUpdatedAt *string
+	if profile.StoreImageUpdatedAt != nil {
+		s := profile.StoreImageUpdatedAt.Format("2006-01-02T15:04:05Z07:00")
+		imageUpdatedAt = &s
+	}
 	resp := SellerProfileResponse{
-		ID:        profile.ID,
-		UserID:    profile.UserID,
-		StoreName: profile.StoreName,
-		Tier:      profile.Tier,
-		CreatedAt: profile.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt: profile.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:                  profile.ID,
+		UserID:              profile.UserID,
+		StoreName:           profile.StoreName,
+		StoreImageURL:       profile.StoreImageURL,
+		StoreImageUpdatedAt: imageUpdatedAt,
+		Tier:                profile.Tier,
+		CreatedAt:           profile.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:           profile.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 
+	response.Success(c, resp)
+}
+
+// validateSellerStoreImageStorageKey validates the canonical store image storage key.
+// Canonical form is exactly "images/stores/{userID}.jpg" owned by the caller.
+// Absolute URLs (https://...), path traversal, or cross-user keys are rejected.
+func validateSellerStoreImageStorageKey(raw string, userID uuid.UUID) error {
+	expected := "images/stores/" + userID.String() + ".jpg"
+	if raw != expected {
+		return fmt.Errorf("store_image_url must be %s", expected)
+	}
+	// Defensive: reject traversal even though exact match already covers it.
+	if len(raw) >= 2 {
+		for i := 0; i+1 < len(raw); i++ {
+			if raw[i] == '.' && raw[i+1] == '.' {
+				return fmt.Errorf("store_image_url must be %s", expected)
+			}
+		}
+	}
+	return nil
+}
+
+// UpdateProfileRequest is the PATCH /seller/profile request body.
+type UpdateProfileRequest struct {
+	StoreName     *string `json:"store_name"`
+	StoreImageURL *string `json:"store_image_url"`
+}
+
+// UpdateProfile handles PATCH /api/v1/seller/profile
+//
+// Canonical seller/store identity writer. Updates store_name and/or store_image_url atomically.
+// Requires an existing seller profile (must have onboarded). Validates canonical storage key
+// "images/stores/{userID}.jpg" for image (not absolute URL).
+// On success bumps store_image_updated_at when image changes.
+func (h *SellerHandler) UpdateProfile(c *gin.Context) {
+	ctx := c.Request.Context()
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		response.InternalServerError(c, "Invalid user ID in context")
+		return
+	}
+	var req UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request body")
+		return
+	}
+	if req.StoreName == nil && req.StoreImageURL == nil {
+		response.BadRequest(c, "store_name or store_image_url is required")
+		return
+	}
+	if req.StoreName != nil && *req.StoreName == "" {
+		response.BadRequest(c, "store_name is required")
+		return
+	}
+	if req.StoreImageURL != nil && *req.StoreImageURL != "" {
+		if err := validateSellerStoreImageStorageKey(*req.StoreImageURL, userID); err != nil {
+			response.BadRequest(c, err.Error())
+			return
+		}
+	}
+	var updated *entity.SellerProfile
+	err := h.db.WithTx(ctx, func(tx db.Tx) error {
+		p, err := h.sellerRepo.UpdateSellerProfileTx(ctx, tx, userID, req.StoreName, req.StoreImageURL)
+		if err != nil {
+			return err
+		}
+		updated = p
+		return nil
+	})
+	if err != nil {
+		if err.Error() == "seller profile not found" {
+			response.NotFound(c, "Seller profile not found")
+			return
+		}
+		if err.Error() == "store_name is required" || strings.HasPrefix(err.Error(), "store_image_url must") {
+			response.BadRequest(c, err.Error())
+			return
+		}
+		h.log.Error("Failed to update seller profile", zap.String("user_id", userID.String()), zap.Error(err))
+		response.InternalServerError(c, "Failed to update seller profile")
+		return
+	}
+	var imageUpdatedAt *string
+	if updated.StoreImageUpdatedAt != nil {
+		s := updated.StoreImageUpdatedAt.Format("2006-01-02T15:04:05Z07:00")
+		imageUpdatedAt = &s
+	}
+	resp := SellerProfileResponse{
+		ID:                  updated.ID,
+		UserID:              updated.UserID,
+		StoreName:           updated.StoreName,
+		StoreImageURL:       updated.StoreImageURL,
+		StoreImageUpdatedAt: imageUpdatedAt,
+		Tier:                updated.Tier,
+		CreatedAt:           updated.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:           updated.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	}
 	response.Success(c, resp)
 }
 
@@ -300,6 +406,14 @@ func (h *SellerHandler) Onboarding(c *gin.Context) {
 		response.BadRequest(c, "store_name is required")
 		return
 	}
+	// Validate store_image_url if provided (optional field, null is valid)
+	// Canonical: storage key "images/stores/{userID}.jpg", not absolute URL.
+	if req.StoreImageURL != nil && *req.StoreImageURL != "" {
+		if err := validateSellerStoreImageStorageKey(*req.StoreImageURL, userID); err != nil {
+			response.BadRequest(c, err.Error())
+			return
+		}
+	}
 
 	var existingProfile *entity.SellerProfile
 	var missingRequirements []string
@@ -322,7 +436,7 @@ func (h *SellerHandler) Onboarding(c *gin.Context) {
 			// atomically. ON CONFLICT DO NOTHING prevents a race from turning
 			// into a duplicate-key 500 when multiple requests validate at once.
 			if len(missingRequirements) == 0 {
-				profile, err := h.sellerRepo.EnsureProfileExistsTx(ctx, tx, userID, req.StoreName)
+				profile, err := h.sellerRepo.EnsureProfileExistsTxWithImage(ctx, tx, userID, req.StoreName, req.StoreImageURL)
 				if err != nil {
 					return err
 				}
@@ -911,10 +1025,9 @@ type SellerEarningsResponse struct {
 	TotalEarned         int64 `json:"total_earned"`
 	WithdrawalFeeAmount int64 `json:"withdrawal_fee_amount"`
 
-	// Balance breakdown: explains why available_balance may be lower than gross payable.
+	// Balance breakdown.
 	// Source of truth: FinanceService.GetSellerWithdrawable (SellerWithdrawableSummary).
 	GrossPayable        int64 `json:"gross_payable"`
-	ActiveDisputeFreeze int64 `json:"active_dispute_freeze"`
 	WithdrawableBalance int64 `json:"withdrawable_balance"`
 }
 
@@ -945,7 +1058,7 @@ func (h *SellerHandler) GetEarnings(c *gin.Context) {
 
 	// Query all data within a single transaction for consistency
 	var availableBalance, pendingBalance, totalWithdrawn, totalEarned int64
-	var grossPayable, activeDisputeFreeze int64
+	var grossPayable int64
 	var withdrawalFee int64
 
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
@@ -956,7 +1069,7 @@ func (h *SellerHandler) GetEarnings(c *gin.Context) {
 		}
 		withdrawalFee = h.withdrawalFeeProvider.GetSellerWithdrawalFee(ctx, tx)
 
-		// 1. Available balance: dispute-aware withdrawable from SELLER_PAYABLE ledger.
+		// 1. Available balance: withdrawable from the SELLER_PAYABLE ledger.
 		// This is the same authority used by AssertSellerWithdrawalAllowed at withdrawal time.
 		withdrawable, err := h.financeService.GetSellerWithdrawable(ctx, tx, userID)
 		if err != nil {
@@ -964,7 +1077,6 @@ func (h *SellerHandler) GetEarnings(c *gin.Context) {
 		}
 		availableBalance = withdrawable.Withdrawable
 		grossPayable = withdrawable.PayableBalance
-		activeDisputeFreeze = withdrawable.ActiveDisputeFreeze
 
 		// 2. Pending balance: no maturity hold period exists in this system.
 		// Funds become withdrawable immediately on gateway escrow release.
@@ -1006,7 +1118,6 @@ func (h *SellerHandler) GetEarnings(c *gin.Context) {
 
 		// Balance breakdown from SellerWithdrawableSummary.
 		GrossPayable:        grossPayable,
-		ActiveDisputeFreeze: activeDisputeFreeze,
 		WithdrawableBalance: availableBalance, // Invariant: withdrawable_balance == available_balance
 	}
 
@@ -1272,165 +1383,3 @@ func (h *SellerHandler) GetPerformance(c *gin.Context) {
 	response.Success(c, stats)
 }
 
-// SyncSubscriptionPayment handles POST /api/v1/seller/subscription/sync
-//
-// Reconciles a seller's subscription payment status with the gateway and activates
-// the subscription when a settled payment was not yet processed (webhook miss).
-//
-// Flow:
-// 1. Find latest subscription payment for this user
-//   - None found → check active subscription, then 404 no_payment_found
-//
-// 2. Payment is settlement/capture (locally settled):
-//   - Call ProcessSuccessfulPayment (idempotent) → 200 activated / already_processed
-//
-// 3. Payment is pending:
-//   - Expired locally → 410 payment_expired
-//   - Query Midtrans gateway for live status
-//   - Gateway error → 503 gateway_unavailable
-//   - Gateway says settlement/capture → ProcessSuccessfulPayment → 200 activated
-//   - Gateway says pending → 202 pending
-//   - Gateway says deny/cancel/expire → 409 payment_failed
-//
-// No request body; payment is located by user ID (caller identity).
-// Idempotency: ProcessSuccessfulPayment is payment_id-locked and existence-checked.
-func (h *SellerHandler) SyncSubscriptionPayment(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	userIDVal, exists := c.Get("userID")
-	if !exists {
-		response.Unauthorized(c, "User not authenticated")
-		return
-	}
-	userID, ok := userIDVal.(uuid.UUID)
-	if !ok {
-		response.InternalServerError(c, "Invalid user ID in context")
-		return
-	}
-
-	// Step 1: Find the latest subscription payment for this user.
-	var payment *paymentRepository.Payment
-	if err := h.db.WithTx(ctx, func(tx db.Tx) error {
-		p, err := h.paymentRepo.FindLatestSubscriptionPayment(ctx, tx, userID)
-		if err != nil {
-			return err
-		}
-		payment = p
-		return nil
-	}); err != nil {
-		h.log.Error("sync: failed to find latest subscription payment",
-			zap.String("user_id", userID.String()),
-			zap.Error(err),
-		)
-		response.InternalServerError(c, "Failed to find subscription payment")
-		return
-	}
-
-	if payment == nil {
-		var activeSub *subscriptionEntity.SellerSubscription
-		if err := h.db.WithTx(ctx, func(tx db.Tx) error {
-			sub, err := h.subRepo.GetActiveByUserID(ctx, tx, userID)
-			if err != nil {
-				return err
-			}
-			activeSub = sub
-			return nil
-		}); err != nil {
-			h.log.Error("sync: failed to check active subscription",
-				zap.String("user_id", userID.String()),
-				zap.Error(err),
-			)
-			response.InternalServerError(c, "Failed to check subscription status")
-			return
-		}
-
-		if activeSub != nil {
-			response.Success(c, gin.H{
-				"status":          "already_active",
-				"subscription_id": activeSub.ID,
-			})
-			return
-		}
-
-		response.Error(c, 404, "NO_PAYMENT_FOUND", "No subscription payment found for this account")
-		return
-	}
-
-	// Step 2: Payment is already locally settled — activate directly.
-	if payment.IsSettled() {
-		providerEventID := "seller_sync_" + userID.String()
-		if err := h.subscriptionPaymentService.ProcessSuccessfulPayment(
-			ctx, payment.ID, userID, providerEventID,
-		); err != nil {
-			h.log.Error("sync: ProcessSuccessfulPayment failed on settled payment",
-				zap.String("payment_id", payment.ID.String()),
-				zap.String("user_id", userID.String()),
-				zap.Error(err),
-			)
-			response.InternalServerError(c, "Failed to activate subscription")
-			return
-		}
-		response.Success(c, gin.H{
-			"status":     "activated",
-			"payment_id": payment.ID,
-		})
-		return
-	}
-
-	// Step 3: Payment is pending — check expiry then query gateway.
-	if payment.IsPending() {
-		if time.Now().After(payment.ExpiredAt) {
-			response.Error(c, 410, "PAYMENT_EXPIRED", "Subscription payment has expired")
-			return
-		}
-
-		gatewayStatus, err := h.midtransClient.GetTransactionStatus(payment.MidtransOrderID)
-		if err != nil {
-			h.log.Warn("sync: gateway status inquiry failed",
-				zap.String("midtrans_order_id", payment.MidtransOrderID),
-				zap.String("user_id", userID.String()),
-				zap.Error(err),
-			)
-			response.Error(c, 503, "GATEWAY_UNAVAILABLE", "Payment gateway is unavailable; please retry later")
-			return
-		}
-
-		switch {
-		case gatewayStatus.TransactionStatus == string(midtrans.StatusSettlement) ||
-			gatewayStatus.TransactionStatus == string(midtrans.StatusCapture):
-			providerEventID := "seller_sync_gateway_" + userID.String()
-			if err := h.subscriptionPaymentService.ProcessSuccessfulPayment(
-				ctx, payment.ID, userID, providerEventID,
-			); err != nil {
-				h.log.Error("sync: ProcessSuccessfulPayment failed on gateway-settled payment",
-					zap.String("payment_id", payment.ID.String()),
-					zap.String("user_id", userID.String()),
-					zap.Error(err),
-				)
-				response.InternalServerError(c, "Failed to activate subscription")
-				return
-			}
-			response.Success(c, gin.H{
-				"status":     "activated",
-				"payment_id": payment.ID,
-			})
-
-		case gatewayStatus.TransactionStatus == string(midtrans.StatusPending):
-			c.JSON(202, gin.H{
-				"success": true,
-				"status":  "pending",
-				"message": "Payment is still pending at the gateway",
-			})
-
-		default:
-			// deny / cancel / expire / other terminal failure
-			response.Error(c, 409, "PAYMENT_FAILED",
-				fmt.Sprintf("Payment was not completed (gateway status: %s)", gatewayStatus.TransactionStatus))
-		}
-		return
-	}
-
-	// Payment exists but is in a terminal failed state (deny/cancel/expire) locally.
-	response.Error(c, 409, "PAYMENT_FAILED",
-		fmt.Sprintf("Subscription payment could not be processed (status: %s)", payment.Status))
-}

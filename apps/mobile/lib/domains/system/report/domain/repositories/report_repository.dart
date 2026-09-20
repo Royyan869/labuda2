@@ -24,6 +24,7 @@ abstract class ReportRepository {
   /// Get reports by user (as reporter)
   Future<List<Report>> getReportsByUser({
     required String userId,
+    int page = 1,
     int limit = 20,
   });
 
@@ -33,18 +34,6 @@ abstract class ReportRepository {
     required String targetId,
     required ReportTargetType targetType,
   });
-
-  /// Upload evidence image
-  Future<String> uploadEvidence({
-    required String reporterId,
-    required String filePath,
-  });
-
-  // REMOVED: All Admin Operations
-  // - getReports() - Admin-only endpoint
-  // - updateReportStatus() - Admin-only endpoint
-  // - getReportStatistics() - Admin-only endpoint
-  // - watchPendingReportsCount() - Admin-only endpoint
 }
 
 /// Report Failure types

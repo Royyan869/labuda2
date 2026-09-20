@@ -23,8 +23,8 @@ enum FeedItemType {
   /// Universal social content item
   content,
 
-  /// P3A — Promoted listing injected by backend feed promotion injector.
-  promotedListing,
+  /// P3A — Promoted forSale injected by backend feed promotion injector.
+  promotedForSale,
 
   /// P3A — Promoted auction injected by backend feed promotion injector.
   promotedAuction,
@@ -40,7 +40,7 @@ extension FeedItemTypeExtension on FeedItemType {
     switch (this) {
       case FeedItemType.content:
         return 'Content';
-      case FeedItemType.promotedListing:
+      case FeedItemType.promotedForSale:
         return 'Dipromosikan';
       case FeedItemType.promotedAuction:
         return 'Dipromosikan';

@@ -308,6 +308,95 @@ func TestSupportTicketCreated_InvalidPayload(t *testing.T) {
 }
 
 // =============================================================================
+// SUPPORT.TICKET_WAITING_USER — REAL AGENT ACTOR
+// =============================================================================
+
+// TestSupportTicketWaitingUser_RealAgentActor proves the user notification for
+// an agent reply is persisted with the REAL agent as actor — never uuid.Nil.
+// notifications.actor_id is NOT NULL with a FK to users(id), so a uuid.Nil
+// sentinel is unpersistable and the notification would silently vanish.
+func TestSupportTicketWaitingUser_RealAgentActor(t *testing.T) {
+	userID := uuid.New()
+	adminID := uuid.New()
+	ticketID := uuid.New()
+
+	payload, _ := json.Marshal(SupportTicketPayload{
+		TicketID:   ticketID.String(),
+		UserID:     userID.String(),
+		AdminID:    adminID.String(),
+		ChatRoomID: uuid.New().String(),
+		Status:     "waiting_user",
+	})
+
+	var capturedRecipient, capturedActor, capturedEntity uuid.UUID
+	var capturedType string
+
+	mockDB := &mockDBForNotification{
+		WithTxFunc: insertCaptureTx(&capturedRecipient, &capturedActor, &capturedType, &capturedEntity, nil),
+	}
+
+	h := buildSocialGovernanceHandler(t, mockDB, &mockAccountStatusControlled{}, &mockBlockCheckerControlled{}, nil)
+
+	err := h.Handle(context.Background(), platformevent.OutboxEvent{
+		ID: uuid.New(), EventType: "support.ticket_waiting_user", Payload: payload,
+	})
+	if err != nil {
+		t.Fatalf("Handle() error = %v", err)
+	}
+
+	if capturedRecipient != userID {
+		t.Errorf("recipient = %s, want the ticket owner %s", capturedRecipient, userID)
+	}
+	if capturedActor != adminID {
+		t.Errorf("actor = %s, want the replying agent %s", capturedActor, adminID)
+	}
+	if capturedActor == uuid.Nil {
+		t.Error("actor must never be uuid.Nil — the users FK rejects it")
+	}
+	if capturedType != "support.ticket_waiting_user" {
+		t.Errorf("type = %s, want support.ticket_waiting_user", capturedType)
+	}
+	if capturedEntity != ticketID {
+		t.Errorf("entityID = %s, want %s", capturedEntity, ticketID)
+	}
+}
+
+// TestSupportTicketWaitingUser_NoActor_NoInsert proves a legacy event without a
+// real actor is skipped (no insert, no error) rather than persisted with a
+// uuid.Nil actor or poisoning the outbox with endless retries.
+func TestSupportTicketWaitingUser_NoActor_NoInsert(t *testing.T) {
+	userID := uuid.New()
+	ticketID := uuid.New()
+
+	payload, _ := json.Marshal(SupportTicketPayload{
+		TicketID: ticketID.String(),
+		UserID:   userID.String(),
+		// AdminID intentionally omitted (legacy event).
+		Status: "waiting_user",
+	})
+
+	dbCalls := 0
+	mockDB := &mockDBForNotification{
+		WithTxFunc: func(_ context.Context, fn func(dbpkg.Tx) error) error {
+			dbCalls++
+			return fn(&mockTxForNotification{})
+		},
+	}
+
+	h := buildSocialGovernanceHandler(t, mockDB, &mockAccountStatusControlled{}, &mockBlockCheckerControlled{}, nil)
+
+	err := h.Handle(context.Background(), platformevent.OutboxEvent{
+		ID: uuid.New(), EventType: "support.ticket_waiting_user", Payload: payload,
+	})
+	if err != nil {
+		t.Fatalf("Handle() error = %v", err)
+	}
+	if dbCalls != 0 {
+		t.Errorf("WithTx called %d times, want 0 (no real actor → no insert)", dbCalls)
+	}
+}
+
+// =============================================================================
 // WITHDRAWAL.REQUESTED ADMIN FANOUT
 // =============================================================================
 
@@ -405,5 +494,3 @@ func makeNegotiationMessageSentPayloadN5(sessionID, buyerID, sellerID, senderID 
 //   - When buyer is the sender, seller receives the notification
 //   - No DB lookup needed (fields from payload)
 //   - allowPush=true (negotiation.* → RequiresPushByType=true)
-
-

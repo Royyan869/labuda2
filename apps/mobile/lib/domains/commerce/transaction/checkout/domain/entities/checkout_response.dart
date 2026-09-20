@@ -1,8 +1,9 @@
 /// Checkout Response Domain Entity
 ///
-/// Represents the Order returned by POST /orders.
-/// Backend returns a raw Order entity — NOT a payment URL.
-/// Payment initiation is a SEPARATE step (POST /payments).
+/// Represents the created order returned by POST /orders.
+/// Backend returns the lightweight OrderCreateResponse DTO (id, order_number,
+/// status, canonical pricing snapshot, created_at) — NOT a raw Order entity and
+/// NOT a payment URL. Payment initiation is a SEPARATE step (POST /payments).
 library;
 
 import 'package:equatable/equatable.dart';
@@ -27,11 +28,13 @@ class CheckoutResponse extends Equatable {
   final int shippingTotal;
   final int commissionAmount;
 
-  /// Total escrow amount (backend-authoritative).
-  final int escrowAmount;
+  /// Canonical buyer-funded base PD+S (backend-authoritative total_before_coins_amount).
+  final int totalBeforeCoinsAmount;
 
-  /// Coins applied at order creation (null / 0 = none). Display-only; server computes total.
-  final int? coinsUsed;
+  // NOTE: the legacy `coinsUsed` field was purged. Coins are NOT an Order
+  // snapshot authority (the canonical coin authority lives in the coins
+  // domain) and POST /orders does not emit `coins_used`, so the field could
+  // only ever hold a hardcoded null.
 
   final DateTime createdAt;
 
@@ -42,34 +45,13 @@ class CheckoutResponse extends Equatable {
     required this.subtotal,
     required this.shippingTotal,
     required this.commissionAmount,
-    required this.escrowAmount,
-    this.coinsUsed,
+    required this.totalBeforeCoinsAmount,
     required this.createdAt,
   });
 
-  CheckoutResponse copyWith({
-    String? orderId,
-    String? orderNumber,
-    String? status,
-    int? subtotal,
-    int? shippingTotal,
-    int? commissionAmount,
-    int? escrowAmount,
-    int? coinsUsed,
-    DateTime? createdAt,
-  }) {
-    return CheckoutResponse(
-      orderId: orderId ?? this.orderId,
-      orderNumber: orderNumber ?? this.orderNumber,
-      status: status ?? this.status,
-      subtotal: subtotal ?? this.subtotal,
-      shippingTotal: shippingTotal ?? this.shippingTotal,
-      commissionAmount: commissionAmount ?? this.commissionAmount,
-      escrowAmount: escrowAmount ?? this.escrowAmount,
-      coinsUsed: coinsUsed ?? this.coinsUsed,
-      createdAt: createdAt ?? this.createdAt,
-    );
-  }
+  // NOTE: the unused `copyWith` was purged. This entity is the immutable
+  // projection of the backend's `POST /orders` response; nothing may rewrite a
+  // created order's snapshot client side.
 
   @override
   List<Object?> get props => [
@@ -79,8 +61,7 @@ class CheckoutResponse extends Equatable {
     subtotal,
     shippingTotal,
     commissionAmount,
-    escrowAmount,
-    coinsUsed,
+    totalBeforeCoinsAmount,
     createdAt,
   ];
 }

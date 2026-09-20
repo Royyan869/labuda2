@@ -1,8 +1,10 @@
 package realtime
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -29,10 +31,15 @@ type Handler struct {
 	gate        *SubscribeGate
 	rateLimiter *rate.RateLimiter
 	log         *zap.Logger
+	presence    PresenceLeaser
 }
 
 // NewHandler creates a new WebSocket handler.
-func NewHandler(hub *Hub, gate *SubscribeGate, rateLimiter *rate.RateLimiter, log *zap.Logger) *Handler {
+// presence may be nil only for test harness; production wiring in
+// serverboot must supply the canonical *presence.Service. The handler
+// stores the lease authority and passes it to each new Connection so
+// that every authenticated WS session holds exactly one Redis lease.
+func NewHandler(hub *Hub, gate *SubscribeGate, rateLimiter *rate.RateLimiter, log *zap.Logger, presence PresenceLeaser) *Handler {
 	if log == nil {
 		log = zap.NewNop()
 	}
@@ -41,8 +48,12 @@ func NewHandler(hub *Hub, gate *SubscribeGate, rateLimiter *rate.RateLimiter, lo
 		gate:        gate,
 		rateLimiter: rateLimiter,
 		log:         log,
+		presence:    presence,
 	}
 }
+
+// Presence returns the wired presence lease authority (nil in test harness).
+func (h *Handler) Presence() PresenceLeaser { return h.presence }
 
 // HandleWebSocket upgrades an HTTP request to a WebSocket connection.
 //
@@ -91,9 +102,40 @@ func (h *Handler) HandleWebSocket(c *gin.Context) {
 			zap.String("remote_addr", ws.Request().RemoteAddr),
 		)
 
-		conn := NewConnection(userID, ws, h.hub, h.gate, h.rateLimiter, h.log)
+		conn := NewConnection(userID, ws, h.hub, h.gate, h.rateLimiter, h.log, h.presence)
 
 		h.hub.Register(conn)
+
+		// Presence acquire: every authenticated active WS connection holds
+		// exactly one lease. Uses Background with timeout because no request
+		// context should gate lease creation; the connection lives beyond the
+		// HTTP upgrade request lifecycle.
+		// CLOSURE GATE 1: acquire failure must NOT leave an orphan WS registered
+		// without a lease. On ResumeLease error we immediately cleanup
+		// (unregister + close) and abort the session; no fallback without lease.
+		if h.presence != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			_, err := h.presence.ResumeLease(ctx, conn.UserID, conn.ID)
+			cancel()
+			if err != nil {
+				h.log.Warn("Presence ResumeLease failed on connect — closing WS",
+					zap.String("user_id", conn.UserID.String()),
+					zap.String("connection_id", conn.ID),
+					zap.Error(err),
+				)
+				// Undo registration and close the session. conn.Close() is
+				// idempotent and will also attempt LeaveLease (harmless when
+				// acquire never succeeded). This guarantees invariant:
+				// authenticated WS => lease acquired, otherwise no WS.
+				conn.Close()
+				return
+			}
+		} else {
+			// Production wiring must never reach this branch; nil only for tests.
+			// Gate B: serverboot fatals in production when presence is nil,
+			// so this path is isolated test harness.
+			h.log.Debug("Presence lease acquire skipped: nil authority (test harness)")
+		}
 
 		go conn.WritePump()
 

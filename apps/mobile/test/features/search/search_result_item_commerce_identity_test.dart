@@ -43,7 +43,7 @@ SearchResult _auctionResult({required String subtitle}) {
 }
 
 void main() {
-  testWidgets('Search listing result renders @username and store_name', (
+  testWidgets('Search forSale result renders @username and store_name', (
     tester,
   ) async {
     await tester.pumpWidget(

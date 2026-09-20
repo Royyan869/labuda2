@@ -105,13 +105,9 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
               ? users
               : users
                     .where(
-                      (u) =>
-                          u.username.toLowerCase().contains(
-                            _searchQuery.toLowerCase(),
-                          ) ||
-                          u.displayName.toLowerCase().contains(
-                            _searchQuery.toLowerCase(),
-                          ),
+                      (u) => u.username.toLowerCase().contains(
+                        _searchQuery.toLowerCase(),
+                      ),
                     )
                     .toList();
 

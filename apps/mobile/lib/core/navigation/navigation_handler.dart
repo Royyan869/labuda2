@@ -92,6 +92,7 @@ abstract class NavigationHandler {
   void navigateToSellerForSales();
   void navigateToSellerRefundList();
   void navigateToSellerUpgrade();
+  void navigateToSellerRenewal();
   void navigateToExternalProductDetail(String productId);
 
   // Coin Navigation (loyalty points - NOT wallet/payment)

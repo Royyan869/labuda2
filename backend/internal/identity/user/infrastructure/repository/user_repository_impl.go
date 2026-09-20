@@ -398,17 +398,19 @@ func (r *userRepositoryImpl) GetPublicInfoMultiple(ctx context.Context, tx db.Tx
 		return make(map[uuid.UUID]*entity.UserPublicInfo), nil
 	}
 
-	// PRIVACY: this is the batch variant of GetPublicInfo. The selected
-	// columns derive only from p.username; p.full_name never enters the
-	// public surface.
+	// Batch parity with GetPublicInfo: same lifecycle source, same redaction.
+	// E5.1 — project raw lifecycle truth so service can coarsen consistently.
+	// Slot-persistence preserved (no u.deleted_at IS NULL filter) so removed identities surface as Lifecycle="removed" rather than disappearing.
 	query := `
 		SELECT
 			u.id,
 			COALESCE(p.username, '') as username,
-			p.avatar_url
+			p.avatar_url,
+			u.account_status,
+			(u.deleted_at IS NOT NULL) AS is_deleted
 		FROM users u
 		LEFT JOIN user_profiles p ON u.id = p.user_id
-		WHERE u.id = ANY($1) AND u.deleted_at IS NULL
+		WHERE u.id = ANY($1)
 	`
 
 	rows, err := tx.Query(ctx, query, userIDs)
@@ -420,15 +422,31 @@ func (r *userRepositoryImpl) GetPublicInfoMultiple(ctx context.Context, tx db.Tx
 	result := make(map[uuid.UUID]*entity.UserPublicInfo)
 	for rows.Next() {
 		var info entity.UserPublicInfo
-		var username, avatarURL string
-		err := rows.Scan(&info.UserID, &username, &avatarURL)
+		var username sql.NullString
+		var avatarURL sql.NullString
+		var accountStatus string
+		var isDeleted bool
+		err := rows.Scan(&info.UserID, &username, &avatarURL, &accountStatus, &isDeleted)
 		if err != nil {
 			continue
 		}
 
-		info.Username = username
-		if avatarURL != "" {
-			info.AvatarURL = &avatarURL
+		info.Username = username.String
+		if avatarURL.Valid && avatarURL.String != "" {
+			s := avatarURL.String
+			info.AvatarURL = &s
+		}
+		info.AccountStatus = accountStatus
+		info.IsDeleted = isDeleted
+
+		// Lifecycle redaction parity with single: unavailable/removed suppress avatar.
+		// Username redaction is handled at service/card layer (AnonymousUsername fallback), but avatar must not leak.
+		// We keep Username as-is here; service/publiccard will coarsen and suppress as needed. For minimal parity, suppress avatar when not active.
+		// To avoid importing viewercontext at repository layer, use inline coarsen: active only when account_status='active' and not deleted.
+		isActive := accountStatus == "active" && !isDeleted
+		// Note: suspended/banned also become unavailable (same as single's CoarsenLifecycle).
+		if !isActive {
+			info.AvatarURL = nil
 		}
 
 		result[info.UserID] = &info

@@ -21,7 +21,7 @@ class _FakeOrganicSearchApiService implements SearchApiService {
           description: 'Beautiful showa',
           variety: 'Showa',
           price: 1500000,
-          mediaUrls: const ['https://example.com/listing.jpg'],
+          mediaUrls: const ['https://example.com/forSale.jpg'],
           sellerId: 'seller-1',
           createdAt: DateTime.parse('2026-01-01T00:00:00.000Z'),
           sellerUsername: 'seller_user',
@@ -109,29 +109,29 @@ class _FakeOrganicSearchApiService implements SearchApiService {
 
 void main() {
   test(
-    'organic listing and auction search render split seller identity',
+    'organic forSale and auction search render split seller identity',
     () async {
       final repository = SearchRepositoryImpl(_FakeOrganicSearchApiService());
 
-      final listings = await repository.searchForSale(query: 'koi');
+      final forSales = await repository.searchForSale(query: 'koi');
       final auctions = await repository.searchAuctions(query: 'koi');
 
-      expect(listings.error, isNull);
+      expect(forSales.error, isNull);
       expect(auctions.error, isNull);
 
-      expect(listings.data, hasLength(1));
+      expect(forSales.data, hasLength(1));
       expect(auctions.data, hasLength(1));
 
-      final listingIdentity = buildCommerceSellerIdentity(
-        username: listings.data!.single.sellerUsername,
-        storeName: listings.data!.single.sellerFarmName,
+      final forSaleIdentity = buildCommerceSellerIdentity(
+        username: forSales.data!.single.sellerUsername,
+        storeName: forSales.data!.single.sellerFarmName,
       );
       final auctionIdentity = buildCommerceSellerIdentity(
         username: auctions.data!.single.sellerUsername,
         storeName: auctions.data!.single.sellerFarmName,
       );
 
-      expect(listingIdentity?.multilineLabel, '@seller_user\nFarm Name');
+      expect(forSaleIdentity?.multilineLabel, '@seller_user\nFarm Name');
       expect(auctionIdentity?.multilineLabel, '@auction_user\nAuction Farm');
     },
   );
@@ -141,15 +141,15 @@ void main() {
       _FakeOrganicSearchApiServiceMissingFarm(),
     );
 
-    final listings = await repository.searchForSale(query: 'koi');
+    final forSales = await repository.searchForSale(query: 'koi');
 
-    expect(listings.error, isNull);
-    expect(listings.data, hasLength(1));
-    final listingIdentity = buildCommerceSellerIdentity(
-      username: listings.data!.single.sellerUsername,
-      storeName: listings.data!.single.sellerFarmName,
+    expect(forSales.error, isNull);
+    expect(forSales.data, hasLength(1));
+    final forSaleIdentity = buildCommerceSellerIdentity(
+      username: forSales.data!.single.sellerUsername,
+      storeName: forSales.data!.single.sellerFarmName,
     );
-    expect(listingIdentity?.multilineLabel, '@seller_user');
+    expect(forSaleIdentity?.multilineLabel, '@seller_user');
   });
 }
 
@@ -170,7 +170,7 @@ class _FakeOrganicSearchApiServiceMissingFarm implements SearchApiService {
           description: 'Beautiful showa',
           variety: 'Showa',
           price: 1500000,
-          mediaUrls: const ['https://example.com/listing.jpg'],
+          mediaUrls: const ['https://example.com/forSale.jpg'],
           sellerId: 'seller-1',
           createdAt: DateTime.parse('2026-01-01T00:00:00.000Z'),
           sellerUsername: 'seller_user',

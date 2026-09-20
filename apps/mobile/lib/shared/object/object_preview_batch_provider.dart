@@ -31,7 +31,7 @@ import 'package:labuda/shared/object/object_reference.dart';
 /// - Fetches all auctions in one batch call
 /// - Handles partial failures with fallback to individual providers
 /// - Returns a map for O(1) lookup by reference
-/// - Reduces N API calls to 2-3 calls (listings + auctions)
+/// - Reduces N API calls to 2-3 calls (forSales + auctions)
 final objectPreviewBatchProvider = FutureProvider.family
     .autoDispose<Map<String, ObjectPreview>, List<ObjectReference>>((
       ref,
@@ -55,11 +55,11 @@ final objectPreviewBatchProvider = FutureProvider.family
       final fallbackRefs = <ObjectReference>[];
 
       // Fetch all fixed-price sales in one batch
-      if (grouped['fixed_price_sale'] != null &&
-          grouped['fixed_price_sale']!.isNotEmpty) {
+      if (grouped['for_sale'] != null &&
+          grouped['for_sale']!.isNotEmpty) {
         final fixedPriceSaleResult = await _fetchFixedPriceSaleBatch(
           ref,
-          grouped['fixed_price_sale']!,
+          grouped['for_sale']!,
         );
         results.addAll(fixedPriceSaleResult.success);
 
@@ -130,53 +130,53 @@ Future<_BatchFetchResult> _fetchFixedPriceSaleBatch(
 
   try {
     // Call the repository batch method
-    final listingRepository = ref.read(forSaleRepositoryProvider);
-    final result = await listingRepository.getForSalesByIds(fixedPriceSaleIds);
+    final forSaleRepository = ref.read(forSaleRepositoryProvider);
+    final result = await forSaleRepository.getForSalesByIds(fixedPriceSaleIds);
 
     return result.fold(
       (error) {
         // Batch failed completely - mark all for fallback
         _logBatchFailure(
-          'fixed_price_sale',
+          'for_sale',
           fixedPriceSaleIds.length,
           error.toString(),
         );
         return _BatchFetchResult(success: success, failed: refs);
       },
-      (listings) {
+      (forSales) {
         // Track which IDs we got successfully
         final foundIds = <String>{};
 
-        for (final listing in listings) {
-          final key = 'fixed_price_sale:${listing.forSaleId}';
-          foundIds.add(listing.forSaleId);
+        for (final forSale in forSales) {
+          final key = 'for_sale:${forSale.forSaleId}';
+          foundIds.add(forSale.forSaleId);
           success[key] = ObjectPreview(
-            id: listing.forSaleId,
-            type: 'fixed_price_sale',
-            title: listing.title,
-            imageUrl: listing.media.isNotEmpty
-                ? listing.media.first.originalUrl
+            id: forSale.forSaleId,
+            type: 'for_sale',
+            title: forSale.title,
+            imageUrl: forSale.media.isNotEmpty
+                ? forSale.media.first.originalUrl
                 : null,
-            price: listing.price.toInt(),
-            status: listing.status.name,
+            price: forSale.price.toInt(),
+            status: forSale.status.name,
           );
         }
 
-        // Find missing listings for fallback
+        // Find missing forSales for fallback
         for (final ref in refs) {
           if (!foundIds.contains(ref.id)) {
             failed.add(ref);
           }
         }
 
-        _logBatchSuccess('fixed_price_sale', listings.length, failed.length);
+        _logBatchSuccess('for_sale', forSales.length, failed.length);
 
         return _BatchFetchResult(success: success, failed: failed);
       },
     );
   } catch (e) {
     // Unexpected error - mark all for fallback
-    _logBatchError('fixed_price_sale', e.toString());
+    _logBatchError('for_sale', e.toString());
     return _BatchFetchResult(success: success, failed: refs);
   }
 }

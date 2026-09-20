@@ -320,7 +320,6 @@ func TestSellerEarningsResponse_Structure(t *testing.T) {
 		TotalWithdrawn:      5000000,
 		TotalEarned:         20000000,
 		GrossPayable:        6000000,
-		ActiveDisputeFreeze: 300000,
 		WithdrawableBalance: 5200000,
 	}
 
@@ -332,7 +331,6 @@ func TestSellerEarningsResponse_Structure(t *testing.T) {
 
 	// Assert breakdown fields have expected types
 	assert.IsType(t, int64(0), resp.GrossPayable)
-	assert.IsType(t, int64(0), resp.ActiveDisputeFreeze)
 	assert.IsType(t, int64(0), resp.WithdrawableBalance)
 }
 
@@ -344,30 +342,9 @@ func TestSellerEarningsResponse_AvailableEqualsWithdrawable(t *testing.T) {
 		AvailableBalance:    700000,
 		WithdrawableBalance: 700000,
 		GrossPayable:        1000000,
-		ActiveDisputeFreeze: 100000,
 	}
 	assert.Equal(t, resp.AvailableBalance, resp.WithdrawableBalance,
 		"available_balance must equal withdrawable_balance")
-}
-
-// TestSellerEarningsResponse_FreezeReducesWithdrawable verifies that active
-// dispute freezes reduce the withdrawable amount relative to gross payable.
-func TestSellerEarningsResponse_FreezeReducesWithdrawable(t *testing.T) {
-	grossPayable := int64(1000000)
-	freeze := int64(300000)
-	withdrawable := grossPayable - freeze
-
-	resp := SellerEarningsResponse{
-		AvailableBalance:    withdrawable,
-		GrossPayable:        grossPayable,
-		ActiveDisputeFreeze: freeze,
-		WithdrawableBalance: withdrawable,
-	}
-
-	assert.Equal(t, int64(700000), resp.WithdrawableBalance)
-	assert.Equal(t, resp.GrossPayable-resp.ActiveDisputeFreeze,
-		resp.WithdrawableBalance,
-		"withdrawable = gross_payable - active_dispute_freeze")
 }
 
 // TestSellerEarningsResponse_OldFieldsPreserved verifies backward compatibility:
@@ -381,7 +358,6 @@ func TestSellerEarningsResponse_OldFieldsPreserved(t *testing.T) {
 		TotalEarned:      8000000,
 		// Breakdown fields can be zero (backward compat: old clients ignore them)
 		GrossPayable:        0,
-		ActiveDisputeFreeze: 0,
 		WithdrawableBalance: 0,
 	}
 
@@ -399,7 +375,6 @@ func TestSellerEarningsResponse_BreakdownJSONTags(t *testing.T) {
 
 	expected := map[string]string{
 		"GrossPayable":        "gross_payable",
-		"ActiveDisputeFreeze": "active_dispute_freeze",
 		"WithdrawableBalance": "withdrawable_balance",
 	}
 

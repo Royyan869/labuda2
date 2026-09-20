@@ -39,8 +39,10 @@ func insertUser(t *testing.T, ctx context.Context, tx db.Tx, id uuid.UUID, usern
 func insertOrder(t *testing.T, ctx context.Context, tx db.Tx, orderID, buyerID, sellerID uuid.UUID) {
 	t.Helper()
 	_, err := tx.Exec(ctx, `
-		INSERT INTO orders (id, buyer_id, seller_id, source_type, source_id, quantity, unit_price, subtotal, shipping_total, commission_percent, commission_amount, escrow_amount, refunded_amount, status, created_at, updated_at)
-		VALUES ($1, $2, $3, 'for_sale', $4, 1, 100000, 100000, 0, 0, 0, 100000, 0, 'completed', NOW(), NOW())
+		-- orders.refunded_amount is purged: the canonical refund total is derived
+		-- from the refunds domain, never carried on the order row.
+		INSERT INTO orders (id, buyer_id, seller_id, source_type, source_id, quantity, unit_price, subtotal, shipping_total, commission_percent, commission_amount, status, created_at, updated_at)
+		VALUES ($1, $2, $3, 'for_sale', $4, 1, 100000, 100000, 0, 0, 0, 'completed', NOW(), NOW())
 	`, orderID, buyerID, sellerID, uuid.New())
 	require.NoError(t, err)
 }

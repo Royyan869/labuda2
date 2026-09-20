@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, LifeBuoy, CheckCircle, XCircle, Send, User, Clock, AlertCircle, Package, Scale, Gavel, UserCheck, Pause } from 'lucide-react'
+import { ArrowLeft, LifeBuoy, CheckCircle, XCircle, Send, User, Clock, AlertCircle, Package, Scale, Gavel, UserCheck, Pause, RotateCcw } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -35,7 +35,7 @@ export function SupportTicketDetailPage() {
   const { ticket, loading: ticketLoading, error: ticketError, refetch: refetchTicket } = useSupportTicketDetail(id || null)
   const { messages, loading: messagesLoading, refetch: refetchMessages } = useSupportMessages(id || null)
   const {
-    resolveTicket, closeTicket, sendMessage, escalateToDispute,
+    resolveTicket, closeTicket, reopenTicket, sendMessage, escalateToDispute,
     claimTicket, setWaitingForUser, updatePriority, updateCategory,
   } = useSupportTicketActions(id || '')
   const [actionError, setActionError] = useState('')
@@ -95,6 +95,23 @@ export function SupportTicketDetailPage() {
       setSuccessMessage('Ticket closed successfully')
     } else {
       setActionError(result.error?.message || 'Failed to close ticket')
+    }
+  }
+
+  const handleReopen = async () => {
+    if (!confirm('Reopen this resolved ticket? Assignment will be cleared.')) return
+
+    setSubmitting(true)
+    setActionError('')
+    const result = await reopenTicket()
+    setSubmitting(false)
+
+    if (result.success) {
+      refetchTicket()
+      refetchMessages()
+      setSuccessMessage('Ticket reopened successfully')
+    } else {
+      setActionError(result.error?.message || 'Failed to reopen ticket')
     }
   }
 
@@ -229,6 +246,9 @@ export function SupportTicketDetailPage() {
   const isActive = ticket.status === 'open' || ticket.status === 'in_progress' || ticket.status === 'waiting_user'
   const canResolve = ticket.status === 'in_progress' || ticket.status === 'waiting_user'
   const canClose = ticket.status === 'resolved'
+  // A resolved ticket may be reopened (resolved -> open). A closed ticket is
+  // terminal: a new problem is a new ticket.
+  const canReopen = ticket.status === 'resolved'
   const canClaim = ticket.status === 'open'
   const canSetWaiting = ticket.status === 'in_progress'
 
@@ -299,6 +319,17 @@ export function SupportTicketDetailPage() {
             >
               <CheckCircle className="h-4 w-4" />
               Resolve
+            </Button>
+          )}
+          {canReopen && (
+            <Button
+              variant="secondary"
+              onClick={handleReopen}
+              disabled={submitting}
+              className="gap-2"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Reopen
             </Button>
           )}
           {canClose && (
@@ -746,11 +777,11 @@ export function SupportTicketDetailPage() {
                     disabled={submitting}
                     className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   >
-                    <option value="order_issue">{supportCategoryLabels.order_issue}</option>
-                    <option value="payment_issue">{supportCategoryLabels.payment_issue}</option>
-                    <option value="account_issue">{supportCategoryLabels.account_issue}</option>
-                    <option value="listing_issue">{supportCategoryLabels.listing_issue}</option>
-                    <option value="other">{supportCategoryLabels.other}</option>
+                    {(Object.keys(supportCategoryLabels) as SupportCategory[]).map((category) => (
+                      <option key={category} value={category}>
+                        {supportCategoryLabels[category]}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </CardContent>

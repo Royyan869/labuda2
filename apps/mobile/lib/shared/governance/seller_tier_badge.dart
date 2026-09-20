@@ -1,6 +1,6 @@
 /// SellerTierBadge — shared widget for the public seller reputation badge.
 /// Renders a compact "Pro Seller" or "Elite Seller" pill on commerce-trust
-/// surfaces: profile header, listing detail, auction detail.
+/// surfaces: profile header, forSale detail, auction detail.
 ///
 /// VISIBILITY RULES (backend-enforced + mobile lifecycle gate):
 ///   - Only "pro" and "elite" tiers are displayed. Basic tier = no badge.
@@ -8,7 +8,7 @@
 ///   - Suspended/banned/deleted sellers never receive tier from backend.
 ///   - Expired-subscription sellers never receive tier from backend.
 ///   - Mobile additionally suppresses the badge when sellerTrustLifecycle
-///     is not active — see _ListingSellerCard and AuctionSellerCard.
+///     is not active — see _ForSaleSellerCard and AuctionSellerCard.
 ///
 /// The backend controls visibility via ENABLE_PUBLIC_SELLER_TIER_PROFILE
 /// feature flag + lifecycle gates. Mobile simply renders what the wire

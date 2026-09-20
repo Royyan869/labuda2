@@ -53,7 +53,7 @@ class BlockedUsersService {
             .map(
               (id) => BlockedUserModel(
                 id: id,
-                username: id.substring(0, id.length > 8 ? 8 : id.length),
+                username: '',
                 avatarUrl: null,
                 blockedAt: now,
               ),
@@ -68,9 +68,7 @@ class BlockedUsersService {
           .map(
             (id) => BlockedUserModel(
               id: id,
-              username:
-                  byId[id]?.username ??
-                  id.substring(0, id.length > 8 ? 8 : id.length),
+              username: byId[id]?.username ?? '',
               avatarUrl: byId[id]?.avatarUrl,
               blockedAt: now,
             ),

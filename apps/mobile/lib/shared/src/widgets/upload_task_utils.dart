@@ -23,7 +23,7 @@ class UploadTaskUtils {
       case UploadTaskType.request:
         iconData = Icons.help_outline;
         break;
-      case UploadTaskType.listing:
+      case UploadTaskType.forSale:
         iconData = Icons.inventory_2_outlined;
         break;
       case UploadTaskType.auction:
@@ -57,8 +57,8 @@ class UploadTaskUtils {
         return 'Mengunggah Post';
       case UploadTaskType.request:
         return 'Mengunggah Request';
-      case UploadTaskType.listing:
-        return 'Mengunggah Listing';
+      case UploadTaskType.forSale:
+        return 'Mengunggah ForSale';
       case UploadTaskType.auction:
         return 'Mengunggah Lelang';
     }

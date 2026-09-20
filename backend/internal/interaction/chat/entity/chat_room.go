@@ -66,6 +66,28 @@ func NewChatRoom(roomType RoomType, userA, userB uuid.UUID) *ChatRoom {
 	}
 }
 
+// NewSupportRoom creates a support conversation for exactly one ticket.
+//
+// SUPPORT BOUNDARY: a support room has exactly ONE human participant — the
+// ticket owner (participant_a). The agent side is authorized by the Support
+// domain at request time and is NOT a chat participant, so participant_b is
+// left unset (uuid.Nil) and persisted as NULL. This is the only room type that
+// permits an unset participant_b; the database enforces that invariant with a
+// partial CHECK (migration 000104).
+func NewSupportRoom(ownerID uuid.UUID) *ChatRoom {
+	now := time.Now()
+
+	return &ChatRoom{
+		ID:            uuid.New(),
+		RoomType:      RoomTypeSupport,
+		ParticipantA:  ownerID,
+		ParticipantB:  uuid.Nil,
+		CreatedAt:     now,
+		UpdatedAt:     now,
+		LastMessageAt: now,
+	}
+}
+
 // HasParticipant checks if the given user is a participant in this room.
 func (r *ChatRoom) HasParticipant(userID uuid.UUID) bool {
 	return r.ParticipantA == userID || r.ParticipantB == userID

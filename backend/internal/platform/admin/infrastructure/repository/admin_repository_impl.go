@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
 	"github.com/labuda/backend/internal/platform/admin/repository"
 	"github.com/labuda/backend/internal/platform/capability/invariant"
 	"github.com/labuda/backend/pkg/db"
@@ -233,7 +234,9 @@ func (r *AdminRepositoryImpl) GetUserDetails(
 			 FROM payments p
 			 WHERE p.user_id = u.id
 			   AND p.reference_type = 'subscription'
-			   AND p.status IN ('settlement', 'capture')
+			   -- Canonical settled set injected from paymentRepo.SettledPaymentStatuses() ($2);
+			   -- never restated as SQL literals.
+			   AND p.status::text = ANY($2::text[])
 			   AND NOT EXISTS (SELECT 1 FROM seller_subscriptions ss2 WHERE ss2.payment_id = p.id)
 			 ORDER BY p.created_at DESC LIMIT 1
 			) AS recoverable_subscription_payment_id,
@@ -272,7 +275,7 @@ func (r *AdminRepositoryImpl) GetUserDetails(
 	// column, so it must be scanned as nullable.
 	var isVerified pgtype.Bool
 
-	err := dbTx.QueryRow(ctx, query, userID).Scan(
+	err := dbTx.QueryRow(ctx, query, userID, paymentRepo.SettledPaymentStatuses()).Scan(
 		&userDetails.ID, &userDetails.FirebaseUID, &userDetails.Email, &phoneNumber,
 		&userDetails.EmailVerified, &userDetails.PhoneVerified, &userDetails.AccountStatus,
 		&userDetails.Role, &userDetails.CreatedAt, &userDetails.UpdatedAt,

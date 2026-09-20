@@ -118,6 +118,7 @@ import (
 	"github.com/labuda/backend/internal/platform/response"
 	"github.com/labuda/backend/internal/platform/s3presign"
 	"github.com/labuda/backend/internal/presence"
+	presenceHTTP "github.com/labuda/backend/internal/presence/delivery/http"
 	discountHTTP "github.com/labuda/backend/internal/pricing/discount/delivery/http"
 	pricingtokenapp "github.com/labuda/backend/internal/pricing/token/application"
 	pricingtokenHTTP "github.com/labuda/backend/internal/pricing/token/delivery/http"
@@ -222,43 +223,44 @@ type Dependencies struct {
 	// C6.1: seller self-service bank account management.
 	BankAccountHandler *bankaccountHTTP.BankAccountHandler
 	// Address CRUD endpoints (buyer shipping + seller sender)
-	AddressHandler                      *addressHTTP.AddressHandler
-	OrderHandler                        *orderHTTP.OrderHandler
-	AuctionHandler                      *auctionHTTP.AuctionHandler
-	AdminAuctionHandler                 *auctionHTTP.AdminAuctionHandler // PASS_5B: admin emergency auction cancel/override
-	SavedItemHandler                    *savedItemHTTP.SavedItemHandler
-	BiddingHandler                      *biddingHTTP.BiddingHandler
-	ForSaleHandler                      *forSaleHTTP.ForSaleHandler
-	PricingTokenHandler                 *pricingtokenHTTP.PricingTokenHandler
-	ChatHandler                         *chatHTTP.Handler
-	DiscountHandler                     *discountHTTP.DiscountHandler
-	DisputeHandler                      *disputeHTTP.DisputeHandler
-	SellerHandler                       *sellerHTTP.SellerHandler
-	SystemHealthHandler                 *monitoring.SystemHealthHandler
-	RealtimeHandler                     *realtime.Handler
-	FeedHandler                         *feedHTTP.FeedHandler
-	ContentHandler                      *contentHTTP.ContentHandler
-	OGHandler                           *ogHTTP.Handler
-	CommentHandler                      *contentHTTP.CommentHandler
-	LikeHandler                         *likeHTTP.LikeHandler
-	NotificationHandler                 *notificationHTTP.NotificationHandler
-	FCMTokenHandler                     *notificationHTTP.FCMTokenHandler
-	ReportHandler                       *moderationHTTP.ReportHandler             // SLICE 2: canonical Report intake
-	GovernanceAdminHandler              *moderationHTTP.GovernanceAdminHandler    // SLICE 6: admin governance workflow
-	FollowHandler                       *socialhttp.FollowHandler                 // SOCIAL domain: follow/block/mute
-	ShippingQuoteHandler                *shippingQuoteHTTP.Handler                // Shipping quote feature (chat-based manual quotes)
-	RatingHandler                       *ratingHTTP.RatingHandler                 // RATING DOMAIN: buyer→seller order ratings
-	PromotionHandler              *promotionHTTP.PromotionHandler      // PROMOTION PHASE 4: external product surface
-	PromotionContractService     *contractApp.PromotionContractService // PHASE 4A: canonical contract runtime composition
-	PromotionContractHandler     *contractHTTP.ContractHandler         // PHASE 4A: canonical contract HTTP surface
-	PromotionMeasurementHandler  *promotionHTTP.MeasurementHandler     // CANONICAL delivery measurement ack surface (impressions/clicks)
-	PromotionDeliveryHandoff     *contractApp.DeliveryHandoffService   // CANONICAL contract-based selection (feed/search injectors)
-	PromoteBalanceHandler        *billingHTTP.PromoteBalanceFundingHandler // PHASE 4B: canonical promote balance funding entry (TypePromoteBalanceTopUp)
-	SearchHandler                *searchHTTP.SearchHandler             // FEDERATED SEARCH: content, users, forSales
-	AdminOrderHandler                   *orderHTTP.AdminOrderHandler       // ADMIN ORDER: read-only order management
-	AdminRefundHandler                  *refundHTTP.AdminRefundHandler     // TASK 34 / Phase 2a: admin-only gateway refund trigger (feature-flagged)
-	SellerRefundHandler                 *refundHTTP.SellerRefundHandler    // H2-A: seller approve/reject refund endpoints
-	BuyerEscalationHandler              *refundHTTP.BuyerEscalationHandler // H2-B: buyer escalate rejected refund
+	AddressHandler              *addressHTTP.AddressHandler
+	OrderHandler                *orderHTTP.OrderHandler
+	AuctionHandler              *auctionHTTP.AuctionHandler
+	AdminAuctionHandler         *auctionHTTP.AdminAuctionHandler // PASS_5B: admin emergency auction cancel/override
+	SavedItemHandler            *savedItemHTTP.SavedItemHandler
+	BiddingHandler              *biddingHTTP.BiddingHandler
+	ForSaleHandler              *forSaleHTTP.ForSaleHandler
+	PricingTokenHandler         *pricingtokenHTTP.PricingTokenHandler
+	ChatHandler                 *chatHTTP.Handler
+	DiscountHandler             *discountHTTP.DiscountHandler
+	DisputeHandler              *disputeHTTP.DisputeHandler
+	SellerHandler               *sellerHTTP.SellerHandler
+	SystemHealthHandler         *monitoring.SystemHealthHandler
+	RealtimeHandler             *realtime.Handler
+	FeedHandler                 *feedHTTP.FeedHandler
+	ContentHandler              *contentHTTP.ContentHandler
+	OGHandler                   *ogHTTP.Handler
+	CommentHandler              *contentHTTP.CommentHandler
+	LikeHandler                 *likeHTTP.LikeHandler
+	NotificationHandler         *notificationHTTP.NotificationHandler
+	FCMTokenHandler             *notificationHTTP.FCMTokenHandler
+	PresenceHandler             *presenceHTTP.Handler                   // PRESENCE SLICE-4: initial state batch read via BuildSnapshot
+	ReportHandler               *moderationHTTP.ReportHandler             // SLICE 2: canonical Report intake
+	GovernanceAdminHandler      *moderationHTTP.GovernanceAdminHandler    // SLICE 6: admin governance workflow
+	FollowHandler               *socialhttp.FollowHandler                 // SOCIAL domain: follow/block/mute
+	ShippingQuoteHandler        *shippingQuoteHTTP.Handler                // Shipping quote feature (chat-based manual quotes)
+	RatingHandler               *ratingHTTP.RatingHandler                 // RATING DOMAIN: buyer→seller order ratings
+	PromotionHandler            *promotionHTTP.PromotionHandler           // PROMOTION PHASE 4: external product surface
+	PromotionContractService    *contractApp.PromotionContractService     // PHASE 4A: canonical contract runtime composition
+	PromotionContractHandler    *contractHTTP.ContractHandler             // PHASE 4A: canonical contract HTTP surface
+	PromotionMeasurementHandler *promotionHTTP.MeasurementHandler         // CANONICAL delivery measurement ack surface (impressions/clicks)
+	PromotionDeliveryHandoff    *contractApp.DeliveryHandoffService       // CANONICAL contract-based selection (feed/search injectors)
+	PromoteBalanceHandler       *billingHTTP.PromoteBalanceFundingHandler // PHASE 4B: canonical promote balance funding entry (TypePromoteBalanceTopUp)
+	SearchHandler               *searchHTTP.SearchHandler                 // FEDERATED SEARCH: content, users, forSales
+	AdminOrderHandler           *orderHTTP.AdminOrderHandler              // ADMIN ORDER: read-only order management
+	AdminRefundHandler          *refundHTTP.AdminRefundHandler            // TASK 34 / Phase 2a: admin-only gateway refund trigger (feature-flagged)
+	SellerRefundHandler         *refundHTTP.SellerRefundHandler           // H2-A: seller approve/reject refund endpoints
+	BuyerEscalationHandler      *refundHTTP.BuyerEscalationHandler        // H2-B: buyer escalate rejected refund
 
 	// VERIFICATION (Phase 2 operationalization)
 	VerificationHandler      *verificationHTTP.VerificationHandler      // Seller-facing: submit identity/business, status
@@ -307,32 +309,35 @@ type Dependencies struct {
 	ProjectionAdminHandler *worker.ProjectionAdminHandler
 
 	// Workers - All registered workers
-	PaymentExpiryWorker               Worker
-	ReconciliationWorker              Worker
-	OrderAutoCompleteWorker           Worker
-	OutboxWorker                      Worker
-	ProjectionWorker                  Worker
-	AuctionStartWorker                Worker
-	AuctionEndWorker                  Worker
-	SystemMonitoringWorker            Worker
-	RealtimeWorker                    Worker
-	PayoutWorker                      Worker
-	PayoutReconciliationWorker        Worker
-	NegotiationExpireWorker           Worker
-	OrderOverdueReminderWorker        Worker // OVERDUE ENFORCEMENT CLOSURE
-	DisputeTimeoutWorker              Worker // DISPUTE HARDENING - DEADLOCK PREVENTION
-	AlertDetectionWorker              Worker // ALERT SYSTEM V1
-	SellerSubscriptionExpiryWorker    Worker // SUBSCRIPTION LIFECYCLE - hourly active→expired sweep
-	OutboxArchivalWorker              Worker // OUTBOX RETENTION - archives succeeded events older than RetentionDays
-	OrderOverdueCancelWorker          Worker // ORDER FULFILLMENT - auto-cancels paid orders past shipment deadline
-	SubscriptionReconciliationWorker  Worker // SUBSCRIPTION HARDENING - recovers orphaned subscription payments
-	WithdrawalMonitoringWorker        Worker // PAYOUT MONITORING - read-only alert on stuck withdrawals
-	PushRetryWorker                   Worker // Z6: PUSH RELIABILITY - retries failed FCM pushes with exponential backoff
-	NotificationCleanupWorker         Worker // Z6: PUSH HYGIENE - deletes old delivery logs + expired retry entries
-	EscrowIntegrityWorker             Worker // ESCROW RECONCILIATION - shadow-rollout periodic escrow vs order check
-	TotalMoneyInvariantWorker         Worker // TOTAL MONEY INVARIANT - shadow-rollout periodic ledger sum check
-	SellerMetricsWorker               Worker // SELLER MEASUREMENT - daily seller_monthly_metrics snapshot (measurement only)
-	SellerReputationRecomputeWorker   Worker // REPUTATION AUTHORITY - nightly rolling 90-day recompute of seller tier + reputation state
+	PaymentExpiryWorker              Worker
+	ReconciliationWorker             Worker
+	OrderAutoCompleteWorker          Worker
+	OutboxWorker                     Worker
+	ProjectionWorker                 Worker
+	AuctionStartWorker               Worker
+	AuctionEndWorker                 Worker
+	SystemMonitoringWorker           Worker
+	RealtimeWorker                   Worker
+	PayoutWorker                     Worker
+	PayoutReconciliationWorker       Worker
+	NegotiationExpireWorker          Worker
+	OrderOverdueReminderWorker       Worker // OVERDUE ENFORCEMENT CLOSURE
+	DisputeTimeoutWorker             Worker // DISPUTE HARDENING - DEADLOCK PREVENTION
+	AlertDetectionWorker             Worker // ALERT SYSTEM V1
+	SellerSubscriptionExpiryWorker   Worker // SUBSCRIPTION LIFECYCLE - hourly active→expired sweep
+	OutboxArchivalWorker             Worker // OUTBOX RETENTION - archives succeeded events older than RetentionDays
+	OrderOverdueCancelWorker         Worker // ORDER FULFILLMENT - auto-cancels paid orders past shipment deadline
+	SubscriptionReconciliationWorker Worker // SUBSCRIPTION HARDENING - recovers orphaned subscription payments
+	WithdrawalMonitoringWorker       Worker // PAYOUT MONITORING - read-only alert on stuck withdrawals
+	PushRetryWorker                  Worker // Z6: PUSH RELIABILITY - retries failed FCM pushes with exponential backoff
+	NotificationCleanupWorker        Worker // Z6: PUSH HYGIENE - deletes old delivery logs + expired retry entries
+	EscrowIntegrityWorker            Worker // ESCROW RECONCILIATION - shadow-rollout periodic escrow vs order check
+	TotalMoneyInvariantWorker        Worker // TOTAL MONEY INVARIANT - shadow-rollout periodic ledger sum check
+	SellerMetricsWorker              Worker // SELLER MEASUREMENT - daily seller_monthly_metrics snapshot (measurement only)
+	SellerReputationRecomputeWorker  Worker // REPUTATION AUTHORITY - nightly rolling 90-day recompute of seller tier + reputation state
+	PresenceSweeper                  Worker // PRESENCE SLICE-2: expiry sweeper ClaimDueUsers→SweepUser→PublishChanged
+	PresenceSubscriber               Worker // PRESENCE SLICE-2: cross-instance fan-out via Redis Pub/Sub
+	PaymentDiscoveryWorker           Worker // REC-5: payment-centric gateway inquiry for missing webhooks
 
 	// workerStartups is the deferred list of worker .Start() actions
 	// recorded during InitServices. StartWorkers invokes each closure in
@@ -388,13 +393,6 @@ func workerEnabled(name string, defaultOn bool, log *zap.Logger) bool {
 		return false
 	}
 	return true
-}
-
-// orphanWebhookRecoveryEnabled is the explicit env gate for the orphan webhook
-// recovery worker. It remains unused by startup wiring until the activation
-// phase, but the gate exists now so the runtime policy is explicit.
-func orphanWebhookRecoveryEnabled(log *zap.Logger) bool {
-	return workerEnabled("ORPHAN_WEBHOOK_RECOVERY_WORKER", false, log)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -493,8 +491,6 @@ func (a *canonicalPromotionOperabilityAdapterForContract) ValidateOwnership(ctx 
 	return a.checker.ValidateOwnership(ctx, sellerID, promotionEntity.TargetType(targetType), targetID)
 }
 
-
-
 func InitServices(
 	appCtx context.Context,
 	db *database.DB,
@@ -506,8 +502,6 @@ func InitServices(
 	schemaReady bool,
 ) *Dependencies {
 	isProduction := cfg.IsProduction()
-
-
 
 	// workerStartups accumulates deferred worker .Start() closures so the
 	// returned *Dependencies can be re-driven through StartWorkers either
@@ -709,26 +703,26 @@ func InitServices(
 	// and emits a money.refund_succeeded outbox event — it performs NO
 	// financial mutation in this phase.
 	refundService := refundApp.NewRefundService(
-		orderService,
 		escrowService,
 		outboxRepository,
 	)
 	refundService.SetOrderRefundStatusSyncer(orderService)
 	refundService.SetGatewayClient(midtransClient, log.Logger)
+	// REC-6 SLICE 2: wire the transaction runner so the refund service can
+	// act as the refund DISPATCH authority (DispatchPendingRec6Refunds):
+	// claim intents in a short tx, call the gateway with NO locks held, and
+	// persist the outcome in its own short tx.
+	refundService.SetTxRunner(db)
 	// PHASE 2B (TASK 41): wire FinanceService so refund.success webhooks
 	// book the canonical reversal ledger transaction in the same tx as the
 	// gateway-status flip. Reuse a fresh FinanceService instance with the
 	// shared logger so observability events surface in the standard pipeline.
 	refundReversalFinance := financeApp.NewFinanceService()
 	refundReversalFinance.SetLogger(log.Logger)
-	refundReversalFinance.SetDisputeFreezeRepo(financeRepo.NewDisputeFreezeRepository())
 	refundService.SetFinanceReverser(refundReversalFinance)
-	// Wire freeze releaser so the gateway ack handler has the compatibility
-	// hook available when policy requires it.
-	refundService.SetDisputeFreezeReleaser(refundReversalFinance)
 	// CANONICAL COIN K READER: K (coins redeemed for an order) is resolved
-	// from the coins domain (coins_transactions via FindSpendByReference),
-	// NOT from orders.coins_used which is dead/never persisted. Wired into
+	// from the coins domain (coins_transactions via FindSpendByReference).
+	// The order persists no coins snapshot to read it from. Wired into
 	// both the refund ack pipeline and the order-side refund dispatch so the
 	// CoinDelta / cashRefund computation uses the canonical coins authority.
 	// The repository is constructed here (once) and reused at the coins
@@ -745,12 +739,19 @@ func InitServices(
 	// flow refuses to advance — preferring an audible failure over a silent
 	// escrow-flip-only "refund".
 	orderService.PaymentService().SetGatewayRefundInitiator(refundService)
-	// H2-F2a MONEY-SAFETY: Wire refund repo as ActiveRefundChecker so
-	// OrderCompletionService.Complete blocks auto-release when a refund is
-	// being negotiated or awaiting gateway settlement. Without this, the
-	// auto-complete worker can release escrow to seller while a refund is
-	// in flight, creating a post-release money gap.
-	orderService.SetActiveRefundChecker(refundRepoImpl.NewRefundRepository())
+	// MONEY-SAFETY: wire the refund repository as the canonical refund release
+	// guard so OrderCompletionService.Complete blocks release while a refund
+	// must still be respected (buyer-owed money not settled at the gateway, or
+	// an open refund decision inside the order's own refund window). Without
+	// this wire, completion fails closed — escrow is never released unchecked.
+	orderService.SetRefundReleaseGuard(refundRepoImpl.NewRefundRepository())
+	// CANONICAL REFUND DECISION AUTHORITY: the dispute resolution paths (admin
+	// buyer-wins / seller-wins / partial split) must record the admin's FINAL
+	// decision on the order's own refund process row instead of leaving the
+	// escalated refund looking unresolved. The refund domain owns that write-back
+	// and the gateway dispatch that follows from it; without this wire, dispute
+	// resolution fails closed.
+	orderService.SetRefundDecisionAuthority(refundService)
 
 	// Build the admin-only gateway refund handler. Capturing flagEnabled
 	// by value here means flipping the env var requires a process restart —
@@ -809,12 +810,6 @@ func InitServices(
 		outboxRepository,
 	)
 	disputeService.SetLogger(log.Logger)
-	// TASK 48: wire dispute freeze authority so active disputes can freeze
-	// seller withdrawable balance via the finance layer.
-	disputeFreezeFinance := financeApp.NewFinanceService()
-	disputeFreezeFinance.SetLogger(log.Logger)
-	disputeFreezeFinance.SetDisputeFreezeRepo(financeRepo.NewDisputeFreezeRepository())
-	disputeService.SetFreezeAuthority(disputeFreezeFinance)
 	// Initialize dispute handler
 	disputeHandler := disputeHTTP.NewDisputeHandler(
 		disputeService,
@@ -853,6 +848,10 @@ func InitServices(
 		db.Pgx(),
 		log.Logger,
 	)
+	// CANONICAL COIN K AT ORDER CREATION: resolve use_coins -> K from the live
+	// buyer balance capped by the token's 20%-of-PD ceiling, and persist it on
+	// pricing_tokens.coins_used. Payment derives K from that snapshot only.
+	orderHandler.SetCoinsBalanceReader(coinsRepository)
 
 	// Create admin order handler - read-only admin order management
 	adminOrderHandler := orderHTTP.NewAdminOrderHandler(
@@ -865,7 +864,7 @@ func InitServices(
 	auctionRepository := auctionRepo.NewAuctionRepository()
 	// The auction service needs the address repository to resolve the winner's
 	// primary shipping address for Case A/B seller-quote classification at
-	// auction end. Declared here (before the listing module) so both can share
+	// auction end. Declared here (before the For Sale module) so both can share
 	// the same instance.
 	addressRepository := addressRepoImpl.NewAddressRepository()
 	auctionService := auctionApp.NewAuctionService(
@@ -883,6 +882,8 @@ func InitServices(
 	)
 	auctionService.SetProductRepo(productRepoImpl.NewProductRepository())
 	auctionHandler := auctionHTTP.NewAuctionHandler(auctionService, productRepoImpl.NewProductRepository(), pricingTokenService, db.Pgx(), log.Logger)
+	// Same canonical K authority as POST /orders for the auction claim path.
+	auctionHandler.SetCoinsBalanceReader(coinsRepository)
 	// PASS_5B: admin emergency auction cancel/override (governance authority,
 	// not seller authority). Reuses the same auctionService and adminAuditLogger
 	// singleton as every other admin money/trust-adjacent handler.
@@ -910,7 +911,7 @@ func InitServices(
 	// The service will be initialized later after chat service is available
 	shippingQuoteRepository := shippingQuoteRepo.NewShippingQuoteRepository()
 
-	// ===== LISTING MODULE =====
+	// ===== FOR SALE MODULE =====
 	forSaleService := forSaleApp.NewForSaleService(
 		outboxRepository,
 		roleChecker,
@@ -995,6 +996,10 @@ func InitServices(
 		db.Pgx(),
 		log.Logger,
 	)
+	// Canonical Chat resource-projection wiring: resolves a message's resource
+	// occurrence into a viewer-aware representation by delegating to the owning
+	// domain. Chat never becomes Commerce business authority.
+	chatHandler.SetResourceProjectionResolver(newChatResourceProjectionResolver(db.Pgx()))
 
 	// Public OG share metadata endpoints (unauthenticated).
 	ogHandler := ogHTTP.NewHandler(db.Pgx())
@@ -1021,13 +1026,31 @@ func InitServices(
 	realtimeSubscribeGate := realtime.NewSubscribeGate(realtimeRoomAuthorizer, accountStatusChecker, log.Logger)
 
 	// Initialize the realtime WebSocket handler with the subscribe governance gate.
-	realtimeHandler := realtime.NewHandler(realtimeHub, realtimeSubscribeGate, chatRateLimiter, log.Logger)
+	// PRESENCE-SLICE-1: wire canonical presence lease authority so every
+	// authenticated WS session acquires exactly one Redis lease.
+	// presenceService is non-nil when Redis is available (production truth);
+	// nil only when Redis client is absent (test/dev without Redis).
+	// CLOSURE GATE 2: production boot must fail if presence is unavailable;
+	// authenticated WS must never run without a lease.
+	if isProduction && presenceService == nil {
+		log.Fatal("presence service required in production: redis unavailable — authenticated WS requires presence lease",
+			zap.String("gate", "PRESENCE-SLICE-1"),
+			zap.Bool("redis_available", redisClient != nil),
+		)
+	}
+	realtimeHandler := realtime.NewHandler(realtimeHub, realtimeSubscribeGate, chatRateLimiter, log.Logger, presenceService)
+
+	// Presence initial-state handler (Slice-4) — thin transport over BuildSnapshot
+	presenceHandler := presenceHTTP.NewHandler(presenceService, log.Logger)
 
 	// Create an adapter for the outbox repository to match realtime.OutboxRepository interface
 	// The outbox repository returns repository.Event, we need to convert to realtime.Event
 	outboxRepositoryAdapter := &realtimeOutboxRepositoryAdapter{repo: outboxRepository}
 
-	// Initialize the realtime worker (consumes chat.message.sent events).
+	// Initialize the realtime worker. OWNERSHIP: it claims only the
+	// realtime-owned outbox event types (realtime.OwnedOutboxEventTypes) and the
+	// outbox worker excludes exactly that set, so no event type is ever claimed
+	// by two consumers.
 	// CHAT-3: accountStatusChecker is threaded through to the Dispatcher for per-subscriber
 	// broadcast governance (fresh lifecycle check per delivery, not subscribe-time state).
 	realtimeWorker := realtime.NewWorker(
@@ -1046,6 +1069,37 @@ func InitServices(
 				zap.Int("batch_size", realtime.DefaultBatchSize),
 			)
 		})
+	}
+
+	// ===== PRESENCE MODULE — SLICE 2 =====
+	// Cross-instance fan-out + expiry sweeper.
+	// Both use canonical presenceService and realtimeHub; no second authority.
+	var presenceSweeper Worker
+	var presenceSubscriber Worker
+	if presenceService != nil {
+		innerSweeper := presence.NewSweeper(presenceService, log.Logger)
+		innerSubscriber := realtime.NewPresenceSubscriber(presenceService, realtimeHub, log.Logger)
+		presenceSweeper = innerSweeper
+		presenceSubscriber = innerSubscriber
+		if workerEnabled("PRESENCE_SWEEPER", true, log.Logger) {
+			workerStartups = append(workerStartups, func() {
+				innerSweeper.Start()
+				log.Info("PresenceSweeper ENABLED — expiry to presence.changed",
+					zap.Duration("interval", presence.PresenceWorkerInterval),
+					zap.Int("batch", presence.PresenceMaxClaimBatch),
+				)
+			})
+		}
+		if workerEnabled("PRESENCE_SUBSCRIBER", true, log.Logger) {
+			workerStartups = append(workerStartups, func() {
+				innerSubscriber.Start()
+				log.Info("PresenceSubscriber ENABLED — Redis→Hub fan-out",
+					zap.String("channel", presence.RedisEventsChannel),
+				)
+			})
+		}
+	} else {
+		log.Warn("Presence module disabled: nil presenceService (Redis unavailable — non-production or test)")
 	}
 
 	// ===== SELLER MODULE =====
@@ -1097,7 +1151,6 @@ func InitServices(
 		midtransClient,
 		sellerSubscriptionRepo,
 		cfg.App.FrontendURL,
-		subscriptionPaymentService,
 	)
 
 	// Wire the canonical configured seller withdrawal fee into the seller
@@ -1562,11 +1615,10 @@ func InitServices(
 	//
 	// IDEMPOTENCY: Only 1 warning/breach per ticket/dispute per stage
 	//
-	// Default OFF: emitted SLA events are not registered in the outbox event
-	// registry and have no consumer handlers (sla_notification_handlers.go was
-	// deleted). The worker also has an idempotency-key format mismatch between
-	// eventExists and emitEvent, and ticket checks incorrectly emit dispute.*
-	// event types. Gate OFF until the SLA notification pipeline is built.
+	// Default OFF: ticket.sla.* event emission was removed (no consumer handler;
+	// sla_notification_handlers.go was deleted). Admin SLA display is computed
+	// on-the-fly. The dispute SLA path retains its event emission.
+	// Gate OFF until the SLA notification pipeline is built.
 	// Enable: DISABLE_SLA_ESCALATION_WORKER=false
 	slaEscalationWorker := worker.NewSLAEscalationWorker(
 		db,
@@ -1746,6 +1798,68 @@ func InitServices(
 		})
 	} else {
 		_ = subscriptionReconciliationWorker
+	}
+
+	// REC-5: Payment Discovery Worker — scans stale pending payments and queries
+	// gateway truth for missing webhook signals. Routes to canonical domain
+	// finalization (CanonicalFinalizationService for orders,
+	// SellerSubscriptionPaymentService for subscriptions).
+	// Default ON: missing webhooks are invisible without this scanner.
+	// Disable: DISABLE_PAYMENT_DISCOVERY_WORKER=true
+	// Gateway inquiry eligibility: 10 minutes after created_at.
+	paymentDiscoveryWorker := worker.NewPaymentDiscoveryWorker(
+		db,
+		midtransClient,
+		canonicalFinalizationService,
+		subscriptionPaymentService,
+		log.Logger,
+		worker.DefaultPaymentDiscoveryConfig(),
+	)
+	// REC-6 SLICE 1: wire the canonical refund-intent authority so the
+	// discovery worker can create refund intents for gateway-success
+	// payments whose orders are in terminal states.
+	paymentDiscoveryWorker.SetRec6RefundCreator(refundService)
+	if workerEnabled("PAYMENT_DISCOVERY_WORKER", true, log.Logger) {
+		workerStartups = append(workerStartups, func() {
+			paymentDiscoveryWorker.Start()
+			log.Info("PaymentDiscoveryWorker started",
+				zap.Duration("poll_interval", worker.DefaultDiscoveryPollInterval),
+				zap.Int("batch_size", worker.DefaultDiscoveryBatchSize),
+				zap.Duration("inquiry_eligibility_age", worker.DefaultDiscoveryInquiryEligibilityAge),
+			)
+		})
+	} else {
+		log.Warn("PaymentDiscoveryWorker disabled — missing webhooks will not be auto-discovered",
+			zap.String("enable", "DISABLE_PAYMENT_DISCOVERY_WORKER=false"),
+		)
+		_ = paymentDiscoveryWorker
+	}
+
+	// REC-6 SLICE 2: refund DISPATCH worker — the single authority that submits
+	// canonical REC-6 refund intents to the gateway via the existing
+	// RefundWithKey capability. It only moves the settlement axis of
+	// already-created intents to REQUESTED/SUBMITTED (gateway_status='pending');
+	// final confirmation stays with the refund webhook ack path
+	// (gateway_status='succeeded'). Idempotent per merchant refund key
+	// rec6:payment:<payment_id>; HTTP happens outside any DB transaction; no
+	// ledger/escrow/order/seller-payable mutation.
+	// Default ON: a created-but-never-dispatched refund silently withholds the
+	// buyer's money. Disable: DISABLE_REC6_REFUND_DISPATCH_WORKER=true.
+	rec6RefundDispatchWorker := worker.NewRec6RefundDispatchWorker(
+		refundService,
+		log.Logger,
+		worker.DefaultRec6RefundDispatchConfig(),
+	)
+	if workerEnabled("REC6_REFUND_DISPATCH_WORKER", true, log.Logger) {
+		workerStartups = append(workerStartups, func() {
+			rec6RefundDispatchWorker.Start()
+			log.Info("Rec6RefundDispatchWorker started",
+				zap.Duration("poll_interval", worker.DefaultRec6RefundDispatchInterval),
+				zap.Int("batch_size", worker.DefaultRec6RefundDispatchBatchSize),
+			)
+		})
+	} else {
+		_ = rec6RefundDispatchWorker
 	}
 
 	// Z4-4. Withdrawal Monitoring Worker — read-only alert on stuck withdrawals.
@@ -2089,7 +2203,6 @@ func InitServices(
 	// Wire the canonical freeze-aware withdrawal authority into WithdrawService.
 	withdrawAuthFinance := financeApp.NewFinanceService()
 	withdrawAuthFinance.SetLogger(log.Logger)
-	withdrawAuthFinance.SetDisputeFreezeRepo(financeRepo.NewDisputeFreezeRepository())
 	withdrawService.SetCanonicalAuthority(withdrawAuthFinance)
 
 	// Wire the canonical configured seller withdrawal fee (admin-configurable,
@@ -2247,6 +2360,7 @@ func InitServices(
 	)
 	contentService.SetIdempotencyRepository(idempotencyRepoPkg.NewRepository())
 	contentService.SetOutboxInserter(outboxRepository)
+	contentService.SetBlockChecker(blockChecker)
 	// Content detail evaluator — canonical business truth = enforce. The
 	// observability runner is optional (disabled by default). Mode
 	// validity was already enforced once at boot via
@@ -2296,7 +2410,7 @@ func InitServices(
 	// for ForSale/Auction existence + state validation. Displayability only.
 	// Consumed by Create Content, Comment, and Chat.
 	commerceRefValidator := commerceResponse.NewValidator(
-		forSaleRepository, // ForSaleGetter — already constructed in LISTING MODULE
+		forSaleRepository, // ForSaleGetter — already constructed in FOR SALE MODULE
 		auctionRepository, // AuctionGetter — already constructed in AUCTION MODULE
 	)
 	contentService.SetCommerceReferenceValidator(commerceRefValidator)
@@ -2373,11 +2487,10 @@ func InitServices(
 	// SLICE 3: CaseRepository provides atomic Report → Case correlation.
 	reportRepository := moderationRepo.NewReportRepository()
 	caseRepository := moderationRepo.NewCaseRepository()
-	reportService := moderationApp.NewReportService(db.Pgx(), reportRepository, caseRepository)
-	reportHandler := moderationHTTP.NewReportHandler(reportService, log.Logger)
-
-	// SLICE 4: DecisionRepository provides canonical Decision persistence.
 	decisionRepository := moderationRepo.NewDecisionRepository()
+
+	reportService := moderationApp.NewReportService(db.Pgx(), reportRepository, caseRepository)
+	reportHandler := moderationHTTP.NewReportHandlerWithDeps(reportService, db.Pgx(), caseRepository, decisionRepository, log.Logger)
 
 	decisionService := moderationApp.NewDecisionService(db.Pgx(), caseRepository, decisionRepository, enforcementRepository, outboxRepository, auditService)
 
@@ -2642,8 +2755,9 @@ func InitServices(
 	// Registers CoinsRefundRequiredHandler against `coins.refund_required` so
 	// the producer paths (HandleGatewayRefundAck full-refund ack-time emission,
 	// OrderCompletionService.CancelOverdue, OrderCompletionService.Expire) are
-	// runtime-reachable. Without this, the dispatcher would hit DispatchResultNoHandler
-	// and silently mark the event succeeded, leaving buyer coins un-refunded.
+	// runtime-reachable. Without this, the dispatcher would find no handler for
+	// an unacknowledged event, fail the dispatch, and dead-letter it after the
+	// canonical retries — leaving buyer coins un-refunded.
 	// Idempotency is guaranteed by the unique index
 	// idx_coins_transactions_unique_reference(user_id, reference_type, reference_id).
 	// Registered AFTER coinsService is constructed; outbox worker .Start() is
@@ -2689,7 +2803,7 @@ func InitServices(
 	// Create an adapter for the dispute service to match support service's interface
 	disputeSvcAdapter := &disputeServiceAdapter{disputeService: disputeService}
 	supportSvc := supportApp.NewServiceWithDefaults(db.Pgx(), supportChatAdapter, outboxRepository, orderService, disputeSvcAdapter, log.Logger)
-	supportHandler := supportHTTP.NewHandler(supportSvc, supportChatAdapter, chatService, db.Pgx(), log.Logger, adminAuditLogger)
+	supportHandler := supportHTTP.NewHandler(supportSvc, chatService, db.Pgx(), log.Logger, adminAuditLogger)
 
 	// SUPPORT USER REPLY HANDLER: When a user sends a chat message in a support
 	// room, transitions the linked ticket from waiting_user → in_progress.
@@ -2727,30 +2841,6 @@ func InitServices(
 	// already expired the payment/order raises a visible operator alert
 	// instead of only being logged.
 	paymentWebhookService.SetAlertService(alertService)
-
-	if orphanWebhookRecoveryEnabled(log.Logger) {
-		// Orphan webhook recovery worker â€” dormant by default, activated only via
-		// explicit env gate. The worker reuses the canonical finalization service
-		// and is started through a cancelable application context.
-		orphanWebhookRecoveryCfg := paymentApp.LoadOrphanWebhookRecoveryConfigFromEnv()
-		orphanWebhookRecoveryWorker := paymentApp.NewOrphanWebhookRecoveryWorker(
-			db.Pgx(),
-			midtransClient,
-			paymentWebhookService,
-			canonicalFinalizationService,
-			log.Logger,
-			orphanWebhookRecoveryCfg,
-		)
-		orphanWebhookRecoveryWorker.SetMetricsRecorder(metricsCollector)
-		orphanWebhookRecoveryWorker.SetAlertService(alertService)
-		registerOrphanWebhookRecoveryWorkerStartup(
-			appCtx,
-			&workerStartups,
-			true,
-			orphanWebhookRecoveryWorker.Start,
-			log.Logger,
-		)
-	}
 
 	// O1A: Wire money.refund_failed → operator alert (CRITICAL severity).
 	// Previously audit-only; now creates a row in system_alerts visible to admin.
@@ -3037,37 +3127,38 @@ func InitServices(
 		BiddingHandler:           biddingHandler,
 		// CollectionHandler:     collectionHandler, // DISABLED: Collection domain being isolated for removal
 		// OfferHandler:          offerHandler,      // DISABLED: Offer domain being isolated for removal
-		ForSaleHandler:                      forSaleHandler,
-		PricingTokenHandler:                 pricingTokenHandler,
-		ChatHandler:                         chatHandler,
-		DiscountHandler:                     discountHandler,
-		DisputeHandler:                      disputeHandler,
-		SellerHandler:                       sellerHandler,
-		SystemHealthHandler:                 systemHealthHandler,
-		RealtimeHandler:                     realtimeHandler,
-		FeedHandler:                         feedHandler,
-		ContentHandler:                      contentHandler,
-		OGHandler:                           ogHandler,
-		CommentHandler:                      commentHandler,
-		LikeHandler:                         likeHandler,
-		NotificationHandler:                 notificationHandler,
-		FCMTokenHandler:                     fcmTokenHandler,
-		ReportHandler:                       reportHandler,             // SLICE 2: canonical Report intake
-		GovernanceAdminHandler:              governanceAdminHandler,    // SLICE 6: admin governance workflow
-		FollowHandler:                       followHandler,             // SOCIAL domain: follow/block/mute
-		ShippingQuoteHandler:                shippingQuoteHandler,      // Shipping quote feature (chat-based manual quotes)
-		RatingHandler:                       ratingHandler,             // RATING DOMAIN: buyer→seller order ratings
-		PromotionHandler:             promotionHandler,          // PROMOTION PHASE 4: external product surface
-		PromotionContractService:     canonicalContractService,  // PHASE 4A: canonical contract runtime composition
-		PromotionContractHandler:     canonicalContractHandler,  // PHASE 4A: canonical contract HTTP surface
-		PromotionMeasurementHandler:  promotionMeasurementHandler, // CANONICAL delivery measurement ack surface (impressions/clicks)
-		PromotionDeliveryHandoff:     canonicalDeliveryHandoffService, // CANONICAL contract-based selection (feed/search injectors)
-		PromoteBalanceHandler:        promoteBalanceHandler,     // PHASE 4B: canonical promote balance funding entry
-		SearchHandler:                searchHandler,             // FEDERATED SEARCH: content, users, forSales
-		AdminOrderHandler:                   adminOrderHandler,      // ADMIN ORDER: read-only order management
-		AdminRefundHandler:                  adminRefundHandler,     // TASK 34 / Phase 2a: admin-only gateway refund trigger
-		SellerRefundHandler:                 sellerRefundHandler,    // H2-A: seller approve/reject refund
-		BuyerEscalationHandler:              buyerEscalationHandler, // H2-B: buyer escalate rejected refund
+		ForSaleHandler:              forSaleHandler,
+		PricingTokenHandler:         pricingTokenHandler,
+		ChatHandler:                 chatHandler,
+		DiscountHandler:             discountHandler,
+		DisputeHandler:              disputeHandler,
+		SellerHandler:               sellerHandler,
+		SystemHealthHandler:         systemHealthHandler,
+		RealtimeHandler:             realtimeHandler,
+		FeedHandler:                 feedHandler,
+		ContentHandler:              contentHandler,
+		OGHandler:                   ogHandler,
+		CommentHandler:              commentHandler,
+		LikeHandler:                 likeHandler,
+		NotificationHandler:         notificationHandler,
+		FCMTokenHandler:             fcmTokenHandler,
+		PresenceHandler:             presenceHandler,                 // PRESENCE SLICE-4: initial state batch read
+		ReportHandler:               reportHandler,                   // SLICE 2: canonical Report intake
+		GovernanceAdminHandler:      governanceAdminHandler,          // SLICE 6: admin governance workflow
+		FollowHandler:               followHandler,                   // SOCIAL domain: follow/block/mute
+		ShippingQuoteHandler:        shippingQuoteHandler,            // Shipping quote feature (chat-based manual quotes)
+		RatingHandler:               ratingHandler,                   // RATING DOMAIN: buyer→seller order ratings
+		PromotionHandler:            promotionHandler,                // PROMOTION PHASE 4: external product surface
+		PromotionContractService:    canonicalContractService,        // PHASE 4A: canonical contract runtime composition
+		PromotionContractHandler:    canonicalContractHandler,        // PHASE 4A: canonical contract HTTP surface
+		PromotionMeasurementHandler: promotionMeasurementHandler,     // CANONICAL delivery measurement ack surface (impressions/clicks)
+		PromotionDeliveryHandoff:    canonicalDeliveryHandoffService, // CANONICAL contract-based selection (feed/search injectors)
+		PromoteBalanceHandler:       promoteBalanceHandler,           // PHASE 4B: canonical promote balance funding entry
+		SearchHandler:               searchHandler,                   // FEDERATED SEARCH: content, users, forSales
+		AdminOrderHandler:           adminOrderHandler,               // ADMIN ORDER: read-only order management
+		AdminRefundHandler:          adminRefundHandler,              // TASK 34 / Phase 2a: admin-only gateway refund trigger
+		SellerRefundHandler:         sellerRefundHandler,             // H2-A: seller approve/reject refund
+		BuyerEscalationHandler:      buyerEscalationHandler,          // H2-B: buyer escalate rejected refund
 
 		// VERIFICATION (Phase 2 operationalization)
 		VerificationHandler:      verificationHandler,
@@ -3123,6 +3214,7 @@ func InitServices(
 		OutboxArchivalWorker:             outboxArchivalWorker,             // Z4-1: OUTBOX RETENTION
 		OrderOverdueCancelWorker:         orderOverdueCancelWorker,         // Z4-2: ORDER FULFILLMENT
 		SubscriptionReconciliationWorker: subscriptionReconciliationWorker, // Z4-3: SUBSCRIPTION HARDENING
+		PaymentDiscoveryWorker:           paymentDiscoveryWorker,           // REC-5: PAYMENT DISCOVERY
 		WithdrawalMonitoringWorker:       withdrawalMonitoringWorker,       // Z4-4: PAYOUT MONITORING
 		PushRetryWorker:                  pushRetryWorker,                  // Z6-1: PUSH RELIABILITY
 		NotificationCleanupWorker:        notificationCleanupWorker,        // Z6-2: PUSH HYGIENE
@@ -3130,6 +3222,8 @@ func InitServices(
 		TotalMoneyInvariantWorker:        totalMoneyInvariantWorker,        // TOTAL MONEY INVARIANT (shadow default)
 		SellerMetricsWorker:              sellerMetricsWorker,              // SELLER MEASUREMENT - daily fulfillment snapshot
 		SellerReputationRecomputeWorker:  sellerReputationRecomputeWorker,  // REPUTATION AUTHORITY - nightly 90-day rolling recompute
+		PresenceSweeper:                  presenceSweeper,                  // PRESENCE SLICE-2: expiry sweeper
+		PresenceSubscriber:               presenceSubscriber,               // PRESENCE SLICE-2: cross-instance fan-out
 
 		workerStartups: workerStartups,
 	}
@@ -3155,25 +3249,6 @@ func StartWorkers(deps *Dependencies) {
 	for _, start := range startups {
 		start()
 	}
-}
-
-func registerOrphanWebhookRecoveryWorkerStartup(
-	appCtx context.Context,
-	workerStartups *[]func(),
-	enabled bool,
-	start func(context.Context),
-	log *zap.Logger,
-) {
-	if !enabled {
-		return
-	}
-	if appCtx == nil {
-		appCtx = context.Background()
-	}
-	*workerStartups = append(*workerStartups, func() {
-		go start(appCtx)
-		log.Info("OrphanWebhookRecoveryWorker ENABLED - orphan recovery adapter active")
-	})
 }
 
 // wrapWorkerOrNil wraps a worker that might be nil in a no-op stub.
@@ -3229,9 +3304,12 @@ type CreatePaymentRequest struct {
 	// payment_methods table / GET /payments/methods). The backend looks up
 	// the method's fee formula and computes gross_amount itself — the
 	// client never submits a fee or gross amount (PASS_18V).
-	PaymentMethodCode string     `json:"payment_method_code" binding:"required"`
-	CoinsToUse        int        `json:"coins_to_use"`
-	PriceSnapshotID   *uuid.UUID `json:"price_snapshot_id"`
+	PaymentMethodCode string `json:"payment_method_code" binding:"required"`
+	// NOTE: there is deliberately NO coins_to_use here. K is decided once at
+	// Order creation (use_coins -> pricing_tokens.coins_used) and payment
+	// derives K from that canonical snapshot. A payment-time client K would be
+	// a second, competing authority.
+	PriceSnapshotID *uuid.UUID `json:"price_snapshot_id"`
 }
 
 // CreateBillingPaymentRequest holds the request payload for initiating a billing payment.
@@ -3239,8 +3317,8 @@ type CreatePaymentRequest struct {
 // PASS_18V: payment_method_code is required — the backend is the sole authority
 // for the buyer payment fee. The client never submits a fee or gross amount.
 type CreateBillingPaymentRequest struct {
-	BillingID          uuid.UUID `json:"billing_id" binding:"required"`
-	PaymentMethodCode  string    `json:"payment_method_code" binding:"required"`
+	BillingID         uuid.UUID `json:"billing_id" binding:"required"`
+	PaymentMethodCode string    `json:"payment_method_code" binding:"required"`
 }
 
 func (h *CorePaymentHandler) loadOrderPricingTokenSnapshot(
@@ -3367,12 +3445,6 @@ func (h *CorePaymentHandler) CreatePayment(c *gin.Context) {
 	// order, return it immediately. This prevents duplicate Midtrans calls when
 	// the buyer retries the pay-now CTA (e.g. after closing the Snap sheet).
 	// =============================================================================
-	coinsToUse := req.CoinsToUse
-	if coinsToUse < 0 {
-		response.BadRequest(c, "coins_to_use must be non-negative")
-		return
-	}
-
 	// =============================================================================
 	// PASS_18V: PAYMENT METHOD RESOLUTION + BUYER FEE CALCULATION
 	// =============================================================================
@@ -3420,13 +3492,24 @@ func (h *CorePaymentHandler) CreatePayment(c *gin.Context) {
 		return
 	}
 
-	if coinsToUse > int(baseAmount.Int64()) {
-		response.BadRequest(c, "coins_to_use cannot exceed the order amount")
+	// CANONICAL K: the coins redeemed are DERIVED from the pricing token snapshot
+	// written at Order creation. The client has no payment-time K authority.
+	//
+	// The three guards below are corrupted-snapshot integrity checks, not client
+	// validation: POST /orders already clamped K to min(balance, MaxCoinsAllowed),
+	// so a token that violates any bound means the persisted snapshot is broken.
+	// They fail closed (500) and never reach Midtrans.
+	coinsToUse := int(pricingToken.CoinsUsed)
+	if coinsToUse < 0 {
+		response.InternalServerError(c, "Invalid coin snapshot on order: negative")
 		return
 	}
-	maxCoins := pricingToken.MaxCoinsAllowed
-	if int64(coinsToUse) > maxCoins {
-		response.BadRequest(c, fmt.Sprintf("coins_to_use exceeds max allowed (%d)", maxCoins))
+	if coinsToUse > int(baseAmount.Int64()) {
+		response.InternalServerError(c, "Invalid coin snapshot on order: exceeds order amount")
+		return
+	}
+	if int64(coinsToUse) > pricingToken.MaxCoinsAllowed {
+		response.InternalServerError(c, "Invalid coin snapshot on order: exceeds max allowed")
 		return
 	}
 
@@ -3742,20 +3825,10 @@ func (h *CorePaymentHandler) ListPaymentMethods(c *gin.Context) {
 		return
 	}
 
-	coinsToUse := 0
-	if coinsToUseParam := c.Query("coins_to_use"); coinsToUseParam != "" {
-		parsedCoins, parseErr := strconv.Atoi(coinsToUseParam)
-		if parseErr != nil || parsedCoins < 0 {
-			response.BadRequest(c, "coins_to_use query parameter must be a non-negative integer")
-			return
-		}
-		coinsToUse = parsedCoins
-	}
-	maxCoins := pricingToken.MaxCoinsAllowed
-	if int64(coinsToUse) > maxCoins {
-		response.BadRequest(c, fmt.Sprintf("coins_to_use exceeds max allowed (%d)", maxCoins))
-		return
-	}
+	// CANONICAL K: the same snapshot CreatePayment will use, written at Order
+	// creation. The method list must mirror the actual payment's coin basis —
+	// there is no client coins_to_use query authority.
+	coinsToUse := int(pricingToken.CoinsUsed)
 	cashAmount := baseAmount.Sub(money.New(int64(coinsToUse)))
 
 	out := make([]gin.H, 0, len(methods))
@@ -3777,9 +3850,8 @@ func (h *CorePaymentHandler) ListPaymentMethods(c *gin.Context) {
 	}
 
 	response.Success(c, gin.H{
-		"order_id":      order.ID,
-		"base_amount":   baseAmount.Int64(),
-		"escrow_amount": baseAmount.Int64(),
+		"order_id":    order.ID,
+		"base_amount": baseAmount.Int64(),
 		"coins_to_use":  coinsToUse,
 		"methods":       out,
 	})
@@ -4656,9 +4728,10 @@ type realtimeOutboxRepositoryAdapter struct {
 	repo *outboxRepo.OutboxRepository
 }
 
-// FetchPendingBatch fetches pending events and converts them to realtime.Event format.
-func (a *realtimeOutboxRepositoryAdapter) FetchPendingBatch(ctx context.Context, tx db.Tx, limit int) ([]realtime.Event, error) {
-	events, err := a.repo.FetchPendingBatch(ctx, tx, limit)
+// FetchPendingBatch fetches pending events owned by the realtime consumer
+// (ownership include scope) and converts them to realtime.Event format.
+func (a *realtimeOutboxRepositoryAdapter) FetchPendingBatch(ctx context.Context, tx db.Tx, limit int, ownedEventTypes []string) ([]realtime.Event, error) {
+	events, err := a.repo.FetchPendingBatch(ctx, tx, limit, outboxRepo.EventOwnershipScope{Include: ownedEventTypes})
 	if err != nil {
 		return nil, err
 	}
@@ -4704,27 +4777,12 @@ type supportChatServiceAdapter struct {
 	chatService *chatApp.Service
 }
 
-// GetOrCreateSupportRoom creates or retrieves a support chat room for a user.
-// Creates RoomTypeSupport with participant_b = uuid.Nil (system placeholder).
-// Block-exempt: support rooms are never subject to user-block enforcement.
-func (a *supportChatServiceAdapter) GetOrCreateSupportRoom(ctx context.Context, userID uuid.UUID) (*chatEntity.ChatRoom, error) {
-	return a.chatService.GetOrCreateSupportRoom(ctx, userID)
-}
-
-// CreateSupportTicketRoom creates or retrieves a support chat room for a ticket.
-// Per UNIQUE(participant_a, participant_b, room_type), one support room per user.
-// Room type is RoomTypeSupport — enables block exemption and support.user_replied emission.
-// Room-level commerce context is not stored; ticket → room linkage is carried by
-// support_tickets.chat_room_id and the ticket's linked_order_id.
+// CreateSupportTicketRoom provisions a NEW support conversation for exactly one
+// support ticket (one ticket = one room). The room owner is the ticket owner;
+// agent access is authorized by the Support domain, not by chat participation.
+// Support rooms are block-exempt.
 func (a *supportChatServiceAdapter) CreateSupportTicketRoom(ctx context.Context, userID uuid.UUID) (*chatEntity.ChatRoom, error) {
-	return a.chatService.GetOrCreateSupportRoom(ctx, userID)
-}
-
-// SendSystemMessage sends a system message to a support chat room.
-// Uses ChatService.SendSystemMessage which bypasses participant checks, rate limits,
-// and block enforcement. No outbox event emitted (system messages are internal).
-func (a *supportChatServiceAdapter) SendSystemMessage(ctx context.Context, roomID uuid.UUID, body string) error {
-	return a.chatService.SendSystemMessage(ctx, roomID, body)
+	return a.chatService.CreateSupportTicketRoom(ctx, userID)
 }
 
 // =============================================================================

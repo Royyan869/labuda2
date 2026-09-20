@@ -1,8 +1,8 @@
-// E8.4 — Mobile search listing/auction seller user-axis lifecycle ingestion
+// E8.4 — Mobile search forSale/auction seller user-axis lifecycle ingestion
 // and subtitle redaction tests.
 //
 // Scope is pinned to four seams:
-//   1) the wire-shape parsers that walk `listing.seller.user.lifecycle` and
+//   1) the wire-shape parsers that walk `forSale.seller.user.lifecycle` and
 //      `auction.seller.user.lifecycle` into the DTO `sellerUserLifecycle`
 //      string slot,
 //   2) the mapper / DTO->entity conversion that pipes that wire string into
@@ -11,7 +11,7 @@
 //   3) the axis-boundary contract — top-level `seller.lifecycle` and flat
 //      `seller_lifecycle` MUST NOT be read on this surface,
 //   4) the SearchResultItem subtitle redaction gate driven off the
-//      metadata['sellerLifecycle'] wire string on listing/auction rows
+//      metadata['sellerLifecycle'] wire string on forSale/auction rows
 //      ONLY (other surfaces remain untouched).
 //
 // Widget-level golden tests would require a full Riverpod harness; the
@@ -31,7 +31,7 @@ import 'package:labuda/shared/utils/commerce_seller_identity.dart';
 // Fixtures
 // ---------------------------------------------------------------------------
 
-Map<String, dynamic> _baseListingJson({Map<String, dynamic>? listing}) {
+Map<String, dynamic> _baseListingJson({Map<String, dynamic>? forSale}) {
   return <String, dynamic>{
     'id': '00000000-0000-0000-0000-000000000001',
     'title': 'Showa Koi 30cm',
@@ -44,7 +44,7 @@ Map<String, dynamic> _baseListingJson({Map<String, dynamic>? listing}) {
     'seller_farm_name': 'Acme Farm',
     'seller_avatar_url': null,
     'created_at': '2026-01-01T00:00:00.000Z',
-    'fixed_price_sale': ?listing,
+    'for_sale': ?forSale,
   };
 }
 
@@ -71,7 +71,7 @@ Map<String, dynamic> _baseAuctionJson({Map<String, dynamic>? auction}) {
   };
 }
 
-/// Reproduce the listing/auction subtitle redaction logic from
+/// Reproduce the forSale/auction subtitle redaction logic from
 /// SearchResultItem._sellerRedactionSubtitle so we can pin it without a
 /// Riverpod widget harness. The widget reads ONLY this wire shape:
 ///   - metadata['sellerLifecycle'] (sourced from seller.user.lifecycle).
@@ -95,12 +95,12 @@ String? _renderSubtitle(SearchResult r) {
 
 void main() {
   // -------------------------------------------------------------------------
-  // 1) Listing DTO wire extraction
+  // 1) ForSale DTO wire extraction
   // -------------------------------------------------------------------------
   group(
     'E8.4 — ForSaleSearchResultDto.sellerUserLifecycle wire extraction',
     () {
-      test('absent listing block → sellerUserLifecycle null (pre-E8.1)', () {
+      test('absent forSale block → sellerUserLifecycle null (pre-E8.1)', () {
         final dto = ForSaleSearchResultDto.fromJson(_baseListingJson());
         expect(dto.sellerUserLifecycle, isNull);
       });
@@ -108,7 +108,7 @@ void main() {
       test('missing nested seller.user → null (defaults to active)', () {
         final dto = ForSaleSearchResultDto.fromJson(
           _baseListingJson(
-            listing: {
+            forSale: {
               'id': '00000000-0000-0000-0000-000000000001',
               'seller': {'farm_name': 'Acme Farm'},
             },
@@ -120,7 +120,7 @@ void main() {
       test('nested user.lifecycle="active" → "active"', () {
         final dto = ForSaleSearchResultDto.fromJson(
           _baseListingJson(
-            listing: {
+            forSale: {
               'id': '00000000-0000-0000-0000-000000000001',
               'seller': {
                 'user': {
@@ -140,7 +140,7 @@ void main() {
       test('nested user.lifecycle="unavailable" → "unavailable"', () {
         final dto = ForSaleSearchResultDto.fromJson(
           _baseListingJson(
-            listing: {
+            forSale: {
               'id': '00000000-0000-0000-0000-000000000001',
               'seller': {
                 'user': {
@@ -158,7 +158,7 @@ void main() {
       test('nested user.lifecycle="removed" → "removed"', () {
         final dto = ForSaleSearchResultDto.fromJson(
           _baseListingJson(
-            listing: {
+            forSale: {
               'id': '00000000-0000-0000-0000-000000000001',
               'seller': {
                 'user': {
@@ -176,7 +176,7 @@ void main() {
       test('empty-string user.lifecycle → null (rollback-safe)', () {
         final dto = ForSaleSearchResultDto.fromJson(
           _baseListingJson(
-            listing: {
+            forSale: {
               'id': '00000000-0000-0000-0000-000000000001',
               'seller': {
                 'user': {
@@ -199,7 +199,7 @@ void main() {
           // walker only reaches user.lifecycle; top-level is ignored.
           final dto = ForSaleSearchResultDto.fromJson(
             _baseListingJson(
-              listing: {
+              forSale: {
                 'id': '00000000-0000-0000-0000-000000000001',
                 'seller': {
                   'user': {
@@ -232,9 +232,9 @@ void main() {
   );
 
   // -------------------------------------------------------------------------
-  // 2) Listing mapper threads DTO → entity ContentLifecycle
+  // 2) ForSale mapper threads DTO → entity ContentLifecycle
   // -------------------------------------------------------------------------
-  group('E8.4 — Listing mapper threads sellerUserLifecycle into entity', () {
+  group('E8.4 — ForSale mapper threads sellerUserLifecycle into entity', () {
     test('null wire → ContentLifecycle.unavailable (FAIL CLOSED)', () {
       final dto = ForSaleSearchResultDto.fromJson(_baseListingJson());
       final entity = dto.toDomain();
@@ -244,7 +244,7 @@ void main() {
     test('"active" wire → ContentLifecycle.active', () {
       final dto = ForSaleSearchResultDto.fromJson(
         _baseListingJson(
-          listing: {
+          forSale: {
             'id': '00000000-0000-0000-0000-000000000001',
             'seller': {
               'user': {'lifecycle': 'active'},
@@ -258,7 +258,7 @@ void main() {
     test('"unavailable" wire → ContentLifecycle.unavailable', () {
       final dto = ForSaleSearchResultDto.fromJson(
         _baseListingJson(
-          listing: {
+          forSale: {
             'id': '00000000-0000-0000-0000-000000000001',
             'seller': {
               'user': {'lifecycle': 'unavailable'},
@@ -272,7 +272,7 @@ void main() {
     test('"removed" wire → ContentLifecycle.removed', () {
       final dto = ForSaleSearchResultDto.fromJson(
         _baseListingJson(
-          listing: {
+          forSale: {
             'id': '00000000-0000-0000-0000-000000000001',
             'seller': {
               'user': {'lifecycle': 'removed'},
@@ -286,7 +286,7 @@ void main() {
     test('unknown wire → ContentLifecycle.unavailable (FAIL CLOSED)', () {
       final dto = ForSaleSearchResultDto.fromJson(
         _baseListingJson(
-          listing: {
+          forSale: {
             'id': '00000000-0000-0000-0000-000000000001',
             'seller': {
               'user': {'lifecycle': 'shadowbanned'},
@@ -397,7 +397,7 @@ void main() {
   );
 
   // -------------------------------------------------------------------------
-  // 4) Subtitle redaction gate (listing/auction only)
+  // 4) Subtitle redaction gate (forSale/auction only)
   // -------------------------------------------------------------------------
   group('E8.4 — SearchResultItem subtitle redaction gate', () {
     SearchResult listingResult(String? lifecycle) {
@@ -428,29 +428,29 @@ void main() {
       );
     }
 
-    test('listing active → owner-truth subtitle unchanged', () {
+    test('forSale active → owner-truth subtitle unchanged', () {
       expect(_renderSubtitle(listingResult('active')), '@bob\nAcme Farm');
     });
 
     test(
-      'listing missing sellerLifecycle → "Pengguna tidak tersedia" (FAIL CLOSED)',
+      'forSale missing sellerLifecycle → "Pengguna tidak tersedia" (FAIL CLOSED)',
       () {
         expect(_renderSubtitle(listingResult(null)), 'Pengguna tidak tersedia');
       },
     );
 
-    test('listing unavailable → "Pengguna tidak tersedia"', () {
+    test('forSale unavailable → "Pengguna tidak tersedia"', () {
       expect(
         _renderSubtitle(listingResult('unavailable')),
         'Pengguna tidak tersedia',
       );
     });
 
-    test('listing removed → "Pengguna dihapus"', () {
+    test('forSale removed → "Pengguna dihapus"', () {
       expect(_renderSubtitle(listingResult('removed')), 'Pengguna dihapus');
     });
 
-    test('listing unknown → "Pengguna tidak tersedia" (FAIL CLOSED)', () {
+    test('forSale unknown → "Pengguna tidak tersedia" (FAIL CLOSED)', () {
       expect(
         _renderSubtitle(listingResult('shadowbanned')),
         'Pengguna tidak tersedia',
@@ -468,9 +468,9 @@ void main() {
       expect(_renderSubtitle(auctionResult('removed')), 'Pengguna dihapus');
     });
 
-    test('non-listing/auction surface (content) IGNORES sellerLifecycle', () {
+    test('non-forSale/auction surface (content) IGNORES sellerLifecycle', () {
       // Even when sellerLifecycle is present on a content row (it should
-      // never be — adapter only emits it for listing/auction), the
+      // never be — adapter only emits it for forSale/auction), the
       // subtitle gate must not fire on non-seller surfaces.
       final content = SearchResult(
         id: 'c1',
@@ -508,7 +508,7 @@ void main() {
     test('degraded subtitle still presents tappable row semantics', () {
       // SearchResultItem only disables onTap on the item-axis isUnavailable
       // path (which reads metadata['lifecycle'] for content rows). The
-      // seller-axis path does NOT branch onTap, so a redacted listing
+      // seller-axis path does NOT branch onTap, so a redacted forSale
       // remains tappable. Pinning the absence of any item-axis lifecycle
       // signal proves this row stays interactive.
       final r = listingResult('removed');
@@ -516,7 +516,7 @@ void main() {
         r.metadata.containsKey('lifecycle'),
         isFalse,
         reason:
-            'listing/auction rows must not propagate item-axis lifecycle metadata',
+            'forSale/auction rows must not propagate item-axis lifecycle metadata',
       );
     });
   });

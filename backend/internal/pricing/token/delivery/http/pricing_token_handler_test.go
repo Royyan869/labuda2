@@ -415,6 +415,81 @@ func TestPricingTokenHandler_GeneratePreview_NegotiationXORRejectsNeither(t *tes
 	}
 }
 
+// FIN-R01E-D — POST /pricing/preview emits a NUMERIC money snapshot.
+//
+// Regression: money.Money serialized to `{}`, so the preview returned every
+// amount as an object and clients parsed 0. The snapshot must emit the
+// canonical escrow_amount (PD+S) and total_payable_amount (escrow + fee) as
+// numbers, and must never emit the persisted ORDER column name.
+func TestPricingTokenHandler_GeneratePreview_EmitsNumericMoneySnapshot(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	productID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	forSaleID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
+	shippingSetupID := uuid.MustParse("44444444-4444-4444-4444-444444444444")
+	addressID := uuid.MustParse("55555555-5555-5555-5555-555555555555")
+	userID := uuid.MustParse("66666666-6666-6666-6666-666666666666")
+
+	service := &previewServiceStub{
+		t: t,
+		fixedResp: &pricingtokenapp.GenerateForForSaleResponse{
+			Token:     uuid.MustParse("77777777-7777-7777-7777-777777777777"),
+			ExpiresAt: "2026-06-22T12:00:00Z",
+			PricingSnapshot: pricingtokenapp.PricingSnapshot{
+				UnitPrice:          money.New(100000),
+				Quantity:           1,
+				Subtotal:           money.New(100000),
+				ShippingTotal:      money.New(10000),
+				ServiceFeeAmount:   money.New(5000),
+				TotalPayableAmount: money.New(100000), // escrow (95000) + fee (5000)
+				EscrowAmount:       money.New(95000),  // (P−D)+S
+			},
+		},
+	}
+
+	handler := &PricingTokenHandler{
+		tokenService: service,
+		db:           fakeTransactor{},
+		log:          zap.NewNop(),
+	}
+
+	resp := performGeneratePreviewRequest(t, handler, userID, GeneratePreviewRequest{
+		ProductID:        productID,
+		SourceType:       "for_sale",
+		SourceID:         forSaleID,
+		Quantity:         1,
+		ShippingSetupID: &shippingSetupID,
+		AddressID:        addressID,
+	})
+	if resp.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", resp.Code, http.StatusOK)
+	}
+
+	got := decodePreviewResponse(t, resp.Body.Bytes())
+	var snap map[string]any
+	if err := json.Unmarshal(got.Data.PricingSnapshot, &snap); err != nil {
+		t.Fatalf("unmarshal pricing_snapshot: %v", err)
+	}
+
+	for _, key := range []string{
+		"unit_price", "subtotal", "shipping_total", "service_fee_amount",
+		"total_payable_amount", "escrow_amount",
+	} {
+		if _, ok := snap[key].(float64); !ok {
+			t.Fatalf("pricing_snapshot[%q] must be numeric, got %#v (body=%s)", key, snap[key], resp.Body.String())
+		}
+	}
+	if snap["total_payable_amount"].(float64) != 100000 {
+		t.Fatalf("total_payable_amount = %v, want 100000", snap["total_payable_amount"])
+	}
+	if snap["escrow_amount"].(float64) != 95000 {
+		t.Fatalf("escrow_amount = %v, want 95000", snap["escrow_amount"])
+	}
+	if _, forbidden := snap["total_before_coins_amount"]; forbidden {
+		t.Fatalf("preview snapshot must not emit the persisted ORDER column name total_before_coins_amount")
+	}
+}
+
 func performGeneratePreviewRequest(t *testing.T, handler *PricingTokenHandler, userID uuid.UUID, req GeneratePreviewRequest) *httptest.ResponseRecorder {
 	t.Helper()
 

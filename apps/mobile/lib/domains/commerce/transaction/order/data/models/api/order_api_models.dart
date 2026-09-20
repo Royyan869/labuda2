@@ -8,22 +8,14 @@ library;
 export 'order_api_response_dtos.dart'
     show
         OrderApiResponse,
+        OrderItemApiResponse,
         OrderListApiResponse,
-        OrderStatsApiResponse,
-        RefundApiResponse,
-        RefundListApiResponse,
         CheckDeliveryApiResponse,
-        ShippingProofApiResponse,
         ShippingAddressApiResponse,
-        ProductSummaryApiResponse,
         CheckDeliveryApiRequest,
-        CreateShippingProofApiRequest,
         OrderFilterParams,
         RefundFilterParams;
 
 // Re-export domain types used by API layer
-// OrderStats: use OrderStatsApiResponse instead (defined in order_api_response_dtos.dart)
 // RefundStatus: use RefundStatus from domain entities (refund_request.dart)
-
-// NOTE: OrderListDto and RefundListDto are now defined via typedef in order_dto_response.dart
-// to avoid conflicts with OrderListApiResponse and RefundListApiResponse
+// RefundDto / RefundListDto: owned by refund_dto.dart

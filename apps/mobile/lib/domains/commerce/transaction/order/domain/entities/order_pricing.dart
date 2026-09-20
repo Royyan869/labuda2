@@ -1,124 +1,91 @@
 import 'package:equatable/equatable.dart';
 
 /// ============================================
-/// DISPLAY ONLY - READ-ONLY DATA CLASS
+/// CANONICAL ORDER PRICING — DISPLAY ONLY
 /// ============================================
 /// Backend Authority - Do NOT calculate pricing on client
 ///
-/// ALL pricing values MUST come from backend API response.
-/// This class is purely a projection layer for displaying backend-calculated values.
+/// CANONICAL MONEY MODEL:
+///   P  = subtotal (unit_price × quantity, before seller discount)
+///   PD = discounted product amount (derived: totalBeforeCoinsAmount - shippingCost)
+///   S  = shippingCost (shipping_total)
+///   C  = commissionAmount (seller-side, platform commission)
+///   F  = serviceFeeAmount (buyer-side, payment service fee)
 ///
-/// TRACK 10 - Client-side calculation REMOVED
-/// - No fee calculation on client
-/// - No total calculation on client
-/// - No payout calculation on client
+/// CANONICAL BASES:
+///   totalBeforeCoinsAmount = PD + S  (canonical buyer-funded base)
+///   totalPayableAmount     = PD + S + F  (buyer's gross payable after payment method selection)
 ///
-/// FINANCIAL OWNERSHIP BOUNDARY (Wave 3.1B):
-/// - sellerCommission and sellerEarnings REMOVED - these are seller financial data
-/// - Seller financial UI must use finance-derived sources (SellerEarnings, SellerDashboardStats)
-///
-/// Source: OrderResponseDto.fromBackend() → Order entity
+/// Source: OrderMapper._buildOrderPricing() → Order entity
 /// ============================================
-///
-/// Order Pricing Breakdown
+
 class OrderPricing extends Equatable {
   final double subtotal;
   final double shippingCost;
+  final double commissionAmount;
   final double? serviceFeeAmount;
-  final double? adminFee;
-  final double? paymentFee;
-  final String? paymentMethodKey;
-  final double discount;
-  final double total;
   final double? totalPayableAmount;
-  final String? discountCode;
-  final String? discountDescription;
+  final double? totalBeforeCoinsAmount;
 
   const OrderPricing({
     required this.subtotal,
     required this.shippingCost,
+    this.commissionAmount = 0,
     this.serviceFeeAmount,
-    this.adminFee,
-    this.paymentFee,
-    this.paymentMethodKey,
-    required this.discount,
-    required this.total,
     this.totalPayableAmount,
-    this.discountCode,
-    this.discountDescription,
+    this.totalBeforeCoinsAmount,
   });
 
   factory OrderPricing.fromBreakdown({
     required double subtotal,
     required double shippingCost,
+    double commissionAmount = 0,
     double? serviceFeeAmount,
-    double? adminFee,
-    double? paymentFee,
-    String? paymentMethodKey,
-    required double total,
     double? totalPayableAmount,
-    double discount = 0,
-    String? discountCode,
-    String? discountDescription,
+    double? totalBeforeCoinsAmount,
   }) {
     return OrderPricing(
       subtotal: subtotal,
       shippingCost: shippingCost,
+      commissionAmount: commissionAmount,
       serviceFeeAmount: serviceFeeAmount,
-      adminFee: adminFee,
-      paymentFee: paymentFee,
-      paymentMethodKey: paymentMethodKey,
-      discount: discount,
-      total: total,
       totalPayableAmount: totalPayableAmount,
-      discountCode: discountCode,
-      discountDescription: discountDescription,
+      totalBeforeCoinsAmount: totalBeforeCoinsAmount,
     );
   }
 
-  /// Alias for `total` - safe to use (no calculation)
-  double get buyerTotal => total;
+  // NO DERIVED MONEY GETTERS.
+  // Money is backend authority: the canonical sources are the persisted fields
+  // above (`totalBeforeCoinsAmount` = PD + S, `totalPayableAmount` = PD + S + F).
+  // Consumers must read those fields directly — re-deriving a buyer base
+  // (`subtotal + shippingCost`) or a payable total on the client is forbidden —
+  // and must fail closed when the backend has not emitted them.
 
   @override
   List<Object?> get props => [
     subtotal,
     shippingCost,
+    commissionAmount,
     serviceFeeAmount,
-    adminFee,
-    paymentFee,
-    paymentMethodKey,
-    discount,
-    total,
     totalPayableAmount,
-    discountCode,
-    discountDescription,
+    totalBeforeCoinsAmount,
   ];
 
   OrderPricing copyWith({
     double? subtotal,
     double? shippingCost,
+    double? commissionAmount,
     double? serviceFeeAmount,
-    double? adminFee,
-    double? paymentFee,
-    String? paymentMethodKey,
-    double? discount,
-    double? total,
     double? totalPayableAmount,
-    String? discountCode,
-    String? discountDescription,
+    double? totalBeforeCoinsAmount,
   }) {
     return OrderPricing(
       subtotal: subtotal ?? this.subtotal,
       shippingCost: shippingCost ?? this.shippingCost,
+      commissionAmount: commissionAmount ?? this.commissionAmount,
       serviceFeeAmount: serviceFeeAmount ?? this.serviceFeeAmount,
-      adminFee: adminFee ?? this.adminFee,
-      paymentFee: paymentFee ?? this.paymentFee,
-      paymentMethodKey: paymentMethodKey ?? this.paymentMethodKey,
-      discount: discount ?? this.discount,
-      total: total ?? this.total,
       totalPayableAmount: totalPayableAmount ?? this.totalPayableAmount,
-      discountCode: discountCode ?? this.discountCode,
-      discountDescription: discountDescription ?? this.discountDescription,
+      totalBeforeCoinsAmount: totalBeforeCoinsAmount ?? this.totalBeforeCoinsAmount,
     );
   }
 }

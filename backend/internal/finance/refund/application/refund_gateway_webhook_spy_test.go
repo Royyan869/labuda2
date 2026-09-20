@@ -11,11 +11,14 @@ package application
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
@@ -135,7 +138,6 @@ type mockRefundRepo struct {
 	refundByGatewayRefundID map[string]*entity.Refund
 	refundByID              map[uuid.UUID]*entity.Refund
 	refundByIdempotencyKey  map[string]*entity.Refund
-	successTotal            int64
 	updateCalled            bool
 }
 
@@ -170,20 +172,11 @@ func (m *mockRefundRepo) Update(_ context.Context, _ db.Tx, r *entity.Refund) er
 	m.refundByID[r.ID] = r
 	return nil
 }
-func (m *mockRefundRepo) ListByBuyer(_ context.Context, _ db.Tx, _ uuid.UUID, _ int, _ int64) ([]*entity.Refund, error) {
-	return nil, nil
-}
-func (m *mockRefundRepo) ListBySeller(_ context.Context, _ db.Tx, _ uuid.UUID, _ int, _ int64) ([]*entity.Refund, error) {
-	return nil, nil
-}
 func (m *mockRefundRepo) GetByGatewayIdempotencyKey(_ context.Context, _ db.Tx, key string) (*entity.Refund, error) {
 	return m.refundByIdempotencyKey[key], nil
 }
 func (m *mockRefundRepo) GetByGatewayRefundID(_ context.Context, _ db.Tx, gatewayRefundID string) (*entity.Refund, error) {
 	return m.refundByGatewayRefundID[gatewayRefundID], nil
-}
-func (m *mockRefundRepo) GetSuccessfulRefundTotalByOrder(_ context.Context, _ db.Tx, _ uuid.UUID, _ *uuid.UUID) (int64, error) {
-	return m.successTotal, nil
 }
 func (m *mockRefundRepo) CreateEvidence(_ context.Context, _ db.Tx, _ uuid.UUID, _ string) error {
 	return nil
@@ -191,7 +184,7 @@ func (m *mockRefundRepo) CreateEvidence(_ context.Context, _ db.Tx, _ uuid.UUID,
 func (m *mockRefundRepo) ListEvidence(_ context.Context, _ db.Tx, _ uuid.UUID) ([]string, error) {
 	return nil, nil
 }
-func (m *mockRefundRepo) HasActiveRefundByOrderID(_ context.Context, _ db.Tx, _ uuid.UUID) (bool, error) {
+func (m *mockRefundRepo) HasRefundBlockingRelease(_ context.Context, _ db.Tx, _ uuid.UUID, _ bool) (bool, error) {
 	return false, nil
 }
 func (m *mockRefundRepo) ListByOrderID(_ context.Context, _ db.Tx, _ uuid.UUID, _ int, _ *refundrepo.OrderRefundCursor) ([]*entity.Refund, error) {
@@ -245,9 +238,6 @@ func (m *mockOrderRepo) GetBlockingOrderByShippingQuoteID(_ context.Context, _ d
 func (m *mockOrderRepo) CountValidOrdersByShippingQuoteID(_ context.Context, _ db.Tx, _ uuid.UUID) (int64, error) {
 	return 0, nil
 }
-func (m *mockOrderRepo) GetBySource(_ context.Context, _ db.Tx, _ string, _ uuid.UUID) (*orderEntity.Order, error) {
-	return nil, nil
-}
 func (m *mockOrderRepo) GetOrderItems(_ context.Context, _ db.Tx, _ uuid.UUID) ([]*orderEntity.OrderItem, error) {
 	return nil, nil
 }
@@ -255,9 +245,6 @@ func (m *mockOrderRepo) FindOrdersForAutoComplete(_ context.Context, _ db.Tx, _ 
 	return nil, nil
 }
 func (m *mockOrderRepo) FindOverdueOrdersForCancel(_ context.Context, _ db.Tx, _ int) ([]uuid.UUID, error) {
-	return nil, nil
-}
-func (m *mockOrderRepo) GetByOrderNumber(_ context.Context, _ db.Tx, _ string) (*orderEntity.Order, error) {
 	return nil, nil
 }
 func (m *mockOrderRepo) CreateShippingProofTx(_ context.Context, _ db.Tx, _ *orderEntity.ShippingProof) error {
@@ -332,15 +319,22 @@ func buildTestRefund(orderID, buyerID, sellerID uuid.UUID, amount int64) *entity
 }
 
 // buildTestOrder creates an order with canonical pricing fields.
+//
+// CANONICAL MONEY BASE: total_before_coins_amount = PD + S. In this fixture
+// `subtotal` is the discounted product value PD, so the persisted buyer base
+// is subtotal + shipping. The refund reversal path derives PD exclusively from
+// this base and fails closed without it — an order row without the base cannot
+// exist in production (CreateOrderTx always writes the token-derived base).
 func buildTestOrder(orderID, buyerID, sellerID uuid.UUID, subtotal, shipping, commission int64) *orderEntity.Order {
 	return &orderEntity.Order{
-		ID:               orderID,
-		BuyerID:          buyerID,
-		SellerID:         sellerID,
-		Subtotal:         money.New(subtotal),
-		ShippingTotal:    money.New(shipping),
-		CommissionAmount: money.New(commission),
-		Status:           orderEntity.StatusShipped,
+		ID:                     orderID,
+		BuyerID:                buyerID,
+		SellerID:               sellerID,
+		Subtotal:               money.New(subtotal),
+		ShippingTotal:          money.New(shipping),
+		CommissionAmount:       money.New(commission),
+		TotalBeforeCoinsAmount: money.New(subtotal + shipping),
+		Status:                 orderEntity.StatusShipped,
 	}
 }
 
@@ -448,7 +442,6 @@ func TestWebhookPartialRefund_CallsPartialRelease(t *testing.T) {
 	rr := newMockRefundRepo()
 	rr.refundByGatewayRefundID[gatewayRefundID] = refund
 	rr.refundByID[refund.ID] = refund
-	rr.successTotal = 0 // no previous refunds
 
 	escrow := &escrowEntity.Escrow{
 		ID:      uuid.New(),
@@ -527,7 +520,6 @@ func TestWebhookFullRefund_DoesNotCallPartialRelease(t *testing.T) {
 	rr := newMockRefundRepo()
 	rr.refundByGatewayRefundID[gatewayRefundID] = refund
 	rr.refundByID[refund.ID] = refund
-	rr.successTotal = 0
 
 	escrow := &escrowEntity.Escrow{
 		ID:      uuid.New(),
@@ -620,7 +612,6 @@ func TestWebhookPartialRefund_ZeroRemainder_NoRelease(t *testing.T) {
 	rr := newMockRefundRepo()
 	rr.refundByGatewayRefundID[gatewayRefundID] = refund
 	rr.refundByID[refund.ID] = refund
-	rr.successTotal = 0
 
 	escrow := &escrowEntity.Escrow{
 		ID:      uuid.New(),
@@ -647,38 +638,10 @@ func TestWebhookPartialRefund_ZeroRemainder_NoRelease(t *testing.T) {
 }
 
 // ============================================================================
-// SPY: DisputeFreezeReleaser (H2-F2b)
+// TEST: Post-release ack is rejected
 // ============================================================================
 
-type spyFreezeReleaser struct {
-	releaseCalled  bool
-	releaseOrderID uuid.UUID
-}
-
-func (s *spyFreezeReleaser) ReleaseDisputeFreezeByOrderID(_ context.Context, _ db.Tx, orderID uuid.UUID) error {
-	s.releaseCalled = true
-	s.releaseOrderID = orderID
-	return nil
-}
-
-// buildRefundServiceWithFreezeReleaser extends buildRefundService with a freeze releaser.
-func buildRefundServiceWithFreezeReleaser(
-	refundRepo refundrepo.RefundRepository,
-	orderRepo orderrepository.OrderRepository,
-	escrowService *escrowApp.EscrowService,
-	spy *spyFinanceReverser,
-	freezeSpy *spyFreezeReleaser,
-) *RefundService {
-	svc := buildRefundService(refundRepo, orderRepo, escrowService, spy)
-	svc.freezeReleaser = freezeSpy
-	return svc
-}
-
-// ============================================================================
-// TEST: H2-F2b Post-release ack is rejected before freeze release
-// ============================================================================
-
-func TestWebhookPostRelease_AckRejected_DoesNotReleaseFreezeByOrderID(t *testing.T) {
+func TestWebhookPostRelease_AckRejected(t *testing.T) {
 	orderID := uuid.New()
 	buyerID := uuid.New()
 	sellerID := uuid.New()
@@ -693,7 +656,6 @@ func TestWebhookPostRelease_AckRejected_DoesNotReleaseFreezeByOrderID(t *testing
 	rr := newMockRefundRepo()
 	rr.refundByGatewayRefundID[gatewayRefundID] = refund
 	rr.refundByID[refund.ID] = refund
-	rr.successTotal = 0
 
 	// Escrow is RELEASED (post-release scenario)
 	escrow := &escrowEntity.Escrow{
@@ -710,8 +672,7 @@ func TestWebhookPostRelease_AckRejected_DoesNotReleaseFreezeByOrderID(t *testing
 			Duplicate: false,
 		},
 	}
-	freezeSpy := &spyFreezeReleaser{}
-	svc := buildRefundServiceWithFreezeReleaser(rr, &mockOrderRepo{order: order}, ws, spy, freezeSpy)
+	svc := buildRefundService(rr, &mockOrderRepo{order: order}, ws, spy)
 
 	err := svc.HandleGatewayRefundAck(context.Background(), noopTx{}, successNotification(gatewayRefundID, "131250.00"))
 	if err == nil {
@@ -723,19 +684,16 @@ func TestWebhookPostRelease_AckRejected_DoesNotReleaseFreezeByOrderID(t *testing
 	if spy.reversalCalled {
 		t.Fatal("RecordRefundReversal must not run for post-release ack")
 	}
-	if freezeSpy.releaseCalled {
-		t.Fatal("ReleaseDisputeFreezeByOrderID must not run for blocked post-release ack")
-	}
 	if escrow.Status != escrowEntity.EscrowStatusReleased {
 		t.Fatalf("escrow should stay RELEASED, got %s", escrow.Status)
 	}
 }
 
 // ============================================================================
-// TEST: H2-F2b Pre-release ack does NOT release freeze
+// TEST: pre-release ack succeeds
 // ============================================================================
 
-func TestWebhookPreRelease_AckSuccess_DoesNotReleaseFreezeByOrderID(t *testing.T) {
+func TestWebhookPreRelease_AckSuccess(t *testing.T) {
 	orderID := uuid.New()
 	buyerID := uuid.New()
 	sellerID := uuid.New()
@@ -749,7 +707,6 @@ func TestWebhookPreRelease_AckSuccess_DoesNotReleaseFreezeByOrderID(t *testing.T
 	rr := newMockRefundRepo()
 	rr.refundByGatewayRefundID[gatewayRefundID] = refund
 	rr.refundByID[refund.ID] = refund
-	rr.successTotal = 0
 
 	// Escrow is HOLDING (pre-release scenario)
 	escrow := &escrowEntity.Escrow{
@@ -761,25 +718,19 @@ func TestWebhookPreRelease_AckSuccess_DoesNotReleaseFreezeByOrderID(t *testing.T
 	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 
 	spy := &spyFinanceReverser{}
-	freezeSpy := &spyFreezeReleaser{}
-	svc := buildRefundServiceWithFreezeReleaser(rr, &mockOrderRepo{order: order}, ws, spy, freezeSpy)
+	svc := buildRefundService(rr, &mockOrderRepo{order: order}, ws, spy)
 
 	err := svc.HandleGatewayRefundAck(context.Background(), noopTx{}, successNotification(gatewayRefundID, "131250.00"))
 	if err != nil {
 		t.Fatalf("HandleGatewayRefundAck returned error: %v", err)
 	}
-
-	// Pre-release: afterRelease is false → freeze release must NOT fire
-	if freezeSpy.releaseCalled {
-		t.Fatal("ReleaseDisputeFreezeByOrderID was called for pre-release — must NOT release freeze")
-	}
 }
 
 // ============================================================================
-// TEST: H2-F2b Gateway ack failure does NOT release freeze
+// TEST: gateway ack failure does not error
 // ============================================================================
 
-func TestWebhookPostRelease_AckFailure_DoesNotReleaseFreezeByOrderID(t *testing.T) {
+func TestWebhookAckFailure_NoError(t *testing.T) {
 	orderID := uuid.New()
 	buyerID := uuid.New()
 	sellerID := uuid.New()
@@ -792,12 +743,10 @@ func TestWebhookPostRelease_AckFailure_DoesNotReleaseFreezeByOrderID(t *testing.
 	rr.refundByGatewayRefundID[gatewayRefundID] = refund
 	rr.refundByID[refund.ID] = refund
 
-	freezeSpy := &spyFreezeReleaser{}
 	svc := &RefundService{
-		refundRepo:     rr,
-		outboxRepo:     outboxRepoImpl.NewOutboxRepository(nil),
-		gatewayLogger:  zap.NewNop(),
-		freezeReleaser: freezeSpy,
+		refundRepo:    rr,
+		outboxRepo:    outboxRepoImpl.NewOutboxRepository(nil),
+		gatewayLogger: zap.NewNop(),
 	}
 
 	// Failed notification
@@ -812,18 +761,13 @@ func TestWebhookPostRelease_AckFailure_DoesNotReleaseFreezeByOrderID(t *testing.
 	if err != nil {
 		t.Fatalf("HandleGatewayRefundAck returned error: %v", err)
 	}
-
-	// Failed ack: freeze must stay active
-	if freezeSpy.releaseCalled {
-		t.Fatal("ReleaseDisputeFreezeByOrderID was called on failure — freeze must stay active")
-	}
 }
 
 // ============================================================================
-// TEST: H2-F2b Duplicate ack does not double-release freeze
+// TEST: duplicate ack short-circuits (no finance calls)
 // ============================================================================
 
-func TestWebhookPostRelease_DuplicateAck_DoesNotDoubleRelease(t *testing.T) {
+func TestWebhookPostRelease_DuplicateAck_NoFinanceCalls(t *testing.T) {
 	orderID := uuid.New()
 	buyerID := uuid.New()
 	sellerID := uuid.New()
@@ -854,23 +798,20 @@ func TestWebhookPostRelease_DuplicateAck_DoesNotDoubleRelease(t *testing.T) {
 			Duplicate: true,
 		},
 	}
-	freezeSpy := &spyFreezeReleaser{}
-	svc := buildRefundServiceWithFreezeReleaser(rr, &mockOrderRepo{order: order}, ws, spy, freezeSpy)
+	svc := buildRefundService(rr, &mockOrderRepo{order: order}, ws, spy)
 
 	// Duplicate: refund.GatewayStatus is already 'succeeded'
 	err := svc.HandleGatewayRefundAck(context.Background(), noopTx{}, successNotification(gatewayRefundID, "131250.00"))
 	if err != nil {
 		t.Fatalf("HandleGatewayRefundAck returned error: %v", err)
 	}
-
-	// Duplicate ack short-circuits before any finance calls
-	if freezeSpy.releaseCalled {
-		t.Fatal("ReleaseDisputeFreezeByOrderID was called on duplicate — must not double-release")
+	if spy.partialReleaseCalled {
+		t.Fatal("RecordPartialRefundRelease must not run for a duplicate ack")
 	}
 }
 
 // ============================================================================
-// TEST: H2-F2b Post-release full refund ack is rejected before coins/refund work
+// TEST: Post-release full refund ack is rejected before coins/refund work
 // ============================================================================
 
 func TestWebhookPostRelease_FullRefund_IsRejected(t *testing.T) {
@@ -887,7 +828,6 @@ func TestWebhookPostRelease_FullRefund_IsRejected(t *testing.T) {
 	rr := newMockRefundRepo()
 	rr.refundByGatewayRefundID[gatewayRefundID] = refund
 	rr.refundByID[refund.ID] = refund
-	rr.successTotal = 0
 
 	// Escrow RELEASED → afterRelease=true, escrowAlreadyTerminal=true
 	escrow := &escrowEntity.Escrow{
@@ -904,8 +844,7 @@ func TestWebhookPostRelease_FullRefund_IsRejected(t *testing.T) {
 			Duplicate: false,
 		},
 	}
-	freezeSpy := &spyFreezeReleaser{}
-	svc := buildRefundServiceWithFreezeReleaser(rr, &mockOrderRepo{order: order}, ws, spy, freezeSpy)
+	svc := buildRefundService(rr, &mockOrderRepo{order: order}, ws, spy)
 
 	err := svc.HandleGatewayRefundAck(context.Background(), noopTx{}, successNotification(gatewayRefundID, "131250.00"))
 	if err == nil {
@@ -917,13 +856,10 @@ func TestWebhookPostRelease_FullRefund_IsRejected(t *testing.T) {
 	if spy.reversalCalled {
 		t.Fatal("RecordRefundReversal must not run for blocked post-release ack")
 	}
-	if freezeSpy.releaseCalled {
-		t.Fatal("ReleaseDisputeFreezeByOrderID must not run for blocked post-release ack")
-	}
 }
 
 // ============================================================================
-// TEST: H2-F2b Post-release partial refund ack is rejected before ledger work
+// TEST: Post-release partial refund ack is rejected before ledger work
 // ============================================================================
 
 func TestWebhookPostRelease_PartialRefund_IsRejected(t *testing.T) {
@@ -941,7 +877,6 @@ func TestWebhookPostRelease_PartialRefund_IsRejected(t *testing.T) {
 	rr := newMockRefundRepo()
 	rr.refundByGatewayRefundID[gatewayRefundID] = refund
 	rr.refundByID[refund.ID] = refund
-	rr.successTotal = 0
 
 	// Escrow RELEASED (post-release)
 	escrow := &escrowEntity.Escrow{
@@ -958,8 +893,7 @@ func TestWebhookPostRelease_PartialRefund_IsRejected(t *testing.T) {
 			Duplicate: false,
 		},
 	}
-	freezeSpy := &spyFreezeReleaser{}
-	svc := buildRefundServiceWithFreezeReleaser(rr, &mockOrderRepo{order: order}, ws, spy, freezeSpy)
+	svc := buildRefundService(rr, &mockOrderRepo{order: order}, ws, spy)
 
 	// Rp 100,000 refund = "100000.00" in Midtrans wire format (PASS_18J).
 	err := svc.HandleGatewayRefundAck(context.Background(), noopTx{}, partialNotification(gatewayRefundID, "100000.00"))
@@ -974,9 +908,6 @@ func TestWebhookPostRelease_PartialRefund_IsRejected(t *testing.T) {
 	}
 	if spy.partialReleaseCalled {
 		t.Fatal("RecordPartialRefundRelease must not run for blocked post-release ack")
-	}
-	if freezeSpy.releaseCalled {
-		t.Fatal("ReleaseDisputeFreezeByOrderID must not run for blocked post-release ack")
 	}
 }
 
@@ -995,7 +926,6 @@ func TestWebhookSellerApproved_FullRefund_SetsOrderStatusRefunded(t *testing.T) 
 	rr := newMockRefundRepo()
 	rr.refundByGatewayRefundID[gatewayRefundID] = refund
 	rr.refundByID[refund.ID] = refund
-	rr.successTotal = 0
 	escrow := &escrowEntity.Escrow{ID: uuid.New(), OrderID: orderID, Amount: 131_250, Status: escrowEntity.EscrowStatusHolding}
 	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 	spy := &spyFinanceReverser{}
@@ -1029,7 +959,6 @@ func TestWebhookSellerApproved_PartialRefund_SetsOrderStatusPartiallyRefunded(t 
 	rr := newMockRefundRepo()
 	rr.refundByGatewayRefundID[gatewayRefundID] = refund
 	rr.refundByID[refund.ID] = refund
-	rr.successTotal = 0
 	escrow := &escrowEntity.Escrow{ID: uuid.New(), OrderID: orderID, Amount: 131_250, Status: escrowEntity.EscrowStatusHolding}
 	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 	spy := &spyFinanceReverser{}
@@ -1061,7 +990,6 @@ func TestWebhookSellerApproved_OrderStatusSyncerFailure_ReturnsError(t *testing.
 	rr := newMockRefundRepo()
 	rr.refundByGatewayRefundID[gatewayRefundID] = refund
 	rr.refundByID[refund.ID] = refund
-	rr.successTotal = 0
 
 	escrow := &escrowEntity.Escrow{
 		ID:      uuid.New(),
@@ -1103,12 +1031,10 @@ func TestWebhookPostRelease_AckRejected_OrderStatusNotUpdated(t *testing.T) {
 	rr := newMockRefundRepo()
 	rr.refundByGatewayRefundID[gatewayRefundID] = refund
 	rr.refundByID[refund.ID] = refund
-	rr.successTotal = 0
 	escrow := &escrowEntity.Escrow{ID: uuid.New(), OrderID: orderID, Amount: 131_250, Status: escrowEntity.EscrowStatusReleased}
 	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
 	spy := &spyFinanceReverser{reversalSummary: &financeapp.RecordRefundReversalSummary{Phase: "after_release", Duplicate: false}}
-	freezeSpy := &spyFreezeReleaser{}
-	svc := buildRefundServiceWithFreezeReleaser(rr, &mockOrderRepo{order: order}, ws, spy, freezeSpy)
+	svc := buildRefundService(rr, &mockOrderRepo{order: order}, ws, spy)
 	syncSpy := &spyOrderRefundStatusSyncer{}
 	svc.orderRefundStatusSyncer = syncSpy
 	err := svc.HandleGatewayRefundAck(context.Background(), noopTx{}, successNotification(gatewayRefundID, "131250.00"))
@@ -1152,187 +1078,166 @@ func TestWebhookDuplicate_AckDoesNotUpdateOrderStatus(t *testing.T) {
 }
 
 // ============================================================================
-// TEST: K1-A Post-release ack + nil freezeReleaser returns error
+// REC-6 SLICE 3: ACK for gateway_captured_after_order_invalid refunds.
+//
+// These tests prove that when a REC-6 refund (reason =
+// gateway_captured_after_order_invalid) receives a successful gateway ACK:
+//  - gateway_status transitions pending → succeeded (or failed → succeeded)
+//  - gateway_acknowledged_at is set
+//  - NO financeReverser / escrow / ledger / coin / order mutation
+//  - outbox "money.refund_succeeded" is emitted
+//  - duplicate ACK is idempotent
+//  - concurrent ACKs are safe
 // ============================================================================
 
-func TestWebhookPostRelease_NilFreezeReleaser_ReturnsError(t *testing.T) {
-	orderID := uuid.New()
-	buyerID := uuid.New()
-	sellerID := uuid.New()
-
-	order := buildTestOrder(orderID, buyerID, sellerID, 100_000, 25_000, 6_250)
-
-	refund := buildTestRefund(orderID, buyerID, sellerID, 131_250)
-	gatewayRefundID := "gw-postrelease-nil-freezer"
-	refund.GatewayRefundID = &gatewayRefundID
-
-	rr := newMockRefundRepo()
-	rr.refundByGatewayRefundID[gatewayRefundID] = refund
-	rr.refundByID[refund.ID] = refund
-	rr.successTotal = 0
-
-	// Escrow RELEASED → afterRelease=true
-	escrow := &escrowEntity.Escrow{
-		ID:      uuid.New(),
-		OrderID: orderID,
-		Amount:  131_250,
-		Status:  escrowEntity.EscrowStatusReleased,
-	}
-	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
-
-	spy := &spyFinanceReverser{
-		reversalSummary: &financeapp.RecordRefundReversalSummary{
-			Phase:     "after_release",
-			Duplicate: false,
-		},
-	}
-	// Build service WITHOUT freezeReleaser (nil)
-	svc := buildRefundService(rr, &mockOrderRepo{order: order}, ws, spy)
-	// Explicitly ensure freezeReleaser is nil
-	svc.freezeReleaser = nil
-
-	err := svc.HandleGatewayRefundAck(context.Background(), noopTx{}, successNotification(gatewayRefundID, "131250.00"))
-
-	if err == nil {
-		t.Fatal("expected post-release ack to be rejected, got nil")
-	}
-	if !strings.Contains(err.Error(), "post-release refund acknowledgements are disabled") {
-		t.Fatalf("unexpected error: %v", err)
-	}
+// buildRec6Refund creates a refund in the gateway_captured_after_order_invalid
+// reason with gateway_status = pending (as Slice 2 dispatch would leave it).
+func buildRec6Refund(orderID, buyerID, sellerID uuid.UUID, amount int64) *entity.Refund {
+	r := entity.NewSystemRefund(orderID, buyerID, sellerID, uuid.Nil,
+		entity.RefundReasonGatewayCapturedAfterOrderInvalid,
+		amount, 0, nil)
+	key := fmt.Sprintf("rec6:payment:%s", uuid.New().String())
+	_ = r.MarkGatewayDispatched(key, nil, time.Now())
+	return r
 }
 
-// ============================================================================
-// TEST: K1-A Pre-release ack + nil freezeReleaser succeeds
-// ============================================================================
-
-func TestWebhookPreRelease_NilFreezeReleaser_Succeeds(t *testing.T) {
+// TestWebhookRec6Ack_PendingToSucceeded_NoFinanceCalls proves that a
+// successful gateway ACK for a REC-6 refund flips gateway_status to
+// succeeded WITHOUT invoking any financial reversal machinery.
+func TestWebhookRec6Ack_PendingToSucceeded_NoFinanceCalls(t *testing.T) {
 	orderID := uuid.New()
 	buyerID := uuid.New()
 	sellerID := uuid.New()
-
-	order := buildTestOrder(orderID, buyerID, sellerID, 100_000, 25_000, 6_250)
-
-	refund := buildTestRefund(orderID, buyerID, sellerID, 131_250)
-	gatewayRefundID := "gw-prerelease-nil-freezer"
-	refund.GatewayRefundID = &gatewayRefundID
+	refund := buildRec6Refund(orderID, buyerID, sellerID, 150_000)
+	gatewayRefundID := "rchg-rec6-001"
+	notif := successNotification(gatewayRefundID, "150000.00")
 
 	rr := newMockRefundRepo()
 	rr.refundByGatewayRefundID[gatewayRefundID] = refund
 	rr.refundByID[refund.ID] = refund
-	rr.successTotal = 0
 
-	// Escrow HOLDING → afterRelease=false → freezeReleaser not needed
-	escrow := &escrowEntity.Escrow{
-		ID:      uuid.New(),
-		OrderID: orderID,
-		Amount:  131_250,
-		Status:  escrowEntity.EscrowStatusHolding,
+	order := buildTestOrder(orderID, buyerID, sellerID, 100_000, 25_000, 6_250)
+	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{}) // NO escrow for REC-6
+
+	spy := &spyFinanceReverser{reversalSummary: &financeapp.RecordRefundReversalSummary{}}
+	svc := buildRefundService(rr, &mockOrderRepo{order: order}, ws, spy)
+
+	err := svc.HandleGatewayRefundAck(context.Background(), noopTx{}, notif)
+	if err != nil {
+		t.Fatalf("HandleGatewayRefundAck returned error: %v", err)
 	}
-	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
+
+	// State transition: pending → succeeded
+	assert.Equal(t, entity.GatewayRefundSucceeded, refund.GatewayStatus,
+		"REC-6 ACK must flip gateway_status to succeeded")
+	assert.NotNil(t, refund.GatewayAcknowledgedAt,
+		"gateway_acknowledged_at must be set")
+	assert.Nil(t, refund.LastGatewayError, "last_gateway_error must be cleared")
+
+	// Financial safety: no reverser, no escrow, no ledger, no order mutation
+	assert.False(t, spy.reversalCalled,
+		"financeReverser must NOT be called for REC-6 refund")
+	assert.False(t, spy.coinFundingReversalCalled,
+		"coin funding reversal must NOT be called for REC-6 refund")
+	assert.False(t, spy.partialReleaseCalled,
+		"partial release must NOT be called for REC-6 refund")
+
+	// Persistence: refund updated, outbox emitted
+	assert.True(t, rr.updateCalled, "refundRepo.Update must be called")
+}
+
+// TestWebhookRec6Ack_DuplicateIsIdempotent proves that a second ACK for an
+// already-succeeded REC-6 refund is a no-op (no duplicate side effects).
+func TestWebhookRec6Ack_DuplicateIsIdempotent(t *testing.T) {
+	orderID := uuid.New()
+	buyerID := uuid.New()
+	sellerID := uuid.New()
+	refund := buildRec6Refund(orderID, buyerID, sellerID, 150_000)
+	gatewayRefundID := "rchg-rec6-dup"
+
+	// Pre-ack: already succeeded (simulating a prior ACK)
+	now := time.Now()
+	_ = refund.MarkGatewayDispatched("rec6:payment:"+uuid.New().String(), &gatewayRefundID, now)
+	_ = refund.MarkGatewayAckSucceeded(gatewayRefundID, now)
+	rr := newMockRefundRepo()
+	rr.refundByGatewayRefundID[gatewayRefundID] = refund
+	rr.refundByID[refund.ID] = refund
+
+	spy := &spyFinanceReverser{reversalSummary: &financeapp.RecordRefundReversalSummary{}}
+	svc := buildRefundService(rr, &mockOrderRepo{}, nil, spy)
+
+	// Duplicate ACK must return nil
+	err := svc.HandleGatewayRefundAck(context.Background(), noopTx{},
+		successNotification(gatewayRefundID, "150000.00"))
+	if err != nil {
+		t.Fatalf("HandleGatewayRefundAck returned error on duplicate: %v", err)
+	}
+
+	// No finance calls on duplicate
+	assert.False(t, spy.reversalCalled, "duplicate ACK must not invoke financeReverser")
+	assert.False(t, rr.updateCalled, "duplicate ACK must not persist any update")
+}
+
+// TestWebhookRec6Ack_FailureAckRecordsError proves that a failed gateway ACK
+// for a REC-6 refund correctly records the error without invoking finance.
+func TestWebhookRec6Ack_FailureAckRecordsError(t *testing.T) {
+	orderID := uuid.New()
+	buyerID := uuid.New()
+	sellerID := uuid.New()
+	refund := buildRec6Refund(orderID, buyerID, sellerID, 150_000)
+	gatewayRefundID := "rchg-rec6-fail"
+	rr := newMockRefundRepo()
+	rr.refundByGatewayRefundID[gatewayRefundID] = refund
+	rr.refundByID[refund.ID] = refund
 
 	spy := &spyFinanceReverser{}
-	// Build service WITHOUT freezeReleaser (nil)
-	svc := buildRefundService(rr, &mockOrderRepo{order: order}, ws, spy)
-	svc.freezeReleaser = nil
+	svc := buildRefundService(rr, &mockOrderRepo{}, nil, spy)
 
-	err := svc.HandleGatewayRefundAck(context.Background(), noopTx{}, successNotification(gatewayRefundID, "131250.00"))
-
-	// PROOF: Pre-release ack succeeds even without freezeReleaser
-	if err != nil {
-		t.Fatalf("pre-release ack should succeed with nil freezeReleaser, got: %v", err)
-	}
-}
-
-// ============================================================================
-// TEST: K1-A Gateway failure + nil freezeReleaser does not error
-// ============================================================================
-
-func TestWebhookFailure_NilFreezeReleaser_NoError(t *testing.T) {
-	orderID := uuid.New()
-	buyerID := uuid.New()
-	sellerID := uuid.New()
-
-	refund := buildTestRefund(orderID, buyerID, sellerID, 131_250)
-	gatewayRefundID := "gw-fail-nil-freezer"
-	refund.GatewayRefundID = &gatewayRefundID
-
-	rr := newMockRefundRepo()
-	rr.refundByGatewayRefundID[gatewayRefundID] = refund
-	rr.refundByID[refund.ID] = refund
-
-	// No freezeReleaser, no financeReverser — failure path doesn't need them
-	svc := &RefundService{
-		refundRepo:    rr,
-		outboxRepo:    outboxRepoImpl.NewOutboxRepository(nil),
-		gatewayLogger: zap.NewNop(),
-		// freezeReleaser: nil — intentionally
-	}
-
-	failNotification := &midtrans.NotificationPayload{
-		TransactionStatus: "deny",
-		StatusCode:        "202",
+	notif := &midtrans.NotificationPayload{
+		TransactionStatus: string(midtrans.StatusDeny),
+		StatusCode:        "400",
 		RefundChargeID:    gatewayRefundID,
-		RefundAmount:      "131250.00",
+		StatusMessage:     "Refund rejected by bank",
 	}
-
-	err := svc.HandleGatewayRefundAck(context.Background(), noopTx{}, failNotification)
-
-	// PROOF: Failed ack does not error with nil freezeReleaser
-	// (freeze stays active — the nil guard only matters on success path)
+	err := svc.HandleGatewayRefundAck(context.Background(), noopTx{}, notif)
 	if err != nil {
-		t.Fatalf("failed ack should not error with nil freezeReleaser, got: %v", err)
+		t.Fatalf("HandleGatewayRefundAck returned error: %v", err)
 	}
+
+	assert.Equal(t, entity.GatewayRefundFailed, refund.GatewayStatus,
+		"failed ACK must set gateway_status to failed")
+	assert.NotNil(t, refund.LastGatewayError, "last_gateway_error must be set")
+	assert.False(t, spy.reversalCalled,
+		"financeReverser must NOT be called on REC-6 failure ACK")
 }
 
-// ============================================================================
-// TEST: K1-A Post-release ack + wired freezeReleaser succeeds
-// ============================================================================
-
-func TestWebhookPostRelease_WiredFreezeReleaser_Succeeds(t *testing.T) {
+// TestWebhookRec6Ack_ConcurrentSafety proves that two concurrent ACK
+// handlers for the same REC-6 refund produce a single effective transition
+// and no duplicate side effects.
+func TestWebhookRec6Ack_ConcurrentSafety(t *testing.T) {
 	orderID := uuid.New()
 	buyerID := uuid.New()
 	sellerID := uuid.New()
-
-	order := buildTestOrder(orderID, buyerID, sellerID, 100_000, 25_000, 6_250)
-
-	refund := buildTestRefund(orderID, buyerID, sellerID, 131_250)
-	gatewayRefundID := "gw-postrelease-wired-freezer"
-	refund.GatewayRefundID = &gatewayRefundID
-
+	refund := buildRec6Refund(orderID, buyerID, sellerID, 150_000)
+	gatewayRefundID := "rchg-rec6-conc"
 	rr := newMockRefundRepo()
 	rr.refundByGatewayRefundID[gatewayRefundID] = refund
 	rr.refundByID[refund.ID] = refund
-	rr.successTotal = 0
 
-	// Escrow RELEASED → afterRelease=true
-	escrow := &escrowEntity.Escrow{
-		ID:      uuid.New(),
-		OrderID: orderID,
-		Amount:  131_250,
-		Status:  escrowEntity.EscrowStatusReleased,
-	}
-	ws := buildEscrowService(map[uuid.UUID]*escrowEntity.Escrow{orderID: escrow})
+	spy := &spyFinanceReverser{reversalSummary: &financeapp.RecordRefundReversalSummary{}}
+	svc := buildRefundService(rr, &mockOrderRepo{}, nil, spy)
 
-	spy := &spyFinanceReverser{
-		reversalSummary: &financeapp.RecordRefundReversalSummary{
-			Phase:     "after_release",
-			Duplicate: false,
-		},
-	}
-	freezeSpy := &spyFreezeReleaser{}
-	svc := buildRefundServiceWithFreezeReleaser(rr, &mockOrderRepo{order: order}, ws, spy, freezeSpy)
+	notif := successNotification(gatewayRefundID, "150000.00")
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() { defer wg.Done(); _ = svc.HandleGatewayRefundAck(context.Background(), noopTx{}, notif) }()
+	go func() { defer wg.Done(); _ = svc.HandleGatewayRefundAck(context.Background(), noopTx{}, notif) }()
+	wg.Wait()
 
-	err := svc.HandleGatewayRefundAck(context.Background(), noopTx{}, successNotification(gatewayRefundID, "131250.00"))
-
-	if err == nil {
-		t.Fatal("expected post-release ack to be rejected, got nil")
-	}
-	if !strings.Contains(err.Error(), "post-release refund acknowledgements are disabled") {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if freezeSpy.releaseCalled {
-		t.Fatal("ReleaseDisputeFreezeByOrderID must not run for blocked post-release ack")
-	}
+	assert.Equal(t, entity.GatewayRefundSucceeded, refund.GatewayStatus,
+		"concurrent ACK must produce succeeded")
+	assert.False(t, spy.reversalCalled,
+		"financeReverser must NOT be called for REC-6 even under concurrency")
 }
 
 // ============================================================================

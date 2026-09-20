@@ -827,7 +827,8 @@ func forSalePreviewsToResponse(forSales []*entity.ForSalePreview, sellerUserLife
 	return newSearchProjectionAdapter().forSalePreviewsToResponse(forSales, sellerUserLifecycleByID)
 }
 
-// contentPreviewsToResponse renders the /search/content rows.
+// contentPreviewsToResponseWithProjections renders the /search/content rows,
+// optionally attaching the canonical resource projection for each row.
 //
 // BATCH 3B — accepts an optional `lifecycleOverrides` map keyed by
 // ContentPreview.ID. When the map is non-nil and contains an entry for
@@ -835,14 +836,13 @@ func forSalePreviewsToResponse(forSales []*entity.ForSalePreview, sellerUserLife
 // coarsened to that value (canonical vocabulary: "active" / "unavailable"
 // / "removed"). When the map is nil or lacks the row's key, the card's
 // Lifecycle is emitted with the surface's existing semantics (nil today
-// because ContentPreview does not carry status — see line ~835).
+// because ContentPreview does not carry status).
 //
 // Pass nil for shadow-mode callers; pass enforcement.LifecycleOverrides
 // for enforce-mode callers. The map is read-only and not mutated.
-func contentPreviewsToResponse(contents []*entity.ContentPreview, lifecycleOverrides map[uuid.UUID]string, authorLifecycleByID map[uuid.UUID]string) []map[string]interface{} {
-	return newSearchProjectionAdapter().contentPreviewsToResponse(contents, lifecycleOverrides, authorLifecycleByID)
-}
-
+//
+// MEDIA: content media read resolution happens inside the projection adapter
+// (the shared mediaresolve authority); this handler layer never touches media.
 func contentPreviewsToResponseWithProjections(
 	contents []*entity.ContentPreview,
 	lifecycleOverrides map[uuid.UUID]string,

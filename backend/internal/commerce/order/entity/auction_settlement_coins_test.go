@@ -6,25 +6,10 @@ import (
 	"github.com/labuda/backend/internal/commerce/order/entity"
 )
 
-// Regression lock: owner canonical 2026-06-16 — both settlement types allow coins.
-func TestAuctionSettlementType_AllowsCoins(t *testing.T) {
-	if !entity.AuctionSettlementBuyNow.AllowsCoins() {
-		t.Fatal("AuctionSettlementBuyNow must allow coins")
-	}
-	if !entity.AuctionSettlementBidWin.AllowsCoins() {
-		t.Fatal("AuctionSettlementBidWin must allow coins (owner canonical 2026-06-16)")
-	}
-}
-
-func TestAuctionSettlementType_AllowsDiscounts(t *testing.T) {
-	if !entity.AuctionSettlementBuyNow.AllowsDiscounts() {
-		t.Fatal("AuctionSettlementBuyNow must allow discounts")
-	}
-	if !entity.AuctionSettlementBidWin.AllowsDiscounts() {
-		t.Fatal("AuctionSettlementBidWin must allow discounts")
-	}
-}
-
+// The auction settlement type is a creation-time validation input: the pricing
+// token and the order-creation path reject anything that is not buy_now or
+// bid_win. It is deliberately NOT persisted on the order (see
+// NewOrderFromSource), so this type carries no order-lifecycle behavior.
 func TestAuctionSettlementType_IsValid(t *testing.T) {
 	if !entity.AuctionSettlementBuyNow.IsValid() {
 		t.Fatal("buy_now must be valid")
@@ -36,5 +21,3 @@ func TestAuctionSettlementType_IsValid(t *testing.T) {
 		t.Fatal("unknown value must not be valid")
 	}
 }
-
-

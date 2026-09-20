@@ -59,16 +59,16 @@ func (r *profileMediaSellerRepo) EnsureProfileExistsTx(ctx context.Context, tx d
 	return r.profile, nil
 }
 
-func (r *profileMediaSellerRepo) UpdateStoreIdentityTx(context.Context, db.Tx, uuid.UUID, *string, *string) error {
-	return nil
+func (r *profileMediaSellerRepo) EnsureProfileExistsTxWithImage(ctx context.Context, tx db.Tx, userID uuid.UUID, storeName string, storeImageURL *string) (*sellerEntity.SellerProfile, error) {
+	return r.profile, nil
+}
+
+func (r *profileMediaSellerRepo) UpdateSellerProfileTx(ctx context.Context, tx db.Tx, userID uuid.UUID, storeName *string, storeImageURL *string) (*sellerEntity.SellerProfile, error) {
+	return r.profile, nil
 }
 
 func (r *profileMediaSellerRepo) GetByIDForUpdate(context.Context, db.Tx, uuid.UUID) (*sellerEntity.SellerProfile, error) {
 	return r.profile, nil
-}
-
-func (r *profileMediaSellerRepo) UpdateStoreImageTx(context.Context, db.Tx, uuid.UUID, *string) error {
-	return nil
 }
 
 func (r *profileMediaSellerRepo) UpdateTierTx(context.Context, db.Tx, uuid.UUID, sellerEntity.Tier) error {
@@ -108,6 +108,10 @@ func (r *profileMediaSubRepo) GetByID(context.Context, db.Tx, uuid.UUID) (*subsc
 }
 
 func (r *profileMediaSubRepo) GetLatestByUserID(context.Context, db.Tx, uuid.UUID) (*subscriptionEntity.SellerSubscription, error) {
+	return r.sub, nil
+}
+
+func (r *profileMediaSubRepo) GetMostRecentByUserID(context.Context, db.Tx, uuid.UUID) (*subscriptionEntity.SellerSubscription, error) {
 	return r.sub, nil
 }
 

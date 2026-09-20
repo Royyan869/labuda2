@@ -8,9 +8,9 @@ import 'package:labuda/features/explore/explore.dart';
 ///
 /// PRODUCT CONTRACT:
 /// - Explore is a COMMERCE-first browse surface
-/// - Displays: Listings, Auctions
+/// - Displays: ForSales, Auctions
 /// - NO social content (universal content and reposts) - those belong in Home Feed
-/// - Promoted/sponsored items appear as injected cards within Listing/Auction tabs
+/// - Promoted/sponsored items appear as injected cards within ForSale/Auction tabs
 ///   (server-side injection via FeedPromotionInjector / SearchPromotionInjector).
 ///   There is NO standalone Promo tab — promotion is always interleaved, not siloed.
 ///
@@ -23,7 +23,7 @@ import 'package:labuda/features/explore/explore.dart';
 ///
 /// Refactored to use clean architecture pattern.
 class ExploreScreen extends ConsumerStatefulWidget {
-  /// Initial tab index to show (0=Listing/For Sale, 1=Auction)
+  /// Initial tab index to show (0=ForSale/For Sale, 1=Auction)
   final int initialTab;
 
   const ExploreScreen({super.key, this.initialTab = 0});

@@ -507,6 +507,10 @@ class SellerGuard extends ConsumerWidget {
     final isSyncing = ref.watch(isSyncingWithBackendProvider);
     final sellerIdentityStatus = ref.watch(sellerIdentityStatusProvider);
     final sellerCapabilityStatus = ref.watch(sellerCapabilityStatusProvider);
+    // Canonical expiry axis. Capability `inactive` only means "no active
+    // interval right now" — claiming expiry from it told freshly onboarded
+    // sellers their subscription had ended (RF-02).
+    final isSubscriptionExpired = ref.watch(isSellerSubscriptionExpiredProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Backend sync in progress - show loading screen
@@ -533,8 +537,10 @@ class SellerGuard extends ConsumerWidget {
     if (sellerCapabilityStatus != SellerCapabilityStatus.active) {
       final message =
           accessDeniedMessage ??
-          (sellerCapabilityStatus == SellerCapabilityStatus.inactive
+          (isSubscriptionExpired
               ? 'Your seller subscription has expired. Please renew to access seller features.'
+              : sellerCapabilityStatus == SellerCapabilityStatus.inactive
+              ? 'Your seller subscription is not active yet. Complete your subscription to access seller features.'
               : 'This page can only be accessed by Sellers with an active subscription.');
       return _buildAccessDeniedScreen(context, isDark, message);
     }

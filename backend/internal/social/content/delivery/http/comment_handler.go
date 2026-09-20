@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	forSaleApp "github.com/labuda/backend/internal/commerce/forsale/application"
 	"github.com/labuda/backend/internal/governance/viewercontext"
 	"github.com/labuda/backend/internal/identity/auth"
@@ -18,19 +17,14 @@ import (
 	"go.uber.org/zap"
 )
 
-type blockQueryRunner interface {
-	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
-}
-
 // CommentHandler handles HTTP requests for comment operations.
 type CommentHandler struct {
-	commentService     *contentApp.CommentService
-	contentService     *contentApp.ContentService
-	forSaleService     *forSaleApp.ForSaleService
-	roleChecker        auth.RoleChecker
-	db                 *db.DB
-	log                *zap.Logger
-	blockQueryOverride blockQueryRunner
+	commentService *contentApp.CommentService
+	contentService *contentApp.ContentService
+	forSaleService *forSaleApp.ForSaleService
+	roleChecker    auth.RoleChecker
+	db             *db.DB
+	log            *zap.Logger
 }
 
 // NewCommentHandler creates a new CommentHandler.
@@ -148,34 +142,9 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 		parentID = &parsedID
 	}
 
-	// A2 — Bidirectional block check between commenter and content author.
-	// Mirrors the pattern used in GetUserContent (content_handler.go) and
-	// filterBlockedComments (read surface). Fail-open: if the block query or
-	// the author lookup errors we log and allow the comment to proceed so
-	// transient DB issues do not silently break comment creation.
-	var contentAuthorID uuid.UUID
-	if bcErr := h.db.Pool().QueryRow(ctx,
-		`SELECT author_id FROM contents WHERE id = $1 AND deleted_at IS NULL`,
-		contentID,
-	).Scan(&contentAuthorID); bcErr == nil && contentAuthorID != userID {
-		var blocked bool
-		if qErr := h.db.Pool().QueryRow(ctx, `
-			SELECT EXISTS(
-				SELECT 1 FROM user_blocks
-				WHERE (blocker_id = $1 AND blocked_id = $2)
-				   OR (blocker_id = $2 AND blocked_id = $1)
-			)
-		`, userID, contentAuthorID).Scan(&blocked); qErr != nil {
-			h.log.Warn("block check query failed for CreateComment, allowing proceed",
-				zap.String("content_id", contentID.String()),
-				zap.String("user_id", userID.String()),
-				zap.Error(qErr),
-			)
-		} else if blocked {
-			response.Forbidden(c, "Cannot comment on this content")
-			return
-		}
-	}
+	// Canonical authorization for comment creation — visibility and the
+	// bidirectional block rule (fail-closed) — lives in
+	// CommentService.AddComment. Do not duplicate it here.
 
 	// Execute create within transaction
 	var newComment *entity.Comment

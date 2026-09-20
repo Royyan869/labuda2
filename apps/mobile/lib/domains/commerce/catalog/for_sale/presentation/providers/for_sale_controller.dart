@@ -20,15 +20,20 @@ class ForSaleController {
   }) : _repository = repository,
        _logger = logger;
 
-  /// Returns true only when the current authenticated principal can create a
-  /// fixed-price forSale.
+  /// Returns true only when the current authenticated principal may open the
+  /// create-forSale flow.
+  ///
+  /// DRAFT = WORKSPACE STATE: the authority here is the seller workspace
+  /// (backend route gate = active account + verified email + seller profile).
+  /// Market authority is deliberately NOT required — a private draft never
+  /// creates market exposure. The capability gate belongs to publish
+  /// (draft → active), which the owning service enforces transactionally.
   bool canCreateForSale(AuthState authState) {
     if (authState is! AuthStateAuthenticated) {
       return false;
     }
 
-    final user = authState.user;
-    return user.hasSellerProfile == true && user.hasMarketAuthority == true;
+    return authState.user.hasSellerProfile == true;
   }
 
   /// Get list of forSales
@@ -144,13 +149,9 @@ class ForSaleController {
       );
     }
 
-    if (user.hasMarketAuthority != true) {
-      return Result.error(
-        'Langganan seller Anda sudah berakhir. Perpanjang dulu untuk membuat forSale.',
-        code: 'MARKET_AUTHORITY_REQUIRED',
-      );
-    }
-
+    // NO market-authority gate here: this path writes a PRIVATE DRAFT, which is
+    // workspace state. Publish (draft → active) remains capability-gated by the
+    // backend and is never reached from this method.
     return createForSale(request);
   }
 

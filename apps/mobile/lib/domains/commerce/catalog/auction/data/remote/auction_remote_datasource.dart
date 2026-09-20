@@ -93,21 +93,6 @@ class AuctionRemoteDatasource extends BaseApiRepository {
 
   // ========== Auction Lifecycle Operations ==========
 
-  /// Schedule auction
-  Future<void> scheduleAuction(String auctionId) async {
-    final result = await executeVoidRequest(
-      () => apiClient.post('/auctions/$auctionId/schedule'),
-    );
-
-    if (result.isError) {
-      throw StructuredApiException(
-        message: result.error ?? 'Failed to schedule auction',
-        code: result.errorCode,
-        details: result.errorDetails,
-      );
-    }
-  }
-
   /// Cancel auction
   Future<void> cancelAuction(String auctionId, CancelAuctionDto request) async {
     final result = await executeVoidRequest(
@@ -187,7 +172,7 @@ class AuctionRemoteDatasource extends BaseApiRepository {
         '/auctions/$auctionId/claim',
         data: {
           'address_id': addressId,
-          'shipping_setup_id': shippingSetupId,
+          'shipping_option_id': shippingSetupId,
           if (discountCode != null) 'discount_code': discountCode,
           if (useCoins) 'use_coins': true,
         },

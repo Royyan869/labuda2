@@ -53,7 +53,6 @@ type flags struct {
 	outputPath         string
 	logLevel           string
 	pendingGrace       time.Duration
-	orphanGrace        time.Duration
 	stuckRefundGrace   time.Duration
 	pendingExpiryGrace time.Duration
 }
@@ -109,7 +108,6 @@ func run() error {
 		Gateway: gw,
 		Thresholds: recon.Thresholds{
 			PendingPaymentGrace:       f.pendingGrace,
-			OrphanRecoveryGrace:       f.orphanGrace,
 			StuckRefundGrace:          f.stuckRefundGrace,
 			PendingPaymentExpiryGrace: f.pendingExpiryGrace,
 		},
@@ -168,7 +166,6 @@ func parseFlags() *flags {
 	flag.StringVar(&f.outputPath, "output", "-", "output file path; '-' or empty = stdout")
 	flag.StringVar(&f.logLevel, "log-level", "warn", "zap log level: debug | info | warn | error")
 	flag.DurationVar(&f.pendingGrace, "pending-grace", 3*time.Minute, "D1 grace window — pending payments younger than this are not flagged")
-	flag.DurationVar(&f.orphanGrace, "orphan-grace", 2*time.Minute, "D1/D6 suppression window for orphaned webhook recovery")
 	flag.DurationVar(&f.stuckRefundGrace, "stuck-refund-grace", 5*time.Minute, "D11 grace window — pending refunds younger than this are not flagged")
 	flag.DurationVar(&f.pendingExpiryGrace, "pending-expiry-grace", 1*time.Minute, "D12 grace window past payment expiry")
 	flag.Parse()

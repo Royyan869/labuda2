@@ -12,7 +12,7 @@ Map<String, dynamic>? _singleEntryMap(String key, Object? value) {
 /// ============================================================================
 ///
 /// **UNIFIED REFERENCE SYSTEM:**
-/// - Object references (listing, auction, post, request, profile) use ShareReference
+/// - Object references (forSale, auction, post, request, profile) use ShareReference
 /// - Workflow payloads (negotiation, shipping, bid) keep separate structure
 /// - True attachments (location) keep separate structure
 ///
@@ -211,10 +211,10 @@ class SharePreviewDto extends Equatable {
 /// PHASE 1 COMPLETE - LEGACY WRAPPERS REMOVED
 /// ============================================================================
 /// The following legacy DTOs have been removed:
-/// - ListingAttachmentDto, AuctionAttachmentDto, PostAttachmentDto, RequestAttachmentDto
+/// - ForSaleAttachmentDto, AuctionAttachmentDto, PostAttachmentDto, RequestAttachmentDto
 /// - All object references now use the canonical ShareReferenceAttachmentDto format
-/// - Use appropriate targetType: listing, auction, content
-/// Legacy attachment types (listing, auction, post, request) are still supported
+/// - Use appropriate targetType: forSale, auction, content
+/// Legacy attachment types (forSale, auction, post, request) are still supported
 /// for backward compatibility in parseAttachmentDto() but map to ShareReference.
 /// ============================================================================
 

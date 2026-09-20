@@ -1,4 +1,4 @@
-// Proves that social mutation routes (like toggle, listing-reference comment)
+// Proves that social mutation routes (like toggle, for_sale-reference comment)
 // reject suspended/banned users via RequireActiveAccount middleware.
 //
 // Pipeline-level tests using the same mock pattern as admin_account_gate_test.go.
@@ -90,8 +90,8 @@ func TestLikeToggle_BannedUser_Blocked(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "ACCOUNT_BANNED")
 }
 
-// TestListingComment_ActiveUser_Allowed verifies an active user reaches the listing comment handler.
-func TestListingComment_ActiveUser_Allowed(t *testing.T) {
+// TestForSaleComment_ActiveUser_Allowed verifies an active user reaches the for_sale comment handler.
+func TestForSaleComment_ActiveUser_Allowed(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	router := gin.New()
@@ -103,7 +103,7 @@ func TestListingComment_ActiveUser_Allowed(t *testing.T) {
 	router.Use(mockAccountStatusGate(nil))
 
 	handlerCalled := false
-	router.POST("/contents/:id/comments/listing", func(c *gin.Context) {
+	router.POST("/contents/:id/comments/for_sale", func(c *gin.Context) {
 		handlerCalled = true
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})
@@ -115,8 +115,8 @@ func TestListingComment_ActiveUser_Allowed(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-// TestListingComment_SuspendedUser_Blocked verifies a suspended user is rejected with 403.
-func TestListingComment_SuspendedUser_Blocked(t *testing.T) {
+// TestForSaleComment_SuspendedUser_Blocked verifies a suspended user is rejected with 403.
+func TestForSaleComment_SuspendedUser_Blocked(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	router := gin.New()
@@ -128,7 +128,7 @@ func TestListingComment_SuspendedUser_Blocked(t *testing.T) {
 	router.Use(mockAccountStatusGate(auth.ErrAccountSuspended))
 
 	handlerCalled := false
-	router.POST("/contents/:id/comments/listing", func(c *gin.Context) {
+	router.POST("/contents/:id/comments/for_sale", func(c *gin.Context) {
 		handlerCalled = true
 	})
 
@@ -140,8 +140,8 @@ func TestListingComment_SuspendedUser_Blocked(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "ACCOUNT_SUSPENDED")
 }
 
-// TestListingComment_BannedUser_Blocked verifies a banned user is rejected with 403.
-func TestListingComment_BannedUser_Blocked(t *testing.T) {
+// TestForSaleComment_BannedUser_Blocked verifies a banned user is rejected with 403.
+func TestForSaleComment_BannedUser_Blocked(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	router := gin.New()
@@ -153,7 +153,7 @@ func TestListingComment_BannedUser_Blocked(t *testing.T) {
 	router.Use(mockAccountStatusGate(auth.ErrAccountBanned))
 
 	handlerCalled := false
-	router.POST("/contents/:id/comments/listing", func(c *gin.Context) {
+	router.POST("/contents/:id/comments/for_sale", func(c *gin.Context) {
 		handlerCalled = true
 	})
 

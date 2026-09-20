@@ -269,7 +269,7 @@ class NotificationNavigationService {
           _navigateToNotifications(context);
         }
         return;
-      case 'listing':
+      case 'forSale':
         if (targetId != null && targetId.isNotEmpty) {
           _navigationHandler.navigateToForSaleDetail(targetId);
         } else {
@@ -321,7 +321,7 @@ class NotificationNavigationService {
           _navigateToNotifications(context);
         }
         return;
-      case 'listing':
+      case 'forSale':
         if (targetId != null && targetId.isNotEmpty) {
           _navigationHandler.navigateToForSaleDetail(targetId);
         } else {

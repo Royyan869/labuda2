@@ -12,7 +12,7 @@
 // 5. Never construct malformed destination routes
 // 6. Work through the actual Feed pipeline end-to-end
 //
-// Uses actual promoted card widgets (PromotedListingCard, PromotedAuctionCard,
+// Uses actual promoted card widgets (PromotedForSaleCard, PromotedAuctionCard,
 // PromotedExternalCard). Only external boundaries are faked:
 //   - HTTP transport (captures POSTs, can simulate failures)
 //   - GoRouter destination pages (real routes with detectable widgets)
@@ -81,11 +81,11 @@ Map<String, dynamic> _feedEnvelope({
   };
 }
 
-Map<String, dynamic> _promotedListingItem({
+Map<String, dynamic> _promotedForSaleItem({
   required String instanceId,
   required String title,
   int pricePerUnit = 5000000,
-  String forSaleId = 'listing-1',
+  String forSaleId = 'forSale-1',
   String? canonicalExposureId,
 }) {
   return <String, dynamic>{
@@ -300,7 +300,7 @@ FeedItem _makeFeedItem({
       'contractId': contractId,
       'title': title,
       'imageUrl': 'https://example.com/img.jpg',
-      'targetType': 'listing',
+      'targetType': 'forSale',
       if (canonicalExposureId != null)
         'canonicalExposureId': canonicalExposureId,
       ...extra,
@@ -309,7 +309,7 @@ FeedItem _makeFeedItem({
 }
 
 FeedItem _listingItem({
-  String contractId = 'pi-click-listing',
+  String contractId = 'pi-click-forSale',
   String title = 'Click Test ForSale',
   String? forSaleId = 'fps-click-1',
   int pricePerUnit = 5000000,
@@ -317,7 +317,7 @@ FeedItem _listingItem({
 }) {
   return _makeFeedItem(
     id: contractId,
-    type: FeedItemType.promotedListing,
+    type: FeedItemType.promotedForSale,
     contractId: contractId,
     title: title,
     canonicalExposureId: canonicalExposureId,
@@ -532,7 +532,7 @@ void main() {
       await tester.pumpWidget(
         _buildCardRouterHarness(
           adapter: adapter,
-          card: PromotedListingCard(
+          card: PromotedForSaleCard(
             item: _listingItem(
               contractId: 'pi-click-list-001',
               forSaleId: 'fps-42',
@@ -544,7 +544,7 @@ void main() {
       );
       await _pump(tester);
 
-      expect(find.byType(PromotedListingCard), findsOneWidget);
+      expect(find.byType(PromotedForSaleCard), findsOneWidget);
       expect(find.text('Tap Me ForSale'), findsOneWidget);
 
       // Before tap: no click acks, still on home route.
@@ -565,7 +565,7 @@ void main() {
       expect(find.text('for-sale-dest:fps-42'), findsOneWidget);
     });
 
-    testWidgets('route argument is the actual mapped listing ID', (
+    testWidgets('route argument is the actual mapped forSale ID', (
       tester,
     ) async {
       _setViewport(tester);
@@ -575,10 +575,10 @@ void main() {
       await tester.pumpWidget(
         _buildCardRouterHarness(
           adapter: adapter,
-          card: PromotedListingCard(
+          card: PromotedForSaleCard(
             item: _listingItem(
               contractId: 'pi-route-id',
-              forSaleId: 'custom-listing-uuid-999',
+              forSaleId: 'custom-forSale-uuid-999',
               title: 'Route ID Test',
               canonicalExposureId: 'exp-route-id',
             ),
@@ -589,7 +589,7 @@ void main() {
 
       await _tapPromotedCard(tester);
 
-      expect(find.text('for-sale-dest:custom-listing-uuid-999'), findsOneWidget);
+      expect(find.text('for-sale-dest:custom-forSale-uuid-999'), findsOneWidget);
       expect(find.text('for-sale-dest:fps-click-1'), findsNothing);
     });
   });
@@ -719,7 +719,7 @@ void main() {
   // SCENARIO 4-6: Tracking failure does not block destination
   // ==========================================================================
   group('SCENARIO 4-6: Tracking failure continuity', () {
-    testWidgets('ForSale: click ack 500 → still navigates to listing', (
+    testWidgets('ForSale: click ack 500 → still navigates to forSale', (
       tester,
     ) async {
       _setViewport(tester);
@@ -730,7 +730,7 @@ void main() {
       await tester.pumpWidget(
         _buildCardRouterHarness(
           adapter: adapter,
-          card: PromotedListingCard(
+          card: PromotedForSaleCard(
             item: _listingItem(
               contractId: 'pi-fail-list',
               forSaleId: 'fps-survive',
@@ -745,7 +745,7 @@ void main() {
       await _tapPromotedCard(tester);
 
       expect(find.text('for-sale-dest:fps-survive'), findsOneWidget);
-      expect(find.byType(PromotedListingCard), findsNothing);
+      expect(find.byType(PromotedForSaleCard), findsNothing);
     });
 
     testWidgets('Auction: click ack 500 → still navigates to auction', (
@@ -825,7 +825,7 @@ void main() {
       await tester.pumpWidget(
         _buildCardRouterHarness(
           adapter: adapter,
-          card: PromotedListingCard(
+          card: PromotedForSaleCard(
             item: _listingItem(
               contractId: 'pi-no-exposure-list',
               forSaleId: 'fps-empty-id',
@@ -908,7 +908,7 @@ void main() {
   // SCENARIO 8: Missing destination identity
   // ==========================================================================
   group('SCENARIO 8: Missing destination identity', () {
-    testWidgets('missing listing ID → onTap is null → no navigation, no crash', (
+    testWidgets('missing forSale ID → onTap is null → no navigation, no crash', (
       tester,
     ) async {
       _setViewport(tester);
@@ -918,7 +918,7 @@ void main() {
       await tester.pumpWidget(
         _buildCardRouterHarness(
           adapter: adapter,
-          card: PromotedListingCard(
+          card: PromotedForSaleCard(
             item: _listingItem(
               contractId: 'pi-no-dest',
               forSaleId: null, // missing
@@ -930,13 +930,13 @@ void main() {
       );
       await _pump(tester);
 
-      expect(find.byType(PromotedListingCard), findsOneWidget);
+      expect(find.byType(PromotedForSaleCard), findsOneWidget);
       expect(find.text('No Dest ForSale'), findsOneWidget);
 
       await _tapPromotedCard(tester);
 
       expect(find.text('for-sale-dest:'), findsNothing);
-      expect(find.byType(PromotedListingCard), findsOneWidget);
+      expect(find.byType(PromotedForSaleCard), findsOneWidget);
       expect(adapter.clickPosts, isEmpty,
           reason: 'no tap handler → no click tracking');
     });
@@ -1012,7 +1012,7 @@ void main() {
   // ==========================================================================
   group('SCENARIO 9: Actual Feed pipeline click', () {
     testWidgets(
-      'FeedApiDatasource → HomeScreen → tap listing → ack + nav',
+      'FeedApiDatasource → HomeScreen → tap forSale → ack + nav',
       (tester) async {
         _setViewport(tester);
 
@@ -1020,7 +1020,7 @@ void main() {
           feedResponses: [
             _feedEnvelope(
               items: [
-                _promotedListingItem(
+                _promotedForSaleItem(
                   instanceId: 'pi-pipeline-click',
                   title: 'Pipeline ForSale Click',
                   forSaleId: 'fps-pipeline-1',
@@ -1041,7 +1041,7 @@ void main() {
         await _pump(tester);
 
         expect(find.byType(HomeScreen), findsOneWidget);
-        expect(find.byType(PromotedListingCard), findsOneWidget);
+        expect(find.byType(PromotedForSaleCard), findsOneWidget);
         expect(find.text('Pipeline ForSale Click'), findsOneWidget);
 
         await _tapPromotedCard(tester);
@@ -1063,7 +1063,7 @@ void main() {
           feedResponses: [
             _feedEnvelope(
               items: [
-                _promotedListingItem(
+                _promotedForSaleItem(
                   instanceId: 'pi-click-only',
                   title: 'Click Only Test',
                   forSaleId: 'fps-click-1',
@@ -1083,7 +1083,7 @@ void main() {
         );
         await _pump(tester);
 
-        expect(find.byType(PromotedListingCard), findsOneWidget);
+        expect(find.byType(PromotedForSaleCard), findsOneWidget);
 
         final clicksBefore = adapter.clickPosts.length;
 
@@ -1112,7 +1112,7 @@ void main() {
         _buildCardRouterHarness(
           adapter: adapter,
           card: Column(children: [
-            PromotedListingCard(
+            PromotedForSaleCard(
               item: _listingItem(
                 contractId: 'pi-shape-list',
                 title: 'Shape A',
@@ -1132,7 +1132,7 @@ void main() {
       await _pump(tester);
 
       final router = GoRouter.of(
-        tester.element(find.byType(PromotedListingCard)),
+        tester.element(find.byType(PromotedForSaleCard)),
       );
 
       final shells = find.byType(CommerceMarketplaceCardShell);
@@ -1155,4 +1155,4 @@ void main() {
       expect(auctionClick.exposureId, 'exp-shape-auc');
     });
   });
-}
+}

@@ -4,12 +4,16 @@
 // Support Tickets page HTTP 500s reported in PASS_20F. Every read-only
 // Service method here used to call its repository with a literal `nil` for
 // the transaction argument (GetTicket, GetMyOpenTicket, ListTickets,
-// CountTickets, GetAdmin, ListAdmins, GetAvailableAdmins, GetStatistics,
-// ListEvents), but SupportRepositoryImpl's toTx() helper does a type
-// assertion `tx.(db.Tx)` that panics on a nil interface — so every one of
-// these calls panicked on every request, not just on empty data. Fixed by
-// opening a real transaction via the Service's own Transactor (s.db.WithTx)
-// instead of passing nil straight through.
+// CountTickets, GetStatistics, ListEvents), but SupportRepositoryImpl's toTx()
+// helper does a type assertion `tx.(db.Tx)` that panics on a nil interface —
+// so every one of these calls panicked on every request, not just on empty
+// data. Fixed by opening a real transaction via the Service's own Transactor
+// (s.db.WithTx) instead of passing nil straight through.
+//
+// NOTE: the admin-pool read methods (GetAdmin, ListAdmins,
+// GetAvailableAdmins) were purged from the Service and Repository together
+// with the dead support_admins table (migration 000104); their regression
+// tests were removed here because the methods no longer exist.
 package application
 
 import (
@@ -65,31 +69,5 @@ func TestService_CountTickets_EmptyDBDoesNotPanic(t *testing.T) {
 	}
 	if count != 0 {
 		t.Fatalf("expected count 0 on empty DB, got %d", count)
-	}
-}
-
-func TestService_ListAdmins_EmptyDBDoesNotPanic(t *testing.T) {
-	svc, cleanup := setupSupportServiceTest(t)
-	defer cleanup()
-
-	admins, err := svc.ListAdmins(context.Background(), nil)
-	if err != nil {
-		t.Fatalf("ListAdmins: %v (nil-tx panic regression if this mentions 'invalid transaction type')", err)
-	}
-	if len(admins) != 0 {
-		t.Fatalf("expected 0 admins on empty DB, got %d", len(admins))
-	}
-}
-
-func TestService_GetAvailableAdmins_EmptyDBDoesNotPanic(t *testing.T) {
-	svc, cleanup := setupSupportServiceTest(t)
-	defer cleanup()
-
-	admins, err := svc.GetAvailableAdmins(context.Background(), 10)
-	if err != nil {
-		t.Fatalf("GetAvailableAdmins: %v (nil-tx panic regression if this mentions 'invalid transaction type')", err)
-	}
-	if len(admins) != 0 {
-		t.Fatalf("expected 0 available admins on empty DB, got %d", len(admins))
 	}
 }

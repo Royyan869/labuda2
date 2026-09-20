@@ -69,7 +69,7 @@ abstract class ShippingRepository {
   /// Overwrite semantics: the backend replaces the current
   /// `product_shipping_options` rows for [productId] with [shippingSetupIds].
   /// Empty list is allowed and clears all links (but a publish gate will
-  /// then reject the listing for SHIPPING_NOT_CONFIGURED on next activation).
+  /// then reject the forSale for SHIPPING_NOT_CONFIGURED on next activation).
   Future<Result<void>> setProductShippingSetups(
     String productId,
     List<String> shippingSetupIds,

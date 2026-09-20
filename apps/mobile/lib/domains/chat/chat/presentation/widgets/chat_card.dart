@@ -39,7 +39,7 @@ class ChatCard extends ConsumerWidget {
     final otherUserName = chat.getOtherParticipantName(currentUserId);
     final otherUserHandle = formatChatHandle(otherUserName);
     final otherUserAvatar = chat.participantAvatars[otherUserId];
-    final unreadCount = chat.getUnreadCount(currentUserId);
+    final unreadCount = chat.roomUnreadCount;
 
     // E4.3 — Chat-participant lifecycle redaction. Slot-persistence is
     // preserved: the chat room remains tappable (the InkWell still opens
@@ -81,7 +81,6 @@ class ChatCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   _buildLastMessage(context, currentUserId),
-
                 ],
               ),
             ),
@@ -94,10 +93,7 @@ class ChatCard extends ConsumerWidget {
   }
 
   Widget _buildSupportChatCard(BuildContext context, String currentUserId) {
-    final unreadCount = chat.unreadCounts.values.fold(
-      0,
-      (sum, count) => sum + count,
-    );
+    final unreadCount = chat.roomUnreadCount;
 
     return InkWell(
       onTap: onTap,
@@ -308,7 +304,6 @@ class ChatCard extends ConsumerWidget {
     }
   }
 
-
   Widget _buildSupportCategoryChip(BuildContext context) {
     if (chat.supportCategory == null) return const SizedBox.shrink();
 
@@ -372,40 +367,35 @@ class ChatCard extends ConsumerWidget {
     );
   }
 
-
   Color _getSupportCategoryColor() {
-    switch (chat.supportCategory) {
-      case SupportCategory.payment:
-        return Colors.green;
-      case SupportCategory.order:
-        return Colors.orange;
-      case SupportCategory.technical:
-        return Colors.blue;
-      case SupportCategory.account:
-        return Colors.purple;
-      case SupportCategory.general:
-      default:
-        return Colors.grey;
-    }
+    return switch (chat.supportCategory) {
+      SupportCategory.paymentIssue => Colors.green,
+      SupportCategory.refundRequest => Colors.green,
+      SupportCategory.orderIssue => Colors.orange,
+      SupportCategory.shippingIssue => Colors.orange,
+      SupportCategory.accountIssue => Colors.purple,
+      SupportCategory.listingIssue => Colors.teal,
+      SupportCategory.dispute => Colors.red,
+      SupportCategory.technicalIssue => Colors.blue,
+      SupportCategory.other || null => Colors.grey,
+    };
   }
 
   IconData _getSupportCategoryIcon() {
-    switch (chat.supportCategory) {
-      case SupportCategory.payment:
-        return Icons.payment;
-      case SupportCategory.order:
-        return Icons.shopping_bag;
-      case SupportCategory.technical:
-        return Icons.bug_report;
-      case SupportCategory.account:
-        return Icons.account_circle;
-      case SupportCategory.general:
-      default:
-        return Icons.help_outline;
-    }
+    return switch (chat.supportCategory) {
+      SupportCategory.paymentIssue => Icons.payment,
+      SupportCategory.refundRequest => Icons.currency_exchange,
+      SupportCategory.orderIssue => Icons.shopping_bag,
+      SupportCategory.shippingIssue => Icons.local_shipping,
+      SupportCategory.accountIssue => Icons.account_circle,
+      SupportCategory.listingIssue => Icons.sell,
+      SupportCategory.dispute => Icons.gavel,
+      SupportCategory.technicalIssue => Icons.bug_report,
+      SupportCategory.other || null => Icons.help_outline,
+    };
   }
 
   String _getSupportCategoryLabel() {
-    return chat.supportCategory?.name.toUpperCase() ?? 'GENERAL';
+    return chat.supportCategory?.wireValue.toUpperCase() ?? 'OTHER';
   }
 }

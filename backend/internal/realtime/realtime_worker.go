@@ -22,7 +22,10 @@ const (
 
 // Worker processes outbox events for realtime delivery.
 //
-// Similar to OutboxWorker but focused on chat.message.sent events.
+// Similar to OutboxWorker, but it is the sole owner of the realtime-owned outbox
+// event types (OwnedOutboxEventTypes) and never claims any other event type.
+// The outbox worker excludes exactly that set, so the two consumers never
+// compete for one row.
 // Implements the same Worker interface for consistency.
 //
 // PROCESSING FLOW (1 event = 1 transaction):
@@ -75,7 +78,10 @@ func DefaultWorkerConfig() WorkerConfig {
 // OutboxRepository defines the interface for outbox operations.
 // This is a minimal interface for the realtime worker.
 type OutboxRepository interface {
-	FetchPendingBatch(ctx context.Context, tx dbpkg.Tx, limit int) ([]Event, error)
+	// FetchPendingBatch returns pending events owned by this consumer only
+	// (OwnedOutboxEventTypes). The realtime worker must never receive an event
+	// type owned by another consumer.
+	FetchPendingBatch(ctx context.Context, tx dbpkg.Tx, limit int, ownedEventTypes []string) ([]Event, error)
 	MarkProcessing(ctx context.Context, tx dbpkg.Tx, eventID uuid.UUID) error
 	MarkSucceeded(ctx context.Context, tx dbpkg.Tx, eventID uuid.UUID) error
 	MarkFailedWithRetry(ctx context.Context, tx dbpkg.Tx, eventID uuid.UUID, retryCount int, nextAttemptAt time.Time) error
@@ -215,11 +221,13 @@ func (w *Worker) run() {
 func (w *Worker) processBatch() {
 	ctx := context.Background()
 
-	// Fetch events in a short transaction
+	// Fetch events in a short transaction.
+	// OWNERSHIP: scoped to the realtime-owned event types, so this worker can
+	// never claim an event owned by another consumer.
 	var events []Event
 	err := w.db.WithTx(ctx, func(tx dbpkg.Tx) error {
 		var err error
-		events, err = w.outboxRepo.FetchPendingBatch(ctx, tx, w.batchSize)
+		events, err = w.outboxRepo.FetchPendingBatch(ctx, tx, w.batchSize, OwnedOutboxEventTypes)
 		return err
 	})
 
@@ -237,17 +245,12 @@ func (w *Worker) processBatch() {
 		zap.String("worker_id", w.workerID),
 	)
 
-	// Process each event in its own transaction
+	// Process each event in its own transaction.
+	// Every fetched event is realtime-owned by construction (ownership scope in
+	// the fetch), so there is no type filter here: an event that reaches this
+	// loop and cannot be delivered must fail loudly (see Dispatcher.Dispatch).
 	var succeeded, failed int
 	for _, event := range events {
-		// Process only chat realtime events that the realtime dispatcher knows
-		// how to deliver to websocket recipients.
-		if event.EventType != EventTypeChatMessageSent &&
-			event.EventType != EventTypeChatRoomCreated &&
-			event.EventType != EventTypeChatRoomUpdated {
-			continue
-		}
-
 		if w.processSingleEvent(ctx, event) {
 			succeeded++
 		} else {
@@ -323,5 +326,3 @@ func (w *Worker) ManualProcess(ctx context.Context) error {
 	w.processBatch()
 	return nil
 }
-
-

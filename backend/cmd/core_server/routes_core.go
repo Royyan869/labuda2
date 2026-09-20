@@ -19,6 +19,24 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// ============================================================================
+// PAYMENT CALLBACK PATH AUTHORITY (INFRA-1)
+// ============================================================================
+// The Midtrans payment callback path is defined EXACTLY ONCE, here, and is
+// consumed by BOTH the route mount below and the boot-time callback-target
+// validation (validateMidtransConfig -> validateMidtransNotificationURL in
+// main.go). A second literal would be a competing authority: the configured
+// callback target could silently point at a path that is not actually mounted.
+//
+// Midtrans must POST to the FULL path:
+//
+//	https://<stable-public-host>/webhooks/payment/midtrans
+const (
+	webhooksGroupPrefix         = "/webhooks"
+	paymentWebhookRoutePath     = "/payment/midtrans"
+	canonicalPaymentWebhookPath = webhooksGroupPrefix + paymentWebhookRoutePath
+)
+
 // SetupRoutes configures all application routes for CORE domains only
 // CORE domains: finance, outbox, payment, user
 func SetupRoutes(
@@ -31,8 +49,10 @@ func SetupRoutes(
 	log *logger.Logger,
 ) {
 	// Health check endpoints
+	// NOTE: /health/ready is registered AFTER the payment webhook group below,
+	// because its payment-callback readiness view asserts that the canonical
+	// callback route is actually registered on this router (INFRA-2).
 	router.GET("/health", healthCheckHandler(cfg, db, redisClient))
-	router.GET("/health/ready", readinessHandler(cfg, db, redisClient))
 	router.GET("/health/live", livenessHandler())
 	router.GET("/health/system", deps.SystemHealthHandler.GetSystemHealth)
 
@@ -59,9 +79,9 @@ func SetupRoutes(
 	// WEBHOOK_DROP_ENABLED=true — production traffic always passes through
 	// untouched. See webhook_drop_middleware.go.
 	webhookDrop := newWebhookDropFilter(cfg, log.Logger)
-	webhookGroup := router.Group("/webhooks")
+	webhookGroup := router.Group(webhooksGroupPrefix)
 	{
-		webhookGroup.POST("/payment/midtrans",
+		webhookGroup.POST(paymentWebhookRoutePath,
 			webhookDrop.Middleware(),
 			deps.PaymentWebhookHandler.HandleMidtransWebhook)
 		// Payout webhook endpoint (no auth - called by payout gateway)
@@ -69,6 +89,19 @@ func SetupRoutes(
 		webhookGroup.POST("/payout", deps.PayoutWebhookHandler.HandlePayoutWebhook)
 		webhookGroup.GET("/payout/health", deps.PayoutWebhookHandler.HandleHealthCheck)
 	}
+
+	// Canonical readiness endpoint (no auth). Registered here so the payment
+	// callback route above is already mounted when its presence is asserted.
+	//
+	// The callback probe is injected rather than called inline so readiness can
+	// be unit tested deterministically, with no DNS lookup and no outbound HTTP.
+	// No new health surface is introduced: this feeds the existing readiness
+	// authority, and no payment operation is ever performed by a readiness check.
+	callbackRoutePresent := callbackRouteMounted(router)
+	router.GET("/health/ready", readinessHandler(cfg, db, redisClient,
+		func(ctx context.Context, c *config.Config) PaymentCallbackHealth {
+			return probePaymentCallbackHealth(ctx, c, callbackRoutePresent)
+		}))
 
 	// Dev-only hot-arm endpoint for the webhook drop filter. Mounted ONLY
 	// when filter.Armable() is true (i.e. env=development AND
@@ -80,11 +113,6 @@ func SetupRoutes(
 	if webhookDrop.Armable() {
 		router.POST("/dev/webhook-drop/arm", webhookDropArmHandler(webhookDrop))
 		log.Warn("development-only routes mounted — do not use in production")
-	}
-
-	if cfg.IsDevelopment() {
-		router.POST("/dev/webhooks/payment/midtrans/replay/:payment_id",
-			deps.PaymentWebhookHandler.HandleMidtransWebhookDevReplay)
 	}
 
 	// ===== PHASE 1: CANONICAL AUTH ENTRY POINT (Public - Firebase token verified internally) =====
@@ -216,6 +244,10 @@ func SetupRoutes(
 		userRoutes.PATCH("/me/profile", deps.UserProfileHandler.UpdateMyProfile)
 		userRoutes.POST("/me/verification/refresh", deps.UserProfileHandler.RefreshMyVerification)
 		userRoutes.DELETE("/me", deps.UserProfileHandler.DeleteMyAccount)
+
+		// Presence initial state — canonical batch read via BuildSnapshot (Slice-4)
+		// viewer-scoped, privacy/block/lifecycle fail-closed. No direct Redis.
+		v1.GET("/users/presence", deps.PresenceHandler.GetPresence)
 
 		// General media upload — presigned S3 PUT URL for non-KYC files.
 		// Requires auth; no seller gate. KYC uploads use a separate endpoint
@@ -399,6 +431,10 @@ func SetupRoutes(
 			// List all rooms for the authenticated user
 			chatRoutes.GET("/rooms", deps.ChatHandler.ListRooms)
 
+			// Get a single room by ID (canonical conversation-open read).
+			// Uses the existing canonical room reader + participant authority.
+			chatRoutes.GET("/rooms/:room_id", deps.ChatHandler.GetRoom)
+
 			// Get or create a direct chat room with another user
 			chatRoutes.POST("/direct/:user_id", middleware.RequireActiveAccount(db.Pgx()), deps.ChatHandler.GetOrCreateDirectRoom)
 
@@ -448,12 +484,6 @@ func SetupRoutes(
 		// Subscription payment initiation (pre-seller: user has onboarded but
 		// does not yet have seller authority). Gate: active account only.
 		v1.POST("/seller/subscription/initiate", middleware.RequireActiveAccount(db.Pgx()), deps.SellerHandler.InitiateSubscriptionPayment)
-
-		// Subscription payment sync — polls Midtrans for the user's own latest
-		// pending subscription payment and activates the subscription when the
-		// gateway confirms success. Recovers from webhook delivery failures
-		// (e.g. Cloudflare tunnel was down). Gate: active account only.
-		v1.POST("/seller/subscription/sync", middleware.RequireActiveAccount(db.Pgx()), deps.SellerHandler.SyncSubscriptionPayment)
 
 		// Subscription config disclosure for the seller upgrade/onboarding flow.
 		// This is authenticated-account scoped, not seller-authority scoped.
@@ -531,6 +561,11 @@ func SetupRoutes(
 		sellerWorkspaceRoutes.Use(middleware.RequireActiveAccount(db.Pgx()))
 		sellerWorkspaceRoutes.Use(middleware.RequireSellerProfileMiddleware(deps.RoleChecker))
 		{
+			// Canonical seller/store identity mutation — survives subscription expiry.
+			// Profile editing must remain available for expired sellers so they don't
+			// lose their established business identity.
+			sellerWorkspaceRoutes.PATCH("/profile", deps.SellerHandler.UpdateProfile)
+
 			// Earnings / balance visibility — survives subscription expiry.
 			// Expired sellers earned balance is theirs; they must be able to see it.
 			sellerWorkspaceRoutes.GET("/earnings", deps.SellerHandler.GetEarnings)
@@ -913,6 +948,9 @@ func SetupRoutes(
 			adminRoutes.PUT("/support/tickets/:id/resolve",
 				middleware.RequireCapability("support.ticket.resolve"),
 				deps.SupportHandler.ResolveTicket) // Resolve ticket
+			adminRoutes.PUT("/support/tickets/:id/reopen",
+				middleware.RequireCapability("support.ticket.resolve"),
+				deps.SupportHandler.AdminReopenTicket) // Reopen a resolved ticket
 			adminRoutes.PUT("/support/tickets/:id/close",
 				middleware.RequireCapability("support.ticket.resolve"),
 				deps.SupportHandler.CloseTicket) // Close ticket
@@ -928,12 +966,6 @@ func SetupRoutes(
 			adminRoutes.GET("/support/statistics",
 				middleware.RequireCapability("support.admin.read"),
 				deps.SupportHandler.GetStatistics) // Support statistics
-			adminRoutes.GET("/support/admins",
-				middleware.RequireCapability("support.admin.read"),
-				deps.SupportHandler.ListAdmins) // List support admins
-			adminRoutes.GET("/support/admins/available",
-				middleware.RequireCapability("support.admin.read"),
-				deps.SupportHandler.GetAvailableAdmins) // Available admins
 			adminRoutes.POST("/support/tickets/:id/messages",
 				middleware.RequireCapability("support.ticket.respond"),
 				deps.SupportHandler.SendMessage) // Send message to ticket
@@ -1297,10 +1329,13 @@ func SetupRoutes(
 		// SupportHandler user routes - create and manage support tickets
 		v1.POST("/support/tickets", deps.SupportHandler.CreateTicket)           // Create support ticket
 		v1.GET("/support/tickets", deps.SupportHandler.ListMyTickets)           // List my tickets
-		v1.GET("/support/tickets/my/open", deps.SupportHandler.GetMyOpenTicket) // Get my open ticket
 		v1.GET("/support/tickets/:id", deps.SupportHandler.GetTicket)           // Get ticket details
 		v1.GET("/support/tickets/:id/events", deps.SupportHandler.ListEvents)   // List ticket events
-		v1.PUT("/support/tickets/:id/reopen", deps.SupportHandler.ReopenTicket) // Reopen resolved/closed ticket
+		v1.PUT("/support/tickets/:id/reopen", deps.SupportHandler.ReopenTicket) // Reopen my resolved ticket
+		// Canonical user conversation routes. Support ticket ownership is the
+		// authorization authority; messages are chat transport.
+		v1.GET("/support/tickets/:id/messages", deps.SupportHandler.ListMessages)   // Read my ticket conversation
+		v1.POST("/support/tickets/:id/messages", deps.SupportHandler.SendMyMessage) // Reply to my ticket
 
 		// ===== SOCIAL DOMAIN (CORE) =====
 		// Social graph operations: follow, block, mute
@@ -1495,23 +1530,30 @@ func healthCheckHandler(cfg *config.Config, db *database.DB, redisClient *pkgRed
 
 // evaluateReadiness computes the overall readiness result from basic infra
 // checks (DB/Redis), the runtime activation state of money-safety-critical
-// detector workers (PASS_18R), and the payout completion-loop safety state
-// (PASS_18S). Extracted as a pure function, independent of gin/HTTP/DB/Redis,
-// so it can be unit tested directly without a real server.
+// detector workers (PASS_18R), the payout completion-loop safety state
+// (PASS_18S), and the payment callback dependency (INFRA-2). Extracted as a
+// pure function, independent of gin/HTTP/DB/Redis, so it can be unit tested
+// directly without a real server.
 //
 // Semantics:
 //   - dbOK/redisOK false always fails readiness, in every environment.
-//   - A critical detector worker fully disabled ("dark"), OR the payout
+//   - A critical detector worker fully disabled ("dark"), the payout
 //     completion loop being unsafe (PayoutWorker enabled with neither a
-//     configured webhook nor a functional reconciliation path), degrades
-//     readiness. In development this is reported but does not block boot —
-//     local/dev must remain usable. In staging, production, or an
-//     unknown/nil config (fail-closed — never assume development), either
-//     condition fails readiness, so an operator cannot mistake a dark safety
-//     net or an unsafe payout loop for a healthy runtime.
-func evaluateReadiness(cfg *config.Config, dbOK, redisOK bool, workerStatuses []worker.CriticalWorkerStatus, payoutSafety config.PayoutCompletionSafety) (ready bool, degraded bool) {
+//     configured webhook nor a functional reconciliation path), OR a payment
+//     callback defect (missing/invalid configuration, unresolvable callback
+//     host, canonical callback route not mounted) degrades readiness. In
+//     development this is reported but does not block boot — local/dev must
+//     remain usable. In staging, production, or an unknown/nil config
+//     (fail-closed — never assume development), any of these conditions fails
+//     readiness, so an operator cannot mistake a dark safety net, an unsafe
+//     payout loop, or an undeliverable payment callback for a healthy runtime.
+//
+// INFRA-2 note: PaymentCallbackHealth.Degraded never includes outbound-probe
+// failure — a process-local outbound failure cannot distinguish blocked egress
+// from a real ingress outage, so it is reported as evidence, not as a gate.
+func evaluateReadiness(cfg *config.Config, dbOK, redisOK bool, workerStatuses []worker.CriticalWorkerStatus, payoutSafety config.PayoutCompletionSafety, callback PaymentCallbackHealth) (ready bool, degraded bool) {
 	ready = dbOK && redisOK
-	degraded = worker.AnyCriticalWorkerDark(workerStatuses) || payoutSafety.Degraded
+	degraded = worker.AnyCriticalWorkerDark(workerStatuses) || payoutSafety.Degraded || callback.Degraded
 
 	isDevelopment := cfg != nil && cfg.IsDevelopment()
 	if degraded && !isDevelopment {
@@ -1521,8 +1563,12 @@ func evaluateReadiness(cfg *config.Config, dbOK, redisOK bool, workerStatuses []
 	return ready, degraded
 }
 
-// readinessHandler checks if the service is ready to accept traffic
-func readinessHandler(cfg *config.Config, db *database.DB, redisClient *pkgRedis.Client) gin.HandlerFunc {
+// readinessHandler checks if the service is ready to accept traffic.
+//
+// readinessCallbackProbe supplies the payment-callback readiness view for one
+// request. It is injected so the handler can be tested deterministically
+// without DNS or outbound HTTP; production passes probePaymentCallbackHealth.
+func readinessHandler(cfg *config.Config, db *database.DB, redisClient *pkgRedis.Client, callbackProbe readinessCallbackProbe) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		dbOK := true
 		if db != nil {
@@ -1545,7 +1591,12 @@ func readinessHandler(cfg *config.Config, db *database.DB, redisClient *pkgRedis
 		if cfg != nil {
 			payoutSafety = cfg.EvaluatePayoutCompletionSafety()
 		}
-		ready, degraded := evaluateReadiness(cfg, dbOK, redisOK, workerStatuses, payoutSafety)
+		var callback PaymentCallbackHealth
+		if callbackProbe != nil {
+			callback = callbackProbe(c.Request.Context(), cfg)
+		}
+
+		ready, degraded := evaluateReadiness(cfg, dbOK, redisOK, workerStatuses, payoutSafety, callback)
 
 		status := http.StatusOK
 		if !ready {
@@ -1553,10 +1604,11 @@ func readinessHandler(cfg *config.Config, db *database.DB, redisClient *pkgRedis
 		}
 
 		c.JSON(status, gin.H{
-			"ready":         ready,
-			"degraded":      degraded,
-			"worker_safety": workerStatuses,
-			"payout_safety": payoutSafety,
+			"ready":            ready,
+			"degraded":         degraded,
+			"worker_safety":    workerStatuses,
+			"payout_safety":    payoutSafety,
+			"payment_callback": callback,
 		})
 	}
 }

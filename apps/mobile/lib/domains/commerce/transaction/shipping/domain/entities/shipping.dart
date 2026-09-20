@@ -418,36 +418,37 @@ class UpdateCoverageRequest {
 }
 
 /// Request untuk check delivery availability
+///
+/// `provinceId` / `cityId` carry the 2-digit / 4-digit BPS codes — the same
+/// value space as the address `Province.id` / `City.id` — and are serialized to
+/// the canonical backend wire keys `province_code` / `city_code`.
 class CheckDeliveryRequest {
   final String productId;
   final String provinceId;
   final String cityId;
-  final String cityName;
 
   const CheckDeliveryRequest({
     required this.productId,
     required this.provinceId,
     required this.cityId,
-    required this.cityName,
   });
 }
 
 /// Response untuk check delivery availability
+///
+/// Domain shape of one deliverable option, projected from the canonical wire
+/// option (`shipping_option_id` / `name` / `transport_type` / `rate`).
 class DeliveryOption {
   final String shippingSetupId;
   final String displayName;
   final String type;
   final double rate;
-  final String? notes;
-  final String source;
 
   const DeliveryOption({
     required this.shippingSetupId,
     required this.displayName,
     required this.type,
     required this.rate,
-    this.notes,
-    required this.source,
   });
 
   @override
@@ -457,14 +458,11 @@ class DeliveryOption {
         other.shippingSetupId == shippingSetupId &&
         other.displayName == displayName &&
         other.type == type &&
-        other.rate == rate &&
-        other.notes == notes &&
-        other.source == source;
+        other.rate == rate;
   }
 
   @override
-  int get hashCode =>
-      Object.hash(shippingSetupId, displayName, type, rate, source);
+  int get hashCode => Object.hash(shippingSetupId, displayName, type, rate);
 }
 
 // =====================================

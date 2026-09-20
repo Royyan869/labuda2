@@ -349,16 +349,16 @@ void main() {
       },
     );
 
-    test('listing row IGNORES authorLifecycle', () {
-      final listing = SearchResult(
+    test('forSale row IGNORES authorLifecycle', () {
+      final forSale = SearchResult(
         id: 'l1',
         type: SearchResultType.forSale,
-        title: 'Listing',
+        title: 'ForSale',
         subtitle: 'Acme Farm',
         metadata: {'authorLifecycle': 'removed', 'sellerLifecycle': 'active'},
         createdAt: DateTime.parse('2026-01-01T00:00:00.000Z'),
       );
-      expect(_renderAuthorSubtitle(listing), 'Acme Farm');
+      expect(_renderAuthorSubtitle(forSale), 'Acme Farm');
     });
 
     test('auction row IGNORES authorLifecycle', () {
@@ -386,29 +386,29 @@ void main() {
     });
 
     test(
-      'listing/auction sellerLifecycle unaffected by content author gate',
+      'forSale/auction sellerLifecycle unaffected by content author gate',
       () {
         // E8.4 seller redaction is separate; confirm neither axis
-        // bleeds into the other. Listing sellerLifecycle still reaches
+        // bleeds into the other. ForSale sellerLifecycle still reaches
         // the E8.4 gate (not tested here — see e8_4 test file),
-        // but authorLifecycle is never consumed on a listing row.
-        final listing = SearchResult(
+        // but authorLifecycle is never consumed on a forSale row.
+        final forSale = SearchResult(
           id: 'l2',
           type: SearchResultType.forSale,
           title: 'Koi',
           subtitle: 'Acme Farm',
           metadata: {
             'sellerLifecycle': 'removed',
-            // authorLifecycle would be absent on real listing rows but
+            // authorLifecycle would be absent on real forSale rows but
             // even if present it must be ignored by the author gate.
             'authorLifecycle': 'active',
           },
           createdAt: DateTime.parse('2026-01-01T00:00:00.000Z'),
         );
         // Author gate ignores non-content rows.
-        expect(_renderAuthorSubtitle(listing), 'Acme Farm');
+        expect(_renderAuthorSubtitle(forSale), 'Acme Farm');
         // sellerLifecycle present and correct for the E8.4 gate.
-        expect(listing.metadata['sellerLifecycle'], 'removed');
+        expect(forSale.metadata['sellerLifecycle'], 'removed');
       },
     );
   });

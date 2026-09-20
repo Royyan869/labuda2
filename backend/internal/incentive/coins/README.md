@@ -55,8 +55,8 @@ Coins hanya dapat digunakan pada konteks transaksi berikut:
 
 | Konteks | Status |
 |---------|--------|
-| Listing non-negotiable checkout | ✅ AKTIF |
-| Listing negotiated order / checkout | ✅ AKTIF |
+| For Sale non-negotiable checkout | ✅ AKTIF |
+| For Sale negotiated order / checkout | ✅ AKTIF |
 | Shipping fee (termasuk dalam order total) | ✅ AKTIF (sudah termasuk dalam base perhitungan) |
 | Auction buy-now checkout | ✅ AKTIF |
 | Auction bid-win claim / payment | ✅ AKTIF (owner canonical 2026-06-16) |

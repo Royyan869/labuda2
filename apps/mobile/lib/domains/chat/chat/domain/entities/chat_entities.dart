@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/domains/chat/attachment/attachment.dart';
+import 'package:labuda/domains/chat/chat/domain/entities/chat_resource_projection.dart';
 
 // Support ticket enums — canonical source is the Support/CS domain.
 // Imported for use within this file; re-exported so Chat consumers that
@@ -19,7 +20,7 @@ export 'package:labuda/domains/system/support/domain/entities/support_ticket.dar
 ///
 /// **ROOM MODEL CLARITY:**
 /// - All chats use the SAME Chat entity structure - no special "negotiation room" types
-/// - Room purpose is determined by `context` ShareReference (listing, auction, content, etc)
+/// - Room purpose is determined by `context` ShareReference (forSale, auction, content, etc)
 /// - Negotiations happen within regular private chats between buyer and seller
 /// - Backend "negotiation" rooms map to frontend "private" (same chat, different backend context)
 ///
@@ -60,7 +61,7 @@ enum ChatStatus { active, blocked, deleted }
 /// - Chat does NOT process commerce logic - only displays attachment state
 ///
 /// **Migration Note:** Do NOT add new message types for business features.
-/// Use ShareReference for object references (listing, auction, content)
+/// Use ShareReference for object references (forSale, auction, content)
 /// Use Attachment system for workflow payloads (NegotiationOfferAttachment, etc.)
 enum MessageType {
   text,
@@ -166,7 +167,14 @@ class Chat extends Equatable {
   final Message? lastMessage;
   final DateTime createdAt;
   final DateTime? updatedAt;
-  final Map<String, int> unreadCounts;
+
+  /// Viewer-scoped unread count for this room, as reported by the server
+  /// (room-list item `unread_count` / `chat.room.updated` payload).
+  ///
+  /// Null means the payload did not carry an unread count (e.g. the
+  /// direct-room response), so a merge must preserve the known value instead
+  /// of clobbering it with zero. Use [roomUnreadCount] for display.
+  final int? unreadCount;
   final bool isActive;
   final ChatStatus status;
   final List<String> deletedBy;
@@ -192,7 +200,7 @@ class Chat extends Equatable {
     this.lastMessage,
     required this.createdAt,
     this.updatedAt,
-    this.unreadCounts = const {},
+    this.unreadCount,
     this.isActive = true,
     this.status = ChatStatus.active,
     this.deletedBy = const [],
@@ -246,15 +254,9 @@ class Chat extends Equatable {
     return getParticipantLifecycle(getOtherParticipantId(currentUserId));
   }
 
-  int getUnreadCount(String userId) {
-    if (unreadCounts.containsKey(userId)) {
-      return unreadCounts[userId] ?? 0;
-    }
-    if (unreadCounts.isNotEmpty) {
-      return unreadCounts.values.fold(0, (sum, count) => sum + count);
-    }
-    return 0;
-  }
+  /// Canonical unread badge value for this room (0 when the server has not
+  /// reported a count yet).
+  int get roomUnreadCount => unreadCount ?? 0;
 
   bool isDeletedBy(String userId) {
     return deletedBy.contains(userId);
@@ -270,7 +272,7 @@ class Chat extends Equatable {
     lastMessage,
     createdAt,
     updatedAt,
-    unreadCounts,
+    unreadCount,
     isActive,
     status,
     deletedBy,
@@ -296,7 +298,7 @@ class Chat extends Equatable {
     Message? lastMessage,
     DateTime? createdAt,
     DateTime? updatedAt,
-    Map<String, int>? unreadCounts,
+    int? unreadCount,
     bool? isActive,
     ChatStatus? status,
     List<String>? deletedBy,
@@ -321,7 +323,7 @@ class Chat extends Equatable {
       lastMessage: lastMessage ?? this.lastMessage,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      unreadCounts: unreadCounts ?? this.unreadCounts,
+      unreadCount: unreadCount ?? this.unreadCount,
       isActive: isActive ?? this.isActive,
       status: status ?? this.status,
       deletedBy: deletedBy ?? this.deletedBy,
@@ -358,7 +360,7 @@ class Chat extends Equatable {
 /// **ATTACHMENT SIMPLIFICATION:**
 /// Removed MessageAttachment wrapper abstraction - now using explicit fields for clarity.
 /// Each attachment type has its own nullable field:
-/// - objectReference: ShareReference (listing, auction, content, profile)
+/// - objectReference: ShareReference (forSale, auction, content, profile)
 /// - negotiationOffer: NegotiationOfferAttachment (active negotiation state)
 /// - negotiationProposal: NegotiationProposalAttachment (live backend proposal payload)
 /// - negotiationResult: NegotiationResultAttachment (negotiation outcome)
@@ -366,10 +368,10 @@ class Chat extends Equatable {
 /// - location: LocationAttachment (location data)
 ///
 /// Contoh:
-/// - Room context = Listing A (chat dimulai dari Listing A)
+/// - Room context = ForSale A (chat dimulai dari ForSale A)
 /// - Message 1 = text "hai"
 /// - Message 2 = objectReference Auction B (user kirim auction lain)
-/// -> Room context TETAP Listing A, Message 2 objectReference Auction B
+/// -> Room context TETAP ForSale A, Message 2 objectReference Auction B
 class Message extends Equatable {
   final String id;
   final String chatId;
@@ -389,7 +391,7 @@ class Message extends Equatable {
   ///
   /// **SIMPLIFIED:** Explicit attachment fields instead of wrapper abstraction
 
-  /// Object Reference - ShareReference for listing, auction, content, profile
+  /// Object Reference - ShareReference for forSale, auction, content, profile
   final ShareReference? objectReference;
 
   /// Negotiation Offer - active negotiation state
@@ -435,6 +437,12 @@ class Message extends Equatable {
   /// Used by the CTA gate and badge display on embedded commerce cards.
   final ContentLifecycle attachmentSellerTrustLifecycle;
 
+  /// Server-resolved, viewer-aware projection of the resource this message
+  /// references (LIVE or TOMBSTONE). Null when the message carries no resource
+  /// occurrence. Chat only DISPLAYS this — the owning domain remains the
+  /// authority for the resource.
+  final ChatResourceProjection? resourceProjection;
+
   const Message({
     required this.id,
     required this.chatId,
@@ -460,6 +468,7 @@ class Message extends Equatable {
     this.deletedBy = const [],
     this.senderLifecycle = ContentLifecycle.active,
     this.attachmentSellerTrustLifecycle = ContentLifecycle.active,
+    this.resourceProjection,
   });
 
   bool isFromUser(String userId) => senderId == userId;
@@ -500,6 +509,7 @@ class Message extends Equatable {
     deletedBy,
     senderLifecycle,
     attachmentSellerTrustLifecycle,
+    resourceProjection,
   ];
 
   Message copyWith({
@@ -527,6 +537,7 @@ class Message extends Equatable {
     List<String>? deletedBy,
     ContentLifecycle? senderLifecycle,
     ContentLifecycle? attachmentSellerTrustLifecycle,
+    ChatResourceProjection? resourceProjection,
   }) {
     return Message(
       id: id ?? this.id,
@@ -554,6 +565,7 @@ class Message extends Equatable {
       senderLifecycle: senderLifecycle ?? this.senderLifecycle,
       attachmentSellerTrustLifecycle:
           attachmentSellerTrustLifecycle ?? this.attachmentSellerTrustLifecycle,
+      resourceProjection: resourceProjection ?? this.resourceProjection,
     );
   }
 
@@ -614,26 +626,4 @@ class TypingIndicator extends Equatable {
   }
 }
 
-/// User presence info
-class UserPresence extends Equatable {
-  final String userId;
-  final bool isOnline;
-  final DateTime? lastSeen;
 
-  const UserPresence({
-    required this.userId,
-    this.isOnline = false,
-    this.lastSeen,
-  });
-
-  @override
-  List<Object?> get props => [userId, isOnline, lastSeen];
-
-  UserPresence copyWith({String? userId, bool? isOnline, DateTime? lastSeen}) {
-    return UserPresence(
-      userId: userId ?? this.userId,
-      isOnline: isOnline ?? this.isOnline,
-      lastSeen: lastSeen ?? this.lastSeen,
-    );
-  }
-}

@@ -72,6 +72,9 @@ func TestRequestUploadURL_UsesFixedSellerStoreKey(t *testing.T) {
 	if got := data["read_url"]; got != "https://cdn.example.com/media/images/stores/"+userID.String()+".jpg" {
 		t.Fatalf("read_url = %v; want stable CDN URL", got)
 	}
+	if _, exists := data["public_url"]; exists {
+		t.Fatalf("public_url must NOT be present — converged to read_url only, got %v", data["public_url"])
+	}
 }
 
 func TestRequestUploadURL_UsesFixedProfileCoverKey(t *testing.T) {
@@ -129,6 +132,9 @@ func TestRequestUploadURL_UsesFixedProfileCoverKey(t *testing.T) {
 	}
 	if got := data["read_url"]; got != "https://cdn.example.com/media/images/profile-covers/"+userID.String()+".jpg" {
 		t.Fatalf("read_url = %v; want stable CDN URL", got)
+	}
+	if _, exists := data["public_url"]; exists {
+		t.Fatalf("public_url must NOT be present — converged to read_url only, got %v", data["public_url"])
 	}
 }
 
@@ -419,6 +425,97 @@ func TestRequestUploadURL_UsesOwnedCommercePosterKey(t *testing.T) {
 	}
 	if got := data["storage_key"]; got != storageKey {
 		t.Fatalf("storage_key = %v; want %s", got, storageKey)
+	}
+}
+
+func TestRequestUploadURL_GenericImageAndVideoKeys(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	userID := uuid.MustParse("62d7e998-f5d8-4486-be84-63d81f9c0e6f")
+	handler := NewHandler(
+		s3presign.Config{Region: "ap-southeast-1", AccessKey: "test-access-key", SecretKey: "test-secret-key", Bucket: "labuda-uploads"},
+		"https://cdn.example.com/media",
+		zap.NewNop(),
+	)
+	cases := []struct {
+		name        string
+		folder      string
+		contentType string
+	}{
+		{name: "generic image jpeg", folder: "images", contentType: "image/jpeg"},
+		{name: "generic image png", folder: "images", contentType: "image/png"},
+		{name: "generic video mp4", folder: "videos", contentType: "video/mp4"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			router := gin.New()
+			router.POST("/media/upload-url", func(c *gin.Context) {
+				c.Set("userID", userID)
+				handler.RequestUploadURL(c)
+			})
+			body, _ := json.Marshal(UploadURLRequest{ContentType: tc.contentType, Folder: tc.folder})
+			req := httptest.NewRequest(http.MethodPost, "/media/upload-url", bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+			if w.Code != http.StatusOK {
+				t.Fatalf("status = %d; body = %s", w.Code, w.Body.String())
+			}
+			var resp response.Response
+			if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+				t.Fatalf("parse: %v", err)
+			}
+			data := resp.Data.(map[string]any)
+			if got := data["storage_key"]; got == nil || !strings.HasPrefix(got.(string), tc.folder+"/") {
+				t.Fatalf("storage_key = %v; want prefix %s/", got, tc.folder)
+			}
+			if got := data["read_url"]; got == nil || !strings.Contains(got.(string), "cdn.example.com/media/") {
+				t.Fatalf("read_url = %v; want CDN", got)
+			}
+			if _, exists := data["public_url"]; exists {
+				t.Fatalf("public_url must NOT be present")
+			}
+			if _, exists := data["upload_url"]; !exists {
+				t.Fatalf("upload_url missing")
+			}
+			if _, exists := data["expires_at"]; !exists {
+				t.Fatalf("expires_at missing")
+			}
+		})
+	}
+}
+
+func TestRequestUploadURL_ReadURLCanonical_NoPublicURL(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	userID := uuid.MustParse("62d7e998-f5d8-4486-be84-63d81f9c0e6f")
+	handler := NewHandler(
+		s3presign.Config{Region: "ap-southeast-1", AccessKey: "test-access-key", SecretKey: "test-secret-key", Bucket: "labuda-uploads"},
+		"https://cdn.example.com/media",
+		zap.NewNop(),
+	)
+	router := gin.New()
+	router.POST("/media/upload-url", func(c *gin.Context) {
+		c.Set("userID", userID)
+		handler.RequestUploadURL(c)
+	})
+	body, _ := json.Marshal(UploadURLRequest{ContentType: "image/jpeg", Folder: "images"})
+	req := httptest.NewRequest(http.MethodPost, "/media/upload-url", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	var resp response.Response
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	raw := w.Body.String()
+	if strings.Contains(raw, "public_url") {
+		t.Fatalf("response must NOT contain public_url; got %s", raw)
+	}
+	if !strings.Contains(raw, "read_url") {
+		t.Fatalf("response must contain read_url; got %s", raw)
+	}
+	data := resp.Data.(map[string]any)
+	if _, ok := data["read_url"]; !ok {
+		t.Fatalf("read_url missing")
 	}
 }
 

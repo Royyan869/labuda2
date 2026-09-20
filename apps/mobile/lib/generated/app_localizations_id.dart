@@ -881,7 +881,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get proSellerPrice => 'Rp 199K';
 
   @override
-  String get unlimitedProductListings => 'Daftar koleksi tanpa batas';
+  String get unlimitedForSale => 'Daftar koleksi tanpa batas';
 
   @override
   String get advancedAnalyticsInsights => 'Analitik & wawasan lanjutan';
@@ -893,7 +893,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get fullStoreCustomization => 'Kustomisasi toko penuh';
 
   @override
-  String get featuredListings => 'Daftar unggulan';
+  String get featuredForSale => 'Daftar unggulan';
 
   @override
   String get bulkUploadTools => 'Alat upload massal';
@@ -1174,10 +1174,10 @@ class AppLocalizationsId extends AppLocalizations {
       'Waktu proses refund:\n\n1. Review penjual: 1-3 hari\n2. Jika disetujui: 3-7 hari kerja untuk dana kembali\n\nWaktu tepat tergantung metode pembayaran. Refund GoPay biasanya lebih cepat dari transfer bank.';
 
   @override
-  String get articleCreateListing => 'Cara membuat listing baru?';
+  String get articleCreateForSale => 'Cara membuat listing baru?';
 
   @override
-  String get articleCreateListingContent =>
+  String get articleCreateForSaleContent =>
       'Untuk membuat listing baru:\n\n1. Tap tombol + di layar utama\n2. Pilih \'Listing\'\n3. Tambah foto koi (beberapa sudut direkomendasikan)\n4. Isi detail (jenis, ukuran, harga, lokasi)\n5. Tulis deskripsi\n6. Publish listing\n\nListing Anda akan langsung terlihat oleh pembeli!';
 
   @override

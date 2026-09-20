@@ -533,7 +533,6 @@ func runScenarioAudit(
 		Gateway: gw,
 		Thresholds: recon.Thresholds{
 			PendingPaymentGrace:       3 * time.Minute,
-			OrphanRecoveryGrace:       2 * time.Minute,
 			StuckRefundGrace:          stuckRefundGrace,
 			PendingPaymentExpiryGrace: 1 * time.Minute,
 		},

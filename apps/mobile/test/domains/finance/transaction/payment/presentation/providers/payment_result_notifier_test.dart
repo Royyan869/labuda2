@@ -3,13 +3,11 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart' as core;
 import 'package:labuda/core/providers/core_providers.dart';
 import 'package:labuda/domains/commerce/transaction/order/data/order_providers.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart';
 import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment.dart';
 import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment_intent.dart';
-import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment_method.dart';
 import 'package:labuda/domains/finance/transaction/payment/domain/failures/payment_failure.dart';
 import 'package:labuda/domains/finance/transaction/payment/domain/repositories/payment_repository.dart'
     as payment_repo;
@@ -45,15 +43,6 @@ class _FakePaymentRepository implements payment_repo.PaymentRepository {
   ) async => _handler(paymentId);
 
   @override
-  List<PaymentMethod> getAvailablePaymentMethods() => const <PaymentMethod>[];
-
-  @override
-  double calculateFee(core.PaymentChannel channel, double amount) => 0.0;
-
-  @override
-  double calculateTotal(core.PaymentChannel channel, double amount) => amount;
-
-  @override
   Future<payment_repo.RepositoryResult<PaymentIntent>> createPayment(
     CreatePaymentRequest request,
   ) async {
@@ -87,8 +76,9 @@ Order _order({
     pricing: const OrderPricing(
       subtotal: 100000,
       shippingCost: 10000,
-      discount: 0,
-      total: 110000,
+      commissionAmount: 0,
+      totalBeforeCoinsAmount: 110000,
+      totalPayableAmount: 110000,
     ),
     createdAt: DateTime.utc(2026, 6, 1),
     source: OrderSource.forSale,
@@ -107,9 +97,8 @@ Payment _payment({
     paymentNumber: 'PAY-1',
     userId: 'buyer-1',
     grossAmount: 110000,
-    coinDiscount: 0,
+    coinsToUse: 0,
     coinDiscountAmount: 0,
-    netAmount: 110000,
     status: status,
     referenceType: 'order',
     referenceId: referenceId,
@@ -562,10 +551,10 @@ void main() {
         expect(src, contains('_handleStatusCheck'));
         expect(src, contains('_handleContinuePayment'));
         expect(src, contains('_openExistingPaymentUrl'));
-        expect(
-          src,
-          contains('launchUrl(uri, mode: LaunchMode.externalApplication)'),
-        );
+        // Payment URLs are presented exclusively inside Labuda's internal WebView.
+        // External-browser payment navigation is obsolete and must not be reintroduced.
+        expect(src, contains('/payment-webview'));
+        expect(src, isNot(contains('LaunchMode.externalApplication')));
         // The continue-payment button must be gated on the non-terminal
         // reusable-URL getter, not shown unconditionally.
         expect(src, contains('state.canContinuePayment'));

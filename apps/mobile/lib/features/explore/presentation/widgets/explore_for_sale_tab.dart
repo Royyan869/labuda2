@@ -18,14 +18,14 @@ class ExploreForSaleTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final listingsAsync = ref.watch(
+    final forSalesAsync = ref.watch(
       forSalesProvider(
         const ForSalesParams(status: ForSaleStatus.active, limit: 50),
       ),
     );
 
-    return listingsAsync.when(
-      data: (listings) {
+    return forSalesAsync.when(
+      data: (forSales) {
         return RefreshIndicator(
           onRefresh: () async {
             await ref.read(
@@ -37,19 +37,19 @@ class ExploreForSaleTab extends ConsumerWidget {
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              if (listings.isEmpty)
+              if (forSales.isEmpty)
                 SliverFillRemaining(child: _buildEmptyState(context))
               else
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate((context, index) {
-                      final listing = listings[index];
+                      final forSale = forSales[index];
                       return ForSaleCard(
-                        listing: listing,
-                        onTap: () => _navigateToForSaleDetail(context, listing),
+                        forSale: forSale,
+                        onTap: () => _navigateToForSaleDetail(context, forSale),
                       );
-                    }, childCount: listings.length),
+                    }, childCount: forSales.length),
                   ),
                 ),
             ],
@@ -101,4 +101,4 @@ class ExploreForSaleTab extends ConsumerWidget {
       ),
     );
   }
-}
+}

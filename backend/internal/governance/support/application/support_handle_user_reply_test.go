@@ -56,7 +56,7 @@ func (m *outboxSpy) InsertTx(ctx context.Context, tx db.Tx, eventType string, pa
 }
 
 func makeWaitingTicket(userID, roomID uuid.UUID, adminID *uuid.UUID) *entity.Ticket {
-	ticket := entity.NewTicket(userID, roomID, entity.CategoryPayment, entity.PriorityMedium)
+	ticket := entity.NewTicket(userID, roomID, entity.CategoryPaymentIssue, entity.PriorityMedium)
 	ticket.Status = entity.StatusWaitingUser
 	ticket.AssignedAdminID = adminID
 	return ticket
@@ -231,5 +231,3 @@ func TestHandleUserReply_NoAdmin_SkipsOutbox(t *testing.T) {
 	// But no outbox event (no admin to notify).
 	assert.Empty(t, outbox.events)
 }
-
-

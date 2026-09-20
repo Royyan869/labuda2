@@ -77,7 +77,7 @@ class _OrderItemTile extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Image.network(
-              item.listingImage,
+              item.forSaleImage,
               width: 60,
               height: 60,
               fit: BoxFit.cover,
@@ -105,7 +105,7 @@ class _OrderItemTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.listingName,
+                  item.forSaleName,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w500,
                   ),

@@ -41,8 +41,16 @@ func (r *ChatRepositoryImpl) CreateRoom(ctx context.Context, tx interface{}, roo
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 
+	// Support rooms have no agent participant: an unset participant_b is stored
+	// as SQL NULL (migration 000104). All other room types always carry a real
+	// participant_b.
+	var participantBArg interface{}
+	if room.ParticipantB != uuid.Nil {
+		participantBArg = room.ParticipantB
+	}
+
 	_, err := toTx(tx).Exec(ctx, query,
-		room.ID, room.RoomType, room.ParticipantA, room.ParticipantB,
+		room.ID, room.RoomType, room.ParticipantA, participantBArg,
 		room.LinkedOrderID,
 		room.CreatedAt, room.UpdatedAt, room.LastMessageAt,
 	)
@@ -60,7 +68,9 @@ func (r *ChatRepositoryImpl) CreateRoom(ctx context.Context, tx interface{}, roo
 // GetRoomByID retrieves a room by ID.
 func (r *ChatRepositoryImpl) GetRoomByID(ctx context.Context, tx interface{}, roomID uuid.UUID) (*entity.ChatRoom, error) {
 	query := `
-		SELECT id, room_type, participant_a, participant_b, linked_order_id, created_at, updated_at, last_message_at
+		SELECT id, room_type, participant_a,
+		       COALESCE(participant_b, '00000000-0000-0000-0000-000000000000'::uuid) AS participant_b,
+		       linked_order_id, created_at, updated_at, last_message_at
 		FROM chat_rooms
 		WHERE id = $1
 	`
@@ -86,7 +96,9 @@ func (r *ChatRepositoryImpl) GetRoomByID(ctx context.Context, tx interface{}, ro
 // duration of the transaction.
 func (r *ChatRepositoryImpl) GetRoomByIDForUpdate(ctx context.Context, tx interface{}, roomID uuid.UUID) (*entity.ChatRoom, error) {
 	query := `
-		SELECT id, room_type, participant_a, participant_b, linked_order_id, created_at, updated_at, last_message_at
+		SELECT id, room_type, participant_a,
+		       COALESCE(participant_b, '00000000-0000-0000-0000-000000000000'::uuid) AS participant_b,
+		       linked_order_id, created_at, updated_at, last_message_at
 		FROM chat_rooms
 		WHERE id = $1
 		FOR UPDATE
@@ -122,7 +134,9 @@ func (r *ChatRepositoryImpl) GetDirectRoom(ctx context.Context, tx interface{}, 
 	}
 
 	query := `
-		SELECT id, room_type, participant_a, participant_b, linked_order_id, created_at, updated_at, last_message_at
+		SELECT id, room_type, participant_a,
+		       COALESCE(participant_b, '00000000-0000-0000-0000-000000000000'::uuid) AS participant_b,
+		       linked_order_id, created_at, updated_at, last_message_at
 		FROM chat_rooms
 		WHERE participant_a = $1 AND participant_b = $2 AND room_type = 'direct'
 	`
@@ -144,48 +158,6 @@ func (r *ChatRepositoryImpl) GetDirectRoom(ctx context.Context, tx interface{}, 
 	return &room, nil
 }
 
-// GetSupportRoom retrieves a support room for a user.
-//
-// Support rooms are identified by:
-// - room_type = 'support'
-// - One participant is the user, the other is uuid.Nil (system)
-// - Participants are sorted deterministically by NewChatRoom (uuid.Nil is always smallest)
-func (r *ChatRepositoryImpl) GetSupportRoom(ctx context.Context, tx interface{}, userID uuid.UUID) (*entity.ChatRoom, error) {
-	// Sort participants to match the stored order (same as GetDirectRoom).
-	// NewChatRoom sorts by UUID string; uuid.Nil ("00000000-...") is always participant_a.
-	systemUUID := uuid.Nil
-	var participantA, participantB uuid.UUID
-	if userID.String() < systemUUID.String() {
-		participantA = userID
-		participantB = systemUUID
-	} else {
-		participantA = systemUUID
-		participantB = userID
-	}
-
-	query := `
-		SELECT id, room_type, participant_a, participant_b, linked_order_id, created_at, updated_at, last_message_at
-		FROM chat_rooms
-		WHERE participant_a = $1 AND participant_b = $2 AND room_type = 'support'
-	`
-
-	var room entity.ChatRoom
-	err := toTx(tx).QueryRow(ctx, query, participantA, participantB).Scan(
-		&room.ID, &room.RoomType, &room.ParticipantA, &room.ParticipantB,
-		&room.LinkedOrderID,
-		&room.CreatedAt, &room.UpdatedAt, &room.LastMessageAt,
-	)
-
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, chatRepo.ErrRoomNotFound
-		}
-		return nil, fmt.Errorf("get support room failed: %w", err)
-	}
-
-	return &room, nil
-}
-
 // ListRoomsByUser lists all rooms where the user is a participant.
 // Uses cursor-based pagination on last_message_at.
 func (r *ChatRepositoryImpl) ListRoomsByUser(
@@ -199,7 +171,9 @@ func (r *ChatRepositoryImpl) ListRoomsByUser(
 	// Query rooms where user is either participant_a or participant_b
 	// Ordered by last_message_at DESC, id DESC for cursor pagination
 	baseQuery := `
-		SELECT id, room_type, participant_a, participant_b, linked_order_id, created_at, updated_at, last_message_at
+		SELECT id, room_type, participant_a,
+		       COALESCE(participant_b, '00000000-0000-0000-0000-000000000000'::uuid) AS participant_b,
+		       linked_order_id, created_at, updated_at, last_message_at
 		FROM chat_rooms
 		WHERE participant_a = $1 OR participant_b = $1
 	`
@@ -248,7 +222,9 @@ func (r *ChatRepositoryImpl) ListRoomsByUser(
 // GetRoomByOrderID retrieves a room by linked order ID.
 func (r *ChatRepositoryImpl) GetRoomByOrderID(ctx context.Context, tx interface{}, orderID uuid.UUID) (*entity.ChatRoom, error) {
 	query := `
-		SELECT id, room_type, participant_a, participant_b, linked_order_id, created_at, updated_at, last_message_at
+		SELECT id, room_type, participant_a,
+		       COALESCE(participant_b, '00000000-0000-0000-0000-000000000000'::uuid) AS participant_b,
+		       linked_order_id, created_at, updated_at, last_message_at
 		FROM chat_rooms
 		WHERE linked_order_id = $1
 	`
@@ -335,12 +311,19 @@ func (r *ChatRepositoryImpl) CreateMessage(ctx context.Context, tx interface{}, 
 		}
 	}
 
+	// Idempotent insert: when the same sender already persisted this
+	// idempotency key, DO NOTHING instead of raising a unique violation.
+	// A raised unique violation would abort the enclosing transaction
+	// (PostgreSQL), making the subsequent replay lookup impossible in the
+	// same transaction — ON CONFLICT DO NOTHING keeps the transaction
+	// usable so the caller can converge on the winner row.
 	query := `
 		INSERT INTO chat_messages (id, room_id, sender_id, message_type, body, attachment_json, idempotency_key, command_fingerprint, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		ON CONFLICT (sender_id, idempotency_key) DO NOTHING
 	`
 
-	_, err := toTx(tx).Exec(ctx, query,
+	tag, err := toTx(tx).Exec(ctx, query,
 		message.ID, message.RoomID, message.SenderID, message.MessageType,
 		message.Body, attachmentJSONBytes, message.IdempotencyKey, message.CommandFingerprint, message.CreatedAt,
 	)
@@ -350,6 +333,11 @@ func (r *ChatRepositoryImpl) CreateMessage(ctx context.Context, tx interface{}, 
 			return chatRepo.ErrDuplicateMessage
 		}
 		return fmt.Errorf("create message failed: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		// The (sender_id, idempotency_key) row already exists.
+		return chatRepo.ErrDuplicateMessage
 	}
 
 	return nil
@@ -458,19 +446,25 @@ func (r *ChatRepositoryImpl) ListMessagesByRoom(
 	return messages, nil
 }
 
-// GetMessageByIdempotencyKey retrieves a message by idempotency key.
-func (r *ChatRepositoryImpl) GetMessageByIdempotencyKey(ctx context.Context, tx interface{}, idempotencyKey string) (*entity.ChatMessage, error) {
+// GetMessageByIdempotencyKey retrieves a message by (sender_id, idempotency_key).
+//
+// The lookup is actor-scoped to match the canonical uniqueness authority
+// UNIQUE(sender_id, idempotency_key) (migration 000032). A global
+// idempotency_key lookup is intentionally NOT used: it would let one sender
+// observe/replay another sender's message whenever two senders happened to
+// use the same opaque key.
+func (r *ChatRepositoryImpl) GetMessageByIdempotencyKey(ctx context.Context, tx interface{}, senderID uuid.UUID, idempotencyKey string) (*entity.ChatMessage, error) {
 	query := `
 		SELECT id, room_id, sender_id, message_type, body, attachment_json, idempotency_key, command_fingerprint, created_at,
 	       deleted_at, deleted_by, deletion_reason
 		FROM chat_messages
-		WHERE idempotency_key = $1
+		WHERE sender_id = $1 AND idempotency_key = $2
 	`
 
 	var message entity.ChatMessage
 	var attachmentJSONBytes []byte
 
-	err := toTx(tx).QueryRow(ctx, query, idempotencyKey).Scan(
+	err := toTx(tx).QueryRow(ctx, query, senderID, idempotencyKey).Scan(
 		&message.ID, &message.RoomID, &message.SenderID, &message.MessageType,
 		&message.Body, &attachmentJSONBytes, &message.IdempotencyKey, &message.CommandFingerprint, &message.CreatedAt,
 		&message.DeletedAt, &message.DeletedBy, &message.DeletionReason,
@@ -657,34 +651,84 @@ func (r *ChatRepositoryImpl) ListReadStatesByRoom(ctx context.Context, tx interf
 
 // GetUnreadCountByRoomAndUser calculates the unread count for a single room/user pair.
 //
-// Mirrors the room-list unread projection, including mute suppression.
+// Thin delegation to the canonical batch authority — no independent SQL.
 func (r *ChatRepositoryImpl) GetUnreadCountByRoomAndUser(
 	ctx context.Context,
 	tx interface{},
 	roomID, userID uuid.UUID,
 ) (int, error) {
+	counts, err := r.GetUnreadCountsByRoomIDs(ctx, tx, []uuid.UUID{roomID}, userID)
+	if err != nil {
+		return 0, err
+	}
+	return counts[roomID], nil
+}
+
+// GetUnreadCountsByRoomIDs is the SINGLE canonical unread-count authority.
+//
+// Formula: for each room, count messages that are
+//   - visible (deleted_at IS NULL), and
+//   - created after the viewer's last_read_at (all when no read state), and
+//   - authored by someone the viewer has NOT muted.
+//
+// Batch by construction: one query for N rooms (no N+1).
+func (r *ChatRepositoryImpl) GetUnreadCountsByRoomIDs(
+	ctx context.Context,
+	tx interface{},
+	roomIDs []uuid.UUID,
+	userID uuid.UUID,
+) (map[uuid.UUID]int, error) {
+	out := make(map[uuid.UUID]int, len(roomIDs))
+	if len(roomIDs) == 0 {
+		return out, nil
+	}
+	for _, roomID := range roomIDs {
+		out[roomID] = 0
+	}
+
 	const q = `
-		WITH room_read_state AS (
-			SELECT last_read_at
+		WITH target_rooms AS (
+			SELECT UNNEST($1::uuid[]) AS room_id
+		),
+		room_read_states AS (
+			SELECT room_id, last_read_at
 			FROM chat_read_states
-			WHERE room_id = $1 AND user_id = $2
+			WHERE user_id = $2 AND room_id = ANY($1)
 		)
-		SELECT COALESCE(COUNT(m.id), 0) AS unread_count
-		FROM chat_messages m
-		LEFT JOIN room_read_state rs ON TRUE
-		WHERE m.room_id = $1
+		SELECT
+			tr.room_id,
+			COALESCE(COUNT(m.id), 0) AS unread_count
+		FROM target_rooms tr
+		LEFT JOIN room_read_states rs ON rs.room_id = tr.room_id
+		LEFT JOIN chat_messages m ON
+			m.room_id = tr.room_id
 			AND m.deleted_at IS NULL
 			AND (rs.last_read_at IS NULL OR m.created_at > rs.last_read_at)
 			AND m.sender_id NOT IN (
 				SELECT muted_id FROM user_mutes WHERE muter_id = $2
 			)
+		GROUP BY tr.room_id
 	`
 
-	var count int
-	err := toTx(tx).QueryRow(ctx, q, roomID, userID).Scan(&count)
+	rows, err := toTx(tx).Query(ctx, q, roomIDs, userID)
 	if err != nil {
-		return 0, fmt.Errorf("get unread count failed: %w", err)
+		return nil, fmt.Errorf("get unread counts failed: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			roomID uuid.UUID
+			count  int
+		)
+		if err := rows.Scan(&roomID, &count); err != nil {
+			return nil, fmt.Errorf("scan unread count failed: %w", err)
+		}
+		out[roomID] = count
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate unread counts failed: %w", err)
 	}
 
-	return count, nil
+	return out, nil
 }

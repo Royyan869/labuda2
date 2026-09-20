@@ -94,7 +94,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
       setState(() {
         _canAttachCommerceResource = result.fold(
           (error) => false,
-          (content) => content.canReceiveListingResponses,
+          (content) => content.canReceiveForSaleResponses,
         );
       });
     } catch (_) {

@@ -12,9 +12,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	idempotencyRepo "github.com/labuda/backend/internal/platform/idempotency/repository"
 	contentapp "github.com/labuda/backend/internal/social/content/application"
 	contententity "github.com/labuda/backend/internal/social/content/entity"
 	contentrepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
+	socialrepo "github.com/labuda/backend/internal/social/graph/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/testdb"
 	"github.com/stretchr/testify/require"
@@ -57,16 +59,17 @@ func newCommentListHTTPHandler(pool *db.DB) *CommentHandler {
 		commentListHTTPAccountChecker{},
 		nil,
 	)
+	contentService.SetIdempotencyRepository(idempotencyRepo.NewRepository())
 	commentService := contentapp.NewCommentService(
 		contentrepo.NewContentRepository(),
 		contentrepo.NewCommentRepository(),
-		nil,                     // fpsValidator
-		nil,                     // auctionValidator
-		contentService,          // visibilityChecker — canonical V-VISIBILITY via ContentService
-		commentWireTestOutbox{}, // outboxRepo (no-op)
-		nil,                     // idempotencyRepo
-		nil,                     // blockChecker
-		nil,                     // invariantLogger
+		nil,                              // fpsValidator
+		nil,                              // auctionValidator
+		contentService,                   // visibilityChecker — canonical V-VISIBILITY via ContentService
+		commentWireTestOutbox{},          // outboxRepo (no-op)
+		nil,                              // idempotencyRepo
+		socialrepo.NewSocialRepository(), // blockChecker — canonical bidirectional block authority
+		nil,                              // invariantLogger
 	)
 	return NewCommentHandler(
 		commentService,
@@ -113,10 +116,11 @@ func seedCommentListHTTPContent(
 
 	var contentID uuid.UUID
 	err := pool.WithTx(ctx, func(tx db.Tx) error {
-		content, createErr := handler.contentService.CreateContent(
+		content, _, createErr := handler.contentService.CreateContentIdempotent(
 			ctx,
 			tx,
 			authorID,
+			uuid.NewString(),
 			"test content",
 			contententity.VisibilityPublic,
 			nil,

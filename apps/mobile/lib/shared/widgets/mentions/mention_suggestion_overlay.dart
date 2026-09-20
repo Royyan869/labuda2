@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:labuda/shared/helpers/user_identity_formatter.dart';
+import 'package:labuda/shared/widgets/hybrid_avatar.dart';
 import 'package:labuda/features/search/search/search.dart'; // R3.1: Import mention providers from search domain
 
 /// Overlay widget untuk show user suggestions saat mention
@@ -168,10 +169,7 @@ class MentionSuggestionOverlay extends ConsumerWidget {
       leading: HybridAvatar(
         userId: user.userId,
         size: 32,
-        initials: UserInitialsHelper.get(
-          name: user.username,
-          userId: user.userId,
-        ),
+        initials: UserIdentityFormatter.avatarInitials(user.username),
       ),
       title: Row(
         children: [

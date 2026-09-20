@@ -34,30 +34,36 @@ class _RecordingLogger extends Fake implements ILoggerService {
 
 class _RecordingS3Service extends S3Service {
   String? lastKey;
+  String? lastMediaLabel;
 
   @override
-  Future<Result<String>> uploadImageWithKey(
+  Future<Result<S3UploadResult>> uploadImageWithFixedKey(
     File imageFile,
-    String key,
-  ) async {
+    String key, {
+    String mediaLabel = 'gambar',
+  }) async {
     lastKey = key;
-    return Result.success('https://d358tu61i1wrtt.cloudfront.net/$key');
+    lastMediaLabel = mediaLabel;
+    return Result.success(
+      S3UploadResult(key: key, url: 'https://d358tu61i1wrtt.cloudfront.net/$key'),
+    );
   }
 }
 
 class _FailingS3Service extends S3Service {
   @override
-  Future<Result<String>> uploadImageWithKey(
+  Future<Result<S3UploadResult>> uploadImageWithFixedKey(
     File imageFile,
-    String key,
-  ) async {
-    return Result.error('backend refused');
+    String key, {
+    String mediaLabel = 'gambar',
+  }) async {
+    return Result.error('backend refused', code: 'INVALID_STORAGE_KEY', statusCode: 400);
   }
 }
 
 void main() {
   test(
-    'uploadAvatar uses the canonical storage key and returns the profile URL',
+    'uploadAvatar uses the canonical fixed storage key and returns the read URL',
     () async {
       final tempDir = await Directory.systemTemp.createTemp(
         'avatar-upload-test',
@@ -82,12 +88,13 @@ void main() {
       );
 
       expect(result.isSuccess, isTrue);
-      expect(result.data, AvatarUploadService.getAvatarUrl(userId));
+      expect(result.data, 'https://d358tu61i1wrtt.cloudfront.net/images/avatars/$userId.jpg');
       expect(s3.lastKey, 'images/avatars/$userId.jpg');
+      expect(s3.lastMediaLabel, 'avatar');
     },
   );
 
-  test('uploadAvatar surfaces avatar-specific failure text', () async {
+  test('uploadAvatar surfaces avatar-specific failure text with structured error', () async {
     final tempDir = await Directory.systemTemp.createTemp('avatar-upload-fail');
     addTearDown(() async {
       await tempDir.delete(recursive: true);
@@ -108,5 +115,8 @@ void main() {
 
     expect(result.isError, isTrue);
     expect(result.error, contains('avatar'));
+    expect(result.errorCode, 'INVALID_STORAGE_KEY');
+    expect(result.statusCode, 400);
   });
+
 }

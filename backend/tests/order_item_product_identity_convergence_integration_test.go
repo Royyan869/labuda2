@@ -202,7 +202,7 @@ func stage5PricingToken(t *testing.T, ctx context.Context, tdb *testdb.TestDB, s
 			snapshot.UnitPrice.Int64(), snapshot.Subtotal.Int64(), snapshot.ShippingTotal.Int64(),
 			snapshot.CommissionPercent, snapshot.CommissionAmount.Int64(), snapshot.EscrowAmount.Int64(),
 			optionID, snapshot.ShippingSetupName, snapshot.ShippingTransportType,
-			addressID, snapshot.MaxCoinsAllowed, snapshot.OrderValueForCoins,
+			addressID, int64(10_000), snapshot.OrderValueForCoins,
 			snapshot.ServiceFeeAmount.Int64(), snapshot.TotalPayableAmount.Int64(),
 		)
 		return err
@@ -222,7 +222,6 @@ func stage5Snapshot(tokenID uuid.UUID, unitPrice int64) *orderApp.PricingSnapsho
 		ServiceFeeAmount:      money.New(serviceFee),
 		TotalPayableAmount:    money.New(unitPrice + shipping + serviceFee),
 		DiscountAmount:        money.New(0),
-		MaxCoinsAllowed:       10_000,
 		OrderValueForCoins:    unitPrice + shipping,
 		ShippingSetupName:     "JNE Reguler",
 		ShippingTransportType: "train",
@@ -704,8 +703,8 @@ func createLegacyOrderWithFPSNamespace(t *testing.T, ctx context.Context, tdb *t
 		money.New(50000), money.New(50000), money.New(15000),
 		5, money.New(2500), money.New(3000), money.New(68000),
 		nil, "JNE", "train",
-		nil, "immediate", nil, nil, nil, nil, nil,
-		"instant", time.Now(),
+		"immediate", nil, nil, nil, nil, nil,
+		time.Now(),
 	)
 	order.ID = uuid.New()
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {

@@ -97,6 +97,22 @@ func TestOrderStatusTransitions(t *testing.T) {
 			description: "pending order can be cancelled",
 		},
 		{
+			// ORDER-A1: Cancel() is the PRE-PAYMENT transition only. A paid order
+			// carries funded escrow, so cancelling it via Cancel() (no refund, no
+			// escrow flip) would freeze buyer money. Its terminal exits are
+			// shipped / refunded / cancelled_timeout.
+			name: "paid -> cancelled (invalid)",
+			setupOrder: func() *orderentity.Order {
+				return createTestOrder(orderentity.StatusPaid, orderentity.EscrowStatusHolding)
+			},
+			transition: func(o *orderentity.Order) error {
+				return o.Cancel()
+			},
+			wantErr:     true,
+			errType:     &orderentity.InvalidTransitionError{},
+			description: "a paid (escrow-funded) order must never cancel through the normal Cancel path",
+		},
+		{
 			name: "completed -> shipped (invalid)",
 			setupOrder: func() *orderentity.Order {
 				return createTestOrder(orderentity.StatusCompleted, orderentity.EscrowStatusReleased)
@@ -149,6 +165,33 @@ func TestOrderStatusTransitions(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestCancel_PaidOrderInvalidTransition pins the ORDER-A1 invariant at the
+// entity layer: Cancel() is the PRE-PAYMENT transition only. A paid
+// (escrow-funded) order must not transition to cancelled, otherwise the buyer
+// cancel endpoint could freeze money (cancelled + escrow holding, no refund).
+func TestCancel_PaidOrderInvalidTransition(t *testing.T) {
+	order := createTestOrder(orderentity.StatusPaid, orderentity.EscrowStatusHolding)
+
+	err := order.Cancel()
+
+	var invalidTransition *orderentity.InvalidTransitionError
+	if !assert.ErrorAs(t, err, &invalidTransition) {
+		t.Fatalf("expected *InvalidTransitionError for paid -> cancelled, got %v", err)
+	}
+	assert.Equal(t, orderentity.StatusPaid, invalidTransition.CurrentStatus)
+	assert.Equal(t, orderentity.StatusCancelled, invalidTransition.TargetStatus)
+	assert.Equal(t, orderentity.StatusPaid, order.Status, "order status must remain paid")
+}
+
+// TestCancel_PendingOrderStillValid guards the preserved pre-payment behavior:
+// a pending_payment order is still cancellable through the normal Cancel path.
+func TestCancel_PendingOrderStillValid(t *testing.T) {
+	order := createTestOrder(orderentity.StatusPending, orderentity.EscrowStatusHolding)
+
+	assert.NoError(t, order.Cancel())
+	assert.Equal(t, orderentity.StatusCancelled, order.Status)
 }
 
 // ============================================================================
@@ -292,18 +335,16 @@ func TestOrderSourceTypes(t *testing.T) {
 				5,                 // commissionPercent
 				money.New(5000),   // Commission amount: (100000 * 5) / 100 = 5000
 				money.New(3000),   // Buyer service fee
-				money.New(108000), // Total payable
+				money.New(100000), // Canonical buyer base (P−D)+S = 100000+0 (fee F excluded)
 				nil,               // shippingSetupID: nil for test
 				"JNE",             // shippingSetupName
 				"truck",           // shippingTransportType
-				nil,               // auctionSettlementType
 				"immediate",       // preparationTimeSnapshot
 				nil,               // preparationNoteSnapshot
 				nil,               // shippingSource
 				nil,               // shippingQuoteID
 				nil,               // shippingQuotePrice
 				nil,               // pricingTokenID
-				"instant",         // paymentMethod
 				time.Now(),        // paymentExpiresAt
 			)
 
@@ -357,18 +398,16 @@ func TestNoVATInOrder(t *testing.T) {
 		5,                 // commissionPercent
 		money.New(5000),   // Commission amount: (100000 * 5) / 100 = 5000
 		money.New(3000),   // Buyer service fee
-		money.New(113000), // Total payable = canonical buyer base (P−D)+S + fee = 100000+10000+3000
+		money.New(110000), // Canonical buyer base (P−D)+S = 100000+10000 (fee F excluded)
 		nil,               // shippingSetupID: nil for test
 		"JNE",             // shippingSetupName
 		"truck",           // shippingTransportType
-		nil,               // auctionSettlementType
 		"immediate",       // preparationTimeSnapshot
 		nil,               // preparationNoteSnapshot
 		nil,               // shippingSource
 		nil,               // shippingQuoteID
 		nil,               // shippingQuotePrice
 		nil,               // pricingTokenID
-		"instant",         // paymentMethod
 		time.Now(),        // paymentExpiresAt
 	)
 
@@ -383,12 +422,16 @@ func TestNoVATInOrder(t *testing.T) {
 	assert.Equal(t, expectedSubtotal.Int64(), order.Subtotal.Int64(), "subtotal should be unit price * quantity")
 	assert.Equal(t, expectedCommission.Int64(), order.CommissionAmount.Int64(), "commission should be calculated correctly")
 
-	// Verify the canonical buyer base snapshot: TotalBeforeCoinsAmount is the
-	// token-supplied buyer base ((P−D)+S), NOT P+S+C and NOT P+S+C−D.
-	assert.Equal(t, money.New(113000), order.TotalBeforeCoinsAmount,
-		"TotalBeforeCoinsAmount = buyer base (P−D)+S + fee, commission excluded")
+	// Verify the canonical money base: TotalBeforeCoinsAmount is the
+	// token-supplied buyer base ((P−D)+S). The payment/service fee F and the
+	// seller-side commission C are NEVER part of it.
+	assert.Equal(t, money.New(110000), order.TotalBeforeCoinsAmount,
+		"TotalBeforeCoinsAmount = buyer base (P−D)+S, fee and commission excluded")
+	// TotalPayableAmount = base + F. Production create passes F = 0 from the
+	// pricing token snapshot (the real payment-method fee is applied by the
+	// payment-selection UPDATE); this assertion proves F lands in payable only.
 	assert.Equal(t, money.New(113000), order.TotalPayableAmount,
-		"TotalPayableAmount = canonical total payable")
+		"TotalPayableAmount = canonical buyer base + service fee")
 }
 
 // TestOrderEntityFields verifies Order entity has the correct canonical fields.
@@ -419,18 +462,16 @@ func TestOrderEntityFields(t *testing.T) {
 		5,                 // commissionPercent
 		money.New(25000),  // Commission amount: (500000 * 5) / 100 = 25000
 		money.New(3000),   // Buyer service fee
-		money.New(548000), // Total payable
+		money.New(520000), // Canonical buyer base (P−D)+S = 500000+20000 (fee F excluded)
 		&overrideID,       // shippingSetupID
 		"JNE",             // shippingSetupName
 		"truck",           // shippingTransportType
-		nil,               // auctionSettlementType
 		"immediate",       // preparationTimeSnapshot
 		nil,               // preparationNoteSnapshot
 		nil,               // shippingSource
 		nil,               // shippingQuoteID
 		nil,               // shippingQuotePrice
 		nil,               // pricingTokenID
-		"instant",         // paymentMethod
 		time.Now(),        // paymentExpiresAt
 	)
 
@@ -488,14 +529,12 @@ func TestShippingQuoteFieldsPersistence(t *testing.T) {
 		nil,               // shippingSetupID: nil when using quote
 		"Custom",          // shippingSetupName
 		"truck",           // shippingTransportType
-		nil,               // auctionSettlementType
 		"immediate",       // preparationTimeSnapshot
 		nil,               // preparationNoteSnapshot
 		&shippingSource,   // shippingSource = "shipping_quote"
 		&quoteID,          // shippingQuoteID
 		&quotePrice,       // shippingQuotePrice
 		nil,               // pricingTokenID
-		"instant",         // paymentMethod
 		time.Now(),        // paymentExpiresAt
 	)
 
@@ -529,14 +568,12 @@ func TestShippingQuoteFieldsNilWhenNotUsed(t *testing.T) {
 		&optionID,         // shippingSetupID: set for standard option
 		"JNE REG",         // shippingSetupName
 		"truck",           // shippingTransportType
-		nil,               // auctionSettlementType
 		"immediate",       // preparationTimeSnapshot
 		nil,               // preparationNoteSnapshot
 		nil,               // shippingSource: nil = standard for-sale surface option
 		nil,               // shippingQuoteID: nil
 		nil,               // shippingQuotePrice: nil
 		nil,               // pricingTokenID
-		"instant",         // paymentMethod
 		time.Now(),        // paymentExpiresAt
 	)
 
@@ -550,7 +587,6 @@ func TestShippingQuoteFieldsOnAuctionOrder(t *testing.T) {
 	quoteID := uuid.New()
 	var quotePrice int64 = 35000
 	shippingSource := "shipping_quote"
-	settlementType := orderentity.AuctionSettlementBuyNow
 
 	order := orderentity.NewOrderFromSource(
 		uuid.New(),
@@ -569,14 +605,12 @@ func TestShippingQuoteFieldsOnAuctionOrder(t *testing.T) {
 		nil,               // shippingSetupID: nil when using quote
 		"Custom",          // shippingSetupName
 		"truck",           // shippingTransportType
-		&settlementType,   // auctionSettlementType
 		"immediate",       // preparationTimeSnapshot
 		nil,               // preparationNoteSnapshot
 		&shippingSource,   // shippingSource = "shipping_quote"
 		&quoteID,          // shippingQuoteID
 		&quotePrice,       // shippingQuotePrice
 		nil,               // pricingTokenID
-		"instant",         // paymentMethod
 		time.Now(),        // paymentExpiresAt
 	)
 
@@ -749,11 +783,9 @@ func createTestOrderWithPrep(status orderentity.Status, prepTime string) *ordere
 		nil,               // shippingSetupID
 		"JNE",
 		"truck",
-		nil,
 		prepTime, // preparationTimeSnapshot
 		nil,      // preparationNoteSnapshot
 		nil, nil, nil, nil,
-		"instant",
 		time.Now(),
 	)
 	order.Status = status
@@ -779,14 +811,12 @@ func createTestOrder(status orderentity.Status, escrowStatus orderentity.EscrowS
 		nil,               // shippingSetupID: nil for test
 		"JNE",             // shippingSetupName
 		"truck",           // shippingTransportType
-		nil,               // auctionSettlementType
 		"immediate",       // preparationTimeSnapshot
 		nil,               // preparationNoteSnapshot
 		nil,               // shippingSource
 		nil,               // shippingQuoteID
 		nil,               // shippingQuotePrice
 		nil,               // pricingTokenID
-		"instant",         // paymentMethod
 		time.Now(),        // paymentExpiresAt
 	)
 	// Override status for testing
@@ -879,5 +909,3 @@ func TestIsWithinPostShipDisputeWindow_NilAutoReleaseAt(t *testing.T) {
 	assert.False(t, order.IsWithinPostShipDisputeWindow(),
 		"nil AutoReleaseAt means no ship timestamp derivable")
 }
-
-

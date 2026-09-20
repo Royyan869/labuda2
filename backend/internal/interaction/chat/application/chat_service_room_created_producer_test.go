@@ -52,10 +52,9 @@ func TestRoomCreatedProducer_EmitsForNewRooms(t *testing.T) {
 				ParticipantB: supportUser,
 			},
 			call: func(s *Service) (*chatEntity.ChatRoom, error) {
-				return s.GetOrCreateSupportRoom(ctx, supportUser)
+				return s.CreateSupportTicketRoom(ctx, supportUser)
 			},
-			getSupportRoomErr: chatRepo.ErrRoomNotFound,
-			wantRecipients:    []uuid.UUID{supportUser},
+			wantRecipients: []uuid.UUID{supportUser},
 		},
 	}
 

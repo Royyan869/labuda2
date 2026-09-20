@@ -95,7 +95,7 @@ type AWSConfig struct {
 	SecretAccessKey string
 	S3BucketName    string
 	S3BucketRegion  string
-	// CDNBaseURL is the optional CloudFront / CDN prefix returned as public_url
+	// CDNBaseURL is the optional CloudFront / CDN prefix returned as read_url
 	// in media upload responses. When empty, raw S3 HTTPS URLs are used.
 	// Example: "https://d358tu61i1wrtt.cloudfront.net"
 	CDNBaseURL string

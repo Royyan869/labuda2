@@ -95,7 +95,7 @@ class ForSaleModule extends BaseModule {
 
   @override
   Future<void> initialize() async {
-    // No special setup needed - dependencies registered via ListingApiDI
+    // No special setup needed - dependencies registered via ForSaleApiDI
   }
 
   @override

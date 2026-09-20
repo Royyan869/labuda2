@@ -40,22 +40,32 @@ class AvatarUploadService {
         extra: {'userId': userId, 'imagePath': imagePath},
       );
 
-      // Upload to S3 with fixed key (auto-replaces existing file)
+      // Upload to S3 with canonical fixed key (verified ownership, overwrite).
       final key = '$_storageFolder/$userId.jpg';
-      final result = await _s3Service.uploadImageWithKey(file, key);
+      final result = await _s3Service.uploadImageWithFixedKey(
+        file,
+        key,
+        mediaLabel: 'avatar',
+      );
 
       if (result.isSuccess) {
+        // Persist/display uses the canonical read_url from S3UploadResult.
+        final readUrl = result.data!.url;
         _logger.info(
           'Avatar uploaded successfully',
-          extra: {'userId': userId, 'url': result.data},
+          extra: {'userId': userId, 'url': readUrl, 'storageKey': result.data!.key},
         );
-        return Result.success(result.data!);
+        return Result.success(readUrl);
       } else {
         _logger.error(
           'Failed to upload avatar',
-          extra: {'userId': userId, 'error': result.error},
+          extra: {'userId': userId, 'error': result.error, 'code': result.errorCode},
         );
-        return Result.error('Failed to upload avatar: ${result.error}');
+        return Result.error(
+          'Failed to upload avatar: ${result.error}',
+          code: result.errorCode,
+          statusCode: result.statusCode,
+        );
       }
     } catch (e, stackTrace) {
       _logger.error('Failed to upload avatar', stackTrace: stackTrace);
@@ -63,37 +73,11 @@ class AvatarUploadService {
     }
   }
 
-  /// Get avatar URL from AWS S3 (with CloudFront CDN)
-  static String getAvatarUrl(String userId) {
-    final baseUrl = AppConstants.useCloudFront
-        ? AppConstants.cdnBaseUrl
-        : AppConstants.awsS3BaseUrl;
-
-    // Fixed filename strategy: {userId}.jpg
-    return '$baseUrl/$_storageFolder/$userId.jpg';
-  }
-
-  /// Delete avatar from AWS S3
+  /// Avatar removal clears the DB reference (photoUrl = null) — no S3 delete.
+  /// This method is retained as a no-op success for call sites that expect it,
+  /// per locked delete decision (no /media/delete-url, no DeleteObject).
   Future<Result<void>> deleteAvatar(String userId) async {
-    try {
-      final photoUrl = getAvatarUrl(userId);
-
-      _logger.info(
-        'Deleting avatar',
-        extra: {'userId': userId, 'url': photoUrl},
-      );
-
-      final result = await _s3Service.deleteFile(photoUrl);
-
-      if (result.isSuccess) {
-        _logger.info('Avatar deleted successfully', extra: {'userId': userId});
-        return Result.success(null);
-      } else {
-        return Result.error('Failed to delete avatar: ${result.error}');
-      }
-    } catch (e, stackTrace) {
-      _logger.error('Failed to delete avatar', stackTrace: stackTrace);
-      return Result.error('Failed to delete avatar: ${e.toString()}');
-    }
+    _logger.info('Avatar removal — DB reference clear only (no S3 delete)', extra: {'userId': userId});
+    return Result.success(null);
   }
 }

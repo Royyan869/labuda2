@@ -119,8 +119,6 @@ func newUnreadIntegrationFixture(t *testing.T) *unreadIntegrationFixture {
 		service,
 		nil,
 		nil,
-		nil,
-		nil,
 		appDB,
 		zap.NewNop(),
 	)
@@ -319,7 +317,7 @@ func assertUnreadParity(
 	require.NoError(t, err)
 	require.Equal(t, want, gotService)
 
-	summary, err := fixture.handler.batchUnreadCounts(context.Background(), []uuid.UUID{roomID}, userID)
+	summary, err := fixture.service.GetUnreadCountsByRooms(context.Background(), []uuid.UUID{roomID}, userID)
 	require.NoError(t, err)
 	require.Equal(t, want, summary[roomID])
 
@@ -829,4 +827,45 @@ func mustGetUnreadCountViaService(t *testing.T, service *chatApp.Service, ctx co
 	count, err := service.GetUnreadCount(ctx, roomID, userID)
 	require.NoError(t, err)
 	return count
+}
+
+// Behavioral proof of mute suppression — the previously only source-string
+// guarded rule. Muting a sender removes that sender's messages from the
+// viewer's unread COUNT; the messages remain in history.
+func TestChatUnreadMuteSuppression_PostgresBacked(t *testing.T) {
+	ctx := context.Background()
+	fixture := newUnreadIntegrationFixture(t)
+
+	viewer := insertUnreadTestUser(t, ctx, fixture.appDB)
+	mutedSender := insertUnreadTestUser(t, ctx, fixture.appDB)
+	normalSender := insertUnreadTestUser(t, ctx, fixture.appDB)
+	roomID := insertUnreadTestRoom(t, ctx, fixture.appDB, viewer, mutedSender)
+
+	base := time.Now().UTC().Add(-time.Hour).Truncate(time.Microsecond)
+	insertUnreadTestMessage(t, ctx, fixture.appDB, roomID, mutedSender, "from muted", base.Add(1*time.Minute))
+	insertUnreadTestMessage(t, ctx, fixture.appDB, roomID, normalSender, "from normal", base.Add(2*time.Minute))
+	upsertUnreadTestReadState(t, ctx, fixture.appDB, roomID, viewer, base)
+
+	// Both senders are unread for the viewer before muting.
+	require.Equal(t, 2, mustGetUnreadCountViaService(t, fixture.service, ctx, roomID, viewer))
+
+	_, err := fixture.appDB.Pool().Exec(ctx, `
+		INSERT INTO user_mutes (muter_id, muted_id, created_at) VALUES ($1, $2, NOW())
+	`, viewer, mutedSender)
+	require.NoError(t, err)
+
+	// Only the muted sender's message drops out of the count.
+	require.Equal(t, 1, mustGetUnreadCountViaService(t, fixture.service, ctx, roomID, viewer))
+
+	// The batch (room-list badge) authority agrees with the single-room authority.
+	counts, err := fixture.service.GetUnreadCountsByRooms(ctx, []uuid.UUID{roomID}, viewer)
+	require.NoError(t, err)
+	require.Equal(t, 1, counts[roomID])
+
+	// Mute suppresses the count only — the muted sender's message is still in history.
+	var visible int
+	require.NoError(t, fixture.appDB.Pool().QueryRow(ctx, `
+		SELECT COUNT(*) FROM chat_messages WHERE room_id = $1 AND sender_id = $2 AND deleted_at IS NULL
+	`, roomID, mutedSender).Scan(&visible))
+	require.Equal(t, 1, visible)
 }

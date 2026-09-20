@@ -57,13 +57,13 @@ class CheckoutRepositoryImpl implements CheckoutRepository {
       );
     }
 
-    // STRICT VALIDATION: fixedPriceSaleId must not be empty
-    if (request.fixedPriceSaleId.isEmpty) {
+    // STRICT VALIDATION: forSaleId must not be empty
+    if (request.forSaleId.isEmpty) {
       throw CheckoutException(
-        message: 'fixedPriceSaleId cannot be empty',
+        message: 'forSaleId cannot be empty',
         userFriendlyMessage:
             'ID produk tidak valid. Silakan pilih produk kembali.',
-        code: 'INVALID_LISTING_ID',
+        code: 'INVALID_FOR_SALE_ID',
       );
     }
 
@@ -88,10 +88,8 @@ class CheckoutRepositoryImpl implements CheckoutRepository {
         '/orders',
         data: {
           'product_id': request.productId,
-          'source_type': request.auctionId != null
-              ? 'auction'
-              : 'fixed_price_sale',
-          'source_id': request.auctionId ?? request.fixedPriceSaleId,
+          'source_type': request.auctionId != null ? 'auction' : 'for_sale',
+          'source_id': request.auctionId ?? request.forSaleId,
           'quantity': request.quantity,
           'address_id': request.addressId,
           'pricing_token': request.pricingToken,
@@ -103,8 +101,11 @@ class CheckoutRepositoryImpl implements CheckoutRepository {
             'negotiation_id': request.negotiationId,
           if (request.shippingQuoteId != null)
             'shipping_quote_id': request.shippingQuoteId,
-          if (request.shippingSetupId != null)
-            'shipping_setup_id': request.shippingSetupId,
+          // Canonical wire key for the selected shipping option on POST /orders.
+          // The value originates from `DeliveryOption.shippingSetupId` (Shipping
+          // domain entity) and maps to wire key `shipping_option_id`.
+          if (request.shippingOptionId != null)
+            'shipping_option_id': request.shippingOptionId,
         },
         options: headers != null ? Options(headers: headers) : null,
       );
@@ -156,9 +157,9 @@ class CheckoutRepositoryImpl implements CheckoutRepository {
 
       if (e.response?.statusCode == 404) {
         throw CheckoutException(
-          message: 'Listing not found',
+          message: 'ForSale not found',
           userFriendlyMessage: 'Produk tidak ditemukan atau telah dihapus.',
-          code: 'LISTING_NOT_FOUND',
+          code: 'FOR_SALE_NOT_FOUND',
         );
       }
 
@@ -209,8 +210,8 @@ class CheckoutRepositoryImpl implements CheckoutRepository {
   /// [CheckoutException] with code `CHECKOUT_INCOMPLETE_RESPONSE` if any
   /// required field is missing or invalid.
   ///
-  /// Backend returns a raw Order entity. Required field: `id`.
-  /// Payment URL is obtained separately via POST /payments (2-step flow).
+  /// Backend returns the lightweight OrderCreateResponse DTO. Required field:
+  /// `id`. Payment URL is obtained separately via POST /payments (2-step flow).
   ///
   /// Exposed (public, no leading underscore) so the validation logic is
   /// directly unit-testable without needing to mock Dio.
@@ -229,16 +230,21 @@ class CheckoutRepositoryImpl implements CheckoutRepository {
       );
     }
 
-    // Parse pricing snapshot from Order entity (int64 cents from backend)
+    // Parse the canonical pricing snapshot from the create response.
+    // Amounts are int64 Rupiah (full unit - IDR has no cents).
     final subtotal = (responseData['subtotal'] as num?)?.toInt() ?? 0;
     final shippingTotal =
         (responseData['shipping_total'] as num?)?.toInt() ?? 0;
     final commissionAmount =
         (responseData['commission_amount'] as num?)?.toInt() ?? 0;
-    final escrowAmount =
-        (responseData['escrow_amount'] as num?)?.toInt() ??
-        (responseData['total_amount'] as num?)?.toInt() ??
-        0;
+    // FIN-R01E-D: POST /orders returns OrderCreateResponse, whose ONE canonical
+    // buyer base is `total_before_coins_amount` (PD+S). `base_amount` is the
+    // GET /payments/methods presentation key and `total_amount` is not an Order
+    // field at all — both were dead cross-authority fallbacks and are purged.
+    // `coins_used` was purged for the same reason: coins are not an Order
+    // snapshot authority and the create response never emits the key.
+    final totalBeforeCoinsAmount =
+        (responseData['total_before_coins_amount'] as num?)?.toInt() ?? 0;
 
     // Parse created_at — backend sends RFC3339 string
     final createdAtStr = responseData['created_at'] as String?;
@@ -253,8 +259,7 @@ class CheckoutRepositoryImpl implements CheckoutRepository {
       subtotal: subtotal,
       shippingTotal: shippingTotal,
       commissionAmount: commissionAmount,
-      escrowAmount: escrowAmount,
-      coinsUsed: (responseData['coins_used'] as num?)?.toInt(),
+      totalBeforeCoinsAmount: totalBeforeCoinsAmount,
       createdAt: createdAt,
     );
   }
@@ -281,13 +286,13 @@ class CheckoutRepositoryImpl implements CheckoutRepository {
           code: 'PRICING_TOKEN_INVALID',
         );
 
-      case 'LISTING_UNAVAILABLE':
+      case 'FOR_SALE_UNAVAILABLE':
       case 'OUT_OF_STOCK':
         return CheckoutException(
-          message: 'Listing unavailable or out of stock',
+          message: 'ForSale unavailable or out of stock',
           userFriendlyMessage:
               'Maaf, produk ini tidak tersedia atau telah habis terjual.',
-          code: 'LISTING_UNAVAILABLE',
+          code: 'FOR_SALE_UNAVAILABLE',
         );
 
       case 'SHIPPING_INVALID':
@@ -327,8 +332,7 @@ class CheckoutRepositoryImpl implements CheckoutRepository {
       case api_codes.commerceRestricted:
         return CheckoutException(
           message: 'Commerce activity restricted',
-          userFriendlyMessage:
-              'Aktivitas commerce Anda saat ini dibatasi.',
+          userFriendlyMessage: 'Aktivitas commerce Anda saat ini dibatasi.',
           code: api_codes.commerceRestricted,
         );
 

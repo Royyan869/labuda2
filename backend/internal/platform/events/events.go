@@ -32,18 +32,28 @@ const (
 	// consumers can reconcile without re-deriving from the order.
 	EventMoneyReleased = "money.released"
 
+	// Chat events.
+	//
+	// EventChatMessageNotification is the durable notification effect of a sent
+	// chat message (in-app notification + push). It is owned by the outbox
+	// worker. The WebSocket realtime effect of the same message is a separate
+	// durable event (realtime.EventTypeChatMessageSent), owned by the realtime
+	// worker; both are emitted atomically by the chat send transaction so that
+	// neither effect can be lost to a competing claim.
+	EventChatMessageNotification = "chat.message.notification"
+
 	// Comment events
 	EventCommentCreated = "comment.created"
 
 	// Social interaction events
-	EventUserFollowed   = "user.followed"
-	EventUserUnfollowed = "user.unfollowed"
-	EventUserBlocked    = "user.blocked"
-	EventContentLiked   = "content.liked"
+	EventUserFollowed     = "user.followed"
+	EventUserUnfollowed   = "user.unfollowed"
+	EventUserBlocked      = "user.blocked"
+	EventContentLiked     = "content.liked"
 	EventContentMentioned = "content.mentioned"
-	EventCommentReply   = "comment.reply"
-	EventSellerResponse = "seller.response"
-	EventAuctionResponse = "auction.response"
+	EventCommentReply     = "comment.reply"
+	EventSellerResponse   = "seller.response"
+	EventAuctionResponse  = "auction.response"
 
 	// Presence events
 	EventUserPresenceLastSeenRecord = "presence.last_seen_record"

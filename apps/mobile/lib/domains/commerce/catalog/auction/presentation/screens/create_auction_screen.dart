@@ -1,10 +1,10 @@
 /// Create Auction Screen
 ///
-/// PASS_21B: auction creation no longer picks an existing Listing as its
+/// PASS_21B: auction creation no longer picks an existing ForSale as its
 /// source. Product/koi fields are entered directly in this form — the
 /// backend creates the Product inline from them, exactly like
-/// CreateFixedPriceSaleRequest already does for fixed-price listings.
-/// Auction must never be sourced from a Listing (rejected design).
+/// CreateFixedPriceSaleRequest already does for fixed-price forSales.
+/// Auction must never be sourced from a ForSale (rejected design).
 library;
 
 import 'package:flutter/material.dart';
@@ -16,6 +16,7 @@ import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/a
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_media_handler.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/widgets/seller_shipping_options_selector.dart';
+import 'package:labuda/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
 
 /// Create Auction Screen
 ///
@@ -53,7 +54,7 @@ const List<_DurationPreset> _durationPresets = [
   _DurationPreset('7 hari', 168),
 ];
 
-// Koi varieties list (same catalog used by create-listing).
+// Koi varieties list (same catalog used by create-forSale).
 const _koiVarieties = [
   'Kohaku',
   'Sanke',
@@ -103,7 +104,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   final _bloodlineController = TextEditingController();
 
   // Product/koi fields entered directly — the backend creates the Product
-  // inline from these, same as fixed-price listing creation.
+  // inline from these, same as fixed-price forSale creation.
   final List<String> _mediaUrls = [];
   String? _variety;
   double? _sizeInCm;
@@ -118,7 +119,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
 
   /// Shipping options this auction can be fulfilled through. Backend
   /// requires at least one (PASS_18E) — auction is still a physical fish
-  /// that must ship, same as a fixed-price listing.
+  /// that must ship, same as a fixed-price forSale.
   List<String> _selectedShippingSetupIds = const [];
 
   bool _isSubmitting = false;
@@ -194,12 +195,17 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
     final currentUser = authState.user;
     final hasSellerProfile = currentUser.hasCreatedSellerProfile;
     final hasMarketAuthority = currentUser.hasMarketAuthority == true;
+    // Canonical expiry axis (RF-02): capability blocks the mutation, but only
+    // an ENDED subscription may claim expiry. Status 'none' = not active yet.
+    final isSubscriptionExpired = ref.read(isSellerSubscriptionExpiredProvider);
 
     if (!hasSellerProfile || !hasMarketAuthority) {
       setState(() {
-        _errorMessage = hasSellerProfile
+        _errorMessage = !hasSellerProfile
+            ? 'Buat seller profile dulu untuk membuat lelang.'
+            : isSubscriptionExpired
             ? 'Langganan seller Anda sudah berakhir. Perpanjang dulu untuk membuat lelang.'
-            : 'Buat seller profile dulu untuk membuat lelang.';
+            : 'Langganan seller belum aktif. Aktifkan dulu untuk membuat lelang.';
       });
       return;
     }
@@ -325,15 +331,21 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
 
     if (!success) {
       final notifierState = ref.read(auctionNotifierProvider);
-      // Commerce restriction — canonical backend rejection.
-      if (CommerceRestrictionPresenter.isCommerceRestricted(
+      // Commerce restriction family — canonical dispatch by error CODE:
+      // COMMERCE_RESTRICTED → restriction snackbar,
+      // MARKET_AUTHORITY_REQUIRED → canonical seller renewal. The local submit
+      // flag is reset first (same ordering as before) so the form is never left
+      // locked behind a consumed restriction error.
+      if (CommerceRestrictionPresenter.isRestrictionPresented(
         notifierState.errorCode,
       )) {
         setState(() => _isSubmitting = false);
-        CommerceRestrictionPresenter.show(
-          context,
-          actionDescription: 'membuat lelang',
-        );
+      }
+      if (CommerceRestrictionPresenter.handle(
+        context,
+        errorCode: notifierState.errorCode,
+        actionDescription: 'membuat lelang',
+      )) {
         return;
       }
       setState(() {
@@ -353,6 +365,9 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Canonical expiry axis (RF-02). Capability gates access to selling; only
+    // an ENDED subscription period may produce expiry/renewal copy.
+    final isSubscriptionExpired = ref.watch(isSellerSubscriptionExpiredProvider);
 
     if (authState is! AuthStateAuthenticated) {
       return Scaffold(
@@ -371,17 +386,25 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
         message:
             'Untuk membuat lelang, kamu perlu membuat seller profile terlebih dahulu.',
         buttonLabel: 'Mulai Jualan',
+        destinationRoute: RoutePaths.sellerUpgrade,
       );
     }
 
     if (currentUser.hasMarketAuthority != true) {
+      // Capability gate unchanged; only its COPY follows the expiry axis.
       return _buildAccessGate(
         context,
         isDark: isDark,
-        title: 'Langganan Seller Habis',
-        message:
-            'Aktifkan kembali langganan seller agar bisa membuat lelang di mobile.',
-        buttonLabel: 'Perpanjang Langganan',
+        title: isSubscriptionExpired
+            ? 'Langganan Seller Habis'
+            : 'Langganan Belum Aktif',
+        message: isSubscriptionExpired
+            ? 'Aktifkan kembali langganan seller agar bisa membuat lelang di mobile.'
+            : 'Aktifkan langganan seller agar bisa membuat lelang di mobile.',
+        buttonLabel: isSubscriptionExpired
+            ? 'Perpanjang Langganan'
+            : 'Aktifkan Langganan',
+        destinationRoute: RoutePaths.sellerRenewal,
       );
     }
 
@@ -585,6 +608,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
     required String title,
     required String message,
     required String buttonLabel,
+    required String destinationRoute,
   }) {
     return Scaffold(
       appBar: AppBar(title: const Text('Buat Lelang')),
@@ -626,7 +650,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
               ),
               const SizedBox(height: 28),
               ElevatedButton(
-                onPressed: () => context.push(RoutePaths.sellerUpgrade),
+                onPressed: () => context.push(destinationRoute),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryRed,
                   foregroundColor: AppColors.light,

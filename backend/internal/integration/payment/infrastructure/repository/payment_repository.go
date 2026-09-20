@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/money"
 )
@@ -282,118 +281,111 @@ func (r *PaymentRepository) GetOrCreateForOrder(
 	return payment, true, nil
 }
 
-// =============================================================================
-// ORPHAN WEBHOOK RECOVERY METHODS
-// =============================================================================
-
-// OrphanWebhookEvent represents an orphaned webhook event that needs recovery.
-type OrphanWebhookEvent struct {
-	ID              uuid.UUID
-	EventID         string
-	MidtransOrderID string
-	Payload         []byte
-	ReceivedAt      time.Time
-	ErrorMessage    *string
-}
-
-// GetOrphanedWebhookEvents retrieves orphaned webhook events for recovery.
-// Returns events that are marked as 'orphaned' status.
+// GetWebhookEventStatus returns the recorded status of the notification
+// identified by notificationKey, or an empty string when no row exists.
 //
-// Used by the recovery worker to retry processing of orphaned webhooks.
-func (r *PaymentRepository) GetOrphanedWebhookEvents(
+// Used by the canonical webhook service to distinguish an already-processed
+// duplicate (idempotent skip) from a redelivery of an event whose processing
+// earlier FAILED (must be processed again).
+//
+// Keyed on notification_key (REC-3): the same gateway transaction legitimately
+// has several rows, so the transaction reference cannot select one row.
+func (r *PaymentRepository) GetWebhookEventStatus(
 	ctx context.Context,
 	tx db.Tx,
-	limit int,
-) ([]OrphanWebhookEvent, error) {
-	query := `
-		SELECT id, event_id, midtrans_order_id, payload, received_at, error_message
-		FROM payment_webhook_events
-		WHERE status = 'orphaned'
-		ORDER BY received_at DESC
-		LIMIT $1
-	`
+	notificationKey string,
+) (string, error) {
+	var status string
+	err := tx.QueryRow(ctx,
+		`SELECT status FROM payment_webhook_events WHERE notification_key = $1`,
+		notificationKey,
+	).Scan(&status)
 
-	rows, err := tx.Query(ctx, query, limit)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get orphaned webhook events: %w", err)
-	}
-	defer rows.Close()
-
-	var events []OrphanWebhookEvent
-	for rows.Next() {
-		var e OrphanWebhookEvent
-		if err := rows.Scan(&e.ID, &e.EventID, &e.MidtransOrderID, &e.Payload, &e.ReceivedAt, &e.ErrorMessage); err != nil {
-			return nil, fmt.Errorf("failed to scan orphaned webhook event: %w", err)
+		if err.Error() == "no rows in result set" {
+			return "", nil
 		}
-		events = append(events, e)
+		return "", fmt.Errorf("failed to get webhook event status: %w", err)
 	}
 
-	return events, nil
+	return status, nil
 }
 
-// MarkWebhookEventForRetry marks an orphaned webhook event for retry processing.
-// Changes status from 'orphaned' back to 'pending' for the recovery worker.
-func (r *PaymentRepository) MarkWebhookEventForRetry(
+// RecordWebhookEventFailure durably records a notification whose processing
+// FAILED (REC-1).
+//
+// WHY THIS EXISTS: the processing transaction inserts the event row and writes
+// status='failed' on the failing path, but it then ROLLS BACK (pkg/db.withRetry:
+// "Rollback is ALWAYS called if fn returns error") — erasing the row and its
+// failure detail. The failure record therefore has to be written by a SEPARATE
+// transaction that runs after the rollback. The caller owns that transaction;
+// this method only owns the statement.
+//
+// Semantics:
+//   - inserts the event when it was never recorded (its row was rolled back), OR
+//   - promotes an existing row to 'failed' when that row is not already in a
+//     terminal non-failure state.
+//
+// A committed 'succeeded' / 'orphaned' / 'manual_review' / 'quarantined' /
+// 'terminal_review' / 'captured_after_expiry' row is audit truth and MUST NOT be
+// overwritten by a later failing delivery of the same notification, so the
+// UPDATE is guarded and recorded=false is returned in that case (not an error).
+//
+// Conflict target is notification_key (REC-3): that is the identity of ONE
+// notification, so a failing redelivery updates its own row and never the other
+// notifications stored for the same gateway transaction. eventID is persisted
+// as the gateway transaction reference.
+//
+// Idempotent: safe to call repeatedly for the same notification.
+func (r *PaymentRepository) RecordWebhookEventFailure(
 	ctx context.Context,
 	tx db.Tx,
 	eventID string,
-) error {
+	notificationKey string,
+	midtransOrderID string,
+	signatureKey string,
+	payload []byte,
+	paymentID *uuid.UUID,
+	errorMessage string,
+) (bool, error) {
 	query := `
-		UPDATE payment_webhook_events
-		SET status = 'pending',
-		    error_message = NULL,
-		    processed_at = NULL
-		WHERE event_id = $1 AND status = 'orphaned'
+		INSERT INTO payment_webhook_events
+			(id, provider, event_id, notification_key, midtrans_order_id, payment_id, signature_key, payload,
+			 status, error_message, received_at, processed_at)
+		VALUES ($1, 'midtrans', $2, $3, $4, $5, $6, $7, 'failed', $8, NOW(), NOW())
+		ON CONFLICT (notification_key) DO UPDATE
+			SET status = 'failed',
+			    error_message = EXCLUDED.error_message,
+			    payment_id = COALESCE(EXCLUDED.payment_id, payment_webhook_events.payment_id),
+			    processed_at = NOW()
+			WHERE payment_webhook_events.status IN ('pending', 'processing', 'failed')
+		RETURNING id
 	`
 
-	result, err := tx.Exec(ctx, query, eventID)
+	var id uuid.UUID
+	err := tx.QueryRow(ctx, query,
+		uuid.New(),
+		eventID,
+		notificationKey,
+		midtransOrderID,
+		paymentID,
+		signatureKey,
+		payload,
+		errorMessage,
+	).Scan(&id)
+
 	if err != nil {
-		return fmt.Errorf("failed to mark webhook event for retry: %w", err)
-	}
-
-	rowsAffected := result.RowsAffected()
-	if rowsAffected == 0 {
-		return fmt.Errorf("webhook event not found or not orphaned: %s", eventID)
-	}
-
-	return nil
-}
-
-// GetPendingWebhookEvents retrieves webhook events that are pending processing.
-// Used by the webhook processing worker.
-func (r *PaymentRepository) GetPendingWebhookEvents(
-	ctx context.Context,
-	tx db.Tx,
-	limit int,
-) ([]OrphanWebhookEvent, error) {
-	query := `
-		SELECT id, event_id, midtrans_order_id, payload, received_at, error_message
-		FROM payment_webhook_events
-		WHERE status = 'pending'
-		ORDER BY received_at ASC
-		LIMIT $1
-	`
-
-	rows, err := tx.Query(ctx, query, limit)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get pending webhook events: %w", err)
-	}
-	defer rows.Close()
-
-	var events []OrphanWebhookEvent
-	for rows.Next() {
-		var e OrphanWebhookEvent
-		if err := rows.Scan(&e.ID, &e.EventID, &e.MidtransOrderID, &e.Payload, &e.ReceivedAt, &e.ErrorMessage); err != nil {
-			return nil, fmt.Errorf("failed to scan pending webhook event: %w", err)
+		if err.Error() == "no rows in result set" {
+			// The event is already recorded in a terminal non-failure state.
+			return false, nil
 		}
-		events = append(events, e)
+		return false, fmt.Errorf("failed to record webhook event failure: %w", err)
 	}
 
-	return events, nil
+	return true, nil
 }
 
 // GetPaymentByReference retrieves a payment by reference type and ID.
-// Used by webhook recovery to find payment after it was created.
 func (r *PaymentRepository) GetPaymentByReference(
 	ctx context.Context,
 	tx db.Tx,
@@ -425,39 +417,6 @@ func (r *PaymentRepository) SetAuditService(auditService interface { // Minimal 
 	PaymentCreated(ctx context.Context, tx db.Tx, paymentID, userID uuid.UUID, amount int64)
 }) {
 	r.auditService = auditService
-}
-
-// FindLatestSubscriptionPayment retrieves the most recent subscription payment for a user,
-// regardless of status (pending, settlement, capture, deny, cancel, expire).
-// Returns nil if no subscription payment exists for the user.
-// Used by the seller sync route to inspect the latest payment state.
-func (r *PaymentRepository) FindLatestSubscriptionPayment(
-	ctx context.Context,
-	tx db.Tx,
-	userID uuid.UUID,
-) (*Payment, error) {
-	query := `
-		SELECT id, user_id, payment_number, midtrans_order_id,
-		       gross_amount, service_fee_amount, coins_to_use, coin_discount_amount,
-		       status, reference_type, reference_id, price_snapshot_id,
-		       payment_url, transaction_id, payment_type,
-		       paid_at, expired_at, created_at, updated_at, payment_method_code
-		FROM payments
-		WHERE reference_type = $1
-		  AND user_id = $2
-		ORDER BY created_at DESC
-		LIMIT 1
-	`
-
-	row := tx.QueryRow(ctx, query, ReferenceTypeSubscription, userID)
-	p, err := scanPayment(row)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return p, nil
 }
 
 // GetByMidtransOrderID retrieves a payment by Midtrans order ID without locking.
@@ -877,86 +836,38 @@ func (r *PaymentRepository) GetStatus(
 	return status, nil
 }
 
-// CreatePaymentWebhookEvent records a payment webhook event for idempotency.
-// This should be called first when processing a webhook to capture all events.
-func (r *PaymentRepository) CreatePaymentWebhookEvent(
-	ctx context.Context,
-	tx db.Tx,
-	eventID string,
-	provider string,
-	midtransOrderID *string,
-	signatureKey string,
-	payload []byte,
-) error {
-	query := `
-		INSERT INTO payment_webhook_events
-			(id, provider, event_id, midtrans_order_id, signature_key, payload, status, received_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-	`
-
-	eventIDUUID := uuid.New()
-	_, err := tx.Exec(ctx, query,
-		eventIDUUID,
-		provider,
-		eventID,
-		midtransOrderID,
-		signatureKey,
-		payload,
-		PaymentWebhookEventStatusPending, // Always start as pending
-	)
-
-	if err != nil {
-		return fmt.Errorf("failed to create webhook event: %w", err)
-	}
-
-	return nil
-}
-
-// UpdateWebhookEventStatus updates the status of a webhook event.
+// UpdateWebhookEventStatus updates the status of one stored notification.
 // Used for state machine transitions: pending -> processing -> succeeded/failed.
+//
+// Keyed on notification_key (REC-3): with several notifications per gateway
+// transaction, keying on the transaction reference would write the state of one
+// notification onto every row of that transaction.
 func (r *PaymentRepository) UpdateWebhookEventStatus(
 	ctx context.Context,
 	tx db.Tx,
-	eventID string,
+	notificationKey string,
 	status string,
 	paymentID *uuid.UUID,
 	errorMsg *string,
 ) error {
+	// Explicit casts keep $1 resolved to ONE type (text) at both use sites; the
+	// SET cast resolves it to the enum. Without them PostgreSQL cannot deduce a
+	// single type and fails with SQLSTATE 42P08 "inconsistent types deduced for
+	// parameter $1 (text versus payment_webhook_status_enum)". This mirrors the
+	// canonical webhook-service implementation.
 	query := `
 		UPDATE payment_webhook_events
-		SET status = $1,
+		SET status = $1::payment_webhook_status_enum,
 		    payment_id = $2,
 		    error_message = $3,
-		    processed_at = CASE WHEN $1 IN ('succeeded', 'failed', 'orphaned', 'manual_review', 'quarantined', 'terminal_review') THEN NOW() ELSE NULL END
-		WHERE event_id = $4
+		    processed_at = CASE WHEN $1::text IN ('succeeded', 'failed', 'orphaned', 'manual_review', 'quarantined', 'terminal_review') THEN NOW() ELSE NULL END
+		WHERE notification_key = $4
 	`
 
-	_, err := tx.Exec(ctx, query, status, paymentID, errorMsg, eventID)
+	_, err := tx.Exec(ctx, query, status, paymentID, errorMsg, notificationKey)
 
 	if err != nil {
 		return fmt.Errorf("failed to update webhook event status: %w", err)
-	}
-
-	return nil
-}
-
-// LinkWebhookEventToPayment links a webhook event to its payment.
-func (r *PaymentRepository) LinkWebhookEventToPayment(
-	ctx context.Context,
-	tx db.Tx,
-	eventID string,
-	paymentID uuid.UUID,
-) error {
-	query := `
-		UPDATE payment_webhook_events
-		SET payment_id = $1
-		WHERE event_id = $2
-	`
-
-	_, err := tx.Exec(ctx, query, paymentID, eventID)
-
-	if err != nil {
-		return fmt.Errorf("failed to link webhook event to payment: %w", err)
 	}
 
 	return nil

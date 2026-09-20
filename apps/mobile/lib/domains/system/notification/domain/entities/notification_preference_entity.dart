@@ -4,7 +4,7 @@
 /// NO external dependencies (no Firebase, no Flutter).
 ///
 /// BATCH N2: Removed listingRecommendations and auctionNotifications (ghost features)
-/// - Listing recommendations: never implemented
+/// - ForSale recommendations: never implemented
 /// - Auction notifications: backend does not emit auction notification events
 ///
 /// Size: < 100 lines (per GUIDELINES)

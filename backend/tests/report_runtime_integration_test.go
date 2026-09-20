@@ -36,6 +36,7 @@ import (
 
 	moderationApp "github.com/labuda/backend/internal/governance/moderation/application"
 	moderationHTTP "github.com/labuda/backend/internal/governance/moderation/delivery/http"
+	moderationEntity "github.com/labuda/backend/internal/governance/moderation/entity"
 	moderationRepo "github.com/labuda/backend/internal/governance/moderation/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/testdb"
@@ -62,8 +63,11 @@ func TestCanonicalReportRuntime(t *testing.T) {
 	missingID := uuid.New()
 
 	appDB := db.NewFromPool(pool)
-	reportService := moderationApp.NewReportService(appDB, moderationRepo.NewReportRepository(), moderationRepo.NewCaseRepository())
-	handler := moderationHTTP.NewReportHandler(reportService, zap.NewNop())
+	reportRepo := moderationRepo.NewReportRepository()
+	caseRepo := moderationRepo.NewCaseRepository()
+	decRepo := moderationRepo.NewDecisionRepository()
+	reportService := moderationApp.NewReportService(appDB, reportRepo, caseRepo)
+	handler := moderationHTTP.NewReportHandlerWithDeps(reportService, appDB, caseRepo, decRepo, zap.NewNop())
 
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
@@ -130,7 +134,11 @@ func TestCanonicalReportRuntime(t *testing.T) {
 			require.Equal(t, reporterA.String(), resp.Data.ReporterID)
 			require.NotEmpty(t, resp.Data.ID)
 			require.NotEmpty(t, resp.Data.CreatedAt)
-			require.NotEmpty(t, resp.Data.EvidenceSnap.AuthorID, "evidence snapshot must capture subject author at report time")
+
+			// Verify evidence snapshot captured in DB (internal governance data)
+			var evidenceBytes []byte
+			require.NoError(t, pool.QueryRow(ctx, `SELECT evidence_snapshot FROM reports WHERE id = $1`, resp.Data.ID).Scan(&evidenceBytes))
+			require.NotEmpty(t, evidenceBytes, "evidence snapshot must be captured in DB at report time")
 		}
 	})
 
@@ -349,6 +357,97 @@ func TestCanonicalReportRuntime(t *testing.T) {
 		}
 		require.NoError(t, json.Unmarshal(w2.Body.Bytes(), &resp))
 		require.NotEmpty(t, resp.Data.Reports)
+	})
+
+	// ── 10. Safe Projection & Ownership Protection ───────────────
+	t.Run("user_safe_projection_and_ownership", func(t *testing.T) {
+		projContent := insertReportFixtureContent(t, ctx, pool, subjectOwner)
+		w := createReport(t, "content", projContent.String(), "prohibited_content", nil)
+		require.Equal(t, http.StatusCreated, w.Code, w.Body.String())
+
+		var createResp struct {
+			Data map[string]interface{} `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &createResp))
+		reportID, _ := createResp.Data["id"].(string)
+		caseID, _ := createResp.Data["case_id"].(string)
+		require.NotEmpty(t, reportID)
+		require.NotEmpty(t, caseID)
+
+		// Reporter A reads own report -> 200 OK with open case projection
+		reqA := httptest.NewRequest(http.MethodGet, "/reports/"+reportID, nil)
+		wA := httptest.NewRecorder()
+		router.ServeHTTP(wA, reqA)
+		require.Equal(t, http.StatusOK, wA.Code, wA.Body.String())
+
+		var detailRespA struct {
+			Data struct {
+				Report struct {
+					ID     string `json:"id"`
+					Case   struct {
+						ID     string `json:"id"`
+						Status string `json:"status"`
+					} `json:"case"`
+					Target struct {
+						Title string `json:"title"`
+					} `json:"target"`
+					EvidenceSnap interface{} `json:"evidence_snapshot"`
+				} `json:"report"`
+			} `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(wA.Body.Bytes(), &detailRespA))
+		require.Equal(t, reportID, detailRespA.Data.Report.ID)
+		require.Equal(t, caseID, detailRespA.Data.Report.Case.ID)
+		require.Equal(t, "open", detailRespA.Data.Report.Case.Status)
+		require.Nil(t, detailRespA.Data.Report.EvidenceSnap, "raw evidence_snapshot MUST NOT be exposed to reporter")
+
+		// User B attempts to read User A's report -> 404 (Ownership protection)
+		routerBGet := gin.New()
+		routerBGet.Use(func(c *gin.Context) {
+			c.Set("user_id", reporterB)
+			c.Next()
+		})
+		routerBGet.GET("/reports/:id", handler.GetMyReport)
+
+		reqB := httptest.NewRequest(http.MethodGet, "/reports/"+reportID, nil)
+		wB := httptest.NewRecorder()
+		routerBGet.ServeHTTP(wB, reqB)
+		require.Equal(t, http.StatusNotFound, wB.Code, "other users must not read report owned by reporterA")
+
+		// Admin creates Decision -> Case resolves
+		decRepo := moderationRepo.NewDecisionRepository()
+		enfRepo := moderationRepo.NewEnforcementRepository()
+		caseRepo := moderationRepo.NewCaseRepository()
+		decSvc := moderationApp.NewDecisionService(appDB, caseRepo, decRepo, enfRepo, nil, nil)
+		cID, _ := uuid.Parse(caseID)
+		_, decErr := decSvc.CreateDecision(ctx, moderationApp.CreateDecisionInput{
+			CaseID:    cID,
+			DecidedBy: subjectOwner,
+			Outcome:   moderationEntity.DecisionOutcomeNoViolation,
+		})
+		require.NoError(t, decErr)
+
+		// Reporter A reads report after decision -> case status resolved + decision no_violation
+		reqA2 := httptest.NewRequest(http.MethodGet, "/reports/"+reportID, nil)
+		wA2 := httptest.NewRecorder()
+		router.ServeHTTP(wA2, reqA2)
+		require.Equal(t, http.StatusOK, wA2.Code, wA2.Body.String())
+
+		var detailRespA2 struct {
+			Data struct {
+				Report struct {
+					Case struct {
+						Status string `json:"status"`
+					} `json:"case"`
+					Decision struct {
+						Outcome string `json:"outcome"`
+					} `json:"decision"`
+				} `json:"report"`
+			} `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(wA2.Body.Bytes(), &detailRespA2))
+		require.Equal(t, "resolved", detailRespA2.Data.Report.Case.Status)
+		require.Equal(t, "no_violation", detailRespA2.Data.Report.Decision.Outcome)
 	})
 }
 

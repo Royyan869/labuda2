@@ -89,8 +89,8 @@ extension AccountStatusExtension on AccountStatus {
   /// Check if user can message others
   bool get canMessage => isActive;
 
-  /// Check if user can create listings
-  bool get canCreateListings => isActive;
+  /// Check if user can create forSales
+  bool get canCreateForSales => isActive;
 
   /// Check if user can place bids
   bool get canPlaceBids => isActive;

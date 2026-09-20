@@ -8,7 +8,7 @@ import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/
 
 /// Home Commerce Preview - "Sedang Laku Hari Ini"
 ///
-/// Shows 3-5 trending items (listings and auctions) above the feed
+/// Shows 3-5 trending items (forSales and auctions) above the feed
 /// to demonstrate active marketplace activity.
 ///
 /// GOAL: User sees "ini marketplace aktif" immediately
@@ -69,8 +69,8 @@ class CommercePreviewSection extends ConsumerWidget {
   }
 
   Widget _buildCommerceItems(BuildContext context, WidgetRef ref, bool isDark) {
-    // Fetch active listings and auctions
-    final listingsAsync = ref.watch(
+    // Fetch active forSales and auctions
+    final forSalesAsync = ref.watch(
       forSalesProvider(
         const ForSalesParams(status: ForSaleStatus.active, limit: 3),
       ),
@@ -78,12 +78,12 @@ class CommercePreviewSection extends ConsumerWidget {
 
     final auctionsAsync = ref.watch(exploreAuctionsStreamProvider);
 
-    return listingsAsync.when(
-      data: (listings) {
+    return forSalesAsync.when(
+      data: (forSales) {
         return auctionsAsync.when(
           data: (auctions) {
             // Combine and limit to 5 items total
-            final items = _buildMixedItems(listings, auctions);
+            final items = _buildMixedItems(forSales, auctions);
 
             if (items.isEmpty) {
               return const SizedBox.shrink();
@@ -114,16 +114,16 @@ class CommercePreviewSection extends ConsumerWidget {
     );
   }
 
-  /// Mix listings and auctions, max 5 items
+  /// Mix forSales and auctions, max 5 items
   List<_CommercePreviewItem> _buildMixedItems(
-    List<ForSale> listings,
+    List<ForSale> forSales,
     List<Auction> auctions,
   ) {
     final items = <_CommercePreviewItem>[];
 
-    // Add up to 3 listings
-    for (final listing in listings.take(3)) {
-      items.add(_CommercePreviewItem.listing(listing));
+    // Add up to 3 forSales
+    for (final forSale in forSales.take(3)) {
+      items.add(_CommercePreviewItem.forSale(forSale));
     }
 
     // Add up to 2 auctions
@@ -131,7 +131,7 @@ class CommercePreviewSection extends ConsumerWidget {
       items.add(_CommercePreviewItem.auction(auction));
     }
 
-    // Shuffle slightly for variety, but keep listing first
+    // Shuffle slightly for variety, but keep forSale first
     if (items.length > 2) {
       final first = items.removeAt(0);
       items.shuffle();
@@ -143,11 +143,11 @@ class CommercePreviewSection extends ConsumerWidget {
 
   void _navigateToDetail(BuildContext context, _CommercePreviewItem item) {
     switch (item.type) {
-      case _CommercePreviewType.listing:
+      case _CommercePreviewType.forSale:
         context.push(
           RoutePaths.forSaleDetail.replaceFirst(
             ':forSaleId',
-            item.listing!.forSaleId,
+            item.forSale!.forSaleId,
           ),
         );
         break;
@@ -159,20 +159,20 @@ class CommercePreviewSection extends ConsumerWidget {
 }
 
 /// Preview item wrapper
-enum _CommercePreviewType { listing, auction }
+enum _CommercePreviewType { forSale, auction }
 
 class _CommercePreviewItem {
   final _CommercePreviewType type;
-  final ForSale? listing;
+  final ForSale? forSale;
   final Auction? auction;
 
-  _CommercePreviewItem.listing(this.listing)
-    : type = _CommercePreviewType.listing,
+  _CommercePreviewItem.forSale(this.forSale)
+    : type = _CommercePreviewType.forSale,
       auction = null;
 
   _CommercePreviewItem.auction(this.auction)
     : type = _CommercePreviewType.auction,
-      listing = null;
+      forSale = null;
 }
 
 /// Compact card for commerce preview
@@ -228,12 +228,12 @@ class _CommercePreviewCard extends StatelessWidget {
     String? imageUrl;
     String placeholderText;
 
-    if (item.type == _CommercePreviewType.listing) {
-      imageUrl = item.listing?.media.isNotEmpty == true
-          ? item.listing!.media.first.originalUrl
+    if (item.type == _CommercePreviewType.forSale) {
+      imageUrl = item.forSale?.media.isNotEmpty == true
+          ? item.forSale!.media.first.originalUrl
           : null;
       placeholderText =
-          item.listing?.title.substring(0, 1).toUpperCase() ?? 'K';
+          item.forSale?.title.substring(0, 1).toUpperCase() ?? 'K';
     } else {
       imageUrl = item.auction?.media.isNotEmpty == true
           ? item.auction!.media.first.originalUrl
@@ -277,7 +277,7 @@ class _CommercePreviewCard extends StatelessWidget {
     Color color;
 
     switch (item.type) {
-      case _CommercePreviewType.listing:
+      case _CommercePreviewType.forSale:
         label = 'Beli Sekarang';
         color = AppColors.primaryGreen;
         break;
@@ -307,8 +307,8 @@ class _CommercePreviewCard extends StatelessWidget {
   Widget _buildPrice(BuildContext context, bool isDark) {
     String priceText;
 
-    if (item.type == _CommercePreviewType.listing) {
-      priceText = item.listing?.formattedPrice ?? '-';
+    if (item.type == _CommercePreviewType.forSale) {
+      priceText = item.forSale?.formattedPrice ?? '-';
     } else {
       priceText = item.auction?.currentBid.toStringAsFixed(0) ?? '-';
     }

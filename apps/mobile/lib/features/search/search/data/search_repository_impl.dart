@@ -153,7 +153,7 @@ class SearchRepositoryImpl implements SearchRepository {
       stopwatch.stop();
 
       final usersResult = results[0] as ApiResult<List<UserSearchResult>>;
-      final listingsBundleResult =
+      final forSalesBundleResult =
           results[1] as ApiResult<_SearchResultBundle<ForSaleSearchResult>>;
       final auctionsBundleResult =
           results[2] as ApiResult<_SearchResultBundle<AuctionSearchResult>>;
@@ -163,8 +163,8 @@ class SearchRepositoryImpl implements SearchRepository {
       if (usersResult.error != null) {
         return (data: null, error: usersResult.error);
       }
-      if (listingsBundleResult.error != null) {
-        return (data: null, error: listingsBundleResult.error);
+      if (forSalesBundleResult.error != null) {
+        return (data: null, error: forSalesBundleResult.error);
       }
       if (auctionsBundleResult.error != null) {
         return (data: null, error: auctionsBundleResult.error);
@@ -176,9 +176,9 @@ class SearchRepositoryImpl implements SearchRepository {
       // Convert domain results to generic SearchResults, merge promoted
       // sidecar. Each collection keeps its canonical domain order.
       final users = _mapUserResultsToGeneric(usersResult.data!);
-      final listings = _mergePromotedSidecar(
-        _mapListingResultsToGeneric(listingsBundleResult.data!.items),
-        listingsBundleResult.data!.promotedItems,
+      final forSales = _mergePromotedSidecar(
+        _mapForSaleResultsToGeneric(forSalesBundleResult.data!.items),
+        forSalesBundleResult.data!.promotedItems,
       );
       final auctions = _mergePromotedSidecar(
         _mapAuctionResultsToGeneric(auctionsBundleResult.data!.items),
@@ -189,11 +189,11 @@ class SearchRepositoryImpl implements SearchRepository {
       return (
         data: UnifiedSearchResults(
           users: users,
-          listings: listings,
+          forSales: forSales,
           auctions: auctions,
           contents: contents,
           totalCount:
-              users.length + listings.length + auctions.length + contents.length,
+              users.length + forSales.length + auctions.length + contents.length,
           query: query,
           searchDuration: stopwatch.elapsed,
         ),
@@ -279,20 +279,20 @@ class SearchRepositoryImpl implements SearchRepository {
         .toList();
   }
 
-  /// REAL LISTINGS TAB: map ForSaleSearchResult to generic SearchResult.
+  /// REAL FOR SALE TAB: map ForSaleSearchResult to generic SearchResult.
   ///
   /// Owner Truth: subtitle prefers farmName, falling back to @username.
   /// When neither is present, subtitle is null (hide rather than fabricate).
   ///
   /// Mapping rules (no fabrication):
-  /// - title    ← listing title
+  /// - title    ← forSale title
   /// - subtitle ← sellerFarmName ?? '@sellerUsername' ?? null
   /// - imageUrl ← first media_urls element, or null
   /// - metadata ← {'price': ...} ONLY when price is non-null;
   ///              {'sellerId': ...} for downstream consumers.
-  ///   No quantity / status / visibility / listing_type / engagement
+  ///   No quantity / status / visibility / for_sale_type / engagement
   ///   are emitted by /search/for-sale, so none are added here.
-  List<SearchResult> _mapListingResultsToGeneric(
+  List<SearchResult> _mapForSaleResultsToGeneric(
     List<ForSaleSearchResult> data,
   ) {
     return data
@@ -324,7 +324,7 @@ class SearchRepositoryImpl implements SearchRepository {
   }
 
   /// STAGE 4 — UI MIGRATION (Phase 5)
-  /// Owner-truth subtitle composition for listing/auction search rows.
+  /// Owner-truth subtitle composition for forSale/auction search rows.
   /// - prefer farmName
   /// - else @username
   /// - else null (hide rather than fabricate; no Unknown / Seller / etc.)

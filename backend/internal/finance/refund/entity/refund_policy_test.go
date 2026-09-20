@@ -20,9 +20,9 @@ import (
 // ============================================================================
 
 var testOrder = OrderSnapshot{
-	Subtotal:         100_000,
-	ShippingTotal:    25_000,
-	CommissionAmount: 6_250,
+	DiscountedProduct: 100_000,
+	ShippingTotal:     25_000,
+	CommissionAmount:  6_250,
 }
 
 func TestOrderSnapshot_ProductGross(t *testing.T) {
@@ -40,8 +40,8 @@ func TestResolveRefundPolicy_ItemDamaged_ProductOnly(t *testing.T) {
 	if p.PolicyType != RefundPolicyProductOnly {
 		t.Fatalf("policy=%s want product_only", p.PolicyType)
 	}
-	if p.CashRefund != testOrder.Subtotal {
-		t.Fatalf("cash_refund=%d want %d (Subtotal)", p.CashRefund, testOrder.Subtotal)
+	if p.CashRefund != testOrder.DiscountedProduct {
+		t.Fatalf("cash_refund=%d want %d (DiscountedProduct=PD)", p.CashRefund, testOrder.DiscountedProduct)
 	}
 	if !p.IsSellerApprovable() {
 		t.Fatal("item_damaged should be seller-approvable")
@@ -53,8 +53,8 @@ func TestResolveRefundPolicy_DefectiveItem_ProductOnly(t *testing.T) {
 	if p.PolicyType != RefundPolicyProductOnly {
 		t.Fatalf("policy=%s want product_only", p.PolicyType)
 	}
-	if p.CashRefund != testOrder.Subtotal {
-		t.Fatalf("cash_refund=%d want %d (Subtotal)", p.CashRefund, testOrder.Subtotal)
+	if p.CashRefund != testOrder.DiscountedProduct {
+		t.Fatalf("cash_refund=%d want %d (DiscountedProduct=PD)", p.CashRefund, testOrder.DiscountedProduct)
 	}
 	if !p.IsSellerApprovable() {
 		t.Fatal("defective_item should be seller-approvable")
@@ -66,8 +66,8 @@ func TestResolveRefundPolicy_ProductOnly_DoesNotIncludeShipping(t *testing.T) {
 	if p.CashRefund == testOrder.ProductGross() {
 		t.Fatal("product_only must NOT equal ProductGross (must exclude shipping)")
 	}
-	if p.CashRefund != testOrder.Subtotal {
-		t.Fatalf("product_only cash_refund=%d want Subtotal=%d", p.CashRefund, testOrder.Subtotal)
+	if p.CashRefund != testOrder.DiscountedProduct {
+		t.Fatalf("product_only cash_refund=%d want DiscountedProduct(PD)=%d", p.CashRefund, testOrder.DiscountedProduct)
 	}
 }
 
@@ -147,21 +147,22 @@ func TestResolveRefundPolicy_Other_AdminReview(t *testing.T) {
 // --- Buyer requested_amount cannot inflate refund above policy ---
 
 func TestResolveRefundPolicy_BuyerRequestedAmountIrrelevant(t *testing.T) {
-	// Even if buyer requests full ProductGross, item_damaged policy only gives Subtotal
+	// Even if buyer requests full ProductGross, item_damaged policy only gives
+	// the discounted product value (PD)
 	p := ResolveRefundPolicy(RefundReasonItemDamaged, testOrder)
 	buyerRequestedAmount := testOrder.ProductGross() // buyer wants everything
 	if p.CashRefund >= buyerRequestedAmount {
 		t.Fatalf("policy cash_refund %d should be less than buyer requested %d for product_only", p.CashRefund, buyerRequestedAmount)
 	}
-	if p.CashRefund != testOrder.Subtotal {
-		t.Fatalf("policy cash_refund=%d want Subtotal=%d regardless of buyer request", p.CashRefund, testOrder.Subtotal)
+	if p.CashRefund != testOrder.DiscountedProduct {
+		t.Fatalf("policy cash_refund=%d want DiscountedProduct(PD)=%d regardless of buyer request", p.CashRefund, testOrder.DiscountedProduct)
 	}
 }
 
 // --- Edge: zero shipping order ---
 
-func TestResolveRefundPolicy_ZeroShipping_ProductOnlyEqualsSubtotal(t *testing.T) {
-	order := OrderSnapshot{Subtotal: 50_000, ShippingTotal: 0, CommissionAmount: 2_500}
+func TestResolveRefundPolicy_ZeroShipping_ProductOnlyEqualsDiscountedProduct(t *testing.T) {
+	order := OrderSnapshot{DiscountedProduct: 50_000, ShippingTotal: 0, CommissionAmount: 2_500}
 	p := ResolveRefundPolicy(RefundReasonItemDamaged, order)
 	if p.CashRefund != 50_000 {
 		t.Fatalf("cash_refund=%d want 50000", p.CashRefund)
@@ -203,8 +204,8 @@ func TestResolveRefundPolicy_AllReasons_Classified(t *testing.T) {
 		}
 		switch p.PolicyType {
 		case RefundPolicyProductOnly:
-			if p.CashRefund != testOrder.Subtotal {
-				t.Fatalf("reason %q: product_only cash_refund=%d want %d", reason, p.CashRefund, testOrder.Subtotal)
+			if p.CashRefund != testOrder.DiscountedProduct {
+				t.Fatalf("reason %q: product_only cash_refund=%d want %d", reason, p.CashRefund, testOrder.DiscountedProduct)
 			}
 		case RefundPolicyFull:
 			if p.CashRefund != testOrder.ProductGross() {
@@ -226,7 +227,7 @@ func TestSellerApprove_AmountIsSystemComputed_NotBuyerClaim(t *testing.T) {
 	// Create a refund where buyer requests full ProductGross
 	r := NewRefund(uuid.New(), uuid.New(), uuid.New(), RefundReasonItemDamaged, nil, testOrder.ProductGross())
 
-	// Policy says product_only = Subtotal
+	// Policy says product_only = DiscountedProduct (PD)
 	policy := ResolveRefundPolicy(r.Reason, testOrder)
 	if policy.CashRefund == r.RequestedAmount {
 		t.Fatal("policy amount should differ from buyer's full-gross request for product_only")
@@ -237,8 +238,8 @@ func TestSellerApprove_AmountIsSystemComputed_NotBuyerClaim(t *testing.T) {
 	if err != nil {
 		t.Fatalf("approve error: %v", err)
 	}
-	if *r.SellerApprovedAmount != testOrder.Subtotal {
-		t.Fatalf("approved_amount=%d want %d (Subtotal, not buyer's %d)", *r.SellerApprovedAmount, testOrder.Subtotal, r.RequestedAmount)
+	if *r.SellerApprovedAmount != testOrder.DiscountedProduct {
+		t.Fatalf("approved_amount=%d want %d (DiscountedProduct=PD, not buyer's %d)", *r.SellerApprovedAmount, testOrder.DiscountedProduct, r.RequestedAmount)
 	}
 }
 
@@ -252,9 +253,9 @@ func TestSellerApprove_AmountIsSystemComputed_NotBuyerClaim(t *testing.T) {
 // it is never part of what a refund reverses, regardless of order outcome.
 func TestRefundPolicy_BuyerPaymentFeeIsStructurallyExcluded(t *testing.T) {
 	orderWithFee := OrderSnapshot{
-		Subtotal:         100_000,
-		ShippingTotal:    25_000,
-		CommissionAmount: 6_250,
+		DiscountedProduct: 100_000,
+		ShippingTotal:     25_000,
+		CommissionAmount:  6_250,
 		// NOTE: no field exists here for buyer payment fee (e.g. 4_987 for a
 		// credit_card checkout) — it cannot leak into ProductGross() even if a
 		// caller wanted it to.
@@ -267,6 +268,6 @@ func TestRefundPolicy_BuyerPaymentFeeIsStructurallyExcluded(t *testing.T) {
 
 	productOnly := ResolveRefundPolicy(RefundReasonItemDamaged, orderWithFee)
 	if productOnly.CashRefund != 100_000 {
-		t.Fatalf("product_only policy cash_refund=%d want 100000 (Subtotal only, fee excluded)", productOnly.CashRefund)
+		t.Fatalf("product_only policy cash_refund=%d want 100000 (DiscountedProduct=PD only, fee excluded)", productOnly.CashRefund)
 	}
 }

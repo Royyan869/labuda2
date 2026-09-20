@@ -94,31 +94,53 @@ void main() {
   });
 
   // ===========================================================================
-  // Report entity computed properties
+  // Report entity displayState computation (derived from Case + Decision)
   // ===========================================================================
-  group('Report entity', () {
-    test('isResolved includes resolved, approved, rejected', () {
-      final pending = _buildReport(status: ReportStatus.pending);
-      final approved = _buildReport(status: ReportStatus.approved);
-      final rejected = _buildReport(status: ReportStatus.rejected);
-      final resolved = _buildReport(status: ReportStatus.resolved);
-
-      expect(pending.isResolved, isFalse);
-      expect(approved.isResolved, isTrue);
-      expect(rejected.isResolved, isTrue);
-      expect(resolved.isResolved, isTrue);
+  group('Report entity displayState derivation', () {
+    test('no Case projection -> ReportDisplayState.submitted', () {
+      final report = _buildReport();
+      expect(report.displayState, ReportDisplayState.submitted);
     });
 
-    test('canBeReviewed only for pending/underReview', () {
-      final pending = _buildReport(status: ReportStatus.pending);
-      final underReview = _buildReport(status: ReportStatus.underReview);
-      final resolved = _buildReport(status: ReportStatus.resolved);
-      final approved = _buildReport(status: ReportStatus.approved);
+    test('Case open + no Decision -> ReportDisplayState.underReview', () {
+      final report = _buildReport(
+        caseProjection: ReportCaseProjection(
+          id: 'case-1',
+          status: 'open',
+          createdAt: _testDate,
+        ),
+      );
+      expect(report.displayState, ReportDisplayState.underReview);
+    });
 
-      expect(pending.canBeReviewed, isTrue);
-      expect(underReview.canBeReviewed, isTrue);
-      expect(resolved.canBeReviewed, isFalse);
-      expect(approved.canBeReviewed, isFalse);
+    test('Case resolved + no_violation -> ReportDisplayState.reviewedNoViolation', () {
+      final report = _buildReport(
+        caseProjection: ReportCaseProjection(
+          id: 'case-1',
+          status: 'resolved',
+          createdAt: _testDate,
+        ),
+        decisionProjection: ReportDecisionProjection(
+          outcome: 'no_violation',
+          createdAt: _testDate,
+        ),
+      );
+      expect(report.displayState, ReportDisplayState.reviewedNoViolation);
+    });
+
+    test('Case resolved + violation -> ReportDisplayState.reviewedViolation', () {
+      final report = _buildReport(
+        caseProjection: ReportCaseProjection(
+          id: 'case-1',
+          status: 'resolved',
+          createdAt: _testDate,
+        ),
+        decisionProjection: ReportDecisionProjection(
+          outcome: 'violation',
+          createdAt: _testDate,
+        ),
+      );
+      expect(report.displayState, ReportDisplayState.reviewedViolation);
     });
   });
 }
@@ -126,6 +148,8 @@ void main() {
 // =============================================================================
 // Helpers
 // =============================================================================
+
+final _testDate = DateTime.utc(2026, 7, 31);
 
 ReportDto _buildDto({
   String subjectType = 'content',
@@ -137,18 +161,22 @@ ReportDto _buildDto({
     subjectType: subjectType,
     subjectId: '00000000-0000-0000-0000-000000000002',
     reasonCode: reasonCode,
-    createdAt: DateTime(2026, 7, 31),
+    createdAt: _testDate,
   );
 }
 
-Report _buildReport({required ReportStatus status}) {
+Report _buildReport({
+  ReportCaseProjection? caseProjection,
+  ReportDecisionProjection? decisionProjection,
+}) {
   return Report(
     id: '00000000-0000-0000-0000-000000000001',
     reporterId: 'r1',
     subjectId: 't1',
     subjectType: ReportTargetType.content,
     reason: ReportReasonType.other,
-    status: status,
-    createdAt: DateTime(2026, 7, 31),
+    createdAt: _testDate,
+    caseProjection: caseProjection,
+    decisionProjection: decisionProjection,
   );
 }

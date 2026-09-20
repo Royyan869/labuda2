@@ -12,11 +12,11 @@ import 'package:flutter/material.dart';
 ///
 /// Represents different error states in pricing flow
 enum PricingErrorType {
-  /// Listing is sold or unavailable
-  listingSold,
+  /// ForSale is sold or unavailable
+  forSaleSold,
 
-  /// Listing not found
-  listingNotFound,
+  /// ForSale not found
+  forSaleNotFound,
 
   /// Negotiation expired
   negotiationExpired,
@@ -91,8 +91,8 @@ class PricingErrorStateWidget extends StatelessWidget {
     Color color;
 
     switch (errorType) {
-      case PricingErrorType.listingSold:
-      case PricingErrorType.listingNotFound:
+      case PricingErrorType.forSaleSold:
+      case PricingErrorType.forSaleNotFound:
         icon = Icons.remove_shopping_cart_outlined;
         color = theme.colorScheme.error;
         break;
@@ -133,10 +133,10 @@ class PricingErrorStateWidget extends StatelessWidget {
     String title;
 
     switch (errorType) {
-      case PricingErrorType.listingSold:
+      case PricingErrorType.forSaleSold:
         title = 'Barang Sudah Terjual';
         break;
-      case PricingErrorType.listingNotFound:
+      case PricingErrorType.forSaleNotFound:
         title = 'Barang Tidak Ditemukan';
         break;
       case PricingErrorType.negotiationExpired:
@@ -188,9 +188,9 @@ class PricingErrorStateWidget extends StatelessWidget {
 
   String _getDefaultMessage() {
     switch (errorType) {
-      case PricingErrorType.listingSold:
+      case PricingErrorType.forSaleSold:
         return 'Maaf, barang ini sudah terjual. Silakan cari barang lain yang serupa.';
-      case PricingErrorType.listingNotFound:
+      case PricingErrorType.forSaleNotFound:
         return 'Barang tidak ditemukan atau telah dihapus oleh penjual.';
       case PricingErrorType.negotiationExpired:
         return 'Waktu negosiasi telah habis. Silakan ajukan negosiasi baru jika masih berminat.';
@@ -384,7 +384,7 @@ class PricingErrorBanner extends StatelessWidget {
 
   String _getShortTitle() {
     switch (errorType) {
-      case PricingErrorType.listingSold:
+      case PricingErrorType.forSaleSold:
         return 'Barang Terjual';
       case PricingErrorType.tokenExpired:
         return 'Waktu Habis';
@@ -397,7 +397,7 @@ class PricingErrorBanner extends StatelessWidget {
 
   String _getShortMessage() {
     switch (errorType) {
-      case PricingErrorType.listingSold:
+      case PricingErrorType.forSaleSold:
         return 'Barang ini sudah terjual.';
       case PricingErrorType.tokenExpired:
         return 'Silakan refresh harga terbaru.';

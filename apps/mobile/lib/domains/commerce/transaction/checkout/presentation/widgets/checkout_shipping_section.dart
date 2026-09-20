@@ -18,12 +18,13 @@ class _ShippingSetupPickerSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.neutralWhite,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.neutralGray200),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -34,16 +35,16 @@ class _ShippingSetupPickerSection extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           if (!hasAddress)
-            const Text(
+            Text(
               'Pilih alamat pengiriman terlebih dahulu',
-              style: TextStyle(color: AppColors.neutralGray500),
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
             )
           else if (isLoading)
             const Center(child: CircularProgressIndicator())
           else if (deliveryOptions.isEmpty)
-            const Text(
+            Text(
               'Tidak ada opsi pengiriman tersedia',
-              style: TextStyle(color: AppColors.neutralGray500),
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
             )
           else
             RadioGroup<String>(
@@ -58,7 +59,8 @@ class _ShippingSetupPickerSection extends StatelessWidget {
                         subtitle: Text(
                           AppFormatters.formatCurrency(option.rate),
                         ),
-                        activeColor: AppColors.primaryRed,
+                        // Selection colour is the canonical theme default
+                        // (`colorScheme.primary`); no local override.
                         selected: option.shippingSetupId == selectedOptionId,
                         contentPadding: EdgeInsets.zero,
                       ),

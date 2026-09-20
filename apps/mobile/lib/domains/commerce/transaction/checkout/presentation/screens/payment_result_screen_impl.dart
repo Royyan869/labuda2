@@ -21,7 +21,7 @@ import 'package:labuda/domains/finance/transaction/payment/presentation/provider
 import 'package:labuda/domains/system/support/presentation/screens/help_center_screen.dart';
 import 'package:labuda/domains/system/support/presentation/widgets/pre_chat_form_sheet.dart';
 import 'package:labuda/domains/user/identity/authentication/authentication.dart';
-import 'package:url_launcher/url_launcher.dart';
+// Payment URLs are presented exclusively inside Labuda's internal WebView.
 
 part 'payment_result_screen_sections.dart';
 
@@ -136,19 +136,15 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
     await _openExistingPaymentUrl(url);
   }
 
-  /// Reopen the original payment URL when the backend gives us one.
+  /// Reopen the original payment URL inside Labuda's internal WebView.
+  /// External-browser payment navigation is obsolete and must not be reintroduced.
   Future<void> _openExistingPaymentUrl(String paymentUrl) async {
-    if (paymentUrl.isEmpty) return;
-
-    try {
-      final uri = Uri.parse(paymentUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-    } catch (_) {
-      // Fall back to polling retry; the status flow will still recover if the
-      // payment was completed elsewhere.
-    }
+    if (paymentUrl.isEmpty || !mounted) return;
+    final encodedUrl = Uri.encodeComponent(paymentUrl);
+    final encodedOrderId = Uri.encodeComponent(widget.orderId);
+    await context.push(
+      '/payment-webview?url=$encodedUrl&orderId=$encodedOrderId',
+    );
   }
 
   @override

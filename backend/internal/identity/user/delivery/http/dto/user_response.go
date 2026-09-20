@@ -147,4 +147,11 @@ type PublicUserResponse struct {
 	// user-identity lifecycle and seller-trust lifecycle are "active".
 	// Values: "pro", "elite". Basic tier is never emitted (nil = no badge).
 	SellerTier *string `json:"seller_tier,omitempty"`
+
+	// Seller store identity — public projection of seller_profiles ownership.
+	// NULL when no seller profile or when identity lifecycle is degraded.
+	// Never falls back to avatar_url.
+	StoreName           *string    `json:"store_name,omitempty"`
+	StoreImageURL       *string    `json:"store_image_url,omitempty"`
+	StoreImageUpdatedAt *time.Time `json:"store_image_updated_at,omitempty"`
 }

@@ -6,6 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	orderRepo "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
+	coinsinfra "github.com/labuda/backend/internal/incentive/coins/infrastructure/repository"
+	coinsrepo "github.com/labuda/backend/internal/incentive/coins/repository"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/money"
 )
@@ -16,12 +18,23 @@ import (
 // Payment settlement ONLY updates payment status - no money movement happens here.
 // All escrow lifecycle operations go through EscrowService.
 //
+// COIN RESERVATION LIFECYCLE: settlement and terminal failure are the two exits
+// of the RESERVE → CONSUME lifecycle. Settlement consumes the reservation
+// (CanonicalFinalizationService → CoinSpendConsumer); terminal failure releases
+// it here. Coins are loyalty points, not money, so this is a reservation status
+// transition — no ledger entry and no money movement.
+//
 // CRITICAL IDEMPOTENCY GUARANTEES:
 // 1. Row-level locking (FOR UPDATE) prevents race conditions
 // 2. Status check before any state transition
 type PaymentSettlementService struct {
 	paymentRepo *PaymentRepository
 	orderRepo   *orderRepo.OrderRepository // PHASE 5: For order expiry validation
+	// coinsRepo releases the buyer's coin reservation when a payment reaches a
+	// terminal failure state. ReleaseReservation is idempotent (missing row or
+	// already-released is a no-op success) and never deducts a balance — the
+	// balance is only deducted when a reservation is CONSUMED at settlement.
+	coinsRepo    coinsrepo.CoinsRepository
 	auditService interface { // Minimal interface to avoid circular import
 		PaymentSettled(ctx context.Context, tx db.Tx, paymentID uuid.UUID, amount int64)
 		PaymentFailed(ctx context.Context, tx db.Tx, paymentID uuid.UUID, reason string)
@@ -33,6 +46,7 @@ func NewPaymentSettlementService() *PaymentSettlementService {
 	return &PaymentSettlementService{
 		paymentRepo: NewPaymentRepository(),
 		orderRepo:   orderRepo.NewOrderRepository(), // PHASE 5: Initialize order repo
+		coinsRepo:   coinsinfra.NewCoinsRepository(),
 	}
 }
 
@@ -258,7 +272,7 @@ func (s *PaymentSettlementService) IsPaymentSettled(
 	if err != nil {
 		return false, err
 	}
-	return status == PaymentStatusSettlement || status == PaymentStatusCapture, nil
+	return IsSettledStatus(status), nil
 }
 
 // SettlePaymentWithOutbox processes a payment settlement and creates an outbox event.
@@ -326,6 +340,22 @@ func (s *PaymentSettlementService) FailPayment(
 		return fmt.Errorf("failed to mark payment as failed: %w", err)
 	}
 
+	// CANONICAL COIN RELEASE: a terminal failure is the other exit of the
+	// RESERVE → CONSUME lifecycle. Without this, a buyer's redeemed coins stay
+	// reserved forever (excluded from available balance) even though the payment
+	// never settled. Runs in the same transaction as the status change, so the
+	// payment can never be recorded as failed while the reservation stays held.
+	// ReleaseReservation is idempotent; a consumed reservation is a hard error
+	// because a settled payment must never be terminalized as failed.
+	if payment.CoinsToUse > 0 {
+		if s.coinsRepo == nil {
+			return fmt.Errorf("coins repository not configured for payment with coins_to_use=%d", payment.CoinsToUse)
+		}
+		if _, err := s.coinsRepo.ReleaseReservation(ctx, tx, payment.ID); err != nil {
+			return fmt.Errorf("failed to release coin reservation after terminal failure: %w", err)
+		}
+	}
+
 	// AUDIT: Emit payment.failed event AFTER failure handling
 	if s.auditService != nil {
 		s.auditService.PaymentFailed(ctx, tx, payment.ID, failedStatus)
@@ -385,5 +415,3 @@ func (s *PaymentSettlementService) GetPaymentStatus(
 	}
 	return payment.Status, nil
 }
-
-

@@ -144,7 +144,10 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
   }
 
   Widget _buildOrderCard(bool isDark, Order order) {
-    final firstItem = order.items.first;
+    // The GET /orders list surface carries no line items (items[] is emitted
+    // only by GET /orders/:id), so the tile degrades to a neutral label rather
+    // than inventing an item name or crashing on `.first`.
+    final firstItem = order.items.isEmpty ? null : order.items.first;
 
     return GestureDetector(
       onTap: () {
@@ -253,7 +256,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.network(
-                    firstItem.listingImage,
+                    firstItem?.forSaleImage ?? '',
                     width: 60,
                     height: 60,
                     fit: BoxFit.cover,
@@ -271,7 +274,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        firstItem.listingName,
+                        firstItem?.forSaleName ?? 'Pesanan',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -284,7 +287,9 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${order.items.length} item${order.items.length > 1 ? 's' : ''}',
+                        order.items.isEmpty
+                            ? 'Lihat detail pesanan'
+                            : '${order.items.length} item${order.items.length > 1 ? 's' : ''}',
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark
@@ -317,7 +322,11 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      CurrencyUtils.format(order.pricing.total),
+                      order.pricing.totalPayableAmount != null
+                          ? CurrencyUtils.format(
+                              order.pricing.totalPayableAmount!,
+                            )
+                          : '—',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -500,7 +509,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                   size: 20,
                 ),
                 label: Text(
-                  isSeller ? 'Tambah Listing' : 'Jelajahi Marketplace',
+                  isSeller ? 'Tambah ForSale' : 'Jelajahi Marketplace',
                 ),
                 onPressed: () => _handleEmptyStateAction(context, isSeller),
                 style: FilledButton.styleFrom(
@@ -524,10 +533,10 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
 
   void _handleEmptyStateAction(BuildContext context, bool isSeller) {
     if (isSeller) {
-      // Navigate to create listing
+      // Navigate to create forSale
       Navigator.pushNamed(context, core.RoutePaths.createForSale);
     } else {
-      // Navigate to listings (marketplace browse)
+      // Navigate to forSales (marketplace browse)
       Navigator.pushReplacementNamed(context, core.RoutePaths.forSales);
     }
   }

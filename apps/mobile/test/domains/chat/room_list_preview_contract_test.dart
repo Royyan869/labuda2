@@ -58,7 +58,7 @@ void main() {
     test('DTO parses unread_count', () {
       final dto = ChatDto.fromJson(roomJson(unreadCount: 7));
       final chat = ChatMapper.toDomain(dto);
-      expect(chat.getUnreadCount(currentUserId), 7);
+      expect(chat.roomUnreadCount, 7);
     });
 
     testWidgets('ChatCard shows tombstone preview for hidden last message', (

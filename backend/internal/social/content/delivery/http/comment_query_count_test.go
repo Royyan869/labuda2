@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	forsaleapp "github.com/labuda/backend/internal/commerce/forsale/application"
+	idempotencyRepo "github.com/labuda/backend/internal/platform/idempotency/repository"
 	contentapp "github.com/labuda/backend/internal/social/content/application"
 	contententity "github.com/labuda/backend/internal/social/content/entity"
 	contentrepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
@@ -78,6 +79,7 @@ func newQcEnv(t *testing.T) *qcEnv {
 		nil,
 		qcRoleChecker{}, qcAccountChecker{}, nil,
 	)
+	contentService.SetIdempotencyRepository(idempotencyRepo.NewRepository())
 	commentService := contentapp.NewCommentService(
 		contentrepo.NewContentRepository(),
 		contentrepo.NewCommentRepository(),
@@ -146,8 +148,8 @@ func (e *qcEnv) seedUser(username string) uuid.UUID {
 func (e *qcEnv) seedContent(authorID uuid.UUID) uuid.UUID {
 	var contentID uuid.UUID
 	err := e.appDB.WithTx(e.ctx, func(tx db.Tx) error {
-		content, createErr := e.handler.contentService.CreateContent(
-			e.ctx, tx, authorID, "test content",
+		content, _, createErr := e.handler.contentService.CreateContentIdempotent(
+			e.ctx, tx, authorID, uuid.NewString(), "test content",
 			contententity.VisibilityPublic, nil, nil, nil, nil, nil,
 		)
 		if createErr != nil {

@@ -37,6 +37,7 @@ func newCommentCommerceWireHandler(appDB *db.DB) *CommentHandler {
 		commentListHTTPAccountChecker{},
 		nil,
 	)
+	contentService.SetIdempotencyRepository(idempotencyRepo.NewRepository())
 	forSaleSvc := forsaleApp.NewForSaleService(
 		nil, // outboxRepo
 		nil, // roleChecker

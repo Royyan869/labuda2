@@ -71,7 +71,7 @@ extension ContentSearchResultDtoX on ContentSearchResultDto {
 ///
 /// SKINNY TRUTHFUL MAPPER — passes through ONLY fields the
 /// /search/for-sale endpoint emits. No fabricated quantity / status /
-/// visibility / listing_type / updated_at.
+/// visibility / for_sale_type / updated_at.
 ///
 /// Owner Truth: username / farmName / fullName(KYC). Backend identity
 /// scalars (`seller_username`, `seller_farm_name`, `seller_avatar_url`)

@@ -36,7 +36,7 @@ AuthUser _authUser({required String id}) {
 
 SavedItemModel _forSaleItem({
   required String id,
-  String title = 'Saved Listing',
+  String title = 'Saved ForSale',
 }) {
   return SavedItemModel(
     id: '$id-saved',
@@ -220,7 +220,7 @@ void main() {
         _wrap(
           repository: repository,
           authState: AuthState.authenticated(
-            _authUser(id: 'buyer-listing'),
+            _authUser(id: 'buyer-forSale'),
             emailVerified: true,
           ),
           child: Column(
@@ -250,14 +250,14 @@ void main() {
       await tester.tap(find.byIcon(Icons.bookmark_border_outlined));
       await tester.pumpAndSettle();
 
-      expect(find.text('Saved Listing'), findsOneWidget);
+      expect(find.text('Saved ForSale'), findsOneWidget);
       expect(find.text('Belum ada item yang disimpan'), findsNothing);
       expect(find.byIcon(Icons.bookmark), findsOneWidget);
 
       await tester.tap(find.byIcon(Icons.bookmark));
       await tester.pumpAndSettle();
 
-      expect(find.text('Saved Listing'), findsNothing);
+      expect(find.text('Saved ForSale'), findsNothing);
       expect(find.text('Belum ada item yang disimpan'), findsOneWidget);
       expect(find.byIcon(Icons.bookmark_border_outlined), findsOneWidget);
     });
@@ -384,7 +384,7 @@ void main() {
 
       await tester.tap(find.byType(PopupMenuButton<String?>));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Listing').last);
+      await tester.tap(find.text('ForSale').last);
       await tester.pumpAndSettle();
       expect(find.text('For Sale Mapped'), findsOneWidget);
       expect(find.text('Auction Mapped'), findsNothing);

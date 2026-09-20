@@ -70,9 +70,9 @@ var (
 // buildSnapRequest produces a midtrans.SnapRequest from a fully resolved input.
 // Pure function: no I/O, no clock side-effects (Now is injected).
 //
-// STEP A only — this builder does NOT call Midtrans. The real provider call lands in STEP B.
-// Notification-Url HTTP header injection (per-request override) is also deferred to STEP B and
-// belongs at the client.CreateSnapTransaction layer, not here.
+// This builder does NOT call Midtrans. The provider call, and the Notification-Url HTTP
+// header injection that carries the canonical callback target (MIDTRANS_NOTIFICATION_URL),
+// both happen at the client.CreateSnapTransaction layer — see pkg/midtrans.
 func buildSnapRequest(in SnapBuilderInput) (*midtrans.SnapRequest, error) {
 	if in.MidtransOrderID == "" {
 		return nil, ErrSnapMissingOrderID

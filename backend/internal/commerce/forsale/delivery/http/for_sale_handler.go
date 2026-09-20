@@ -481,7 +481,7 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 			return
 		}
 		if err == auth.ErrMarketAuthorityRequired {
-			response.Forbidden(c, "Active seller subscription required to publish for_sales")
+			response.MarketAuthorityRequired(c, "Active seller subscription required to publish for_sales")
 			return
 		}
 		if strings.Contains(errMsg, "cannot update for_sale with status") {

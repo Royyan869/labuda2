@@ -31,18 +31,18 @@ class CommerceCommonProductDetailsData {
     this.description,
   });
 
-  factory CommerceCommonProductDetailsData.fromListing(ForSale listing) {
+  factory CommerceCommonProductDetailsData.fromForSale(ForSale forSale) {
     return CommerceCommonProductDetailsData(
-      variety: listing.variety,
-      sizeCm: listing.sizeCm,
-      ageMonths: listing.ageMonths,
-      gender: listing.gender,
-      breeder: listing.breeder,
-      bloodline: listing.bloodline,
+      variety: forSale.variety,
+      sizeCm: forSale.sizeCm,
+      ageMonths: forSale.ageMonths,
+      gender: forSale.gender,
+      breeder: forSale.breeder,
+      bloodline: forSale.bloodline,
       certificates: const [],
-      preparationTime: listing.preparationTime,
-      preparationNote: listing.preparationNote,
-      description: listing.description,
+      preparationTime: forSale.preparationTime,
+      preparationNote: forSale.preparationNote,
+      description: forSale.description,
     );
   }
 

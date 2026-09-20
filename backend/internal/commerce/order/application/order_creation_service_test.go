@@ -341,7 +341,6 @@ func newHappyPathFixtures(_ *testing.T) (*OrderCreationService, CreateFromSaleSu
 		ServiceFeeAmount:   money.New(3_000),
 		TotalPayableAmount: money.New(118_000), // escrow + service fee
 		DiscountAmount:     money.New(0),
-		MaxCoinsAllowed:    10_000,
 		OrderValueForCoins: 115_000, // subtotal + shipping - discount
 		ShippingSetupName:  "JNE Reguler",
 		TokenID:            uuid.New(),
@@ -385,7 +384,6 @@ func TestCreateFromSaleSurface_HappyPath(t *testing.T) {
 	require.Equal(t, input.BuyerID, order.BuyerID)
 	require.Equal(t, orderentity.StatusPending, order.Status)
 	require.Equal(t, orderentity.EscrowStatusHolding, order.EscrowStatus)
-	require.Equal(t, int64(0), order.CoinsUsed)
 
 	// --- finalizeOrderCreationTx actually ran ---
 	require.Equal(t, 1, orderRepo.createOrderCalls, "CreateOrderTx must run exactly once")

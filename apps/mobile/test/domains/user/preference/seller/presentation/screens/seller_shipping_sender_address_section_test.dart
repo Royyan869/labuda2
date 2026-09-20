@@ -216,11 +216,6 @@ class _FakeAuthController extends AuthController {
   }
 }
 
-class _FakePresenceManager extends PresenceManager {
-  @override
-  PresenceState build() => const PresenceState();
-}
-
 ShippingSetup _shippingSetup() {
   return ShippingSetup(
     id: 'ship-1',
@@ -259,7 +254,6 @@ Widget _wrap({
   return ProviderScope(
     overrides: [
       authControllerProvider.overrideWith(_FakeAuthController.new),
-      presenceManagerProvider.overrideWith(_FakePresenceManager.new),
       shippingRepositoryProvider.overrideWithValue(shippingRepo),
       addressRepositoryProvider.overrideWithValue(addressRepo),
       provincesProvider.overrideWith((ref) async => const []),

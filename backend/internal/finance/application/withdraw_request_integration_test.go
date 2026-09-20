@@ -24,11 +24,10 @@ import (
 )
 
 type withdrawalIntegrationAuthority struct {
-	ledgerRepo           *financerepo.LedgerRepository
-	sellerPayableID      uuid.UUID
-	withdrawalPendingID   uuid.UUID
-	withdrawable         int64
-	activeDisputeFreeze  int64
+	ledgerRepo          *financerepo.LedgerRepository
+	sellerPayableID     uuid.UUID
+	withdrawalPendingID uuid.UUID
+	withdrawable        int64
 }
 
 func (a *withdrawalIntegrationAuthority) AssertSellerWithdrawalAllowed(
@@ -38,17 +37,15 @@ func (a *withdrawalIntegrationAuthority) AssertSellerWithdrawalAllowed(
 	amount int64,
 ) (*SellerWithdrawableSummary, error) {
 	summary := &SellerWithdrawableSummary{
-		PayableBalance:      a.withdrawable + a.activeDisputeFreeze,
-		ActiveDisputeFreeze: a.activeDisputeFreeze,
-		Withdrawable:        a.withdrawable,
+		PayableBalance: a.withdrawable,
+		Withdrawable:   a.withdrawable,
 	}
 	if amount > a.withdrawable {
 		return nil, &ErrWithdrawalBlockedByWithdrawableBalance{
-			SellerID:            sellerID,
-			RequestedAmount:     amount,
-			PayableBalance:      summary.PayableBalance,
-			ActiveDisputeFreeze: summary.ActiveDisputeFreeze,
-			Withdrawable:        summary.Withdrawable,
+			SellerID:        sellerID,
+			RequestedAmount: amount,
+			PayableBalance:  summary.PayableBalance,
+			Withdrawable:    summary.Withdrawable,
 		}
 	}
 	return summary, nil

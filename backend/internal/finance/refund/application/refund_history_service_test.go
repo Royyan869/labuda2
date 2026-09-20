@@ -42,14 +42,6 @@ func (r *refundHistoryRepoStub) Update(context.Context, db.Tx, *entity.Refund) e
 	return nil
 }
 
-func (r *refundHistoryRepoStub) ListByBuyer(context.Context, db.Tx, uuid.UUID, int, int64) ([]*entity.Refund, error) {
-	return nil, nil
-}
-
-func (r *refundHistoryRepoStub) ListBySeller(context.Context, db.Tx, uuid.UUID, int, int64) ([]*entity.Refund, error) {
-	return nil, nil
-}
-
 func (r *refundHistoryRepoStub) ListByOrderID(
 	_ context.Context,
 	_ db.Tx,
@@ -78,11 +70,7 @@ func (r *refundHistoryRepoStub) GetByGatewayRefundID(context.Context, db.Tx, str
 	return nil, nil
 }
 
-func (r *refundHistoryRepoStub) GetSuccessfulRefundTotalByOrder(context.Context, db.Tx, uuid.UUID, *uuid.UUID) (int64, error) {
-	return 0, nil
-}
-
-func (r *refundHistoryRepoStub) HasActiveRefundByOrderID(context.Context, db.Tx, uuid.UUID) (bool, error) {
+func (r *refundHistoryRepoStub) HasRefundBlockingRelease(context.Context, db.Tx, uuid.UUID, bool) (bool, error) {
 	return false, nil
 }
 
@@ -136,7 +124,7 @@ func TestListRefundHistoryByOrderID_PaginatesNewestFirstAndUsesCursor(t *testing
 	newest := refundHistoryFixture(
 		"44444444-4444-4444-4444-444444444444",
 		time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC),
-		entity.RefundStatusRefunded,
+		entity.RefundStatusSystemRefunded,
 	)
 	middle := refundHistoryFixture(
 		"55555555-5555-5555-5555-555555555555",

@@ -36,6 +36,12 @@ type SellerRepository interface {
 	// Returns the profile (existing or newly created).
 	EnsureProfileExistsTx(ctx context.Context, tx db.Tx, userID uuid.UUID, storeName string) (*entity.SellerProfile, error)
 
+	// EnsureProfileExistsTxWithImage is the canonical variant that persists optional store_image_url at creation.
+	EnsureProfileExistsTxWithImage(ctx context.Context, tx db.Tx, userID uuid.UUID, storeName string, storeImageURL *string) (*entity.SellerProfile, error)
+
+	// UpdateSellerProfileTx atomically updates store_name and/or store_image_url.
+	UpdateSellerProfileTx(ctx context.Context, tx db.Tx, userID uuid.UUID, storeName *string, storeImageURL *string) (*entity.SellerProfile, error)
+
 	// GetByIDForUpdate retrieves a seller profile by ID with row-level lock (FOR UPDATE).
 	// Use this for updates to prevent concurrent modifications.
 	GetByIDForUpdate(ctx context.Context, tx db.Tx, id uuid.UUID) (*entity.SellerProfile, error)

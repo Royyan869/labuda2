@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	subscriptionapp "github.com/labuda/backend/internal/commerce/subscription/application"
+	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
 	"go.uber.org/zap"
 )
 
@@ -25,6 +26,47 @@ const (
 
 	// RecoveryBatchSize is the number of orphaned payments to process per batch
 	RecoveryBatchSize = 50
+
+	// subscriptionOrphanRecoveryQuery selects the settled subscription payments
+	// that have no seller_subscriptions row (the canonical recovery gap).
+	//
+	// RECOVERY ELIGIBILITY = THE CANONICAL SETTLED SET. The status set is injected
+	// from paymentRepo.SettledPaymentStatuses() rather than spelled out in SQL, so
+	// this selector can never disagree with the payment domain about what
+	// "settled" means. It previously hardcoded status = 'settlement' and therefore
+	// could not see a payment the domain considers settled at 'capture'.
+	// NOTE: payments.status is the payment_status_enum type, hence status::text.
+	subscriptionOrphanRecoveryQuery = `
+			SELECT p.id, p.user_id, p.payment_number, p.gross_amount, p.paid_at, p.transaction_id
+			FROM payments p
+			WHERE p.reference_type = 'subscription'
+			  AND p.status::text = ANY($1::text[])
+			  AND NOT EXISTS (
+			    SELECT 1 FROM seller_subscriptions s WHERE s.payment_id = p.id
+			  )
+			ORDER BY p.paid_at ASC
+			LIMIT $2;
+		`
+
+	// subscriptionConversionRateQuery reports how many settled subscription
+	// payments converted into a subscription. It uses the same canonical settled
+	// set as the recovery selector so the ratio can never mix definitions.
+	subscriptionConversionRateQuery = `
+			WITH payment_stats AS (
+			  SELECT
+			    COUNT(*) FILTER (WHERE status::text = ANY($1::text[])) as total_settlement,
+			    COUNT(*) FILTER (
+			      WHERE status::text = ANY($1::text[])
+			      AND EXISTS (SELECT 1 FROM seller_subscriptions s WHERE s.payment_id = payments.id)
+			    ) as converted
+			  FROM payments
+			  WHERE reference_type = 'subscription'
+			)
+			SELECT
+			  COALESCE(total_settlement, 0) as total,
+			  COALESCE(converted, 0) as converted
+			FROM payment_stats;
+		`
 
 	// AlertGraceWindow is the number of consecutive failures before escalating to CRITICAL
 	AlertGraceWindow = 2
@@ -43,7 +85,8 @@ type orphanedPayment struct {
 // SubscriptionReconciliationWorker performs periodic subscription-payment reconciliation checks.
 //
 // This worker detects AND auto-recovers:
-// - Payments with reference_type='subscription' and status='settlement' but no matching subscription record
+// - Payments with reference_type='subscription' that are SETTLED by the canonical
+//   payment predicate (settlement or capture) but have no matching subscription record
 // - Subscription records with no corresponding payment (data integrity issue)
 // - Stale subscription payments that may need manual intervention
 //
@@ -270,8 +313,8 @@ func (w *SubscriptionReconciliationWorker) runChecks(ctx context.Context) []Reco
 	return results
 }
 
-// checkAndRecoverOrphanedPayments finds payments with reference_type='subscription' and status='settlement'
-// but no matching subscription record, then attempts auto-recovery
+// checkAndRecoverOrphanedPayments finds payments with reference_type='subscription' that are settled
+// by the canonical payment predicate but have no matching subscription record, then attempts auto-recovery
 //
 // HARDENING (R7.4):
 // - Oldest-first processing (ORDER BY paid_at ASC)
@@ -286,17 +329,8 @@ func (w *SubscriptionReconciliationWorker) checkAndRecoverOrphanedPayments(ctx c
 	runSuccessCount := int64(0)
 	runFailureCount := int64(0)
 
-	const query = `
-			SELECT p.id, p.user_id, p.payment_number, p.gross_amount, p.paid_at, p.transaction_id
-			FROM payments p
-			WHERE p.reference_type = 'subscription'
-			  AND p.status = 'settlement'
-			  AND NOT EXISTS (
-			    SELECT 1 FROM seller_subscriptions s WHERE s.payment_id = p.id
-			  )
-			ORDER BY p.paid_at ASC
-			LIMIT $1;
-		`
+	// Canonical settled state, read once per scan. Never restated in SQL.
+	settledStatuses := paymentRepo.SettledPaymentStatuses()
 
 
 	// HARDENING: Adaptive batching - loop until no data or max iterations
@@ -305,7 +339,7 @@ func (w *SubscriptionReconciliationWorker) checkAndRecoverOrphanedPayments(ctx c
 	totalRecovered := 0
 
 	for batchNum := 0; batchNum < MaxRecoveryBatches; batchNum++ {
-		rows, err := w.db.Query(ctx, query, RecoveryBatchSize)
+		rows, err := w.db.Query(ctx, subscriptionOrphanRecoveryQuery, settledStatuses, RecoveryBatchSize)
 		if err != nil {
 			w.log.Error("Orphaned payments check query failed", zap.Error(err))
 			return ReconciliationCheckResult{
@@ -585,25 +619,8 @@ func (w *SubscriptionReconciliationWorker) checkSubscriptionLifecycle(ctx contex
 
 // checkConversionRate calculates subscription payment conversion rate
 func (w *SubscriptionReconciliationWorker) checkConversionRate(ctx context.Context) ReconciliationCheckResult {
-	const query = `
-			WITH payment_stats AS (
-			  SELECT
-			    COUNT(*) FILTER (WHERE status = 'settlement') as total_settlement,
-			    COUNT(*) FILTER (
-			      WHERE status = 'settlement'
-			      AND EXISTS (SELECT 1 FROM seller_subscriptions s WHERE s.payment_id = payments.id)
-			    ) as converted
-			  FROM payments
-			  WHERE reference_type = 'subscription'
-			)
-			SELECT
-			  COALESCE(total_settlement, 0) as total,
-			  COALESCE(converted, 0) as converted
-			FROM payment_stats;
-		`
-
 	var total, converted int
-	err := w.db.QueryRow(ctx, query).Scan(&total, &converted)
+	err := w.db.QueryRow(ctx, subscriptionConversionRateQuery, paymentRepo.SettledPaymentStatuses()).Scan(&total, &converted)
 	if err != nil {
 		w.log.Error("Conversion rate check failed", zap.Error(err))
 		return ReconciliationCheckResult{

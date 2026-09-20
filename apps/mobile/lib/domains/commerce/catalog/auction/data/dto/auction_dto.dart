@@ -10,7 +10,7 @@
 /// - Winning an auction does NOT affect product stock
 /// - Selling a product does NOT affect auction availability
 ///
-/// PASS_21B: auction creation no longer references a product/listing ID at
+/// PASS_21B: auction creation no longer references a product/forSale ID at
 /// all — the backend creates the Product inline from the request's item
 /// fields (see CreateAuctionDto below). `productId` still appears on the
 /// *response* DTO ([AuctionDto]) once the backend has created it, purely as
@@ -30,8 +30,8 @@ import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_
 /// PASS_21B: a Product is created inline by the backend from this request's
 /// item fields (title/variety/size/age/gender/breeder/bloodline/media) — the
 /// same pattern CreateFixedPriceSaleRequest already used. There is no
-/// product_id/listing_id on this request: auction must never be sourced
-/// from an existing Listing, and there is no "attach to existing product"
+/// product_id/for_sale_id on this request: auction must never be sourced
+/// from an existing ForSale, and there is no "attach to existing product"
 /// shape either.
 ///
 /// TIMING (PASS_18C): the seller picks a start mode and duration; the
@@ -44,7 +44,7 @@ import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_
 /// (`internal/commerce/auction/delivery/http`). `shippingSetupIds` is
 /// REQUIRED — backend rejects creation with `min=1` binding, and auction is
 /// still a physical fish that must ship. No stale `images`/`category`/
-/// `condition`/`product_id`/`listing_id` keys are kept.
+/// `condition`/`product_id`/`for_sale_id` keys are kept.
 class CreateAuctionDto {
   final String title;
   final String? description;

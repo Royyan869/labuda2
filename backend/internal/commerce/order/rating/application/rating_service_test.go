@@ -144,11 +144,11 @@ func TestErrInvalidRatingValue_Error(t *testing.T) {
 
 func TestErrOrderNotCompleted_Error(t *testing.T) {
 	err := &entity.ErrOrderNotCompleted{
-		OrderID:   uuid.MustParse("00000000-0000-0000-0000-000000000001"),
-		Status:    "paid",
-		OrderType: "offer",
+		OrderID:    uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+		Status:     "paid",
+		SourceType: "for_sale",
 	}
-	expected := "cannot rate order: 00000000-0000-0000-0000-000000000001 is not completed (status: paid, type: offer)"
+	expected := "cannot rate order: 00000000-0000-0000-0000-000000000001 is not completed (status: paid, type: for_sale)"
 	if err.Error() != expected {
 		t.Errorf("Error() = %v, want %v", err.Error(), expected)
 	}

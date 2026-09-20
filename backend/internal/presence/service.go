@@ -73,35 +73,66 @@ func (s *Service) SweepUser(ctx context.Context, userID uuid.UUID, dueAt time.Ti
 }
 
 func (s *Service) PersistLastSeen(ctx context.Context, userID uuid.UUID, occurredAt time.Time, version int64) error {
+	// CONVERGED: direct durable write only. Self-loop (fallback to outbox) removed in Slice-3.
+	// Producer is EnqueueLastSeen; handler terminates here via Upsert.
 	occurredAt = occurredAt.UTC()
-	if err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		return s.presence.UpsertLastSeen(ctx, tx, userID, occurredAt)
-	}); err == nil {
-		return nil
-	} else if s.outbox == nil {
-		return err
+	if s.db == nil || s.presence == nil {
+		return fmt.Errorf("presence persist unavailable: missing db or writer")
 	}
+	return s.db.WithTx(ctx, func(tx db.Tx) error {
+		return s.presence.UpsertLastSeen(ctx, tx, userID, occurredAt)
+	})
+}
 
+// EnqueueLastSeen is the ONE canonical durable producer for effective ONLINE→OFFLINE transitions.
+// It emits the outbox event presence.last_seen_record with idempotencyKey {userID}.{version}.
+// Both WS Close (LeaveLease) and Sweeper (SweepUser) must use this single producer.
+func (s *Service) EnqueueLastSeen(ctx context.Context, userID uuid.UUID, occurredAt time.Time, version int64) error {
+	occurredAt = occurredAt.UTC()
+	if s.db == nil || s.outbox == nil {
+		return fmt.Errorf("presence enqueue unavailable: missing db/outbox")
+	}
 	payload := LastSeenRecordPayload{
 		UserID:     userID,
 		LastSeenAt: occurredAt.Format(time.RFC3339),
 		Version:    version,
 	}
 	idempotencyKey := fmt.Sprintf("%s.%d", userID.String(), version)
-	if outboxErr := s.db.WithTx(ctx, func(tx db.Tx) error {
+	err := s.db.WithTx(ctx, func(tx db.Tx) error {
 		return s.outbox.InsertTx(ctx, tx, events.EventUserPresenceLastSeenRecord, payload, idempotencyKey)
-	}); outboxErr != nil {
-		s.log.Warn("presence last_seen retry enqueue failed",
+	})
+	if err != nil {
+		s.log.Warn("presence last_seen enqueue failed",
 			zap.String("user_id", userID.String()),
 			zap.Int64("version", version),
-			zap.Error(outboxErr),
+			zap.Error(err),
 		)
-		return fmt.Errorf("persist last seen failed and enqueue retry failed: %w", outboxErr)
+		return err
 	}
-	s.log.Warn("presence last_seen persisted via outbox retry",
-		zap.String("user_id", userID.String()),
-		zap.Int64("version", version),
-	)
+	return nil
+}
+
+// HandleOfflineTransition is the canonical transition helper used by both WS Close and Sweeper.
+// It publishes presence.changed (if Transitioned) and enqueues durable last_seen (if offline with timestamp).
+// Both events derive from the same LeaseResult; no independent clock lookup.
+func (s *Service) HandleOfflineTransition(ctx context.Context, res *LeaseResult) error {
+	if res == nil || !res.Transitioned {
+		return nil
+	}
+	// Always publish presence.changed for effective transition (online↔offline)
+	if err := s.PublishChanged(ctx, res.State); err != nil {
+		s.log.Warn("presence HandleOfflineTransition PublishChanged failed",
+			zap.String("user_id", res.UserID.String()),
+			zap.Error(err),
+		)
+		// continue to enqueue last_seen even if publish fails; they are independent consumers
+	}
+	if !res.IsOnline && res.LastSeenAt != nil {
+		// Enqueue durable last_seen; idempotencyKey ensures replay safety
+		if err := s.EnqueueLastSeen(ctx, res.UserID, *res.LastSeenAt, res.Version); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

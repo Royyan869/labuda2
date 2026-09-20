@@ -35,7 +35,6 @@ export 'package:labuda/domains/chat/chat/data/chat_providers.dart'
 // from chat_notifier.dart using @riverpod annotations:
 // - chatListProvider (was chatListNotifierProvider)
 // - chatDetailProvider (was chatDetailNotifierProvider) - family provider
-// - unreadCountProvider (was unreadCountNotifierProvider)
 // - presenceProvider (was presenceNotifierProvider)
 //
 // Usage: ref.watch(chatDetailProvider(chatId))
@@ -46,11 +45,10 @@ export 'package:labuda/domains/chat/chat/data/chat_providers.dart'
 
 /// Total Unread Count Provider
 final totalUnreadCountProvider = Provider<int>((ref) {
-  final currentUserId = ref.watch(currentUserIdProvider);
   final chatListState = ref.watch(chatListProvider);
   return chatListState.chats.fold<int>(
     0,
-    (sum, chat) => sum + chat.getUnreadCount(currentUserId),
+    (sum, chat) => sum + chat.roomUnreadCount,
   );
 });
 

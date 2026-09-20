@@ -136,7 +136,7 @@ extension PromotedFeedItemMapper on PromotedFeedItemDto {
         'sellerFarmName': sellerFarmName,
         'sellerLabel': sellerLabel,
         'sellerLifecycle': sellerLifecycle,
-        // Listing
+        // ForSale
         'forSaleId': forSaleId,
         'pricePerUnit': pricePerUnit,
         // Auction
@@ -168,14 +168,14 @@ extension PromotedFeedItemMapper on PromotedFeedItemDto {
 
   FeedItemType _mapPromotedType(String wireType) {
     switch (wireType) {
-      case 'promoted_listing':
-        return FeedItemType.promotedListing;
+      case 'promoted_for_sale':
+        return FeedItemType.promotedForSale;
       case 'promoted_auction':
         return FeedItemType.promotedAuction;
       case 'promoted_external':
         return FeedItemType.promotedExternal;
       default:
-        return FeedItemType.promotedListing;
+        return FeedItemType.promotedForSale;
     }
   }
 }

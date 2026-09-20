@@ -71,7 +71,7 @@ enum ContentStatus {
 
 // ContentLinkedItemType REMOVED (HARD CLEANUP BATCH):
 // Content domain now uses canonical ContentResourceProjection for all cross-domain references.
-// ShareTargetType.listing and ShareTargetType.auction should be used instead.
+// ShareTargetType.forSale and ShareTargetType.auction should be used instead.
 
 /// Enum untuk visibility post
 enum ContentVisibility {
@@ -305,7 +305,7 @@ class MediaDimensions extends Equatable {
 ///
 /// CONTRACT: Content adalah social publishing object, BUKAN commerce object.
 /// - Content tidak menjadi authority untuk order/payment/finance/commerce
-/// - Listing reference comment adalah seller response, bukan status change
+/// - ForSale reference comment adalah seller response, bukan status change
 ///
 /// SHARE CONTRACT V1:
 /// - Repost creates new Content with canonical resourceProjection (not a copy)
@@ -405,7 +405,7 @@ class Content extends Equatable {
 
   /// Business logic: Check if content is active and can receive
   /// commerce resource attachments in comments.
-  bool get canReceiveListingResponses => status.isActive;
+  bool get canReceiveForSaleResponses => status.isActive;
 
   // ============================================================================
   // SHARE CONTRACT V1: Repost Business Logic

@@ -12,7 +12,7 @@
 // The legacy /promotions/events path is PURGED: a card without a canonical
 // exposure identity acknowledges NOTHING (no impression of any kind).
 //
-// Tests exercise the ACTUAL production card widgets (PromotedListingCard,
+// Tests exercise the ACTUAL production card widgets (PromotedForSaleCard,
 // PromotedAuctionCard, PromotedExternalCard) which call the private
 // _recordPromotionImpression helper. The canonical dedupe set is tested
 // through observed behavior (request counts per exposure ID), not through
@@ -110,11 +110,11 @@ Map<String, dynamic> _feedContentItem({
   };
 }
 
-Map<String, dynamic> _promotedListingItem({
+Map<String, dynamic> _promotedForSaleItem({
   required String instanceId,
   required String title,
   int pricePerUnit = 5000000,
-  String forSaleId = 'listing-1',
+  String forSaleId = 'forSale-1',
   String? canonicalExposureId,
 }) {
   return <String, dynamic>{
@@ -372,22 +372,22 @@ FeedItem _makeFeedItem({
       'contractId': contractId,
       'title': title,
       'imageUrl': 'https://example.com/img.jpg',
-      'targetType': 'listing',
+      'targetType': 'forSale',
       ...extra,
     },
   );
 }
 
 FeedItem _listingItem({
-  String contractId = 'pi-imp-listing',
-  String title = 'Impression Test Listing',
+  String contractId = 'pi-imp-forSale',
+  String title = 'Impression Test ForSale',
   String forSaleId = 'fps-1',
   int pricePerUnit = 5000000,
   String? canonicalExposureId,
 }) {
   return _makeFeedItem(
     id: contractId,
-    type: FeedItemType.promotedListing,
+    type: FeedItemType.promotedForSale,
     contractId: contractId,
     title: title,
     extra: {
@@ -536,9 +536,9 @@ void main() {
   });
 
   // ==========================================================================
-  // SCENARIO 1: Promoted Listing impression proof
+  // SCENARIO 1: Promoted ForSale impression proof
   // ==========================================================================
-  group('SCENARIO 1: Promoted Listing impression', () {
+  group('SCENARIO 1: Promoted ForSale impression', () {
     testWidgets('below visibility threshold → 0 impression requests', (
       tester,
     ) async {
@@ -554,7 +554,7 @@ void main() {
           Column(children: [
             // Push the card 3000px down — well below the 2400px viewport.
             const SizedBox(height: 3000),
-            PromotedListingCard(
+            PromotedForSaleCard(
               item: _listingItem(contractId: 'pi-offscreen'),
             ),
           ]),
@@ -581,11 +581,11 @@ void main() {
       await tester.pumpWidget(
         _buildDirectCardHarness(
           adapter,
-          PromotedListingCard(
+          PromotedForSaleCard(
             item: _listingItem(
-              contractId: 'pi-imp-listing-001',
-              title: 'Visible Listing Koi',
-              canonicalExposureId: 'exp-listing-001',
+              contractId: 'pi-imp-forSale-001',
+              title: 'Visible ForSale Koi',
+              canonicalExposureId: 'exp-forSale-001',
             ),
           ),
         ),
@@ -593,8 +593,8 @@ void main() {
       await _pump(tester);
 
       // Card is rendered first in the ListView → fully visible.
-      expect(find.byType(PromotedListingCard), findsOneWidget);
-      expect(find.text('Visible Listing Koi'), findsOneWidget);
+      expect(find.byType(PromotedForSaleCard), findsOneWidget);
+      expect(find.text('Visible ForSale Koi'), findsOneWidget);
 
       // Exactly 1 canonical impression acknowledgement fired.
       final impressions = adapter.impressionPosts;
@@ -602,8 +602,8 @@ void main() {
 
       // Payload contract: exposure_id + contract_id (contract authority).
       final imp = impressions.first;
-      expect(imp.exposureId, 'exp-listing-001');
-      expect(imp.contractId, 'pi-imp-listing-001');
+      expect(imp.exposureId, 'exp-forSale-001');
+      expect(imp.contractId, 'pi-imp-forSale-001');
       expect(imp.body.containsKey('promotion_instance_id'), isFalse,
           reason: 'legacy instance vocabulary is purged');
       expect(imp.body.containsKey('event_type'), isFalse);
@@ -704,10 +704,10 @@ void main() {
         _buildDirectCardHarness(
           adapter,
           _RebuildableHost(
-            child: PromotedListingCard(
+            child: PromotedForSaleCard(
               item: _listingItem(
                 contractId: 'pi-imp-rebuild-004',
-                title: 'Rebuild Test Listing',
+                title: 'Rebuild Test ForSale',
                 canonicalExposureId: 'exp-rebuild-004',
               ),
             ),
@@ -716,7 +716,7 @@ void main() {
       );
       await _pump(tester);
 
-      expect(find.byType(PromotedListingCard), findsOneWidget);
+      expect(find.byType(PromotedForSaleCard), findsOneWidget);
 
       // Initial canonical acknowledgement: exactly 1.
       expect(adapter.impressionPosts, hasLength(1));
@@ -797,7 +797,7 @@ void main() {
         _buildDirectCardHarness(
           adapter,
           Column(children: [
-            PromotedListingCard(
+            PromotedForSaleCard(
               item: _listingItem(
                 contractId: 'pi-imp-distinct-A',
                 title: 'Distinct A',
@@ -824,7 +824,7 @@ void main() {
       await _pump(tester);
 
       // All three cards rendered.
-      expect(find.byType(PromotedListingCard), findsOneWidget);
+      expect(find.byType(PromotedForSaleCard), findsOneWidget);
       expect(find.byType(PromotedAuctionCard), findsOneWidget);
       expect(find.byType(PromotedExternalCard), findsOneWidget);
 
@@ -853,7 +853,7 @@ void main() {
         id: 'empty-id',
         content: 'No Instance ID',
         authorId: 'author-1',
-        type: FeedItemType.promotedListing,
+        type: FeedItemType.promotedForSale,
         createdAt: DateTime.utc(2026, 8, 5),
         additionalData: const {
           'isPromoted': true,
@@ -865,12 +865,12 @@ void main() {
       );
 
       await tester.pumpWidget(
-        _buildDirectCardHarness(adapter, PromotedListingCard(item: item)),
+        _buildDirectCardHarness(adapter, PromotedForSaleCard(item: item)),
       );
       await _pump(tester);
 
       // Card still renders (per rendering contract).
-      expect(find.byType(PromotedListingCard), findsOneWidget);
+      expect(find.byType(PromotedForSaleCard), findsOneWidget);
       expect(find.text('No Instance'), findsOneWidget);
 
       // No impression event sent.
@@ -887,7 +887,7 @@ void main() {
       await tester.pumpWidget(
         _buildDirectCardHarness(
           adapter,
-          PromotedListingCard(
+          PromotedForSaleCard(
             item: _listingItem(
               contractId: '', // empty
               title: 'Empty Instance ID',
@@ -898,7 +898,7 @@ void main() {
       await _pump(tester);
 
       // Card renders.
-      expect(find.byType(PromotedListingCard), findsOneWidget);
+      expect(find.byType(PromotedForSaleCard), findsOneWidget);
       expect(find.text('Empty Instance ID'), findsOneWidget);
 
       // No impression event.
@@ -916,10 +916,10 @@ void main() {
         _buildDirectCardHarness(
           adapter,
           Column(children: [
-            PromotedListingCard(
+            PromotedForSaleCard(
               item: _listingItem(
                 contractId: '',
-                title: 'Empty Listing',
+                title: 'Empty ForSale',
               ),
             ),
             PromotedAuctionCard(
@@ -940,7 +940,7 @@ void main() {
       await _pump(tester);
 
       // All cards render.
-      expect(find.byType(PromotedListingCard), findsOneWidget);
+      expect(find.byType(PromotedForSaleCard), findsOneWidget);
       expect(find.byType(PromotedAuctionCard), findsOneWidget);
       expect(find.byType(PromotedExternalCard), findsOneWidget);
 
@@ -971,7 +971,7 @@ void main() {
       await tester.pumpWidget(
         _buildDirectCardHarness(
           adapter,
-          PromotedListingCard(
+          PromotedForSaleCard(
             item: _listingItem(
               contractId: 'pi-imp-transport-007',
               title: 'Transport Test',
@@ -983,14 +983,14 @@ void main() {
       await _pump(tester);
 
       // Card renders.
-      expect(find.byType(PromotedListingCard), findsOneWidget);
+      expect(find.byType(PromotedForSaleCard), findsOneWidget);
       expect(find.text('Transport Test'), findsOneWidget);
 
       // Canonical acknowledgement was sent.
       expect(adapter.impressionPosts, hasLength(1));
 
       // Card still in tree — no removal.
-      expect(find.byType(PromotedListingCard), findsOneWidget);
+      expect(find.byType(PromotedForSaleCard), findsOneWidget);
     });
 
     testWidgets('impression is fire-and-forget: widget survives transport', (
@@ -1003,7 +1003,7 @@ void main() {
       await tester.pumpWidget(
         _buildDirectCardHarness(
           adapter,
-          PromotedListingCard(
+          PromotedForSaleCard(
             item: _listingItem(
               contractId: 'pi-fire-forget',
               title: 'Fire-and-Forget',
@@ -1018,7 +1018,7 @@ void main() {
       expect(adapter.impressionPosts, hasLength(1));
 
       // Card is still in the tree (forget — no crash, no removal).
-      expect(find.byType(PromotedListingCard), findsOneWidget);
+      expect(find.byType(PromotedForSaleCard), findsOneWidget);
       expect(find.text('Fire-and-Forget'), findsOneWidget);
 
       // Multiple visibility callbacks on the same exposure are deduped.
@@ -1032,7 +1032,7 @@ void main() {
   // ==========================================================================
   group('SCENARIO 8: Full pipeline impression', () {
     testWidgets(
-      'promoted listing through FeedApiDatasource → HomeScreen → impression', (
+      'promoted forSale through FeedApiDatasource → HomeScreen → impression', (
       tester,
     ) async {
         _setViewport(tester);
@@ -1041,10 +1041,10 @@ void main() {
           feedResponses: [
             _feedEnvelope(
               items: [
-                _promotedListingItem(
-                  instanceId: 'pi-pipeline-listing',
-                  title: 'Pipeline Listing',
-                  canonicalExposureId: 'exp-pipeline-listing',
+                _promotedForSaleItem(
+                  instanceId: 'pi-pipeline-forSale',
+                  title: 'Pipeline ForSale',
+                  canonicalExposureId: 'exp-pipeline-forSale',
                 ),
               ],
               hasMore: false,
@@ -1057,16 +1057,16 @@ void main() {
         );
         await _pump(tester);
 
-        // HomeScreen renders the promoted listing through real pipeline.
+        // HomeScreen renders the promoted forSale through real pipeline.
         expect(find.byType(HomeScreen), findsOneWidget);
-        expect(find.byType(PromotedListingCard), findsOneWidget);
-        expect(find.text('Pipeline Listing'), findsOneWidget);
+        expect(find.byType(PromotedForSaleCard), findsOneWidget);
+        expect(find.text('Pipeline ForSale'), findsOneWidget);
 
         // Canonical impression ack fired through the full production pipeline.
         final impressions = adapter.impressionPosts;
         expect(impressions, hasLength(1));
-        expect(impressions.first.exposureId, 'exp-pipeline-listing');
-        expect(impressions.first.contractId, 'pi-pipeline-listing');
+        expect(impressions.first.exposureId, 'exp-pipeline-forSale');
+        expect(impressions.first.contractId, 'pi-pipeline-forSale');
       },
     );
 

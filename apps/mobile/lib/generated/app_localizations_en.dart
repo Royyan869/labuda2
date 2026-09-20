@@ -875,7 +875,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get proSellerPrice => 'Rp 199K';
 
   @override
-  String get unlimitedProductListings => 'Unlimited collection listings';
+  String get unlimitedForSale => 'Unlimited For Sale';
 
   @override
   String get advancedAnalyticsInsights => 'Advanced analytics & insights';
@@ -887,7 +887,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fullStoreCustomization => 'Full store customization';
 
   @override
-  String get featuredListings => 'Featured listings';
+  String get featuredForSale => 'Featured For Sale';
 
   @override
   String get bulkUploadTools => 'Bulk upload tools';
@@ -1133,7 +1133,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get articleBecomeSellerContent =>
-      'To become a seller on LABUDA:\n\n1. Go to Settings → Upgrade to Seller\n2. Choose your plan (Basic or Pro)\n3. Fill in your business information\n4. Complete payment for the subscription\n5. Wait for verification approval\n\nOnce approved, you can start listing your koi for sale!';
+      'To become a seller on LABUDA:\n\n1. Go to Settings → Upgrade to Seller\n2. Choose your plan (Basic or Pro)\n3. Fill in your business information\n4. Complete payment for the subscription\n5. Wait for verification approval\n\nOnce approved, you can start creating For Sale for your koi for sale!';
 
   @override
   String get articleCancelOrder => 'How to cancel an order?';
@@ -1164,11 +1164,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Refund processing time:\n\n1. Seller review: 1-3 days\n2. If approved: 3-7 business days for funds to return\n\nThe exact time depends on your payment method. GoPay refunds are usually faster than bank transfers.';
 
   @override
-  String get articleCreateListing => 'How to create a listing?';
+  String get articleCreateForSale => 'How to create a For Sale?';
 
   @override
-  String get articleCreateListingContent =>
-      'To create a new listing:\n\n1. Tap the + button on the home screen\n2. Select \'Listing\'\n3. Add photos of your koi (multiple angles recommended)\n4. Fill in details (variety, size, price, location)\n5. Write a description\n6. Publish your listing\n\nYour listing will be visible to buyers immediately!';
+  String get articleCreateForSaleContent =>
+      'To create a new For Sale:\n\n1. Tap the + button on the home screen\n2. Select \'For Sale\'\n3. Add photos of your koi (multiple angles recommended)\n4. Fill in details (variety, size, price, location)\n5. Write a description\n6. Publish your For Sale\n\nYour For Sale will be visible to buyers immediately!';
 
   @override
   String get articleShippingSetup => 'How to set up shipping?';

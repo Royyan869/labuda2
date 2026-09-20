@@ -2,7 +2,7 @@
 //
 // Canonical backend contract for GET /api/v1/search/for-sale:
 //   { for_sales: [...], next_cursor: "...", has_more: bool }
-// There is NO fallback to the legacy offset contract (listings/total/offset).
+// There is NO fallback to the legacy offset contract (forSales/total/offset).
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/features/search/search/data/dto/search_dto.dart';
@@ -36,7 +36,7 @@ void main() {
       // the canonical page — single authority, no compatibility parser.
       final dto = ForSaleSearchResponseDto.fromJson(const <String, dynamic>{
         'query': 'koi',
-        'listings': <Map<String, dynamic>>[],
+        'forSales': <Map<String, dynamic>>[],
         'total': 99,
         'limit': 20,
         'offset': 0,

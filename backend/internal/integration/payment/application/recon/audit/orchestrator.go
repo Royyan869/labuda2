@@ -44,20 +44,20 @@ type RecordedError struct {
 
 // Report bundles every input the output formatters need.
 type Report struct {
-	StartedAt           time.Time        `json:"started_at"`
-	FinishedAt          time.Time        `json:"finished_at"`
-	DurationSeconds     float64          `json:"duration_seconds"`
-	CandidatesScanned   int              `json:"candidates_scanned"`
-	SnapshotsResolved   int              `json:"snapshots_resolved"`
-	GatewayQueriesMade  int              `json:"gateway_queries_made"`
-	GatewayBudget       int              `json:"gateway_budget"`
-	SkipGateway         bool             `json:"skip_gateway"`
-	Findings            []recon.Finding  `json:"findings"`
-	Errors              []RecordedError  `json:"errors"`
-	FindingsByClass     map[string]int   `json:"findings_by_class"`
-	FindingsBySeverity  map[string]int   `json:"findings_by_severity"`
-	SuppressedNoOrphan  int              `json:"orders_clean_no_findings"`
-	Thresholds          recon.Thresholds `json:"thresholds"`
+	StartedAt          time.Time        `json:"started_at"`
+	FinishedAt         time.Time        `json:"finished_at"`
+	DurationSeconds    float64          `json:"duration_seconds"`
+	CandidatesScanned  int              `json:"candidates_scanned"`
+	SnapshotsResolved  int              `json:"snapshots_resolved"`
+	GatewayQueriesMade int              `json:"gateway_queries_made"`
+	GatewayBudget      int              `json:"gateway_budget"`
+	SkipGateway        bool             `json:"skip_gateway"`
+	Findings           []recon.Finding  `json:"findings"`
+	Errors             []RecordedError  `json:"errors"`
+	FindingsByClass    map[string]int   `json:"findings_by_class"`
+	FindingsBySeverity map[string]int   `json:"findings_by_severity"`
+	SuppressedNoOrphan int              `json:"orders_clean_no_findings"`
+	Thresholds         recon.Thresholds `json:"thresholds"`
 }
 
 // RunSpec configures one audit run.
@@ -166,5 +166,3 @@ func (o *Orchestrator) finalize(report *Report) *Report {
 	})
 	return report
 }
-
-

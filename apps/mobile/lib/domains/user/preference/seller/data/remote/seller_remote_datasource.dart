@@ -286,17 +286,62 @@ class SellerRemoteDatasource {
   /// with `requires_verification` in `details`, or 403 `EMAIL_VERIFICATION_REQUIRED`,
   /// `ACCOUNT_SUSPENDED`, `ACCOUNT_BANNED`) and surface an actionable message
   /// to the user instead of a generic failure.
-  Future<void> performOnboarding(String storeName) async {
+  Future<void> performOnboarding(
+    String storeName, {
+    String? storeImageUrl,
+  }) async {
     try {
       final response = await _apiClient.post(
         '/seller/onboarding',
-        data: {'store_name': storeName},
+        data: {
+          'store_name': storeName,
+          if (storeImageUrl != null) 'store_image_url': storeImageUrl,
+        },
       );
       _throwIfApiError(response);
     } on DioException catch (e) {
       if (e.error is ApiException) {
         throw e.error as ApiException;
       }
+      rethrow;
+    }
+  }
+
+  /// Get canonical seller profile
+  /// GET /seller/profile
+  Future<Map<String, dynamic>> getSellerProfile() async {
+    try {
+      final response = await _apiClient.get('/seller/profile');
+      _throwIfApiError(response);
+      final data = response.data['data'] as Map<String, dynamic>?;
+      if (data == null) throw Exception('No data in response');
+      return data;
+    } on DioException catch (e) {
+      if (e.error is ApiException) throw e.error as ApiException;
+      rethrow;
+    }
+  }
+
+  /// Update canonical seller profile
+  /// PATCH /seller/profile
+  Future<Map<String, dynamic>> updateSellerProfile({
+    String? storeName,
+    String? storeImageUrl,
+  }) async {
+    try {
+      final response = await _apiClient.patch(
+        '/seller/profile',
+        data: {
+          if (storeName != null) 'store_name': storeName,
+          if (storeImageUrl != null) 'store_image_url': storeImageUrl,
+        },
+      );
+      _throwIfApiError(response);
+      final data = response.data['data'] as Map<String, dynamic>?;
+      if (data == null) throw Exception('No data in response');
+      return data;
+    } on DioException catch (e) {
+      if (e.error is ApiException) throw e.error as ApiException;
       rethrow;
     }
   }

@@ -23,6 +23,7 @@ import (
 	contentapp "github.com/labuda/backend/internal/social/content/application"
 	contententity "github.com/labuda/backend/internal/social/content/entity"
 	contentrepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
+	socialrepo "github.com/labuda/backend/internal/social/graph/infrastructure/repository"
 	likerepo "github.com/labuda/backend/internal/social/like/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/testdb"
@@ -100,6 +101,7 @@ func newVisibilityHTTPHandlerFromPool(pool *db.DB) *ContentHandler {
 	// fails closed ("idempotency repository not configured") without it, so
 	// an unwired harness turns a genuine create into a 500.
 	contentService.SetIdempotencyRepository(idempotencyRepo.NewRepository())
+	contentService.SetBlockChecker(socialrepo.NewSocialRepository())
 	return NewContentHandler(
 		contentService,
 		visibilityHTTPRoleChecker{},
@@ -110,14 +112,16 @@ func newVisibilityHTTPHandlerFromPool(pool *db.DB) *ContentHandler {
 }
 
 func newProfileEngagementHTTPHandlerFromPool(pool *db.DB) *ContentHandler {
+	contentService := contentapp.NewContentService(
+		contentrepo.NewContentRepository(),
+		likerepo.NewLikeRepository(),
+		visibilityHTTPRoleChecker{},
+		visibilityHTTPAccountChecker{},
+		nil,
+	)
+	contentService.SetIdempotencyRepository(idempotencyRepo.NewRepository())
 	return NewContentHandler(
-		contentapp.NewContentService(
-			contentrepo.NewContentRepository(),
-			likerepo.NewLikeRepository(),
-			visibilityHTTPRoleChecker{},
-			visibilityHTTPAccountChecker{},
-			nil,
-		),
+		contentService,
 		visibilityHTTPRoleChecker{},
 		pool,
 		zap.NewNop(),
@@ -215,10 +219,11 @@ func TestGetContent_BlockedFollower_Returns404(t *testing.T) {
 
 	var contentID uuid.UUID
 	err = tdb.WithTx(ctx, func(tx db.Tx) error {
-		content, createErr := handler.contentService.CreateContent(
+		content, _, createErr := handler.contentService.CreateContentIdempotent(
 			ctx,
 			tx,
 			authorID,
+			uuid.NewString(),
 			"blocked detail",
 			contententity.VisibilityPublic,
 			nil,
@@ -307,10 +312,11 @@ func TestGetUserContent_EngagementProjectionIncludesLikeCountAndViewerState(t *t
 		viewerID = seedVisibilityHTTPUserTx(t, ctx, tx, "active")
 		otherLikerID = seedVisibilityHTTPUserTx(t, ctx, tx, "active")
 
-		firstContent, err := handler.contentService.CreateContent(
+		firstContent, _, err := handler.contentService.CreateContentIdempotent(
 			ctx,
 			tx,
 			authorID,
+			uuid.NewString(),
 			"first profile post",
 			contententity.VisibilityPublic,
 			nil,
@@ -324,10 +330,11 @@ func TestGetUserContent_EngagementProjectionIncludesLikeCountAndViewerState(t *t
 		}
 		firstContentID = firstContent.ID
 
-		secondContent, err := handler.contentService.CreateContent(
+		secondContent, _, err := handler.contentService.CreateContentIdempotent(
 			ctx,
 			tx,
 			authorID,
+			uuid.NewString(),
 			"second profile post",
 			contententity.VisibilityPublic,
 			nil,
@@ -774,10 +781,11 @@ func TestUpdateContent_InvalidVisibilityRejected(t *testing.T) {
 	// Create a valid content first so the handler can find it.
 	var contentID uuid.UUID
 	err := tdb.WithTx(ctx, func(tx db.Tx) error {
-		content, createErr := handler.contentService.CreateContent(
+		content, _, createErr := handler.contentService.CreateContentIdempotent(
 			ctx,
 			tx,
 			userID,
+			uuid.NewString(),
 			"update target for visibility validation",
 			contententity.VisibilityPublic,
 			nil,
@@ -851,10 +859,11 @@ func TestUpdateContent_RejectsLegacyShareReferenceAndResourceOccurrence(t *testi
 
 	var contentID uuid.UUID
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		content, err := handler.contentService.CreateContent(
+		content, _, err := handler.contentService.CreateContentIdempotent(
 			ctx,
 			tx,
 			userID,
+			uuid.NewString(),
 			"original caption",
 			contententity.VisibilityPublic,
 			nil,
@@ -1145,6 +1154,7 @@ func newVisibilityHTTPAdminHandlerFromPool(pool *db.DB) *ContentHandler {
 		visibilityHTTPAccountChecker{},
 		nil,
 	)
+	contentService.SetIdempotencyRepository(idempotencyRepo.NewRepository())
 	contentService.SetCommerceReferenceValidator(
 		commerceResponse.NewValidator(
 			forsalerepo.NewForSaleRepository(),
@@ -1164,10 +1174,11 @@ func seedVisibilityHTTPContent(t *testing.T, ctx context.Context, handler *Conte
 	t.Helper()
 	var contentID uuid.UUID
 	err := handler.db.WithTx(ctx, func(tx db.Tx) error {
-		content, createErr := handler.contentService.CreateContent(
+		content, _, createErr := handler.contentService.CreateContentIdempotent(
 			ctx,
 			tx,
 			ownerID,
+			uuid.NewString(),
 			caption,
 			contententity.VisibilityPublic,
 			nil,

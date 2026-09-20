@@ -73,8 +73,8 @@ class SellerEarnings extends Equatable {
   final double totalRevenue;
 
   /// Pending revenue (from backend pending_balance)
-  /// SOURCE: Sum(escrow_amount) WHERE status IN ('shipped', 'delivered') AND escrow_status = 'holding'
-  /// TRUTH: Gross escrow amount (includes platform commission)
+  /// SOURCE: Sum(total_before_coins_amount) WHERE status IN ('shipped', 'delivered') AND escrow_status = 'holding'
+  /// TRUTH: Gross buyer base PD+S (includes platform commission)
   /// NOTE: This is NOT the seller's net - commission will be deducted upon release
   final double pendingRevenue;
 
@@ -83,20 +83,17 @@ class SellerEarnings extends Equatable {
   final double totalPlatformFees;
 
   /// Available balance (from backend available_balance)
-  /// SOURCE: SELLER_PAYABLE ledger balance minus dispute freezes
-  /// TRUTH: Freeze-aware withdrawable amount
+  /// SOURCE: SELLER_PAYABLE ledger balance
+  /// TRUTH: Withdrawable amount owned by the seller
   /// MIN: Rp 10,000 required to withdraw
   final double availableBalance;
   final double withdrawalFeeAmount;
 
-  // Balance breakdown (J1-C): explains why availableBalance may be < grossPayable.
+  // Balance breakdown (J1-C).
   // Nullable for backward compatibility — old API responses won't have these.
 
-  /// Raw SELLER_PAYABLE ledger balance before freeze deductions.
+  /// Raw SELLER_PAYABLE ledger balance.
   final double? grossPayable;
-
-  /// Funds frozen by active disputes.
-  final double? activeDisputeFreeze;
 
   /// Total withdrawn (from backend total_withdrawn)
   /// SOURCE: Sum(withdrawal.amount) WHERE status IN ('SETTLED', 'COMPLETED')
@@ -129,7 +126,6 @@ class SellerEarnings extends Equatable {
     this.platformFeePercentage = 4.0,
     required this.calculatedAt,
     this.grossPayable,
-    this.activeDisputeFreeze,
   });
 
   /// Net earnings after fees
@@ -140,9 +136,6 @@ class SellerEarnings extends Equatable {
   /// NOTE: This is only accurate if totalCompletedOrders is properly set
   double get averageOrderValue =>
       totalCompletedOrders > 0 ? totalRevenue / totalCompletedOrders : 0;
-
-  /// Whether the balance breakdown fields are available from the backend.
-  bool get hasBalanceBreakdown => grossPayable != null;
 
   /// Create empty earnings
   factory SellerEarnings.empty(String sellerId) {
@@ -176,6 +169,5 @@ class SellerEarnings extends Equatable {
     platformFeePercentage,
     calculatedAt,
     grossPayable,
-    activeDisputeFreeze,
   ];
 }

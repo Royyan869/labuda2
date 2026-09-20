@@ -69,12 +69,9 @@ class ChatList extends _$ChatList {
   }
 
   /// Get or create chat with another user
-  ///
-  /// **SOCIAL FIX 1.1:** Context now uses ShareReference for all object references.
   Future<Chat?> getOrCreateChat({
     required String userId,
     required String otherUserId,
-    ShareReference? context,
   }) async {
     // Guard against concurrent calls
     if (_isGettingOrCreate) return null;
@@ -85,7 +82,6 @@ class ChatList extends _$ChatList {
 
       final result = await _repository.getOrCreateChat(
         participantIds: [userId, otherUserId],
-        context: context,
       );
 
       return result.fold(
@@ -115,17 +111,27 @@ class ChatList extends _$ChatList {
     _mergeChat(updatedChat);
   }
 
-  void updateUnreadCount(String chatId, String userId, int newCount) {
-    final updatedChats = state.chats.map((chat) {
-      if (chat.id == chatId) {
-        final updatedUnreadCounts = Map<String, int>.from(chat.unreadCounts);
-        updatedUnreadCounts[userId] = newCount;
-        return chat.copyWith(unreadCounts: updatedUnreadCounts);
+  /// Marks every room that has unread messages as read, then zeroes the local
+  /// badges. Uses the same canonical room-unread value as the list badge, so a
+  /// room is only marked when it actually has unread messages.
+  Future<void> markAllRead(String userId) async {
+    final unreadRooms = state.chats
+        .where((chat) => chat.roomUnreadCount > 0)
+        .toList();
+    for (final chat in unreadRooms) {
+      try {
+        await ref.read(chatDetailProvider(chat.id).notifier).markAsRead(userId);
+      } catch (_) {
+        // One failed room must not block the remaining rooms.
       }
-      return chat;
-    }).toList();
-
-    state = ChatListState(chats: updatedChats);
+    }
+    state = ChatListState(
+      chats: [for (final chat in state.chats) chat.copyWith(unreadCount: 0)],
+      hasMore: state.hasMore,
+      nextCursor: state.nextCursor,
+      isLoading: state.isLoading,
+      error: state.error,
+    );
   }
 
   void clearError() {
@@ -201,9 +207,9 @@ class ChatList extends _$ChatList {
       lastMessage: mergedLastMessage,
       createdAt: existing.createdAt,
       updatedAt: incoming.updatedAt ?? existing.updatedAt,
-      unreadCounts: incoming.unreadCounts.isNotEmpty
-          ? incoming.unreadCounts
-          : existing.unreadCounts,
+      // The server is the unread authority: adopt the incoming count when the
+      // payload carried one (null = not provided → preserve the known value).
+      unreadCount: incoming.unreadCount ?? existing.unreadCount,
       linkedOrderId: incoming.linkedOrderId ?? existing.linkedOrderId,
     );
   }
@@ -519,72 +525,4 @@ class _MessageCursor {
   const _MessageCursor({required this.createdAt, required this.messageId});
 }
 
-// ========================================
-// Unread Count Notifier
-// ========================================
 
-/// Unread Count Notifier - Manages unread message counts
-@riverpod
-class UnreadCount extends _$UnreadCount {
-  @override
-  Map<String, int> build() {
-    return {};
-  }
-
-  void syncFromChats(List<Chat> chats, String currentUserId) {
-    final next = <String, int>{};
-    for (final chat in chats) {
-      next[chat.id] = chat.getUnreadCount(currentUserId);
-    }
-    state = next;
-  }
-
-  void updateChatUnread(String chatId, int count) {
-    state = {...state, chatId: count};
-  }
-
-  int get totalUnreadCount => state.values.fold(0, (sum, count) => sum + count);
-
-  int getChatUnread(String chatId) => state[chatId] ?? 0;
-}
-
-// ========================================
-// Presence Notifier
-// ========================================
-
-/// Presence Notifier - Manages user online status
-@riverpod
-class Presence extends _$Presence {
-  @override
-  PresenceState build() {
-    return const PresenceState();
-  }
-
-  ManagePresenceUseCase get _managePresenceUseCase =>
-      ref.read(managePresenceUseCaseProvider);
-
-  Future<void> startTracking(String userId, List<String> userIds) async {
-    await _managePresenceUseCase.startTracking(userId);
-  }
-
-  Future<void> stopTracking(String userId) async {
-    await _managePresenceUseCase.stopTracking(userId);
-  }
-
-  void updatePresence(String userId, bool isOnline, DateTime? lastSeen) {
-    final updatedOnline = Map<String, bool>.from(state.onlineUsers);
-    final updatedLastSeen = Map<String, DateTime?>.from(state.lastSeen);
-
-    updatedOnline[userId] = isOnline;
-    updatedLastSeen[userId] = lastSeen;
-
-    state = PresenceState(
-      onlineUsers: updatedOnline,
-      lastSeen: updatedLastSeen,
-    );
-  }
-
-  bool isUserOnline(String userId) => state.isUserOnline(userId);
-
-  DateTime? getUserLastSeen(String userId) => state.getUserLastSeen(userId);
-}

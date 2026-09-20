@@ -191,6 +191,53 @@ type PricingSnapshot struct {
 	CoinsPreview *CoinsPreview `json:"coins_preview,omitempty"`
 }
 
+// MarshalJSON serializes the snapshot with every money field emitted as int64
+// minor units.
+//
+// money.Money holds an unexported int64 and implements no json.Marshaler, so a
+// struct-embedded money.Money marshals to `{}`. Serializing this snapshot
+// directly (POST /pricing/preview) therefore emitted non-numeric amounts, so
+// clients never received the canonical keys — e.g. total_payable_amount and
+// escrow_amount (PD+S) arrived as `{}` instead of a number. ValidateToken and
+// GetToken already emit int64 via pricingSnapshotFromEntity; this makes the
+// preview path honor the same numeric contract without changing the key set.
+func (s PricingSnapshot) MarshalJSON() ([]byte, error) {
+	type pricingSnapshotJSON struct {
+		UnitPrice          int64            `json:"unit_price"`
+		Quantity           int              `json:"quantity"`
+		Subtotal           int64            `json:"subtotal"`
+		ShippingTotal      int64            `json:"shipping_total"`
+		CommissionPercent  int64            `json:"commission_percent"`
+		CommissionAmount   int64            `json:"commission_amount"`
+		DiscountAmount     int64            `json:"discount_amount"`
+		ServiceFeeAmount   int64            `json:"service_fee_amount"`
+		TotalPayableAmount int64            `json:"total_payable_amount"`
+		DiscountCode       *string          `json:"discount_code,omitempty"`
+		DiscountType       *string          `json:"discount_type,omitempty"`
+		DiscountValue      *decimal.Decimal `json:"discount_value,omitempty"`
+		EscrowAmount       int64            `json:"escrow_amount"`
+		ShippingMode       string           `json:"shipping_mode"`
+		CoinsPreview       *CoinsPreview    `json:"coins_preview,omitempty"`
+	}
+	return json.Marshal(pricingSnapshotJSON{
+		UnitPrice:          s.UnitPrice.Int64(),
+		Quantity:           s.Quantity,
+		Subtotal:           s.Subtotal.Int64(),
+		ShippingTotal:      s.ShippingTotal.Int64(),
+		CommissionPercent:  s.CommissionPercent,
+		CommissionAmount:   s.CommissionAmount.Int64(),
+		DiscountAmount:     s.DiscountAmount.Int64(),
+		ServiceFeeAmount:   s.ServiceFeeAmount.Int64(),
+		TotalPayableAmount: s.TotalPayableAmount.Int64(),
+		DiscountCode:       s.DiscountCode,
+		DiscountType:       s.DiscountType,
+		DiscountValue:      s.DiscountValue,
+		EscrowAmount:       s.EscrowAmount.Int64(),
+		ShippingMode:       s.ShippingMode,
+		CoinsPreview:       s.CoinsPreview,
+	})
+}
+
 // CoinsPreview contains non-binding coins information for UI display.
 type CoinsPreview struct {
 	// MaxApplicable is the maximum coins that can be applied based on:
@@ -535,7 +582,12 @@ func (s *PricingTokenService) FinalizeOrderConsumption(
 	tx db.Tx,
 	pricingToken *pricingtokenentity.PricingToken,
 	orderID uuid.UUID,
+	coinsUsed int64,
 ) error {
+	// coinsUsed is the canonical K decided at Order creation (order layer).
+	// Persist it on the token as the single authoritative snapshot; downstream
+	// payment derives K from this value and never accepts an independent K.
+	pricingToken.CoinsUsed = coinsUsed
 	// ============================================================
 	// ATOMIC DISCOUNT USAGE RECORDING (STEP 6)
 	// ============================================================
@@ -559,7 +611,7 @@ func (s *PricingTokenService) FinalizeOrderConsumption(
 	}
 
 	// Mark token as used
-	if err := s.tokenRepo.MarkAsUsedTx(ctx, tx, pricingToken.ID, orderID); err != nil {
+	if err := s.tokenRepo.MarkAsUsedTx(ctx, tx, pricingToken.ID, orderID, coinsUsed); err != nil {
 		return fmt.Errorf("failed to mark token as used: %w", err)
 	}
 
@@ -1112,7 +1164,6 @@ type GenerateForAuctionRequest struct {
 	AddressID        uuid.UUID
 	ShippingSetupID uuid.UUID
 	DiscountCode     *string
-	UseCoins         bool // Whether buyer wants to apply coins (backend decides actual amount)
 }
 
 // GenerateForAuctionResponse contains the generated pricing token and its snapshot.

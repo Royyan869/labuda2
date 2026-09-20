@@ -352,7 +352,9 @@ func (h *NotificationEventHandler) handleContentMentioned(ctx context.Context, p
 	)
 }
 
-// handleChatMessage processes chat.message.sent events.
+// handleChatMessage processes chat.message.notification events — the durable
+// notification effect of a sent chat message. The WebSocket realtime effect is a
+// separate outbox event owned by the realtime worker.
 // CHAT-4: Canonical delivery-time governance via applyPolicyLayer.
 // - Sender/recipient lifecycle evaluated at delivery time (not at enqueue time).
 // - Block is bidirectional; suspended/banned/deleted lifecycle gates delivery.

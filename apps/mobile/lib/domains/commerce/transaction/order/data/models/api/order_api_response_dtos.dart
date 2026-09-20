@@ -1,9 +1,28 @@
 /// Order API Response DTOs
 ///
-/// These DTOs were originally defined in admin_stubs.dart but have been
-/// extracted to the Order module as they are Order domain entities.
+/// CANONICAL ORDER WIRE CONTRACT — the backend is the single source of truth.
 ///
-/// This file contains the EXTRACTED DTOs from admin_stubs.dart (lines 580-674, 1910-2462).
+///   POST /orders           → OrderCreateResponse (lightweight creation
+///                            confirmation). Consumed by
+///                            checkout_repository_impl.dart, NOT by this file.
+///   GET  /orders           → { orders: [OrderListItem] }
+///   GET  /orders/:id       → OrderDetailResponse
+///   GET  /admin/orders     → AdminOrderSummary
+///   GET  /admin/orders/:id → admin OrderDetailResponse
+///
+/// Canonical money (never re-derived on the client):
+///   subtotal                  = P  (unit_price × quantity, before discount)
+///   shipping_total            = S
+///   commission_amount         = C  (seller-side)
+///   service_fee_amount        = F  (buyer-side payment fee)
+///   total_before_coins_amount = PD + S     (canonical buyer-funded base)
+///   total_payable_amount      = PD + S + F (buyer's gross payable)
+///
+/// RULES ENFORCED IN THIS FILE:
+///   - exactly ONE read per backend key (no camelCase fallback, no legacy
+///     alias, no `??` dual read);
+///   - no phantom key (a key the backend never emits is not parsed);
+///   - no client-side money derivation.
 library;
 
 import 'package:labuda/domains/commerce/transaction/order/domain/entities/order_status.dart'
@@ -13,19 +32,16 @@ import 'package:labuda/domains/commerce/transaction/order/domain/entities/order_
 
 /// Parse timestamp from backend.
 ///
-/// Backend sends int64 Unix timestamps (seconds since epoch).
-/// For backward compatibility, also handles ISO 8601 strings.
-/// Returns DateTime or null.
+/// Backend sends int64 Unix timestamps (seconds since epoch) on the order wire
+/// contract.
 DateTime? _parseOrderTimestamp(dynamic value) {
   if (value == null) return null;
 
-  // If already a string (ISO 8601), parse it
   if (value is String) {
     if (value.isEmpty) return null;
     return DateTime.tryParse(value);
   }
 
-  // If int/num (Unix timestamp), convert to DateTime
   if (value is num) {
     final timestamp = value.toInt();
     // Handle both seconds (< 1000000000000) and milliseconds
@@ -138,46 +154,100 @@ class RefundFilterParams {
   }
 }
 
+/// Order line item — GET /orders/:id `items[]` (backend OrderItemDTO).
+///
+/// Backend emits: id, order_id, product_id, name, unit_price_snapshot,
+/// quantity, subtotal. `order_id` is redundant for a DTO that is already
+/// scoped to one order, and `subtotal` is a backend-computed duplicate of
+/// unit_price_snapshot × quantity (OrderItem.subtotal already derives it), so
+/// neither is parsed — one canonical representation per value.
+class OrderItemApiResponse {
+  final String id;
+  final String productId;
+  final String name;
+  final double unitPrice;
+  final int quantity;
+
+  const OrderItemApiResponse({
+    required this.id,
+    required this.productId,
+    required this.name,
+    required this.unitPrice,
+    required this.quantity,
+  });
+
+  factory OrderItemApiResponse.fromJson(Map<String, dynamic> json) {
+    return OrderItemApiResponse(
+      id: json['id'] as String? ?? '',
+      productId: json['product_id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      unitPrice: (json['unit_price_snapshot'] as num?)?.toDouble() ?? 0.0,
+      quantity: json['quantity'] as int? ?? 0,
+    );
+  }
+}
+
 class OrderApiResponse {
   final String id;
   final String orderNumber;
   final String buyerId;
   final String sellerId;
-  final String productId;
   final int quantity;
-  final double totalAmount;
-  final double finalAmount;
-  final double shippingFee;
-  final double discountAmount;
-  final double coinDiscount;
+
+  // Canonical pricing fields matching backend OrderDetailResponse:
+  // subtotal = P (unit_price × quantity, before discount)
+  // shipping_total = S
+  // commission_amount = C (seller-side)
+  // service_fee_amount = F (buyer-side)
+  // total_payable_amount = PD + S + F
+  // total_before_coins_amount = PD + S (canonical buyer base)
+  final double subtotal;
+  final double shippingTotal;
+  final double commissionAmount;
   final double? serviceFeeAmount;
   final double? totalPayableAmount;
+  final double? totalBeforeCoinsAmount;
+
   final String status;
   final bool hasActiveRefund;
   final ActiveRefundApiResponse? activeRefund;
   final String paymentStatus;
-  final String? notes;
+
+  /// Buyer notes — backend key `buyer_notes` (OrderDetailResponse.BuyerNotes).
+  final String? buyerNotes;
+
   final DateTime createdAt;
-  final DateTime? confirmedAt;
-  final DateTime? shippedAt;
+
+  /// Orders are completed at this time (backend `completed_at`).
+  ///
+  /// NOTE: no `shipped_at` is parsed because the backend Order entity persists
+  /// no shipped timestamp; the legacy `shipped_at` read was a phantom key and
+  /// was purged.
   final DateTime? completedAt;
-  final DateTime? cancelledAt;
-  final DateTime? sellerAcceptDeadline;
+
   final String? sourceType;
   final String? sourceId;
+
+  /// Canonical order line items — backend key `items` (OrderItemDTO[]).
+  final List<OrderItemApiResponse> items;
+
+  /// Immutable buyer address snapshot — backend key `shipping_address`
+  /// (persisted as orders.address_snapshot). The legacy `shipping_destination`
+  /// key was purged.
   final ShippingAddressApiResponse? shippingAddress;
-  final ProductSummaryApiResponse? product;
 
   // Shipping Readiness Snapshot - frozen at order creation time
   final String? preparationTimeSnapshot;
   final String? preparationNoteSnapshot;
   final DateTime? readyToShipBy;
 
-  // SHIPPING CONFIRMATION TRUTH: Shipping reference fields
-  // These fields provide honest labeling for shipping references
-  final String? shippingReference; // Resi, phone/WA, or other
-  final String? referenceType; // "tracking" | "phone" | "other"
-  final String? shippingNote; // Seller's shipping note
+  // SHIPPING CONFIRMATION TRUTH: tracking reference fields.
+  // Backend keys: tracking_number + proof_type ("tracking" | "phone" | "manual").
+  // The legacy `shipping_reference` / `reference_type` reads were phantom keys
+  // (only the dispute response uses `shipping_reference`) and were purged.
+  final String? trackingNumber;
+  final String? proofType;
+  final String? shippingNote;
 
   // Overdue Display Layer (computed by backend, not persisted)
   final String?
@@ -190,8 +260,6 @@ class OrderApiResponse {
   // ===========================================================================
   // Owner-truth identity scalars added by backend Stage 1 at order top-level.
   // Receive-only plumbing: not yet wired into the entity / UI mapping.
-  // Order entity has NO seller/buyer name fields today, so these stay
-  // DTO-only until Stage 3 mapper switch.
   // - seller_username   = account/user identity
   // - seller_farm_name  = seller/store identity (Owner Truth: farm name)
   // - seller_avatar_url = display avatar
@@ -209,35 +277,29 @@ class OrderApiResponse {
     required this.orderNumber,
     required this.buyerId,
     required this.sellerId,
-    required this.productId,
     required this.quantity,
-    required this.totalAmount,
-    required this.finalAmount,
-    required this.shippingFee,
-    required this.discountAmount,
-    required this.coinDiscount,
+    required this.subtotal,
+    required this.shippingTotal,
+    required this.commissionAmount,
     this.serviceFeeAmount,
     this.totalPayableAmount,
+    this.totalBeforeCoinsAmount,
     required this.status,
     this.hasActiveRefund = false,
     this.activeRefund,
     required this.paymentStatus,
-    this.notes,
+    this.buyerNotes,
     required this.createdAt,
-    this.confirmedAt,
-    this.shippedAt,
     this.completedAt,
-    this.cancelledAt,
-    this.sellerAcceptDeadline,
     this.sourceType,
     this.sourceId,
+    this.items = const [],
     this.shippingAddress,
-    this.product,
     this.preparationTimeSnapshot,
     this.preparationNoteSnapshot,
     this.readyToShipBy,
-    this.shippingReference,
-    this.referenceType,
+    this.trackingNumber,
+    this.proofType,
     this.shippingNote,
     this.overdueTier,
     this.overdueDays,
@@ -250,48 +312,25 @@ class OrderApiResponse {
     this.paymentId,
   });
 
-  // fromJson factory for API response parsing
+  // fromJson factory for API response parsing.
+  //
+  // ONE read per canonical backend key. No camelCase fallback, no legacy key.
   factory OrderApiResponse.fromJson(Map<String, dynamic> json) {
+    final rawItems = json['items'];
+
     return OrderApiResponse(
       id: json['id'] as String? ?? '',
-      orderNumber:
-          json['order_number'] as String? ??
-          json['orderNumber'] as String? ??
-          '',
-      buyerId: json['buyer_id'] as String? ?? json['buyerId'] as String? ?? '',
-      sellerId:
-          json['seller_id'] as String? ?? json['sellerId'] as String? ?? '',
-      productId: json['product_id'] as String? ?? '',
+      orderNumber: json['order_number'] as String? ?? '',
+      buyerId: json['buyer_id'] as String? ?? '',
+      sellerId: json['seller_id'] as String? ?? '',
       quantity: json['quantity'] as int? ?? 0,
-      totalAmount:
-          (json['total_amount'] as num?)?.toDouble() ??
-          json['totalAmount'] as double? ??
-          0.0,
-      finalAmount:
-          (json['final_amount'] as num?)?.toDouble() ??
-          json['finalAmount'] as double? ??
-          0.0,
-      shippingFee:
-          (json['shipping_fee'] as num?)?.toDouble() ??
-          json['shippingFee'] as double? ??
-          0.0,
-      discountAmount:
-          (json['discount_amount'] as num?)?.toDouble() ??
-          json['discountAmount'] as double? ??
-          0.0,
-      coinDiscount:
-          (json['coin_discount'] as num?)?.toDouble() ??
-          json['coinDiscount'] as double? ??
-          0.0,
-      serviceFeeAmount:
-          (json['service_fee_amount'] as num?)?.toDouble() ??
-          (json['serviceFeeAmount'] as num?)?.toDouble(),
-      totalPayableAmount:
-          (json['total_payable_amount'] as num?)?.toDouble() ??
-          (json['totalPayableAmount'] as num?)?.toDouble() ??
-          (json['final_amount'] as num?)?.toDouble() ??
-          json['finalAmount'] as double? ??
-          0.0,
+      subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0.0,
+      shippingTotal: (json['shipping_total'] as num?)?.toDouble() ?? 0.0,
+      commissionAmount: (json['commission_amount'] as num?)?.toDouble() ?? 0.0,
+      serviceFeeAmount: (json['service_fee_amount'] as num?)?.toDouble(),
+      totalPayableAmount: (json['total_payable_amount'] as num?)?.toDouble(),
+      totalBeforeCoinsAmount: (json['total_before_coins_amount'] as num?)
+          ?.toDouble(),
       status: json['status'] as String? ?? '',
       hasActiveRefund: json['has_active_refund'] as bool? ?? false,
       activeRefund: json['active_refund'] != null
@@ -299,40 +338,29 @@ class OrderApiResponse {
               json['active_refund'] as Map<String, dynamic>,
             )
           : null,
-      paymentStatus:
-          json['payment_status'] as String? ??
-          json['paymentStatus'] as String? ??
-          '',
-      notes: json['notes'] as String?,
+      paymentStatus: json['payment_status'] as String? ?? '',
+      buyerNotes: json['buyer_notes'] as String?,
       createdAt: _parseOrderTimestamp(json['created_at']) ?? DateTime.now(),
-      confirmedAt: _parseOrderTimestamp(json['confirmed_at']),
-      shippedAt: _parseOrderTimestamp(json['shipped_at']),
       completedAt: _parseOrderTimestamp(json['completed_at']),
-      cancelledAt: _parseOrderTimestamp(json['cancelled_at']),
-      sellerAcceptDeadline: _parseOrderTimestamp(
-        json['seller_accept_deadline'],
-      ),
       sourceType: json['source_type'] as String?,
       sourceId: json['source_id'] as String?,
+      items: rawItems is List
+          ? rawItems
+                .whereType<Map<String, dynamic>>()
+                .map(OrderItemApiResponse.fromJson)
+                .toList()
+          : const [],
       shippingAddress: json['shipping_address'] != null
           ? ShippingAddressApiResponse.fromJson(
               json['shipping_address'] as Map<String, dynamic>,
             )
           : null,
-      product: json['product'] != null
-          ? ProductSummaryApiResponse.fromJson(
-              json['product'] as Map<String, dynamic>,
-            )
-          : null,
       preparationTimeSnapshot: json['preparation_time_snapshot'] as String?,
       preparationNoteSnapshot: json['preparation_note_snapshot'] as String?,
       readyToShipBy: _parseOrderTimestamp(json['ready_to_ship_by']),
-      // SHIPPING CONFIRMATION TRUTH: Parse shipping reference fields
-      shippingReference:
-          json['shipping_reference'] as String? ??
-          json['tracking_number']
-              as String?, // Fallback for backward compatibility
-      referenceType: json['reference_type'] as String?,
+      // SHIPPING CONFIRMATION TRUTH: canonical tracking reference fields
+      trackingNumber: json['tracking_number'] as String?,
+      proofType: json['proof_type'] as String?,
       shippingNote: json['shipping_note'] as String?,
       // Overdue Display Layer
       overdueTier: json['overdue_tier'] as String?,
@@ -346,48 +374,6 @@ class OrderApiResponse {
       buyerUsername: json['buyer_username'] as String?,
       paymentId: json['payment_id'] as String?,
     );
-  }
-
-  // Map method for OrderMapper compatibility
-  Map<String, dynamic> toMap() => {
-    'id': id,
-    'orderNumber': orderNumber,
-    'buyerId': buyerId,
-    'sellerId': sellerId,
-    'productId': productId,
-    'quantity': quantity,
-    'totalAmount': totalAmount,
-    'finalAmount': finalAmount,
-    'shippingFee': shippingFee,
-    'discountAmount': discountAmount,
-    'coinDiscount': coinDiscount,
-    'serviceFeeAmount': serviceFeeAmount,
-    'totalPayableAmount': totalPayableAmount,
-    'status': status,
-    'hasActiveRefund': hasActiveRefund,
-    'activeRefund': activeRefund?.toMap(),
-    'paymentStatus': paymentStatus,
-    'notes': notes,
-    'createdAt': createdAt.toIso8601String(),
-    'confirmedAt': confirmedAt?.toIso8601String(),
-    'shippedAt': shippedAt?.toIso8601String(),
-    'completedAt': completedAt?.toIso8601String(),
-    'cancelledAt': cancelledAt?.toIso8601String(),
-    'sellerAcceptDeadline': sellerAcceptDeadline?.toIso8601String(),
-    'sourceType': sourceType,
-    'sourceId': sourceId,
-    'shippingReference': shippingReference,
-    'referenceType': referenceType,
-    'shippingNote': shippingNote,
-    'overdueTier': overdueTier,
-    'overdueDays': overdueDays,
-    'isOverdue': isOverdue,
-    'paymentId': paymentId,
-  };
-
-  // Map method for RepositoryResult compatibility
-  R map<R>(R Function(OrderApiResponse data) transform) {
-    return transform(this);
   }
 }
 
@@ -447,240 +433,29 @@ class ActiveRefundApiResponse {
       gatewayStatus: json['gateway_status'] as String?,
     );
   }
-
-  Map<String, dynamic> toMap() => {
-    'id': id,
-    'order_id': orderId,
-    'buyer_id': buyerId,
-    'seller_id': sellerId,
-    'status': status,
-    'reason': reason,
-    'description': description,
-    'requested_amount': requestedAmount,
-    'seller_notes': sellerNotes,
-    'evidence_urls': evidenceUrls,
-    'created_at': createdAt.toIso8601String(),
-    'updated_at': updatedAt.toIso8601String(),
-    'admin_notes': adminNotes,
-    'resolved_at': resolvedAt?.toIso8601String(),
-    'gateway_status': gatewayStatus,
-  };
 }
 
+/// GET /orders envelope: `{ orders: [...], next_cursor?, limit }`.
+///
+/// Only `orders` is parsed — it is the single canonical key, and it is the only
+/// field the repository consumes (pagination is cursor based, so the legacy
+/// unread total/page/page_size siblings were purged).
 class OrderListApiResponse {
   final List<OrderApiResponse> data;
-  final int? total;
-  final int? page;
-  final int? pageSize;
 
-  OrderListApiResponse({
-    required this.data,
-    this.total,
-    this.page,
-    this.pageSize,
-  });
+  OrderListApiResponse({required this.data});
 
   factory OrderListApiResponse.fromJson(Map<String, dynamic> json) {
-    final rawList =
-        json['orders'] ?? json['data'] ?? json['items'] ?? const <dynamic>[];
-
-    final orderList = rawList is List
-        ? rawList
-              .whereType<Map<String, dynamic>>()
-              .map(OrderApiResponse.fromJson)
-              .toList()
-        : <OrderApiResponse>[];
+    final rawList = json['orders'];
 
     return OrderListApiResponse(
-      data: orderList,
-      total: json['total'] as int?,
-      page: json['page'] as int?,
-      pageSize: json['page_size'] as int? ?? json['pageSize'] as int?,
+      data: rawList is List
+          ? rawList
+                .whereType<Map<String, dynamic>>()
+                .map(OrderApiResponse.fromJson)
+                .toList()
+          : const [],
     );
-  }
-
-  R map<R>(R Function(OrderListApiResponse data) transform) {
-    return transform(this);
-  }
-}
-
-class OrderStatsApiResponse {
-  final int totalOrders;
-  final int pendingOrders;
-  final int completedOrders;
-  final int cancelledOrders;
-  final double totalRevenue;
-
-  OrderStatsApiResponse({
-    required this.totalOrders,
-    required this.pendingOrders,
-    required this.completedOrders,
-    required this.cancelledOrders,
-    required this.totalRevenue,
-  });
-
-  factory OrderStatsApiResponse.fromJson(Map<String, dynamic> json) {
-    return OrderStatsApiResponse(
-      totalOrders:
-          json['total_orders'] as int? ?? json['totalOrders'] as int? ?? 0,
-      pendingOrders:
-          json['pending_orders'] as int? ?? json['pendingOrders'] as int? ?? 0,
-      completedOrders:
-          json['completed_orders'] as int? ??
-          json['completedOrders'] as int? ??
-          0,
-      cancelledOrders:
-          json['cancelled_orders'] as int? ??
-          json['cancelledOrders'] as int? ??
-          0,
-      totalRevenue:
-          (json['total_revenue'] as num?)?.toDouble() ??
-          json['totalRevenue'] as double? ??
-          0.0,
-    );
-  }
-
-  R map<R>(R Function(OrderStatsApiResponse data) transform) {
-    return transform(this);
-  }
-}
-
-class RefundApiResponse {
-  final String id;
-  final String orderId;
-  final String userId;
-  final String? buyerId;
-  final String? sellerId;
-  final String reason;
-  final String description;
-  final String status;
-  final double? requestedAmount;
-  final double? approvedAmount;
-  final double? refundAmount;
-  final List<String>? evidence;
-  final String? sellerResponse;
-  final String? adminResponse;
-  final String? adminId;
-  final DateTime? sellerRespondAt;
-  final DateTime? adminRespondAt;
-  final DateTime? completedAt;
-  final bool? isResolved;
-  final DateTime createdAt;
-
-  RefundApiResponse({
-    required this.id,
-    required this.orderId,
-    required this.userId,
-    this.buyerId,
-    this.sellerId,
-    required this.reason,
-    required this.description,
-    required this.status,
-    this.requestedAmount,
-    this.approvedAmount,
-    this.refundAmount,
-    this.evidence,
-    this.sellerResponse,
-    this.adminResponse,
-    this.adminId,
-    this.sellerRespondAt,
-    this.adminRespondAt,
-    this.completedAt,
-    this.isResolved,
-    required this.createdAt,
-  });
-
-  // fromJson factory for API response parsing
-  factory RefundApiResponse.fromJson(Map<String, dynamic> json) {
-    return RefundApiResponse(
-      id: json['id'] as String? ?? '',
-      orderId: json['order_id'] as String? ?? json['orderId'] as String? ?? '',
-      userId: json['user_id'] as String? ?? json['userId'] as String? ?? '',
-      buyerId: json['buyer_id'] as String? ?? json['buyerId'] as String?,
-      sellerId: json['seller_id'] as String? ?? json['sellerId'] as String?,
-      reason: json['reason'] as String? ?? '',
-      description: json['description'] as String? ?? '',
-      status: json['status'] as String? ?? '',
-      requestedAmount:
-          (json['requested_amount'] as num?)?.toDouble() ??
-          json['requestedAmount'] as double?,
-      approvedAmount:
-          (json['approved_amount'] as num?)?.toDouble() ??
-          json['approvedAmount'] as double?,
-      refundAmount:
-          (json['refund_amount'] as num?)?.toDouble() ??
-          json['refundAmount'] as double?,
-      evidence: (json['evidence'] as List<dynamic>?)
-          ?.map((e) => e.toString())
-          .toList(),
-      sellerResponse:
-          json['seller_response'] as String? ??
-          json['sellerResponse'] as String?,
-      adminResponse:
-          json['admin_response'] as String? ?? json['adminResponse'] as String?,
-      adminId: json['admin_id'] as String? ?? json['adminId'] as String?,
-      sellerRespondAt: json['seller_respond_at'] != null
-          ? DateTime.parse(json['seller_respond_at'] as String)
-          : (json['sellerRespondAt'] as DateTime?),
-      adminRespondAt: json['admin_respond_at'] != null
-          ? DateTime.parse(json['admin_respond_at'] as String)
-          : (json['adminRespondAt'] as DateTime?),
-      completedAt: json['completed_at'] != null
-          ? DateTime.parse(json['completed_at'] as String)
-          : (json['completedAt'] as DateTime?),
-      isResolved: json['is_resolved'] as bool? ?? json['isResolved'] as bool?,
-      createdAt: DateTime.parse(
-        json['created_at'] as String? ?? DateTime.now().toIso8601String(),
-      ),
-    );
-  }
-
-  // Map method for RepositoryResult compatibility
-  Map<String, dynamic> toMap() => {
-    'id': id,
-    'orderId': orderId,
-    'userId': userId,
-    'buyerId': buyerId,
-    'sellerId': sellerId,
-    'reason': reason,
-    'description': description,
-    'status': status,
-    'requestedAmount': requestedAmount,
-    'approvedAmount': approvedAmount,
-    'refundAmount': refundAmount,
-    'evidence': evidence,
-    'sellerResponse': sellerResponse,
-    'adminResponse': adminResponse,
-    'adminId': adminId,
-    'sellerRespondAt': sellerRespondAt?.toIso8601String(),
-    'adminRespondAt': adminRespondAt?.toIso8601String(),
-    'completedAt': completedAt?.toIso8601String(),
-    'isResolved': isResolved,
-    'createdAt': createdAt.toIso8601String(),
-  };
-}
-
-class RefundListApiResponse {
-  final List<RefundApiResponse> data;
-  final int? total;
-
-  RefundListApiResponse({required this.data, this.total});
-
-  factory RefundListApiResponse.fromJson(Map<String, dynamic> json) {
-    return RefundListApiResponse(
-      data:
-          (json['data'] as List<dynamic>?)
-              ?.map(
-                (e) => RefundApiResponse.fromJson(e as Map<String, dynamic>),
-              )
-              .toList() ??
-          [],
-      total: json['total'] as int?,
-    );
-  }
-
-  R map<R>(R Function(RefundListApiResponse data) transform) {
-    return transform(this);
   }
 }
 
@@ -698,122 +473,71 @@ class CheckDeliveryApiResponse {
   factory CheckDeliveryApiResponse.fromJson(Map<String, dynamic> json) {
     return CheckDeliveryApiResponse(
       delivered: json['delivered'] as bool? ?? false,
-      deliveryDate:
-          json['delivery_date'] as String? ?? json['deliveryDate'] as String?,
+      deliveryDate: json['delivery_date'] as String?,
       signature: json['signature'] as String?,
     );
   }
-
-  R map<R>(R Function(CheckDeliveryApiResponse data) transform) {
-    return transform(this);
-  }
 }
 
-class ShippingProofApiResponse {
-  final String id;
-  final String orderId;
-  final String trackingNumber;
-  final String? proofImageUrl;
-  final DateTime createdAt;
-
-  ShippingProofApiResponse({
-    required this.id,
-    required this.orderId,
-    required this.trackingNumber,
-    this.proofImageUrl,
-    required this.createdAt,
-  });
-
-  factory ShippingProofApiResponse.fromJson(Map<String, dynamic> json) {
-    return ShippingProofApiResponse(
-      id: json['id'] as String? ?? '',
-      orderId: json['order_id'] as String? ?? json['orderId'] as String? ?? '',
-      trackingNumber:
-          json['tracking_number'] as String? ??
-          json['trackingNumber'] as String? ??
-          '',
-      proofImageUrl:
-          json['proof_image_url'] as String? ??
-          json['proofImageUrl'] as String?,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : DateTime.now(),
-    );
-  }
-
-  R map<R>(R Function(ShippingProofApiResponse data) transform) {
-    return transform(this);
-  }
-}
-
+/// Immutable buyer address snapshot — backend `shipping_address`
+/// (orders.address_snapshot, AddressSnapshot JSONB).
+///
+/// Canonical backend shape: recipient_name, phone, province_id, province_name,
+/// city_id, city_name, district_id, district_name, village_id, village_name,
+/// street_address, postal_code, latitude, longitude.
+///
+/// The legacy flattened shape (phone_number / address_line1 / city / province /
+/// full_address + camelCase fallbacks) never matched this payload and was
+/// purged.
 class ShippingAddressApiResponse {
   final String recipientName;
-  final String phoneNumber;
-  final String addressLine1;
-  final String? addressLine2;
-  final String? city;
-  final String? province;
+  final String phone;
+  final String streetAddress;
+  final String? provinceId;
+  final String? provinceName;
+  final String? cityId;
+  final String? cityName;
+  final String? districtId;
+  final String? districtName;
+  final String? villageId;
+  final String? villageName;
   final String? postalCode;
-  final String fullAddress;
+  final double? latitude;
+  final double? longitude;
 
   ShippingAddressApiResponse({
     required this.recipientName,
-    required this.phoneNumber,
-    required this.addressLine1,
-    this.addressLine2,
-    this.city,
-    this.province,
+    required this.phone,
+    required this.streetAddress,
+    this.provinceId,
+    this.provinceName,
+    this.cityId,
+    this.cityName,
+    this.districtId,
+    this.districtName,
+    this.villageId,
+    this.villageName,
     this.postalCode,
-    this.fullAddress = '',
+    this.latitude,
+    this.longitude,
   });
 
   factory ShippingAddressApiResponse.fromJson(Map<String, dynamic> json) {
     return ShippingAddressApiResponse(
-      recipientName:
-          json['recipient_name'] as String? ??
-          json['recipientName'] as String? ??
-          '',
-      phoneNumber:
-          json['phone_number'] as String? ??
-          json['phoneNumber'] as String? ??
-          '',
-      addressLine1:
-          json['address_line1'] as String? ??
-          json['addressLine1'] as String? ??
-          '',
-      addressLine2:
-          json['address_line2'] as String? ?? json['addressLine2'] as String?,
-      city: json['city'] as String?,
-      province: json['province'] as String?,
-      postalCode:
-          json['postal_code'] as String? ?? json['postalCode'] as String?,
-      fullAddress:
-          json['full_address'] as String? ??
-          json['fullAddress'] as String? ??
-          '',
-    );
-  }
-}
-
-class ProductSummaryApiResponse {
-  final String id;
-  final String title;
-  final String? imageUrl;
-  final double price;
-
-  ProductSummaryApiResponse({
-    required this.id,
-    required this.title,
-    this.imageUrl,
-    required this.price,
-  });
-
-  factory ProductSummaryApiResponse.fromJson(Map<String, dynamic> json) {
-    return ProductSummaryApiResponse(
-      id: json['id'] as String? ?? '',
-      title: json['title'] as String? ?? '',
-      imageUrl: json['image_url'] as String? ?? json['imageUrl'] as String?,
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      recipientName: json['recipient_name'] as String? ?? '',
+      phone: json['phone'] as String? ?? '',
+      streetAddress: json['street_address'] as String? ?? '',
+      provinceId: json['province_id'] as String?,
+      provinceName: json['province_name'] as String?,
+      cityId: json['city_id'] as String?,
+      cityName: json['city_name'] as String?,
+      districtId: json['district_id'] as String?,
+      districtName: json['district_name'] as String?,
+      villageId: json['village_id'] as String?,
+      villageName: json['village_name'] as String?,
+      postalCode: json['postal_code'] as String?,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
     );
   }
 }
@@ -833,20 +557,5 @@ class CheckDeliveryApiRequest {
     'order_id': orderId,
     if (courier != null) 'courier': courier,
     if (trackingNumber != null) 'tracking_number': trackingNumber,
-  };
-}
-
-class CreateShippingProofApiRequest {
-  final String trackingNumber;
-  final String? proofImageUrl;
-
-  CreateShippingProofApiRequest({
-    required this.trackingNumber,
-    this.proofImageUrl,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'tracking_number': trackingNumber,
-    if (proofImageUrl != null) 'proof_image_url': proofImageUrl,
   };
 }

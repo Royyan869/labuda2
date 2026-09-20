@@ -83,9 +83,9 @@ class SalesDataPointApiModel {
 ///
 /// Matches backend response from GET /api/v1/seller/earnings
 /// Backend returns: available_balance, pending_balance, total_withdrawn, total_earned
-/// Plus balance breakdown: gross_payable, active_dispute_freeze, withdrawable_balance
+/// Plus balance breakdown: gross_payable, withdrawable_balance
 class SellerEarningsApiModel {
-  final double availableBalance; // Withdrawable balance (freeze-aware)
+  final double availableBalance; // Withdrawable balance
   final double
   pendingBalance; // Sum of escrow amounts for shipped/delivered orders
   final double totalWithdrawn; // Sum of all COMPLETED withdrawal amounts
@@ -93,10 +93,9 @@ class SellerEarningsApiModel {
   totalEarned; // Total credits ever received to SELLER_PAYABLE account
   final double withdrawalFeeAmount; // Fixed seller withdrawal fee
 
-  // Balance breakdown (J1-C): explains why availableBalance may be < grossPayable.
+  // Balance breakdown (J1-C).
   final double? grossPayable; // Raw SELLER_PAYABLE ledger balance
-  final double? activeDisputeFreeze; // Funds frozen by active disputes
-  final double? withdrawableBalance; // gross - freeze (== availableBalance)
+  final double? withdrawableBalance; // == availableBalance
 
   const SellerEarningsApiModel({
     required this.availableBalance,
@@ -105,7 +104,6 @@ class SellerEarningsApiModel {
     required this.totalEarned,
     required this.withdrawalFeeAmount,
     this.grossPayable,
-    this.activeDisputeFreeze,
     this.withdrawableBalance,
   });
 
@@ -118,7 +116,6 @@ class SellerEarningsApiModel {
       withdrawalFeeAmount:
           (json['withdrawal_fee_amount'] as num?)?.toDouble() ?? 0.0,
       grossPayable: (json['gross_payable'] as num?)?.toDouble(),
-      activeDisputeFreeze: (json['active_dispute_freeze'] as num?)?.toDouble(),
       withdrawableBalance: (json['withdrawable_balance'] as num?)?.toDouble(),
     );
   }
@@ -131,8 +128,6 @@ class SellerEarningsApiModel {
       'total_earned': totalEarned,
       'withdrawal_fee_amount': withdrawalFeeAmount,
       if (grossPayable != null) 'gross_payable': grossPayable,
-      if (activeDisputeFreeze != null)
-        'active_dispute_freeze': activeDisputeFreeze,
       if (withdrawableBalance != null)
         'withdrawable_balance': withdrawableBalance,
     };

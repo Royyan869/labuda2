@@ -350,33 +350,6 @@ func (r *SocialRepositoryImpl) ExistsBlock(
 	return exists, nil
 }
 
-// IsBlockedBy checks if blockerID has blocked targetID (directional check).
-// Returns true if blockerID -> targetID block exists.
-func (r *SocialRepositoryImpl) IsBlockedBy(
-	ctx context.Context,
-	tx interface{},
-	blockerID, targetID uuid.UUID,
-) (bool, error) {
-	dbTx, ok := tx.(db.Tx)
-	if !ok {
-		return false, fmt.Errorf("invalid transaction type")
-	}
-
-	var exists bool
-	err := dbTx.QueryRow(ctx, `
-		SELECT EXISTS(
-			SELECT 1 FROM user_blocks
-			WHERE blocker_id = $1 AND blocked_id = $2
-		)
-	`, blockerID, targetID).Scan(&exists)
-
-	if err != nil {
-		return false, fmt.Errorf("check directional block failed: %w", err)
-	}
-
-	return exists, nil
-}
-
 // scanUUIDRow scans a single uuid.UUID from a row.
 func (r *SocialRepositoryImpl) scanUUIDRow(rows pgx.Rows) (uuid.UUID, error) {
 	var id uuid.UUID

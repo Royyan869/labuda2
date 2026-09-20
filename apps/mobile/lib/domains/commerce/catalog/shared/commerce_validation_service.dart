@@ -163,7 +163,7 @@ class CommerceValidationService {
       return Result.error('Stok tidak boleh negatif');
     }
 
-    // Maximum 10,000 items per listing
+    // Maximum 10,000 items per forSale
     if (parsedStock > 10000) {
       return Result.error('Stok terlalu banyak (maksimal 10.000 item)');
     }

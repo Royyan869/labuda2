@@ -17,6 +17,8 @@ import 'package:labuda/domains/social/content/presentation/utils/content_like_ha
 import 'package:labuda/domains/user/profile/presentation/providers/user_data_provider.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
 import 'package:labuda/domains/system/report/presentation/dialogs/report_submission_dialog.dart';
+import 'package:labuda/shared/widgets/carousel_video_player.dart';
+import 'package:labuda/shared/widgets/stable_network_image.dart';
 
 /// Content Detail Screen
 class ContentDetailScreen extends ConsumerStatefulWidget {
@@ -233,31 +235,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
             itemBuilder: (context, index) {
               return GestureDetector(
                 onTap: () => _openMediaViewer(context, content, index),
-                child: Image.network(
-                  content.media[index].originalUrl,
-                  width: double.infinity,
-                  height: 300,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    width: double.infinity,
-                    height: 300,
-                    color: AppColors.neutralGray200,
-                    child: const Icon(
-                      Icons.image_not_supported,
-                      size: 64,
-                      color: AppColors.neutralGray400,
-                    ),
-                  ),
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      width: double.infinity,
-                      height: 300,
-                      color: AppColors.neutralGray100,
-                      child: const Center(child: CircularProgressIndicator()),
-                    );
-                  },
-                ),
+                child: _buildMediaFrame(context, content, index),
               );
             },
           ),
@@ -285,6 +263,48 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
             ),
           ),
       ],
+    );
+  }
+
+  /// Canonical content media frame for the detail hero.
+  ///
+  /// [MediaEntity.type] is the render authority: images go through
+  /// [StableNetworkImage] (the shared network-media path that projects the
+  /// reference through `resolveNetworkImageUrl`), videos through
+  /// [CarouselVideoPlayer]. A video reference is never handed to the image
+  /// decoder.
+  Widget _buildMediaFrame(BuildContext context, Content content, int index) {
+    final media = content.media[index];
+
+    if (media.type == MediaType.video) {
+      return LayoutBuilder(
+        builder: (context, constraints) => CarouselVideoPlayer(
+          videoUrl: media.originalUrl,
+          width: constraints.maxWidth,
+          height: constraints.maxHeight,
+          fit: BoxFit.cover,
+          onFullscreenTap: () => _openMediaViewer(context, content, index),
+        ),
+      );
+    }
+
+    return StableNetworkImage(
+      imageUrl: media.originalUrl,
+      logicalCacheKey: media.id,
+      fit: BoxFit.cover,
+      fallback: _buildMediaPlaceholder(),
+    );
+  }
+
+  /// Neutral placeholder shown while the media loads and when it cannot be
+  /// loaded — the [StableNetworkImage] contract keeps a single fallback for
+  /// both states.
+  Widget _buildMediaPlaceholder() {
+    return Container(
+      width: double.infinity,
+      height: 300,
+      color: AppColors.neutralGray200,
+      child: const Icon(Icons.image, size: 64, color: AppColors.neutralGray400),
     );
   }
 
@@ -336,8 +356,6 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
       ],
     );
   }
-
-
 
   Widget _buildAuthorInfo(BuildContext context, Content content) {
     // E6 — Author identity lifecycle redaction. Independent from content
@@ -664,20 +682,23 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     );
   }
 
-  /// Open canonical MediaViewerWidget fullscreen for the tapped media item.
-  /// Uses the shared MediaViewerWidget (same as Feed and Commerce Detail).
+  /// Open the canonical MediaViewerWidget fullscreen for the tapped media item.
+  ///
+  /// The Content media entities are handed over verbatim so the viewer renders
+  /// by [MediaEntity.type] — image through [StableNetworkImage], video through
+  /// [MediaViewerVideoPlayer] — instead of sniffing the file extension of a
+  /// flattened URL list.
   void _openMediaViewer(
     BuildContext context,
     Content content,
     int initialIndex,
   ) {
-    final mediaUrls = content.media.map((m) => m.originalUrl).toList();
-    if (mediaUrls.isEmpty) return;
+    if (content.media.isEmpty) return;
     showDialog(
       context: context,
       barrierColor: Colors.black87,
       builder: (_) => MediaViewerWidget(
-        mediaUrls: mediaUrls,
+        media: content.media,
         initialIndex: initialIndex,
         title: content.authorUsername != null
             ? '@${content.authorUsername}'

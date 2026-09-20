@@ -305,7 +305,7 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
   // ========== Auction CRUD Operations ==========
 
   /// Create new auction. A Product is created inline by the backend from
-  /// the item fields below — there is no productId/listingId parameter.
+  /// the item fields below — there is no productId/forSaleId parameter.
   Future<bool> createAuction({
     required String sellerId,
     String? sellerUsername,

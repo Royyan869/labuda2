@@ -6,7 +6,7 @@
 // still gated.
 //
 // Canonical terminology: the commerce discovery surface is For Sale
-// (routes /for-sale...). The legacy "listing" route vocabulary (/listing...)
+// (routes /for-sale...). The legacy "forSale" route vocabulary (/forSale...)
 // is NOT registered anywhere in the router and is NOT public — guests
 // hitting it are redirected to /welcome like any unknown private location.
 //
@@ -71,7 +71,7 @@ void main() {
     // ------------------------------------------------------------------
     // Guest Home: canonical Home destination must be reachable by guests.
     // Home intent = /home = canonical Home. It is NOT a For Sale route and
-    // must never resolve to /for-sale (or any legacy listing destination).
+    // must never resolve to /for-sale (or any legacy forSale destination).
     // ------------------------------------------------------------------
     test('8. /home → no redirect (GUEST HOME — canonical Home reachable)', () {
       expect(_redirect('/home'), isNull);
@@ -142,12 +142,12 @@ void main() {
     // ------------------------------------------------------------------
     // Edge cases: exact-prefix collision guard
     // ------------------------------------------------------------------
-    test('20. legacy /listing vocabulary is NOT public browse → /welcome', () {
+    test('20. legacy /forSale vocabulary is NOT public browse → /welcome', () {
       // Canonical commerce browse vocabulary is /for-sale. The legacy
-      // "listing" route/prefix was removed; it must not be treated as a
+      // "forSale" route/prefix was removed; it must not be treated as a
       // guest destination.
-      expect(_redirect('/listing'), equals('/welcome'));
-      expect(_redirect('/listing/some-listing-id'), equals('/welcome'));
+      expect(_redirect('/forSale'), equals('/welcome'));
+      expect(_redirect('/forSale/some-forSale-id'), equals('/welcome'));
     });
 
     test('21. /userinfo (non-matching prefix) → redirect to /welcome', () {

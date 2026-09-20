@@ -77,7 +77,7 @@ func TestCreateAndDispatchSystemRefund_UsesExplicitSystemCaller(t *testing.T) {
 		uuid.New(),
 		uuid.New(),
 		uuid.New(),
-		auth.SystemCallerID,
+		uuid.Nil, // automatic system refund — no human reviewer (reviewed_by NULL)
 		entity.RefundReason("other"),
 		1000,
 		0,
@@ -102,7 +102,7 @@ func TestCreateAndDispatchSystemRefund_UsesExplicitSystemCaller(t *testing.T) {
 			OrderID:        existing.OrderID,
 			BuyerID:        existing.BuyerID,
 			SellerID:       existing.SellerID,
-			AdminID:        auth.SystemCallerID,
+			AdminID:        uuid.Nil, // automatic system refund — no human reviewer
 			ProductAmount:  1000,
 			ShippingAmount: 0,
 			PD:             1000,
@@ -126,7 +126,7 @@ func TestCreateAndDispatchSystemRefundFromApproval_UsesExplicitSystemCaller(t *t
 		uuid.New(),
 		uuid.New(),
 		uuid.New(),
-		auth.SystemCallerID,
+		uuid.Nil, // automatic system refund — no human reviewer (reviewed_by NULL)
 		entity.RefundReason("other"),
 		1000,
 		0,

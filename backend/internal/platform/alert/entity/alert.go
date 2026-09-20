@@ -54,8 +54,6 @@ const (
 	AlertTypeReconciliationDrift AlertType = "reconciliation_drift"
 	// AlertTypeRefundGatewayFailed detects gateway refund dispatch/ack failures
 	AlertTypeRefundGatewayFailed AlertType = "refund_gateway_failed"
-	// AlertTypeStaleDisputeFreeze detects active dispute freezes older than threshold
-	AlertTypeStaleDisputeFreeze AlertType = "stale_dispute_freeze"
 	// AlertTypeOutboxDLQSpike detects sudden increase in outbox dead-letter events
 	AlertTypeOutboxDLQSpike AlertType = "outbox_dlq_spike"
 	// AlertTypeOutboxStuck detects outbox events stuck in processing state

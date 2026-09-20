@@ -1,15 +1,20 @@
 // Seller route guard unit tests.
 //
-// Verifies TWO-TIER seller guard doctrine:
+// Verifies the seller guard doctrine:
 // 1. Non-seller routes are never blocked
-// 2. /seller/upgrade is always accessible (onboarding / renewal entry point)
+// 2. /seller/upgrade is always accessible (REGISTRATION entry point for
+//    non-sellers; existing sellers are gated inside the wizard itself, so the
+//    router never ejects them from an in-flight registration)
 // 3. TIER 1 — WORKSPACE/OBLIGATION routes require hasSellerProfile only:
 //    expired sellers CAN access dashboard/orders/earnings/bank-accounts/verification
 // 4. TIER 2 - MARKET ACTION routes require hasMarketAuthority (active subscription):
-//    expired sellers are redirected from shipping-setup, promotions, unlisted routes
-// 5. Users without seller profile are redirected from all seller routes
-// 6. Null user is redirected from all seller routes
-// 7. Role field is NOT used for gating (regression lock)
+//    expired sellers are redirected to /seller/renewal — the payment-only
+//    renewal lifecycle — and never back into the registration wizard
+// 5. /seller/renewal requires hasSellerProfile and deliberately does NOT require
+//    market authority, because its canonical caller is the expired seller
+// 6. Users without seller profile are redirected from all seller routes
+// 7. Null user is redirected from all seller routes
+// 8. Role field is NOT used for gating (regression lock)
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/seller_tier.dart';
@@ -98,12 +103,50 @@ void main() {
         expect(result, isNull);
       });
 
-      test('expired seller can access /seller/upgrade (renewal path)', () {
+      test('expired seller can still open /seller/upgrade (wizard gates them)', () {
         final result = handleSellerRouteGuardForTest(
           _expiredSeller(),
           '/seller/upgrade',
         );
         expect(result, isNull);
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // RENEWAL — /seller/renewal is the payment-only renewal lifecycle entry
+    // Requires hasSellerProfile; market authority is NOT required, because the
+    // canonical caller is the expired seller renewing.
+    // -------------------------------------------------------------------------
+    group('/seller/renewal is the renewal entry point', () {
+      test('expired seller can access /seller/renewal', () {
+        expect(
+          handleSellerRouteGuardForTest(_expiredSeller(), '/seller/renewal'),
+          isNull,
+          reason: 'The expired seller is the canonical renewal caller',
+        );
+      });
+
+      test('active seller can access /seller/renewal (early renewal)', () {
+        expect(
+          handleSellerRouteGuardForTest(_activeSeller(), '/seller/renewal'),
+          isNull,
+        );
+      });
+
+      test('non-seller is redirected from /seller/renewal to registration', () {
+        final user = _testUser(hasSellerProfile: false);
+        expect(
+          handleSellerRouteGuardForTest(user, '/seller/renewal'),
+          equals(RoutePaths.sellerUpgrade),
+          reason: 'Renewal only exists for users who are already sellers',
+        );
+      });
+
+      test('null user is redirected from /seller/renewal to registration', () {
+        expect(
+          handleSellerRouteGuardForTest(null, '/seller/renewal'),
+          equals(RoutePaths.sellerUpgrade),
+        );
       });
     });
 
@@ -181,49 +224,62 @@ void main() {
               'Verification entry route must be accessible to expired sellers',
         );
       });
+
+      test('seller without market authority can access /create/for-sale', () {
+        expect(
+          handleSellerRouteGuardForTest(_expiredSeller(), '/create/for-sale'),
+          isNull,
+          reason:
+              'POST /for-sale creates a PRIVATE DRAFT (workspace state). Market '
+              'authority is enforced transactionally at publish (draft → active), '
+              'never at draft creation — so this route is not a market-action tier.',
+        );
+      });
     });
 
     // -------------------------------------------------------------------------
     // TIER 2: MARKET ACTION routes — expired sellers are blocked
     // -------------------------------------------------------------------------
     group('TIER 2 — expired seller is blocked from market action routes', () {
-      test('expired seller is redirected from /seller/shipping', () {
+      test('expired seller is redirected to /seller/renewal from /seller/shipping', () {
         expect(
           handleSellerRouteGuardForTest(_expiredSeller(), '/seller/shipping'),
-          equals('/seller/upgrade'),
+          equals(RoutePaths.sellerRenewal),
           reason:
-              'Shipping setup is market-config — requires active subscription',
+              'Shipping setup is market-config — requires active subscription; '
+              'the fix is payment-only renewal, not registration',
         );
       });
 
-      test('expired seller is redirected from /seller/shipping/new', () {
+      test('expired seller is redirected to /seller/renewal from /seller/shipping/new', () {
         expect(
           handleSellerRouteGuardForTest(
             _expiredSeller(),
             '/seller/shipping/new',
           ),
-          equals('/seller/upgrade'),
+          equals(RoutePaths.sellerRenewal),
         );
       });
 
-      test('expired seller is redirected from /seller/promotions', () {
+      test('expired seller is redirected to /seller/renewal from /seller/promotions', () {
         expect(
           handleSellerRouteGuardForTest(_expiredSeller(), '/seller/promotions'),
-          equals('/seller/upgrade'),
+          equals(RoutePaths.sellerRenewal),
           reason: 'Promotions are market actions — require active subscription',
         );
       });
 
-      test('expired seller is redirected from unlisted /seller/* route', () {
+      test('expired seller is redirected to /seller/renewal from unlisted /seller/* route', () {
         expect(
           handleSellerRouteGuardForTest(
             _expiredSeller(),
             '/seller/some-new-market-feature',
           ),
-          equals('/seller/upgrade'),
+          equals(RoutePaths.sellerRenewal),
           reason: 'Unlisted /seller/* routes default to market-action tier',
         );
       });
+
     });
 
     // -------------------------------------------------------------------------
@@ -309,7 +365,7 @@ void main() {
             handleSellerRouteGuardForTest(user, '/create/for-sale'),
             isNull,
             reason:
-                'create for-sale must use only seller profile + market authority',
+                'create for-sale is gated on seller profile only (workspace draft)',
           );
         },
       );
@@ -491,11 +547,12 @@ void main() {
         );
         expect(
           handleSellerRouteGuardForTest(after, '/seller/promotions'),
-          '/seller/upgrade',
+          RoutePaths.sellerRenewal,
           reason:
               'once hasMarketAuthority flips to false, the SAME route '
-              'must now redirect to /seller/upgrade — proving the guard '
-              'is driven by fresh authority data, not a stale role flag',
+              'must now redirect to the payment-only renewal lifecycle — '
+              'proving the guard is driven by fresh authority data, not a '
+              'stale role flag',
         );
       });
 
@@ -511,7 +568,7 @@ void main() {
           );
           expect(
             handleSellerRouteGuardForTest(expired, '/seller/shipping-setup'),
-            '/seller/upgrade',
+            RoutePaths.sellerRenewal,
           );
         },
       );
@@ -531,6 +588,45 @@ void main() {
           reason:
               'workspace access must survive subscription expiry — only '
               'market-action routes should react to the authority flip',
+        );
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // ANTI-RESURRECTION LOCK (SCOPE 3)
+    // An existing seller is NEVER routed back into the registration wizard:
+    // registration is for non-sellers, renewal is payment-only.
+    // -------------------------------------------------------------------------
+    group('existing sellers are never routed into registration', () {
+      test('every gated market route sends an expired seller to renewal', () {
+        // /create/for-sale is deliberately NOT in this list: it creates a
+        // PRIVATE DRAFT (workspace state), so it must never demand market
+        // authority or bounce a profile holder into the renewal lifecycle.
+        for (final route in const [
+          '/seller/shipping',
+          '/seller/promotions',
+          '/seller/shipping-setup',
+          '/seller/some-new-market-feature',
+        ]) {
+          expect(
+            handleSellerRouteGuardForTest(_expiredSeller(), route),
+            equals(RoutePaths.sellerRenewal),
+            reason:
+                '$route must send an existing seller to payment-only renewal, '
+                'never into the registration wizard',
+          );
+        }
+      });
+
+      test('only users without a seller profile are sent to registration', () {
+        final nonSeller = _testUser(hasSellerProfile: false);
+        expect(
+          handleSellerRouteGuardForTest(nonSeller, '/seller/promotions'),
+          equals(RoutePaths.sellerUpgrade),
+        );
+        expect(
+          handleSellerRouteGuardForTest(null, '/seller/dashboard'),
+          equals(RoutePaths.sellerUpgrade),
         );
       });
     });

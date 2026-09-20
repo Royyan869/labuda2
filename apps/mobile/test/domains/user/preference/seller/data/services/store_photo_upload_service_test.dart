@@ -34,29 +34,33 @@ class _RecordingLogger extends Fake implements ILoggerService {
 
 class _RecordingS3Service extends S3Service {
   String? lastKey;
+  String? lastMediaLabel;
 
   @override
-  Future<Result<String>> uploadImageWithKey(
+  Future<Result<S3UploadResult>> uploadImageWithFixedKey(
     File imageFile,
-    String key,
-  ) async {
+    String key, {
+    String mediaLabel = 'gambar',
+  }) async {
     lastKey = key;
-    return Result.success(key);
+    lastMediaLabel = mediaLabel;
+    return Result.success(S3UploadResult(key: key, url: 'https://cdn.example.com/$key'));
   }
 }
 
 class _FailingS3Service extends S3Service {
   @override
-  Future<Result<String>> uploadImageWithKey(
+  Future<Result<S3UploadResult>> uploadImageWithFixedKey(
     File imageFile,
-    String key,
-  ) async {
-    return Result.error('backend refused gambar');
+    String key, {
+    String mediaLabel = 'gambar',
+  }) async {
+    return Result.error('backend refused gambar', code: 'INVALID_STORAGE_KEY', statusCode: 400);
   }
 }
 
 void main() {
-  test('uploadStorePhoto returns the canonical storage key', () async {
+  test('uploadStorePhoto uses the canonical fixed storage key and returns the storage key', () async {
     final tempDir = await Directory.systemTemp.createTemp('store-photo-test');
     addTearDown(() async {
       await tempDir.delete(recursive: true);
@@ -85,9 +89,10 @@ void main() {
       s3.lastKey,
       'images/stores/62d7e998-f5d8-4486-be84-63d81f9c0e6f.jpg',
     );
+    expect(s3.lastMediaLabel, 'store photo');
   });
 
-  test('uploadStorePhoto surfaces store photo failure text', () async {
+  test('uploadStorePhoto surfaces store photo failure text with structured error', () async {
     final tempDir = await Directory.systemTemp.createTemp('store-photo-fail');
     addTearDown(() async {
       await tempDir.delete(recursive: true);
@@ -108,5 +113,8 @@ void main() {
 
     expect(result.isError, isTrue);
     expect(result.error, contains('store photo'));
+    expect(result.errorCode, 'INVALID_STORAGE_KEY');
+    expect(result.statusCode, 400);
   });
+
 }

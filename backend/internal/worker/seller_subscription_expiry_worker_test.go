@@ -58,6 +58,9 @@ func (m *mockRepoForExpiry) GetByID(context.Context, db.Tx, uuid.UUID) (*entity.
 func (m *mockRepoForExpiry) GetLatestByUserID(context.Context, db.Tx, uuid.UUID) (*entity.SellerSubscription, error) {
 	return nil, nil
 }
+func (m *mockRepoForExpiry) GetMostRecentByUserID(context.Context, db.Tx, uuid.UUID) (*entity.SellerSubscription, error) {
+	return nil, nil
+}
 func (m *mockRepoForExpiry) GetLatestByUserIDForUpdate(context.Context, db.Tx, uuid.UUID) (*entity.SellerSubscription, error) {
 	return nil, nil
 }

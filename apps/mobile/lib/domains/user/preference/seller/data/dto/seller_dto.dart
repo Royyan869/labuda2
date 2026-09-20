@@ -22,9 +22,9 @@ class DashboardStatsDto extends Equatable {
   final double totalRevenue;
   final double pendingRevenue;
   final double refundedRevenue;
-  final int totalListings;
-  final int activeListings;
-  final int soldListings;
+  final int totalForSales;
+  final int activeForSales;
+  final int soldForSales;
   final int totalAuctions;
   final int activeAuctions;
 
@@ -39,9 +39,9 @@ class DashboardStatsDto extends Equatable {
     required this.totalRevenue,
     required this.pendingRevenue,
     required this.refundedRevenue,
-    required this.totalListings,
-    required this.activeListings,
-    required this.soldListings,
+    required this.totalForSales,
+    required this.activeForSales,
+    required this.soldForSales,
     required this.totalAuctions,
     required this.activeAuctions,
   });
@@ -58,9 +58,9 @@ class DashboardStatsDto extends Equatable {
       totalRevenue: (json['total_revenue'] as num?)?.toDouble() ?? 0.0,
       pendingRevenue: (json['pending_revenue'] as num?)?.toDouble() ?? 0.0,
       refundedRevenue: (json['refunded_revenue'] as num?)?.toDouble() ?? 0.0,
-      totalListings: json['total_listings'] as int? ?? 0,
-      activeListings: json['active_listings'] as int? ?? 0,
-      soldListings: json['sold_listings'] as int? ?? 0,
+      totalForSales: json['total_forSales'] as int? ?? 0,
+      activeForSales: json['active_forSales'] as int? ?? 0,
+      soldForSales: json['sold_forSales'] as int? ?? 0,
       totalAuctions: json['total_auctions'] as int? ?? 0,
       activeAuctions: json['active_auctions'] as int? ?? 0,
     );
@@ -78,9 +78,9 @@ class DashboardStatsDto extends Equatable {
       'total_revenue': totalRevenue,
       'pending_revenue': pendingRevenue,
       'refunded_revenue': refundedRevenue,
-      'total_listings': totalListings,
-      'active_listings': activeListings,
-      'sold_listings': soldListings,
+      'total_forSales': totalForSales,
+      'active_forSales': activeForSales,
+      'sold_forSales': soldForSales,
       'total_auctions': totalAuctions,
       'active_auctions': activeAuctions,
     };
@@ -98,9 +98,9 @@ class DashboardStatsDto extends Equatable {
     totalRevenue,
     pendingRevenue,
     refundedRevenue,
-    totalListings,
-    activeListings,
-    soldListings,
+    totalForSales,
+    activeForSales,
+    soldForSales,
     totalAuctions,
     activeAuctions,
   ];
@@ -289,8 +289,8 @@ class SellerSubscriptionPaymentMethodDto extends Equatable {
     return SellerSubscriptionPaymentMethodDto(
       methodCode: json['method_code'] as String,
       displayName: json['display_name'] as String,
-      serviceFeeAmount: (json['service_fee_amount'] as num?)?.toInt() ?? 0,
-      grossAmount: (json['gross_amount'] as num?)?.toInt() ?? 0,
+      serviceFeeAmount: (json['service_fee_amount'] as num).toInt(),
+      grossAmount: (json['gross_amount'] as num).toInt(),
     );
   }
 

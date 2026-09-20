@@ -60,9 +60,7 @@ type UploadURLResponse struct {
 	UploadURL string `json:"upload_url"`
 	// ExpiresAt is the presigned URL expiry.
 	ExpiresAt time.Time `json:"expires_at"`
-	// PublicURL is the CDN or S3 URL for display after a successful upload.
-	PublicURL string `json:"public_url"`
-	// ReadURL is the canonical read URL (CDN when configured, else raw S3).
+	// ReadURL is the canonical read/display URL (CDN when configured, else raw S3).
 	ReadURL string `json:"read_url"`
 }
 
@@ -91,7 +89,7 @@ func NewHandler(cfg s3presign.Config, cdnBaseURL string, log *zap.Logger) *Handl
 // S3. AWS credentials never leave the server.
 //
 // Returns:
-//   - 200: {storage_key, upload_url, expires_at, public_url}
+//   - 200: {storage_key, upload_url, expires_at, read_url}
 //   - 400: invalid content_type or folder
 //   - 503: AWS not configured
 func (h *Handler) RequestUploadURL(c *gin.Context) {
@@ -145,18 +143,17 @@ func (h *Handler) RequestUploadURL(c *gin.Context) {
 		return
 	}
 
-	publicURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s",
+	readURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s",
 		h.presignCfg.Bucket, h.presignCfg.Region, storageKey)
 	if h.cdnBase != "" {
-		publicURL = h.cdnBase + "/" + storageKey
+		readURL = h.cdnBase + "/" + storageKey
 	}
 
 	response.Success(c, UploadURLResponse{
 		StorageKey: storageKey,
 		UploadURL:  uploadURL,
 		ExpiresAt:  time.Now().Add(MediaUploadTTL),
-		PublicURL:  publicURL,
-		ReadURL:    publicURL,
+		ReadURL:    readURL,
 	})
 }
 

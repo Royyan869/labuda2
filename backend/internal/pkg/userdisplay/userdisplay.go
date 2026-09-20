@@ -58,7 +58,9 @@ func FetchMany(
 	rows, err := tx.Query(ctx, `
 		SELECT u.id,
 		       COALESCE(up.username, '')   AS username,
-		       COALESCE(up.avatar_url, '') AS avatar_url
+		       COALESCE(up.avatar_url, '') AS avatar_url,
+		       u.account_status,
+		       (u.deleted_at IS NOT NULL) AS is_deleted
 		FROM users u
 		LEFT JOIN user_profiles up ON up.user_id = u.id
 		WHERE u.id = ANY($1)
@@ -70,12 +72,19 @@ func FetchMany(
 
 	for rows.Next() {
 		var (
-			id        uuid.UUID
-			username  string
-			avatarURL string
+			id            uuid.UUID
+			username      string
+			avatarURL     string
+			accountStatus string
+			isDeleted     bool
 		)
-		if err := rows.Scan(&id, &username, &avatarURL); err != nil {
+		if err := rows.Scan(&id, &username, &avatarURL, &accountStatus, &isDeleted); err != nil {
 			return out, err
+		}
+		// Parity with single: unavailable/removed suppress avatar (lifecycle not active).
+		isActive := accountStatus == "active" && !isDeleted
+		if !isActive {
+			avatarURL = ""
 		}
 		out[id] = Info{
 			Username:  username,

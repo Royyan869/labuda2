@@ -6,7 +6,6 @@ library;
 
 import 'package:equatable/equatable.dart';
 import 'package:labuda/core/common/types/payment_types.dart';
-import 'payment_method.dart';
 
 // ============================================================
 // P11 PHASE 2: DECISION CONTRACT (Backend is Authority)
@@ -100,17 +99,15 @@ class Payment extends Equatable {
   /// User ID who made the payment
   final String userId;
 
-  /// Gross amount before discounts
-  final double grossAmount;
+  /// `gross_amount` — cash after coin deduction plus the buyer fee (Rupiah).
+  /// Whole Rupiah integer on the wire; never a double, never a minor unit.
+  final int grossAmount;
 
-  /// Coin discount amount (number of coins used)
-  final int coinDiscount;
+  /// `coins_to_use` — loyalty coins redeemed on this payment (count, not money).
+  final int coinsToUse;
 
-  /// Coin discount in Rupiah
-  final double coinDiscountAmount;
-
-  /// Net amount to pay (gross - coin discount)
-  final double netAmount;
+  /// `coin_discount_amount` — Rupiah value of [coinsToUse].
+  final int coinDiscountAmount;
 
   /// Payment status
   final PaymentStatus status;
@@ -123,9 +120,6 @@ class Payment extends Equatable {
 
   /// Midtrans payment type (e.g., "bank_transfer", "gopay")
   final String? midtransPaymentType;
-
-  /// Midtrans status (if applicable)
-  final String? midtransStatus;
 
   /// Reference type (e.g., "order", "seller_subscription")
   /// IMPORTANT: Coins are loyalty points for discounts, NOT purchasable packages
@@ -146,9 +140,6 @@ class Payment extends Equatable {
   /// Payment URL for redirect (nullable)
   final String? paymentUrl;
 
-  /// Payment method selected (nullable until user selects)
-  final PaymentMethod? paymentMethod;
-
   // P11 Phase 2: Decision Contract from Backend
   final DecisionContract? decision;
 
@@ -163,21 +154,18 @@ class Payment extends Equatable {
     required this.paymentNumber,
     required this.userId,
     required this.grossAmount,
-    required this.coinDiscount,
+    required this.coinsToUse,
     required this.coinDiscountAmount,
-    required this.netAmount,
     required this.status,
     required this.referenceType,
     required this.createdAt,
     this.midtransOrderId,
     this.midtransTransactionId,
     this.midtransPaymentType,
-    this.midtransStatus,
     this.referenceId,
     this.paidAt,
     this.expiredAt,
     this.paymentUrl,
-    this.paymentMethod,
     this.decision,
     this.priceSnapshotId,
     this.updatedAt,
@@ -204,22 +192,19 @@ class Payment extends Equatable {
     String? id,
     String? paymentNumber,
     String? userId,
-    double? grossAmount,
-    int? coinDiscount,
-    double? coinDiscountAmount,
-    double? netAmount,
+    int? grossAmount,
+    int? coinsToUse,
+    int? coinDiscountAmount,
     PaymentStatus? status,
     String? midtransOrderId,
     String? midtransTransactionId,
     String? midtransPaymentType,
-    String? midtransStatus,
     String? referenceType,
     String? referenceId,
     DateTime? createdAt,
     DateTime? paidAt,
     DateTime? expiredAt,
     String? paymentUrl,
-    PaymentMethod? paymentMethod,
     DecisionContract? decision,
     String? priceSnapshotId,
     DateTime? updatedAt,
@@ -229,22 +214,19 @@ class Payment extends Equatable {
       paymentNumber: paymentNumber ?? this.paymentNumber,
       userId: userId ?? this.userId,
       grossAmount: grossAmount ?? this.grossAmount,
-      coinDiscount: coinDiscount ?? this.coinDiscount,
+      coinsToUse: coinsToUse ?? this.coinsToUse,
       coinDiscountAmount: coinDiscountAmount ?? this.coinDiscountAmount,
-      netAmount: netAmount ?? this.netAmount,
       status: status ?? this.status,
       midtransOrderId: midtransOrderId ?? this.midtransOrderId,
       midtransTransactionId:
           midtransTransactionId ?? this.midtransTransactionId,
       midtransPaymentType: midtransPaymentType ?? this.midtransPaymentType,
-      midtransStatus: midtransStatus ?? this.midtransStatus,
       referenceType: referenceType ?? this.referenceType,
       referenceId: referenceId ?? this.referenceId,
       createdAt: createdAt ?? this.createdAt,
       paidAt: paidAt ?? this.paidAt,
       expiredAt: expiredAt ?? this.expiredAt,
       paymentUrl: paymentUrl ?? this.paymentUrl,
-      paymentMethod: paymentMethod ?? this.paymentMethod,
       decision: decision ?? this.decision,
       priceSnapshotId: priceSnapshotId ?? this.priceSnapshotId,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -257,9 +239,8 @@ class Payment extends Equatable {
     paymentNumber,
     userId,
     grossAmount,
-    coinDiscount,
+    coinsToUse,
     coinDiscountAmount,
-    netAmount,
     status,
     midtransOrderId,
     midtransTransactionId,
@@ -280,13 +261,16 @@ class Payment extends Equatable {
 /// Matches backend CreatePaymentRequest struct:
 ///   order_id            uuid.UUID (required)
 ///   payment_method_code string    (required)
-///   coin_discount       int
 ///   price_snapshot_id   *uuid.UUID
 ///
 /// PASS_18V: the backend is the sole authority for the buyer payment fee and
 /// gross amount. The client selects a canonical payment method (see
-/// PaymentRepository.getAvailablePaymentMethods) and sends only its code —
+/// PaymentRepository.getPaymentMethodOptions) and sends only its code —
 /// it never computes or submits a fee/gross amount.
+///
+/// PAY-B: there is NO `coins_to_use` here. K is fixed at Order creation via the
+/// checkout `use_coins` intent; the backend persists it on the pricing token
+/// and derives it at payment. A payment-time K would be a competing authority.
 class CreatePaymentRequest {
   /// Order ID to create payment for (required)
   final String orderId;
@@ -295,16 +279,12 @@ class CreatePaymentRequest {
   /// calculates the fee and gross amount from this.
   final String paymentMethodCode;
 
-  /// Number of coins to use for discount (optional)
-  final int coinDiscount;
-
   /// Price snapshot ID from order (optional, for backend validation)
   final String? priceSnapshotId;
 
   const CreatePaymentRequest({
     required this.orderId,
     required this.paymentMethodCode,
-    this.coinDiscount = 0,
     this.priceSnapshotId,
   });
 
@@ -316,17 +296,16 @@ class CreatePaymentRequest {
     if (paymentMethodCode.isEmpty) {
       return 'Payment method is required';
     }
-    if (coinDiscount < 0) {
-      return 'Coin discount cannot be negative';
-    }
     return null;
   }
 
-  /// Convert to JSON for API request — matches backend binding struct
+  /// Convert to JSON for API request — matches backend binding struct.
+  ///
+  /// There is no `coins_to_use` (nor the stale `coin_discount`) key: the
+  /// payment is created from the order's canonical pricing-token K snapshot.
   Map<String, dynamic> toJson() => {
     'order_id': orderId,
     'payment_method_code': paymentMethodCode,
-    'coin_discount': coinDiscount,
     if (priceSnapshotId != null) 'price_snapshot_id': priceSnapshotId,
   };
 }

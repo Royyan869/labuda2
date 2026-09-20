@@ -77,14 +77,14 @@ func TestCheckDuplicateEscrowReleases(t *testing.T) {
 	})
 }
 
-// TestCheckOversellListings documents the oversold listing detection.
-func TestCheckOversellListings(t *testing.T) {
+// TestCheckOversellForSale documents the oversold For Sale detection.
+func TestCheckOversellForSale(t *testing.T) {
 	t.Run("specification", func(t *testing.T) {
-		// SPECIFICATION: No listing should be sold more than its available quantity
+		// SPECIFICATION: No For Sale should be sold more than its available quantity
 		//
 		// SQL query:
 		// SELECT l.id, l.quantity, SUM(oi.quantity)
-		// FROM listings l
+		// FROM for_sales l
 		// LEFT JOIN order_items oi ON oi.for_sale_id = l.id
 		// LEFT JOIN orders o ON o.id = oi.order_id AND o.status NOT IN ('cancelled', 'expired')
 		// WHERE l.quantity > 0

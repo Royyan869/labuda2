@@ -37,7 +37,6 @@ const (
 func defaultThresholds() Thresholds {
 	return Thresholds{
 		PendingPaymentGrace:       3 * time.Minute,
-		OrphanRecoveryGrace:       2 * time.Minute,
 		StuckRefundGrace:          5 * time.Minute,
 		PendingPaymentExpiryGrace: 1 * time.Minute,
 	}
@@ -139,7 +138,7 @@ func TestClassify_Matrix(t *testing.T) {
 
 		// -------- D1 --------
 		{
-			name: "D1_gateway_settled_local_pending_past_grace_no_orphan",
+			name: "D1_gateway_settled_local_pending_past_grace",
 			mutate: func(s *Snapshot) {
 				s.Payment.Status = LocalPaymentStatusPending
 				s.Payment.PaidAt = nil
@@ -171,30 +170,6 @@ func TestClassify_Matrix(t *testing.T) {
 			},
 			// Inside grace: D1 suppressed. D6 still fires (gateway terminal + no webhook).
 			expectAll: []DriftClass{DriftD6MissingWebhookDelivery},
-		},
-		{
-			name: "D1_suppressed_by_orphan_recovery_in_flight",
-			mutate: func(s *Snapshot) {
-				s.Payment.Status = LocalPaymentStatusPending
-				s.Payment.PaidAt = nil
-				s.Payment.CreatedAt = fixedNow.Add(-10 * time.Minute)
-				s.Webhooks = []WebhookEventRef{
-					{
-						EventID:         "WH-orphan",
-						MidtransOrderID: midtransOID,
-						Status:          WebhookStatusOrphaned,
-						ReceivedAt:      fixedNow.Add(-30 * time.Second), // within 2min grace
-					},
-				}
-				s.Ledger.BuyerSettlementExists = false
-				s.Ledger.OrderReleaseExists = false
-				s.Order.Status = OrderStatusPendingPayment
-				s.Order.EscrowStatus = OrderEscrowStatusNone
-				s.Escrow = nil
-				s.Outbox.MoneyReleasedAliveByOrderID = map[uuid.UUID]bool{}
-			},
-			// Both D1 and D6 suppressed by orphan recovery grace.
-			expectAll: nil,
 		},
 
 		// -------- D2 --------
@@ -255,7 +230,7 @@ func TestClassify_Matrix(t *testing.T) {
 						ID:                    refundUUID,
 						OrderID:               orderUUID,
 						RequestedAmount:       40_000,
-						Status:                "admin_refunded",
+						Status:                "system_refunded",
 						GatewayStatus:         GatewayRefundStatusPending,
 						GatewayRefundID:       gatewayRefID,
 						GatewayIdempotencyKey: gatewayRefKey,
@@ -273,7 +248,7 @@ func TestClassify_Matrix(t *testing.T) {
 						ID:                    refundUUID,
 						OrderID:               orderUUID,
 						RequestedAmount:       30_000,
-						Status:                "admin_refunded",
+						Status:                "system_refunded",
 						GatewayStatus:         GatewayRefundStatusSucceeded,
 						GatewayRefundID:       gatewayRefID,
 						GatewayIdempotencyKey: gatewayRefKey,
@@ -383,28 +358,17 @@ func TestClassify_Matrix(t *testing.T) {
 			expectAll: []DriftClass{DriftD6MissingWebhookDelivery},
 		},
 		{
-			name: "D6_suppressed_orphan_within_grace",
+			// An unreconciled 'orphaned' row is not a live webhook, so D6
+			// still fires. Canonical hasNonFailedWebhook behavior, with no
+			// recovery timer involved.
+			name: "D6_fires_when_only_orphaned_row_exists",
 			mutate: func(s *Snapshot) {
 				s.Webhooks = []WebhookEventRef{
 					{
 						EventID:         "WH-orphan",
 						MidtransOrderID: midtransOID,
 						Status:          WebhookStatusOrphaned,
-						ReceivedAt:      fixedNow.Add(-30 * time.Second),
-					},
-				}
-			},
-			expectAll: nil,
-		},
-		{
-			name: "D6_fires_orphan_past_grace",
-			mutate: func(s *Snapshot) {
-				s.Webhooks = []WebhookEventRef{
-					{
-						EventID:         "WH-orphan",
-						MidtransOrderID: midtransOID,
-						Status:          WebhookStatusOrphaned,
-						ReceivedAt:      fixedNow.Add(-10 * time.Minute), // beyond 2min grace
+						ReceivedAt:      fixedNow.Add(-10 * time.Minute),
 					},
 				}
 			},
@@ -455,7 +419,7 @@ func TestClassify_Matrix(t *testing.T) {
 						ID:                    refundUUID,
 						OrderID:               orderUUID,
 						RequestedAmount:       100_000,
-						Status:                "admin_refunded",
+						Status:                "system_refunded",
 						GatewayStatus:         GatewayRefundStatusSucceeded,
 						GatewayRefundID:       gatewayRefID,
 						GatewayIdempotencyKey: gatewayRefKey,
@@ -500,7 +464,7 @@ func TestClassify_Matrix(t *testing.T) {
 						ID:                    refundUUID,
 						OrderID:               orderUUID,
 						RequestedAmount:       40_000,
-						Status:                "admin_refunded",
+						Status:                "system_refunded",
 						GatewayStatus:         GatewayRefundStatusPending,
 						GatewayRefundID:       gatewayRefID,
 						GatewayIdempotencyKey: gatewayRefKey,
@@ -528,7 +492,7 @@ func TestClassify_Matrix(t *testing.T) {
 						ID:                    refundUUID,
 						OrderID:               orderUUID,
 						RequestedAmount:       40_000,
-						Status:                "admin_refunded",
+						Status:                "system_refunded",
 						GatewayStatus:         GatewayRefundStatusPending,
 						GatewayRefundID:       gatewayRefID,
 						GatewayIdempotencyKey: gatewayRefKey,
@@ -616,7 +580,7 @@ func TestClassify_Matrix(t *testing.T) {
 						ID:                    refundUUID,
 						OrderID:               orderUUID,
 						RequestedAmount:       100_000,
-						Status:                "admin_refunded",
+						Status:                "system_refunded",
 						GatewayStatus:         GatewayRefundStatusSucceeded,
 						GatewayRefundID:       gatewayRefID,
 						GatewayIdempotencyKey: gatewayRefKey,
@@ -992,7 +956,7 @@ func TestClassify_MatrixCoversAllDriftClasses(t *testing.T) {
 		func(s *Snapshot) {
 			s.Refunds = []RefundRow{{
 				ID: refundUUID, OrderID: orderUUID, RequestedAmount: 100_000,
-				Status: "admin_refunded", GatewayStatus: GatewayRefundStatusSucceeded,
+				Status: "system_refunded", GatewayStatus: GatewayRefundStatusSucceeded,
 				GatewayRefundID: gatewayRefID, GatewayIdempotencyKey: gatewayRefKey,
 				GatewayRequestedAt:    ptrTime(fixedNow.Add(-1 * time.Hour)),
 				GatewayAcknowledgedAt: ptrTime(fixedNow.Add(-50 * time.Minute)),
@@ -1010,7 +974,7 @@ func TestClassify_MatrixCoversAllDriftClasses(t *testing.T) {
 		func(s *Snapshot) {
 			s.Refunds = []RefundRow{{
 				ID: refundUUID, OrderID: orderUUID, RequestedAmount: 40_000,
-				Status: "admin_refunded", GatewayStatus: GatewayRefundStatusPending,
+				Status: "system_refunded", GatewayStatus: GatewayRefundStatusPending,
 				GatewayRefundID: gatewayRefID, GatewayIdempotencyKey: gatewayRefKey,
 				GatewayRequestedAt: ptrTime(fixedNow.Add(-10 * time.Minute)),
 			}}
@@ -1098,7 +1062,7 @@ func TestClassify_D11_SuppressedWhenNoGatewayIdentifiers(t *testing.T) {
 			ID:                    refundUUID,
 			OrderID:               orderUUID,
 			RequestedAmount:       40_000,
-			Status:                "admin_refunded",
+			Status:                "system_refunded",
 			GatewayStatus:         GatewayRefundStatusPending,
 			GatewayRefundID:       "", // no identifiers yet
 			GatewayIdempotencyKey: "",
@@ -1118,7 +1082,7 @@ func TestClassify_D11_SuppressedWhenNoGatewayIdentifiers(t *testing.T) {
 // the other is empty — boundary case for the suppression rule.
 func TestClassify_D11_FiresWithEitherGatewayIdentifier(t *testing.T) {
 	specs := []struct {
-		name string
+		name          string
 		refundKeyOnly bool
 	}{
 		{"refund_key_only", true},
@@ -1131,7 +1095,7 @@ func TestClassify_D11_FiresWithEitherGatewayIdentifier(t *testing.T) {
 				ID:                 refundUUID,
 				OrderID:            orderUUID,
 				RequestedAmount:    40_000,
-				Status:             "admin_refunded",
+				Status:             "system_refunded",
 				GatewayStatus:      GatewayRefundStatusPending,
 				GatewayRequestedAt: ptrTime(fixedNow.Add(-1 * time.Hour)),
 			}
@@ -1178,25 +1142,25 @@ func permutationFixture() Snapshot {
 	// Multiple refunds — two succeeded + one stuck-pending (past grace).
 	s.Refunds = []RefundRow{
 		{
-			ID: uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000001"),
+			ID:      uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000001"),
 			OrderID: orderUUID, RequestedAmount: 30_000,
-			Status: "admin_refunded", GatewayStatus: GatewayRefundStatusSucceeded,
+			Status: "system_refunded", GatewayStatus: GatewayRefundStatusSucceeded,
 			GatewayRefundID: "MT-RF-001", GatewayIdempotencyKey: "key-001",
 			GatewayRequestedAt:    ptrTime(fixedNow.Add(-2 * time.Hour)),
 			GatewayAcknowledgedAt: ptrTime(fixedNow.Add(-1*time.Hour - 30*time.Minute)),
 		},
 		{
-			ID: uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000002"),
+			ID:      uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000002"),
 			OrderID: orderUUID, RequestedAmount: 20_000,
-			Status: "admin_refunded", GatewayStatus: GatewayRefundStatusSucceeded,
+			Status: "system_refunded", GatewayStatus: GatewayRefundStatusSucceeded,
 			GatewayRefundID: "MT-RF-002", GatewayIdempotencyKey: "key-002",
 			GatewayRequestedAt:    ptrTime(fixedNow.Add(-1 * time.Hour)),
 			GatewayAcknowledgedAt: ptrTime(fixedNow.Add(-50 * time.Minute)),
 		},
 		{
-			ID: uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000003"),
+			ID:      uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000003"),
 			OrderID: orderUUID, RequestedAmount: 10_000,
-			Status: "admin_refunded", GatewayStatus: GatewayRefundStatusPending,
+			Status: "system_refunded", GatewayStatus: GatewayRefundStatusPending,
 			GatewayRefundID: "MT-RF-003", GatewayIdempotencyKey: "key-003",
 			GatewayRequestedAt: ptrTime(fixedNow.Add(-30 * time.Minute)), // past 5min grace
 		},
@@ -1464,5 +1428,3 @@ func validateFindingShape(f Finding) error {
 	}
 	return nil
 }
-
-

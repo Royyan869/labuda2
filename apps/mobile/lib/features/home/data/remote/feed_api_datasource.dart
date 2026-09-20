@@ -14,7 +14,7 @@ import 'package:labuda/features/home/data/dto/feed_dto.dart';
 /// - Follow-aware feed projections
 ///
 /// DO NOT use for:
-/// - User profile content listing (use ContentRepository.getContentsByAuthor)
+/// - User profile content forSale (use ContentRepository.getContentsByAuthor)
 /// - Generic content browsing (use ContentRepository.getContents)
 /// - Content search (use ContentRepository.searchContents)
 ///

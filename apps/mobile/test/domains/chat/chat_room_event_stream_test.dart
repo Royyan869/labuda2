@@ -144,7 +144,7 @@ Map<String, dynamic> _roomCreatedPayload() => <String, dynamic>{
     'avatar_url': 'https://example.com/avatar.png',
     'lifecycle': 'active',
   },
-  'context': <String, dynamic>{'target_type': 'listing', 'target_id': 'lst_1'},
+  'context': <String, dynamic>{'target_type': 'forSale', 'target_id': 'lst_1'},
   'context_set_by': 'user_self',
   'linked_order_id': null,
   'last_message': null,
@@ -165,7 +165,7 @@ Map<String, dynamic> _roomUpdatedPayload() => <String, dynamic>{
     'avatar_url': 'https://example.com/avatar.png',
     'lifecycle': 'active',
   },
-  'context': <String, dynamic>{'target_type': 'listing', 'target_id': 'lst_1'},
+  'context': <String, dynamic>{'target_type': 'forSale', 'target_id': 'lst_1'},
   'context_set_by': 'user_self',
   'linked_order_id': 'order_1',
   'last_message': <String, dynamic>{

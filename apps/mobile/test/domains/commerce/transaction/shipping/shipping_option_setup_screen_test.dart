@@ -38,11 +38,6 @@ class _FakeAuthController extends AuthController {
   }
 }
 
-class _FakePresenceManager extends PresenceManager {
-  @override
-  PresenceState build() => const PresenceState();
-}
-
 class _FakeShippingRepository implements ShippingRepository {
   List<ShippingSetup> activeOptions = const [];
   CreateShippingSetupRequest? lastCreateRequest;
@@ -197,7 +192,6 @@ Widget _wrapApp({
 
   final overrides = [
     authControllerProvider.overrideWith(_FakeAuthController.new),
-    presenceManagerProvider.overrideWith(_FakePresenceManager.new),
     shippingRepositoryProvider.overrideWithValue(repo),
     provincesProvider.overrideWith((ref) async {
       return const [
@@ -662,8 +656,8 @@ void main() {
     });
   });
 
-  group('Listing/Auction direct-add routing', () {
-    testWidgets('Create Listing selector empty state shows management CTA', (
+  group('ForSale/Auction direct-add routing', () {
+    testWidgets('Create ForSale selector empty state shows management CTA', (
       tester,
     ) async {
       final repo = _FakeShippingRepository();

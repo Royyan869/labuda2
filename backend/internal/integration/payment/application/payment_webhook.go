@@ -9,11 +9,14 @@ package application
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	orderapp "github.com/labuda/backend/internal/commerce/order/application"
+	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
 	orderRepoImpl "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
 	subscriptionapp "github.com/labuda/backend/internal/commerce/subscription/application"
 	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
@@ -24,11 +27,44 @@ import (
 	refundapp "github.com/labuda/backend/internal/finance/refund/application"
 	"github.com/labuda/backend/internal/identity/auth"
 	"github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
+	alertapp "github.com/labuda/backend/internal/platform/alert/application"
 	alertentity "github.com/labuda/backend/internal/platform/alert/entity"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/midtrans"
 	"go.uber.org/zap"
 )
+
+// =============================================================================
+// REC-1: PAYMENT WEBHOOK FAILURE DURABILITY
+// =============================================================================
+
+// ErrWebhookSignatureInvalid marks a webhook rejected at the signature gate,
+// BEFORE any processing happened.
+//
+// It is a SECURITY rejection of unauthenticated input, not a processing failure,
+// and is deliberately excluded from durable failure recording: persisting rows
+// keyed by attacker-controlled event ids (and carrying attacker-controlled
+// payloads) from an unauthenticated endpoint would let anyone grow the
+// payment_webhook_events table without bound. Nothing was processed, so nothing
+// needs recovering.
+var ErrWebhookSignatureInvalid = errors.New("invalid webhook signature")
+
+// webhookFailureRecordTimeout bounds the independent failure-recording write so
+// a durable record can never hang the webhook request.
+const webhookFailureRecordTimeout = 5 * time.Second
+
+// webhookEventIsReprocessable reports whether an EXISTING payment_webhook_events
+// row with this status must be processed again, instead of being treated as an
+// idempotent duplicate.
+//
+// Only 'failed' is reprocessable. Before REC-1 recorded failures durably, a
+// failed delivery left no row at all, so a redelivery was processed again; this
+// predicate preserves that exact idempotency semantic now that a failed event
+// does leave a row. Every other recorded status is terminal for redelivery
+// purposes and short-circuits as it always has.
+func webhookEventIsReprocessable(existingStatus string) bool {
+	return existingStatus == repository.PaymentWebhookEventStatusFailed
+}
 
 // systemRoleChecker is a minimal RoleChecker implementation for system operations.
 // For webhooks and other system-initiated operations, we use a simplified checker
@@ -96,13 +132,25 @@ type PaymentWebhookService struct {
 	// Optional only for transitional wiring; nil makes the order branch
 	// fail-closed below to prevent escrow creation without funding.
 	financeService *financeApp.FinanceService
-	// alertService (PASS_18T) raises an operator alert when a gateway
-	// success notification arrives for a payment the platform already
-	// expired. Optional: nil leaves the event durably recorded as
-	// captured_after_expiry but skips the alert, logged loudly so the gap
-	// is visible rather than silent.
+	// alertService raises an operator alert for recovery anomalies.
+	// Optional: nil disables alerting.
 	alertService RecoveryAlertService
 	log          *zap.Logger
+}
+
+// RecoveryAlertService is the sink-only alert contract consumed by the webhook
+// service. It never influences processing decisions.
+type RecoveryAlertService interface {
+	CreateAlert(
+		ctx context.Context,
+		alertType alertentity.AlertType,
+		severity alertentity.AlertSeverity,
+		entityType string,
+		entityID uuid.UUID,
+		message string,
+		metadata alertentity.AlertMetadata,
+		groupKey *string,
+	) (*alertapp.CreateAlertResult, error)
 }
 
 // NewPaymentWebhookService creates a new PaymentWebhookService.
@@ -141,7 +189,7 @@ func NewPaymentWebhookService(
 		billingRepo:        billingrepo.NewBillingRepository(),
 		log:                log,
 	}
-}
+}
 
 // SetSubscriptionPaymentService sets the subscription payment service.
 // This is called during dependency injection after the subscription module is initialized.
@@ -177,8 +225,8 @@ func (s *PaymentWebhookService) SetCanonicalFinalizationService(service *Canonic
 
 // SetAlertService wires the operator alert sink used to surface a gateway
 // success notification that arrives for a payment/order the platform already
-// expired (PASS_18T). Optional: leaving this unset still records the event
-// durably as captured_after_expiry, but the gap is only visible via logs.
+// SetAlertService wires the alert service for recovery anomaly alerting.
+// Optional: nil disables alerting.
 func (s *PaymentWebhookService) SetAlertService(service RecoveryAlertService) {
 	s.alertService = service
 }
@@ -197,12 +245,22 @@ func (s *PaymentWebhookService) SetAuditService(auditService interface { // Mini
 // HandleWebhook processes Midtrans webhook notification with financial-grade security
 //
 // CRITICAL SECURITY PATTERN:
-// 1. INSERT webhook event FIRST (status=pending) - captures ALL events for audit
-// 2. Duplicate event_id = idempotent return (UNIQUE constraint)
-// 3. Signature verification AFTER insert (prevents replay attack bypass)
-// 4. State machine enforcement: pending -> processing -> succeeded/failed
-// 5. db.WithTx handles DEADLOCK RETRY for PostgreSQL serialization errors
-// 6. DOUBLE-CHECK payment status before ledger call (bulletproof guard)
+//  1. INSERT webhook event FIRST (status=pending) - captures ALL events for audit
+//  2. Duplicate notification = idempotent return (unique notification_key; a
+//     DIFFERENT notification of the same gateway transaction is a distinct event
+//     and is processed — REC-3)
+//  3. Signature verification AFTER insert (prevents replay attack bypass)
+//  4. State machine enforcement: pending -> processing -> succeeded/failed
+//  5. db.WithTx handles DEADLOCK RETRY for PostgreSQL serialization errors
+//  6. DOUBLE-CHECK payment status before ledger call (bulletproof guard)
+//
+// FAILURE DURABILITY (REC-1): processing happens inside db.WithTx, which
+// ROLLS BACK on any error returned by the transaction function — including the
+// payment_webhook_events row and the status='failed' write the transaction just
+// made. A failure record therefore cannot be produced from inside that
+// transaction. On failure this method performs a SECOND, independent write
+// (recordWebhookFailureDurably) that runs after the rollback, so the fact that
+// the webhook arrived and failed is never silently lost.
 //
 // Returns error if processing fails (non-idempotent failures)
 func (s *PaymentWebhookService) HandleWebhook(
@@ -211,155 +269,118 @@ func (s *PaymentWebhookService) HandleWebhook(
 	clientIP string,
 ) error {
 	// Use db.WithTx for automatic retry on serialization/deadlock errors
-	return s.db.WithTx(ctx, func(tx db.Tx) error {
+	err := s.db.WithTx(ctx, func(tx db.Tx) error {
 		return s.handleWebhookInTransaction(ctx, tx, notification, clientIP)
 	})
-}
+	if err == nil {
+		return nil
+	}
 
-// ReplayVerifiedWebhookFromGateway replays a verified Midtrans success payload
-// through the canonical webhook flow. It is intended for dev-only recovery
-// paths when the public notification URL is unreachable or stale.
-func (s *PaymentWebhookService) ReplayVerifiedWebhookFromGateway(
-	ctx context.Context,
-	paymentID uuid.UUID,
-	clientIP string,
-) (*midtrans.NotificationPayload, error) {
-	var payment *repository.Payment
-	if err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		var err error
-		payment, err = s.paymentRepo.GetByID(ctx, tx, paymentID)
+	// A signature rejection is a security rejection of unverified input, not a
+	// processing failure: nothing was processed and nothing may be persisted for
+	// an unauthenticated caller (see ErrWebhookSignatureInvalid).
+	if errors.Is(err, ErrWebhookSignatureInvalid) {
 		return err
-	}); err != nil {
-		return nil, fmt.Errorf("load payment: %w", err)
-	}
-	if payment == nil {
-		return nil, fmt.Errorf("payment not found: %s", paymentID)
-	}
-	if payment.MidtransOrderID == "" {
-		return nil, fmt.Errorf("payment %s has no Midtrans order id", paymentID)
 	}
 
-	gatewayStatus, err := s.midtransClient.GetTransactionStatus(payment.MidtransOrderID)
-	if err != nil {
-		return nil, fmt.Errorf("query midtrans status: %w", err)
-	}
-
-	if !s.midtransClient.IsTransactionSuccess(gatewayStatus.TransactionStatus) {
-		return nil, fmt.Errorf("gateway status is not successful: %s", gatewayStatus.TransactionStatus)
-	}
-	if strings.EqualFold(gatewayStatus.TransactionStatus, string(midtrans.StatusCapture)) &&
-		strings.ToLower(strings.TrimSpace(gatewayStatus.FraudStatus)) != "accept" {
-		return nil, fmt.Errorf("capture status is not safe to activate: fraud_status=%s", gatewayStatus.FraudStatus)
-	}
-
-	// MONEY UNIT (PASS_18H): payment.GrossAmount is a Rupiah integer — Labuda's
-	// canonical money unit — compared directly against the gateway's amount,
-	// which is also whole Rupiah (Midtrans's ".00" suffix is decimal
-	// formatting, not a cents subunit). No scaling in either direction.
-	expectedGross := payment.GrossAmount.Int64()
-	actualGross := parseGrossAmount(gatewayStatus.GrossAmount)
-	if actualGross != expectedGross {
-		return nil, fmt.Errorf("gateway amount mismatch: payment=%d gateway=%d", expectedGross, actualGross)
-	}
-	if strings.TrimSpace(gatewayStatus.OrderID) != payment.MidtransOrderID {
-		return nil, fmt.Errorf("gateway order mismatch: payment=%s gateway=%s", payment.MidtransOrderID, gatewayStatus.OrderID)
-	}
-
-	signed := &midtrans.NotificationPayload{
-		TransactionTime:   gatewayStatus.TransactionTime,
-		TransactionStatus: gatewayStatus.TransactionStatus,
-		TransactionID:     gatewayStatus.TransactionID,
-		StatusMessage:     gatewayStatus.StatusMessage,
-		StatusCode:        gatewayStatus.StatusCode,
-		PaymentType:       gatewayStatus.PaymentType,
-		OrderID:           gatewayStatus.OrderID,
-		MerchantID:        gatewayStatus.MerchantID,
-		GrossAmount:       gatewayStatus.GrossAmount,
-		FraudStatus:       gatewayStatus.FraudStatus,
-		Currency:          gatewayStatus.Currency,
-	}
-	signed.SignatureKey = s.midtransClient.BuildWebhookSignature(signed)
-
-	eventExists, err := s.webhookEventExists(ctx, signed.TransactionID)
-	if err != nil {
-		return nil, fmt.Errorf("check replay event existence: %w", err)
-	}
-	if eventExists {
-		s.log.Info("dev webhook replay found existing event; repairing payment state",
-			zap.String("payment_id", paymentID.String()),
-			zap.String("transaction_id", signed.TransactionID),
-		)
-		if repairErr := s.repairVerifiedReplayPayment(ctx, paymentID, signed); repairErr != nil {
-			return nil, repairErr
-		}
-		return signed, nil
-	}
-
-	if err := s.HandleWebhook(ctx, signed, clientIP); err != nil {
-		return nil, fmt.Errorf("replay webhook: %w", err)
-	}
-
-	return signed, nil
+	// Every other failure is a genuine processing failure whose record was just
+	// rolled back. Re-record it durably before reporting the error.
+	s.recordWebhookFailureDurably(ctx, notification, clientIP, err)
+	return err
 }
 
-func (s *PaymentWebhookService) webhookEventExists(ctx context.Context, eventID string) (bool, error) {
-	var exists bool
-	if err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		return tx.QueryRow(ctx, `
-			SELECT EXISTS(
-				SELECT 1 FROM payment_webhook_events WHERE event_id = $1
-			)
-		`, eventID).Scan(&exists)
-	}); err != nil {
-		return false, err
-	}
-	return exists, nil
-}
-
-// repairVerifiedReplayPayment finishes a replay when the webhook event row
-// already exists but the payment row is still pending. This keeps the dev
-// replay idempotent after the first canonical event insert.
-func (s *PaymentWebhookService) repairVerifiedReplayPayment(
+// recordWebhookFailureDurably writes the failure record in its OWN transaction.
+//
+// WHY A SEPARATE TRANSACTION: db.WithTx always rolls back when the transaction
+// function returns an error (pkg/db.withRetry). The rolled-back transaction
+// contains both the event row insert and its status='failed' update, so neither
+// survives. Only a fresh transaction on a separate pooled connection can leave a
+// durable record — proven by
+// TestWebhookFailureDurability_RollbackErasesInTransactionRecord in
+// payment_webhook_failure_durability_integration_test.go.
+//
+// CONCURRENCY / CONSISTENCY:
+//   - Runs strictly AFTER the processing transaction has rolled back, so it can
+//     never observe or interfere with a half-applied processing transaction.
+//   - Idempotent (upsert keyed on notification_key) and guarded so it can never
+//     overwrite a committed terminal non-failure row: a concurrent successful
+//     delivery of the same notification always wins the audit record.
+//   - Uses a cancellation-detached context with a bounded timeout: the gateway
+//     disconnecting its request must not be able to erase the evidence, and the
+//     write must never hang the request either.
+//
+// A failure of this write is NEVER swallowed — it is logged at ERROR level
+// because an unrecorded webhook failure is an audit gap.
+func (s *PaymentWebhookService) recordWebhookFailureDurably(
 	ctx context.Context,
-	paymentID uuid.UUID,
 	notification *midtrans.NotificationPayload,
-) error {
+	clientIP string,
+	cause error,
+) {
 	if notification == nil {
-		return fmt.Errorf("notification cannot be nil")
+		return
+	}
+	if s.paymentRepo == nil {
+		s.log.Error("webhook_failure_record_unavailable",
+			zap.String("order_id", notification.OrderID),
+			zap.String("transaction_id", notification.TransactionID),
+			zap.Error(cause),
+		)
+		return
 	}
 
-	return s.db.WithTx(ctx, func(tx db.Tx) error {
-		payment, err := s.paymentRepo.GetByIDForUpdate(ctx, tx, paymentID)
+	eventID := notification.TransactionID
+	notificationKey := midtrans.NotificationIdentity(notification)
+	payload, _ := json.Marshal(notification)
+	errorMessage := fmt.Sprintf("webhook processing failed: %v", cause)
+
+	writeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), webhookFailureRecordTimeout)
+	defer cancel()
+
+	writeErr := s.db.WithTx(writeCtx, func(tx db.Tx) error {
+		recorded, err := s.paymentRepo.RecordWebhookEventFailure(
+			writeCtx,
+			tx,
+			eventID,
+			notificationKey,
+			notification.OrderID,
+			notification.SignatureKey,
+			payload,
+			nil,
+			errorMessage,
+		)
 		if err != nil {
-			return fmt.Errorf("lock payment for repair: %w", err)
+			return err
 		}
-
-		if payment.IsPending() {
-			if strings.EqualFold(notification.TransactionStatus, string(midtrans.StatusCapture)) {
-				if err := s.paymentRepo.MarkAsCapture(ctx, tx, payment.ID, notification.TransactionID, notification.PaymentType); err != nil {
-					return fmt.Errorf("repair capture payment status: %w", err)
-				}
-			} else {
-				if err := s.settlementService.SettlePaymentByID(ctx, tx, payment.ID, notification.TransactionID, notification.PaymentType); err != nil {
-					return fmt.Errorf("repair settlement payment status: %w", err)
-				}
-			}
+		if !recorded {
+			s.log.Warn("webhook_failure_record_skipped",
+				zap.String("notification_key", notificationKey),
+				zap.String("order_id", notification.OrderID),
+				zap.String("reason", "event already recorded in a terminal non-failure state"),
+			)
 		}
-
-		if payment.ReferenceType == repository.ReferenceTypeSubscription && s.subscriptionPaymentService != nil {
-			if err := s.subscriptionPaymentService.ProcessSuccessfulPaymentTx(
-				ctx,
-				tx,
-				payment.ID,
-				payment.UserID,
-				notification.TransactionID,
-			); err != nil {
-				return fmt.Errorf("repair subscription activation: %w", err)
-			}
-		}
-
 		return nil
 	})
+	if writeErr != nil {
+		s.log.Error("webhook_failure_record_write_failed",
+			zap.String("notification_key", notificationKey),
+			zap.String("order_id", notification.OrderID),
+			zap.String("transaction_id", notification.TransactionID),
+			zap.Error(cause),
+			zap.Error(writeErr),
+		)
+		return
+	}
+
+	s.log.Error("webhook_processing_failed",
+		zap.String("notification_key", notificationKey),
+		zap.String("order_id", notification.OrderID),
+		zap.String("transaction_id", notification.TransactionID),
+		zap.String("transaction_status", notification.TransactionStatus),
+		zap.String("client_ip", clientIP),
+		zap.Error(cause),
+		zap.String("durable_record", "payment_webhook_events.status=failed"),
+	)
 }
 
 // handleWebhookInTransaction contains the core webhook processing logic
@@ -371,40 +392,70 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 	clientIP string,
 ) error {
 	// STEP 1: INSERT webhook event FIRST with status=pending
-	// This captures ALL incoming webhooks BEFORE any validation
-	// Idempotency: duplicate event_id will fail UNIQUE constraint
-	eventID := notification.TransactionID
+	// This captures EVERY incoming notification BEFORE any validation.
+	//
+	// IDENTITY (REC-3): event_id holds the Midtrans gateway TRANSACTION reference
+	// and is NOT unique — one transaction emits several notifications as its
+	// status advances. notification_key is the canonical identity of ONE
+	// notification (derived from its signal-defining fields) and is the
+	// idempotency authority: an exact redelivery dedups, while a different status
+	// transition or refund of the same transaction is stored and processed as its
+	// own event.
+	midtransTransactionID := notification.TransactionID
+	notificationKey := midtrans.NotificationIdentity(notification)
 	payload, _ := json.Marshal(notification)
 
-	inserted, err := s.insertWebhookEvent(ctx, tx, eventID, notification.OrderID, notification.SignatureKey, payload)
+	inserted, err := s.insertWebhookEvent(ctx, tx, midtransTransactionID, notificationKey, notification.OrderID, notification.SignatureKey, payload)
 	if err != nil {
 		return fmt.Errorf("failed to insert webhook event: %w", err)
 	}
 	if !inserted {
-		// Idempotent duplicate: the event_id already exists (a prior webhook
-		// for this transaction). The insert was a clean ON CONFLICT no-op, so
-		// the transaction is healthy and the outer commit will succeed.
-		s.log.Info("Webhook already processed (idempotent)",
-			zap.String("event_id", eventID),
+		// This exact notification is already stored. Its recorded status decides
+		// what happens next.
+		existingStatus, statusErr := s.paymentRepo.GetWebhookEventStatus(ctx, tx, notificationKey)
+		if statusErr != nil {
+			return fmt.Errorf("failed to read existing webhook event status: %w", statusErr)
+		}
+
+		if !webhookEventIsReprocessable(existingStatus) {
+			// Idempotent duplicate: the event was already processed (or otherwise
+			// recorded in a terminal state). The insert was a clean ON CONFLICT
+			// no-op, so the transaction is healthy and the outer commit succeeds.
+			s.log.Info("Webhook already processed (idempotent)",
+				zap.String("notification_key", notificationKey),
+				zap.String("transaction_id", notification.TransactionID),
+				zap.String("existing_status", existingStatus),
+			)
+			return nil
+		}
+
+		// REC-1: a previously FAILED delivery never completed processing — its
+		// transaction rolled back — and the only reason a row exists now is the
+		// independent failure record. Re-processing is therefore the behaviour
+		// that existed before failures were recorded durably. Treating the
+		// recorded failure as a permanent tombstone would silently change
+		// idempotency semantics and strand the event forever.
+		s.log.Info("Reprocessing webhook event previously recorded as failed",
+			zap.String("notification_key", notificationKey),
 			zap.String("transaction_id", notification.TransactionID),
 		)
-		return nil
 	}
 
 	// STEP 2: SIGNATURE VERIFICATION (AFTER insert)
 	if !s.midtransClient.VerifySignature(notification) {
 		s.log.Warn("Invalid webhook signature",
-			zap.String("event_id", eventID),
+			zap.String("notification_key", notificationKey),
 			zap.String("order_id", notification.OrderID),
 			zap.String("client_ip", clientIP),
 		)
-		// Update event status to failed
-		_ = s.updateWebhookEventStatus(ctx, tx, eventID, "failed", nil, strPtr("invalid signature"))
-		return fmt.Errorf("invalid signature")
+		// No status write here: this transaction always rolls back on the error
+		// returned below, so the write would be erased, and a signature rejection
+		// of UNVERIFIED input must not be persisted at all (REC-1).
+		return fmt.Errorf("%w", ErrWebhookSignatureInvalid)
 	}
 
 	// STEP 3: Transition to processing (state machine enforcement)
-	if err := s.updateWebhookEventStatus(ctx, tx, eventID, "processing", nil, nil); err != nil {
+	if err := s.updateWebhookEventStatus(ctx, tx, notificationKey, "processing", nil, nil); err != nil {
 		return fmt.Errorf("failed to update webhook event to processing: %w", err)
 	}
 
@@ -416,27 +467,27 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 	// state transition. Dispatch them to RefundService and stop here so
 	// the payment-side amount validation below never runs against a
 	// refund payload.
-	if s.midtransClient.IsRefundNotification(notification.TransactionStatus) {
+	if midtrans.IsRefundNotification(notification.TransactionStatus) {
 		if s.refundService == nil {
 			s.log.Warn("refund_webhook_unwired",
-				zap.String("event_id", eventID),
+				zap.String("notification_key", notificationKey),
 				zap.String("order_id", notification.OrderID),
 				zap.String("transaction_status", notification.TransactionStatus),
 			)
-			_ = s.updateWebhookEventStatus(ctx, tx, eventID, "succeeded", nil, nil)
+			_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "succeeded", nil, nil)
 			return nil
 		}
 		if err := s.refundService.HandleGatewayRefundAck(ctx, tx, notification); err != nil {
 			s.log.Error("refund_webhook_dispatch_failed",
-				zap.String("event_id", eventID),
+				zap.String("notification_key", notificationKey),
 				zap.String("order_id", notification.OrderID),
 				zap.Error(err),
 			)
 			errMsg := fmt.Sprintf("refund ack dispatch failed: %v", err)
-			_ = s.updateWebhookEventStatus(ctx, tx, eventID, "failed", nil, strPtr(errMsg))
+			_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", nil, strPtr(errMsg))
 			return fmt.Errorf("refund ack dispatch failed: %w", err)
 		}
-		_ = s.updateWebhookEventStatus(ctx, tx, eventID, "succeeded", nil, nil)
+		_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "succeeded", nil, nil)
 		return nil
 	}
 
@@ -445,18 +496,18 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			s.log.Warn("Webhook orphaned: payment not found",
-				zap.String("event_id", eventID),
+				zap.String("notification_key", notificationKey),
 				zap.String("order_id", notification.OrderID),
 			)
-			_ = s.updateWebhookEventStatus(ctx, tx, eventID, "orphaned", nil, strPtr("payment not found"))
+			_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "orphaned", nil, strPtr("payment not found"))
 			return nil // Return success to stop Midtrans retry
 		}
-		_ = s.updateWebhookEventStatus(ctx, tx, eventID, "failed", nil, strPtr(fmt.Sprintf("failed to find payment: %v", err)))
+		_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", nil, strPtr(fmt.Sprintf("failed to find payment: %v", err)))
 		return fmt.Errorf("failed to find payment: %w", err)
 	}
 
 	// STEP 5: Link event to payment
-	if err := s.linkWebhookEventToPayment(ctx, tx, eventID, payment.ID); err != nil {
+	if err := s.linkWebhookEventToPayment(ctx, tx, notificationKey, payment.ID); err != nil {
 		s.log.Error("Failed to link webhook to payment", zap.Error(err))
 	}
 
@@ -465,7 +516,7 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 	// Labuda's canonical money unit. Compared directly against the gateway's
 	// webhook amount, which is also whole Rupiah. No scaling in either direction.
 	expectedAmount := payment.GrossAmount.Int64()
-	webhookAmount := parseGrossAmount(notification.GrossAmount)
+	webhookAmount := midtrans.ParseGrossAmount(notification.GrossAmount)
 	if webhookAmount != expectedAmount {
 		s.log.Warn("Webhook amount mismatch",
 			zap.String("payment_id", payment.ID.String()),
@@ -473,21 +524,32 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 			zap.Int64("received", webhookAmount),
 		)
 		errMsg := fmt.Sprintf("amount mismatch: expected %d, got %d", expectedAmount, webhookAmount)
-		_ = s.updateWebhookEventStatus(ctx, tx, eventID, "failed", nil, strPtr(errMsg))
+		_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", nil, strPtr(errMsg))
 		return fmt.Errorf("amount validation failed")
 	}
 
 	// STEP 7: FIRST payment status check (early exit for already processed)
 	if !payment.IsPending() {
-		// PASS_18T: a gateway success notification for a payment the platform
-		// already expired (PaymentExpiryWorker) is NOT an ordinary idempotent
-		// replay — money may be captured at the gateway with no platform-side
-		// reconciliation. Do not label it "succeeded"; the canonical state
-		// machine (SettlePaymentByID) already hard-blocks settling an expired
-		// order, so recovery-to-paid is deliberately not attempted here.
-		if payment.IsExpired() && s.midtransClient.IsTransactionSuccess(notification.TransactionStatus) {
-			s.recordCapturedAfterExpiry(ctx, tx, eventID, payment, notification)
-			return nil
+		// REC-6 SLICE 1: a late gateway SUCCESS for a payment whose order can no
+		// longer be finalized must still produce the canonical refund intent.
+		// This uses the SAME order-validity authority as the discovery and
+		// orphan-recovery paths (orderentity.IsInvalidForPaymentFinalization).
+		if notification.ProviderState() == midtrans.ProviderStateSettled &&
+			payment.ReferenceType == "order" && payment.ReferenceID != nil && *payment.ReferenceID != uuid.Nil {
+			invalid, orderErr := orderInvalidForPaymentFinalization(ctx, tx, *payment.ReferenceID)
+			if orderErr != nil {
+				s.log.Error("rec6_order_load_failed",
+					zap.String("payment_id", payment.ID.String()),
+					zap.String("order_id", payment.ReferenceID.String()),
+					zap.Error(orderErr),
+				)
+				errMsg := fmt.Sprintf("REC-6: failed to load order: %v", orderErr)
+				_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
+				return fmt.Errorf("REC-6: failed to load order: %w", orderErr)
+			}
+			if invalid {
+				return s.createRec6RefundIntent(ctx, tx, notificationKey, payment, notification)
+			}
 		}
 
 		s.log.Info("Payment already processed, skipping",
@@ -495,19 +557,20 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 			zap.String("status", payment.Status),
 		)
 		// Still mark succeeded - we did our job
-		_ = s.updateWebhookEventStatus(ctx, tx, eventID, "succeeded", &payment.ID, nil)
+		_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "succeeded", &payment.ID, nil)
 		return nil
 	}
 
 	s.log.Info("Processing webhook notification",
 		zap.String("payment_id", payment.ID.String()),
-		zap.String("event_id", eventID),
+		zap.String("notification_key", notificationKey),
 		zap.String("transaction_status", notification.TransactionStatus),
 	)
 
 	// STEP 8: BUSINESS LOGIC
-	if s.midtransClient.IsTransactionSuccess(notification.TransactionStatus) {
-		// PAYMENT SUCCESS: settlement or capture
+	if notification.ProviderState() == midtrans.ProviderStateSettled {
+		// PAYMENT SUCCESS: canonical provider state SETTLED (settlement, or a
+		// capture the fraud gate accepted)
 
 		// STEP 8a: BULLETPROOF GUARD - Double-check payment status BEFORE settlement call
 		// This ensures ledger NEVER executes twice even if another transaction
@@ -518,7 +581,7 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 				zap.String("payment_id", payment.ID.String()),
 				zap.String("status", currentStatus),
 			)
-			_ = s.updateWebhookEventStatus(ctx, tx, eventID, "succeeded", &payment.ID, nil)
+			_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "succeeded", &payment.ID, nil)
 			return nil // Safe exit - another transaction processed it
 		}
 
@@ -526,13 +589,37 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 		// This owns payment settlement, gateway-funded escrow creation,
 		// and the order-paid transition in one reusable service.
 		if payment.ReferenceType == "order" && payment.ReferenceID != nil && *payment.ReferenceID != uuid.Nil {
+			// REC-6 SLICE 1: before finalizing, evaluate the SINGLE canonical
+			// order-validity authority (expired by time, or already transitioned
+			// out of pending_payment). A gateway success for an invalid order
+			// becomes a canonical refund intent instead of a finalization. This is
+			// the same predicate used by discovery and orphan recovery.
+			invalid, orderErr := orderInvalidForPaymentFinalization(ctx, tx, *payment.ReferenceID)
+			if orderErr != nil {
+				s.log.Error("rec6_order_load_failed",
+					zap.String("payment_id", payment.ID.String()),
+					zap.String("order_id", payment.ReferenceID.String()),
+					zap.Error(orderErr),
+				)
+				errMsg := fmt.Sprintf("REC-6: failed to load order: %v", orderErr)
+				_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
+				return fmt.Errorf("REC-6: failed to load order: %w", orderErr)
+			}
+			if invalid {
+				s.log.Warn("rec6_order_terminal_gateway_success",
+					zap.String("payment_id", payment.ID.String()),
+					zap.String("order_id", payment.ReferenceID.String()),
+				)
+				return s.createRec6RefundIntent(ctx, tx, notificationKey, payment, notification)
+			}
+
 			if s.canonicalFinalizationService == nil {
 				s.log.Error("CRITICAL: CanonicalFinalizationService not wired",
 					zap.String("payment_id", payment.ID.String()),
 					zap.String("order_id", (*payment.ReferenceID).String()),
 				)
 				errMsg := "CRITICAL: canonical finalization service not wired"
-				_ = s.updateWebhookEventStatus(ctx, tx, eventID, "failed", &payment.ID, strPtr(errMsg))
+				_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
 				return fmt.Errorf("CRITICAL: canonical finalization service not wired")
 			}
 
@@ -549,7 +636,7 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 					zap.Error(err),
 				)
 				errMsg := fmt.Sprintf("CRITICAL: failed to finalize order payment: %v", err)
-				_ = s.updateWebhookEventStatus(ctx, tx, eventID, "failed", &payment.ID, strPtr(errMsg))
+				_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
 				return fmt.Errorf("CRITICAL: failed to finalize order payment: %w", err)
 			}
 
@@ -572,7 +659,7 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 					zap.Error(err),
 				)
 				errMsg := fmt.Sprintf("CRITICAL: failed to get billing: %v", err)
-				_ = s.updateWebhookEventStatus(ctx, tx, eventID, "failed", &payment.ID, strPtr(errMsg))
+				_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
 				return fmt.Errorf("CRITICAL: failed to get billing: %w", err)
 			}
 
@@ -591,7 +678,7 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 					zap.Error(err),
 				)
 				errMsg := fmt.Sprintf("CRITICAL: failed to mark billing as paid: %v", err)
-				_ = s.updateWebhookEventStatus(ctx, tx, eventID, "failed", &payment.ID, strPtr(errMsg))
+				_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
 				return fmt.Errorf("CRITICAL: failed to mark billing as paid: %w", err)
 			}
 
@@ -602,7 +689,7 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 					zap.String("payment_id", payment.ID.String()),
 					zap.String("billing_id", billingID.String()),
 				)
-				_ = s.updateWebhookEventStatus(ctx, tx, eventID, "succeeded", &payment.ID, nil)
+				_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "succeeded", &payment.ID, nil)
 				return nil
 			}
 
@@ -619,7 +706,7 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 					zap.String("billing_id", billingID.String()),
 				)
 				errMsg := "promotion package purchase purged — use promotion_contracts"
-				_ = s.updateWebhookEventStatus(ctx, tx, eventID, "failed", &payment.ID, strPtr(errMsg))
+				_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
 				return fmt.Errorf("promotion package purchase forbidden")
 			}
 		}
@@ -638,7 +725,7 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 					zap.String("user_id", userID.String()),
 				)
 				errMsg := "CRITICAL: subscription payment service not configured"
-				_ = s.updateWebhookEventStatus(ctx, tx, eventID, "failed", &payment.ID, strPtr(errMsg))
+				_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
 				return fmt.Errorf("CRITICAL: subscription payment service not configured")
 			}
 
@@ -652,7 +739,7 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 						zap.Error(err),
 					)
 					errMsg := fmt.Sprintf("CRITICAL: failed to mark subscription payment as capture: %v", err)
-					_ = s.updateWebhookEventStatus(ctx, tx, eventID, "failed", &payment.ID, strPtr(errMsg))
+					_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
 					return fmt.Errorf("CRITICAL: failed to mark subscription payment as capture: %w", err)
 				}
 			} else {
@@ -662,7 +749,7 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 						zap.Error(err),
 					)
 					errMsg := fmt.Sprintf("CRITICAL: failed to mark subscription payment as settlement: %v", err)
-					_ = s.updateWebhookEventStatus(ctx, tx, eventID, "failed", &payment.ID, strPtr(errMsg))
+					_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
 					return fmt.Errorf("CRITICAL: failed to mark subscription payment as settlement: %w", err)
 				}
 			}
@@ -680,7 +767,7 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 					zap.Error(err),
 				)
 				errMsg := fmt.Sprintf("CRITICAL: failed to process subscription payment: %v", err)
-				_ = s.updateWebhookEventStatus(ctx, tx, eventID, "failed", &payment.ID, strPtr(errMsg))
+				_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
 				return fmt.Errorf("CRITICAL: failed to process subscription payment: %w", err)
 			}
 
@@ -690,28 +777,34 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 			)
 		}
 
-	} else if s.midtransClient.IsTransactionFailed(notification.TransactionStatus) {
+	} else if notification.ProviderState() == midtrans.ProviderStateFailed {
 		// PAYMENT FAILED: deny, cancel, expire
 		if err := s.settlementService.FailPayment(ctx, tx, notification.OrderID, notification.TransactionStatus); err != nil {
 			s.log.Error("Failed to mark payment as failed",
 				zap.String("payment_id", payment.ID.String()),
 				zap.Error(err),
 			)
-			// Don't fail the webhook - payment status update is not critical
-		} else {
-			s.log.Info("Payment marked as failed",
-				zap.String("payment_id", payment.ID.String()),
-				zap.String("status", notification.TransactionStatus),
-			)
+			// REC-1: this error must NOT be swallowed. Swallowing it let the flow
+			// continue to STEP 9 and commit the event as 'succeeded' — a durable
+			// record claiming the event was handled while the payment status update
+			// had actually failed. Returning the error rolls the transaction back
+			// and records the failure durably instead.
+			errMsg := fmt.Sprintf("failed to mark payment as failed: %v", err)
+			_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
+			return fmt.Errorf("failed to mark payment as failed: %w", err)
 		}
+		s.log.Info("Payment marked as failed",
+			zap.String("payment_id", payment.ID.String()),
+			zap.String("status", notification.TransactionStatus),
+		)
 
 		// BNR Phase 1: Mark payment attempt as failed
 		if payment.ReferenceType == "order" && payment.ReferenceID != nil {
 			s.updatePaymentAttemptFailed(ctx, tx, *payment.ReferenceID, notification.TransactionStatus)
 		}
-	} else if s.midtransClient.IsTransactionPending(notification.TransactionStatus) {
+	} else if notification.ProviderState() == midtrans.ProviderStatePending {
 		// Still pending - no action needed
-		_ = s.updateWebhookEventStatus(ctx, tx, eventID, "succeeded", &payment.ID, nil)
+		_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "succeeded", &payment.ID, nil)
 		return nil
 	} else {
 		// Unknown gateway status: do not silently mark success.
@@ -719,15 +812,15 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 		errMsg := fmt.Sprintf("unknown transaction status: %s", notification.TransactionStatus)
 		s.log.Warn("Unknown webhook transaction status",
 			zap.String("payment_id", payment.ID.String()),
-			zap.String("event_id", eventID),
+			zap.String("notification_key", notificationKey),
 			zap.String("transaction_status", notification.TransactionStatus),
 		)
-		_ = s.updateWebhookEventStatus(ctx, tx, eventID, repository.PaymentWebhookEventStatusManualReview, &payment.ID, &errMsg)
+		_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, repository.PaymentWebhookEventStatusManualReview, &payment.ID, &errMsg)
 		return nil
 	}
 
 	// STEP 9: MARK EVENT AS SUCCEEDED (final state)
-	if err := s.updateWebhookEventStatus(ctx, tx, eventID, "succeeded", &payment.ID, nil); err != nil {
+	if err := s.updateWebhookEventStatus(ctx, tx, notificationKey, "succeeded", &payment.ID, nil); err != nil {
 		s.log.Error("Failed to mark webhook event as succeeded", zap.Error(err))
 		// Non-critical - payment already updated
 	}
@@ -735,111 +828,131 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 	return nil
 }
 
-// recordCapturedAfterExpiry handles a gateway success notification that
-// arrives after PaymentExpiryWorker has already closed out the payment (and,
-// for order payments, expired the order). It does NOT attempt to recover the
-// payment/order to a paid state: the canonical state machine forbids it
-// (PaymentSettlementService.SettlePaymentByID hard-blocks settlement once
-// order.IsExpired()), and this pass does not weaken that guard. Instead the
-// event is durably recorded as captured_after_expiry — never "succeeded",
-// which would falsely imply the platform reconciled the money — and an
-// operator alert is raised so the unreconciled capture is visible and
-// actionable (manual reconciliation or refund) rather than silently lost.
+// orderInvalidForPaymentFinalization loads the two canonical order columns and
+// evaluates the shared domain authority
+// (orderentity.IsInvalidForPaymentFinalization). It is the SINGLE order-validity
+// decision used by both webhook ingestion and orphan recovery, so neither path
+// can drift from the canonical payment-finalization guards.
+func orderInvalidForPaymentFinalization(ctx context.Context, tx db.Tx, orderID uuid.UUID) (bool, error) {
+	var status string
+	var paymentExpiresAt time.Time
+	if err := tx.QueryRow(ctx, `SELECT status, payment_expires_at FROM orders WHERE id = $1`, orderID).Scan(&status, &paymentExpiresAt); err != nil {
+		return false, err
+	}
+	return orderentity.IsInvalidForPaymentFinalization(orderentity.Status(status), paymentExpiresAt), nil
+}
+
+// createRec6RefundIntent is the REC-6 webhook-side entry point for creating
+// a canonical refund intent when a gateway success notification arrives for
+// a payment whose order is in a terminal state (expired, cancelled, etc.).
 //
-// Idempotent: the same webhook retried by Midtrans never reaches this method
-// twice (the event_id UNIQUE constraint at STEP 1 already returns early).
-// Repeated late notifications for the same payment reuse payment.ID as both
-// the alert entity and the dedup group key, so AlertService's dedup window
-// merges them instead of paging on every retry.
-func (s *PaymentWebhookService) recordCapturedAfterExpiry(
+// It loads the order to obtain the seller_id, delegates to RefundService
+// (the canonical refund-intent authority), and marks the webhook event as
+// succeeded — the refund row is the durable evidence, not the webhook event.
+func (s *PaymentWebhookService) createRec6RefundIntent(
 	ctx context.Context,
 	tx db.Tx,
-	eventID string,
+	notificationKey string,
 	payment *repository.Payment,
 	notification *midtrans.NotificationPayload,
-) {
-	errMsg := fmt.Sprintf(
-		"gateway reported %s for payment %s after the platform already expired it; order/payment NOT marked paid; requires manual reconciliation or refund",
-		notification.TransactionStatus, payment.ID,
-	)
-	s.log.Error("payment_captured_after_expiry",
+) error {
+	if s.refundService == nil {
+		s.log.Error("rec6_refund_service_not_wired",
+			zap.String("payment_id", payment.ID.String()),
+		)
+		errMsg := "CRITICAL: REC-6 refund service not wired"
+		_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
+		return fmt.Errorf("CRITICAL: REC-6 refund service not wired")
+	}
+
+	if payment.ReferenceID == nil || *payment.ReferenceID == uuid.Nil {
+		s.log.Error("rec6_no_order_reference",
+			zap.String("payment_id", payment.ID.String()),
+		)
+		errMsg := "REC-6: payment has no valid order reference"
+		_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
+		return fmt.Errorf("REC-6: payment has no valid order reference")
+	}
+
+	// Load order to get seller_id for the refund row.
+	var sellerID uuid.UUID
+	if err := tx.QueryRow(ctx, `SELECT seller_id FROM orders WHERE id = $1`, *payment.ReferenceID).Scan(&sellerID); err != nil {
+		s.log.Error("rec6_order_load_failed",
+			zap.String("payment_id", payment.ID.String()),
+			zap.String("order_id", payment.ReferenceID.String()),
+			zap.Error(err),
+		)
+		errMsg := fmt.Sprintf("REC-6: failed to load order: %v", err)
+		_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
+		return fmt.Errorf("REC-6: failed to load order: %w", err)
+	}
+
+	refund, err := s.refundService.CreateRefundIntentForInvalidOrder(ctx, tx, refundapp.Rec6RefundIntentInput{
+		PaymentID:              payment.ID,
+		OrderID:                *payment.ReferenceID,
+		BuyerID:                payment.UserID,
+		SellerID:               sellerID,
+		GrossAmount:            payment.GrossAmount.Int64(),
+		PaymentMidtransOrderID: notification.OrderID,
+	})
+	if err != nil {
+		s.log.Error("rec6_refund_intent_create_failed",
+			zap.String("payment_id", payment.ID.String()),
+			zap.String("order_id", payment.ReferenceID.String()),
+			zap.Error(err),
+		)
+		errMsg := fmt.Sprintf("REC-6: refund intent create failed: %v", err)
+		_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
+		return fmt.Errorf("REC-6: refund intent create failed: %w", err)
+	}
+
+	s.log.Info("rec6_refund_intent_created",
 		zap.String("payment_id", payment.ID.String()),
-		zap.String("event_id", eventID),
-		zap.String("reference_type", payment.ReferenceType),
-		zap.String("transaction_status", notification.TransactionStatus),
+		zap.String("order_id", payment.ReferenceID.String()),
+		zap.String("refund_id", refund.ID.String()),
 		zap.Int64("gross_amount", payment.GrossAmount.Int64()),
 	)
 
-	if err := s.updateWebhookEventStatus(ctx, tx, eventID, repository.PaymentWebhookEventStatusCapturedAfterExpiry, &payment.ID, &errMsg); err != nil {
-		s.log.Error("Failed to mark webhook event as captured_after_expiry", zap.Error(err))
-	}
+	// Webhook event marked succeeded — the refund row is the durable evidence.
+	_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "succeeded", &payment.ID, nil)
 
-	if s.alertService == nil {
-		s.log.Warn("payment_captured_after_expiry_alert_not_wired",
-			zap.String("payment_id", payment.ID.String()),
-		)
-		return
-	}
-
-	metadata := alertentity.AlertMetadata{
-		"required_action":    "manual_reconciliation_or_refund",
-		"issue_type":         "payment_captured_after_expiry",
-		"event_id":           eventID,
-		"payment_id":         payment.ID.String(),
-		"reference_type":     payment.ReferenceType,
-		"transaction_status": notification.TransactionStatus,
-		"midtrans_order_id":  notification.OrderID,
-		"gross_amount":       payment.GrossAmount.Int64(),
-	}
-	if payment.ReferenceID != nil {
-		metadata["reference_id"] = payment.ReferenceID.String()
-	}
-
-	groupKey := fmt.Sprintf("payment_captured_after_expiry:%s", payment.ID.String())
-	if _, err := s.alertService.CreateAlert(
-		ctx,
-		alertentity.AlertTypePaymentCapturedAfterExpiry,
-		alertentity.SeverityCritical,
-		"payment",
-		payment.ID,
-		errMsg,
-		metadata,
-		&groupKey,
-	); err != nil {
-		s.log.Warn("Failed to create payment_captured_after_expiry alert",
-			zap.String("payment_id", payment.ID.String()),
-			zap.Error(err),
-		)
-	}
+	return nil
 }
 
-// insertWebhookEvent inserts a new webhook event with status=pending.
+// insertWebhookEvent inserts a new notification row with status=pending.
 //
-// Returns (true, nil) when a new row was inserted, (false, nil) when the
-// event_id already exists (idempotent duplicate). It uses ON CONFLICT DO
+// Returns (true, nil) when a new row was inserted, (false, nil) when THIS
+// notification is already stored (idempotent duplicate). It uses ON CONFLICT DO
 // NOTHING so a duplicate delivery is a clean no-op rather than a SQL error —
 // this keeps the surrounding transaction healthy (a unique-violation error
 // would abort the tx, making the subsequent Commit fail with
 // ErrTxCommitRollback even when the duplicate is treated as idempotent).
+//
+// IDENTITY (REC-3): the conflict target is notification_key — the identity of
+// one notification. midtransTransactionID is stored as event_id (the gateway
+// transaction reference) and is intentionally NOT unique: one transaction
+// produces several notifications, each of which must be stored and processed.
 func (s *PaymentWebhookService) insertWebhookEvent(
 	ctx context.Context,
 	tx db.Tx,
-	eventID string,
+	midtransTransactionID string,
+	notificationKey string,
 	midtransOrderID string,
 	signatureKey string,
 	payload []byte,
 ) (bool, error) {
 	query := `
 		INSERT INTO payment_webhook_events
-			(id, provider, event_id, midtrans_order_id, signature_key, payload, status, received_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-		ON CONFLICT (event_id) DO NOTHING
+			(id, provider, event_id, notification_key, midtrans_order_id, signature_key, payload, status, received_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+		ON CONFLICT (notification_key) DO NOTHING
 	`
 
 	tag, err := tx.Exec(ctx, query,
 		uuid.New(),
 		"midtrans",
-		eventID,
+		midtransTransactionID,
+		notificationKey,
 		midtransOrderID,
 		signatureKey,
 		payload,
@@ -849,16 +962,20 @@ func (s *PaymentWebhookService) insertWebhookEvent(
 		return false, err
 	}
 
-	// ON CONFLICT DO NOTHING reports 0 rows affected when the event_id already
-	// exists — that is the idempotent duplicate case.
+	// ON CONFLICT DO NOTHING reports 0 rows affected when this notification is
+	// already stored — that is the idempotent duplicate case.
 	return tag.RowsAffected() == 1, nil
 }
 
-// updateWebhookEventStatus updates the status of a webhook event
+// updateWebhookEventStatus updates the status of ONE stored notification.
+//
+// Keyed on notification_key (REC-3): keying on the gateway transaction
+// reference would write one notification's state onto every row stored for that
+// transaction.
 func (s *PaymentWebhookService) updateWebhookEventStatus(
 	ctx context.Context,
 	tx db.Tx,
-	eventID string,
+	notificationKey string,
 	status string,
 	paymentID *uuid.UUID,
 	errorMsg *string,
@@ -873,37 +990,29 @@ func (s *PaymentWebhookService) updateWebhookEventStatus(
 		    payment_id = $2,
 		    error_message = $3,
 		    processed_at = CASE WHEN $1::text IN ('succeeded', 'failed', 'orphaned', 'manual_review', 'quarantined', 'terminal_review') THEN NOW() ELSE NULL END
-		WHERE event_id = $4
+		WHERE notification_key = $4
 	`
 
-	_, err := tx.Exec(ctx, query, status, paymentID, errorMsg, eventID)
+	_, err := tx.Exec(ctx, query, status, paymentID, errorMsg, notificationKey)
 	return err
 }
 
-// linkWebhookEventToPayment links a webhook event to its payment
+// linkWebhookEventToPayment links one stored notification to its payment
+// (keyed on notification_key — see updateWebhookEventStatus).
 func (s *PaymentWebhookService) linkWebhookEventToPayment(
 	ctx context.Context,
 	tx db.Tx,
-	eventID string,
+	notificationKey string,
 	paymentID uuid.UUID,
 ) error {
 	query := `
 		UPDATE payment_webhook_events
 		SET payment_id = $1
-		WHERE event_id = $2
+		WHERE notification_key = $2
 	`
 
-	_, err := tx.Exec(ctx, query, paymentID, eventID)
+	_, err := tx.Exec(ctx, query, paymentID, notificationKey)
 	return err
-}
-
-// parseGrossAmount parses the gross amount string from Midtrans to int64 (IDR, no cents)
-// Midtrans sends amount as string like "10000.00" (IDR, no fractional cents)
-func parseGrossAmount(amountStr string) int64 {
-	// Parse as float first, then convert to int64
-	var amount float64
-	fmt.Sscanf(amountStr, "%f", &amount)
-	return int64(amount)
 }
 
 // strPtr returns a pointer to the given string

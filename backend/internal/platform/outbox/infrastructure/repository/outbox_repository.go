@@ -135,7 +135,6 @@ func (r *OutboxRepository) InsertEvent(
 	return nil
 }
 
-
 // InsertTx inserts an outbox event with an explicit idempotency key.
 //
 // This is a convenience method for workers that need to emit events
@@ -204,8 +203,41 @@ func (r *OutboxRepository) InsertTx(
 	return nil
 }
 
+// EventOwnershipScope restricts which outbox event types a consumer may claim.
+//
+// OWNERSHIP INVARIANT — ONE OUTBOX EVENT TYPE = ONE OWNING CONSUMER:
+// every claimable event type has exactly one owner, so a consumer claims only
+// the events it owns. Exactly one of Include / Exclude must be set:
+//
+//   - Include: claim ONLY these event types (a non-default owner, e.g. the
+//     realtime worker).
+//   - Exclude: claim every type EXCEPT these (the default owner, e.g. the
+//     application/notification worker).
+//
+// The scope is enforced in the durable row selection, so ownership keeps holding
+// when several workers poll the same table concurrently and across instances.
+// An empty or contradictory scope is rejected: a claimable event must never be
+// claimable by a consumer that does not own it.
+type EventOwnershipScope struct {
+	Include []string
+	Exclude []string
+}
 
-// FetchPendingBatch atomically locks and returns a batch of pending events.
+func (s EventOwnershipScope) validate() error {
+	hasInclude := len(s.Include) > 0
+	hasExclude := len(s.Exclude) > 0
+
+	switch {
+	case hasInclude && hasExclude:
+		return errors.New("ownership scope must set exactly one of include/exclude")
+	case !hasInclude && !hasExclude:
+		return errors.New("ownership scope is empty: every claimable event type must have exactly one owner")
+	}
+	return nil
+}
+
+// FetchPendingBatch atomically locks and returns a batch of pending events the
+// caller owns.
 //
 // CRITICAL: Uses FOR UPDATE SKIP LOCKED to:
 // - Lock selected rows for this transaction
@@ -215,27 +247,51 @@ func (r *OutboxRepository) InsertTx(
 // Query conditions:
 // - status IN ('pending', 'failed')
 // - next_attempt_at <= NOW()
+// - event_type inside the caller's ownership scope
 //
 // This ensures multiple workers can process different batches concurrently
-// without race conditions.
+// without race conditions, and that no worker ever claims another consumer's
+// event type.
 func (r *OutboxRepository) FetchPendingBatch(
 	ctx context.Context,
 	tx db.Tx,
 	limit int,
+	scope EventOwnershipScope,
 ) ([]Event, error) {
+	if err := scope.validate(); err != nil {
+		return nil, fmt.Errorf("invalid event ownership scope: %w", err)
+	}
+
 	query := `
 		SELECT
 			id, aggregate_type, aggregate_id, event_type, payload,
 			status, retry_count, next_attempt_at, created_at, updated_at
 		FROM outbox
 		WHERE status IN ($1, $2)
-		  AND next_attempt_at <= NOW()
+		  AND next_attempt_at <= NOW()`
+
+	args := []any{StatusPending, StatusFailed}
+	nextArg := 3
+
+	if len(scope.Include) > 0 {
+		query += fmt.Sprintf("\n\t\t  AND event_type = ANY($%d)", nextArg)
+		args = append(args, scope.Include)
+		nextArg++
+	}
+	if len(scope.Exclude) > 0 {
+		query += fmt.Sprintf("\n\t\t  AND event_type <> ALL($%d)", nextArg)
+		args = append(args, scope.Exclude)
+		nextArg++
+	}
+
+	query += fmt.Sprintf(`
 		ORDER BY created_at ASC
 		FOR UPDATE SKIP LOCKED
-		LIMIT $3
-	`
+		LIMIT $%d
+	`, nextArg)
+	args = append(args, limit)
 
-	rows, err := tx.Query(ctx, query, StatusPending, StatusFailed, limit)
+	rows, err := tx.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch pending batch: %w", err)
 	}
@@ -426,5 +482,3 @@ func isUniqueViolation(err error) bool {
 	var pgErr *pgconn.PgError
 	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
-
-

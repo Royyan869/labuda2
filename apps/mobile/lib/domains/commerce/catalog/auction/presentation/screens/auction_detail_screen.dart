@@ -541,14 +541,15 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
         );
         return;
       }
-      if (CommerceRestrictionPresenter.isCommerceRestricted(
-        notifierState.errorCode,
+      // Commerce restriction family — canonical dispatch by error CODE:
+      // COMMERCE_RESTRICTED → restriction snackbar,
+      // MARKET_AUTHORITY_REQUIRED → canonical seller renewal.
+      // (mounted is already guaranteed by the guard above the pop.)
+      if (CommerceRestrictionPresenter.handle(
+        this.context,
+        errorCode: notifierState.errorCode,
+        actionDescription: 'menempatkan bid',
       )) {
-        if (!mounted) return;
-        CommerceRestrictionPresenter.show(
-          this.context,
-          actionDescription: 'menempatkan bid',
-        );
         return;
       }
       if (notifierState.errorCode == api_codes.bnrAuctionRestricted) {
@@ -792,14 +793,16 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
             } else {
               if (!mounted) return null;
               final state = ref.read(auctionNotifierProvider);
-              // Commerce restriction — canonical backend rejection.
-              if (CommerceRestrictionPresenter.isCommerceRestricted(
-                state.errorCode,
+              // Commerce restriction family — canonical dispatch by error
+              // CODE: COMMERCE_RESTRICTED → restriction snackbar,
+              // MARKET_AUTHORITY_REQUIRED → canonical seller renewal.
+              // Returning null keeps the callback contract intact (modal stays
+              // open, no second presentation) and never double-navigates.
+              if (CommerceRestrictionPresenter.handle(
+                this.context,
+                errorCode: state.errorCode,
+                actionDescription: 'mengklaim lelang',
               )) {
-                CommerceRestrictionPresenter.show(
-                  this.context,
-                  actionDescription: 'mengklaim lelang',
-                );
                 return null;
               }
               // Generic error fallback

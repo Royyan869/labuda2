@@ -27,7 +27,6 @@ import (
 	platformconfigApp "github.com/labuda/backend/internal/platform/config/application"
 	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
 	"go.uber.org/zap"
 )
 
@@ -134,14 +133,15 @@ func (s *OrderService) SetCoinsService(coinsService *coinsApp.CoinsService) {
 	s.completionService.coinsService = coinsService
 }
 
-// SetActiveRefundChecker wires the active refund checker into the completion path.
+// SetRefundReleaseGuard wires the canonical refund release guard into the
+// completion path.
 //
-// H2-F2a MONEY-SAFETY: Blocks auto-completion when a refund is being
-// negotiated or settled, preventing escrow release while refund is in flight.
-// The completion service has a defensive nil guard — if this setter is never
-// called, the refund check is skipped (open-by-default for backward compat).
-func (s *OrderService) SetActiveRefundChecker(checker ActiveRefundChecker) {
-	s.completionService.activeRefundChecker = checker
+// Blocks completion while a refund must still be respected: money owed to the
+// buyer has not settled at the gateway, or the refund decision is still open
+// inside the order's own refund window. Fail-closed: the completion service
+// REFUSES to complete when this guard is not wired.
+func (s *OrderService) SetRefundReleaseGuard(guard RefundReleaseGuard) {
+	s.completionService.refundReleaseGuard = guard
 }
 
 // GetOrder retrieves an order by ID.
@@ -187,27 +187,6 @@ func (s *OrderService) CreateFromSaleSurface(
 	input CreateFromSaleSurfaceInput,
 ) (*entity.Order, error) {
 	return s.creationService.CreateFromSaleSurface(ctx, tx, input)
-}
-
-// RefundToBuyer flips the order's escrow to "refunded" (gateway-funded model).
-// No balance mutation; ledger reversal flows through the refund pipeline.
-func (s *OrderService) RefundToBuyer(
-	ctx context.Context,
-	tx db.Tx,
-	order *entity.Order,
-) error {
-	return s.paymentService.RefundToBuyer(ctx, tx, order)
-}
-
-// PartialRefundLedger flips the order's escrow to "released" for partial
-// dispute resolution (gateway-funded model).
-func (s *OrderService) PartialRefundLedger(
-	ctx context.Context,
-	tx db.Tx,
-	order *entity.Order,
-	refundAmount money.Money,
-) error {
-	return s.paymentService.PartialRefundLedger(ctx, tx, order, refundAmount)
 }
 
 // ============================================================================
@@ -310,17 +289,6 @@ func (s *OrderService) MarkDisputeOpen(
 	return s.completionService.MarkDisputeOpen(ctx, tx, orderID)
 }
 
-// MarkHasDisputePostRelease is retained as a guard for finalized dispute flow.
-// The owner finality rule no longer allows completed+released dispute
-// creation in the live runtime.
-func (s *OrderService) MarkHasDisputePostRelease(
-	ctx context.Context,
-	tx db.Tx,
-	orderID uuid.UUID,
-) error {
-	return s.completionService.MarkHasDisputePostRelease(ctx, tx, orderID)
-}
-
 // RefundOrder refunds an order to buyer.
 func (s *OrderService) RefundOrder(
 	ctx context.Context,
@@ -342,13 +310,23 @@ func (s *OrderService) RefundFromDispute(
 	return s.completionService.RefundFromDispute(ctx, tx, orderID, adminID)
 }
 
+// SetRefundDecisionAuthority wires the refund domain's admin-decision write-back
+// into the dispute resolution paths.
+func (s *OrderService) SetRefundDecisionAuthority(authority RefundDecisionAuthority) {
+	s.completionService.SetRefundDecisionAuthority(authority)
+}
+
 // ReleaseFromDispute releases an order from a dispute resolution.
+// adminID is the authenticated admin who authorized the resolution; it is stored
+// as the final refund decision's reviewed_by so the refund row carries the real
+// actor identity.
 func (s *OrderService) ReleaseFromDispute(
 	ctx context.Context,
 	tx db.Tx,
 	orderID uuid.UUID,
+	adminID uuid.UUID,
 ) error {
-	return s.completionService.ReleaseFromDispute(ctx, tx, orderID)
+	return s.completionService.ReleaseFromDispute(ctx, tx, orderID, adminID)
 }
 
 // PartialRefundFromDispute resolves a dispute with partial split:
@@ -363,30 +341,6 @@ func (s *OrderService) PartialRefundFromDispute(
 	adminID uuid.UUID,
 ) error {
 	return s.completionService.PartialRefundFromDispute(ctx, tx, orderID, adminID)
-}
-
-// RefundFromDisputePostRelease is parked under the owner finality rule.
-// Post-release buyer objections are handled outside the app and the
-// completion service now returns an explicit error instead of dispatching.
-func (s *OrderService) RefundFromDisputePostRelease(
-	ctx context.Context,
-	tx db.Tx,
-	orderID uuid.UUID,
-	adminID uuid.UUID,
-) error {
-	return s.completionService.RefundFromDisputePostRelease(ctx, tx, orderID, adminID)
-}
-
-// PartialRefundFromDisputePostRelease is parked under the owner finality rule.
-// Post-release buyer objections are handled outside the app and the
-// completion service now returns an explicit error instead of dispatching.
-func (s *OrderService) PartialRefundFromDisputePostRelease(
-	ctx context.Context,
-	tx db.Tx,
-	orderID uuid.UUID,
-	adminID uuid.UUID,
-) error {
-	return s.completionService.PartialRefundFromDisputePostRelease(ctx, tx, orderID, adminID)
 }
 
 // SyncRefundSettlementFromGatewayAck is the order-domain authority hook used

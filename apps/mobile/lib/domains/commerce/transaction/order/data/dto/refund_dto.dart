@@ -10,6 +10,35 @@ library;
 
 import 'package:labuda/domains/commerce/transaction/order/domain/entities/refund_request.dart';
 
+// =============================================================================
+// Request DTOs
+// =============================================================================
+
+/// CreateRefundDto - request body for POST /orders/:id/refunds.
+///
+/// Moved here from the purged order_dto.dart: a refund request DTO belongs to
+/// the refund DTO surface, not to a generic order DTO bucket.
+class CreateRefundDto {
+  final String orderId;
+  final String reason;
+  final String description;
+  final List<String>? evidence;
+
+  const CreateRefundDto({
+    required this.orderId,
+    required this.reason,
+    required this.description,
+    this.evidence,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'order_id': orderId,
+    'reason': reason,
+    'description': description,
+    if (evidence != null) 'evidence': evidence,
+  };
+}
+
 /// RefundDto - Complete refund data from backend
 ///
 /// Parses ALL fields from backend Refund entity including:
@@ -271,7 +300,10 @@ class RefundDto {
         return RefundStatus.rejected;
       case 'rejected':
         return RefundStatus.rejected;
-      case 'refunded':
+      // Canonical backend value for a platform-initiated refund
+      // (refunds.status = 'system_refunded'). 'refunded' no longer exists on
+      // the backend decision axis.
+      case 'system_refunded':
         return RefundStatus.refunded;
       default:
         return RefundStatus.pendingSellerReview;

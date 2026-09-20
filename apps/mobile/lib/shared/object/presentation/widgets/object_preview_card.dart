@@ -11,6 +11,7 @@ import 'package:labuda/shared/attachment/entities/share_reference.dart';
 import 'package:labuda/shared/object/object_preview.dart';
 import 'package:labuda/shared/object/object_preview_provider.dart';
 import 'package:labuda/shared/object/object_reference.dart';
+import 'package:labuda/shared/widgets/stable_network_image.dart';
 
 /// Reusable widget for displaying object preview with live data
 ///
@@ -143,22 +144,7 @@ class ObjectPreviewCard extends ConsumerWidget {
           child: Row(
             children: [
               // Thumbnail
-              if (imageUrl != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    imageUrl,
-                    width: 60,
-                    height: 60,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      width: 60,
-                      height: 60,
-                      color: AppColors.neutralGray200,
-                      child: const Icon(Icons.image_not_supported),
-                    ),
-                  ),
-                ),
+              if (imageUrl != null) _buildThumbnail(imageUrl),
               if (imageUrl != null) const SizedBox(width: 12),
               // Info
               Expanded(
@@ -274,22 +260,9 @@ class ObjectPreviewCard extends ConsumerWidget {
           child: Row(
             children: [
               if (reference.preview.imageUrl != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    reference.preview.imageUrl!,
-                    width: 60,
-                    height: 60,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      width: 60,
-                      height: 60,
-                      color: AppColors.neutralGray200,
-                      child: const Icon(Icons.image_not_supported),
-                    ),
-                  ),
-                ),
-              if (reference.preview.imageUrl != null) const SizedBox(width: 12),
+                _buildThumbnail(reference.preview.imageUrl!),
+              if (reference.preview.imageUrl != null)
+                const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -351,6 +324,56 @@ class ObjectPreviewCard extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  /// Thumbnail for the reference preview.
+  ///
+  /// [ShareTargetType.content] references carry a persisted Content media
+  /// reference (`content_media.media_url`) in their cached preview, so they are
+  /// projected through the shared network-media path — [StableNetworkImage] /
+  /// `resolveNetworkImageUrl` — exactly like every other converged Content media
+  /// surface. A persisted storage reference is never handed straight to the
+  /// image decoder.
+  ///
+  /// Commerce (for_sale / auction) and profile references are unchanged.
+  Widget _buildThumbnail(String imageUrl) {
+    const borderRadius = BorderRadius.all(Radius.circular(8));
+
+    if (reference.targetType == ShareTargetType.content) {
+      return ClipRRect(
+        borderRadius: borderRadius,
+        child: SizedBox(
+          width: 60,
+          height: 60,
+          child: StableNetworkImage(
+            imageUrl: imageUrl,
+            logicalCacheKey: reference.targetId,
+            fit: BoxFit.cover,
+            fallback: _buildThumbnailFallback(),
+          ),
+        ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: Image.network(
+        imageUrl,
+        width: 60,
+        height: 60,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildThumbnailFallback(),
+      ),
+    );
+  }
+
+  Widget _buildThumbnailFallback() {
+    return Container(
+      width: 60,
+      height: 60,
+      color: AppColors.neutralGray200,
+      child: const Icon(Icons.image_not_supported),
     );
   }
 

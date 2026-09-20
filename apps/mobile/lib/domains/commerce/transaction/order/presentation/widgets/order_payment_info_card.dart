@@ -55,7 +55,9 @@ class OrderPaymentInfoCard extends StatelessWidget {
           // Total amount
           _PaymentInfoRow(
             label: 'Total',
-            value: AppFormatters.formatCurrency(order.pricing.total),
+            value: order.pricing.totalPayableAmount != null
+                ? AppFormatters.formatCurrency(order.pricing.totalPayableAmount!)
+                : '—',
             isDark: isDark,
             isBold: true,
             valueColor: core.AppColors.primaryRed,
@@ -205,14 +207,15 @@ class _PaymentStatusBadge extends StatelessWidget {
 //
 // ATURAN EMAS (WAJIB):
 // ❌ Jangan hitung ulang apa pun di client
-// ❌ Jangan infer payout/fee dari field lain
-// ❌ Jangan tampilkan paymentFee sebelum PAID
+// ❌ Jangan infer fee dari field lain
+// ❌ Jangan tampilkan serviceFeeAmount sebelum tersedia dari backend
 // ✅ Semua angka = read-only dari backend
 //
-// Non-Contest (product / auction / offer) pricing display:
-// - baseAmount, shippingFee, platformFee, discountAmount, coinDiscount,
-//   taxAmount, paymentFee (tampil HANYA saat PAID), totalAmount
+// Canonical pricing display (subtotal = P, shippingCost = S,
+// serviceFeeAmount = F, totalPayableAmount = PD + S + F):
+// - subtotal, shippingCost, serviceFeeAmount, totalPayableAmount
 //
-// Contest pricing display:
-// - registrationFee, platformFee, paymentFee, organizerPayout
+// The legacy fields (baseAmount, shippingFee, platformFee, discountAmount,
+// coinDiscount, taxAmount, paymentFee) and the "Contest" pricing variant were
+// never part of the canonical Order contract and were purged.
 // =============================================================================

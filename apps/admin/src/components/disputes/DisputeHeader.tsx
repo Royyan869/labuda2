@@ -132,11 +132,11 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
           </p>
         </div>
 
-        {/* Escrow Amount (money at risk) */}
-        {dispute.escrow_amount != null && (
+        {/* Escrow Amount (money at risk) — canonical total_before_coins_amount */}
+        {dispute.total_before_coins_amount != null && (
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <p className="text-xs text-gray-500 uppercase tracking-wide">Escrow at Risk</p>
-            <p className="font-semibold text-sm mt-1">{formatRupiah(dispute.escrow_amount)}</p>
+            <p className="font-semibold text-sm mt-1">{formatRupiah(dispute.total_before_coins_amount)}</p>
           </div>
         )}
 

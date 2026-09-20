@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -374,6 +376,79 @@ func initInfrastructure(cfg *config.Config, log *logger.Logger) (
 	return db, redis, fb, mt
 }
 
+// validateMidtransNotificationURL enforces the INFRA-1 callback-target
+// authority.
+//
+// THE INVARIANT: the per-transaction `Notification-Url` header Labuda sends on
+// every Snap create-transaction call is the ONLY callback authority this
+// repository can control. Before INFRA-1 an empty value silently delegated the
+// callback target to the Midtrans dashboard — a second, unmanaged authority that
+// nothing in the repository configures or verifies. That fallback is now
+// FORBIDDEN.
+//
+// SCOPE NOTE (deliberate): this validates CONFIGURATION VALIDITY ONLY. It does
+// NOT probe reachability — DNS/uptime death is a runtime condition and belongs
+// to the readiness plane (INFRA-2), not to boot. Requiring reachability here
+// would make boot depend on an external host and would make legitimate local
+// development impossible.
+//
+// Rules:
+//   - Required: an empty value is a hard boot failure (no dashboard fallback).
+//   - Must be an absolute https:// URL (Midtrans only delivers to HTTPS).
+//   - Host must be a real, publicly routable DNS name. Loopback, private,
+//     link-local and unspecified addresses are rejected because the gateway
+//     cannot reach them from the public internet — this is the exact class of
+//     target that produced the PAY-INFRA-01 silent callback loss.
+//   - Path must be the canonical mounted callback path, so the configured
+//     target cannot point at a route that does not exist.
+func validateMidtransNotificationURL(raw string) error {
+	const key = "MIDTRANS_NOTIFICATION_URL"
+
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return fmt.Errorf("%s is required: an empty value would delegate the payment callback "+
+			"target to the Midtrans dashboard, which is not a repository-controlled authority. "+
+			"Set it to the stable public callback endpoint, e.g. https://<host>%s",
+			key, canonicalPaymentWebhookPath)
+	}
+
+	parsed, err := url.Parse(trimmed)
+	if err != nil {
+		return fmt.Errorf("%s is not a valid URL: %w", key, err)
+	}
+	if !parsed.IsAbs() || parsed.Host == "" {
+		return fmt.Errorf("%s must be an absolute URL including scheme and host (got %q)", key, trimmed)
+	}
+	if !strings.EqualFold(parsed.Scheme, "https") {
+		return fmt.Errorf("%s must use https (got scheme %q); Midtrans will not deliver to a non-TLS callback", key, parsed.Scheme)
+	}
+
+	host := parsed.Hostname()
+	if host == "" {
+		return fmt.Errorf("%s has no host component (got %q)", key, trimmed)
+	}
+	if strings.EqualFold(host, "localhost") {
+		return fmt.Errorf("%s host %q is not reachable by the payment gateway; a localhost target "+
+			"silently loses every callback", key, host)
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		return fmt.Errorf("%s host %q is an IP literal; the callback requires a public DNS hostname", key, host)
+	}
+	if !strings.Contains(host, ".") {
+		return fmt.Errorf("%s host %q is not a fully-qualified public DNS name; the payment gateway "+
+			"cannot resolve it", key, host)
+	}
+
+	// Normalize a trailing slash so "…/path/" and "…/path" are equivalent.
+	path := strings.TrimRight(parsed.Path, "/")
+	if path != canonicalPaymentWebhookPath {
+		return fmt.Errorf("%s path must be %q (the mounted payment callback route); got %q",
+			key, canonicalPaymentWebhookPath, parsed.Path)
+	}
+
+	return nil
+}
+
 // validateMidtransConfig enforces the STEP B fail-fast contract for the Midtrans
 // provider. The simulator stub has been removed; the server must refuse to boot
 // rather than silently fall back to a fake URL.
@@ -385,6 +460,8 @@ func initInfrastructure(cfg *config.Config, log *logger.Logger) (
 //   - In sandbox, ServerKey/ClientKey should carry "SB-Mid-server-"/"SB-Mid-client-"
 //     prefixes (warn-only — keys printed by Midtrans dashboard always carry them, but
 //     test fixtures may differ; we don't want to break local dev that's already wired).
+//   - STEP C (INFRA-1): the callback target must be a valid, publicly routable,
+//     canonical-path HTTPS URL. See validateMidtransNotificationURL.
 func validateMidtransConfig(cfg *config.Config) error {
 	env := cfg.Midtrans.Environment
 	switch env {
@@ -403,6 +480,13 @@ func validateMidtransConfig(cfg *config.Config) error {
 	}
 	if cfg.Midtrans.ClientKey == "" {
 		return fmt.Errorf("MIDTRANS_CLIENT_KEY is required for sandbox payment activation")
+	}
+
+	// STEP C (INFRA-1): callback target authority. The target must be a stable,
+	// publicly routable, canonical-path HTTPS URL so a sandbox deployment cannot
+	// silently run with a callback that dies on restart.
+	if err := validateMidtransNotificationURL(cfg.Midtrans.NotificationURL); err != nil {
+		return err
 	}
 
 	// Soft prefix check — print, don't fail.
@@ -553,6 +637,18 @@ func startServer(appCtx context.Context, cfg *config.Config, router *gin.Engine,
 	if deps.TotalMoneyInvariantWorker != nil && deps.TotalMoneyInvariantWorker.IsRunning() {
 		deps.TotalMoneyInvariantWorker.Stop()
 		log.Info("Total money invariant worker stopped")
+	}
+
+	// Presence sweeper shutdown (PRESENCE SLICE-2 — expiry to presence.changed)
+	if deps.PresenceSweeper != nil && deps.PresenceSweeper.IsRunning() {
+		deps.PresenceSweeper.Stop()
+		log.Info("Presence sweeper stopped")
+	}
+
+	// Presence subscriber shutdown (PRESENCE SLICE-2 — Redis→Hub fan-out)
+	if deps.PresenceSubscriber != nil && deps.PresenceSubscriber.IsRunning() {
+		deps.PresenceSubscriber.Stop()
+		log.Info("Presence subscriber stopped")
 	}
 
 	// ===== END WORKER SHUTDOWN =====

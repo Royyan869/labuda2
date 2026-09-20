@@ -60,7 +60,7 @@ class UploadTaskProgress {
   }
 }
 
-enum UploadTaskType { post, request, listing, auction }
+enum UploadTaskType { post, request, forSale, auction }
 
 enum UploadTaskStatus { pending, uploading, processing, completed, failed }
 

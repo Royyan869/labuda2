@@ -1,0 +1,30 @@
+-- ============================================================
+-- 000091 REFUND DECISION AXIS CONVERGENCE
+--
+-- Locked business truth (Owner): refunds.status is the REFUND DECISION axis.
+-- It records WHO decided and WHETHER that decision is final. It never records
+-- money movement — settlement lives on gateway_status / refunded_at /
+-- final_refund_amount.
+--
+--   pending_seller_review  buyer requested, awaiting seller
+--   seller_approved        FINAL — seller ACCEPTED the refund
+--   seller_rejected        NOT final — buyer may escalate
+--   escalated_to_admin     admin is now the final decision authority
+--   admin_refunded         FINAL — admin decided the buyer wins (escalated refund)
+--   admin_released         FINAL — admin decided the seller wins (escalated refund)
+--   system_refunded        platform-initiated refund: no negotiation, no admin
+--                          refund decision (payment expiry, buyer overdue cancel,
+--                          ban refund, manual admin refund, or a buyer-wins
+--                          dispute that had no refund request)
+--
+-- 'refunded' was a settlement-flavoured name sitting on the decision axis and
+-- had ZERO production writers: the only Go path that produced it
+-- (Refund.CompleteRefund) had no caller, and gateway acknowledgements never
+-- rewrote the decision. It is therefore renamed (not dropped) to
+-- 'system_refunded' so the enum describes the decision axis only and the
+-- platform-initiated refund concept has a canonical value.
+--
+-- ALTER TYPE ... RENAME VALUE rewrites no rows and preserves the enum's order.
+-- ============================================================
+
+ALTER TYPE refund_status_enum RENAME VALUE 'refunded' TO 'system_refunded';

@@ -223,7 +223,7 @@ func (h *DiscountHandler) CreateDiscount(c *gin.Context) {
 		return
 	}
 	if !hasCapability {
-		response.Forbidden(c, "Active seller subscription required to create discounts")
+		response.MarketAuthorityRequired(c, "Active seller subscription required to create discounts")
 		return
 	}
 

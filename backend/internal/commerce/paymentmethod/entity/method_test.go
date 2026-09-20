@@ -293,13 +293,17 @@ func TestValidateConfig_UnknownMidtransChannel(t *testing.T) {
 // can never reach Snap, regardless of what an admin tries to save.
 func TestAllowedMidtransChannels_ForbiddenPaylaterChannelsAbsent(t *testing.T) {
 	forbidden := []string{
-		"shopeepay", "spaylater", "shopeepay_installment", "shopeepay_paylater",
+		"spaylater", "shopeepay_installment", "shopeepay_paylater",
 		"kredivo", "akulaku",
 	}
 	for _, ch := range forbidden {
 		if AllowedMidtransChannels[ch] {
-			t.Fatalf("forbidden PayLater/ShopeePay channel %q must never be in AllowedMidtransChannels", ch)
+			t.Fatalf("forbidden PayLater channel %q must never be in AllowedMidtransChannels", ch)
 		}
+	}
+	// shopeepay e-wallet itself must be allowed (Phase 2 canonical wallet).
+	if !AllowedMidtransChannels["shopeepay"] {
+		t.Fatal("shopeepay e-wallet channel must be in AllowedMidtransChannels (canonical wallet)")
 	}
 }
 

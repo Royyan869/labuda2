@@ -84,9 +84,9 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
 
   bool _isSubmitting = false;
   String? _errorMessage;
-  ForSale? _originalListing;
+  ForSale? _originalForSale;
 
-  // Phase 2: re-selectable shipping subset for this listing. The backend has
+  // Phase 2: re-selectable shipping subset for this forSale. The backend has
   // no GET endpoint for current selection, so we let the seller re-pick from
   // scratch; on save, an empty selection means "no change requested" (we
   // skip the PUT call) and a non-empty selection means "overwrite the
@@ -97,7 +97,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
   @override
   void initState() {
     super.initState();
-    _loadListing();
+    _loadForSale();
   }
 
   @override
@@ -107,48 +107,48 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
     super.dispose();
   }
 
-  Future<void> _loadListing() async {
+  Future<void> _loadForSale() async {
     final controller = ref.read(forSaleControllerProvider);
     final result = await controller.getForSaleById(widget.forSaleId);
 
     if (mounted) {
       result.fold(
         (error) {
-          setState(() => _errorMessage = 'Gagal memuat listing: $error');
+          setState(() => _errorMessage = 'Gagal memuat forSale: $error');
         },
-        (listing) {
-          if (listing != null) {
+        (forSale) {
+          if (forSale != null) {
             // Check ownership + canonical draft-only mutability
             final authState = ref.read(authControllerProvider);
             if (authState is AuthStateAuthenticated &&
-                authState.user.id == listing.sellerId) {
+                authState.user.id == forSale.sellerId) {
               // Canonical: only draft is seller-editable (active/sold/withdrawn are live/terminal)
-              if (listing.status != ForSaleStatus.draft) {
+              if (forSale.status != ForSaleStatus.draft) {
                 setState(
                   () => _errorMessage =
-                      'Listing dengan status ${listing.status.displayName} tidak dapat diedit (hanya draft yang dapat diedit).',
+                      'ForSale dengan status ${forSale.status.displayName} tidak dapat diedit (hanya draft yang dapat diedit).',
                 );
                 return;
               }
               setState(() {
-                _originalListing = listing;
-                _titleController.text = listing.title;
-                _descriptionController.text = listing.description;
-                _price = listing.price;
-                _isNegotiable = listing.price > 0;
+                _originalForSale = forSale;
+                _titleController.text = forSale.title;
+                _descriptionController.text = forSale.description;
+                _price = forSale.price;
+                _isNegotiable = forSale.price > 0;
                 _mediaUrls.clear();
-                _mediaUrls.addAll(listing.media.urls);
-                _variety = listing.variety;
-                _sizeInCm = listing.sizeCm;
-                _ageInMonths = listing.ageMonths;
-                _gender = listing.gender;
-                _breeder = listing.breeder;
-                _bloodline = listing.bloodline;
+                _mediaUrls.addAll(forSale.media.urls);
+                _variety = forSale.variety;
+                _sizeInCm = forSale.sizeCm;
+                _ageInMonths = forSale.ageMonths;
+                _gender = forSale.gender;
+                _breeder = forSale.breeder;
+                _bloodline = forSale.bloodline;
               });
             } else {
               setState(
                 () => _errorMessage =
-                    'Anda tidak memiliki izin untuk mengedit listing ini',
+                    'Anda tidak memiliki izin untuk mengedit forSale ini',
               );
             }
           }
@@ -200,7 +200,14 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
       if (!mounted) return;
 
       if (!result.isSuccess) {
-        setState(() => _errorMessage = result.error);
+        final consumed = CommerceRestrictionPresenter.handle(
+          context,
+          errorCode: result.errorCode,
+          actionDescription: 'mengedit forSale',
+        );
+        if (!consumed) {
+          setState(() => _errorMessage = result.error);
+        }
         return;
       }
 
@@ -208,11 +215,11 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
       // re-picked. Leaving the section untouched preserves the existing
       // server-side subset (avoids accidentally clearing all options).
       if (_shippingSelectionDirty) {
-        final productId = _originalListing?.productId;
+        final productId = _originalForSale?.productId;
         if (productId == null || productId.isEmpty) {
           setState(() {
             _errorMessage =
-                'Listing tersimpan, tetapi product_id belum tersedia untuk memperbarui opsi pengiriman.';
+                'ForSale tersimpan, tetapi product_id belum tersedia untuk memperbarui opsi pengiriman.';
           });
           return;
         }
@@ -223,10 +230,10 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
         if (linkResult.isError) {
           // Backend rejects when there are active orders (or when option
           // IDs don't belong to the seller). Surface the message; the
-          // listing itself was already updated successfully.
+          // forSale itself was already updated successfully.
           setState(() {
             _errorMessage =
-                'Listing tersimpan, tapi opsi pengiriman gagal diperbarui: '
+                'ForSale tersimpan, tapi opsi pengiriman gagal diperbarui: '
                 '${linkResult.error ?? 'kesalahan tidak diketahui'}.';
           });
           return;
@@ -235,7 +242,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Listing berhasil diperbarui'),
+          content: Text('ForSale berhasil diperbarui'),
           backgroundColor: AppColors.successGreen,
         ),
       );
@@ -253,10 +260,10 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    if (_originalListing == null && _errorMessage == null) {
+    if (_originalForSale == null && _errorMessage == null) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Edit Listing'),
+          title: const Text('Edit ForSale'),
           backgroundColor: isDark
               ? AppColors.darkGray800
               : AppColors.neutralWhite,
@@ -271,7 +278,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
     if (_errorMessage != null && _errorMessage!.contains('izin')) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Edit Listing'),
+          title: const Text('Edit ForSale'),
           backgroundColor: isDark
               ? AppColors.darkGray800
               : AppColors.neutralWhite,
@@ -304,7 +311,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralGray50,
       appBar: AppBar(
-        title: const Text('Edit Listing'),
+        title: const Text('Edit ForSale'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
@@ -399,14 +406,14 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
 
             const SizedBox(height: 24),
 
-            // Phase 2: listing-level shipping subset re-selector.
-            const _SectionTitle('Opsi Pengiriman untuk Listing Ini'),
+            // Phase 2: forSale-level shipping subset re-selector.
+            const _SectionTitle('Opsi Pengiriman untuk ForSale Ini'),
             const SizedBox(height: 8),
             SellerShippingSetupsSelector(
               helperText:
-                  'Pilih ulang opsi pengiriman yang berlaku untuk listing ini. '
+                  'Pilih ulang opsi pengiriman yang berlaku untuk forSale ini. '
                   'Selama tidak diubah, opsi pengiriman saat ini tetap aktif. '
-                  'Backend menolak perubahan jika listing memiliki pesanan aktif.',
+                  'Backend menolak perubahan jika forSale memiliki pesanan aktif.',
               onSelectionChanged: (ids) => setState(() {
                 _selectedShippingSetupIds = ids;
                 _shippingSelectionDirty = true;
@@ -681,10 +688,10 @@ class _NegotiableToggle extends StatelessWidget {
 
 /// Stock/quantity field.
 ///
-/// Defaults to 1 (unique item — most koi listings are one-of-a-kind).
+/// Defaults to 1 (unique item — most koi forSales are one-of-a-kind).
 /// Sellers with multiple units of the same product increase this to enable
 /// stock-based sale; buyers can then purchase up to the available amount.
-/// Backend rejects changing this field once orders exist for the listing.
+/// Backend rejects changing this field once orders exist for the forSale.
 class _PriceField extends StatefulWidget {
   final double? initialValue;
   final void Function(double?) onChanged;

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/shared/helpers/user_identity_formatter.dart';
 import 'package:labuda/domains/user/profile/profile.dart';
 import 'package:labuda/domains/chat/chat/data/chat_providers.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
@@ -45,7 +46,7 @@ class NewChatUserListWidget extends ConsumerWidget {
             HybridAvatar.medium(
               userId: profile.userId,
               initials: profile.farmInfo?.farmName.trim().isNotEmpty == true
-                  ? UserInitialsHelper.fromName(profile.farmInfo!.farmName)
+                  ? UserIdentityFormatter.avatarInitials(profile.farmInfo!.farmName) ?? ''
                   : '',
             ),
             const SizedBox(width: 12),

@@ -430,7 +430,7 @@ func (h *ContractHandler) writeError(c *gin.Context, op string, err error) {
 
 	switch {
 	case errors.Is(err, auth.ErrMarketAuthorityRequired):
-		response.Forbidden(c, "Active seller subscription required to create a promotion contract")
+		response.MarketAuthorityRequired(c, "Active seller subscription required to create a promotion contract")
 	case errors.Is(err, financeApp.ErrPromoteBalanceInsufficient):
 		response.Error(c, http.StatusBadRequest, "PROMOTE_BALANCE_INSUFFICIENT",
 			"Insufficient promote balance to fund this promotion contract")

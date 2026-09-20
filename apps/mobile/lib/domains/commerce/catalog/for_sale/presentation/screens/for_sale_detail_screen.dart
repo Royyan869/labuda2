@@ -39,22 +39,22 @@ class ForSaleDetailScreen extends ConsumerStatefulWidget {
 class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
   @override
   Widget build(BuildContext context) {
-    final listingAsync = ref.watch(forSaleDetailProvider(widget.forSaleId));
+    final forSaleAsync = ref.watch(forSaleDetailProvider(widget.forSaleId));
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Detail Listing'),
+        title: const Text('Detail ForSale'),
         actions: [
           Builder(
             builder: (context) {
               final authState = ref.watch(authControllerProvider);
-              final listing = listingAsync.value;
+              final forSale = forSaleAsync.value;
 
-              if (listing == null || authState is! AuthStateAuthenticated) {
+              if (forSale == null || authState is! AuthStateAuthenticated) {
                 return const SizedBox.shrink();
               }
 
-              final isOwner = listing.sellerId == authState.user.id;
+              final isOwner = forSale.sellerId == authState.user.id;
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -62,25 +62,25 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
                   if (!isOwner)
                     CommerceSavedItemActionButton(
                       targetType: 'for_sale',
-                      targetId: listing.forSaleId,
+                      targetId: forSale.forSaleId,
                       label: 'Simpan',
                       activeLabel: 'Tersimpan',
                       icon: Icons.bookmark_border,
                       activeIcon: Icons.bookmark,
                     ),
-                  // Share button — all authenticated users can share a listing to feed.
+                  // Share button — all authenticated users can share a forSale to feed.
                   IconButton(
-                    onPressed: () => _handleShareListing(context, listing),
+                    onPressed: () => _handleShareForSale(context, forSale),
                     icon: const Icon(Icons.share_outlined),
                     tooltip: 'Bagikan',
                   ),
                   // Report button — non-owners only.
                   if (!isOwner)
                     PopupMoreOptionsButton(
-                      contentType: PopupMoreOptionsContentType.listing,
+                      contentType: PopupMoreOptionsContentType.forSale,
                       isCreator: false,
                       isDeleting: false,
-                      onReport: () => _handleReportListing(context, listing),
+                      onReport: () => _handleReportForSale(context, forSale),
                     ),
                 ],
               );
@@ -88,12 +88,12 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
           ),
         ],
       ),
-      body: listingAsync.when(
-        data: (listing) {
-          if (listing == null) {
-            return const Center(child: Text('Listing not found'));
+      body: forSaleAsync.when(
+        data: (forSale) {
+          if (forSale == null) {
+            return const Center(child: Text('ForSale not found'));
           }
-          return _buildForSaleContent(context, listing);
+          return _buildForSaleContent(context, forSale);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) =>
@@ -103,26 +103,26 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
     );
   }
 
-  Future<void> _handleReportListing(
+  Future<void> _handleReportForSale(
     BuildContext context,
-    ForSale listing,
+    ForSale forSale,
   ) async {
     final authState = ref.read(authControllerProvider);
     if (authState is! AuthStateAuthenticated) {
       if (mounted) {
         AppSnackBar.showError(
           context,
-          'Silakan masuk untuk melaporkan listing',
+          'Silakan masuk untuk melaporkan forSale',
         );
       }
       return;
     }
 
-    if (listing.sellerId == authState.user.id) {
+    if (forSale.sellerId == authState.user.id) {
       if (mounted) {
         AppSnackBar.showError(
           context,
-          'Tidak dapat melaporkan listing milik sendiri',
+          'Tidak dapat melaporkan forSale milik sendiri',
         );
       }
       return;
@@ -131,23 +131,23 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
     if (!mounted) return;
     await ReportSubmissionDialog.show(
       context,
-      targetId: listing.forSaleId,
+      targetId: forSale.forSaleId,
       targetType: ReportTargetType.forSale,
-      targetTitle: listing.title,
+      targetTitle: forSale.title,
     );
   }
 
-  Future<void> _handleShareListing(
+  Future<void> _handleShareForSale(
     BuildContext context,
-    ForSale listing,
+    ForSale forSale,
   ) async {
     final shareTarget = ShareTarget(
-      id: listing.forSaleId,
-      type: ExternalShareType.listing,
-      title: listing.title,
-      description: 'Rp ${listing.price.toStringAsFixed(0)}',
-      imageUrl: listing.media.isNotEmpty
-          ? listing.media.first.originalUrl
+      id: forSale.forSaleId,
+      type: ExternalShareType.forSale,
+      title: forSale.title,
+      description: 'Rp ${forSale.price.toStringAsFixed(0)}',
+      imageUrl: forSale.media.isNotEmpty
+          ? forSale.media.first.originalUrl
           : null,
     );
 
@@ -290,31 +290,31 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
     );
   }
 
-  Widget _buildForSaleContent(BuildContext context, ForSale listing) {
+  Widget _buildForSaleContent(BuildContext context, ForSale forSale) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Listing media — images and videos with canonical type rendering
-          if (listing.media.isNotEmpty)
+          // ForSale media — images and videos with canonical type rendering
+          if (forSale.media.isNotEmpty)
             MediaCarouselWidget(
-              media: listing.media,
+              media: forSale.media,
               aspectRatio: 4 / 3,
               borderRadius: BorderRadius.zero,
             ),
-          // Listing details
+          // ForSale details
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  listing.title,
+                  forSale.title,
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Rp ${listing.price.toStringAsFixed(0)}',
+                  'Rp ${forSale.price.toStringAsFixed(0)}',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.bold,
@@ -329,19 +329,19 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
                 // Uses shared preparation time mapping for consistency across all screens
                 _buildPreparationTimeSection(
                   context,
-                  listing.preparationTime,
-                  listing.preparationNote,
+                  forSale.preparationTime,
+                  forSale.preparationNote,
                 ),
 
                 const SizedBox(height: 16),
                 Text(
-                  listing.description,
+                  forSale.description,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 16),
-                _ForSaleSellerCard(listing: listing),
+                _ForSaleSellerCard(forSale: forSale),
                 const SizedBox(height: 16),
-                // Promote button (only for listing owner)
+                // Promote button (only for forSale owner)
                 const _PromoteButton(),
               ],
             ),
@@ -356,7 +356,7 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
 ///
 /// Canonical era: promotion is contract-based. The seller entry point is the
 /// canonical promotion management list (create contract + queue targets).
-/// The legacy per-listing promotion instance lookup and the legacy
+/// The legacy per-forSale promotion instance lookup and the legacy
 /// activation route are purged.
 class _PromoteButton extends ConsumerWidget {
   const _PromoteButton();
@@ -391,16 +391,16 @@ class _PromoteButton extends ConsumerWidget {
   }
 }
 
-/// Listing Seller Card
+/// ForSale Seller Card
 ///
 /// Bounded commerce trust surface: shows seller identity to the buyer.
 ///
-/// Owner Truth: farmName (Listing.sellerFarmName) is the public seller
-/// identity; @username (Listing.sellerUsername) is the public user handle;
+/// Owner Truth: farmName (ForSale.sellerFarmName) is the public seller
+/// identity; @username (ForSale.sellerUsername) is the public user handle;
 /// fullName is private/KYC and is NEVER read here.
 ///
 /// Identity SOURCE PRIORITY:
-///   1. Listing entity owner-truth fields (populated by mapper from backend
+///   1. ForSale entity owner-truth fields (populated by mapper from backend
 ///      identity scalars: seller_farm_name / seller_username /
 ///      seller_avatar_url).
 ///   2. `userDataProvider(sellerId)` is consulted ONLY for username/avatar
@@ -413,9 +413,9 @@ class _PromoteButton extends ConsumerWidget {
 ///   - Loading: a non-identity placeholder ("Memuat...") is shown.
 ///   - Error: hidden.
 class _ForSaleSellerCard extends ConsumerWidget {
-  final ForSale listing;
+  final ForSale forSale;
 
-  const _ForSaleSellerCard({required this.listing});
+  const _ForSaleSellerCard({required this.forSale});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -428,38 +428,38 @@ class _ForSaleSellerCard extends ConsumerWidget {
     // The badge is computed once here so both the data and loading branches
     // can reference it; only the data branch renders it.
     final tierBadgeVisible =
-        !listing.sellerUserLifecycle.isDegraded &&
-        listing.sellerTrustLifecycle == ContentLifecycle.active &&
-        listing.sellerTier != null;
+        !forSale.sellerUserLifecycle.isDegraded &&
+        forSale.sellerTrustLifecycle == ContentLifecycle.active &&
+        forSale.sellerTier != null;
 
     // E8.2 — Seller user-identity lifecycle redaction. When the seller's
     // user identity is degraded (banned/deleted), render an italic
-    // placeholder + neutral avatar + tap disabled. The listing itself is
-    // controlled by `listing.status` and stays visible — seller-user
+    // placeholder + neutral avatar + tap disabled. The forSale itself is
+    // controlled by `forSale.status` and stays visible — seller-user
     // lifecycle MUST NOT hide the item.
     //
     // AXIS BOUNDARY: user-axis gate fires here. Seller-trust axis
     // (sellerTrustLifecycle) is now also consumed for the tier badge
     // gate only — no other UI behaviour changes on trust-axis state here.
-    if (listing.sellerUserLifecycle.isDegraded) {
+    if (forSale.sellerUserLifecycle.isDegraded) {
       return _buildDegradedRow(
         context,
-        placeholder: listing.sellerUserLifecycle.publicRedactionLabel,
+        placeholder: forSale.sellerUserLifecycle.publicRedactionLabel,
         isDark: isDark,
       );
     }
 
-    final userAsync = ref.watch(userDataProvider(listing.sellerId));
+    final userAsync = ref.watch(userDataProvider(forSale.sellerId));
 
     return userAsync.when(
       data: (user) {
-        // Owner-truth identity from the listing entity.
-        final farmName = listing.sellerFarmName;
+        // Owner-truth identity from the forSale entity.
+        final farmName = forSale.sellerFarmName;
         final hasFarm = farmName != null && farmName.isNotEmpty;
-        final entityUsername = listing.sellerUsername;
+        final entityUsername = forSale.sellerUsername;
         final hasEntityUsername =
             entityUsername != null && entityUsername.isNotEmpty;
-        final entityAvatar = listing.sellerAvatar;
+        final entityAvatar = forSale.sellerAvatar;
         final hasEntityAvatar = entityAvatar != null && entityAvatar.isNotEmpty;
 
         // user-lookup fills username/avatar when the entity lacks them
@@ -504,7 +504,7 @@ class _ForSaleSellerCard extends ConsumerWidget {
           username: identity.line2,
           onTap: () => ref
               .read(navigationHandlerProvider)
-              .navigateToUserProfile(listing.sellerId),
+              .navigateToUserProfile(forSale.sellerId),
           isDark: isDark,
         );
 
@@ -520,7 +520,7 @@ class _ForSaleSellerCard extends ConsumerWidget {
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: SellerTierBadge(tier: listing.sellerTier),
+              child: SellerTierBadge(tier: forSale.sellerTier),
             ),
           ],
         );
@@ -731,14 +731,14 @@ class _ForSaleDetailActionBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authControllerProvider);
-    final listingAsync = ref.watch(forSaleDetailProvider(forSaleId));
-    final listing = listingAsync.value;
-    if (listing == null) return const SizedBox.shrink();
+    final forSaleAsync = ref.watch(forSaleDetailProvider(forSaleId));
+    final forSale = forSaleAsync.value;
+    if (forSale == null) return const SizedBox.shrink();
 
     final isAuthenticated = authState is AuthStateAuthenticated;
 
     // Owner: buyer action bar not applicable.
-    if (isAuthenticated && listing.sellerId == authState.user.id) {
+    if (isAuthenticated && forSale.sellerId == authState.user.id) {
       return const SizedBox.shrink();
     }
 
@@ -747,16 +747,16 @@ class _ForSaleDetailActionBar extends ConsumerWidget {
     // for PRESENTATION only (permission is never granted locally).
     if (!isAuthenticated) {
       return _ForSaleActionBar(
-        listing: listing,
+        forSale: forSale,
         guest: true,
         canChat: true,
-        canNegotiate: listing.isNegotiable,
-        canBuy: listing.productId != null && listing.stock > 0,
+        canNegotiate: forSale.isNegotiable,
+        canBuy: forSale.productId != null && forSale.stock > 0,
         unavailable: false,
       );
     }
 
-    final caps = listing.viewerCapabilities;
+    final caps = forSale.viewerCapabilities;
     // Non-detail payload safety: no viewer-scoped capability slot on
     // list/search payloads → no transaction CTA.
     if (caps == null) return const SizedBox.shrink();
@@ -768,7 +768,7 @@ class _ForSaleDetailActionBar extends ConsumerWidget {
 
     final unavailable = caps.canChat && !caps.canBuy && !caps.canNegotiate;
     return _ForSaleActionBar(
-      listing: listing,
+      forSale: forSale,
       guest: false,
       canChat: caps.canChat,
       canNegotiate: caps.canNegotiate,
@@ -780,7 +780,7 @@ class _ForSaleDetailActionBar extends ConsumerWidget {
 
 /// Renders the buyer action row(s) from canonical capability facts.
 class _ForSaleActionBar extends ConsumerWidget {
-  final ForSale listing;
+  final ForSale forSale;
   final bool guest;
   final bool canChat;
   final bool canNegotiate;
@@ -788,7 +788,7 @@ class _ForSaleActionBar extends ConsumerWidget {
   final bool unavailable;
 
   const _ForSaleActionBar({
-    required this.listing,
+    required this.forSale,
     required this.guest,
     required this.canChat,
     required this.canNegotiate,
@@ -809,16 +809,16 @@ class _ForSaleActionBar extends ConsumerWidget {
       context: context,
       ref: ref,
       reference: ShareReference.forSale(
-        forSaleId: listing.forSaleId,
-        title: listing.title,
-        imageUrl: listing.media.isNotEmpty
-            ? (listing.media.first.thumbnailUrl ??
-                  listing.media.first.originalUrl)
+        forSaleId: forSale.forSaleId,
+        title: forSale.title,
+        imageUrl: forSale.media.isNotEmpty
+            ? (forSale.media.first.thumbnailUrl ??
+                  forSale.media.first.originalUrl)
             : null,
-        isAvailable: listing.isAvailable,
-        isSold: listing.stock == 0,
+        isAvailable: forSale.isAvailable,
+        isSold: forSale.stock == 0,
       ),
-      sellerId: listing.sellerId,
+      sellerId: forSale.sellerId,
       autoOpenNegotiation: negotiate,
     );
   }
@@ -828,10 +828,10 @@ class _ForSaleActionBar extends ConsumerWidget {
       _requireLogin(context);
       return;
     }
-    final productId = listing.productId;
+    final productId = forSale.productId;
     if (productId == null || productId.isEmpty) return;
     final uri = Uri(
-      path: '/checkout/${listing.forSaleId}',
+      path: '/checkout/${forSale.forSaleId}',
       queryParameters: {'product_id': productId},
     );
     context.push(uri.toString());

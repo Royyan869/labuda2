@@ -70,29 +70,6 @@ class ProfileNotifier extends _$ProfileNotifier {
     );
   }
 
-  /// Update farm info
-  Future<void> updateFarmInfo(String userId, FarmInfo farmInfo) async {
-    final repository = ref.read(profileRepositoryProvider);
-    final currentProfile = state.profile.value;
-    if (currentProfile == null) {
-      state = state.copyWith(errorMessage: 'Cannot update: no profile loaded');
-      return;
-    }
-
-    state = state.copyWith(isUpdating: true);
-
-    final result = await repository.updateFarmInfo(userId, farmInfo);
-
-    result.fold(
-      (error) {
-        state = state.copyWith(isUpdating: false, errorMessage: error);
-      },
-      (updated) {
-        state = ProfileState.data(updated);
-      },
-    );
-  }
-
   /// Get profile stats
   Future<void> fetchStats(String userId) async {
     final repository = ref.read(profileRepositoryProvider);

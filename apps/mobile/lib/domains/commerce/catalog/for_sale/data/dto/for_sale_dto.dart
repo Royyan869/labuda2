@@ -117,7 +117,7 @@ class ForSaleResponseDto extends Equatable {
   /// E8.2 — Canonical seller user-identity lifecycle.
   ///
   /// Sourced at parse time from the wire's nested
-  /// `listing.seller.user.lifecycle` slot populated by E8.1's
+  /// `forSale.seller.user.lifecycle` slot populated by E8.1's
   /// publiccard.NewSellerCardWithUserLifecycle. Tolerant: null / missing /
   /// unknown / empty → null here (mapper converts to ContentLifecycle.active).
   ///
@@ -127,13 +127,13 @@ class ForSaleResponseDto extends Equatable {
   final String? sellerUserLifecycle;
 
   /// Expired-seller visibility — seller-trust lifecycle from the wire's
-  /// top-level `listing.seller.lifecycle` slot. Populated by backend
+  /// top-level `forSale.seller.lifecycle` slot. Populated by backend
   /// coarsening of the latest `seller_subscriptions.status` row.
   /// Tolerant: null / missing / unknown / empty → null (mapper converts
   /// to ContentLifecycle.active so legacy payloads keep current render).
   final String? sellerTrustLifecycle;
 
-  /// Seller tier — raw wire value from `listing.seller.tier`.
+  /// Seller tier — raw wire value from `forSale.seller.tier`.
   /// Populated by backend GatedSellerTier when
   /// ENABLE_PUBLIC_SELLER_TIER_PROFILE is true and all lifecycle gates pass.
   /// Values: "pro", "elite". Null when gated out or flag disabled.
@@ -232,7 +232,7 @@ class ForSaleResponseDto extends Equatable {
       sellerFarmName: json['seller_farm_name'] as String?,
       sellerAvatarUrl: json['seller_avatar_url'] as String?,
       // E8.2 — Walk the nested canonical PublicCard wire slot
-      // (`listing.seller.user.lifecycle`). Pre-E8.1 payloads omit it →
+      // (`forSale.seller.user.lifecycle`). Pre-E8.1 payloads omit it →
       // null fall-through.
       sellerUserLifecycle: _readForSaleSellerUserLifecycle(json),
       // Expired-seller visibility — walk the top-level seller-trust slot

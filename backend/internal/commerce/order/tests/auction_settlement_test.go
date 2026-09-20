@@ -47,16 +47,15 @@ func insertAuctionFixtureUsers(ctx context.Context, t *testing.T, testDB *testdb
 	require.NoError(t, err, "seller/buyer user fixtures failed")
 }
 
-func newAuctionOrder(buyerID, sellerID, auctionID uuid.UUID, unitPrice int64, settlementType orderentity.AuctionSettlementType) *orderentity.Order {
+func newAuctionOrder(buyerID, sellerID, auctionID uuid.UUID, unitPrice int64) *orderentity.Order {
 	price := money.New(unitPrice)
 	return orderentity.NewOrderFromSource(
 		buyerID, sellerID, orderentity.OrderSourceAuction, auctionID, nil, 1,
 		price, price, money.New(15000), 5,
 		money.New(25000), money.New(3000), price.Add(money.New(15000)).Add(money.New(25000)).Add(money.New(3000)),
 		nil, "JNE", "truck",
-		&settlementType,
 		"immediate", nil, nil, nil, nil, nil,
-		"instant", time.Now().Add(1*time.Hour),
+		time.Now().Add(1*time.Hour),
 	)
 }
 
@@ -116,7 +115,7 @@ func TestAuctionBuyNowSettlement_ClosesAuctionAndBlocksDoubleSale(t *testing.T) 
 		require.Nil(t, auction.OrderID, "auction must be unsettled before buy-now")
 		require.Equal(t, auctionentity.StatusActive, auction.Status)
 
-		order := newAuctionOrder(buyerID, sellerID, auctionID, buyNowPrice, orderentity.AuctionSettlementBuyNow)
+		order := newAuctionOrder(buyerID, sellerID, auctionID, buyNowPrice)
 		if err := orderRepo.CreateOrderTx(ctx, tx, order); err != nil {
 			return err
 		}
@@ -233,7 +232,7 @@ func TestAuctionBuyNowSettlement_RollbackLeavesAuctionUnchanged(t *testing.T) {
 			return err
 		}
 		orderinfraRepo := orderinfra.NewOrderRepository()
-		order := newAuctionOrder(uuid.New() /* buyer with no users row */, sellerID, auctionID, buyNowPrice, orderentity.AuctionSettlementBuyNow)
+		order := newAuctionOrder(uuid.New() /* buyer with no users row */, sellerID, auctionID, buyNowPrice)
 		if err := orderinfraRepo.CreateOrderTx(ctx, tx, order); err != nil {
 			return err // order creation failed — must not reach auction mutation below
 		}
@@ -323,7 +322,7 @@ func TestAuctionOrderCancel_ReleasesBinding(t *testing.T) {
 		auctionID = auction.ID
 
 		// Simulate the D1-fixed buy-now settlement (D1 auction-settle sequence).
-		order := newAuctionOrder(buyerID, sellerID, auctionID, buyNowPrice, orderentity.AuctionSettlementBuyNow)
+		order := newAuctionOrder(buyerID, sellerID, auctionID, buyNowPrice)
 		if err := orderRepo.CreateOrderTx(ctx, tx, order); err != nil {
 			return err
 		}
@@ -411,7 +410,7 @@ func TestAuctionOrderExpire_ReleasesBinding(t *testing.T) {
 			return err
 		}
 
-		order := newAuctionOrder(buyerID, sellerID, auctionID, winningBid, orderentity.AuctionSettlementBidWin)
+		order := newAuctionOrder(buyerID, sellerID, auctionID, winningBid)
 		if err := orderRepo.CreateOrderTx(ctx, tx, order); err != nil {
 			return err
 		}

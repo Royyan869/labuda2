@@ -1,4 +1,6 @@
 import 'package:equatable/equatable.dart';
+import 'package:labuda/domains/social/content/domain/entities/content.dart'
+    show MediaType;
 
 enum ChatResourceProjectionState { live, tombstone }
 
@@ -323,6 +325,14 @@ class ChatContentMediaRef extends Equatable {
       height: (json['height'] as num?)?.toInt(),
     );
   }
+
+  /// Render authority for this media reference.
+  ///
+  /// [kind] is the transported persisted `content_media.media_type` (projected
+  /// as `mediaref.MediaRef.Kind` by the canonical Content projection). It is the
+  /// only media-type authority — a URL extension is never sniffed.
+  MediaType get mediaType =>
+      kind == MediaType.video.name ? MediaType.video : MediaType.image;
 
   Map<String, dynamic> toJson() => {
     'url': url,

@@ -15,7 +15,7 @@ class AttachmentMapper {
 
     final type = data['type'] as String?;
     switch (type) {
-      // Note: 'post', 'listing', 'auction', 'request' removed - now use ShareReference
+      // Note: 'post', 'forSale', 'auction', 'request' removed - now use ShareReference
       case 'location':
         return _mapToLocationAttachment(data);
       case 'negotiation_offer':
@@ -87,8 +87,8 @@ class AttachmentMapper {
     return NegotiationOfferAttachment(
       negotiationId: data['negotiationId'] as String,
       forSaleId: data['forSaleId'] as String,
-      listingName: data['listingName'] as String,
-      listingImage: data['listingImage'] as String?,
+      forSaleName: data['forSaleName'] as String,
+      forSaleImage: data['forSaleImage'] as String?,
       originalPrice: (data['originalPrice'] as num).toDouble(),
       currentOfferPrice: (data['currentOfferPrice'] as num).toDouble(),
       lastOfferBy: data['lastOfferBy'] as String,
@@ -122,8 +122,8 @@ class AttachmentMapper {
     return NegotiationResultAttachment(
       negotiationId: data['negotiationId'] as String,
       forSaleId: data['forSaleId'] as String,
-      listingName: data['listingName'] as String,
-      listingImage: data['listingImage'] as String?,
+      forSaleName: data['forSaleName'] as String,
+      forSaleImage: data['forSaleImage'] as String?,
       originalPrice: (data['originalPrice'] as num).toDouble(),
       agreedPrice: (data['agreedPrice'] as num?)?.toDouble(),
       status: data['status'] as String,
@@ -137,7 +137,7 @@ class AttachmentMapper {
   static ShippingQuoteAttachment _mapToShippingQuoteAttachment(
     Map<String, dynamic> data,
   ) {
-    final linkedItemType = data['linkedItemType'] as String? ?? 'listing';
+    final linkedItemType = data['linkedItemType'] as String? ?? 'forSale';
     final linkedItemName =
         data['linkedItemName'] as String? ??
         (linkedItemType == 'auction' ? 'Penawaran Lelang' : 'Penawaran Ongkir');
@@ -195,8 +195,8 @@ class AttachmentMapper {
       'type': 'negotiation_offer',
       'negotiationId': attachment.negotiationId,
       'forSaleId': attachment.forSaleId,
-      'listingName': attachment.listingName,
-      'listingImage': attachment.listingImage,
+      'forSaleName': attachment.forSaleName,
+      'forSaleImage': attachment.forSaleImage,
       'originalPrice': attachment.originalPrice,
       'currentOfferPrice': attachment.currentOfferPrice,
       'lastOfferBy': attachment.lastOfferBy,
@@ -233,8 +233,8 @@ class AttachmentMapper {
       'type': 'negotiation_result',
       'negotiationId': attachment.negotiationId,
       'forSaleId': attachment.forSaleId,
-      'listingName': attachment.listingName,
-      'listingImage': attachment.listingImage,
+      'forSaleName': attachment.forSaleName,
+      'forSaleImage': attachment.forSaleImage,
       'originalPrice': attachment.originalPrice,
       'agreedPrice': attachment.agreedPrice,
       'status': attachment.status,

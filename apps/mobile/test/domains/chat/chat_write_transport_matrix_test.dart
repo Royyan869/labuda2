@@ -30,7 +30,7 @@ void main() {
         ShippingQuoteAttachmentDto(
           offerId: 'offer-1',
           linkedItemId: _resourceIdB,
-          linkedItemType: 'listing',
+          linkedItemType: 'forSale',
           shippingType: 'manual',
           shippingTypeName: 'Manual',
           shippingTypeEmoji: '🚚',
@@ -55,7 +55,7 @@ void main() {
       final attachment = ShippingQuoteAttachmentDto(
         offerId: 'offer-9',
         linkedItemId: _resourceIdB,
-        linkedItemType: 'listing',
+        linkedItemType: 'forSale',
         shippingType: 'manual',
         shippingTypeName: 'Manual',
         shippingTypeEmoji: '🚚',

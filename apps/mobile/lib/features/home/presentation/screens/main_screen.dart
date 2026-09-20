@@ -240,6 +240,8 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   void _showCreateContentModal(BuildContext context) {
     final sellerIdentityStatus = ref.read(sellerIdentityStatusProvider);
     final sellerCapabilityStatus = ref.read(sellerCapabilityStatusProvider);
+    // Canonical expiry axis: capability `inactive` alone must not claim expiry.
+    final isSubscriptionExpired = ref.read(isSellerSubscriptionExpiredProvider);
 
     CreateContentBottomSheet.show(
       context: context,
@@ -247,7 +249,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         final navigation = ref.read(navigationHandlerProvider);
         navigation.navigateToCreateContent();
       },
-      onCreateListing: sellerCapabilityStatus == SellerCapabilityStatus.active
+      onCreateForSale: sellerCapabilityStatus == SellerCapabilityStatus.active
           ? () {
               final navigation = ref.read(navigationHandlerProvider);
               navigation.navigateToCreateForSale();
@@ -265,12 +267,12 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         navigation.navigateToSellerUpgrade();
       },
       onRenewSubscription: () {
-        // Navigate to subscription renewal (uses seller upgrade flow)
         final navigation = ref.read(navigationHandlerProvider);
-        navigation.navigateToSellerUpgrade();
+        navigation.navigateToSellerRenewal();
       },
       sellerIdentityStatus: sellerIdentityStatus,
       sellerCapabilityStatus: sellerCapabilityStatus,
+      isSubscriptionExpired: isSubscriptionExpired,
     );
   }
 }

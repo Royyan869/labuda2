@@ -5,8 +5,7 @@
 // PHASE 1 CLEANUP migration 000011, 2026-07-10):
 //   - Preserve the whitelisted accounts ONLY: identity + minimal capability
 //     rows needed for login and role (users, user_profiles, user_capabilities,
-//     seller_profiles, seller_subscriptions, seller_verifications,
-//     support_admins).
+//     seller_profiles, seller_subscriptions, seller_verifications).
 //   - Delete ALL domain/runtime data, including rows owned by the preserved
 //     accounts (orders, listings, content, chats, payments, ledger, ...).
 //   - Preserve static config/reference tables required by runtime.
@@ -58,7 +57,6 @@ var referenceTables = []string{
 //   - user_capabilities (admin governance capabilities)
 //   - seller_profiles + seller_subscriptions + seller_verifications
 //     (the 4-gate HasActiveSellerCapability chain)
-//   - support_admins (admin support authority)
 var identityTables = []string{
 	"users",
 	"user_profiles",
@@ -66,14 +64,12 @@ var identityTables = []string{
 	"seller_profiles",
 	"seller_subscriptions",
 	"seller_verifications",
-	"support_admins",
 }
 
 // domainTables: all runtime/domain data. Fully wiped, including rows owned by
 // whitelisted users. financial_accounts is wiped too: core_server bootstrap
 // (EnsureSystemAccounts) recreates the system accounts with seed balances.
 var domainTables = []string{
-	"account_balances",
 	"addresses",
 	"admin_audit_logs",
 	"appeals",
@@ -95,7 +91,6 @@ var domainTables = []string{
 	"contents",
 	"discount_usages",
 	"discounts",
-	"dispute_freezes",
 	"dispute_media",
 	"disputes",
 	"escrows",

@@ -2,10 +2,14 @@ part of 'order_widgets_impl.dart';
 
 /// OrderBuyerPricingCard - Display pricing breakdown for buyer
 ///
-/// This widget displays the pricing breakdown for the buyer with:
-/// - Non-Contest: baseAmount, shippingFee, serviceFee, discount, coinDiscount,
-///   totalAmount
-/// - Contest: registrationFee, serviceFee, payout
+/// Renders ONLY canonical backend pricing (no client-side derivation):
+/// - subtotal                  (P)
+/// - shippingCost              (S)
+/// - serviceFeeAmount          (F, buyer-side; "Akan dihitung server" when absent)
+/// - totalPayableAmount        (PD + S + F — the buyer's gross payable)
+///
+/// No derived rows: the seller discount is already folded into the canonical
+/// money model (PD = P - D) and coins are not an Order snapshot authority.
 class OrderBuyerPricingCard extends StatelessWidget {
   final Order order;
   final bool isDark;
@@ -22,7 +26,7 @@ class OrderBuyerPricingCard extends StatelessWidget {
   }
 }
 
-/// Commerce pricing card for Non-Contest orders (product/auction/offer)
+/// Commerce pricing card for product / auction / offer orders
 class _CommercePricingCard extends StatelessWidget {
   final Order order;
   final bool isDark;
@@ -73,23 +77,16 @@ class _CommercePricingCard extends StatelessWidget {
               value: 'Akan dihitung server',
               valueColor: Colors.grey,
             ),
-          // DISCOUNT HONESTY: Show discount with code and description
-          // - Shows discount code used (e.g., "HEMAT10")
-          // - Shows discount description if available (e.g., "10% off")
-          // - Shows actual discount amount from backend
-          // - All data comes from backend - no fake calculations
-          if (pricing.discount > 0)
-            _DiscountRow(
-              code: pricing.discountCode,
-              description: pricing.discountDescription,
-              amount: pricing.discount,
-            ),
+          // NOTE: Discount display removed. Backend does not emit
+          // discount_amount, discount_code, or discount_description
+          // on the order response. The discount is embedded in the
+          // canonical money model (subtotal = P, totalBeforeCoinsAmount = PD+S).
           const Divider(height: 24),
           _PricingRow(
             label: 'Total Pembayaran',
-            value: AppFormatters.formatCurrency(
-              pricing.totalPayableAmount ?? pricing.total,
-            ),
+            value: pricing.totalPayableAmount != null
+                ? AppFormatters.formatCurrency(pricing.totalPayableAmount!)
+                : 'Akan dihitung server',
             isBold: true,
             valueColor: isDark ? Colors.white : const Color(0xFF1E1E1E),
           ),
@@ -196,86 +193,6 @@ class _PricingRow extends StatelessWidget {
               fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-/// DISCOUNT HONESTY: Discount row widget for displaying applied discount
-///
-/// Shows honest discount information from backend:
-/// - Discount code used (e.g., "HEMAT10")
-/// - Discount description (e.g., "10% off", "Free shipping")
-/// - Actual discount amount from backend
-///
-/// IMPORTANT: Does NOT invent savings or show fake "X% OFF" badges
-class _DiscountRow extends StatelessWidget {
-  final String? code;
-  final String? description;
-  final double amount;
-
-  const _DiscountRow({
-    required this.code,
-    required this.description,
-    required this.amount,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Diskon',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.green,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Text(
-                '-${AppFormatters.formatCurrency(amount)}',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.green,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          // HONESTY: Show discount code and description from backend
-          // This helps user understand which discount was applied
-          if (code != null || description != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 0, top: 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (code != null)
-                    Text(
-                      'Kode: $code',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[600],
-                        fontSize: 11,
-                      ),
-                    ),
-                  if (description != null)
-                    Text(
-                      description!,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[600],
-                        fontSize: 11,
-                      ),
-                    ),
-                ],
-              ),
-            ),
         ],
       ),
     );

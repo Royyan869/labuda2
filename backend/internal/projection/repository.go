@@ -78,10 +78,13 @@ type OrderSummary struct {
 	ServiceFeeAmount   int64
 	TotalPayableAmount int64
 
-	// Escrow snapshot — stored for INSERT completeness (NOT NULL in schema).
-	// Not exposed via read queries to OrderListItem; Ledger is the authority
-	// for financial amounts.
-	EscrowAmount   int64
+	// Canonical order financial base — stored for display and projection queries.
+	// Value = total_before_coins_amount = PD+S from orders table; NOT escrow_amount.
+	TotalBeforeCoinsAmount int64
+	// RefundedAmount = canonical refund-domain total for the order (sum of
+	// gateway-succeeded refund product + shipping portions). The projection worker
+	// derives it from `refunds`; orders.refunded_amount was never written and is
+	// purged, so this value MUST NOT be sourced from the orders write table.
 	RefundedAmount int64
 
 	// Shipping snapshot
@@ -109,7 +112,7 @@ func (r *Repository) UpsertOrderSummary(
 			dispute_status, dispute_reason, dispute_opened_at, dispute_resolved_at,
 			subtotal, shipping_total, commission_amount,
 			service_fee_amount, total_payable_amount,
-			escrow_amount, refunded_amount,
+			total_before_coins_amount, refunded_amount,
 			shipping_option_name, shipping_transport_type,
 			auto_release_at, created_at, updated_at
 		) VALUES ($1, $2, $3, $4, $5,
@@ -137,7 +140,7 @@ func (r *Repository) UpsertOrderSummary(
 			commission_amount = EXCLUDED.commission_amount,
 			service_fee_amount = EXCLUDED.service_fee_amount,
 			total_payable_amount = EXCLUDED.total_payable_amount,
-			escrow_amount = EXCLUDED.escrow_amount,
+			total_before_coins_amount = EXCLUDED.total_before_coins_amount,
 			refunded_amount = EXCLUDED.refunded_amount,
 			shipping_option_name = EXCLUDED.shipping_option_name,
 			shipping_transport_type = EXCLUDED.shipping_transport_type,
@@ -151,7 +154,7 @@ func (r *Repository) UpsertOrderSummary(
 		summary.DisputeStatus, summary.DisputeReason, summary.DisputeOpenedAt, summary.DisputeResolvedAt,
 		summary.Subtotal, summary.ShippingTotal, summary.CommissionAmount,
 		summary.ServiceFeeAmount, summary.TotalPayableAmount,
-		summary.EscrowAmount, summary.RefundedAmount,
+		summary.TotalBeforeCoinsAmount, summary.RefundedAmount,
 		summary.ShippingSetupName, summary.ShippingTransportType,
 		summary.AutoReleaseAt, summary.CreatedAt, summary.UpdatedAt,
 	)
@@ -175,7 +178,7 @@ func (r *Repository) GetOrderSummary(
 		       status, escrow_status, has_dispute,
 		       dispute_status, dispute_reason, dispute_opened_at, dispute_resolved_at,
 		       subtotal, shipping_total, commission_amount, service_fee_amount, total_payable_amount,
-		       escrow_amount, refunded_amount,
+		       total_before_coins_amount, refunded_amount,
 		       shipping_option_name, shipping_transport_type,
 		       auto_release_at, created_at, updated_at
 		FROM order_summaries
@@ -187,7 +190,7 @@ func (r *Repository) GetOrderSummary(
 		&summary.Status, &summary.EscrowStatus, &summary.HasDispute,
 		&summary.DisputeStatus, &summary.DisputeReason, &summary.DisputeOpenedAt, &summary.DisputeResolvedAt,
 		&summary.Subtotal, &summary.ShippingTotal, &summary.CommissionAmount, &summary.ServiceFeeAmount, &summary.TotalPayableAmount,
-		&summary.EscrowAmount, &summary.RefundedAmount,
+		&summary.TotalBeforeCoinsAmount, &summary.RefundedAmount,
 		&summary.ShippingSetupName, &summary.ShippingTransportType,
 		&summary.AutoReleaseAt, &summary.CreatedAt, &summary.UpdatedAt,
 	)
@@ -200,86 +203,6 @@ func (r *Repository) GetOrderSummary(
 	}
 
 	return &summary, nil
-}
-
-// ============================================================================
-// ACCOUNT BALANCE PROJECTION
-// ============================================================================
-
-// AccountBalance represents an account balance in the read model.
-// 1 row per account_id. Mirrors financial_accounts.balance.
-type AccountBalance struct {
-	// Identification (PRIMARY KEY)
-	ID uuid.UUID
-
-	// Account details
-	UserID      *uuid.UUID
-	AccountType string
-	Balance     int64
-	Currency    string
-
-	// Timestamps
-	UpdatedAt time.Time
-}
-
-// UpsertAccountBalance creates or updates an account balance.
-// Overwrite-based: ON CONFLICT (id) updates ALL columns.
-func (r *Repository) UpsertAccountBalance(
-	ctx context.Context,
-	tx db.Tx,
-	balance *AccountBalance,
-) error {
-	query := `
-		INSERT INTO account_balances (
-			id, user_id, account_type, balance, currency, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6)
-		ON CONFLICT (id)
-		DO UPDATE SET
-			user_id = EXCLUDED.user_id,
-			account_type = EXCLUDED.account_type,
-			balance = EXCLUDED.balance,
-			currency = EXCLUDED.currency,
-			updated_at = EXCLUDED.updated_at
-	`
-
-	_, err := tx.Exec(ctx, query,
-		balance.ID, balance.UserID, balance.AccountType,
-		balance.Balance, balance.Currency, balance.UpdatedAt,
-	)
-
-	if err != nil {
-		return fmt.Errorf("upsert account balance failed: %w", err)
-	}
-
-	return nil
-}
-
-// GetAccountBalance retrieves an account balance by ID.
-func (r *Repository) GetAccountBalance(
-	ctx context.Context,
-	accountID uuid.UUID,
-) (*AccountBalance, error) {
-	var balance AccountBalance
-
-	query := `
-		SELECT id, user_id, account_type, balance, currency, updated_at
-		FROM account_balances
-		WHERE id = $1
-	`
-
-	err := r.db.Pool().QueryRow(ctx, query, accountID).Scan(
-		&balance.ID, &balance.UserID, &balance.AccountType,
-		&balance.Balance, &balance.Currency, &balance.UpdatedAt,
-	)
-
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, fmt.Errorf("account balance not found: %s", accountID)
-		}
-		return nil, fmt.Errorf("get account balance failed: %w", err)
-	}
-
-	return &balance, nil
 }
 
 // ============================================================================
@@ -359,7 +282,7 @@ func (r *Repository) ListOrderSummariesByBuyer(
 		       status, escrow_status, has_dispute,
 		       dispute_status, dispute_reason, dispute_opened_at, dispute_resolved_at,
 		       subtotal, shipping_total, commission_amount,
-		       escrow_amount, refunded_amount,
+		       total_before_coins_amount, refunded_amount,
 		       shipping_option_name, shipping_transport_type,
 		       auto_release_at, created_at, updated_at
 		FROM order_summaries
@@ -400,7 +323,7 @@ func (r *Repository) ListOrderSummariesByBuyer(
 			&s.Status, &s.EscrowStatus, &s.HasDispute,
 			&s.DisputeStatus, &s.DisputeReason, &s.DisputeOpenedAt, &s.DisputeResolvedAt,
 			&s.Subtotal, &s.ShippingTotal, &s.CommissionAmount,
-			&s.EscrowAmount, &s.RefundedAmount,
+			&s.TotalBeforeCoinsAmount, &s.RefundedAmount,
 			&s.ShippingSetupName, &s.ShippingTransportType,
 			&s.AutoReleaseAt, &s.CreatedAt, &s.UpdatedAt,
 		)
@@ -438,7 +361,7 @@ func (r *Repository) ListOrderSummariesBySeller(
 		       status, escrow_status, has_dispute,
 		       dispute_status, dispute_reason, dispute_opened_at, dispute_resolved_at,
 		       subtotal, shipping_total, commission_amount,
-		       escrow_amount, refunded_amount,
+		       total_before_coins_amount, refunded_amount,
 		       shipping_option_name, shipping_transport_type,
 		       auto_release_at, created_at, updated_at
 		FROM order_summaries
@@ -479,7 +402,7 @@ func (r *Repository) ListOrderSummariesBySeller(
 			&s.Status, &s.EscrowStatus, &s.HasDispute,
 			&s.DisputeStatus, &s.DisputeReason, &s.DisputeOpenedAt, &s.DisputeResolvedAt,
 			&s.Subtotal, &s.ShippingTotal, &s.CommissionAmount,
-			&s.EscrowAmount, &s.RefundedAmount,
+			&s.TotalBeforeCoinsAmount, &s.RefundedAmount,
 			&s.ShippingSetupName, &s.ShippingTransportType,
 			&s.AutoReleaseAt, &s.CreatedAt, &s.UpdatedAt,
 		)
@@ -491,73 +414,6 @@ func (r *Repository) ListOrderSummariesBySeller(
 	}
 
 	return summaries, nil
-}
-
-// GetUserAccountBalances retrieves all account balances for a user.
-func (r *Repository) GetUserAccountBalances(
-	ctx context.Context,
-	userID uuid.UUID,
-) ([]*AccountBalance, error) {
-	query := `
-		SELECT id, user_id, account_type, balance, currency, updated_at
-		FROM account_balances
-		WHERE user_id = $1
-		ORDER BY account_type
-	`
-
-	rows, err := r.db.Pool().Query(ctx, query, userID)
-	if err != nil {
-		return nil, fmt.Errorf("list user balances failed: %w", err)
-	}
-	defer rows.Close()
-
-	balances, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (*AccountBalance, error) {
-		var b AccountBalance
-		err := row.Scan(
-			&b.ID, &b.UserID, &b.AccountType,
-			&b.Balance, &b.Currency, &b.UpdatedAt,
-		)
-		return &b, err
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("scan user balances failed: %w", err)
-	}
-
-	return balances, nil
-}
-
-// GetSystemAccountBalances retrieves all system account balances.
-func (r *Repository) GetSystemAccountBalances(
-	ctx context.Context,
-) ([]*AccountBalance, error) {
-	query := `
-		SELECT id, user_id, account_type, balance, currency, updated_at
-		FROM account_balances
-		WHERE user_id IS NULL
-		ORDER BY account_type
-	`
-
-	rows, err := r.db.Pool().Query(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("list system balances failed: %w", err)
-	}
-	defer rows.Close()
-
-	balances, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (*AccountBalance, error) {
-		var b AccountBalance
-		err := row.Scan(
-			&b.ID, &b.UserID, &b.AccountType,
-			&b.Balance, &b.Currency, &b.UpdatedAt,
-		)
-		return &b, err
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("scan system balances failed: %w", err)
-	}
-
-	return balances, nil
 }
 
 // CountOrderSummariesByBuyer returns the total number of order summaries for a
@@ -685,7 +541,7 @@ func (r *Repository) ListOrderSummariesForAdmin(
 		       status, escrow_status, has_dispute,
 		       dispute_status, dispute_reason, dispute_opened_at, dispute_resolved_at,
 		       subtotal, shipping_total, commission_amount,
-		       escrow_amount, refunded_amount,
+		       total_before_coins_amount, refunded_amount,
 		       shipping_option_name, shipping_transport_type,
 		       auto_release_at, created_at, updated_at
 		` + baseQuery + `
@@ -707,7 +563,7 @@ func (r *Repository) ListOrderSummariesForAdmin(
 			&s.Status, &s.EscrowStatus, &s.HasDispute,
 			&s.DisputeStatus, &s.DisputeReason, &s.DisputeOpenedAt, &s.DisputeResolvedAt,
 			&s.Subtotal, &s.ShippingTotal, &s.CommissionAmount,
-			&s.EscrowAmount, &s.RefundedAmount,
+			&s.TotalBeforeCoinsAmount, &s.RefundedAmount,
 			&s.ShippingSetupName, &s.ShippingTransportType,
 			&s.AutoReleaseAt, &s.CreatedAt, &s.UpdatedAt,
 		)

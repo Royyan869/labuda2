@@ -63,8 +63,8 @@ func TestSellerApprove_PartialAmount(t *testing.T) {
 
 func TestSellerApprove_RejectsFromWrongStatus(t *testing.T) {
 	statuses := []struct {
-		name   string
-		setup  func() *Refund
+		name  string
+		setup func() *Refund
 	}{
 		{"seller_rejected", func() *Refund {
 			r := newTestRefund()
@@ -151,17 +151,124 @@ func TestSellerReject_ThenEscalate_Works(t *testing.T) {
 	}
 }
 
-func TestSellerApprove_ThenCompleteRefund_Works(t *testing.T) {
+// CANONICAL CONTRACT: seller ACCEPT is the FINAL refund decision. There is no
+// later decision state — gateway settlement is a separate axis and never
+// rewrites the decision.
+func TestSellerApprove_IsFinalDecision(t *testing.T) {
 	r := newTestRefund()
 	now := time.Now()
 	if err := r.SellerApprove(100_000, nil, now); err != nil {
 		t.Fatalf("approve error: %v", err)
 	}
-	if err := r.CompleteRefund(100_000, now); err != nil {
-		t.Fatalf("complete error: %v", err)
+	if r.Status != RefundStatusSellerApproved {
+		t.Fatalf("status=%s want seller_approved", r.Status)
 	}
-	if r.Status != RefundStatusRefunded {
-		t.Fatalf("status=%s want refunded", r.Status)
+	if !r.IsDecisionFinal() {
+		t.Fatal("seller_approved must be a FINAL refund decision")
+	}
+	if !r.OwesBuyerRefund() {
+		t.Fatal("seller_approved owes the buyer a refund")
+	}
+	// Still unsubmitted at the gateway: settlement is pending, so the order must
+	// not release money to the seller yet.
+	if !r.IsSettlementPending() {
+		t.Fatal("unsubmitted gateway settlement must count as pending")
+	}
+	if !r.BlocksOrderRelease(true) || !r.BlocksOrderRelease(false) {
+		t.Fatal("unsettled buyer-owed refund must block release regardless of window")
+	}
+	// Once the gateway settles, the refund no longer blocks release.
+	if err := r.MarkGatewayDispatched("idem-1", nil, now); err != nil {
+		t.Fatalf("gateway dispatch error: %v", err)
+	}
+	if err := r.MarkGatewayAckSucceeded("gw-1", now); err != nil {
+		t.Fatalf("gateway ack error: %v", err)
+	}
+	if r.IsSettlementPending() {
+		t.Fatal("succeeded gateway settlement must not be pending")
+	}
+	if r.BlocksOrderRelease(true) {
+		t.Fatal("settled refund must not block release")
+	}
+}
+
+// TestBlocksOrderRelease_CanonicalTable locks the single predicate every
+// consumer uses (order completion guard, auto-complete worker query, read path).
+func TestBlocksOrderRelease_CanonicalTable(t *testing.T) {
+	now := time.Now()
+	escalated := func() *Refund {
+		r := newTestRefund()
+		_ = r.SellerReject(nil, now)
+		_ = r.EscalateToAdmin(now)
+		return r
+	}
+	adminReleased := func() *Refund {
+		r := escalated()
+		_ = r.AdminRelease(uuid.New(), nil, now)
+		return r
+	}
+
+	cases := []struct {
+		name        string
+		refund      *Refund
+		windowOpen  bool
+		wantBlock   bool
+		wantFinal   bool
+	}{
+		{"pending review, window open", newTestRefund(), true, true, false},
+		{"pending review, window closed (order lifecycle ends it)", newTestRefund(), false, false, false},
+		{"seller rejected, window open", func() *Refund { r := newTestRefund(); _ = r.SellerReject(nil, now); return r }(), true, true, false},
+		{"seller rejected, window closed (no escalation)", func() *Refund { r := newTestRefund(); _ = r.SellerReject(nil, now); return r }(), false, false, false},
+		{"escalated to admin, window open", escalated(), true, true, false},
+		{"admin released (seller wins)", adminReleased(), true, false, true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := tc.refund.BlocksOrderRelease(tc.windowOpen); got != tc.wantBlock {
+				t.Fatalf("BlocksOrderRelease(%v) = %v, want %v (status=%s)", tc.windowOpen, got, tc.wantBlock, tc.refund.Status)
+			}
+			if got := tc.refund.IsDecisionFinal(); got != tc.wantFinal {
+				t.Fatalf("IsDecisionFinal() = %v, want %v (status=%s)", got, tc.wantFinal, tc.refund.Status)
+			}
+		})
+	}
+}
+
+// CANONICAL CONTRACT: an admin buyer-wins decision is FINAL, recorded on the
+// SAME refund row that was escalated, and settlement stays separate.
+func TestAdminRefund_FinalDecisionOnSameRow(t *testing.T) {
+	r := newTestRefund()
+	now := time.Now()
+	_ = r.SellerReject(nil, now)
+	_ = r.EscalateToAdmin(now)
+	adminID := uuid.New()
+	if err := r.AdminRefund(adminID, 100_000, nil, now); err != nil {
+		t.Fatalf("admin refund error: %v", err)
+	}
+	if r.Status != RefundStatusAdminRefunded {
+		t.Fatalf("status=%s want admin_refunded", r.Status)
+	}
+	if !r.IsDecisionFinal() || r.AwaitsDecision() {
+		t.Fatal("admin_refunded must be a final decision")
+	}
+	if r.ReviewedBy != adminID {
+		t.Fatal("admin attribution must be recorded on the escalated row")
+	}
+	if !r.BlocksOrderRelease(true) {
+		t.Fatal("unsettled admin refund decision must block release")
+	}
+}
+
+// TestSystemRefund_IsFinalPlatformDecision locks the separation between an
+// admin decision on an escalated refund and a platform-initiated refund.
+func TestSystemRefund_IsFinalPlatformDecision(t *testing.T) {
+	r := NewSystemRefund(uuid.New(), uuid.New(), uuid.New(), uuid.New(), RefundReasonOther, 100_000, 0, nil)
+	if r.Status != RefundStatusSystemRefunded {
+		t.Fatalf("status=%s want system_refunded", r.Status)
+	}
+	if !r.IsDecisionFinal() || !r.OwesBuyerRefund() {
+		t.Fatal("a system refund is a final, buyer-owed decision")
 	}
 }
 

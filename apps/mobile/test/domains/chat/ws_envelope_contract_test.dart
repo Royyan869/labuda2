@@ -86,7 +86,7 @@ void main() {
           'avatar_url': 'https://cdn.example/avatar.png',
           'lifecycle': 'active',
         },
-        'context': {'kind': 'listing', 'id': 'listing-1'},
+        'context': {'kind': 'forSale', 'id': 'forSale-1'},
         'context_set_by': 'user-1',
         'linked_order_id': 'order-1',
         'last_message': null,

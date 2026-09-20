@@ -8,13 +8,35 @@ import 'package:equatable/equatable.dart';
 // ENUMS
 // ============================================
 
-/// Support Category - kategori support ticket
+/// Support Category - kategori support ticket.
+///
+/// CANONICAL TAXONOMY: every value corresponds 1:1 to the backend
+/// `ticket_category_enum` and the Support API contract. `wireValue` is the
+/// exact snake_case string sent to and received from the API. There is no
+/// translation layer and no legacy enum kept as a competing authority.
 enum SupportCategory {
-  payment, // Masalah pembayaran
-  order, // Masalah pesanan
-  technical, // Masalah teknis app
-  account, // Masalah akun
-  general, // Pertanyaan umum
+  orderIssue('order_issue'),
+  paymentIssue('payment_issue'),
+  accountIssue('account_issue'),
+  listingIssue('listing_issue'),
+  shippingIssue('shipping_issue'),
+  refundRequest('refund_request'),
+  dispute('dispute'),
+  technicalIssue('technical_issue'),
+  other('other');
+
+  const SupportCategory(this.wireValue);
+
+  /// Canonical wire value persisted by the backend.
+  final String wireValue;
+
+  /// Parse a canonical wire value. Returns null when the value is unknown.
+  static SupportCategory? fromWire(String value) {
+    for (final category in SupportCategory.values) {
+      if (category.wireValue == value) return category;
+    }
+    return null;
+  }
 }
 
 /// Support Priority - prioritas support ticket
@@ -25,13 +47,29 @@ enum SupportPriority {
   urgent, // Urgent - butuh respon cepat
 }
 
-/// Support Status - status support ticket
+/// Support Status - status support ticket.
+///
+/// CANONICAL LIFECYCLE: `wireValue` matches the backend lifecycle exactly
+/// (open → in_progress → waiting_user → resolved → closed).
 enum SupportStatus {
-  open, // Baru dibuat, belum ada admin
-  inProgress, // Admin sedang handle
-  waitingUser, // Menunggu response user
-  resolved, // Sudah diselesaikan
-  closed, // Ditutup
+  open('open'), // Baru dibuat, belum ada admin
+  inProgress('in_progress'), // Admin sedang handle
+  waitingUser('waiting_user'), // Menunggu response user
+  resolved('resolved'), // Sudah diselesaikan
+  closed('closed'); // Ditutup
+
+  const SupportStatus(this.wireValue);
+
+  /// Canonical wire value persisted by the backend.
+  final String wireValue;
+
+  /// Parse a canonical wire value. Returns null when the value is unknown.
+  static SupportStatus? fromWire(String value) {
+    for (final status in SupportStatus.values) {
+      if (status.wireValue == value) return status;
+    }
+    return null;
+  }
 }
 
 /// Ticket Filter untuk admin queue
@@ -62,6 +100,8 @@ class SupportTicket extends Equatable {
   final SupportCategory category;
   final SupportPriority priority;
   final SupportStatus status;
+  final String? subject; // Judul singkat ticket (canonical API field)
+  final String? description; // Deskripsi awal ticket (canonical API field)
   final String? linkedOrderId; // Order terkait jika ada
   final String? assignedToAdmin; // Admin ID yang handle
   final String? assignedAdminName; // Nama admin untuk display
@@ -83,6 +123,8 @@ class SupportTicket extends Equatable {
     required this.category,
     required this.priority,
     required this.status,
+    this.subject,
+    this.description,
     this.linkedOrderId,
     this.assignedToAdmin,
     this.assignedAdminName,
@@ -146,6 +188,8 @@ class SupportTicket extends Equatable {
     category,
     priority,
     status,
+    subject,
+    description,
     linkedOrderId,
     assignedToAdmin,
     assignedAdminName,
@@ -169,6 +213,8 @@ class SupportTicket extends Equatable {
     SupportCategory? category,
     SupportPriority? priority,
     SupportStatus? status,
+    String? subject,
+    String? description,
     String? linkedOrderId,
     String? assignedToAdmin,
     String? assignedAdminName,
@@ -190,6 +236,8 @@ class SupportTicket extends Equatable {
       category: category ?? this.category,
       priority: priority ?? this.priority,
       status: status ?? this.status,
+      subject: subject ?? this.subject,
+      description: description ?? this.description,
       linkedOrderId: linkedOrderId ?? this.linkedOrderId,
       assignedToAdmin: assignedToAdmin ?? this.assignedToAdmin,
       assignedAdminName: assignedAdminName ?? this.assignedAdminName,

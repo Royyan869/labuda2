@@ -7,12 +7,12 @@ import 'package:labuda/core/src/theme/app_colors.dart';
 /// Modal dialog for sellers to create shipping quotes for buyers.
 /// Allows inputting shipping cost and optional notes.
 class ShippingQuoteCreationModal extends StatefulWidget {
-  final String listingName;
+  final String forSaleName;
   final Function(int cost, String? note) onCreate;
 
   const ShippingQuoteCreationModal({
     super.key,
-    required this.listingName,
+    required this.forSaleName,
     required this.onCreate,
   });
 
@@ -110,7 +110,7 @@ class _ShippingQuoteCreationModalState
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Listing info
+            // ForSale info
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
@@ -131,7 +131,7 @@ class _ShippingQuoteCreationModalState
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      widget.listingName,
+                      widget.forSaleName,
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,

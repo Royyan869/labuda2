@@ -55,11 +55,11 @@ func RequireSellerMiddleware(roleChecker auth.RoleChecker) gin.HandlerFunc {
 			return
 		}
 
-		if !hasAuthority {
-			response.Forbidden(c, "Active seller subscription required. Please renew your subscription to continue selling.")
-			c.Abort()
-			return
-		}
+	if !hasAuthority {
+		response.MarketAuthorityRequired(c, "Active seller subscription required. Please renew your subscription to continue selling.")
+		c.Abort()
+		return
+	}
 
 		c.Set("has_market_authority", true)
 		c.Next()

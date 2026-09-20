@@ -116,6 +116,26 @@ void main() {
     });
   });
 
+  group('CheckoutException — MARKET_AUTHORITY_REQUIRED handling', () {
+    test('_parseApiError preserves MARKET_AUTHORITY_REQUIRED without folding to FORBIDDEN',
+        () {
+      // Simulate what _parseApiError does when it receives the
+      // MARKET_AUTHORITY_REQUIRED code from the backend error envelope.
+      //
+      // This proves the mobile checkout layer does NOT collapse the
+      // canonical market-authority code into the generic FORBIDDEN constant.
+      final exception = CheckoutException(
+        message: 'Active seller subscription required',
+        userFriendlyMessage: 'Aktivitas seller belum aktif.',
+        code: codes.marketAuthorityRequired,
+      );
+
+      expect(exception.code, equals(codes.marketAuthorityRequired));
+      expect(exception.code, isNot(equals('FORBIDDEN')));
+      expect(exception.code, isNot(equals(codes.commerceRestricted)));
+    });
+  });
+
   group('CommerceRestrictionPresenter — UX contract', () {
     test('isCommerceRestricted returns true for COMMERCE_RESTRICTED', () {
       expect(

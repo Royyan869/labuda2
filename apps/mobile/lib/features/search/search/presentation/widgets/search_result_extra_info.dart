@@ -13,7 +13,7 @@ import 'package:labuda/features/search/search/domain/entities/search_result.dart
 ///   - endAt    → "Ends in Nh/Nm" countdown when status == active
 ///                AND remaining ≤ 24h
 /// All auction reads are gated on [SearchResult.type] == auction —
-/// listings, users, and content rows are unchanged.
+/// forSales, users, and content rows are unchanged.
 class SearchResultExtraInfo extends StatelessWidget {
   final SearchResult result;
 
@@ -106,7 +106,7 @@ class SearchResultExtraInfo extends StatelessWidget {
     final bidCount = _isAuction ? _auctionBidCount() : 0;
 
     // Wrap (not Row) so multi-chip auction rows reflow on narrow widths
-    // instead of horizontally overflowing. Single-chip listing rows and
+    // instead of horizontally overflowing. Single-chip forSale rows and
     // 0-2-chip user/content rows render identically to the prior Row
     // because they fit on one line.
     return Wrap(

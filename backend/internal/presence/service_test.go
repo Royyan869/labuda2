@@ -99,7 +99,8 @@ func TestService_PersistLastSeen_DirectWriteSuccess(t *testing.T) {
 	require.True(t, occurredAt.Equal(*seen))
 }
 
-func TestService_PersistLastSeen_FallsBackToOutboxOnWriteFailure(t *testing.T) {
+func TestService_PersistLastSeen_DirectFailureDoesNotFallback(t *testing.T) {
+	// Converged: PersistLastSeen is direct DB only; no outbox fallback (self-loop purged)
 	tdb, _ := testdb.SetupDB(t)
 	defer tdb.Pool().Close()
 
@@ -108,10 +109,31 @@ func TestService_PersistLastSeen_FallsBackToOutboxOnWriteFailure(t *testing.T) {
 	outbox := &recordingLastSeenOutbox{}
 	failWriter := &failingLastSeenWriter{err: errors.New("postgres unavailable")}
 	svc := NewService(appDB, nil, failWriter, zaptest.NewLogger(t), outbox)
-	userID := seedPresenceUserCommitted(t, tdb, "fallback")
+	userID := seedPresenceUserCommitted(t, tdb, "direct-failure")
 	occurredAt := time.Date(2026, time.July, 29, 16, 0, 0, 0, time.UTC)
 
-	require.NoError(t, svc.PersistLastSeen(ctx, userID, occurredAt, 11))
+	err := svc.PersistLastSeen(ctx, userID, occurredAt, 11)
+	require.Error(t, err)
+	require.Empty(t, outbox.snapshot(), "direct PersistLastSeen must not enqueue outbox on failure")
+
+	var count int
+	require.NoError(t, tdb.Pool().QueryRow(ctx, `SELECT COUNT(*) FROM user_presence WHERE user_id = $1`, userID).Scan(&count))
+	require.Equal(t, 0, count)
+}
+
+func TestService_EnqueueLastSeen_InsertsOutbox(t *testing.T) {
+	// Canonical producer: EnqueueLastSeen via outbox with idempotency {user}.{version}
+	tdb, _ := testdb.SetupDB(t)
+	defer tdb.Pool().Close()
+
+	ctx := context.Background()
+	appDB := db.NewFromPool(tdb.Pool())
+	outbox := &recordingLastSeenOutbox{}
+	svc := NewService(appDB, nil, NewDBRepository(nil), zaptest.NewLogger(t), outbox)
+	userID := seedPresenceUserCommitted(t, tdb, "enqueue")
+	occurredAt := time.Date(2026, time.July, 29, 16, 0, 0, 0, time.UTC)
+
+	require.NoError(t, svc.EnqueueLastSeen(ctx, userID, occurredAt, 11))
 
 	recorded := outbox.snapshot()
 	require.Len(t, recorded, 1)
@@ -121,28 +143,26 @@ func TestService_PersistLastSeen_FallsBackToOutboxOnWriteFailure(t *testing.T) {
 	require.Equal(t, occurredAt.UTC().Format(time.RFC3339), recorded[0].payload.LastSeenAt)
 	require.Equal(t, int64(11), recorded[0].payload.Version)
 
+	// Enqueue must not directly write DB; DB row remains absent until handler processes
 	var count int
 	require.NoError(t, tdb.Pool().QueryRow(ctx, `SELECT COUNT(*) FROM user_presence WHERE user_id = $1`, userID).Scan(&count))
 	require.Equal(t, 0, count)
 }
 
-func TestService_PersistLastSeen_OutboxFailureReturnsError(t *testing.T) {
+func TestService_EnqueueLastSeen_OutboxFailureReturnsError(t *testing.T) {
 	tdb, _ := testdb.SetupDB(t)
 	defer tdb.Pool().Close()
 
 	ctx := context.Background()
 	appDB := db.NewFromPool(tdb.Pool())
 	outbox := &recordingLastSeenOutbox{err: errors.New("outbox failure")}
-	failWriter := &failingLastSeenWriter{err: errors.New("postgres unavailable")}
-	svc := NewService(appDB, nil, failWriter, zaptest.NewLogger(t), outbox)
-	userID := seedPresenceUserCommitted(t, tdb, "outbox-failure")
+	svc := NewService(appDB, nil, NewDBRepository(nil), zaptest.NewLogger(t), outbox)
+	userID := seedPresenceUserCommitted(t, tdb, "enqueue-failure")
 	occurredAt := time.Date(2026, time.July, 29, 17, 0, 0, 0, time.UTC)
 
-	err := svc.PersistLastSeen(ctx, userID, occurredAt, 13)
+	err := svc.EnqueueLastSeen(ctx, userID, occurredAt, 13)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "enqueue retry failed")
 
 	recorded := outbox.snapshot()
-	require.Len(t, recorded, 1)
-	require.Equal(t, events.EventUserPresenceLastSeenRecord, recorded[0].eventType)
+	require.Len(t, recorded, 0)
 }

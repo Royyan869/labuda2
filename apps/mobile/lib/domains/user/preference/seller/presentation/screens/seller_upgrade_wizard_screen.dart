@@ -13,12 +13,7 @@ import 'package:labuda/domains/finance/transaction/payment/presentation/widgets/
 import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
 import 'package:labuda/domains/user/preference/seller/data/dto/seller_dto.dart';
 import 'package:labuda/domains/user/preference/seller/data/seller_providers.dart'
-    show
-        sellerRemoteDatasourceProvider,
-        sellerRepositoryProvider,
-        storePhotoUploadServiceProvider;
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_subscription.dart';
-import 'package:labuda/domains/user/preference/seller/domain/repositories/seller_repository.dart';
+    show sellerRemoteDatasourceProvider, storePhotoUploadServiceProvider;
 import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/seller_wizard_helpers.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/seller_wizard_navigation_buttons.dart';
@@ -27,9 +22,15 @@ import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizar
 import 'package:labuda/domains/user/profile/profile.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/helpers/canonical_phone_validator.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:go_router/go_router.dart';
 
 /// Seller Upgrade Wizard
+///
+/// **REGISTRATION LIFECYCLE ONLY** — for users who are NOT yet sellers.
+/// Renewal is a separate payment-only lifecycle owned by `SellerRenewalScreen`
+/// (`/seller/renewal`). This wizard never runs onboarding, seller profile
+/// mutation, or registration terms for an existing seller: it fails closed
+/// with the `existingSeller` gate.
 ///
 /// Flow:
 /// 1. Package & seller terms
@@ -41,19 +42,17 @@ enum _SellerUpgradeWizardMode {
   unhydrated,
   unauthenticated,
   registration,
-  renewal,
+  existingSeller,
   restricted,
 }
 
 class _SellerPaymentOperationContext {
   final String initiatingUserId;
   final int requestEpoch;
-  final SellerSubscription? baselineSubscription;
 
   const _SellerPaymentOperationContext({
     required this.initiatingUserId,
     required this.requestEpoch,
-    required this.baselineSubscription,
   });
 }
 
@@ -126,13 +125,6 @@ class _SellerUpgradeWizardScreenState
     ]) {
       controller.addListener(_markDirty);
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auth = ref.read(authControllerProvider);
-      final user = ref.read(authenticatedUserProvider);
-      if (_wizardModeFrom(auth, user) == _SellerUpgradeWizardMode.renewal) {
-        _goToStep(4);
-      }
-    });
   }
 
   void _markDirty() {
@@ -157,7 +149,7 @@ class _SellerUpgradeWizardScreenState
   ) {
     if (authState is AuthStateAuthenticated) {
       return authenticatedUser?.hasSellerProfile == true
-          ? _SellerUpgradeWizardMode.renewal
+          ? _SellerUpgradeWizardMode.existingSeller
           : _SellerUpgradeWizardMode.registration;
     }
 
@@ -209,13 +201,6 @@ class _SellerUpgradeWizardScreenState
     if (_pageController.hasClients) {
       _pageController.jumpToPage(0);
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auth = ref.read(authControllerProvider);
-      final user = ref.read(authenticatedUserProvider);
-      if (_wizardModeFrom(auth, user) == _SellerUpgradeWizardMode.renewal) {
-        _goToStep(4);
-      }
-    });
   }
 
   void _bindProfileListener(String userId) {
@@ -368,22 +353,6 @@ class _SellerUpgradeWizardScreenState
         setState(() => _isLoadingSenderAddress = false);
       }
     }
-  }
-
-  Future<SellerSubscription?> _loadBaselineSellerSubscription(
-    String sellerId,
-  ) async {
-    try {
-      final SellerRepository repository = ref.read(sellerRepositoryProvider);
-      final result = await repository.getSubscription(sellerId);
-      if (result.isSuccess && result.data != null) {
-        return result.data;
-      }
-    } catch (_) {
-      // Intentionally fail closed: renewal success is still gated by auth
-      // refresh and a fresh subscription snapshot during polling.
-    }
-    return null;
   }
 
   Widget _buildReadOnlyStatusCard(
@@ -750,12 +719,11 @@ class _SellerUpgradeWizardScreenState
             isDark,
             'Seller package must load before payment can continue.',
           )
-        : _buildPaymentStep(packageConfig, isDark, wizardMode, sellerState);
+        : _buildPaymentStep(packageConfig, isDark);
     final canAdvanceFromPackage =
         packageConfig != null && packageConfig.isEnabled;
-    final isOperationalMode =
-        wizardMode == _SellerUpgradeWizardMode.registration ||
-        wizardMode == _SellerUpgradeWizardMode.renewal;
+    // Registration wizard is only for first-time sellers; renewal uses SellerRenewalScreen.
+    final isOperationalMode = wizardMode == _SellerUpgradeWizardMode.registration;
 
     return PopScope(
       canPop: false,
@@ -779,7 +747,7 @@ class _SellerUpgradeWizardScreenState
         appBar: AppBarCustom(
           title: switch (wizardMode) {
             _SellerUpgradeWizardMode.registration => 'Daftar Seller',
-            _SellerUpgradeWizardMode.renewal => 'Perpanjang Seller',
+            _SellerUpgradeWizardMode.existingSeller => 'Seller Upgrade',
             _SellerUpgradeWizardMode.restricted => 'Akun Dibatasi',
             _SellerUpgradeWizardMode.unauthenticated => 'Login Diperlukan',
             _SellerUpgradeWizardMode.unhydrated => 'Memuat Seller',
@@ -800,7 +768,7 @@ class _SellerUpgradeWizardScreenState
         body: isOperationalMode
             ? Column(
                 children: [
-                  _buildModeBanner(isDark, wizardMode, sellerState),
+                  _buildModeBanner(isDark, sellerState),
                   WizardProgressIndicator(
                     currentStep: _currentStep,
                     totalSteps: _totalSteps,
@@ -823,8 +791,6 @@ class _SellerUpgradeWizardScreenState
                         packageStepWidget,
                         _buildAccountStep(
                           isDark,
-                          wizardMode,
-                          sellerState,
                           isEmailVerified,
                           lifecycleLabel,
                           authState is AuthStateAuthenticated
@@ -868,31 +834,44 @@ class _SellerUpgradeWizardScreenState
               )
             : _buildWizardGate(
                 isDark,
-                icon: wizardMode == _SellerUpgradeWizardMode.restricted
-                    ? Icons.block
-                    : wizardMode == _SellerUpgradeWizardMode.unauthenticated
-                    ? Icons.login
-                    : Icons.hourglass_bottom,
+                icon: switch (wizardMode) {
+                  _SellerUpgradeWizardMode.restricted => Icons.block,
+                  _SellerUpgradeWizardMode.unauthenticated => Icons.login,
+                  _SellerUpgradeWizardMode.existingSeller => Icons.storefront,
+                  _SellerUpgradeWizardMode.unhydrated =>
+                    Icons.hourglass_bottom,
+                  _SellerUpgradeWizardMode.registration =>
+                    Icons.hourglass_bottom,
+                },
                 title: switch (wizardMode) {
                   _SellerUpgradeWizardMode.restricted => 'Akun dibatasi',
                   _SellerUpgradeWizardMode.unauthenticated =>
                     'Login diperlukan',
                   _SellerUpgradeWizardMode.unhydrated =>
                     'Seller account is loading',
-                  _SellerUpgradeWizardMode.registration ||
-                  _SellerUpgradeWizardMode.renewal => 'Seller upgrade',
+                  _SellerUpgradeWizardMode.existingSeller =>
+                    'Sudah Menjadi Seller',
+                  _SellerUpgradeWizardMode.registration => 'Seller upgrade',
                 },
                 message: switch (wizardMode) {
                   _SellerUpgradeWizardMode.restricted =>
                     'This seller account is restricted and cannot continue here.',
                   _SellerUpgradeWizardMode.unauthenticated =>
-                    'Sign in again to continue with seller registration or renewal.',
+                    'Sign in to continue with seller registration.',
                   _SellerUpgradeWizardMode.unhydrated =>
                     'Waiting for the current authenticated principal to hydrate before seller actions are enabled.',
-                  _SellerUpgradeWizardMode.registration ||
-                  _SellerUpgradeWizardMode.renewal =>
+                  _SellerUpgradeWizardMode.existingSeller =>
+                    'Wizard ini hanya untuk registrasi seller baru. Perpanjangan langganan adalah lifecycle pembayaran terpisah di layar Perpanjang Seller.',
+                  _SellerUpgradeWizardMode.registration =>
                     'Seller content is available only after the current account is operational.',
                 },
+                actionLabel:
+                    wizardMode == _SellerUpgradeWizardMode.existingSeller
+                    ? 'Buka Perpanjang Seller'
+                    : null,
+                onAction: wizardMode == _SellerUpgradeWizardMode.existingSeller
+                    ? () => context.push(RoutePaths.sellerRenewal)
+                    : null,
               ),
       ),
     );
@@ -903,6 +882,8 @@ class _SellerUpgradeWizardScreenState
     required IconData icon,
     required String title,
     required String message,
+    String? actionLabel,
+    VoidCallback? onAction,
   }) {
     return Center(
       child: SingleChildScrollView(
@@ -952,6 +933,16 @@ class _SellerUpgradeWizardScreenState
                       : AppColors.neutralGray700,
                 ),
               ),
+              if (actionLabel != null && onAction != null) ...[
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: onAction,
+                    child: Text(actionLabel),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -959,22 +950,10 @@ class _SellerUpgradeWizardScreenState
     );
   }
 
-  Widget _buildModeBanner(
-    bool isDark,
-    _SellerUpgradeWizardMode wizardMode,
-    SellerState sellerState,
-  ) {
-    final isRegistration = wizardMode == _SellerUpgradeWizardMode.registration;
-    final headline = isRegistration
-        ? 'Registration mode'
-        : sellerState.isExpired
-        ? 'Renewal mode'
-        : 'Early renewal mode';
-    final message = isRegistration
-        ? 'Never-sellers enter the canonical onboarding flow and may create a seller profile only through registration.'
-        : sellerState.isExpired
-        ? 'Existing seller profile detected. Renew to restore market authority without recreating identity.'
-        : 'Existing seller profile detected. Early renewal keeps your seller identity intact.';
+  Widget _buildModeBanner(bool isDark, SellerState sellerState) {
+    const headline = 'Registration mode';
+    const message =
+        'Never-sellers enter the canonical onboarding flow and may create a seller profile only through registration.';
 
     return Container(
       width: double.infinity,
@@ -982,21 +961,14 @@ class _SellerUpgradeWizardScreenState
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: isRegistration
-              ? [
-                  AppColors.primaryBlue.withValues(alpha: 0.18),
-                  AppColors.primaryBlue.withValues(alpha: 0.06),
-                ]
-              : [
-                  AppColors.successGreen.withValues(alpha: 0.16),
-                  AppColors.successGreen.withValues(alpha: 0.05),
-                ],
+          colors: [
+            AppColors.primaryBlue.withValues(alpha: 0.18),
+            AppColors.primaryBlue.withValues(alpha: 0.06),
+          ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isRegistration
-              ? AppColors.primaryBlue.withValues(alpha: 0.35)
-              : AppColors.successGreen.withValues(alpha: 0.35),
+          color: AppColors.primaryBlue.withValues(alpha: 0.35),
         ),
       ),
       child: Column(
@@ -1039,8 +1011,6 @@ class _SellerUpgradeWizardScreenState
 
   Widget _buildAccountStep(
     bool isDark,
-    _SellerUpgradeWizardMode wizardMode,
-    SellerState sellerState,
     bool isEmailVerified,
     String lifecycleLabel,
     String email,
@@ -1051,9 +1021,7 @@ class _SellerUpgradeWizardScreenState
         padding: const EdgeInsets.all(24),
         children: [
           Text(
-            wizardMode == _SellerUpgradeWizardMode.registration
-                ? 'Lengkapi Akun Seller Baru'
-                : 'Perpanjang Akun Seller',
+            'Lengkapi Akun Seller Baru',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -1062,9 +1030,7 @@ class _SellerUpgradeWizardScreenState
           ),
           const SizedBox(height: 8),
           Text(
-            wizardMode == _SellerUpgradeWizardMode.registration
-                ? 'Email status tetap read-only. Isi data akun sebelum lanjut ke info toko dan pembayaran pertama.'
-                : 'Seller profile Anda sudah ada. Perbarui data akun bila perlu lalu lanjut ke perpanjangan langganan.',
+            'Email status tetap read-only. Isi data akun sebelum lanjut ke info toko dan pembayaran pertama.',
             style: TextStyle(
               fontSize: 14,
               color: isDark
@@ -1086,14 +1052,7 @@ class _SellerUpgradeWizardScreenState
             title: 'Account status',
             items: [
               'Lifecycle: $lifecycleLabel',
-              if (wizardMode == _SellerUpgradeWizardMode.registration)
-                'First-time seller registration uses the canonical onboarding flow'
-              else
-                'Existing seller identity stays intact during renewal',
-              if (sellerState.isExpired)
-                'Renewal is required before market actions reopen'
-              else if (sellerState.isActive)
-                'Early renewal is allowed while current authority remains active',
+              'First-time seller registration uses the canonical onboarding flow',
             ],
           ),
           const SizedBox(height: 24),
@@ -1144,9 +1103,7 @@ class _SellerUpgradeWizardScreenState
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              wizardMode == _SellerUpgradeWizardMode.registration
-                  ? 'Username is read only when already saved. Bio, phone, and sender address remain required for seller onboarding.'
-                  : 'Username is read only when already saved. Bio, phone, and sender address remain required for seller renewal checks.',
+              'Username is read only when already saved. Bio, phone, and sender address remain required for seller onboarding.',
               style: TextStyle(
                 fontSize: 13,
                 color: isDark
@@ -1243,8 +1200,6 @@ class _SellerUpgradeWizardScreenState
   Widget _buildPaymentStep(
     SellerUpgradeConfigEntity upgradeConfig,
     bool isDark,
-    _SellerUpgradeWizardMode wizardMode,
-    SellerState sellerState,
   ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -1261,9 +1216,7 @@ class _SellerUpgradeWizardScreenState
           ),
           const SizedBox(height: 8),
           Text(
-            wizardMode == _SellerUpgradeWizardMode.registration
-                ? 'Onboarding hanya dipanggil setelah prerequisites valid. Subscription akan dimulai setelah onboarding sukses.'
-                : 'Anda sudah memiliki seller profile. Perpanjangan langganan hanya memperbarui market authority, bukan identity seller.',
+            'Onboarding hanya dipanggil setelah prerequisites valid. Subscription akan dimulai setelah onboarding sukses.',
             style: TextStyle(
               fontSize: 14,
               color: isDark
@@ -1281,9 +1234,7 @@ class _SellerUpgradeWizardScreenState
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              sellerState.isExpired
-                  ? 'KYC dan review bank dipakai nanti untuk payout/withdrawal, bukan registrasi seller awal.'
-                  : 'KYC dan review bank dipakai nanti untuk payout/withdrawal, terpisah dari renewals dan authority activation.',
+              'KYC dan review bank dipakai nanti untuk payout/withdrawal, terpisah dari registrasi seller.',
               style: TextStyle(
                 fontSize: 13,
                 color: isDark
@@ -1551,7 +1502,7 @@ class _SellerUpgradeWizardScreenState
 
   Widget _buildFeaturesList(bool isDark) {
     final features = [
-      ('Buat listing', Icons.inventory_2_outlined),
+      ('Buat forSale', Icons.inventory_2_outlined),
       ('Buat lelang', Icons.gavel),
       ('Buat promosi', Icons.campaign_outlined),
       (
@@ -1908,8 +1859,6 @@ class _SellerUpgradeWizardScreenState
 
   Future<bool> _saveAccountPrerequisites() async {
     final authState = ref.read(authControllerProvider);
-    final sellerIdentity = ref.read(authenticatedUserProvider);
-    final wizardMode = _wizardModeFrom(authState, sellerIdentity);
     final requestEpoch = _principalEpoch;
     final userId = _currentAuthenticatedUserId();
     if (userId == null) {
@@ -1921,12 +1870,7 @@ class _SellerUpgradeWizardScreenState
         ? authState.user.isEmailVerified
         : false;
     if (!emailVerified) {
-      await showBlockedActionGate(
-        context,
-        actionDescription: wizardMode == _SellerUpgradeWizardMode.registration
-            ? 'menjadi penjual'
-            : 'memperpanjang seller',
-      );
+      await showBlockedActionGate(context, actionDescription: 'menjadi penjual');
       return false;
     }
 
@@ -2064,8 +2008,7 @@ class _SellerUpgradeWizardScreenState
     final authState = ref.read(authControllerProvider);
     final authenticatedUser = ref.read(authenticatedUserProvider);
     final wizardMode = _wizardModeFrom(authState, authenticatedUser);
-    if (wizardMode != _SellerUpgradeWizardMode.registration &&
-        wizardMode != _SellerUpgradeWizardMode.renewal) {
+    if (wizardMode != _SellerUpgradeWizardMode.registration) {
       AppSnackBar.showError(context, 'Seller account is not ready yet');
       return;
     }
@@ -2090,7 +2033,7 @@ class _SellerUpgradeWizardScreenState
     if (!mounted) return;
     setState(() => _isSubmitting = true);
     try {
-      await _proceedToPayment(upgradeConfig, wizardMode);
+      await _proceedToPayment(upgradeConfig);
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -2100,7 +2043,6 @@ class _SellerUpgradeWizardScreenState
 
   Future<void> _proceedToPayment(
     SellerUpgradeConfigEntity upgradeConfig,
-    _SellerUpgradeWizardMode wizardMode,
   ) async {
     if (!mounted) return;
 
@@ -2132,16 +2074,15 @@ class _SellerUpgradeWizardScreenState
       final operationContext = _SellerPaymentOperationContext(
         initiatingUserId: userId,
         requestEpoch: requestEpoch,
-        baselineSubscription: wizardMode == _SellerUpgradeWizardMode.renewal
-            ? await _loadBaselineSellerSubscription(userId)
-            : null,
       );
 
-      if (wizardMode == _SellerUpgradeWizardMode.registration) {
-        await ref
-            .read(sellerRemoteDatasourceProvider)
-            .performOnboarding(_farmNameController.text.trim());
-      }
+      // Registration lifecycle: onboarding creates the seller profile before the
+      // subscription payment is initiated. Renewal is payment-only and lives in
+      // SellerRenewalScreen — it never reaches this code path.
+      await ref.read(sellerRemoteDatasourceProvider).performOnboarding(
+            _farmNameController.text.trim(),
+            storeImageUrl: _farmPhotoUrl,
+          );
 
       if (!_isCurrentPrincipalRequest(requestEpoch, userId)) {
         if (mounted && Navigator.of(context).canPop()) {
@@ -2183,15 +2124,15 @@ class _SellerUpgradeWizardScreenState
         return;
       }
 
-      final uri = Uri.parse(paymentUrl);
-      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-        _showError('Gagal membuka halaman pembayaran');
-        return;
-      }
+      if (!mounted) return;
+      // Payment URLs are presented exclusively inside Labuda's internal WebView.
+      // External-browser payment navigation is obsolete and must not be reintroduced.
+      await context.push(
+        '/payment-webview?url=${Uri.encodeComponent(paymentUrl)}',
+      );
 
       if (!mounted) return;
       await _showPaymentPendingDialog(
-        wizardMode: wizardMode,
         operationContext: operationContext,
       );
     } on ApiException catch (e) {
@@ -2199,7 +2140,7 @@ class _SellerUpgradeWizardScreenState
         Navigator.of(context).pop();
       }
       if (!mounted) return;
-      await _handleSubscriptionApiException(e, wizardMode: wizardMode);
+      await _handleSubscriptionApiException(e);
     } catch (e) {
       if (mounted && Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
@@ -2304,14 +2245,12 @@ class _SellerUpgradeWizardScreenState
   }
 
   Future<void> _showPaymentPendingDialog({
-    required _SellerUpgradeWizardMode wizardMode,
     required _SellerPaymentOperationContext operationContext,
   }) async {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (dialogCtx) => _PaymentPendingDialog(
-        wizardMode: wizardMode,
         operationContext: operationContext,
         isCurrentOperationPrincipal: () => _isCurrentPrincipalRequest(
           operationContext.requestEpoch,
@@ -2325,9 +2264,7 @@ class _SellerUpgradeWizardScreenState
           if (mounted) {
             AppSnackBar.showSuccess(
               context,
-              wizardMode == _SellerUpgradeWizardMode.registration
-                  ? 'Selamat! Anda sekarang penjual'
-                  : 'Selamat! Perpanjangan seller berhasil diproses',
+              'Selamat! Anda sekarang penjual',
             );
             Navigator.of(context).pop(true);
           }
@@ -2336,21 +2273,12 @@ class _SellerUpgradeWizardScreenState
     );
   }
 
-  Future<void> _handleSubscriptionApiException(
-    ApiException e, {
-    required _SellerUpgradeWizardMode wizardMode,
-  }) async {
+  Future<void> _handleSubscriptionApiException(ApiException e) async {
     switch (e.code) {
       case 'NO_ACTIVE_CONFIG':
         AppSnackBar.showError(
           context,
           'Konfigurasi langganan tidak tersedia. Hubungi admin.',
-        );
-        return;
-      case 'TOO_EARLY_RENEWAL':
-        AppSnackBar.showError(
-          context,
-          'Langganan masih aktif. Perpanjangan tersedia mendekati kedaluwarsa.',
         );
         return;
       case 'MISSING_REQUIREMENTS':
@@ -2360,9 +2288,7 @@ class _SellerUpgradeWizardScreenState
       case 'EMAIL_VERIFICATION_REQUIRED':
         await showBlockedActionGate(
           context,
-          actionDescription: wizardMode == _SellerUpgradeWizardMode.registration
-              ? 'menjadi penjual'
-              : 'memperpanjang seller',
+          actionDescription: 'menjadi penjual',
         );
         return;
       case 'ACCOUNT_SUSPENDED':
@@ -2458,13 +2384,11 @@ class _SellerUpgradeWizardScreenState
 }
 
 class _PaymentPendingDialog extends ConsumerStatefulWidget {
-  final _SellerUpgradeWizardMode wizardMode;
   final _SellerPaymentOperationContext operationContext;
   final bool Function() isCurrentOperationPrincipal;
   final Future<void> Function() onSuccess;
 
   const _PaymentPendingDialog({
-    required this.wizardMode,
     required this.operationContext,
     required this.isCurrentOperationPrincipal,
     required this.onSuccess,
@@ -2529,59 +2453,16 @@ class _PaymentPendingDialogState extends ConsumerState<_PaymentPendingDialog> {
       }
 
       final authState = ref.read(authControllerProvider);
+      // Registration success signal only: the seller profile now exists AND
+      // market authority is active. Renewal success (subscription expiry
+      // extension) belongs to SellerRenewalScreen and is never detected here.
       if (authState is AuthStateAuthenticated &&
           authState.user.hasSellerProfile == true &&
           authState.user.hasMarketAuthority == true) {
-        if (widget.wizardMode == _SellerUpgradeWizardMode.registration) {
-          timer.cancel();
-          await widget.onSuccess();
-          return;
-        }
-
-        final baselineSubscription =
-            widget.operationContext.baselineSubscription;
-        if (baselineSubscription == null) {
-          return;
-        }
-
-        final currentSubscription = await _refreshSubscriptionSnapshot();
-        if (!mounted) {
-          timer.cancel();
-          return;
-        }
-
-        if (!widget.isCurrentOperationPrincipal()) {
-          timer.cancel();
-          if (mounted && Navigator.of(context).canPop()) {
-            Navigator.of(context).pop();
-          }
-          return;
-        }
-
-        if (currentSubscription != null &&
-            currentSubscription.expiryDate.isAfter(
-              baselineSubscription.expiryDate,
-            )) {
-          timer.cancel();
-          await widget.onSuccess();
-        }
+        timer.cancel();
+        await widget.onSuccess();
       }
     });
-  }
-
-  Future<SellerSubscription?> _refreshSubscriptionSnapshot() async {
-    try {
-      final SellerRepository repository = ref.read(sellerRepositoryProvider);
-      final result = await repository.getSubscription(
-        widget.operationContext.initiatingUserId,
-      );
-      if (result.isSuccess && result.data != null) {
-        return result.data;
-      }
-    } catch (_) {
-      // Transient refresh failure must not fabricate success.
-    }
-    return null;
   }
 
   @override

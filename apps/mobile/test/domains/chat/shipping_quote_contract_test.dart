@@ -33,7 +33,7 @@ void main() {
       expect(json['source_id'], _fixedPriceSaleId);
       expect(json['cost'], 25000);
       expect(json['note'], 'catatan');
-      expect(json.containsKey('listing_id'), isFalse);
+      expect(json.containsKey('for_sale_id'), isFalse);
       expect(json.containsKey('auction_id'), isFalse);
     },
   );
@@ -140,7 +140,7 @@ void main() {
     expect(json['source_type'], 'auction');
     expect(json['source_id'], _auctionId);
     expect(json.containsKey('auction_id'), isFalse);
-    expect(json.containsKey('listing_id'), isFalse);
+    expect(json.containsKey('for_sale_id'), isFalse);
     // Auction: source_id must equal auctionId, not productId
     expect(json['source_id'], isNot(equals(_productId)));
 

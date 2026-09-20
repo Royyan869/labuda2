@@ -152,12 +152,6 @@ class _FakeAuctionRepository implements AuctionRepository {
   ) async => throw UnimplementedError();
 
   @override
-  Future<RepositoryResult<Auction>> updateAuctionStatus({
-    required String auctionId,
-    required AuctionStatus status,
-  }) async => throw UnimplementedError();
-
-  @override
   Future<RepositoryResult<void>> cancelAuction({
     required String auctionId,
     required String sellerId,

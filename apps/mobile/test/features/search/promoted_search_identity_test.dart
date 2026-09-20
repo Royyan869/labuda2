@@ -126,7 +126,7 @@ void main() {
     expect(result.error, isNull);
 
     final data = result.data!;
-    final promotedForSale = data.listings.singleWhere(
+    final promotedForSale = data.forSales.singleWhere(
       (item) => item.contractId == 'pi-for-sale',
     );
     final promotedAuction = data.auctions.singleWhere(
@@ -138,7 +138,7 @@ void main() {
     // No flat allResults authority: promoted items are counted across the
     // canonical domain collections that back the All sections.
     final promotedAcrossDomains =
-        data.listings.where((item) => item.isPromoted).length +
+        data.forSales.where((item) => item.isPromoted).length +
         data.auctions.where((item) => item.isPromoted).length +
         data.users.where((item) => item.isPromoted).length +
         data.contents.where((item) => item.isPromoted).length;

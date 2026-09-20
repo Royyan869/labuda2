@@ -1,10 +1,12 @@
 package http
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/pkg/publiccard"
+	"github.com/labuda/backend/internal/platform/mediaresolve"
 	contentApp "github.com/labuda/backend/internal/social/content/application"
 	contententity "github.com/labuda/backend/internal/social/content/entity"
 	feedentity "github.com/labuda/backend/internal/social/feed/entity"
@@ -54,8 +56,14 @@ func feedItemToResponseCanonicalWithProjection(
 		captionPtr = &c
 	}
 
-	feedMediaURLs := make([]string, 0, len(item.Media))
-	for _, m := range item.Media {
+	// MEDIA READ RESOLUTION: the flat `media` array is the surface the mobile
+	// feed card renders, so both that array and the canonical card's media refs
+	// are projected through the shared mediaresolve authority, from the same
+	// resolved values (they can never disagree). Fail-open: an unresolvable
+	// reference is emitted unchanged, never erased.
+	feedMedia := resolveReadableFeedMedia(item.Media)
+	feedMediaURLs := make([]string, 0, len(feedMedia))
+	for _, m := range feedMedia {
 		if m.URL != "" {
 			feedMediaURLs = append(feedMediaURLs, m.URL)
 		}
@@ -70,7 +78,7 @@ func feedItemToResponseCanonicalWithProjection(
 		"body":       item.Body,
 		"created_at": item.CreatedAt.Format(time.RFC3339),
 		"updated_at": item.UpdatedAt.Format(time.RFC3339),
-		"media":      item.Media,
+		"media":      feedMedia,
 		"author":     authorCard,
 		"card": publiccard.NewContentCard(
 			item.ID,
@@ -171,6 +179,38 @@ func buildFeedAuthorCard(item *feedentity.FeedItem, attribution contentApp.Share
 		item.AuthorAvatar,
 		attribution.LifecycleState,
 	)
+}
+
+// resolveReadableFeedMediaReference projects a persisted feed media reference
+// (content_media.media_url, surfaced through the feed projection) onto the
+// canonical readable URL using the shared mediaresolve authority.
+//
+// Fail-open: empty stays empty and an unresolvable reference is returned
+// trimmed and unchanged, so a persisted reference is never erased by a
+// resolution failure.
+func resolveReadableFeedMediaReference(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return ""
+	}
+	resolved, err := mediaresolve.ResolveMediaReadURL(trimmed)
+	if err != nil {
+		return trimmed
+	}
+	return resolved
+}
+
+// resolveReadableFeedMedia projects the feed media projection onto readable
+// references. The additive canonical fields (Kind / Width / Height) are
+// preserved verbatim — only URL is resolved.
+func resolveReadableFeedMedia(in []feedentity.FeedMedia) []feedentity.FeedMedia {
+	out := make([]feedentity.FeedMedia, 0, len(in))
+	for _, m := range in {
+		resolved := m
+		resolved.URL = resolveReadableFeedMediaReference(m.URL)
+		out = append(out, resolved)
+	}
+	return out
 }
 
 func feedDisplayName(item *feedentity.FeedItem) string {

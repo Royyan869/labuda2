@@ -29,6 +29,13 @@ func quoteBlockingOrderStatuses() []string {
 
 // GetBlockingOrderByShippingQuoteID retrieves an order by shipping quote ID only
 // when the order is in a quote-blocking status.
+//
+// NARROW PROJECTION: this reader hydrates the order's identity, status, escrow
+// status, quote metadata and address snapshot only. Its sole consumer
+// (shipping-quote reactivation) reads the status; money fields and lifecycle
+// deadlines are NOT hydrated and must never be read from this result — use
+// GetByID/GetForUpdate when the caller needs the canonical money base or
+// payment/completion deadlines.
 func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 	ctx context.Context,
 	tx db.Tx,
@@ -44,8 +51,7 @@ func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 	var trackingNumber, shippingNote *string
 	var orderNum *string
 	var autoReleaseAt *time.Time
-	var confirmationExtendedAt *time.Time
-	var completedAt *int64
+	var completedAt sql.NullTime
 	var hasDispute bool
 	var confirmationExtensionUsed bool
 	var idempotencyKeyPtr *string
@@ -57,7 +63,7 @@ func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 	var shippingSourcePtr *string
 	var shippingQuoteIDPtr *uuid.UUID
 	var shippingQuotePricePtr *int64
-	var createdAt, updatedAt int64
+	var createdAt, updatedAt time.Time
 
 	err := tx.QueryRow(ctx, `
 		SELECT id, buyer_id, seller_id,
@@ -68,13 +74,13 @@ func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
 		       tracking_number, shipping_note, order_number,
 		       preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by,
-		       shipping_destination,
+		       address_snapshot,
 		       shipping_source, shipping_origin_snapshot,
 		       shipping_quote_id, shipping_quote_price,
-		       created_at, updated_at
+		       completed_at, created_at, updated_at
 		FROM orders
 		WHERE shipping_quote_id = $1
-		  AND status = ANY($2::text[])
+		  AND status::text = ANY($2::text[])
 		ORDER BY created_at DESC
 		LIMIT 1
 	`, shippingQuoteID, quoteBlockingOrderStatuses()).Scan(
@@ -132,7 +138,7 @@ func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 		ShippingSetupName:        shippingSetupName.String,
 		ShippingTransportType:     shippingTransportType.String,
 		TrackingNumber:            trackingNumber,
-		ShippingNote:              nil,
+		ShippingNote:              shippingNote,
 		OrderNumber:               orderNum,
 		ShippingSource:            shippingSourcePtr,
 		ShippingOrigin:            shippingOrigin,
@@ -141,14 +147,14 @@ func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 		PreparationTimeSnapshot:   preparationTimeSnapshot.String,
 		PreparationNoteSnapshot:   preparationNoteSnapshot,
 		ReadyToShipBy:             readyToShipBy,
-		ShippingDestination:       shippingDestination,
+		AddressSnapshot:           shippingDestination,
 		Status:                    entity.Status(status),
 		EscrowStatus:              entity.EscrowStatus(escrowStatus),
 		HasDispute:                hasDispute,
 		ConfirmationExtensionUsed: confirmationExtensionUsed,
 		IdempotencyKey:            idempotencyKeyPtr,
-		CreatedAt:                 time.Unix(createdAt, 0),
-		UpdatedAt:                 time.Unix(updatedAt, 0),
+		CreatedAt:                 createdAt,
+		UpdatedAt:                 updatedAt,
 	}
 
 	if autoReleaseAt != nil {
@@ -156,131 +162,9 @@ func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 		order.AutoReleaseAt = &ts
 	}
 
-	if confirmationExtendedAt != nil {
-		ts := *confirmationExtendedAt
-		order.ConfirmationExtendedAt = &ts
-	}
-
-	if completedAt != nil {
-		ts := time.Unix(*completedAt, 0)
+	if completedAt.Valid {
+		ts := completedAt.Time
 		order.CompletedAt = &ts
-	}
-
-	return order, nil
-}
-
-// GetBySource retrieves an order by source type and source ID without locking.
-// Used for idempotency checks during order creation.
-func (r *OrderRepository) GetBySource(
-	ctx context.Context,
-	tx db.Tx,
-	sourceType string,
-	sourceID uuid.UUID,
-) (*entity.Order, error) {
-	var id, buyerID, sellerID uuid.UUID
-	var shippingSetupID *uuid.UUID
-	var negotiationID *uuid.UUID
-	var quantity int
-	var unitPrice, subtotal, shippingTotal, commissionPercent, commissionAmount int64
-	var status, escrowStatus, shippingSetupName, shippingTransportType string
-	var trackingNumber, shippingNote *string
-	var orderNum *string
-	var autoReleaseAt *time.Time
-	var confirmationExtendedAt *time.Time
-	var hasDispute bool
-	var confirmationExtensionUsed bool
-	var idempotencyKey *string
-	var preparationTimeSnapshot string
-	var preparationNoteSnapshot *string
-	var readyToShipBy *time.Time
-	var addressSnapshotJSON []byte
-	var createdAt, updatedAt int64
-
-	err := tx.QueryRow(ctx, `
-		SELECT id, buyer_id, seller_id,
-		       source_type, source_id, negotiation_id,
-		       quantity, unit_price, subtotal, shipping_total,
-		       commission_percent, commission_amount,
-		       status, escrow_status, auto_release_at, has_dispute,
-		       confirmation_extension_used, confirmation_extended_at, idempotency_key,
-		       shipping_option_id, shipping_option_name, shipping_transport_type,
-		       tracking_number, shipping_note,
-		       order_number,
-		       preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by, address_snapshot,
-		       created_at, updated_at
-		FROM orders
-		WHERE source_type = $1 AND source_id = $2
-	`, sourceType, sourceID).Scan(
-		&id, &buyerID, &sellerID,
-		&sourceType, &sourceID, &negotiationID,
-		&quantity, &unitPrice, &subtotal, &shippingTotal,
-		&commissionPercent, &commissionAmount,
-		&status, &escrowStatus, &autoReleaseAt, &hasDispute, &confirmationExtensionUsed, &confirmationExtendedAt, &idempotencyKey,
-		&shippingSetupID, &shippingSetupName, &shippingTransportType,
-		&trackingNumber, &shippingNote,
-		&orderNum,
-		&preparationTimeSnapshot, &preparationNoteSnapshot, &readyToShipBy, &addressSnapshotJSON,
-		&createdAt, &updatedAt,
-	)
-
-	if err != nil {
-		if err.Error() == "no rows in result set" {
-			return nil, nil // No order with this source
-		}
-		return nil, fmt.Errorf("get order by source failed: %w", err)
-	}
-
-	// Unmarshal address snapshot from JSONB
-	var shippingDestination *addressentity.AddressSnapshot
-	if addressSnapshotJSON != nil {
-		var snapshot addressentity.AddressSnapshot
-		if err := json.Unmarshal(addressSnapshotJSON, &snapshot); err == nil {
-			shippingDestination = &snapshot
-		}
-	}
-
-	order := &entity.Order{
-		ID:                     id,
-		BuyerID:                buyerID,
-		SellerID:               sellerID,
-		SourceType:             entity.OrderSourceType(sourceType),
-		SourceID:               sourceID,
-		NegotiationID:          negotiationID,
-		Quantity:               quantity,
-		UnitPrice:              money.New(unitPrice),
-		Subtotal:               money.New(subtotal),
-		ShippingTotal:          money.New(shippingTotal),
-		CommissionPercent:      commissionPercent,
-		CommissionAmount:       money.New(commissionAmount),
-		ShippingSetupID:       shippingSetupID,
-		ShippingSetupName:     shippingSetupName,
-		ShippingTransportType:  shippingTransportType,
-		// Shipping Confirmation (canonical fields)
-		TrackingNumber: trackingNumber,
-		ShippingNote:   shippingNote,
-		OrderNumber:    orderNum,
-		// Shipping Readiness Snapshot
-		PreparationTimeSnapshot:   preparationTimeSnapshot,
-		PreparationNoteSnapshot:   preparationNoteSnapshot,
-		ReadyToShipBy:             readyToShipBy,
-		ShippingDestination:       shippingDestination,
-		Status:                    entity.Status(status),
-		EscrowStatus:              entity.EscrowStatus(escrowStatus),
-		HasDispute:                hasDispute,
-		ConfirmationExtensionUsed: confirmationExtensionUsed,
-		IdempotencyKey:            idempotencyKey,
-		CreatedAt:                 time.Unix(createdAt, 0),
-		UpdatedAt:                 time.Unix(updatedAt, 0),
-	}
-
-	if autoReleaseAt != nil {
-		ts := *autoReleaseAt
-		order.AutoReleaseAt = &ts
-	}
-
-	if confirmationExtendedAt != nil {
-		ts := *confirmationExtendedAt
-		order.ConfirmationExtendedAt = &ts
 	}
 
 	return order, nil

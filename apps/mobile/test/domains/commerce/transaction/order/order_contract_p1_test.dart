@@ -85,14 +85,13 @@ Map<String, dynamic> _orderPayload(String id) => {
   'id': id,
   'buyer_id': 'b1',
   'seller_id': 's1',
-  'product_id': 'p1',
   'status': 'paid',
-  'source_type': 'fixed_price_sale',
+  'source_type': 'for_sale',
   'source_id': 'p1',
   'subtotal': 10000,
   'shipping_total': 1000,
   'commission_amount': 500,
-  'escrow_amount': 11500,
+  'total_before_coins_amount': 11000,
   'created_at': '2026-06-01T00:00:00Z',
   'updated_at': '2026-06-01T00:00:00Z',
 };
@@ -101,73 +100,42 @@ class _FakeDatasource implements OrderRemoteDatasource {
   final List<String> calls = [];
   String? lastOrderId;
   OrderApiException? failWith;
+  Map<String, dynamic> Function(Map<String, dynamic> body)? pricingPreviewCallback;
+
+  /// Overrides the canonical GET /orders/:id payload when set.
+  Map<String, dynamic>? getOrderPayload;
 
   void _maybeThrow() {
     if (failWith != null) throw failWith!;
   }
 
   @override
-  Future<OrderDto> cancelOrder(String orderId) async {
+  Future<OrderApiResponse> cancelOrder(String orderId) async {
     calls.add('cancel');
     lastOrderId = orderId;
     _maybeThrow();
-    return OrderDto.fromJson({'id': orderId});
+    return OrderApiResponse.fromJson({'id': orderId});
   }
 
   @override
-  Future<CheckDeliveryDto> checkDelivery(
-    CheckDeliveryRequestDto request,
+  Future<CheckDeliveryApiResponse> checkDelivery(
+    CheckDeliveryApiRequest request,
   ) async {
     throw UnsupportedError('not used');
   }
 
   @override
-  Future<OrderDto> completeOrder(String orderId) async {
+  Future<OrderApiResponse> completeOrder(String orderId) async {
     calls.add('complete');
     lastOrderId = orderId;
     _maybeThrow();
-    return OrderDto.fromJson({'id': orderId});
-  }
-
-  @override
-  Future<OrderConfirmationDto> completeConfirmation(
-    String orderId,
-    String status,
-    String completionReason,
-  ) async {
-    throw UnsupportedError('not used');
-  }
-
-  @override
-  Future<OrderDto> confirmOrder(String orderId) async {
-    throw UnsupportedError('not used');
-  }
-
-  @override
-  Future<OrderDto> createOrder(CreateOrderDto request) async {
-    throw UnsupportedError('not used');
+    return OrderApiResponse.fromJson({'id': orderId});
   }
 
   @override
   Future<DisputeDto> createDispute(
     String orderId,
     CreateDisputeDto request,
-  ) async {
-    throw UnsupportedError('not used');
-  }
-
-  @override
-  Future<DisputeDto> adminApproveDispute(
-    String disputeId,
-    AdminDisputeResolutionDto request,
-  ) async {
-    throw UnsupportedError('not used');
-  }
-
-  @override
-  Future<DisputeDto> adminRejectDispute(
-    String disputeId,
-    AdminDisputeResolutionDto request,
   ) async {
     throw UnsupportedError('not used');
   }
@@ -183,36 +151,16 @@ class _FakeDatasource implements OrderRemoteDatasource {
   Future<Map<String, dynamic>> fetchPricingPreview(
     Map<String, dynamic> body,
   ) async {
+    if (pricingPreviewCallback != null) {
+      return pricingPreviewCallback!(body);
+    }
     throw UnsupportedError('not used');
   }
 
   @override
-  Future<OrderConfirmationDto> extendConfirmation(
-    String orderId,
-    DateTime newEndDate,
-  ) async {
-    throw UnsupportedError('not used');
-  }
-
-  @override
-  Future<OrderConfirmationDto> getConfirmation(String orderId) async {
-    throw UnsupportedError('not used');
-  }
-
-  @override
-  Future<DisputeDto> getDispute(String disputeId) async {
-    throw UnsupportedError('not used');
-  }
-
-  @override
-  Future<OrderDto> getOrder(String orderId) async {
+  Future<OrderApiResponse> getOrder(String orderId) async {
     calls.add('get-order');
-    return OrderDto.fromJson(_orderPayload(orderId));
-  }
-
-  @override
-  Future<OrderDto> getOrderByNumber(String orderNumber) async {
-    throw UnsupportedError('not used');
+    return OrderApiResponse.fromJson(getOrderPayload ?? _orderPayload(orderId));
   }
 
   @override
@@ -226,24 +174,12 @@ class _FakeDatasource implements OrderRemoteDatasource {
   }
 
   @override
-  Future<ShippingProofDto> getShippingProof(String orderId) async {
-    throw UnsupportedError('not used');
-  }
-
-  @override
-  Future<DisputeListDto> listAdminDisputes({
-    DisputeFilterParams? params,
-  }) async {
-    throw UnsupportedError('not used');
-  }
-
-  @override
   Future<RefundListDto> listMyRefunds({RefundFilterParams? params}) async {
     throw UnsupportedError('not used');
   }
 
   @override
-  Future<OrderListDto> listMyOrders({OrderFilterParams? params}) async {
+  Future<OrderListApiResponse> listMyOrders({OrderFilterParams? params}) async {
     throw UnsupportedError('not used');
   }
 
@@ -253,28 +189,16 @@ class _FakeDatasource implements OrderRemoteDatasource {
   }
 
   @override
-  Future<OrderListDto> listSellerOrders({OrderFilterParams? params}) async {
+  Future<OrderListApiResponse> listSellerOrders({OrderFilterParams? params}) async {
     throw UnsupportedError('not used');
   }
 
   @override
-  Future<OrderDto> shipOrder(String orderId, MarkAsShippedParams params) async {
+  Future<OrderApiResponse> shipOrder(String orderId, MarkAsShippedParams params) async {
     calls.add('ship');
     lastOrderId = orderId;
     _maybeThrow();
-    return OrderDto.fromJson({'id': orderId});
-  }
-
-  @override
-  Future<OrderStatsDto> getOrderStats({bool asSeller = false}) async {
-    throw UnsupportedError('not used');
-  }
-
-  @override
-  Future<PreviewOrderResponseDto> previewOrder(
-    PreviewOrderRequestDto request,
-  ) async {
-    throw UnsupportedError('not used');
+    return OrderApiResponse.fromJson({'id': orderId});
   }
 
   @override
@@ -297,30 +221,6 @@ class _FakeDatasource implements OrderRemoteDatasource {
 
   @override
   Future<RefundDto> rejectRefund(String refundId, {String? notes}) async {
-    throw UnsupportedError('not used');
-  }
-
-  @override
-  Future<ShippingProofDto> updateShippingProof(
-    String orderId,
-    CreateShippingProofDto request,
-  ) async {
-    throw UnsupportedError('not used');
-  }
-
-  @override
-  Future<ShippingProofDto> uploadShippingProof(
-    String orderId,
-    CreateShippingProofDto request,
-  ) async {
-    throw UnsupportedError('not used');
-  }
-
-  @override
-  Future<OrderDto> updateOrderStatus(
-    String orderId,
-    UpdateOrderStatusDto request,
-  ) async {
     throw UnsupportedError('not used');
   }
 }
@@ -382,27 +282,16 @@ void main() {
       expect(result.data, isEmpty);
     });
 
-    test('unsupported endpoints throw UnsupportedError', () async {
+    // The obsolete order-lifecycle endpoints (preview, stats, confirm, order
+    // confirmation, order-by-number, update-status, shipping-proof, admin
+    // dispute) were purged from OrderRemoteDatasource. Their absence is now
+    // enforced by the type system: referencing them fails compilation.
+    // Only the surviving backend-unsupported refund read endpoints are
+    // asserted at runtime below.
+    test('refund read endpoints unsupported by backend contract throw', () async {
       final client = _RecordingApiClient();
       final ds = OrderApiDatasourceImpl(client);
 
-      expect(
-        () => ds.previewOrder(
-          const PreviewOrderRequestDto(
-            productId: 'p1',
-            quantity: 1,
-            shippingAddress: ShippingAddressRequestDto(
-              recipientName: 'r',
-              phoneNumber: 'p',
-              addressLine1: 'a',
-            ),
-          ),
-        ),
-        throwsA(isA<UnsupportedError>()),
-      );
-      expect(() => ds.getOrderByNumber('n1'), throwsA(isA<UnsupportedError>()));
-      expect(() => ds.getOrderStats(), throwsA(isA<UnsupportedError>()));
-      expect(() => ds.confirmOrder('o1'), throwsA(isA<UnsupportedError>()));
       expect(
         () => ds.getRefundByOrderId('o1'),
         throwsA(isA<UnsupportedError>()),
@@ -410,40 +299,6 @@ void main() {
       expect(() => ds.getRefund('r1'), throwsA(isA<UnsupportedError>()));
       expect(() => ds.listMyRefunds(), throwsA(isA<UnsupportedError>()));
       expect(() => ds.listSellerRefunds(), throwsA(isA<UnsupportedError>()));
-      expect(
-        () => ds.uploadShippingProof(
-          'o1',
-          CreateShippingProofDto(trackingNumber: 't'),
-        ),
-        throwsA(isA<UnsupportedError>()),
-      );
-      expect(() => ds.getShippingProof('o1'), throwsA(isA<UnsupportedError>()));
-      expect(
-        () => ds.updateShippingProof(
-          'o1',
-          CreateShippingProofDto(trackingNumber: 't'),
-        ),
-        throwsA(isA<UnsupportedError>()),
-      );
-      expect(() => ds.getConfirmation('o1'), throwsA(isA<UnsupportedError>()));
-      expect(
-        () => ds.extendConfirmation('o1', DateTime.now()),
-        throwsA(isA<UnsupportedError>()),
-      );
-      expect(
-        () => ds.completeConfirmation('o1', 'x', 'x'),
-        throwsA(isA<UnsupportedError>()),
-      );
-      expect(() => ds.getDispute('d1'), throwsA(isA<UnsupportedError>()));
-      expect(() => ds.listAdminDisputes(), throwsA(isA<UnsupportedError>()));
-      expect(
-        () => ds.adminApproveDispute('d1', AdminDisputeResolutionDto()),
-        throwsA(isA<UnsupportedError>()),
-      );
-      expect(
-        () => ds.adminRejectDispute('d1', AdminDisputeResolutionDto()),
-        throwsA(isA<UnsupportedError>()),
-      );
     });
   });
 
@@ -460,7 +315,7 @@ void main() {
         expect(ds.calls, ['ship', 'get-order']);
         ds.calls.clear();
 
-        await repo.completeOrder('o1');
+        await repo.markAsDelivered('o1');
         expect(ds.calls, ['complete', 'get-order']);
         ds.calls.clear();
 
@@ -482,10 +337,278 @@ void main() {
         );
       final repo = OrderRepositoryImpl(ds);
 
-      final result = await repo.completeOrder('o1');
+      final result = await repo.markAsDelivered('o1');
       expect(result.isError, isTrue);
       expect(result.errorCode, 'ACCOUNT_SUSPENDED');
       expect(result.errorDetails?['reason'], 'suspended');
+    });
+  });
+
+  // ========================================================================
+  // STAGE 13 — OrderRepositoryImpl.previewOrder wire contract proof
+  // ========================================================================
+  group('OrderRepositoryImpl.previewOrder shipping option contract', () {
+    test('standard shipping: wire payload contains shipping_option_id, not shipping_setup_id', () async {
+      Map<String, dynamic>? capturedBody;
+      final ds = _FakeDatasource()
+        ..pricingPreviewCallback = (body) {
+          capturedBody = body;
+          return {
+            'token': 'tok-1',
+            'expires_at': '2026-12-31T23:59:59Z',
+            'pricing_snapshot': {
+              'subtotal': 10000,
+              'shipping_total': 5000,
+              'total_payable_amount': 15000,
+            },
+          };
+        };
+      final repo = OrderRepositoryImpl(ds);
+
+      final result = await repo.previewOrder(
+        const PreviewOrderParams(
+          productId: '11111111-1111-1111-1111-111111111111',
+          sourceType: 'for_sale',
+          sourceId: '22222222-2222-2222-2222-222222222222',
+          quantity: 1,
+          addressId: '44444444-4444-4444-4444-444444444444',
+          shippingSetupId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        ),
+      );
+
+      expect(result.isSuccess, isTrue);
+      expect(capturedBody, isNotNull);
+      expect(capturedBody!['shipping_option_id'], 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+      expect(capturedBody!.containsKey('shipping_setup_id'), isFalse,
+        reason: 'stale wire key must never appear in live pricing preview',
+      );
+    });
+
+    test('value trace: selected shipping option ID travels unchanged as shipping_option_id', () async {
+      const selectedOptionId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+      Map<String, dynamic>? capturedBody;
+      final ds = _FakeDatasource()
+        ..pricingPreviewCallback = (body) {
+          capturedBody = body;
+          return {
+            'token': 'tok-2',
+            'expires_at': '2026-12-31T23:59:59Z',
+            'pricing_snapshot': {
+              'subtotal': 10000,
+              'shipping_total': 5000,
+              'total_payable_amount': 15000,
+            },
+          };
+        };
+      final repo = OrderRepositoryImpl(ds);
+
+      await repo.previewOrder(
+        const PreviewOrderParams(
+          productId: '11111111-1111-1111-1111-111111111111',
+          sourceType: 'for_sale',
+          sourceId: '22222222-2222-2222-2222-222222222222',
+          quantity: 1,
+          addressId: '44444444-4444-4444-4444-444444444444',
+          shippingSetupId: selectedOptionId,
+        ),
+      );
+
+      expect(capturedBody!['shipping_option_id'], equals(selectedOptionId));
+    });
+
+    test('quote mode: no shipping_option_id when shippingQuoteId is set', () async {
+      Map<String, dynamic>? capturedBody;
+      final ds = _FakeDatasource()
+        ..pricingPreviewCallback = (body) {
+          capturedBody = body;
+          return {
+            'token': 'tok-3',
+            'expires_at': '2026-12-31T23:59:59Z',
+            'pricing_snapshot': {
+              'subtotal': 10000,
+              'shipping_total': 5000,
+              'total_payable_amount': 15000,
+            },
+          };
+        };
+      final repo = OrderRepositoryImpl(ds);
+
+      await repo.previewOrder(
+        const PreviewOrderParams(
+          productId: '11111111-1111-1111-1111-111111111111',
+          sourceType: 'for_sale',
+          sourceId: '22222222-2222-2222-2222-222222222222',
+          quantity: 1,
+          addressId: '44444444-4444-4444-4444-444444444444',
+          shippingQuoteId: 'quote-abc',
+        ),
+      );
+
+      expect(capturedBody!['shipping_quote_id'], 'quote-abc');
+      expect(capturedBody!.containsKey('shipping_option_id'), isFalse);
+      expect(capturedBody!.containsKey('shipping_setup_id'), isFalse);
+    });
+
+    test('negative stale-key guard: no live preview request emits shipping_setup_id', () async {
+      Map<String, dynamic>? capturedBody;
+      final ds = _FakeDatasource()
+        ..pricingPreviewCallback = (body) {
+          capturedBody = body;
+          return {
+            'token': 'tok-4',
+            'expires_at': '2026-12-31T23:59:59Z',
+            'pricing_snapshot': {
+              'subtotal': 10000,
+              'shipping_total': 0,
+              'total_payable_amount': 10000,
+            },
+          };
+        };
+      final repo = OrderRepositoryImpl(ds);
+
+      // With standard shipping option
+      await repo.previewOrder(
+        const PreviewOrderParams(
+          productId: '11111111-1111-1111-1111-111111111111',
+          sourceType: 'for_sale',
+          sourceId: '22222222-2222-2222-2222-222222222222',
+          quantity: 1,
+          addressId: '44444444-4444-4444-4444-444444444444',
+          shippingSetupId: 'opt-111',
+        ),
+      );
+      expect(capturedBody!.containsKey('shipping_setup_id'), isFalse);
+
+      // With no shipping
+      await repo.previewOrder(
+        const PreviewOrderParams(
+          productId: '11111111-1111-1111-1111-111111111111',
+          sourceType: 'for_sale',
+          sourceId: '22222222-2222-2222-2222-222222222222',
+          quantity: 1,
+          addressId: '44444444-4444-4444-4444-444444444444',
+        ),
+      );
+      expect(capturedBody!.containsKey('shipping_setup_id'), isFalse);
+    });
+
+    test(
+      'FIN-R01E-D: preview payable comes from the single canonical total_payable_amount key',
+      () async {
+        final ds = _FakeDatasource()
+          ..pricingPreviewCallback = (_) => {
+            'token': 'tok-canonical',
+            'expires_at': '2026-12-31T23:59:59Z',
+            'pricing_snapshot': {
+              'subtotal': 100000,
+              'shipping_total': 10000,
+              'discount_amount': 15000,
+              // canonical pricing-preview payable key (escrow + service fee)
+              'total_payable_amount': 95000,
+              // persisted ORDER column name — MUST NOT be honored as a fallback
+              'total_before_coins_amount': 999999,
+            },
+          };
+        final repo = OrderRepositoryImpl(ds);
+
+        final result = await repo.previewOrder(
+          const PreviewOrderParams(
+            productId: '11111111-1111-1111-1111-111111111111',
+            sourceType: 'for_sale',
+            sourceId: '22222222-2222-2222-2222-222222222222',
+            quantity: 1,
+            addressId: '44444444-4444-4444-4444-444444444444',
+          ),
+        );
+
+        expect(result.isSuccess, isTrue);
+        // Canonical payable: no `total` compatibility alias may exist.
+        expect(result.data!.pricing.totalPayableAmount, 95000);
+      },
+    );
+  });
+
+  group('Canonical GET /orders/:id payload mapping', () {
+    test('maps shipping_address snapshot, items[] and shipping proof', () async {
+      final ds = _FakeDatasource()
+        ..getOrderPayload = {
+          'id': 'o-1',
+          'order_number': 'ORD-1',
+          'buyer_id': 'b1',
+          'seller_id': 's1',
+          'quantity': 1,
+          'status': 'shipped',
+          'subtotal': 100000,
+          'shipping_total': 10000,
+          'commission_amount': 5000,
+          'service_fee_amount': 2000,
+          'total_before_coins_amount': 110000,
+          'total_payable_amount': 112000,
+          'payment_status': 'settlement',
+          'tracking_number': 'RESI-123',
+          'proof_type': 'phone',
+          'shipping_note': 'diantar malam ini',
+          'completed_at': 1767225600,
+          'items': [
+            {
+              'id': 'i-1',
+              'order_id': 'o-1',
+              'product_id': 'p-1',
+              'name': 'Koi Kohaku 30cm',
+              'unit_price_snapshot': 100000,
+              'quantity': 1,
+              'subtotal': 100000,
+            },
+          ],
+          'shipping_address': {
+            'recipient_name': 'Budi',
+            'phone': '0812345678',
+            'street_address': 'Jl. Mawar No. 1',
+            'province_name': 'Jawa Barat',
+            'city_name': 'Bandung',
+            'district_name': 'Coblong',
+            'postal_code': '40132',
+            'latitude': -6.9,
+            'longitude': 107.6,
+          },
+        };
+      final repo = OrderRepositoryImpl(ds);
+
+      final result = await repo.getOrderById('o-1');
+      expect(result.isSuccess, isTrue);
+      final order = result.data!;
+
+      // Canonical money — read directly from the persisted fields.
+      expect(order.pricing.subtotal, 100000);
+      expect(order.pricing.shippingCost, 10000);
+      expect(order.pricing.commissionAmount, 5000);
+      expect(order.pricing.serviceFeeAmount, 2000);
+      expect(order.pricing.totalBeforeCoinsAmount, 110000);
+      expect(order.pricing.totalPayableAmount, 112000);
+
+      // Canonical address snapshot: orders.address_snapshot → shipping_address.
+      expect(order.shippingInfo.recipientName, 'Budi');
+      expect(order.shippingInfo.phone, '0812345678');
+      expect(order.shippingInfo.address, 'Jl. Mawar No. 1');
+      expect(order.shippingInfo.cityName, 'Bandung');
+      expect(order.shippingInfo.provinceName, 'Jawa Barat');
+      expect(order.shippingInfo.districtName, 'Coblong');
+      expect(order.shippingInfo.postalCode, '40132');
+      expect(order.shippingInfo.latitude, -6.9);
+
+      // Canonical line items — backend `items[]`.
+      expect(order.items.single.forSaleName, 'Koi Kohaku 30cm');
+      expect(order.items.single.productId, 'p-1');
+      expect(order.items.single.price, 100000);
+      expect(order.items.single.quantity, 1);
+
+      // Shipping proof: tracking_number + proof_type → UI reference vocabulary.
+      expect(order.shippingInfo.trackingNumber, 'RESI-123');
+      expect(order.shippingInfo.referenceType, 'phone');
+      expect(order.shippingInfo.shippingNote, 'diantar malam ini');
+
+      // Canonical completion timestamp.
+      expect(order.completedAt, isNotNull);
     });
   });
 }

@@ -2,13 +2,18 @@
 ///
 /// Handles payment initiation flow with safety mechanisms:
 /// - Double-tap guard via immediate lock flag
-/// - Idempotency key handling for retry scenarios
+/// - Cooldown between attempts
 /// - Backend authority for payment state
 /// - Clear error handling with user-friendly messages
+///
+/// IDEMPOTENCY: POST /api/v1/payments is made idempotent by the backend
+/// (order + active-payment reuse: CorePaymentHandler.CreatePayment returns the
+/// existing non-expired pending payment instead of creating a second one). The
+/// client sends no idempotency key — the backend binds no such field for this
+/// endpoint, and the previous client-side UUID was never transmitted.
 library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:uuid/uuid.dart';
 import 'package:labuda/core/core.dart' as core;
 import '../../domain/entities/payment.dart';
 import '../../domain/entities/payment_intent.dart';
@@ -26,7 +31,7 @@ part 'payment_initiation_notifier.g.dart';
 ///
 /// PASS_18V: backend is sole authority for the buyer payment fee and gross
 /// amount, both derived from [paymentMethodCode]. The client never computes
-/// or sends an amount — see PaymentRepository.getAvailablePaymentMethods for
+/// or sends an amount — see PaymentRepository.getPaymentMethodOptions for
 /// the method list + fee the buyer picks from before calling this.
 class InitiatePaymentRequest {
   /// Order ID to create payment for
@@ -35,16 +40,12 @@ class InitiatePaymentRequest {
   /// Canonical payment method code the buyer selected (required).
   final String paymentMethodCode;
 
-  /// Coin discount to apply (optional)
-  final int? coinDiscount;
-
   /// Price snapshot ID from order (optional, for backend validation)
   final String? priceSnapshotId;
 
   const InitiatePaymentRequest({
     required this.orderId,
     required this.paymentMethodCode,
-    this.coinDiscount,
     this.priceSnapshotId,
   });
 
@@ -64,7 +65,6 @@ class InitiatePaymentRequest {
     return CreatePaymentRequest(
       orderId: orderId,
       paymentMethodCode: paymentMethodCode,
-      coinDiscount: coinDiscount ?? 0,
       priceSnapshotId: priceSnapshotId,
     );
   }
@@ -78,15 +78,11 @@ class InitiatePaymentRequest {
 ///
 /// SAFETY GUARDS:
 /// 1. IMMEDIATE LOCK - isInitiating set synchronously before async operation
-/// 2. IDEMPOTENCY KEY - UUID v4 generated once per attempt, preserved for retry
-/// 3. BACKEND AUTHORITY - All payment state from backend, no client calculation
-/// 4. EXPLICIT ERROR - All errors mapped to user-friendly messages
-/// 5. COOLDOWN - 5 second cooldown between attempts to prevent spam
+/// 2. BACKEND AUTHORITY - All payment state from backend, no client calculation
+/// 3. EXPLICIT ERROR - All errors mapped to user-friendly messages
+/// 4. COOLDOWN - 5 second cooldown between attempts to prevent spam
 @riverpod
 class PaymentInitiationNotifier extends _$PaymentInitiationNotifier {
-  /// UUID v4 generator for idempotency keys
-  static const _uuid = Uuid();
-
   /// Minimum cooldown between payment initiation attempts (seconds)
   static const _cooldownSeconds = 5;
 
@@ -101,16 +97,14 @@ class PaymentInitiationNotifier extends _$PaymentInitiationNotifier {
   /// 1. Check immediate lock (isInitiating) - return early if locked
   /// 2. Check cooldown - return early if within cooldown period
   /// 3. Validate request - return error if invalid
-  /// 4. Generate idempotency key if not exists
-  /// 5. Set initiating state (IMMEDIATE LOCK)
-  /// 6. Call backend API
-  /// 7. Handle response (success/failure)
-  /// 8. Clear initiating lock
+  /// 4. Set initiating state (IMMEDIATE LOCK)
+  /// 5. Call backend API
+  /// 6. Handle response (success/failure)
+  /// 7. Clear initiating lock
   ///
-  /// IDEMPOTENCY:
-  /// - Idempotency key generated once per payment attempt
-  /// - Preserved in state for retry scenarios
-  /// - Cleared on successful initiation
+  /// IDEMPOTENCY: the backend owns it (order + active-payment reuse). A retry
+  /// after a failure simply calls the same endpoint again — the backend returns
+  /// the same reusable pending payment rather than creating a duplicate.
   Future<PaymentIntent?> initiatePayment(InitiatePaymentRequest request) async {
     // SAFETY GUARD 1: IMMEDIATE LOCK CHECK
     if (state.isInitiating) {
@@ -136,13 +130,9 @@ class PaymentInitiationNotifier extends _$PaymentInitiationNotifier {
       return null;
     }
 
-    // IDEMPOTENCY: Generate key only if not present (retry scenario)
-    final idempotencyKey = state.idempotencyKey ?? _uuid.v4();
-
     // IMMEDIATE LOCK: Set loading state BEFORE async operation
     state = state.copyWith(
       isInitiating: true,
-      idempotencyKey: idempotencyKey,
       lastInitiatedAt: DateTime.now(),
       error: null,
     );
@@ -151,27 +141,21 @@ class PaymentInitiationNotifier extends _$PaymentInitiationNotifier {
       final repo = ref.read(paymentRepositoryProvider);
       final createRequest = request.toCreatePaymentRequest();
 
-      _logger?.info(
-        'Initiating payment for order ${request.orderId} with idempotency key',
-      );
+      _logger?.info('Initiating payment for order ${request.orderId}');
 
       final result = await repo.createPayment(createRequest);
 
       return result.fold(
         (intent) {
-          _logger?.info('Payment initiated successfully: ${intent.id}');
+          _logger?.info('Payment initiated successfully: ${intent.paymentId}');
 
-          // SUCCESS: Store intent and clear idempotency key
-          state = PaymentInitiationState.success(
-            intent: intent,
-            idempotencyKey: null, // Clear key on success
-          );
+          // SUCCESS: Store intent
+          state = PaymentInitiationState.success(intent: intent);
           return intent;
         },
         (failure) {
           _logger?.error('Payment initiation failed: ${failure.message}');
 
-          // FAILURE: Keep idempotency key for potential retry
           state = state.copyWith(
             error: _getUserFriendlyErrorMessage(failure),
             isInitiating: false,
@@ -187,7 +171,6 @@ class PaymentInitiationNotifier extends _$PaymentInitiationNotifier {
         stackTrace: stackTrace,
       );
 
-      // UNEXPECTED ERROR: Keep idempotency key for potential retry
       state = state.copyWith(
         error: 'Terjadi kesalahan. Silakan coba lagi.',
         isInitiating: false,
@@ -196,29 +179,9 @@ class PaymentInitiationNotifier extends _$PaymentInitiationNotifier {
     }
   }
 
-  /// Retry payment initiation with same idempotency key
-  ///
-  /// Uses the same idempotency key from previous attempt
-  /// to ensure backend treats this as retry, not duplicate
-  Future<PaymentIntent?> retryPayment(InitiatePaymentRequest request) async {
-    if (state.idempotencyKey == null) {
-      state = state.copyWith(
-        error: 'Tidak dapat mencoba ulang. Silakan mulai pembayaran baru.',
-      );
-      return null;
-    }
-
-    _logger?.info(
-      'Retrying payment initiation with idempotency key ${state.idempotencyKey}',
-    );
-
-    return initiatePayment(request);
-  }
-
   /// Reset state for new payment initiation
   ///
-  /// Clears all state including idempotency key
-  /// Call this when starting a completely new payment flow
+  /// Clears all state. Call this when starting a completely new payment flow.
   void reset() {
     state = const PaymentInitiationState();
   }

@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"testing"
+	"time"
 
 	"fmt"
 
@@ -18,31 +19,52 @@ import (
 )
 
 // ============================================================================
-// TESTS: ActiveRefundChecker guard in OrderCompletionService.Complete
+// TESTS: RefundReleaseGuard in OrderCompletionService.Complete
 // ============================================================================
 //
-// H2-F2a MONEY-SAFETY: Proves that auto-completion is blocked when an active
-// (non-terminal) refund exists on the order, preventing escrow release while
-// a refund is being negotiated or awaiting gateway settlement.
+// CANONICAL CONTRACT: the order lifecycle asks ONE question before releasing
+// money to the seller — "does this order have a refund that still has to be
+// respected?" The answer is composed from two independent facts:
 //
-// Terminal refund statuses that do NOT block: refunded, admin_released.
-// All other statuses block: pending_seller_review, seller_approved,
-// seller_rejected, escalated_to_admin, admin_refunded.
+//  1. the REFUND domain owns whether a refund's decision is final / whether
+//     money owed to the buyer is still settling at the gateway
+//     (refundEntity.Refund.BlocksOrderRelease);
+//  2. the ORDER domain owns whether the buyer's refund window is still open
+//     (Order.IsRefundWindowOpen) — because only the order knows shipped /
+//     dispute / auto_release_at.
+//
+// These tests prove the completion service wires those two facts together and
+// fails closed when the guard is absent. The SQL mirror of the predicate lives
+// in the refund repository (HasRefundBlockingRelease) and in the auto-complete
+// candidate query; the status sets are shared constants asserted by
+// TestRefundBlockingReleaseSQL_UsesCanonicalStatusSets.
 // ============================================================================
 
-// stubActiveRefundChecker is a test double for ActiveRefundChecker.
-type stubActiveRefundChecker struct {
-	hasActive bool
-	err       error
+// stubRefundReleaseGuard is a test double for RefundReleaseGuard. It records the
+// refundWindowOpen value the completion service supplied so the window wiring is
+// provable without a database.
+type stubRefundReleaseGuard struct {
+	blocks                bool
+	err                   error
+	called                bool
+	observedWindowOpen    bool
+	observedWindowWasPass bool
 }
 
-func (s *stubActiveRefundChecker) HasActiveRefundByOrderID(_ context.Context, _ db.Tx, _ uuid.UUID) (bool, error) {
-	return s.hasActive, s.err
+func (s *stubRefundReleaseGuard) HasRefundBlockingRelease(
+	_ context.Context, _ db.Tx, _ uuid.UUID, refundWindowOpen bool,
+) (bool, error) {
+	s.called = true
+	s.observedWindowWasPass = true
+	s.observedWindowOpen = refundWindowOpen
+	return s.blocks, s.err
 }
 
-// newCompletableOrder returns an order in the canonical auto-complete-eligible state.
+// newCompletableOrder returns an order in the canonical auto-complete-eligible
+// state, with the refund window explicitly CLOSED (deadline already passed) so
+// the guard alone decides.
 func newCompletableOrder() *entity.Order {
-	return &entity.Order{
+	order := &entity.Order{
 		ID:           uuid.New(),
 		BuyerID:      uuid.New(),
 		SellerID:     uuid.New(),
@@ -50,13 +72,16 @@ func newCompletableOrder() *entity.Order {
 		EscrowStatus: entity.EscrowStatusHolding,
 		HasDispute:   false,
 	}
+	closedAt := time.Now().Add(-time.Minute) // refund window already closed
+	order.AutoReleaseAt = &closedAt
+	return order
 }
 
-// newCompletionServiceWithRefundChecker builds a minimal OrderCompletionService
-// wired with the given ActiveRefundChecker and stubbed order repo. Other deps
-// are nil — tests are designed to hit the refund guard BEFORE downstream calls.
-func newCompletionServiceWithRefundChecker(
-	checker ActiveRefundChecker,
+// newCompletionServiceWithGuard builds a minimal OrderCompletionService wired
+// with the given guard and stubbed order repo. Other deps are nil — the tests
+// are designed to hit the refund guard BEFORE downstream calls.
+func newCompletionServiceWithGuard(
+	guard RefundReleaseGuard,
 	order *entity.Order,
 	logger *testing.T,
 ) *OrderCompletionService {
@@ -68,7 +93,7 @@ func newCompletionServiceWithRefundChecker(
 		},
 		ownership:            auth.NewOwnershipValidator(),
 		accountStatusChecker: &noopAccountChecker{},
-		activeRefundChecker:  checker,
+		refundReleaseGuard:   guard,
 		logger:               zaptest.NewLogger(logger),
 	}
 }
@@ -86,84 +111,73 @@ func (n *noopAccountChecker) IsBanned(_ context.Context, _ uuid.UUID) (bool, err
 
 // --- Test cases ---
 
-func TestComplete_BlockedByActiveRefund_PendingSellerReview(t *testing.T) {
+func TestComplete_BlockedByRefundBlockingRelease(t *testing.T) {
 	order := newCompletableOrder()
-	svc := newCompletionServiceWithRefundChecker(
-		&stubActiveRefundChecker{hasActive: true},
-		order, t,
-	)
+	guard := &stubRefundReleaseGuard{blocks: true}
+	svc := newCompletionServiceWithGuard(guard, order, t)
 
 	err := svc.Complete(context.Background(), &refundGuardNoopTx{}, auth.SystemCallerID, order.ID, "")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "active refund exists")
+	assert.Contains(t, err.Error(), "refund still blocking release")
+	assert.True(t, guard.called, "the refund release guard must be consulted")
 }
 
-func TestComplete_BlockedByActiveRefund_SellerRejected(t *testing.T) {
-	// seller_rejected is NOT terminal — buyer still has escalation rights
+func TestComplete_NotBlockedWhenNoRefundBlocks(t *testing.T) {
 	order := newCompletableOrder()
-	svc := newCompletionServiceWithRefundChecker(
-		&stubActiveRefundChecker{hasActive: true},
-		order, t,
-	)
+	guard := &stubRefundReleaseGuard{blocks: false}
+	svc := newCompletionServiceWithGuard(guard, order, t)
 
-	err := svc.Complete(context.Background(), &refundGuardNoopTx{}, auth.SystemCallerID, order.ID, "")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "active refund exists")
-}
-
-func TestComplete_BlockedByActiveRefund_EscalatedToAdmin(t *testing.T) {
-	order := newCompletableOrder()
-	svc := newCompletionServiceWithRefundChecker(
-		&stubActiveRefundChecker{hasActive: true},
-		order, t,
-	)
-
-	err := svc.Complete(context.Background(), &refundGuardNoopTx{}, auth.SystemCallerID, order.ID, "")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "active refund exists")
-}
-
-func TestComplete_NotBlockedByTerminalRefund(t *testing.T) {
-	// Terminal refunds (refunded, admin_released) do NOT block.
-	// The checker returns false for terminal-only refunds.
-	order := newCompletableOrder()
-	svc := newCompletionServiceWithRefundChecker(
-		&stubActiveRefundChecker{hasActive: false},
-		order, t,
-	)
-
-	// Will panic downstream (nil supportRepo etc.) — recover and verify
-	// the refund guard was NOT the cause.
+	// Will panic downstream (nil supportRepo etc.) — recover and verify the
+	// refund guard was NOT the cause.
 	err := safeComplete(svc, order.ID)
 	if err != nil {
-		assert.NotContains(t, err.Error(), "active refund exists")
+		assert.NotContains(t, err.Error(), "refund still blocking release")
 	}
 }
 
-func TestComplete_NotBlockedWhenNoRefund(t *testing.T) {
-	order := newCompletableOrder()
-	svc := newCompletionServiceWithRefundChecker(
-		&stubActiveRefundChecker{hasActive: false},
-		order, t,
-	)
-
-	err := safeComplete(svc, order.ID)
-	if err != nil {
-		assert.NotContains(t, err.Error(), "active refund exists")
-	}
-}
-
-func TestComplete_FailsClosedWhenCheckerNil(t *testing.T) {
-	// FIX-6: nil checker must now return ErrActiveRefundCheckerNotConfigured.
+func TestComplete_FailsClosedWhenGuardNil(t *testing.T) {
 	// Escrow must not be released without a functioning refund guard.
 	order := newCompletableOrder()
-	svc := newCompletionServiceWithRefundChecker(nil, order, t)
+	svc := newCompletionServiceWithGuard(nil, order, t)
 
 	err := safeComplete(svc, order.ID)
 	if err == nil {
-		t.Fatal("expected ErrActiveRefundCheckerNotConfigured, got nil")
+		t.Fatal("expected ErrRefundReleaseGuardNotConfigured, got nil")
 	}
-	assert.Contains(t, err.Error(), "active refund checker not configured")
+	assert.Contains(t, err.Error(), "refund release guard not configured")
+}
+
+// TestComplete_PassesOrderRefundWindowToGuard proves the raw predicate is not
+// asked in isolation: the ORDER domain's refund-window answer is threaded into
+// the guard, so a closed window (order lifecycle owns the outcome) is
+// distinguishable from an open one.
+func TestComplete_PassesOrderRefundWindowToGuard(t *testing.T) {
+	// Window CLOSED: deadline already passed.
+	closed := newCompletableOrder()
+	closedGuard := &stubRefundReleaseGuard{blocks: false}
+	_ = safeComplete(newCompletionServiceWithGuard(closedGuard, closed, t), closed.ID)
+	if !closedGuard.observedWindowWasPass || closedGuard.observedWindowOpen {
+		t.Fatalf("closed window must be passed as false, got %v (passed=%v)",
+			closedGuard.observedWindowOpen, closedGuard.observedWindowWasPass)
+	}
+
+	// Window OPEN: still shipped and before the auto-release deadline.
+	open := &entity.Order{
+		ID:           uuid.New(),
+		BuyerID:      uuid.New(),
+		SellerID:     uuid.New(),
+		Status:       entity.StatusShipped,
+		EscrowStatus: entity.EscrowStatusHolding,
+	}
+	autoRelease := time.Now().Add(time.Hour)
+	open.AutoReleaseAt = &autoRelease
+
+	openGuard := &stubRefundReleaseGuard{blocks: false}
+	_ = safeComplete(newCompletionServiceWithGuard(openGuard, open, t), open.ID)
+	if !openGuard.observedWindowWasPass || !openGuard.observedWindowOpen {
+		t.Fatalf("open window must be passed as true, got %v (passed=%v)",
+			openGuard.observedWindowOpen, openGuard.observedWindowWasPass)
+	}
 }
 
 // safeComplete calls Complete and recovers from panics caused by nil
@@ -201,5 +215,3 @@ func (n *refundGuardNoopTx) Rollback(_ context.Context) error { return nil }
 type refundGuardNoopRow struct{}
 
 func (n *refundGuardNoopRow) Scan(_ ...any) error { return nil }
-
-

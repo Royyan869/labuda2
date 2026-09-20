@@ -165,7 +165,14 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _loadChatData();
+    // Conversation open is issued after the first frame: chatDetailProvider is
+    // autoDispose, so the canonical read must run once the screen's build has
+    // attached its listener to the room state. Same ordering as the deep-link
+    // send below.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _loadChatData();
+    });
     _scrollController.addListener(_onScroll);
 
     // Send initial message if provided (for deep links)
@@ -251,6 +258,13 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         notifier.loadChat(userId),
         notifier.loadMessages(userId),
       ]);
+
+      // Opening a conversation marks it read through the canonical read
+      // authority (POST /chat/rooms/:room_id/read → Service.MarkAsRead, plus the
+      // notification read sync inside the same canonical notifier method).
+      if (userId.isNotEmpty) {
+        await notifier.markAsRead(userId);
+      }
     } catch (e) {
       // Error will be reflected in state - UI will show error view
       // State already handles the error through notifier's error handling
@@ -397,7 +411,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       final otherUserName = chat.getOtherParticipantName(userId);
       final otherUserHandle = formatChatHandle(otherUserName);
       final otherUserId = chat.getOtherParticipantId(userId);
-      final isOnline = ref.watch(presenceProvider).isUserOnline(otherUserId);
+      final isOnline = ref.watch(isUserOnlineProvider(otherUserId));
 
       // E4.3 — Participant lifecycle redaction in the chat appbar. When
       // the other participant is unavailable/removed:
@@ -454,11 +468,11 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     }
   }
 
-  /// Listing Context Banner
+  /// ForSale Context Banner
   ///
-  /// Shows the active listing context at the top of the chat.
-  /// This helps users understand what listing the chat is about.
-  /// Only displays when context is a ShareReference with targetType.listing.
+  /// Shows the active forSale context at the top of the chat.
+  /// This helps users understand what forSale the chat is about.
+  /// Only displays when context is a ShareReference with targetType.forSale.
   /// Order Status Banner
   ///
   /// Shows order status for linked orders in chat.
@@ -729,7 +743,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Seller-only listing options
+            // Seller-only forSale options
             if (isSeller) ...[
               ListTile(
                 leading: Icon(
@@ -885,7 +899,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal membuka listing. Coba lagi.')),
+          const SnackBar(content: Text('Gagal membuka forSale. Coba lagi.')),
         );
       }
     }
@@ -1164,10 +1178,10 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     // SELLER TRUST GATE: Best-effort check against cached data.
     // If the item is cached and seller is inactive, block navigation early.
     // Checkout screen (A3) and backend Guard 6 remain the authoritative checks.
-    final listingAsync = ref.read(forSaleDetailProvider(forSaleId));
-    final listing = listingAsync.value;
-    if (listing != null &&
-        listing.sellerTrustLifecycle != ContentLifecycle.active) {
+    final forSaleAsync = ref.read(forSaleDetailProvider(forSaleId));
+    final forSale = forSaleAsync.value;
+    if (forSale != null &&
+        forSale.sellerTrustLifecycle != ContentLifecycle.active) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -1178,7 +1192,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       return;
     }
 
-    final productId = listing?.productId;
+    final productId = forSale?.productId;
     if (productId == null || productId.isEmpty) {
       if (mounted) {
         AppSnackBar.showError(
@@ -1615,7 +1629,7 @@ extension DateTimeComparison on DateTime {
 /// Batch Messages Widget
 ///
 /// Resolves all message attachments in one batch call instead of N individual calls.
-/// Reduces API calls from N to 2-3 (listings + auctions).
+/// Reduces API calls from N to 2-3 (forSales + auctions).
 class _MessagesBatchWidget extends ConsumerWidget {
   final List<Message> messages;
   final bool hasMoreMessages;

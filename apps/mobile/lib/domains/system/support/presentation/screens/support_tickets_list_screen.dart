@@ -2,16 +2,17 @@ library;
 
 /// Support Tickets List Screen
 ///
-/// Lists all user support tickets
-/// Shows: category, status, last updated
+/// Lists the authenticated user's own support tickets.
+/// Shows: category, status, subject, last updated.
+///
+/// The Support API is the identity authority for this list — the chat room
+/// list is NOT used to discover Support tickets. Each row navigates to the
+/// ticket's own conversation thread by ticket id.
 
 import 'package:flutter/material.dart' hide ConnectionState;
 import 'package:flutter/material.dart' as flutter show ConnectionState;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/chat/chat/data/chat_providers.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart'
-    as chat_ent;
 import 'package:labuda/domains/system/support/domain/domain.dart';
 import 'package:labuda/domains/system/support/presentation/presentation.dart';
 import 'package:labuda/shared/shared.dart';
@@ -26,6 +27,24 @@ class SupportTicketsListScreen extends ConsumerStatefulWidget {
 
 class _SupportTicketsListScreenState
     extends ConsumerState<SupportTicketsListScreen> {
+  late Future<SupportResult<List<SupportTicket>>> _ticketsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticketsFuture = _loadTickets();
+  }
+
+  Future<SupportResult<List<SupportTicket>>> _loadTickets() {
+    return ref.read(supportRepositoryProvider).getMyTickets();
+  }
+
+  void _reload() {
+    setState(() {
+      _ticketsFuture = _loadTickets();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(authenticatedUserProvider);
@@ -55,7 +74,7 @@ class _SupportTicketsListScreenState
 
     return Scaffold(
       appBar: AppBarCustom(title: 'My Support Tickets'),
-      body: _buildTicketsList(currentUser.id),
+      body: _buildTicketsList(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreateTicketSheet(currentUser),
         backgroundColor: AppColors.primaryRed,
@@ -68,17 +87,16 @@ class _SupportTicketsListScreenState
     );
   }
 
-  Widget _buildTicketsList(String userId) {
-    final chatRepository = ref.watch(chatRepositoryProvider);
-
-    return FutureBuilder(
-      future: chatRepository.getUserChats(userId: userId, limit: 50),
+  Widget _buildTicketsList() {
+    return FutureBuilder<SupportResult<List<SupportTicket>>>(
+      future: _ticketsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == flutter.ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (snapshot.hasError) {
+        final result = snapshot.data;
+        if (snapshot.hasError || result == null || result.isFailure) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -90,12 +108,13 @@ class _SupportTicketsListScreenState
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Failed to load tickets',
+                  result?.failure?.message ?? 'Failed to load tickets',
+                  textAlign: TextAlign.center,
                   style: const TextStyle(color: AppColors.error),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => setState(() {}),
+                  onPressed: _reload,
                   child: const Text('Retry'),
                 ),
               ],
@@ -103,21 +122,9 @@ class _SupportTicketsListScreenState
           );
         }
 
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        final tickets = result.dataOrThrow;
 
-        final result = snapshot.data!;
-
-        // Handle Result type from chat repository using fold
-        final chats = result.fold((error) => <chat_ent.Chat>[], (data) => data);
-
-        // Filter only support chats (type == ChatType.support)
-        final supportChats = chats
-            .where((chat) => chat.type == chat_ent.ChatType.support)
-            .toList();
-
-        if (supportChats.isEmpty) {
+        if (tickets.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -147,8 +154,9 @@ class _SupportTicketsListScreenState
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton.icon(
-                  onPressed: () =>
-                      _showCreateTicketSheet(ref.read(authenticatedUserProvider)!),
+                  onPressed: () => _showCreateTicketSheet(
+                    ref.read(authenticatedUserProvider)!,
+                  ),
                   icon: const Icon(Icons.add),
                   label: const Text('Create Ticket'),
                   style: ElevatedButton.styleFrom(
@@ -162,15 +170,15 @@ class _SupportTicketsListScreenState
         }
 
         return RefreshIndicator(
-          onRefresh: () async => setState(() {}),
+          onRefresh: () async => _reload(),
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: supportChats.length,
+            itemCount: tickets.length,
             itemBuilder: (context, index) {
-              final chat = supportChats[index];
+              final ticket = tickets[index];
               return _SupportTicketListItem(
-                chat: chat,
-                onTap: () => _navigateToTicket(chat.id),
+                ticket: ticket,
+                onTap: () => _navigateToTicket(ticket.id),
               );
             },
           ),
@@ -179,6 +187,8 @@ class _SupportTicketsListScreenState
     );
   }
 
+  /// Navigates by the Support ticket id — the conversation thread resolves the
+  /// ticket's own chat room through the Support API.
   void _navigateToTicket(String ticketId) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -188,39 +198,34 @@ class _SupportTicketsListScreenState
   }
 
   void _showCreateTicketSheet(dynamic user) {
-    showPreChatForm(
+    showPreChatFormRefactored(
       context,
       userId: user.id,
       userName: user.name,
       userAvatar: user.avatar,
+      onChatCreated: _reload,
     );
   }
 }
 
 /// Support Ticket List Item Widget
 class _SupportTicketListItem extends StatelessWidget {
-  final chat_ent.Chat chat;
+  final SupportTicket ticket;
   final VoidCallback onTap;
 
-  const _SupportTicketListItem({required this.chat, required this.onTap});
+  const _SupportTicketListItem({required this.ticket, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Extract support category and status from chat fields
-    final category = chat.supportCategory != null
-        ? SupportCategory.values.byName(chat.supportCategory!.name)
-        : SupportCategory.general;
-    final status = chat.supportStatus != null
-        ? SupportStatus.values.byName(chat.supportStatus!.name)
-        : SupportStatus.open;
-    final categoryConfig = CategoryConfig.get(category);
-    final statusConfig = StatusConfig.get(status);
+    final categoryConfig = CategoryConfig.get(ticket.category);
+    final statusConfig = StatusConfig.get(ticket.status);
 
-    final lastMessageTime = chat.updatedAt != null
-        ? SupportUtils.formatTimeAgo(chat.updatedAt!)
-        : SupportUtils.formatTimeAgo(chat.createdAt);
+    final lastActivity = ticket.updatedAt ?? ticket.createdAt;
+    final preview = ticket.subject?.trim().isNotEmpty == true
+        ? ticket.subject!.trim()
+        : ticket.description;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -249,7 +254,7 @@ class _SupportTicketListItem extends StatelessWidget {
                   ),
                   const Spacer(),
                   Text(
-                    lastMessageTime,
+                    SupportUtils.formatTimeAgo(lastActivity),
                     style: TextStyle(
                       fontSize: 11,
                       color: isDark
@@ -261,10 +266,10 @@ class _SupportTicketListItem extends StatelessWidget {
               ),
               const SizedBox(height: 12),
 
-              // Last message preview
-              if (chat.lastMessage != null) ...[
+              // Subject / description preview
+              if (preview != null && preview.isNotEmpty) ...[
                 Text(
-                  chat.lastMessage!.content,
+                  preview,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
