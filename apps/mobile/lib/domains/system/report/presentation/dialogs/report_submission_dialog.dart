@@ -6,7 +6,6 @@ import 'package:labuda/domains/system/report/presentation/providers/report_provi
 import 'package:labuda/domains/system/report/presentation/widgets/report_description_field.dart';
 import 'package:labuda/domains/system/report/presentation/widgets/report_reason_selector.dart';
 import 'package:labuda/domains/system/report/presentation/dialogs/report_confirmation_dialog.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
 import 'package:go_router/go_router.dart';
 
 /// Report Submission Dialog
@@ -269,17 +268,10 @@ class _ReportSubmissionDialogState
   Future<void> _handleSubmit() async {
     if (_selectedReason == null) return;
 
-    // Pre-flight gate: backend will reject report submission for unverified
-    // users (touches T&S system → BLOCKED per email-gating-matrix doctrine).
-    final authState = ref.read(authControllerProvider);
-    if (authState is AuthStateAuthenticated && !authState.emailVerified) {
-      await showBlockedActionGate(
-        context,
-        actionDescription: 'membuat laporan',
-      );
-      return;
-    }
-
+    // D2 HARD GATE (design scope v2): no client-side email-verification
+    // preflight — every authenticated user is already verified. The backend
+    // stays authoritative for any EMAIL_VERIFICATION_REQUIRED rejection on
+    // the submission result.
     setState(() => _isSubmitting = true);
 
     final request = CreateReportRequest(

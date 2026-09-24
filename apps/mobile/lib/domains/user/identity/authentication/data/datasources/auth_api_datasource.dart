@@ -20,31 +20,9 @@ import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart
 class AuthApiDatasource extends BaseApiRepository {
   AuthApiDatasource(super.apiClient, {super.logger});
 
-  /// Exchange a Firebase ID token for a backend session.
-  ///
-  /// [username] is the canonical registration username chosen during
-  /// email/password signup. It is optional: it is only included in the request
-  /// body when non-empty, and the backend assigns it exactly once when the
-  /// user profile has no username yet. Login / Google-first-sync omit it so the
-  /// backend decides profile completion on its own.
-  Future<Result<FirebaseExchangeResponse>> exchangeFirebaseSession({
-    required String firebaseIdToken,
-    String? username,
-  }) async {
-    final body = <String, dynamic>{'firebase_id_token': firebaseIdToken};
-    if (username != null && username.trim().isNotEmpty) {
-      body['username'] = username;
-    }
-    return executeRequest(
-      () => apiClient.post(
-        '/auth/firebase/exchange',
-        data: body,
-        options: Options(extra: {'skipAuth': true}),
-      ),
-      parser: (data) =>
-          FirebaseExchangeResponse.fromJson(data as Map<String, dynamic>),
-    );
-  }
+  // D2 — single canonical exchange: UserApiDatasource.exchangeFirebaseSession is
+  // the sole implementation. This datasource does not duplicate request
+  // construction/parser/skipAuth. See UserApiDatasource for canonical path.
 
   /// Complete the profile using the restricted backend token.
   Future<Result<FirebaseExchangeCompleteResponse>> completeProfile({

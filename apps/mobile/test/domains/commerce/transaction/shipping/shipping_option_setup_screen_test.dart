@@ -56,7 +56,12 @@ class _FakeShippingRepository implements ShippingRepository {
 
   @override
   Future<Result<ShippingSetup>> getShippingSetupById(String optionId) async {
-    return Result.error('not used');
+    for (final opt in activeOptions) {
+      if (opt.id == optionId) {
+        return Result.success(opt);
+      }
+    }
+    return Result.error('shipping option not found: $optionId');
   }
 
   @override
@@ -95,14 +100,6 @@ class _FakeShippingRepository implements ShippingRepository {
   }
 
   @override
-  Future<Result<ShippingSetup>> updateShippingSetupFull(
-    String optionId,
-    UpdateShippingSetupFullRequest request,
-  ) async {
-    return Result.error('not used');
-  }
-
-  @override
   Future<Result<void>> deleteShippingSetup(String optionId) async {
     return Result.error('not used');
   }
@@ -112,27 +109,6 @@ class _FakeShippingRepository implements ShippingRepository {
     String optionId,
     bool isActive,
   ) async {
-    return Result.error('not used');
-  }
-
-  @override
-  Future<Result<ShippingCoverage>> addCoverage(
-    String optionId,
-    AddCoverageRequest request,
-  ) async {
-    return Result.error('not used');
-  }
-
-  @override
-  Future<Result<ShippingCoverage>> updateCoverage(
-    String coverageId,
-    UpdateCoverageRequest request,
-  ) async {
-    return Result.error('not used');
-  }
-
-  @override
-  Future<Result<void>> deleteCoverage(String coverageId) async {
     return Result.error('not used');
   }
 
@@ -171,10 +147,9 @@ Widget _wrapApp({
         path: RoutePaths.sellerShippingSetup,
         builder: (context, state) {
           final extra = state.extra;
-          if (extra is ShippingSetup) {
-            return ShippingSetupScreen(editOption: extra);
-          }
-          return const ShippingSetupScreen();
+          return ShippingSetupScreen(
+            editOptionId: extra is String ? extra : null,
+          );
         },
       ),
       GoRoute(
@@ -462,13 +437,14 @@ void main() {
       await tester.tap(find.text('Jawa Tengah').last);
       await tester.pumpAndSettle();
 
-      // Enter tariff for the province
-      final tariffField = find.byType(TextField).last;
-      await tester.ensureVisible(tariffField);
-      await tester.enterText(tariffField, '50000');
+      // Enter tariff for the province (at(2): name, note, tariff)
+      final textFields2 = find.byType(TextField);
+      await tester.enterText(textFields2.at(2), '50000');
+
+      // Rebuild so the save gate re-evaluates before tapping
+      await tester.pump();
 
       // Submit — validation passes, but backend returns 400
-      await tester.ensureVisible(find.text('Simpan'));
       await tester.tap(find.text('Simpan'));
       await tester.pumpAndSettle();
 
@@ -491,85 +467,8 @@ void main() {
   });
 
   group('ShippingSetup request integer serialization', () {
-    test('province tariff serializes as JSON integer', () {
-      final req = CreateShippingCoverageRequest(
-        provinceId: '11',
-        provinceName: 'Aceh',
-        tariff: 50000,
-      );
-      final json = req.toJson();
-      expect(json['tariff'], 50000);
-      expect(json['tariff'], isA<int>());
-      expect(json['tariff'], isNot(isA<double>()));
-    });
-
-    test('city override tariff serializes as JSON integer', () {
-      final req = CreateShippingCityRuleRequest(
-        cityId: '1101',
-        cityName: 'Kabupaten Pidie Jaya',
-        overrideTariff: 100000,
-        excluded: false,
-      );
-      final json = req.toJson();
-      expect(json['override_tariff'], 100000);
-      expect(json['override_tariff'], isA<int>());
-      expect(json['override_tariff'], isNot(isA<double>()));
-    });
-
-    test('excluded city rule serializes correctly with no override_tariff', () {
-      final req = CreateShippingCityRuleRequest(
-        cityId: '1102',
-        cityName: 'Kota Banda Aceh',
-        excluded: true,
-      );
-      final json = req.toJson();
-      expect(json['excluded'], true);
-      expect(json.containsKey('override_tariff'), false);
-    });
-
-    test('multi-province request serializes every tariff as integer', () {
-      final req = CreateShippingSetupRequest(
-        name: 'KRT',
-        type: ShippingType.custom,
-        coverages: [
-          CreateShippingCoverageRequest(
-            provinceId: '11',
-            provinceName: 'Aceh',
-            tariff: 50000,
-            cityRules: [
-              CreateShippingCityRuleRequest(
-                cityId: '1101',
-                cityName: 'Kabupaten Pidie Jaya',
-                overrideTariff: 100000,
-                excluded: false,
-              ),
-            ],
-          ),
-          CreateShippingCoverageRequest(
-            provinceId: '12',
-            provinceName: 'Sumatera Utara',
-            tariff: 75000,
-          ),
-        ],
-      );
-      final json = req.toJson();
-
-      final coverages = json['coverages'] as List;
-      expect(coverages.length, 2);
-
-      expect(coverages[0]['tariff'], 50000);
-      expect(coverages[0]['tariff'], isA<int>());
-      expect(coverages[0]['tariff'], isNot(isA<double>()));
-
-      expect(coverages[0]['city_rules'][0]['override_tariff'], 100000);
-      expect(coverages[0]['city_rules'][0]['override_tariff'], isA<int>());
-
-      expect(coverages[1]['tariff'], 75000);
-      expect(coverages[1]['tariff'], isA<int>());
-    });
-
-    test('AddCoverageRequest rate serializes as integer', () {
-      final req = AddCoverageRequest(
+    test('province rate serializes as JSON integer', () {
+      final req = ShippingDestinationRequest(
         provinceCode: '11',
         provinceName: 'Aceh',
         rate: 50000,
@@ -577,13 +476,73 @@ void main() {
       final json = req.toJson();
       expect(json['rate'], 50000);
       expect(json['rate'], isA<int>());
+      expect(json['rate'], isNot(isA<double>()));
     });
 
-    test('UpdateCoverageRequest provinceRate serializes as integer', () {
-      final req = UpdateCoverageRequest(provinceRate: 75000);
+    test('city override rate serializes as JSON integer', () {
+      final req = CityQualificationRequest(
+        cityCode: '1101',
+        cityName: 'Kabupaten Pidie Jaya',
+        rateOverride: 100000,
+      );
       final json = req.toJson();
-      expect(json['rate'], 75000);
+      expect(json['rate'], 100000);
       expect(json['rate'], isA<int>());
+      expect(json['rate'], isNot(isA<double>()));
+      expect(json['is_available'], true);
+    });
+
+    test('excluded city qualification serializes with no rate', () {
+      final req = CityQualificationRequest(
+        cityCode: '1102',
+        cityName: 'Kota Banda Aceh',
+        excluded: true,
+      );
+      final json = req.toJson();
+      expect(json['is_available'], false);
+      expect(json.containsKey('rate'), false);
+    });
+
+    test('multi-destination package serializes every rate as integer', () {
+      final req = CreateShippingSetupRequest(
+        name: 'KRT',
+        type: ShippingType.custom,
+        internalNote: 'kantong besar',
+        destinations: [
+          ShippingDestinationRequest(
+            provinceCode: '11',
+            provinceName: 'Aceh',
+            rate: 50000,
+            cityQualifications: [
+              CityQualificationRequest(
+                cityCode: '1101',
+                cityName: 'Kabupaten Pidie Jaya',
+                rateOverride: 100000,
+              ),
+            ],
+          ),
+          ShippingDestinationRequest(
+            provinceCode: '12',
+            provinceName: 'Sumatera Utara',
+            rate: 75000,
+          ),
+        ],
+      );
+      final json = req.toJson();
+
+      final destinations = json['destinations'] as List;
+      expect(destinations.length, 2);
+      expect(json['internal_purpose'], 'kantong besar');
+
+      expect(destinations[0]['rate'], 50000);
+      expect(destinations[0]['rate'], isA<int>());
+      expect(destinations[0]['rate'], isNot(isA<double>()));
+
+      expect(destinations[0]['city_qualifications'][0]['rate'], 100000);
+      expect(destinations[0]['city_qualifications'][0]['rate'], isA<int>());
+
+      expect(destinations[1]['rate'], 75000);
+      expect(destinations[1]['rate'], isA<int>());
     });
   });
 
@@ -647,12 +606,13 @@ void main() {
       await tester.tap(find.text('Pengiriman').last);
       await tester.pumpAndSettle();
 
-      // Tap FAB or empty-state CTA — opens bottom sheet, not full setup page
+      // Empty-state CTA — opens the canonical one-package setup screen
       await tester.tap(find.text('Tambah Opsi Pengiriman'));
       await tester.pumpAndSettle();
 
-      // Should open create bottom sheet (not ShippingSetupScreen full page)
-      expect(find.text('Nama opsi *'), findsOneWidget);
+      // Full setup page (NOT a bottom sheet, NOT a bare name+type form)
+      expect(find.byType(ShippingSetupScreen), findsOneWidget);
+      expect(find.text('Nama ekspedisi / layanan *'), findsOneWidget);
     });
   });
 
@@ -723,7 +683,9 @@ void main() {
   });
 
   group('ShippingSetupScreen edit mode', () {
-    testWidgets('edit opens full editor with preloaded fields', (tester) async {
+    testWidgets('edit opens full editor hydrated from backend detail', (
+      tester,
+    ) async {
       final repo = _FakeShippingRepository();
       final existingOption = ShippingSetup(
         id: 'ship-edit',
@@ -735,6 +697,7 @@ void main() {
         createdAt: DateTime.utc(2026, 7, 25),
         updatedAt: DateTime.utc(2026, 7, 25),
       );
+      repo.activeOptions = [existingOption];
 
       await tester.pumpWidget(
         _wrapApp(
@@ -745,9 +708,9 @@ void main() {
               body: Center(
                 child: ElevatedButton(
                   onPressed: () async {
-                    await ShippingSetupScreen.openEdit(
+                    await ShippingSetupScreen.openEditById(
                       context,
-                      existingOption,
+                      'ship-edit',
                     );
                   },
                   child: const Text('open edit'),
@@ -766,7 +729,7 @@ void main() {
       expect(find.text('Edit Opsi Pengiriman'), findsOneWidget);
       expect(find.widgetWithText(TextField, 'Bus Kencana'), findsOneWidget);
       // Coverages section is editable (not read-only)
-      expect(find.text('Cakupan dan tarif'), findsOneWidget);
+      expect(find.text('Tujuan dan tarif'), findsOneWidget);
       expect(find.text('Tambah Provinsi'), findsOneWidget);
     });
 
@@ -781,6 +744,7 @@ void main() {
         createdAt: DateTime.utc(2026, 7, 25),
         updatedAt: DateTime.utc(2026, 7, 25),
       );
+      repo.activeOptions = [existingOption];
 
       await tester.pumpWidget(
         _wrapApp(
@@ -791,9 +755,9 @@ void main() {
               body: Center(
                 child: ElevatedButton(
                   onPressed: () async {
-                    await ShippingSetupScreen.openEdit(
+                    await ShippingSetupScreen.openEditById(
                       context,
-                      existingOption,
+                      'ship-edit-full',
                     );
                   },
                   child: const Text('open edit'),

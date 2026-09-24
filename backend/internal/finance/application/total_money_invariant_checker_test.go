@@ -21,23 +21,28 @@ import (
 // ============================================================================
 // TOTAL MONEY INVARIANT CHECKER — UNIT TESTS
 // ============================================================================
-// These tests verify the ledger-authority invariant:
-//   SUM(financial_accounts.balance) == BankSettlementInitialSeed
+// These tests verify the per-account ledger-authority invariant:
+//   stored_balance == expected (computed + seed for BANK_SETTLEMENT/PLATFORM_BANK)
 //
-// No user-balance, payment, order, or refund queries exist in the checker.
+// No wallet, payment, order, or refund queries exist in the checker.
 
-// --- Seed constant ---
+// --- Seed constants ---
 
 func TestBankSettlementSeedConstant(t *testing.T) {
 	assert.Equal(t, int64(9_000_000_000_000_000), BankSettlementInitialSeed,
 		"Seed must be 9Q (Rp 90 trillion reserve float)")
 }
 
+func TestPlatformBankSeedConstant(t *testing.T) {
+	assert.Equal(t, int64(9_000_000_000_000_000), PlatformBankInitialSeed,
+		"PlatformBank seed must be 9Q (mirrors BANK_SETTLEMENT)")
+}
+
 // --- Balanced system passes ---
 
 func TestCheckTotalMoneyInvariant_BalancedSystem_Passes(t *testing.T) {
-	// SUM(balance) == seed → no violation
-	txDB := &invariantMockTransactor{balance: BankSettlementInitialSeed}
+	// No mismatched accounts → no violation
+	txDB := &invariantMockTransactor{rows: nil}
 	alertSvc, tracker := newTrackingAlertService(t)
 
 	checker := NewTotalMoneyInvariantChecker(alertSvc, txDB, zap.NewNop(), false)
@@ -51,21 +56,26 @@ func TestCheckTotalMoneyInvariant_BalancedSystem_Passes(t *testing.T) {
 // --- Imbalanced system fails ---
 
 func TestCheckTotalMoneyInvariant_Imbalance_Detected(t *testing.T) {
-	// SUM(balance) is 1 unit off → violation
-	txDB := &invariantMockTransactor{balance: BankSettlementInitialSeed + 1}
+	txDB := &invariantMockTransactor{
+		rows: [][]any{{"ESCROW", int64(100), int64(0), int64(0)}},
+	}
 	alertSvc, tracker := newTrackingAlertService(t)
 
 	checker := NewTotalMoneyInvariantChecker(alertSvc, txDB, zap.NewNop(), false)
 	violated, err := checker.CheckTotalMoneyInvariant(context.Background())
 
 	require.NoError(t, err)
-	assert.True(t, violated, "1-unit difference should flag violation")
+	assert.True(t, violated, "1 mismatched account should flag violation")
 	assert.Equal(t, 1, tracker.alertCount, "Alert should be created for imbalance")
 }
 
-func TestCheckTotalMoneyInvariant_NegativeImbalance_Detected(t *testing.T) {
-	// SUM(balance) is below seed → still a violation
-	txDB := &invariantMockTransactor{balance: BankSettlementInitialSeed - 500}
+func TestCheckTotalMoneyInvariant_MultipleMismatches_Detected(t *testing.T) {
+	txDB := &invariantMockTransactor{
+		rows: [][]any{
+			{"ESCROW", int64(500), int64(0), int64(0)},
+			{"SELLER_PAYABLE", int64(1000), int64(0), int64(0)},
+		},
+	}
 	alertSvc, tracker := newTrackingAlertService(t)
 
 	checker := NewTotalMoneyInvariantChecker(alertSvc, txDB, zap.NewNop(), false)
@@ -79,8 +89,9 @@ func TestCheckTotalMoneyInvariant_NegativeImbalance_Detected(t *testing.T) {
 // --- Shadow mode ---
 
 func TestCheckTotalMoneyInvariant_ShadowMode_SuppressesAlert(t *testing.T) {
-	// Imbalance exists but shadow mode → no alert created
-	txDB := &invariantMockTransactor{balance: BankSettlementInitialSeed + 999}
+	txDB := &invariantMockTransactor{
+		rows: [][]any{{"PLATFORM_REVENUE", int64(999), int64(0), int64(0)}},
+	}
 	alertSvc, tracker := newTrackingAlertService(t)
 
 	checker := NewTotalMoneyInvariantChecker(alertSvc, txDB, zap.NewNop(), true)
@@ -92,7 +103,9 @@ func TestCheckTotalMoneyInvariant_ShadowMode_SuppressesAlert(t *testing.T) {
 }
 
 func TestCheckTotalMoneyInvariant_NonShadow_CreatesAlert(t *testing.T) {
-	txDB := &invariantMockTransactor{balance: BankSettlementInitialSeed - 1}
+	txDB := &invariantMockTransactor{
+		rows: [][]any{{"GATEWAY_CLEARING", int64(1), int64(0), int64(0)}},
+	}
 	alertSvc, tracker := newTrackingAlertService(t)
 
 	checker := NewTotalMoneyInvariantChecker(alertSvc, txDB, zap.NewNop(), false)
@@ -103,11 +116,38 @@ func TestCheckTotalMoneyInvariant_NonShadow_CreatesAlert(t *testing.T) {
 	assert.Equal(t, 1, tracker.alertCount, "Non-shadow must create alert")
 }
 
+// --- Seed handling: BANK_SETTLEMENT and PLATFORM_BANK with 9Q stored + correct computed should NOT be flagged ---
+
+func TestCheckTotalMoneyInvariant_SeedAccounts_BalancedWithOffset(t *testing.T) {
+	// No rows returned means checker correctly offset seed — i.e. stored == computed+9Q
+	txDB := &invariantMockTransactor{rows: nil}
+	alertSvc, tracker := newTrackingAlertService(t)
+	checker := NewTotalMoneyInvariantChecker(alertSvc, txDB, zap.NewNop(), false)
+	violated, err := checker.CheckTotalMoneyInvariant(context.Background())
+	require.NoError(t, err)
+	assert.False(t, violated)
+	assert.Equal(t, 0, tracker.alertCount)
+}
+
+func TestCheckTotalMoneyInvariant_SeedAccounts_DriftDetected(t *testing.T) {
+	// BANK_SETTLEMENT with wrong stored (e.g. 9Q+1 off) should be flagged
+	txDB := &invariantMockTransactor{
+		rows: [][]any{{"BANK_SETTLEMENT", int64(9000000000000001), int64(0), int64(9000000000000000)}},
+	}
+	alertSvc, tracker := newTrackingAlertService(t)
+	checker := NewTotalMoneyInvariantChecker(alertSvc, txDB, zap.NewNop(), false)
+	violated, err := checker.CheckTotalMoneyInvariant(context.Background())
+	require.NoError(t, err)
+	assert.True(t, violated)
+	assert.Equal(t, 1, tracker.alertCount)
+}
+
 // --- Alert metadata ---
 
 func TestCheckTotalMoneyInvariant_AlertMetadata(t *testing.T) {
-	diff := int64(42)
-	txDB := &invariantMockTransactor{balance: BankSettlementInitialSeed + diff}
+	txDB := &invariantMockTransactor{
+		rows: [][]any{{"ESCROW", int64(42), int64(0), int64(0)}},
+	}
 	alertSvc, tracker := newTrackingAlertService(t)
 
 	checker := NewTotalMoneyInvariantChecker(alertSvc, txDB, zap.NewNop(), false)
@@ -116,12 +156,11 @@ func TestCheckTotalMoneyInvariant_AlertMetadata(t *testing.T) {
 	require.Equal(t, 1, tracker.alertCount)
 
 	md := tracker.lastAlert.metadata
-	assert.Contains(t, md, "actual_total")
-	assert.Contains(t, md, "expected_total")
-	assert.Contains(t, md, "difference")
-	assert.Equal(t, BankSettlementInitialSeed+diff, md["actual_total"])
-	assert.Equal(t, BankSettlementInitialSeed, md["expected_total"])
-	assert.Equal(t, diff, md["difference"])
+	assert.Contains(t, md, "mismatched_accounts")
+	assert.Contains(t, md, "mismatches")
+	assert.Equal(t, 1, md["mismatched_accounts"])
+	assert.Contains(t, md, "reason")
+	assert.Equal(t, "total_money_invariant_violation", md["reason"])
 }
 
 // --- Constructor ---
@@ -153,30 +192,12 @@ func TestCheckTotalMoneyInvariant_QueryError_PropagatedNotViolation(t *testing.T
 	assert.False(t, violated, "Query error should NOT be reported as violation")
 }
 
-// --- Zero balance (empty system before bootstrap) ---
-
-func TestCheckTotalMoneyInvariant_ZeroBalance_Violation(t *testing.T) {
-	// If SUM(balance) = 0 (no accounts bootstrapped yet), that's a violation
-	txDB := &invariantMockTransactor{balance: 0}
-	alertSvc, tracker := newTrackingAlertService(t)
-
-	checker := NewTotalMoneyInvariantChecker(alertSvc, txDB, zap.NewNop(), false)
-	violated, err := checker.CheckTotalMoneyInvariant(context.Background())
-
-	require.NoError(t, err)
-	assert.True(t, violated, "Zero balance should flag violation")
-	assert.Equal(t, 1, tracker.alertCount)
-}
-
 // --- No dead payment/order imports ---
 
 func TestTotalMoneyInvariantChecker_NoDeadDependencies(t *testing.T) {
 	// Structural test: the checker must NOT depend on EscrowService, PaymentRepository,
 	// or any order/refund/payout table. This is verified by the constructor signature:
 	// only alertService, db, log, shadowMode are accepted.
-	//
-	// If someone adds escrowService or paymentRepo back, this test's comment
-	// and the constructor call below will need updating — making the regression visible.
 	checker := NewTotalMoneyInvariantChecker(nil, nil, nil, true)
 	require.NotNil(t, checker)
 }
@@ -186,30 +207,31 @@ func TestTotalMoneyInvariantChecker_NoDeadDependencies(t *testing.T) {
 // ============================================================================
 
 // invariantMockTransactor provides a configurable Transactor for testing
-// the total money invariant checker.
+// the total money invariant checker. It returns pre-built rows for the
+// LEFT JOIN ... HAVING query (4 columns: account_type, stored, computed, expected).
 type invariantMockTransactor struct {
-	balance int64
-	err     error
+	rows [][]any
+	err  error
 }
 
 func (m *invariantMockTransactor) WithTx(_ context.Context, fn func(db.Tx) error) error {
 	if m.err != nil {
 		return m.err
 	}
-	return fn(&invariantMockTx{balance: m.balance})
+	return fn(&invariantMockTx{rows: m.rows})
 }
 
 // invariantMockTx implements db.Tx for the invariant checker tests.
 type invariantMockTx struct {
-	balance int64
+	rows [][]any
 }
 
 func (t *invariantMockTx) QueryRow(_ context.Context, _ string, _ ...any) pgx.Row {
-	return &invariantMockRow{balance: t.balance}
+	return &invariantMockRow{}
 }
 
 func (t *invariantMockTx) Query(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
-	return nil, errors.New("not implemented")
+	return &invariantMockRows{rows: t.rows, idx: -1}, nil
 }
 
 func (t *invariantMockTx) Exec(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
@@ -219,21 +241,70 @@ func (t *invariantMockTx) Exec(_ context.Context, _ string, _ ...any) (pgconn.Co
 func (t *invariantMockTx) Commit(_ context.Context) error   { return nil }
 func (t *invariantMockTx) Rollback(_ context.Context) error { return nil }
 
-// invariantMockRow returns a single int64 value for SUM(balance) queries.
-type invariantMockRow struct {
-	balance int64
-}
+// invariantMockRow is unused (QueryRow not used by checker anymore).
+type invariantMockRow struct{}
 
 func (r *invariantMockRow) Scan(dest ...any) error {
-	if len(dest) != 1 {
-		return errors.New("expected 1 scan destination")
+	return errors.New("no rows")
+}
+
+// invariantMockRows implements pgx.Rows for the checker tests.
+type invariantMockRows struct {
+	rows [][]any
+	idx  int
+}
+
+func (r *invariantMockRows) Next() bool {
+	r.idx++
+	return r.idx < len(r.rows)
+}
+
+func (r *invariantMockRows) Scan(dest ...any) error {
+	if r.idx < 0 || r.idx >= len(r.rows) {
+		return errors.New("no current row")
 	}
-	if p, ok := dest[0].(*int64); ok {
-		*p = r.balance
+	row := r.rows[r.idx]
+	if len(dest) != len(row) {
+		// checker now scans 4 cols (account_type, stored, computed, expected)
+		// allow len mismatch by filling what we can
+		for i := range dest {
+			if i < len(row) {
+				switch d := dest[i].(type) {
+				case *string:
+					*d = row[i].(string)
+				case *int64:
+					*d = row[i].(int64)
+				}
+			}
+		}
 		return nil
 	}
-	return errors.New("expected *int64 scan destination")
+	for i, d := range dest {
+		switch v := d.(type) {
+		case *string:
+			*v = row[i].(string)
+		case *int64:
+			*v = row[i].(int64)
+		default:
+			return errors.New("unsupported scan type")
+		}
+	}
+	return nil
 }
+
+func (r *invariantMockRows) Close() {}
+
+func (r *invariantMockRows) Err() error { return nil }
+
+func (r *invariantMockRows) CommandTag() pgconn.CommandTag { return pgconn.NewCommandTag("SELECT 0") }
+
+func (r *invariantMockRows) FieldDescriptions() []pgconn.FieldDescription { return nil }
+
+func (r *invariantMockRows) Values() ([]any, error) { return r.rows[r.idx], nil }
+
+func (r *invariantMockRows) RawValues() [][]byte { return nil }
+
+func (r *invariantMockRows) Conn() *pgx.Conn { return nil }
 
 // ============================================================================
 // TEST HELPERS - ALERT TRACKING

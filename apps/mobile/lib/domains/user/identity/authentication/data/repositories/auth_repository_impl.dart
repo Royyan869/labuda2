@@ -46,8 +46,10 @@ class AuthRepositoryImpl implements IAuthRepository {
   }) => _coreRepository.signInWithEmail(email: email, password: password);
 
   @override
-  Future<Result<void>> signInWithGoogle() =>
-      _googleRepository.signInWithGoogle();
+  Future<Result<void>> signInWithGoogle({AuthCredential? pendingGoogleCredential}) =>
+      _googleRepository.signInWithGoogle(
+        pendingCredential: pendingGoogleCredential,
+      );
 
   @override
   Future<Result<FirebasePrincipal>> signUpWithEmail({

@@ -185,7 +185,6 @@ class ForSaleRepositoryImpl implements ForSaleRepository {
         price: request.price.toInt(),
         quantity: request.quantity,
         negotiationEnabled: request.negotiationEnabled,
-        visibility: request.visibility,
         mediaUrls: request.mediaUrls,
         variety: request.variety,
         sizeCm: request.sizeCm?.toInt(),
@@ -195,6 +194,7 @@ class ForSaleRepositoryImpl implements ForSaleRepository {
         bloodline: request.bloodline,
         certificates: request.certificates,
         farmAddressId: request.farmAddressId,
+        shippingSetupIds: request.shippingSetupIds,
         preparationTime: request.preparationTime?.toJson(),
         preparationNote: request.preparationNote,
       );

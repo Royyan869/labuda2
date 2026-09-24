@@ -145,7 +145,7 @@ func (h *SearchHandler) SearchForSales(c *gin.Context) {
 		organicSellerIDs = append(organicSellerIDs, l.SellerID)
 	}
 	geo := viewercontext.ResolveViewerGeography(ctx, h.db.Pool(), viewerID)
-	promotedSidecar := h.promotionInjector.GetPromotedSidecarWithGeography(ctx, organicIDs, organicSellerIDs, geo.CityID, geo.HasPrimary)
+	promotedSidecar := h.promotionInjector.GetPromotedSidecarWithGeography(ctx, organicIDs, organicSellerIDs, viewerID, geo.CityID, geo.HasPrimary)
 
 	responseData := gin.H{
 		"query":    req.Query,
@@ -521,7 +521,7 @@ func (h *SearchHandler) SearchAuctions(c *gin.Context) {
 		organicAuctionSellerIDs = append(organicAuctionSellerIDs, a.SellerID)
 	}
 	geo2 := viewercontext.ResolveViewerGeography(ctx, h.db.Pool(), viewerID)
-	auctionPromotedSidecar := h.promotionInjector.GetPromotedSidecarWithGeography(ctx, organicAuctionIDs, organicAuctionSellerIDs, geo2.CityID, geo2.HasPrimary)
+	auctionPromotedSidecar := h.promotionInjector.GetPromotedSidecarWithGeography(ctx, organicAuctionIDs, organicAuctionSellerIDs, viewerID, geo2.CityID, geo2.HasPrimary)
 
 	auctionResponseData := gin.H{
 		"query":    req.Query,

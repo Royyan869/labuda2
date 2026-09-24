@@ -17,7 +17,7 @@ order_domain.Order _order() {
       recipientName: 'Buyer',
       phone: '08123456789',
       address: 'Some address',
-      method: order_domain.ShippingMethod.courier,
+      method: order_domain.ShippingMethod.bus,
       shippingCost: 10000,
     ),
     pricing: const order_domain.OrderPricing(

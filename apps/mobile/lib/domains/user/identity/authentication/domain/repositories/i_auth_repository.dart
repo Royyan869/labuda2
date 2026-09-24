@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart';
 
@@ -20,7 +21,13 @@ abstract class IAuthRepository {
   ///
   /// 🔒 DETERMINISTIC: Only creates Firebase identity.
   /// Returns void - AuthUser domain entity comes from backend via /users/me.
-  Future<Result<void>> signInWithGoogle();
+  ///
+  /// D1 LINKING: [pendingGoogleCredential] (a Google AuthCredential that
+  /// previously hit `account-exists-with-different-credential`) is linked
+  /// into the CURRENT Firebase identity via `linkWithCredential` instead of
+  /// starting a new sign-in — one Firebase UID per human. When null, this
+  /// is a normal Google sign-in.
+  Future<Result<void>> signInWithGoogle({AuthCredential? pendingGoogleCredential});
 
   /// Sign up dengan email dan password
   ///

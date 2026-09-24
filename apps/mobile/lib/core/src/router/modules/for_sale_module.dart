@@ -22,7 +22,7 @@
 // ```
 //
 // ## Flow:
-// Explore → CreateForSale → ForSales → ForSaleDetail → Checkout
+// Marketplace → CreateForSale → ForSales → ForSaleDetail → Checkout
 // ============================================================================
 
 import 'package:flutter/material.dart';

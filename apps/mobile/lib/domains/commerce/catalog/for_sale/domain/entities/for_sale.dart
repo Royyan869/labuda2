@@ -522,7 +522,6 @@ class CreateForSaleRequest {
   final double price;
   final int quantity;
   final bool negotiationEnabled;
-  final String visibility;
   final List<String> mediaUrls;
   final String? variety;
   final double? sizeCm;
@@ -532,6 +531,10 @@ class CreateForSaleRequest {
   final String? bloodline;
   final List<String> certificates;
   final String? farmAddressId;
+  // Shipping selection (OWNER CANONICAL: create = publish — at least one
+  // shipping option is mandatory and travels INSIDE the create request;
+  // there is no separate draft-then-link flow).
+  final List<String> shippingSetupIds;
   // Shipping readiness
   final PreparationTime? preparationTime;
   final String? preparationNote;
@@ -542,7 +545,6 @@ class CreateForSaleRequest {
     required this.price,
     required this.quantity,
     this.negotiationEnabled = false,
-    this.visibility = 'public',
     this.mediaUrls = const [],
     this.variety,
     this.sizeCm,
@@ -552,6 +554,7 @@ class CreateForSaleRequest {
     this.bloodline,
     this.certificates = const [],
     this.farmAddressId,
+    this.shippingSetupIds = const [],
     this.preparationTime,
     this.preparationNote,
   });

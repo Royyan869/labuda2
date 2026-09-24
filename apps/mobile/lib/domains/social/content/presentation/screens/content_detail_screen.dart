@@ -180,27 +180,27 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
         slivers: [
           if (isUnavailable)
             SliverToBoxAdapter(child: _buildUnavailableBanner(context)),
-          // Media section
-          if (content.media.isNotEmpty)
-            SliverToBoxAdapter(child: _buildMediaSection(context, content)),
-          // Content section
+          // Content section — avatar/username/time + text first (canonical)
           SliverPadding(
             padding: const EdgeInsets.all(16),
             sliver: SliverToBoxAdapter(
               child: _buildContentSection(context, content),
             ),
           ),
+          // Media — below identity+text (canonical)
+          if (content.media.isNotEmpty)
+            SliverToBoxAdapter(child: _buildMediaSection(context, content)),
           // Linked items (canonical resource projection only)
           if (content.resourceProjection != null)
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(16),
               sliver: SliverToBoxAdapter(
                 child: _buildResourceProjection(context, content),
               ),
             ),
-          // Engagement section
+          // Engagement — icon+count only (canonical, no labels)
           SliverPadding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             sliver: SliverToBoxAdapter(
               child: _buildEngagementSection(
                 context,
@@ -346,108 +346,71 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           const SizedBox(height: 16),
           _buildLocation(content.location!),
         ],
-
-        // Timestamp
-        const SizedBox(height: 16),
-        Text(
-          'Posted on ${_formatDate(content.createdAt)}',
-          style: TextStyle(fontSize: 12, color: AppColors.neutralGray500),
-        ),
       ],
     );
   }
 
   Widget _buildAuthorInfo(BuildContext context, Content content) {
-    // E6 — Author identity lifecycle redaction. Independent from content
-    // lifecycle: an active post by a degraded author still shows the body
-    // (handled by _buildContent), but the author identity here renders as
-    // an italic placeholder, neutral avatar, verification badge suppressed,
-    // tap disabled. Chat shortcut also disabled — chat tools belong to
-    // identity that the platform still asserts is interactive.
     final authorDegraded = content.authorLifecycle.isDegraded;
     final authorPlaceholder = _authorRedactionLabel(content.authorLifecycle);
     final showAvatar = !authorDegraded && content.authorAvatarUrl != null;
 
     return Row(
       children: [
-        // Tappable author info area (tap disabled on degraded)
         Expanded(
           child: InkWell(
-            onTap: authorDegraded
-                ? null
-                : () => _navigateToAuthorProfile(context, content),
+            onTap: authorDegraded ? null : () => _navigateToAuthorProfile(context, content),
             borderRadius: BorderRadius.circular(8),
             child: Row(
               children: [
                 CircleAvatar(
-                  radius: 24,
-                  backgroundColor: authorDegraded
-                      ? AppColors.neutralGray200
-                      : null,
-                  backgroundImage: showAvatar
-                      ? NetworkImage(content.authorAvatarUrl!)
-                      : null,
+                  radius: 20,
+                  backgroundColor: authorDegraded ? AppColors.neutralGray200 : null,
+                  backgroundImage: showAvatar ? NetworkImage(content.authorAvatarUrl!) : null,
                   child: showAvatar
                       ? null
                       : Icon(
                           Icons.person,
-                          size: 24,
-                          color: authorDegraded
-                              ? AppColors.neutralGray400
-                              : null,
+                          size: 20,
+                          color: authorDegraded ? AppColors.neutralGray400 : null,
                         ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      // OWNER TRUTH: public identity is @username only.
-                      // Legacy bold-name + lighter-handle pair collapses to a
-                      // single @username line; the verification badge stays.
-                      // E6 — On degraded author lifecycle, render an italic
-                      // placeholder label and suppress the verification
-                      // badge so a tombstoned identity does not surface
-                      // trust signals.
-                      Row(
-                        children: [
-                          if (authorDegraded)
-                            Flexible(
-                              child: Text(
-                                authorPlaceholder,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                  fontStyle: FontStyle.italic,
-                                  color: AppColors.neutralGray500,
-                                ),
-                              ),
-                            )
-                          else if (content.authorUsername != null)
-                            Flexible(
-                              child: Text(
-                                '@${content.authorUsername}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                ),
-                              ),
+                      if (authorDegraded)
+                        Flexible(
+                          child: Text(
+                            authorPlaceholder,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              fontStyle: FontStyle.italic,
+                              color: AppColors.neutralGray500,
                             ),
-                          // VERIFICATION UI: Show verification badge for
-                          // content author. Suppressed when the author
-                          // lifecycle is degraded.
-                          if (!authorDegraded)
-                            _ContentAuthorVerificationBadge(
-                              authorId: content.authorId,
-                            ),
-                        ],
-                      ),
+                          ),
+                        )
+                      else if (content.authorUsername != null)
+                        Flexible(
+                          child: Text(
+                            '@${content.authorUsername}',
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                          ),
+                        ),
+                      if (!authorDegraded)
+                        _ContentAuthorVerificationBadge(authorId: content.authorId),
                     ],
                   ),
                 ),
               ],
             ),
           ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          _formatTime(content.createdAt),
+          style: const TextStyle(fontSize: 12, color: AppColors.neutralGray500),
         ),
       ],
     );
@@ -500,58 +463,49 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     String? currentUserId,
     String? currentUserName,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        const Text(
-          'Engagement',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        _buildLikeEngagementItem(
+          context,
+          content: content,
+          likeStatsAsync: likeStatsAsync,
+          currentUserId: currentUserId,
+          currentUserName: currentUserName,
         ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            const SizedBox(width: 24),
-            // Like button - now tappable using canonical Like system
-            _buildLikeEngagementItem(
-              context,
-              content: content,
-              likeStatsAsync: likeStatsAsync,
-              currentUserId: currentUserId,
-              currentUserName: currentUserName,
+        const SizedBox(width: 16),
+        InkWell(
+          onTap: () => _navigateToComments(context),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.chat_bubble_outline, size: 16, color: AppColors.primaryRed),
+                if (content.engagement.commentCount > 0) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    '${content.engagement.commentCount}',
+                    style: const TextStyle(fontSize: 12, color: AppColors.primaryRed, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ],
             ),
-            const SizedBox(width: 24),
-            // Comments - now tappable to open DiscussionScreen
-            InkWell(
-              onTap: () => _navigateToComments(context),
-              borderRadius: BorderRadius.circular(8),
-              child: _buildEngagementItem(
-                context,
-                icon: Icons.comment_outlined,
-                label: 'Comments',
-                value: content.engagement.commentCount.toString(),
-                isTappable: true,
-              ),
-            ),
-            const SizedBox(width: 24),
-            // SHARE CONTRACT V1: Share button - opens ShareBottomSheet
-            InkWell(
-              onTap: () => _handleShareContent(context, content),
-              borderRadius: BorderRadius.circular(8),
-              child: _buildEngagementItem(
-                context,
-                icon: Icons.share_outlined,
-                label: 'Share',
-                value: '',
-                isTappable: true,
-              ),
-            ),
-          ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        InkWell(
+          onTap: () => _handleShareContent(context, content),
+          borderRadius: BorderRadius.circular(8),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            child: Icon(Icons.share_outlined, size: 16, color: AppColors.neutralGray400),
+          ),
         ),
       ],
     );
   }
 
-  /// Build like engagement item with canonical Like system integration
   Widget _buildLikeEngagementItem(
     BuildContext context, {
     required Content content,
@@ -559,56 +513,42 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     String? currentUserId,
     String? currentUserName,
   }) {
-    // If user is not authenticated, show static like count (not tappable)
-    if (currentUserId == null || currentUserId.isEmpty) {
-      return _buildEngagementItem(
-        context,
-        icon: Icons.favorite_border,
-        label: 'Likes',
-        value: content.engagement.likeCount.toString(),
+    Widget buildLikeRow({required IconData icon, required int count, required bool isActive, VoidCallback? onTap}) {
+      final color = isActive ? AppColors.primaryRed : (onTap != null ? AppColors.primaryRed : AppColors.neutralGray500);
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: color),
+              if (count > 0) ...[
+                const SizedBox(width: 4),
+                Text('$count', style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+              ],
+            ],
+          ),
+        ),
       );
     }
 
-    // Show tappable like button with live state from canonical Like system
+    if (currentUserId == null || currentUserId.isEmpty) {
+      return buildLikeRow(icon: Icons.favorite_border, count: content.engagement.likeCount, isActive: false);
+    }
+
     return likeStatsAsync?.when(
-          data: (stats) => InkWell(
-            onTap: () => _handleContentLike(
-              context,
-              content,
-              currentUserId,
-              currentUserName ?? '',
-            ),
-            borderRadius: BorderRadius.circular(8),
-            child: _buildEngagementItem(
-              context,
-              icon: stats.isLikedByCurrentUser
-                  ? Icons.favorite
-                  : Icons.favorite_border,
-              label: 'Likes',
-              value: stats.totalLikes.toString(),
-              isTappable: true,
-              isActive: stats.isLikedByCurrentUser,
-            ),
+          data: (stats) => buildLikeRow(
+            icon: stats.isLikedByCurrentUser ? Icons.favorite : Icons.favorite_border,
+            count: stats.totalLikes,
+            isActive: stats.isLikedByCurrentUser,
+            onTap: () => _handleContentLike(context, content, currentUserId, currentUserName ?? ''),
           ),
-          loading: () => _buildEngagementItem(
-            context,
-            icon: Icons.favorite_border,
-            label: 'Likes',
-            value: content.engagement.likeCount.toString(),
-          ),
-          error: (_, _) => _buildEngagementItem(
-            context,
-            icon: Icons.favorite_border,
-            label: 'Likes',
-            value: content.engagement.likeCount.toString(),
-          ),
+          loading: () => buildLikeRow(icon: Icons.favorite_border, count: content.engagement.likeCount, isActive: false),
+          error: (_, _) => buildLikeRow(icon: Icons.favorite_border, count: content.engagement.likeCount, isActive: false),
         ) ??
-        _buildEngagementItem(
-          context,
-          icon: Icons.favorite_border,
-          label: 'Likes',
-          value: content.engagement.likeCount.toString(),
-        );
+        buildLikeRow(icon: Icons.favorite_border, count: content.engagement.likeCount, isActive: false);
   }
 
   /// Handle content like action using canonical Like system
@@ -644,41 +584,6 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
       context: context,
       target: shareTarget,
       canSharePost: true,
-    );
-  }
-
-  Widget _buildEngagementItem(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String value,
-    bool isTappable = false,
-    bool isActive = false,
-  }) {
-    // Determine color based on state
-    Color getColor() {
-      if (isActive) return Colors.red; // Liked state
-      if (isTappable) return AppColors.primaryRed;
-      return AppColors.neutralGray500;
-    }
-
-    final color = getColor();
-
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: color),
-        const SizedBox(width: 6),
-        Text(
-          value,
-          style: TextStyle(fontWeight: FontWeight.w600, color: color),
-        ),
-        const SizedBox(width: 4),
-        Text(label, style: TextStyle(fontSize: 12, color: color)),
-        if (isTappable && !isActive) ...[
-          const SizedBox(width: 4),
-          Icon(Icons.chevron_right, size: 14, color: AppColors.primaryRed),
-        ],
-      ],
     );
   }
 
@@ -838,8 +743,14 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     );
   }
 
-  String _formatDate(DateTime dateTime) {
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year} at ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  String _formatTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final diff = now.difference(dateTime);
+    if (diff.inMinutes < 1) return 'baru saja';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
+    if (diff.inHours < 24) return '${diff.inHours}j';
+    if (diff.inDays < 7) return '${diff.inDays}h';
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
   }
 
   void _navigateToResourceProjection(BuildContext context, Content content) {

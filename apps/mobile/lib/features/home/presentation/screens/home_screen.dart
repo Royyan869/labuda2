@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/features/home/home.dart';
-import 'package:labuda/features/home/presentation/widgets/commerce_preview_section.dart';
 
 /// Home Screen - Feed display dengan Clean Architecture
 ///
@@ -12,8 +11,9 @@ import 'package:labuda/features/home/presentation/widgets/commerce_preview_secti
 ///
 /// PRODUCT CONTRACT:
 /// - Home Feed is a SOCIAL-first timeline
-/// - Displays: Universal content, reposts, and commerce previews
-/// - NO commerce objects (For Sale items, auctions, contests) - those belong in Explore
+/// - Displays: Universal content and reposts only (no commerce shelf)
+/// - NO commerce objects (For Sale items, auctions, contests) - those belong in Marketplace
+/// - NO "Sedang Laku Hari Ini" shelf — promotion shelf will be reintroduced only via canonical promotion delivery when promotion is active
 /// - Reposts are clearly distinguished with canonical RepostAttributionBar
 /// - No fake engagement counts (hidden instead of showing "0")
 class HomeScreen extends ConsumerStatefulWidget {
@@ -67,70 +67,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Feed provider dari home module
     final feedState = ref.watch(feedProvider);
-
-    return Column(
-      children: [
-        // HOME HEADER MESSAGE - Entry clarity
-        _buildHomeHeader(context),
-        // Feed content
-        Expanded(child: _buildFeedContent(feedState)),
-      ],
-    );
-  }
-
-  /// HOME HEADER MESSAGE
-  /// User langsung paham app ini apa
-  Widget _buildHomeHeader(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
-        border: Border(
-          bottom: BorderSide(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
-            width: 1,
-          ),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Title with fish emoji
-          Row(
-            children: [
-              Text('🐟', style: TextStyle(fontSize: 20)),
-              const SizedBox(width: 8),
-              Text(
-                'Komunitas & Marketplace Koi',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: isDark
-                      ? AppColors.neutralWhite
-                      : AppColors.neutralGray900,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          // Subtext
-          Text(
-            'Jual, beli, lelang, atau cari koi langsung dari sesama penghobi',
-            style: TextStyle(
-              fontSize: 13,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
-            ),
-          ),
-        ],
-      ),
-    );
+    return _buildFeedContent(feedState);
   }
 
   Widget _buildFeedContent(FeedState feedState) {
@@ -170,11 +108,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           slivers: [
             // Upload progress indicator
             const SliverToBoxAdapter(child: UploadProgressWidget()),
-
-            // COMMERCE PREVIEW: Sedang Laku Hari Ini
-            // Shows active For Sale items/auctions to demonstrate marketplace
-            // activity
-            const SliverToBoxAdapter(child: CommercePreviewSection()),
 
             // Feed items
             SliverList(
@@ -246,7 +179,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             _buildPrimaryActionButton(
               icon: Icons.shopping_bag_outlined,
               label: 'Cari & Beli Koi',
-              onTap: () => _navigateToExplore(context),
+              onTap: () => _navigateToMarketplace(context),
             ),
             const SizedBox(height: 12),
 
@@ -331,9 +264,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     context.push(RoutePaths.createContent);
   }
 
-  void _navigateToExplore(BuildContext context) {
-    // Navigate to the For Sale catalog (marketplace browse)
-    // push() preserves back-stack so Android Back returns to Home
+  void _navigateToMarketplace(BuildContext context) {
     context.push(RoutePaths.forSales);
   }
 

@@ -63,7 +63,7 @@ Order _order({required String id, required OrderStatus status}) {
       recipientName: 'Buyer',
       phone: '08123456789',
       address: 'Some address',
-      method: ShippingMethod.courier,
+      method: ShippingMethod.bus,
       shippingCost: 10000,
     ),
     pricing: const OrderPricing(

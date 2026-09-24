@@ -61,21 +61,14 @@ func (r *ProductShippingSetupRepositoryImpl) Delete(
 	}
 
 	return nil
-}
-
-// GetByProduct retrieves all shipping options linked to a product.
-//
-// NOTE: so.expedition_name was dropped by migration 000014
-// (shipping_authority_hard_purge) but remained in this SELECT/scan, making the
-// query fail with column-not-found on every FPS/auction checkout shipping
-// check. Fixed in Stage 5 (order-item identity convergence groundwork).
+}//	GetByProduct retrieves all shipping options linked to a product.
 func (r *ProductShippingSetupRepositoryImpl) GetByProduct(
 	ctx context.Context,
 	tx db.Tx,
 	productID uuid.UUID,
 ) ([]*entity.ShippingSetup, error) {
 	rows, err := tx.Query(ctx, `
-		SELECT so.id, so.seller_id, so.name, so.transport_type,
+		SELECT so.id, so.seller_id, so.name, so.transport_type, so.internal_purpose,
 		       so.is_active, so.created_at, so.updated_at
 		FROM shipping_options so
 		INNER JOIN product_shipping_options pso ON so.id = pso.shipping_option_id
@@ -92,11 +85,12 @@ func (r *ProductShippingSetupRepositoryImpl) GetByProduct(
 		var id, sellerID uuid.UUID
 		var name string
 		var transportType string
+		var internalPurpose string
 		var isActive bool
 		var createdAt, updatedAt time.Time
 
 		err := rows.Scan(
-			&id, &sellerID, &name, &transportType,
+			&id, &sellerID, &name, &transportType, &internalPurpose,
 			&isActive, &createdAt, &updatedAt,
 		)
 		if err != nil {
@@ -104,27 +98,26 @@ func (r *ProductShippingSetupRepositoryImpl) GetByProduct(
 		}
 
 		options = append(options, &entity.ShippingSetup{
-			ID:            id,
-			SellerID:      sellerID,
-			Name:          name,
-			TransportType: entity.TransportType(transportType),
-			IsActive:      isActive,
-			CreatedAt:     createdAt,
-			UpdatedAt:     updatedAt,
+			ID:              id,
+			SellerID:        sellerID,
+			Name:            name,
+			TransportType:   entity.TransportType(transportType),
+			InternalPurpose: internalPurpose,
+			IsActive:        isActive,
+			CreatedAt:       createdAt,
+			UpdatedAt:       updatedAt,
 		})
 	}
 
 	return options, nil
-}
-
-// GetAvailableByProduct retrieves all available shipping options for a product, sorted by sort_order.
+}//	GetAvailableByProduct retrieves all available shipping options for a product, sorted by sort_order.
 func (r *ProductShippingSetupRepositoryImpl) GetAvailableByProduct(
 	ctx context.Context,
 	tx db.Tx,
 	productID uuid.UUID,
 ) ([]*entity.ShippingSetup, error) {
 	rows, err := tx.Query(ctx, `
-		SELECT so.id, so.seller_id, so.name, so.transport_type,
+		SELECT so.id, so.seller_id, so.name, so.transport_type, so.internal_purpose,
 		       so.is_active, so.created_at, so.updated_at
 		FROM shipping_options so
 		INNER JOIN product_shipping_options pso ON so.id = pso.shipping_option_id
@@ -141,11 +134,12 @@ func (r *ProductShippingSetupRepositoryImpl) GetAvailableByProduct(
 		var id, sellerID uuid.UUID
 		var name string
 		var transportType string
+		var internalPurpose string
 		var isActive bool
 		var createdAt, updatedAt time.Time
 
 		err := rows.Scan(
-			&id, &sellerID, &name, &transportType,
+			&id, &sellerID, &name, &transportType, &internalPurpose,
 			&isActive, &createdAt, &updatedAt,
 		)
 		if err != nil {
@@ -153,13 +147,14 @@ func (r *ProductShippingSetupRepositoryImpl) GetAvailableByProduct(
 		}
 
 		options = append(options, &entity.ShippingSetup{
-			ID:            id,
-			SellerID:      sellerID,
-			Name:          name,
-			TransportType: entity.TransportType(transportType),
-			IsActive:      isActive,
-			CreatedAt:     createdAt,
-			UpdatedAt:     updatedAt,
+			ID:              id,
+			SellerID:        sellerID,
+			Name:            name,
+			TransportType:   entity.TransportType(transportType),
+			InternalPurpose: internalPurpose,
+			IsActive:        isActive,
+			CreatedAt:       createdAt,
+			UpdatedAt:       updatedAt,
 		})
 	}
 
@@ -231,6 +226,26 @@ func (r *ProductShippingSetupRepositoryImpl) CountByProduct(
 	`, productID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("count shipping options for product failed: %w", err)
+	}
+	return count, nil
+}
+
+// CountLinksByShippingSetup counts how many selling surfaces link a shipping option.
+// Delete-guard source of truth: any link (regardless of surface status) blocks
+// hard deletion, because order history snapshots reference the option.
+func (r *ProductShippingSetupRepositoryImpl) CountLinksByShippingSetup(
+	ctx context.Context,
+	tx db.Tx,
+	shippingSetupID uuid.UUID,
+) (int64, error) {
+	var count int64
+	err := tx.QueryRow(ctx, `
+		SELECT COUNT(*)
+		FROM product_shipping_options
+		WHERE shipping_option_id = $1
+	`, shippingSetupID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count product links for shipping option failed: %w", err)
 	}
 	return count, nil
 }

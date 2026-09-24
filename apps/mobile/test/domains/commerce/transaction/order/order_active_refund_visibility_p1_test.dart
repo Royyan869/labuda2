@@ -38,7 +38,7 @@ Order _baseOrder({
       recipientName: 'Buyer',
       phone: '08123',
       address: 'Address',
-      method: ShippingMethod.courier,
+      method: ShippingMethod.bus,
       shippingCost: 10000,
     ),
     pricing: const OrderPricing(

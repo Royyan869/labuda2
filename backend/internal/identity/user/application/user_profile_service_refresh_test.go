@@ -89,7 +89,7 @@ func newRefreshService(repo *fakeUserRepo, fb *fakeFirebase) *UserProfileService
 func TestRefreshVerificationSnapshot_FirstTimePhoneVerification(t *testing.T) {
 	nowUser := &userEntity.User{
 		ID:          uuid.New(),
-		FirebaseUID: "firebase-uid-1",
+		FirebaseUID: strPtr("firebase-uid-1"),
 	}
 	repo := &fakeUserRepo{user: nowUser}
 	fb := &fakeFirebase{user: &firebaseauth.UserRecord{UserInfo: &firebaseauth.UserInfo{PhoneNumber: "+6281234567890"}}}
@@ -118,7 +118,7 @@ func TestRefreshVerificationSnapshot_IdempotentPreservesPhoneTimestamp(t *testin
 	ts := time.Now().Add(-5 * time.Minute).UTC().Truncate(time.Second)
 	nowUser := &userEntity.User{
 		ID:              uuid.New(),
-		FirebaseUID:     "firebase-uid-2",
+		FirebaseUID:     strPtr("firebase-uid-2"),
 		PhoneVerified:   true,
 		PhoneVerifiedAt: &ts,
 	}
@@ -142,7 +142,7 @@ func TestRefreshVerificationSnapshot_IdempotentPreservesPhoneTimestamp(t *testin
 func TestRefreshVerificationSnapshot_FirebaseFailure(t *testing.T) {
 	nowUser := &userEntity.User{
 		ID:          uuid.New(),
-		FirebaseUID: "firebase-uid-3",
+		FirebaseUID: strPtr("firebase-uid-3"),
 	}
 	repo := &fakeUserRepo{user: nowUser}
 	fb := &fakeFirebase{err: errors.New("upstream down")}
@@ -169,7 +169,7 @@ func TestRefreshVerificationSnapshot_EmailVerifiedMonotonic(t *testing.T) {
 	ts := time.Now().Add(-2 * time.Hour).UTC().Truncate(time.Second)
 	nowUser := &userEntity.User{
 		ID:              uuid.New(),
-		FirebaseUID:     "firebase-uid-4",
+		FirebaseUID:     strPtr("firebase-uid-4"),
 		EmailVerifiedAt: &ts,
 	}
 	repo := &fakeUserRepo{user: nowUser}

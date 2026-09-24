@@ -2,15 +2,25 @@ package application
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	configapp "github.com/labuda/backend/internal/platform/config/application"
 	"github.com/labuda/backend/internal/pricing/promotion/contract/entity"
 	contractRepo "github.com/labuda/backend/internal/pricing/promotion/contract/repository"
 	promoentity "github.com/labuda/backend/internal/pricing/promotion/entity"
 	"github.com/labuda/backend/pkg/db"
 )
+
+// ErrDeliveryDisabled is returned by delivery selection when the canonical
+// platform gate (platform_configs key promotion_delivery_enabled) disables
+// Promotion delivery. ONE gate authority: the same config key checked by
+// DeliveryService.IssueTicket / QualifyTicket. When disabled there is
+// NO promoted delivery, NO Delivery Ticket, NO Qualified Impression and
+// NO Promotion charge anywhere in the system.
+var ErrDeliveryDisabled = errors.New("promotion delivery is disabled")
 
 // DeliveryCandidate is the MINIMUM canonical delivery representation: the
 // identity and target facts a downstream delivery/distribution consumer needs
@@ -62,20 +72,25 @@ type DeliveryHandoffService struct {
 	contracts   contractRepo.Repository
 	targets     contractRepo.ContractTargetRepository
 	operability SelectionOperabilityChecker
+	config      *configapp.ConfigService
 }
 
 // NewDeliveryHandoffService wires the canonical contract selection boundary.
+// configService is the canonical promotion delivery gate authority — the same
+// instance/key consumed by ticket issuance and qualification.
 func NewDeliveryHandoffService(
 	dbConn *db.DB,
 	contracts contractRepo.Repository,
 	targets contractRepo.ContractTargetRepository,
 	operability SelectionOperabilityChecker,
+	configService *configapp.ConfigService,
 ) *DeliveryHandoffService {
 	return &DeliveryHandoffService{
 		db:          dbConn,
 		contracts:   contracts,
 		targets:     targets,
 		operability: operability,
+		config:      configService,
 	}
 }
 
@@ -99,6 +114,18 @@ func (s *DeliveryHandoffService) SelectForDelivery(ctx context.Context, limit in
 		now, err := s.contracts.GetDBTime(ctx, tx)
 		if err != nil {
 			return fmt.Errorf("read selection time authority: %w", err)
+		}
+
+		// CANONICAL DELIVERY GATE (single authority): when promotion delivery
+		// is disabled at platform level, selection produces nothing, so the
+		// feed/search bridges cannot distribute promoted cards, no Delivery
+		// Ticket can be issued and no Qualified Impression can bill.
+		enabled, err := s.config.IsPromotionDeliveryEnabledResult(ctx, tx)
+		if err != nil {
+			return fmt.Errorf("promotion delivery gate: %w", err)
+		}
+		if !enabled {
+			return ErrDeliveryDisabled
 		}
 
 		pool := limit * candidatePoolFactor

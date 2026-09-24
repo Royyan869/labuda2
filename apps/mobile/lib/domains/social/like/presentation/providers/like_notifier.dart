@@ -155,14 +155,40 @@ class LikeStatsParams {
 }
 
 /// Provider for specific like stats (real-time stream)
-final likeStatsProvider = StreamProvider.family<LikeStats, LikeStatsParams>((
-  ref,
-  params,
-) {
+///
+/// Industry: autoDispose + no per-card polling.
+/// Initial fetch + optimistic push + explicit refresh after toggle.
+/// Prevents N x Timer thundering herd and burst on rebuild.
+final likeStatsProvider =
+    StreamProvider.autoDispose.family<LikeStats, LikeStatsParams>((ref, params) {
   final repository = ref.watch(likeRepositoryProvider);
-  return repository.watchLikeStats(
+  final stream = repository.watchLikeStats(
     targetId: params.targetId,
     targetType: params.targetType,
     currentUserId: params.currentUserId,
   );
+  ref.onDispose(() {
+    // StreamController cleanup handled by repository onCancel
+  });
+  return stream;
 });
+
+/// Helper to perform optimistic like toggle with 0ms UX (industry standard).
+///
+/// Usage in handlers:
+/// 1. Compute optimistic stats (toggle isLiked, +/-1)
+/// 2. Call repository.pushOptimisticLikeStats(optimistic)
+/// 3. Await toggleLike
+/// 4. On success: refreshLikeStats (authoritative reconcile)
+/// 5. On failure: push rollback + snackbar
+extension LikeOptimisticX on LikeRepository {
+  LikeStats optimisticToggled(LikeStats current) {
+    final willLike = !current.isLikedByCurrentUser;
+    return current.copyWith(
+      isLikedByCurrentUser: willLike,
+      totalLikes: willLike
+          ? current.totalLikes + 1
+          : (current.totalLikes > 0 ? current.totalLikes - 1 : 0),
+    );
+  }
+}

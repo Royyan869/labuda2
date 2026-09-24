@@ -103,7 +103,7 @@ Order _order({
       recipientName: 'Buyer',
       phone: '08123456789',
       address: 'Jl. Contoh 1',
-      method: ShippingMethod.courier,
+      method: ShippingMethod.bus,
       shippingCost: 10000,
     ),
     pricing: const OrderPricing(

@@ -47,7 +47,6 @@ func TestWarningCountsMapping(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			repoDetails := repository.UserDetails{
 				ID:                 uuid.New(),
-				FirebaseUID:        "uid",
 				Email:              "test@example.com",
 				AccountStatus:      "active",
 				Role:               "user",

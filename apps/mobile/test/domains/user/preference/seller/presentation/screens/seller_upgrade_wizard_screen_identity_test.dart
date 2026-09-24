@@ -186,6 +186,7 @@ class _FakeSellerRemoteDatasource extends Mock
       methods: [
         SellerSubscriptionPaymentMethodDto(
           methodCode: 'bca_va',
+          displayName: 'BCA Virtual Account',
           serviceFeeAmount: 6250,
           grossAmount: 256250,
         ),
@@ -418,7 +419,9 @@ Future<void> _returnFromPaymentWebView(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
 
-  expect(find.text('Processing payment'), findsOneWidget);
+  // Batch 2 parity with SellerRenewalScreen: Indonesian copy + always-
+  // available manual re-entry button.
+  expect(find.text('Memproses pembayaran'), findsOneWidget);
 }
 
 List<MethodCall> _mockUrlLauncher(TestWidgetsFlutterBinding binding) {
@@ -632,7 +635,7 @@ void main() {
 
         // Canonical renewal screen: read-only context + payment method only.
         expect(find.text('Bayar & Perpanjang'), findsOneWidget);
-        expect(find.text('Renewal mode'), findsOneWidget);
+        expect(find.text('Mode perpanjang'), findsOneWidget);
         expect(find.text('Pembayaran'), findsNothing);
         expect(find.text('Lanjut Lengkapi Data'), findsNothing);
         expect(sellerRemoteDatasource.onboardingCalls, 0);

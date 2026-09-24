@@ -206,39 +206,15 @@ func (s *FinanceService) RecordPromotionAllocation(
 	promotionID uuid.UUID,
 	sellerID uuid.UUID,
 	budget int64,
-) error {
-	if promotionID == uuid.Nil {
-		return fmt.Errorf("RecordPromotionAllocation: promotion_id required")
-	}
-	if sellerID == uuid.Nil {
-		return fmt.Errorf("RecordPromotionAllocation: seller_id required")
-	}
-	if budget <= 0 {
-		return fmt.Errorf("RecordPromotionAllocation: budget must be positive (got %d)", budget)
-	}
-
-	if _, err := s.RecordCanonicalPromotionAllocation(ctx, tx, promotionID, sellerID, budget); err != nil {
-		return err
-	}
-	return nil
-}
-
-// RecordCanonicalPromotionAllocation books a canonical promotion allocation without asserting legacy promotion identity rules.
-func (s *FinanceService) RecordCanonicalPromotionAllocation(
-	ctx context.Context,
-	tx db.Tx,
-	promotionID uuid.UUID,
-	sellerID uuid.UUID,
-	budget int64,
 ) (uuid.UUID, error) {
 	if promotionID == uuid.Nil {
-		return uuid.Nil, fmt.Errorf("RecordCanonicalPromotionAllocation: promotion_id required")
+		return uuid.Nil, fmt.Errorf("RecordPromotionAllocation: promotion_id required")
 	}
 	if sellerID == uuid.Nil {
-		return uuid.Nil, fmt.Errorf("RecordCanonicalPromotionAllocation: seller_id required")
+		return uuid.Nil, fmt.Errorf("RecordPromotionAllocation: seller_id required")
 	}
 	if budget <= 0 {
-		return uuid.Nil, fmt.Errorf("RecordCanonicalPromotionAllocation: budget must be positive (got %d)", budget)
+		return uuid.Nil, fmt.Errorf("RecordPromotionAllocation: budget must be positive (got %d)", budget)
 	}
 
 	pr, err := s.promotionRepo()

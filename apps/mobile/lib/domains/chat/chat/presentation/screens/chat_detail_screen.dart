@@ -18,6 +18,8 @@ import 'package:labuda/domains/chat/chat/presentation/widgets/chat/chat_order_st
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_lifecycle_redaction.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/core/media/media_upload_config.dart';
+import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/shared/providers/block_state_provider.dart';
 import 'package:labuda/shared/widgets/block_confirmation_dialog.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_picker_bottom_sheet.dart';
@@ -33,7 +35,6 @@ import 'package:labuda/domains/user/profile/profile.dart' show userDataProvider;
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
 import 'package:labuda/domains/system/report/presentation/screens/report_screen.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
 
 @visibleForTesting
 class ShippingQuoteCheckoutTarget {
@@ -202,13 +203,13 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       if (result == null && mounted) {
         // Message send failed - show error to user
         final chatState = ref.read(chatDetailProvider(widget.chatId));
-        // Inline gate: backend rejected because the user's email is not
-        // verified (HTTP 403 EMAIL_VERIFICATION_REQUIRED).
+        // Backend-rejection handler (defense-in-depth): the backend stays
+        // the single authority for EMAIL_VERIFICATION_REQUIRED.
         if (chatState.errorCode == 'EMAIL_VERIFICATION_REQUIRED') {
           if (!context.mounted) return;
-          await showBlockedActionGate(
+          AppSnackBar.showError(
             context,
-            actionDescription: 'mengirim pesan',
+            'Verifikasi email kamu diperlukan sebelum mengirim pesan.',
           );
           return;
         }
@@ -771,42 +772,43 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
               ),
               const Divider(),
             ],
-            // Photo - disabled: no backend support
-            // ListTile(
-            //   leading: const Icon(Icons.photo_library),
-            //   title: const Text('Photo'),
-            //   onTap: () {
-            //     Navigator.pop(context);
-            //     // TODO: Implement photo picker
-            //   },
-            // ),
-            // Camera - disabled: no backend support
-            // ListTile(
-            //   leading: const Icon(Icons.camera_alt),
-            //   title: const Text('Camera'),
-            //   onTap: () {
-            //     Navigator.pop(context);
-            //     // TODO: Implement camera
-            //   },
-            // ),
-            // File - disabled: no backend support
-            // ListTile(
-            //   leading: const Icon(Icons.attach_file),
-            //   title: const Text('File'),
-            //   onTap: () {
-            //     Navigator.pop(context);
-            //     // TODO: Implement file picker
-            //   },
-            // ),
-            // Location - disabled: no backend support
-            // ListTile(
-            //   leading: const Icon(Icons.location_on),
-            //   title: const Text('Location'),
-            //   onTap: () {
-            //     Navigator.pop(context);
-            //     // TODO: Implement location sharing
-            //   },
-            // ),
+            // Foto+video — 1 mesin (orchestrator) foto & video support
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Galeri'),
+              subtitle: const Text('Foto & video dari galeri'),
+              onTap: () {
+                final outer = context;
+                Navigator.pop(context);
+                MediaUploadOrchestrator.showPicker(
+                  context: outer,
+                  config: MediaUploadConfig.forChat,
+                  onUploaded: (urls) async {
+                    for (final url in urls) {
+                      await _sendMediaMessage(url);
+                    }
+                  },
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Kamera'),
+              subtitle: const Text('Ambil foto/video'),
+              onTap: () {
+                final outer = context;
+                Navigator.pop(context);
+                MediaUploadOrchestrator.showPicker(
+                  context: outer,
+                  config: MediaUploadConfig.forChat,
+                  onUploaded: (urls) async {
+                    for (final url in urls) {
+                      await _sendMediaMessage(url);
+                    }
+                  },
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -870,6 +872,25 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       content: 'Mengirimkan produk dijual untuk Anda',
       objectReference: shareReference,
     );
+  }
+
+  /// Foto+video chat — 1 mesin, S3 presigned via orchestrator.
+  /// Kini mengirim sebagai text berisi URL (preview di bubble via Image.network).
+  /// Backend chat_media_assets ready untuk evolusi ke attachment_json.
+  Future<void> _sendMediaMessage(String mediaUrl) async {
+    final authState = ref.read(authControllerProvider);
+    if (authState is! AuthStateAuthenticated) return;
+    final senderId = authState.user.id;
+    final senderName = authState.user.username.isNotEmpty ? authState.user.username : 'User';
+    final isVideo = mediaUrl.toLowerCase().endsWith('.mp4') || mediaUrl.contains('/videos/');
+    final content = isVideo ? '🎬 Video: $mediaUrl' : '📷 Foto: $mediaUrl';
+    final notifier = ref.read(chatDetailProvider(widget.chatId).notifier);
+    final result = await notifier.sendMessage(
+      senderId: senderId,
+      senderName: senderName,
+      content: content,
+    );
+    if (result != null && mounted) _scrollToBottom();
   }
 
   /// Navigate to for-sale detail screen when user taps on attachment

@@ -181,23 +181,116 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
   }
 
   Future<void> _showPending(int epoch, String uid, SellerSubscription? baseline) async {
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => _RenewalPendingDialog(
-        epoch: epoch,
-        uid: uid,
-        baseline: baseline,
-        isCurrent: () => _isCurrent(epoch, uid),
-        onSuccess: () async {
-          if (Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
-          if (mounted) {
-            AppSnackBar.showSuccess(context, 'Perpanjangan seller berhasil diproses');
-            Navigator.of(context).pop(true);
-          }
-        },
-      ),
-    );
+    // COPY-AUTHORITY: "Aktivasi" wording is only correct when the seller has
+    // NEVER had an interval (baseline null — GET /seller/subscription 404).
+    // Expired-interval renewal IS still a renewal ("Perpanjangan"), and early
+    // renewal likewise. Audit finding C.
+    final firstActivation = baseline == null;
+    // Batch 2 re-entry loop: settlement can outlive the 60s polling window
+    // (VA takes minutes-hours). After the user closes the pending dialog, the
+    // renewal screen must keep offering a manual status check until the
+    // backend confirms — the seller is never stranded on the form.
+    //
+    // successHandled breaks the loop the moment success was surfaced once —
+    // onSuccess may pop this screen, and the loop must never re-run its
+    // body after that (double snackbar / double pop).
+    var successHandled = false;
+    var firstIteration = true;
+    while (mounted && !successHandled && _isCurrent(epoch, uid)) {
+      if (firstIteration) {
+        // Right after submit: the auto-polling window is the check.
+        firstIteration = false;
+      } else {
+        // Manual re-entry: check backend truth FIRST ("Cek status" must
+        // check, not reopen the polling dialog), then offer to poll again.
+        final confirmed = await _checkPaymentConfirmed(epoch, uid, baseline);
+        if (successHandled || !mounted || !_isCurrent(epoch, uid)) return;
+        if (confirmed) {
+          successHandled = true;
+          AppSnackBar.showSuccess(
+            context,
+            firstActivation
+                ? 'Aktivasi seller berhasil — Anda sudah bisa jual dan lelang'
+                : 'Perpanjangan seller berhasil diproses',
+          );
+          Navigator.of(context).pop(true);
+          return;
+        }
+        final recheck = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Pembayaran masih diproses'),
+            content: const Text(
+              'Pembayaran Anda belum terkonfirmasi. Cek ulang statusnya sekarang?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Nanti saja'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Cek status'),
+              ),
+            ],
+          ),
+        );
+        if (recheck != true) return;
+        // "Cek status" must CHECK, not reopen the polling dialog: continue
+        // so the next iteration runs the manual check first.
+        continue;
+      }
+
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => _RenewalPendingDialog(
+          epoch: epoch,
+          uid: uid,
+          baseline: baseline,
+          isCurrent: () => _isCurrent(epoch, uid),
+          onSuccess: () async {
+            successHandled = true;
+            if (Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
+            if (mounted) {
+              AppSnackBar.showSuccess(
+                context,
+                firstActivation
+                    ? 'Aktivasi seller berhasil — Anda sudah bisa jual dan lelang'
+                    : 'Perpanjangan seller berhasil diproses',
+              );
+              Navigator.of(context).pop(true);
+            }
+          },
+        ),
+      );
+      if (successHandled || !mounted || !_isCurrent(epoch, uid)) return;
+    }
+  }
+
+  /// Manual status check for the Batch 2 re-entry loop. Authority transition
+  /// alone confirms first activation; renewal additionally requires the
+  /// interval expiry to have moved forward.
+  Future<bool> _checkPaymentConfirmed(
+    int epoch,
+    String uid,
+    SellerSubscription? baseline,
+  ) async {
+    await ref.read(authControllerProvider.notifier).forceRefreshAuthState();
+    if (!mounted || !_isCurrent(epoch, uid)) return false;
+    final s = ref.read(authControllerProvider);
+    if (s is! AuthStateAuthenticated || s.user.hasMarketAuthority != true) {
+      return false;
+    }
+    if (baseline == null) return true;
+    try {
+      final r = await ref.read(sellerRepositoryProvider).getSubscription(uid);
+      return r.isSuccess &&
+          r.data != null &&
+          r.data!.expiryDate.isAfter(baseline.expiryDate);
+    } catch (_) {
+      return false;
+    }
   }
 
   @override
@@ -213,8 +306,14 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
     final sellerState = SellerState.fromAuthUser(
       ref.watch(authenticatedUserProvider),
     );
+    // COPY-AUTHORITY (Batch 3): "Aktifkan" wording for sellers who never had
+    // an interval (pendingActivation); "Perpanjang" only for real renewals.
+    final activationMode = sellerState.isPendingActivation;
     return Scaffold(
-      appBar: AppBarCustom(title: 'Perpanjang Seller', leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(context).pop())),
+      appBar: AppBarCustom(
+        title: activationMode ? 'Aktifkan Langganan Seller' : 'Perpanjang Seller',
+        leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(context).pop()),
+      ),
       body: cfgAsync.when(
         data: (cfg) => _buildBody(cfg, isDark, sellerState),
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -229,6 +328,9 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
     SellerState sellerState,
   ) {
     final methods = _methods;
+    // COPY-AUTHORITY mirrors build(): "Aktifkan" for sellers who never had an
+    // interval, "Perpanjang" for real renewals.
+    final activationMode = sellerState.isPendingActivation;
     final principal = (methods?.principalAmount ?? cfg.yearlyFee.round()).toDouble();
     final sel = _selected;
     final fee = (sel?.serviceFeeAmount ?? 0).toDouble();
@@ -243,9 +345,23 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
             border: Border.all(color: AppColors.successGreen.withValues(alpha: 0.35)),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(sellerState.isExpired ? 'Renewal mode' : 'Early renewal mode', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900)),
+            Text(
+              sellerState.isExpired
+                  ? 'Mode perpanjang'
+                  : activationMode
+                      ? 'Mode aktivasi'
+                      : 'Mode perpanjang dini',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900),
+            ),
             const SizedBox(height: 6),
-            Text(sellerState.isExpired ? 'Existing seller profile detected. Renew to restore market authority without recreating identity.' : 'Existing seller profile detected. Early renewal keeps your seller identity intact.', style: TextStyle(fontSize: 13, color: isDark ? AppColors.neutralGray200 : AppColors.neutralGray700)),
+            Text(
+              sellerState.isExpired
+                  ? 'Profil seller terdeteksi. Perpanjang untuk memulihkan otoritas jualan tanpa membuat identitas baru.'
+                  : activationMode
+                      ? 'Profil seller terdeteksi. Aktifkan langganan untuk mulai jual dan lelang — identitas seller Anda tetap dipakai.'
+                      : 'Profil seller terdeteksi. Perpanjang dini menjaga identitas seller Anda tetap utuh.',
+              style: TextStyle(fontSize: 13, color: isDark ? AppColors.neutralGray200 : AppColors.neutralGray700),
+            ),
           ]),
         ),
         const SizedBox(height: 16),
@@ -267,7 +383,7 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
           ]),
         ),
         const SizedBox(height: 24),
-        SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _submitting ? null : _submit, child: _submitting ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Bayar & Perpanjang'))),
+        SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _submitting ? null : _submit, child: _submitting ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(activationMode ? 'Bayar & Aktifkan' : 'Bayar & Perpanjang'))),
       ],
     );
   }
@@ -305,14 +421,37 @@ class _RenewalPendingDialog extends ConsumerStatefulWidget {
   ConsumerState<_RenewalPendingDialog> createState() => _RenewalPendingDialogState();
 }
 
-class _RenewalPendingDialogState extends ConsumerState<_RenewalPendingDialog> {
+class _RenewalPendingDialogState extends ConsumerState<_RenewalPendingDialog>
+    with WidgetsBindingObserver {
   Timer? _timer;
   bool _timedOut = false;
   int _attempts = 0;
+
   @override
-  void initState() { super.initState(); _start(); }
+  void initState() {
+    super.initState();
+    // Batch 2: settlement can land while the dialog is backgrounded (user
+    // switches to m-banking / wallet app). Resume is the natural moment the
+    // truth changed — refresh immediately instead of waiting for the next 3s
+    // tick or the 60s timeout.
+    WidgetsBinding.instance.addObserver(this);
+    _start();
+  }
+
   @override
-  void dispose() { _timer?.cancel(); super.dispose(); }
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    if (!widget.isCurrent()) return;
+    // Refresh once per resume; the periodic poll handles the rest.
+    ref.read(authControllerProvider.notifier).forceRefreshAuthState();
+  }
   Future<void> _start() async {
     _timer = Timer.periodic(const Duration(seconds: 3), (t) async {
       if (!mounted) { t.cancel(); return; }
@@ -324,8 +463,23 @@ class _RenewalPendingDialogState extends ConsumerState<_RenewalPendingDialog> {
       if (!widget.isCurrent()) { t.cancel(); if (mounted && Navigator.of(context).canPop()) Navigator.of(context).pop(); return; }
       final s = ref.read(authControllerProvider);
       if (s is AuthStateAuthenticated && s.user.hasMarketAuthority == true) {
+        // CANONICAL SUCCESS DETECTION — first activation (P1 fix):
+        // baseline null means NO interval existed when the dialog opened
+        // (GET /seller/subscription → 404), so the appearance of
+        // hasMarketAuthority IS success: an active seller_subscriptions
+        // interval can only be written by ProcessSuccessfulPaymentTx
+        // (settled payment). This branch was previously a silent dead-end
+        // (a bare return on null baseline, without cancelling the timer),
+        // so first activation could NEVER show success and always fell
+        // through to the 60s timeout.
         final baseline = widget.baseline;
-        if (baseline == null) return;
+        if (baseline == null) {
+          t.cancel();
+          await widget.onSuccess();
+          return;
+        }
+        // Renewal (baseline existed — active or expired): confirm the
+        // interval window actually moved forward.
         final cur = await _refresh();
         if (!mounted) { t.cancel(); return; }
         if (!widget.isCurrent()) { t.cancel(); if (mounted && Navigator.of(context).canPop()) Navigator.of(context).pop(); return; }
@@ -342,8 +496,24 @@ class _RenewalPendingDialogState extends ConsumerState<_RenewalPendingDialog> {
   }
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: const Text('Processing payment'),
-        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [const LinearProgressIndicator(), const SizedBox(height: 16), Text(_timedOut ? 'Payment is still being processed. You can close this dialog and check again later.' : 'We are waiting for payment confirmation and seller activation.')]),
-        actions: [if (_timedOut) TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))],
+        title: const Text('Memproses pembayaran'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const LinearProgressIndicator(),
+          const SizedBox(height: 16),
+          Text(_timedOut
+              ? 'Pembayaran masih diproses. Anda bisa menutup dialog ini dan memeriksa lagi nanti.'
+              : 'Kami menunggu konfirmasi pembayaran dan aktivasi seller Anda.'),
+        ]),
+        actions: [
+          // Batch 2: manual re-entry point. Settlement can outlive the polling
+          // window (VA can take minutes-hours), so the user must never be
+          // left without a way to close this dialog and re-check. Closing
+          // keeps the renewal screen open for a fresh initiate (the backend
+          // reuses the same pending payment idempotently).
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cek status pembayaran'),
+          ),
+        ],
       );
 }

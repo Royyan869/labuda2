@@ -135,6 +135,16 @@ type DeliveryService struct {
 	log         *zap.Logger
 }
 
+// TicketIssuer is the canonical Delivery Ticket authority surface consumed by
+// the presentation bridges (feed / search). It is implemented ONLY by
+// DeliveryService — the single ticket authority. IssueTicket is authorization
+// only (Model A: no money movement); QualifyTicket is the ONLY path that
+// produces a billable Qualified Impression and books the CPM charge.
+type TicketIssuer interface {
+	IssueTicket(ctx context.Context, input IssueTicketInput) (*deliveryentity.DeliveryTicket, error)
+	QualifyTicket(ctx context.Context, input QualifyTicketInput) (*deliveryentity.QualifiedImpression, error)
+}
+
 // NewDeliveryService wires the canonical delivery service.
 func NewDeliveryService(
 	dbConn *db.DB,
@@ -443,6 +453,16 @@ func (s *DeliveryService) QualifyTicket(ctx context.Context, input QualifyTicket
 		// committed state, so a finalize that won the contract lock first is
 		// observed here (Outcome B).
 		if c.Status != entity.StatusActive {
+			return ErrContractNotActive
+		}
+
+		// 5b. Planned-finish boundary: once the contract's planned delivery
+		// window has ended, an issued ticket can never produce a billable
+		// Qualified Impression — planned finish stops delivery first, then the
+		// automatic finalization settles and releases (Owner truth: delivery
+		// and billing stop at planned finish, not at ticket TTL). DB-clock
+		// authority: no client or application time is trusted here.
+		if !now.Before(c.PlannedFinish) {
 			return ErrContractNotActive
 		}
 

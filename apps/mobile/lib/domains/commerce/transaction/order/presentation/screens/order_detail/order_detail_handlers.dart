@@ -14,7 +14,6 @@ import 'package:labuda/domains/commerce/transaction/order/order.dart';
 import 'package:labuda/domains/finance/transaction/payment/payment.dart';
 import 'package:labuda/domains/social/rating/rating.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
 // Payment URLs are presented exclusively inside Labuda's internal WebView.
 
 mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
@@ -233,11 +232,12 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
 
       if (result.isError) {
         if (result.errorCode == 'EMAIL_VERIFICATION_REQUIRED') {
-          // Inline gate: backend blocks rating for unverified users.
+          // Backend-rejection handler (defense-in-depth): the backend stays
+          // the single authority for EMAIL_VERIFICATION_REQUIRED.
           if (mounted) {
-            await showBlockedActionGate(
+            AppSnackBar.showError(
               context,
-              actionDescription: 'memberi rating',
+              'Verifikasi email kamu diperlukan sebelum memberi rating.',
             );
           }
           return;

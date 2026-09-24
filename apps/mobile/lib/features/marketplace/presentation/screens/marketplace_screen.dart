@@ -1,0 +1,125 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:labuda/core/core.dart';
+import 'package:labuda/features/home/home.dart';
+import 'package:labuda/features/marketplace/marketplace.dart';
+
+/// Marketplace Screen - Central hub untuk Product dan Auction
+///
+/// PRODUCT CONTRACT:
+/// - Marketplace is a COMMERCE-first browse surface
+/// - Displays: ForSales, Auctions
+/// - NO social content (universal content and reposts) - those belong in Home Feed
+/// - Promoted/sponsored items appear as injected cards within ForSale/Auction tabs
+///   (server-side injection via FeedPromotionInjector / SearchPromotionInjector).
+///   There is NO standalone Promo tab — promotion is always interleaved, not siloed.
+///
+/// Struktur:
+/// - Tab 1: For Sale (Product Catalog)
+/// - Tab 2: Auction (Auction List)
+class MarketplaceScreen extends ConsumerStatefulWidget {
+  /// Initial tab index to show (0=ForSale/For Sale, 1=Auction)
+  final int initialTab;
+
+  const MarketplaceScreen({super.key, this.initialTab = 0});
+
+  @override
+  ConsumerState<MarketplaceScreen> createState() => _MarketplaceScreenState();
+}
+
+class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTab > 1
+          ? 0
+          : widget.initialTab, // Clamp to valid range
+    );
+
+    // Check pending switch setelah widget ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _handlePendingSwitch();
+    });
+  }
+
+  void _handlePendingSwitch() {
+    final pending = ref.read(pendingTabSwitchProvider);
+    if (pending.hasSwitch && pending.target == 'marketplace' && mounted) {
+      final subTab = pending.marketplaceSubTab ?? 0;
+      _tabController.animateTo(subTab);
+      ref.read(pendingTabSwitchProvider.notifier).clear();
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      color: isDark ? AppColors.darkGray900 : AppColors.neutralGray50,
+      child: Column(
+        children: [
+          // Clean Tab Bar Header (no redundant buttons)
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+              border: Border(
+                bottom: BorderSide(
+                  color: isDark
+                      ? AppColors.neutralGray700
+                      : AppColors.neutralGray200,
+                  width: 1,
+                ),
+              ),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              indicatorColor: AppColors.primaryRed,
+              labelColor: AppColors.primaryRed,
+              unselectedLabelColor: isDark
+                  ? AppColors.neutralGray400
+                  : AppColors.neutralGray600,
+              labelStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+              ),
+              tabs: const [
+                Tab(text: 'For Sale'),
+                Tab(text: 'Auction'),
+              ],
+            ),
+          ),
+          // Tab Content
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: const [
+                // Tab 1: For Sale Catalog Content
+                MarketplaceForSaleTab(),
+
+                // Tab 2: Auction List Content
+                MarketplaceAuctionTab(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -13,6 +13,33 @@ import 'package:labuda/shared/attachment/entities/share_reference.dart';
 /// SINGLE REFERENCE MODEL:
 /// - reference uses ShareReference format (canonical cross-domain reference)
 /// - targetType = "for_sale" for seller responses
+class CommentMediaDto extends Equatable {
+  final String id;
+  final String storageKey;
+  final String mediaUrl;
+  final String mediaType;
+  final int position;
+
+  const CommentMediaDto({
+    required this.id,
+    required this.storageKey,
+    required this.mediaUrl,
+    required this.mediaType,
+    required this.position,
+  });
+
+  factory CommentMediaDto.fromJson(Map<String, dynamic> json) => CommentMediaDto(
+        id: json['id'] as String,
+        storageKey: json['storage_key'] as String,
+        mediaUrl: json['media_url'] as String,
+        mediaType: json['media_type'] as String,
+        position: json['position'] as int,
+      );
+
+  @override
+  List<Object?> get props => [id, storageKey, mediaUrl, position];
+}
+
 class CommentDto extends Equatable {
   final String id;
   final String contentId;
@@ -24,6 +51,7 @@ class CommentDto extends Equatable {
   final String type;
   final ShareReference? reference; // Unified reference using ShareReference
   final String? parentId; // Set for replies (max depth = 1)
+  final List<CommentMediaDto> media; // foto+video
   final DateTime createdAt;
   final DateTime? updatedAt;
   final DateTime? deletedAt;
@@ -51,6 +79,7 @@ class CommentDto extends Equatable {
     required this.type,
     this.reference,
     this.parentId,
+    this.media = const [],
     required this.createdAt,
     this.updatedAt,
     this.deletedAt,
@@ -72,6 +101,10 @@ class CommentDto extends Equatable {
           ? ShareReference.fromJson(json['reference'] as Map<String, dynamic>)
           : null,
       parentId: json['parent_id'] as String?,
+      media: (json['media'] as List<dynamic>?)
+              ?.map((e) => CommentMediaDto.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
@@ -161,10 +194,35 @@ class CreateCommerceReferenceCommentDto {
   };
 }
 
+class CommentCreateMediaDto {
+  final String storageKey;
+  final String mediaUrl;
+  final String mediaType; // image/video
+  final int position;
+  final int? byteSize;
+
+  const CommentCreateMediaDto({
+    required this.storageKey,
+    required this.mediaUrl,
+    required this.mediaType,
+    required this.position,
+    this.byteSize,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'storage_key': storageKey,
+        'media_url': mediaUrl,
+        'media_type': mediaType,
+        'position': position,
+        if (byteSize != null) 'byte_size': byteSize,
+      };
+}
+
 /// Request DTO to create a normal comment
 ///
 /// CANONICAL COMMENT CAPABILITIES V1:
-/// - text: YES (body field)
+/// - text: YES (body field) — optional when media present
+/// - foto+video: YES via media (max 5: 4 image +1 video)
 /// - mention user: supported via mentionedUserIds
 /// - commerce reference: use specialized CreateCommerceReferenceCommentDto
 class CreateCommentDto {
@@ -173,6 +231,7 @@ class CreateCommentDto {
   final String content;
   final String? parentId;
   final List<String>? mentionedUserIds;
+  final List<CommentCreateMediaDto>? media;
 
   const CreateCommentDto({
     required this.targetId,
@@ -180,6 +239,7 @@ class CreateCommentDto {
     required this.content,
     this.parentId,
     this.mentionedUserIds,
+    this.media,
   });
 
   Map<String, dynamic> toJson() => {
@@ -188,6 +248,7 @@ class CreateCommentDto {
     'body': content,
     if (parentId != null) 'parent_id': parentId,
     if (mentionedUserIds != null) 'mentioned_user_ids': mentionedUserIds,
+    if (media != null && media!.isNotEmpty) 'media': media!.map((m) => m.toJson()).toList(),
   };
 }
 

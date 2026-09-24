@@ -645,7 +645,7 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 		}
 
 		// STEP 8d: BILLING PAYMENT COMPLETION - Mark billing transaction as paid
-		// For billing reference types (promotion_package)
+		// For billing reference types (promote_balance_top_up)
 		// This handles non-order payments without touching the order domain
 		if payment.ReferenceType == "billing" && payment.ReferenceID != nil && *payment.ReferenceID != uuid.Nil {
 			billingID := *payment.ReferenceID
@@ -699,15 +699,18 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 				zap.String("billing_type", string(billing.Type)),
 			)
 
-			// PROMOTION PACKAGE PURCHASE PURGED — hard convergence (§28).
-			if billing.Type == billingentity.TypePromotionPackage {
-				s.log.Error("promotion_package billing forbidden — use promotion_contracts",
+			// DEFENSE-IN-DEPTH: reject any unrecognized billing type.
+			// Only recognized canonical types may become paid. A manually-inserted
+			// DB row carrying a legacy string value must never become revenue.
+			if !billingentity.IsValidType(billing.Type) {
+				s.log.Error("unrecognized billing type rejected",
 					zap.String("payment_id", payment.ID.String()),
 					zap.String("billing_id", billingID.String()),
+					zap.String("billing_type", string(billing.Type)),
 				)
-				errMsg := "promotion package purchase purged — use promotion_contracts"
+				errMsg := fmt.Sprintf("unrecognized billing type: %s", billing.Type)
 				_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
-				return fmt.Errorf("promotion package purchase forbidden")
+				return fmt.Errorf("unrecognized billing type: %s", billing.Type)
 			}
 		}
 

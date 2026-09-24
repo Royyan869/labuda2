@@ -152,15 +152,6 @@ const (
 const (
 	// CapPromotionExternalProductReview - Can review external product promotions
 	CapPromotionExternalProductReview Capability = "promotion.external_product.review"
-
-	// CapPromotionPackageManage - Can create, update, enable and disable promotion packages
-	CapPromotionPackageManage Capability = "promotion.package.manage"
-
-	// CapPromotionCampaignView - Can view active and historical promotion campaigns (instances)
-	CapPromotionCampaignView Capability = "promotion.campaign.view"
-
-	// CapPromotionCampaignStop - Can force-stop a running promotion campaign
-	CapPromotionCampaignStop Capability = "promotion.campaign.stop"
 )
 
 // ============================================================
@@ -270,9 +261,6 @@ var canonicalCapabilities = []Capability{
 	CapModerationAppealRead,
 	CapModerationAppealReview,
 	CapPromotionExternalProductReview,
-	CapPromotionPackageManage,
-	CapPromotionCampaignView,
-	CapPromotionCampaignStop,
 	CapSellerVerificationReview,
 	CapSellerSubscriptionRecover,
 	CapOrderRead,

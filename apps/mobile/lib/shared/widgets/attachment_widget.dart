@@ -914,12 +914,12 @@ class AttachmentWidget extends ConsumerWidget {
 
                 const SizedBox(height: 8),
 
-                // Shipping Rate
+                // Shipping Rate — ALL-IN (ongkir + packing) per business truth
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Biaya',
+                      'Ongkir + Packing',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.neutralGray500,

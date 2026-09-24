@@ -9,20 +9,17 @@ import (
 )
 
 // BillingTransaction represents a non-order payment transaction.
-// Used for: promotion package purchase.
+// Canonical usage: Promote Balance top-up (TypePromoteBalanceTopUp).
 type BillingTransaction struct {
 	ID                   uuid.UUID
 	PayerID              uuid.UUID
-	TargetID             uuid.UUID // Promotion package ID
+	TargetID             uuid.UUID
 	Type                 Type
 	GrossAmount          money.Money
 	PlatformFeePercent   int64 // e.g., 5 for 5%
 	PlatformFeeAmount    money.Money
 	NetAmount            money.Money
 	Status               Status
-	EventDate            *time.Time // Reserved (persisted column); unused by promotion_package
-	UnlockDate           *time.Time // Reserved (persisted column); unused by promotion_package
-	UnlockedAt           *time.Time // Reserved (persisted column); unused by promotion_package
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
 }
@@ -31,8 +28,6 @@ type BillingTransaction struct {
 type Type string
 
 const (
-	TypePromotionPackage Type = "promotion_package" // Duration-based promotion package purchase (LEGACY authority)
-
 	// TypePromoteBalanceTopUp is a verified seller top-up into PROMOTE_BALANCE.
 	// Canonical funding: the settled payment credits the seller's Promote
 	// Balance via FinanceService.RecordPromoteBalanceFunding. It is NOT a
@@ -62,7 +57,7 @@ func (e *InvalidTransitionError) Error() string {
 // IsValidType returns true if the type is valid.
 func IsValidType(t Type) bool {
 	switch t {
-	case TypePromotionPackage, TypePromoteBalanceTopUp:
+	case TypePromoteBalanceTopUp:
 		return true
 	default:
 		return false
@@ -142,8 +137,6 @@ func NewBillingTransaction(
 		PlatformFeeAmount:  platformFeeAmount,
 		NetAmount:          netAmount,
 		Status:             StatusPending,
-		EventDate:          nil,
-		UnlockDate:         nil,
 		CreatedAt:          now,
 		UpdatedAt:          now,
 	}, nil

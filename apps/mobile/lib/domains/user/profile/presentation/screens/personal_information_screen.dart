@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/helpers/canonical_email_validator.dart';
 import 'package:labuda/shared/helpers/canonical_phone_validator.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/personal_information_section.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/phone_verification_dialog.dart';
@@ -160,117 +159,6 @@ class _PersonalInformationScreenState
     }
   }
 
-  Future<void> _sendEmailVerification() async {
-    final authState = ref.read(authControllerProvider);
-    if (authState is! AuthStateAuthenticated) {
-      AppSnackBar.showError(context, 'User not authenticated');
-      return;
-    }
-
-    final email = authState.user.email;
-
-    if (email.isEmpty) {
-      AppSnackBar.showError(context, 'Email is required');
-      return;
-    }
-
-    if (!CanonicalEmailValidator.isValid(email)) {
-      AppSnackBar.showError(context, 'Invalid email format');
-      return;
-    }
-
-    _controller.setLoading(true);
-
-    try {
-      final success = await ref
-          .read(authControllerProvider.notifier)
-          .sendEmailVerification();
-
-      if (success && mounted) {
-        AppSnackBar.showInfo(
-          context,
-          'Verification email sent. Please check your inbox and spam folder.',
-        );
-
-        _showEmailVerificationDialog();
-      } else if (mounted) {
-        AppSnackBar.showError(context, 'Failed to send verification email');
-      }
-    } finally {
-      if (mounted) {
-        _controller.setLoading(false);
-      }
-    }
-  }
-
-  void _showEmailVerificationDialog() {
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Check Your Email'),
-        content: const Text(
-          'We have sent a verification link to your email.\n\n'
-          'Click the link in the email, then come back here and press the "Refresh" button to continue.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final scaffoldMessenger = ScaffoldMessenger.of(context);
-              final navigator = Navigator.of(context);
-
-              navigator.pop();
-
-              _controller.setLoading(true);
-
-              try {
-                await ref
-                    .read(authControllerProvider.notifier)
-                    .forceRefreshAuthState();
-                await _loadUserData();
-
-                if (!mounted) return;
-
-                if (_isEmailVerified) {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('Email verified successfully!'),
-                      backgroundColor: AppColors.successGreen,
-                      duration: Duration(seconds: 3),
-                    ),
-                  );
-                } else {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Email not verified yet. Please click the link in your email first.',
-                      ),
-                      backgroundColor: AppColors.warningYellow,
-                      duration: Duration(seconds: 3),
-                    ),
-                  );
-                }
-              } finally {
-                if (mounted) {
-                  _controller.setLoading(false);
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryRed,
-            ),
-            child: const Text('Refresh'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _savePersonalInformation() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -363,8 +251,6 @@ class _PersonalInformationScreenState
                     ? authState.user.email
                     : '',
                 emailVerified: _isEmailVerified,
-                onVerifyEmail: _sendEmailVerification,
-                isLoadingEmailVerification: _controller.isLoading,
                 phoneController: _phoneController,
                 phoneVerified: _isPhoneVerified,
                 phoneVerifiedAt: _phoneVerifiedAt,

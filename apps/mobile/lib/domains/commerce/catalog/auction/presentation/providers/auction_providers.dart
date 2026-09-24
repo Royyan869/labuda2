@@ -10,7 +10,7 @@ export 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.d
 export 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart'
     show
         auctionNotifierProvider,
-        exploreAuctionsStreamProvider,
+        marketplaceAuctionsStreamProvider,
         userAuctionsStreamProvider,
         myAuctionsStreamProvider,
         auctionStreamProvider,

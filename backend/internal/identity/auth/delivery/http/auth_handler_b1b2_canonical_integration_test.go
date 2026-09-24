@@ -8,14 +8,19 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
-// B1+B2 canonical integration tests. Owner-locked 2026-09-14:
-// B1 = Permanent reservation, B2 = Explicit identity linking.
+// B1+B2 canonical integration tests.
+// B1 = Permanent reservation (a soft-deleted identity is never resurrected).
+// B2 = SINGLE BINDING RULE: the users row is the account, its normalized email
+// is the account key, and a Firebase identity is only the credential that
+// proves control of that email. A different UID binds to the row only when its
+// email is Firebase-VERIFIED.
 
 // Helper to call exchange with optional username (string, not *string) —
 // distinct name to avoid collision with existing helper in
@@ -212,35 +217,92 @@ func TestB2_NewUIDNewEmailCreates(t *testing.T) {
 	}
 }
 
-// B2-8 & 9: new UID + active existing email rejected and does NOT modify firebase_uid
-func TestB2_NewUIDActiveEmailRejectedAndUnchanged(t *testing.T) {
+// Single binding rule: a DIFFERENT Firebase UID may bind an existing active
+// account only when its email is Firebase-VERIFIED. Unverified → 403
+// EMAIL_NOT_VERIFIED and the existing binding stays untouched.
+func TestB2_UnverifiedNewUIDCannotCreateOrBindActiveEmail(t *testing.T) {
+	// Canonical matrix: row BOUND + different UID → always 409 (verified or
+	// not). A different-UID request against an existing row must never be
+	// answered by create/bind; it faces the bound row through the email
+	// lookup and gets IDENTITY_CONFLICT.
 	tdb, handler, fb, cleanup := setupEmailIdentityHandlerTest(t)
 	defer cleanup()
 	ctx := context.Background()
 	firstToken := "B2ActiveEmailFirst"
 	secondToken := "B2ACTIVEEMAILFIRST" // same normalized email case variant
 	firstMock, _ := fb.VerifyIDTokenMock(ctx, firstToken)
+	secondMock, _ := fb.VerifyIDTokenMock(ctx, secondToken)
+	if firstMock.UID == secondMock.UID {
+		t.Fatal("precondition: tokens must yield different Firebase UIDs")
+	}
 	w1 := callFirebaseAuth(t, handler, firstToken)
 	if w1.Code != http.StatusOK {
 		t.Fatalf("first must succeed, got %d body=%s", w1.Code, w1.Body.String())
 	}
 	idBefore, uidBefore := getUserByEmail(t, ctx, tdb, "b2activeemailfirst@test.com")
-	if uidBefore != firstMock.UID {
-		t.Fatalf("pre-check uid mismatch: got %q want %q", uidBefore, firstMock.UID)
+	if uidBefore == nil || *uidBefore != firstMock.UID {
+		t.Fatalf("pre-check uid mismatch: got %v want %q", uidBefore, firstMock.UID)
 	}
 	w2 := callFirebaseAuth(t, handler, secondToken)
 	if w2.Code != http.StatusConflict {
-		t.Fatalf("active email with new UID must be 409 EMAIL_ALREADY_REGISTERED, got %d body=%s", w2.Code, w2.Body.String())
+		t.Fatalf("different UID on a bound row must be IDENTITY_CONFLICT, got %d body=%s", w2.Code, w2.Body.String())
 	}
-	if !bytes.Contains(w2.Body.Bytes(), []byte("EMAIL_ALREADY_REGISTERED")) {
-		t.Fatalf("expected EMAIL_ALREADY_REGISTERED, got %s", w2.Body.String())
+	if !bytes.Contains(w2.Body.Bytes(), []byte("IDENTITY_CONFLICT")) {
+		t.Fatalf("expected IDENTITY_CONFLICT, got %s", w2.Body.String())
 	}
 	_, uidAfter := getUserByEmail(t, ctx, tdb, "b2activeemailfirst@test.com")
-	if uidAfter != uidBefore {
-		t.Fatalf("firebase_uid must NOT have been overwritten: before %q after %q", uidBefore, uidAfter)
+	if uidAfter == nil || uidBefore == nil || *uidAfter != *uidBefore {
+		t.Fatalf("firebase_uid must NOT have been overwritten: before %v after %v", uidBefore, uidAfter)
 	}
 	if idBefore == uuid.Nil {
 		t.Fatal("id must not be nil")
+	}
+}
+
+// D4 negative contract: a row that is already bound NEVER accepts a different
+// UID, even when the incoming email is Firebase-VERIFIED. Re-bind is dead —
+// canonical behavior is 409 IDENTITY_CONFLICT with the binding untouched.
+// Client-side Firebase linking (one UID, many providers) is the sole
+// unification mechanism; the backend never rewrites bindings.
+func TestB2_VerifiedDifferentUIDOnBoundRowIsIdentityConflict(t *testing.T) {
+	tdb, handler, fb, cleanup := setupEmailIdentityHandlerTest(t)
+	defer cleanup()
+	ctx := context.Background()
+	firstToken := "b2bindverified"
+	secondToken := "B2BINDVERIFIED" // same normalized email, verified, different UID
+	firstMock, _ := fb.VerifyIDTokenMock(ctx, firstToken)
+	secondMock, _ := fb.VerifyIDTokenMock(ctx, secondToken)
+	if firstMock.UID == secondMock.UID {
+		t.Fatal("precondition: tokens must yield different Firebase UIDs")
+	}
+	if verified, _ := secondMock.Claims["email_verified"].(bool); !verified {
+		t.Fatal("precondition: second token must carry email_verified=true")
+	}
+	firstEmail, _ := firstMock.Claims["email"].(string)
+	secondEmail, _ := secondMock.Claims["email"].(string)
+	if !strings.EqualFold(firstEmail, secondEmail) {
+		t.Fatalf("precondition: same normalized email required, got %q vs %q", firstEmail, secondEmail)
+	}
+
+	w1 := callFirebaseAuth(t, handler, firstToken)
+	if w1.Code != http.StatusOK {
+		t.Fatalf("first must succeed, got %d body=%s", w1.Code, w1.Body.String())
+	}
+	idBefore, uidBefore := getUserByEmail(t, ctx, tdb, "b2bindverified@test.com")
+
+	w2 := callFirebaseAuth(t, handler, secondToken)
+	if w2.Code != http.StatusConflict {
+		t.Fatalf("verified different UID on a bound row must be IDENTITY_CONFLICT, got %d body=%s", w2.Code, w2.Body.String())
+	}
+	if !bytes.Contains(w2.Body.Bytes(), []byte("IDENTITY_CONFLICT")) {
+		t.Fatalf("expected IDENTITY_CONFLICT, got %s", w2.Body.String())
+	}
+	idAfter, uidAfter := getUserByEmail(t, ctx, tdb, "b2bindverified@test.com")
+	if idAfter != idBefore {
+		t.Fatalf("binding must stay on the canonical row: before %s after %s", idBefore, idAfter)
+	}
+	if uidAfter == nil || uidBefore == nil || *uidAfter != *uidBefore {
+		t.Fatalf("firebase_uid must NOT be overwritten: before %v after %v", uidBefore, uidAfter)
 	}
 }
 

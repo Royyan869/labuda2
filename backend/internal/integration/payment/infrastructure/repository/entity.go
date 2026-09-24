@@ -73,7 +73,7 @@ const (
 const (
 	// ReferenceTypeOrder is for order payments
 	ReferenceTypeOrder = "order"
-	// ReferenceTypeBilling is for billing payments (promotion package, etc.)
+	// ReferenceTypeBilling is for billing payments (Promote Balance top-up, etc.)
 	ReferenceTypeBilling = "billing"
 	// ReferenceTypeSubscription is for seller subscription payments
 	ReferenceTypeSubscription = "subscription"

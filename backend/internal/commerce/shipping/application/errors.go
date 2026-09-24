@@ -25,5 +25,10 @@ var (
 	ErrNoShippingSetups                      = errors.New("NO_SHIPPING_OPTIONS: for_sale has no shipping options configured")
 	ErrShippingSetupUnavailable              = errors.New("SHIPPING_OPTION_UNAVAILABLE: shipping option not available for buyer address")
 	ErrInvalidSellableCreateShippingSelection = errors.New("INVALID_SHIPPING_SELECTION: shipping option does not exist or does not belong to seller")
-	ErrShippingLiveImmutable                 = errors.New("LIVE_IMMUTABLE: shipping configuration is immutable for live/frozen product")
+	ErrShippingPackageIncomplete             = errors.New("SHIPPING_PACKAGE_INCOMPLETE: shipping option requires at least one destination with a rate")
+	ErrShippingLinkedOptionUndeletable       = errors.New("SHIPPING_OPTION_LINKED: shipping option is linked to a listing and can only be deactivated, not deleted")
+	// Link-level guard (still canonical): WHICH options are linked to a selling
+	// surface is draft-only. Option CONTENT (name, type, rates, note) is
+	// editable at any time — orders keep their checkout snapshot.
+	ErrShippingLiveImmutable = errors.New("LIVE_IMMUTABLE: shipping configuration is immutable for live/frozen product")
 )

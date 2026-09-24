@@ -9,9 +9,7 @@ class PersonalInformationSection extends StatelessWidget {
   final DateTime? dateOfBirth;
   final VoidCallback onSelectDateOfBirth;
   final String email; // Login email from AuthUser (read-only)
-  final bool emailVerified; // Email verification status
-  final VoidCallback onVerifyEmail; // Send email verification
-  final bool isLoadingEmailVerification;
+  final bool emailVerified; // Email verification status (display-only)
   final TextEditingController phoneController;
   final bool phoneVerified;
   final DateTime? phoneVerifiedAt;
@@ -24,8 +22,6 @@ class PersonalInformationSection extends StatelessWidget {
     required this.onSelectDateOfBirth,
     required this.email,
     required this.emailVerified,
-    required this.onVerifyEmail,
-    required this.isLoadingEmailVerification,
     required this.phoneController,
     required this.phoneVerified,
     this.phoneVerifiedAt,
@@ -455,41 +451,6 @@ class PersonalInformationSection extends StatelessWidget {
             ],
           ),
         ),
-        if (!emailVerified) ...[
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.warning.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: AppColors.warning.withValues(alpha: 0.2),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, color: AppColors.warning, size: 16),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Please verify your email to access all features',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray700,
-                    ),
-                  ),
-                ),
-                AppButton.text(
-                  text: 'Resend',
-                  onPressed: isLoadingEmailVerification ? null : onVerifyEmail,
-                  isLoading: isLoadingEmailVerification,
-                ),
-              ],
-            ),
-          ),
-        ],
       ],
     );
   }

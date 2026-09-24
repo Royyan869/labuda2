@@ -334,10 +334,21 @@ func (r *DisputeOpenStuckRule) Detect(ctx context.Context, tx db.Tx) (bool, *Ano
 	var disputeCount int
 	var oldestDisputeID string
 	var oldestAgeHours float64
+	// NOTE: MIN(id) on a uuid column is invalid on PostgreSQL <= 17 (no min/max
+	// aggregate for the uuid type; SQLSTATE 42883). "Oldest" is defined by
+	// opened_at anyway, so fetch the true oldest dispute via a correlated
+	// subquery with a deterministic tie-break on id.
 	err := tx.QueryRow(ctx, `
 		SELECT
 			COUNT(*) AS dispute_count,
-			COALESCE(MIN(id)::TEXT, '') AS oldest_dispute_id,
+			COALESCE((
+				SELECT id::TEXT
+				FROM disputes
+				WHERE status = 'under_review'
+				  AND opened_at < $1
+				ORDER BY opened_at ASC, id ASC
+				LIMIT 1
+			), '') AS oldest_dispute_id,
 			COALESCE(EXTRACT(EPOCH FROM (NOW() - MIN(opened_at))) / 3600, 0) AS oldest_age_hours
 		FROM disputes
 		WHERE status = 'under_review'

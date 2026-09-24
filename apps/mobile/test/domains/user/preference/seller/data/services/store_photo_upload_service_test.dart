@@ -81,9 +81,15 @@ void main() {
     );
 
     expect(result.isSuccess, isTrue);
+    // Canonical: the caller receives the STORAGE KEY (to persist) plus the
+    // read URL (display-only) — never conflated into a single string.
     expect(
-      result.data,
+      result.data!.storageKey,
       'images/stores/62d7e998-f5d8-4486-be84-63d81f9c0e6f.jpg',
+    );
+    expect(
+      result.data!.displayUrl,
+      'https://cdn.example.com/images/stores/62d7e998-f5d8-4486-be84-63d81f9c0e6f.jpg',
     );
     expect(
       s3.lastKey,

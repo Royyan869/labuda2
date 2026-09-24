@@ -11,10 +11,29 @@ import (
 	"github.com/labuda/backend/pkg/money"
 )
 
+// BUSINESS TRUTH (Owner-locked shipping contract):
+//
+// 1. A shipping option is saved as ONE PACKAGE: identity (name + transport
+//    type) and destinations (provinces with rates + optional city
+//    qualifications) are persisted in a single transaction. An option without
+//    at least one destination-with-rate can never exist.
+// 2. Tariffs belong to the seller (no live-animal courier API exists). The
+//    input rate is ALL-IN: shipping + packing. There is no separate packing
+//    field by design — only a UI hint on the seller form.
+// 3. internal_purpose is a seller-private note (e.g. "kantong besar", "untuk
+//    1 ekor"). It must never appear on buyer-facing payloads.
+// 4. Options are editable at any time (seller subscription tariffs change).
+//    Orders keep their checkout snapshot; order creation re-validates
+//    coverage. The only protection: an option linked to any listing can never
+//    be hard-deleted — only deactivated.
+//
+// Forbidden (killed) design: metadata-first creation (name + type only, bare
+// options saved before coverage exists) and per-coverage CRUD as separate
+// seller flows.
+
 // SellerShippingService handles seller shipping option management.
-// This service provides CRUD operations for sellers to manage their shipping options.
 type SellerShippingService struct {
-	shippingSetupRepo  shippingRepo.ShippingSetupRepository
+	shippingSetupRepo   shippingRepo.ShippingSetupRepository
 	coverageRepo        shippingRepo.ShippingCoverageRepository
 	cityOverrideRepo    shippingRepo.CityOverrideRepository
 	productShippingRepo shippingRepo.ProductShippingSetupRepository
@@ -28,173 +47,307 @@ func NewSellerShippingService(
 	productShippingRepo shippingRepo.ProductShippingSetupRepository,
 ) *SellerShippingService {
 	return &SellerShippingService{
-		shippingSetupRepo:  shippingSetupRepo,
+		shippingSetupRepo:   shippingSetupRepo,
 		coverageRepo:        coverageRepo,
 		cityOverrideRepo:    cityOverrideRepo,
 		productShippingRepo: productShippingRepo,
 	}
 }
 
-// CreateShippingSetupInput contains parameters for creating a shipping option.
-type CreateShippingSetupInput struct {
-	// SellerID is the seller creating this shipping option
-	SellerID uuid.UUID
+// ============================================================================
+// One-package inputs
+// ============================================================================
 
-	// Name is the display name for this shipping option
-	Name string
-
-	// TransportType is the category of transport (train, bus, travel, plane, custom)
-	TransportType shippingEntity.TransportType
+// CityQualificationInput is a city-level override inside a province input.
+// Zero-value fields mean "inherit the province default".
+type CityQualificationInput struct {
+	CityCode    string
+	CityName    string
+	Rate        *int64 // nil = inherit province rate
+	IsAvailable *bool  // nil = inherit province availability
 }
 
-// CreateShippingSetup creates a new shipping option for a seller.
-func (s *SellerShippingService) CreateShippingSetup(
+// ProvinceDestinationInput is a destination province inside a shipping package.
+type ProvinceDestinationInput struct {
+	ProvinceCode string
+	ProvinceName string
+	Rate         int64
+	IsAvailable  bool
+	// CityQualifications are optional city-level overrides for this province.
+	CityQualifications []CityQualificationInput
+}
+
+// ShippingPackageInput is the full seller-authored shipping option payload.
+type ShippingPackageInput struct {
+	SellerID        uuid.UUID
+	Name            string
+	TransportType   shippingEntity.TransportType
+	InternalPurpose string // seller-private note; never exposed to buyers
+	IsActive        *bool  // nil = default true on create / unchanged on update
+	// Destinations MUST contain at least one province. This is the hard gate
+	// that makes bare (destination-less) options unrepresentable.
+	Destinations []ProvinceDestinationInput
+}
+
+// validatePackageInput enforces the one-package business gate.
+func (s *SellerShippingService) validatePackageInput(input ShippingPackageInput) error {
+	if input.Name == "" {
+		return fmt.Errorf("name is required")
+	}
+	if !isValidTransportType(input.TransportType) {
+		return fmt.Errorf("invalid transport type: %s", input.TransportType)
+	}
+	if len(input.Destinations) == 0 {
+		return fmt.Errorf("%w: at least one province destination with a rate is required", ErrShippingPackageIncomplete)
+	}
+	seenProvince := make(map[string]struct{}, len(input.Destinations))
+	for _, dest := range input.Destinations {
+		if dest.ProvinceCode == "" {
+			return fmt.Errorf("province_code is required for every destination")
+		}
+		if dest.ProvinceName == "" {
+			return fmt.Errorf("province_name is required for every destination")
+		}
+		if _, dup := seenProvince[dest.ProvinceCode]; dup {
+			return fmt.Errorf("duplicate destination for province '%s'", dest.ProvinceCode)
+		}
+		seenProvince[dest.ProvinceCode] = struct{}{}
+
+		seenCity := make(map[string]struct{}, len(dest.CityQualifications))
+		for _, city := range dest.CityQualifications {
+			if city.CityCode == "" {
+				return fmt.Errorf("city_code is required for every city qualification")
+			}
+			if _, dup := seenCity[city.CityCode]; dup {
+				return fmt.Errorf("duplicate city qualification '%s' for province '%s'", city.CityCode, dest.ProvinceCode)
+			}
+			seenCity[city.CityCode] = struct{}{}
+		}
+	}
+	return nil
+}
+
+// buildCoverageEntities converts package destinations into coverage entities
+// (with hydrated city override children). Shared by create and update paths.
+func buildCoverageEntities(setupID uuid.UUID, destinations []ProvinceDestinationInput) []*shippingEntity.ShippingCoverage {
+	coverages := make([]*shippingEntity.ShippingCoverage, 0, len(destinations))
+	for _, dest := range destinations {
+		coverage := shippingEntity.NewShippingCoverage(setupID, dest.ProvinceCode, dest.ProvinceName).
+			WithRate(money.New(dest.Rate))
+		if !dest.IsAvailable {
+			coverage.MarkUnavailable()
+		}
+		for _, city := range dest.CityQualifications {
+			override := shippingEntity.NewCityOverride(coverage.ID, city.CityCode, city.CityName)
+			if city.Rate != nil {
+				override.SetRate(money.New(*city.Rate))
+			}
+			// Availability is materialized (schema: is_available NOT NULL): an
+			// unqualified city writes the province default. Effective value is
+			// identical to inherit-semantics; rate stays NULL = inherit province.
+			cityAvailable := dest.IsAvailable
+			if city.IsAvailable != nil {
+				cityAvailable = *city.IsAvailable
+			}
+			override.SetAvailable(cityAvailable)
+			coverage.CityOverrides = append(coverage.CityOverrides, override)
+		}
+		coverages = append(coverages, coverage)
+	}
+	return coverages
+}
+
+// ============================================================================
+// Create — one transaction, one package
+// ============================================================================
+
+// CreateShippingPackage creates a shipping option together with its full
+// destination set (provinces + city qualifications) in ONE transaction.
+// A bare option (zero destinations) can never be persisted.
+func (s *SellerShippingService) CreateShippingPackage(
 	ctx context.Context,
 	tx db.Tx,
-	input CreateShippingSetupInput,
+	input ShippingPackageInput,
 ) (*shippingEntity.ShippingSetup, error) {
-	// Validate name is not empty
-	if input.Name == "" {
-		return nil, fmt.Errorf("name is required")
+	if err := s.validatePackageInput(input); err != nil {
+		return nil, err
 	}
 
-	// Validate transport type
-	if !isValidTransportType(input.TransportType) {
-		return nil, fmt.Errorf("invalid transport type: %s", input.TransportType)
-	}
-
-	// Check for duplicate name
 	existing, err := s.shippingSetupRepo.GetByName(ctx, tx, input.SellerID, input.Name)
 	if err == nil && existing != nil {
 		return nil, fmt.Errorf("shipping option with name '%s' already exists", input.Name)
 	}
 
-	// Create shipping option
+	isActive := true
+	if input.IsActive != nil {
+		isActive = *input.IsActive
+	}
+
 	option := shippingEntity.NewShippingSetup(
 		input.SellerID,
 		input.Name,
 		input.TransportType,
+		input.InternalPurpose,
 	)
+	option.IsActive = isActive
 
 	if err := s.shippingSetupRepo.Create(ctx, tx, option); err != nil {
 		return nil, fmt.Errorf("failed to create shipping option: %w", err)
 	}
 
+	for _, coverage := range buildCoverageEntities(option.ID, input.Destinations) {
+		if err := s.coverageRepo.Create(ctx, tx, coverage); err != nil {
+			return nil, fmt.Errorf("failed to create coverage for province '%s': %w", coverage.ProvinceCode, err)
+		}
+		for _, override := range coverage.CityOverrides {
+			if err := s.cityOverrideRepo.Create(ctx, tx, override); err != nil {
+				return nil, fmt.Errorf("failed to create city override '%s': %w", override.CityCode, err)
+			}
+		}
+	}
+
 	return option, nil
 }
 
-// UpdateShippingSetupInput contains parameters for updating a shipping option.
-type UpdateShippingSetupInput struct {
-	// ShippingSetupID is the ID of the shipping option to update
-	ShippingSetupID uuid.UUID
+// ============================================================================
+// Update — one transaction, full replace of destinations
+// ============================================================================
 
-	// SellerID is the authenticated seller ID (for ownership check)
-	SellerID uuid.UUID
-
-	// Name is the new display name (optional)
-	Name string
-
-	// TransportType is the new transport type (optional)
-	TransportType shippingEntity.TransportType
-
-	// IsActive indicates whether the option should be active
-	IsActive *bool
-}
-
-// UpdateShippingSetup updates an existing shipping option.
-func (s *SellerShippingService) UpdateShippingSetup(
+// UpdateShippingPackage replaces the option identity and its complete
+// destination set in ONE transaction (overwrite semantics, same as the
+// product-link service). Allowed at any time: orders keep their checkout
+// snapshot and order creation re-validates coverage at the gate.
+// The result includes the persisted option (with refreshed identity fields).
+func (s *SellerShippingService) UpdateShippingPackage(
 	ctx context.Context,
 	tx db.Tx,
-	input UpdateShippingSetupInput,
+	shippingSetupID uuid.UUID,
+	input ShippingPackageInput,
 ) (*shippingEntity.ShippingSetup, error) {
-	// Get the shipping option with lock
-	option, err := s.shippingSetupRepo.GetForUpdate(ctx, tx, input.ShippingSetupID)
+	if err := s.validatePackageInput(input); err != nil {
+		return nil, err
+	}
+
+	// Locked read so identity update + destination replacement are atomic
+	// against concurrent edits and checkout-time reads.
+	option, err := s.shippingSetupRepo.GetForUpdate(ctx, tx, shippingSetupID)
 	if err != nil {
 		return nil, fmt.Errorf("shipping option not found: %w", err)
 	}
-
-	// Verify ownership
 	if option.SellerID != input.SellerID {
 		return nil, fmt.Errorf("forbidden: shipping option does not belong to seller")
 	}
 
-	// Update fields if provided
-	updated := false
-
-	if input.Name != "" && input.Name != option.Name {
-		// Check for duplicate name
+	if input.Name != option.Name {
 		existing, err := s.shippingSetupRepo.GetByName(ctx, tx, input.SellerID, input.Name)
 		if err == nil && existing != nil && existing.ID != option.ID {
 			return nil, fmt.Errorf("shipping option with name '%s' already exists", input.Name)
 		}
 		option.Name = input.Name
-		updated = true
+	}
+	option.TransportType = input.TransportType
+	option.InternalPurpose = input.InternalPurpose
+	if input.IsActive != nil {
+		option.IsActive = *input.IsActive
 	}
 
-	if input.TransportType != "" && input.TransportType != option.TransportType {
-		if !isValidTransportType(input.TransportType) {
-			return nil, fmt.Errorf("invalid transport type: %s", input.TransportType)
+	if err := s.shippingSetupRepo.Update(ctx, tx, option); err != nil {
+		return nil, fmt.Errorf("failed to update shipping option: %w", err)
+	}
+
+	// Full replace of destinations: delete city overrides → coverages → insert.
+	if err := s.coverageRepo.DeleteByShippingSetup(ctx, tx, shippingSetupID); err != nil {
+		return nil, fmt.Errorf("failed to replace destinations: %w", err)
+	}
+
+	for _, coverage := range buildCoverageEntities(shippingSetupID, input.Destinations) {
+		if err := s.coverageRepo.Create(ctx, tx, coverage); err != nil {
+			return nil, fmt.Errorf("failed to create coverage for province '%s': %w", coverage.ProvinceCode, err)
 		}
-		option.TransportType = input.TransportType
-		updated = true
-	}
-
-	if input.IsActive != nil && *input.IsActive != option.IsActive {
-		if *input.IsActive {
-			option.Activate()
-		} else {
-			option.Deactivate()
-		}
-		updated = true
-	}
-
-	if updated {
-		if err := s.shippingSetupRepo.Update(ctx, tx, option); err != nil {
-			return nil, fmt.Errorf("failed to update shipping option: %w", err)
+		for _, override := range coverage.CityOverrides {
+			if err := s.cityOverrideRepo.Create(ctx, tx, override); err != nil {
+				return nil, fmt.Errorf("failed to create city override '%s': %w", override.CityCode, err)
+			}
 		}
 	}
 
 	return option, nil
 }
 
-// DeleteShippingSetup deletes a shipping option and its associated coverages.
+// ============================================================================
+// Delete — guarded
+// ============================================================================
+
+// DeleteShippingSetup hard-deletes an option ONLY when it is not linked to
+// any listing. Linked options are part of order history (snapshot name/type/
+// rate) and must be deactivated instead. Coverages and city overrides are
+// removed with the option.
 func (s *SellerShippingService) DeleteShippingSetup(
 	ctx context.Context,
 	tx db.Tx,
 	shippingSetupID uuid.UUID,
 	sellerID uuid.UUID,
 ) error {
-	// Verify ownership
 	option, err := s.shippingSetupRepo.GetByID(ctx, tx, shippingSetupID)
 	if err != nil {
 		return fmt.Errorf("shipping option not found: %w", err)
 	}
-
 	if option.SellerID != sellerID {
 		return fmt.Errorf("forbidden: shipping option does not belong to seller")
 	}
 
-	// Delete city overrides for all coverages (cascade through coverages)
-	coverages, err := s.coverageRepo.GetByShippingSetup(ctx, tx, shippingSetupID)
-	if err == nil {
-		for _, coverage := range coverages {
-			_ = s.cityOverrideRepo.DeleteByCoverage(ctx, tx, coverage.ID)
-		}
+	linkCount, err := s.productShippingRepo.CountLinksByShippingSetup(ctx, tx, shippingSetupID)
+	if err != nil {
+		return fmt.Errorf("failed to check shipping option links: %w", err)
+	}
+	if linkCount > 0 {
+		return fmt.Errorf("%w: %d listing link(s) exist", ErrShippingLinkedOptionUndeletable, linkCount)
 	}
 
-	// Delete all coverages
-	_ = s.coverageRepo.DeleteByShippingSetup(ctx, tx, shippingSetupID)
-
-	// Delete product-shipping links
-	_ = s.productShippingRepo.DeleteByShippingSetup(ctx, tx, shippingSetupID)
-
-	// Delete the shipping option
+	coverages, err := s.coverageRepo.GetByShippingSetup(ctx, tx, shippingSetupID)
+	if err != nil {
+		return fmt.Errorf("failed to load coverages: %w", err)
+	}
+	for _, coverage := range coverages {
+		if err := s.cityOverrideRepo.DeleteByCoverage(ctx, tx, coverage.ID); err != nil {
+			return fmt.Errorf("failed to delete city overrides: %w", err)
+		}
+	}
+	if err := s.coverageRepo.DeleteByShippingSetup(ctx, tx, shippingSetupID); err != nil {
+		return fmt.Errorf("failed to delete coverages: %w", err)
+	}
 	if err := s.shippingSetupRepo.Delete(ctx, tx, shippingSetupID); err != nil {
 		return fmt.Errorf("failed to delete shipping option: %w", err)
 	}
-
 	return nil
 }
+
+// SetShippingSetupActive toggles availability of an option (the canonical way
+// to retire an option that is still linked to listings).
+func (s *SellerShippingService) SetShippingSetupActive(
+	ctx context.Context,
+	tx db.Tx,
+	shippingSetupID uuid.UUID,
+	sellerID uuid.UUID,
+	isActive bool,
+) (*shippingEntity.ShippingSetup, error) {
+	option, err := s.shippingSetupRepo.GetForUpdate(ctx, tx, shippingSetupID)
+	if err != nil {
+		return nil, fmt.Errorf("shipping option not found: %w", err)
+	}
+	if option.SellerID != sellerID {
+		return nil, fmt.Errorf("forbidden: shipping option does not belong to seller")
+	}
+	option.IsActive = isActive
+	if err := s.shippingSetupRepo.Update(ctx, tx, option); err != nil {
+		return nil, fmt.Errorf("failed to update shipping option: %w", err)
+	}
+	return option, nil
+}
+
+// ============================================================================
+// Reads
+// ============================================================================
 
 // ListSellerShippingSetups retrieves all shipping options for a seller.
 func (s *SellerShippingService) ListSellerShippingSetups(
@@ -206,229 +359,44 @@ func (s *SellerShippingService) ListSellerShippingSetups(
 	return s.shippingSetupRepo.GetBySeller(ctx, tx, sellerID, !includeInactive)
 }
 
-// GetShippingSetupWithCoverages retrieves a shipping option with its coverages.
+// GetShippingSetupWithCoveragesResult is a hydrated option read.
 type GetShippingSetupWithCoveragesResult struct {
 	ShippingSetup *shippingEntity.ShippingSetup
-	Coverages      []*shippingEntity.ShippingCoverage
+	Coverages     []*shippingEntity.ShippingCoverage
 }
 
+// GetShippingSetupWithCoverages retrieves an option with its coverages and
+// city qualifications (seller-facing edit form needs the full package).
 func (s *SellerShippingService) GetShippingSetupWithCoverages(
 	ctx context.Context,
 	tx db.Tx,
 	shippingSetupID uuid.UUID,
 	sellerID uuid.UUID,
 ) (*GetShippingSetupWithCoveragesResult, error) {
-	// Get shipping option
 	option, err := s.shippingSetupRepo.GetByID(ctx, tx, shippingSetupID)
 	if err != nil {
 		return nil, fmt.Errorf("shipping option not found: %w", err)
 	}
-
-	// Verify ownership
 	if option.SellerID != sellerID {
 		return nil, fmt.Errorf("forbidden: shipping option does not belong to seller")
 	}
 
-	// Get coverages
 	coverages, err := s.coverageRepo.GetByShippingSetup(ctx, tx, shippingSetupID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get coverages: %w", err)
 	}
+	for _, coverage := range coverages {
+		overrides, err := s.cityOverrideRepo.GetByCoverage(ctx, tx, coverage.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get city overrides: %w", err)
+		}
+		coverage.CityOverrides = overrides
+	}
 
 	return &GetShippingSetupWithCoveragesResult{
 		ShippingSetup: option,
-		Coverages:      coverages,
+		Coverages:     coverages,
 	}, nil
-}
-
-// CreateCoverageInput contains parameters for creating a shipping coverage.
-type CreateCoverageInput struct {
-	// ShippingSetupID is the shipping option to add coverage for
-	ShippingSetupID uuid.UUID
-
-	// SellerID is the authenticated seller ID (for ownership check)
-	SellerID uuid.UUID
-
-	// ProvinceCode is the 2-digit BPS province code
-	ProvinceCode string
-
-	// ProvinceName is the province name
-	ProvinceName string
-
-	// Rate is the shipping rate for this province
-	Rate int64
-
-	// IsAvailable indicates whether shipping is available to this province
-	IsAvailable bool
-}
-
-// CreateCoverage creates a new shipping coverage for a shipping option.
-func (s *SellerShippingService) CreateCoverage(
-	ctx context.Context,
-	tx db.Tx,
-	input CreateCoverageInput,
-) (*shippingEntity.ShippingCoverage, error) {
-	// Validate province code
-	if input.ProvinceCode == "" {
-		return nil, fmt.Errorf("province_code is required")
-	}
-	if input.ProvinceName == "" {
-		return nil, fmt.Errorf("province_name is required")
-	}
-
-	// Verify ownership of shipping option
-	option, err := s.shippingSetupRepo.GetByID(ctx, tx, input.ShippingSetupID)
-	if err != nil {
-		return nil, fmt.Errorf("shipping option not found: %w", err)
-	}
-	if option.SellerID != input.SellerID {
-		return nil, fmt.Errorf("forbidden: shipping option does not belong to seller")
-	}
-
-	// Check for existing coverage
-	existing, err := s.coverageRepo.GetByOptionAndProvince(ctx, tx, input.ShippingSetupID, input.ProvinceCode)
-	if err == nil && existing != nil {
-		return nil, fmt.Errorf("coverage for province '%s' already exists", input.ProvinceCode)
-	}
-
-	// Create coverage
-	coverage := shippingEntity.NewShippingCoverage(
-		input.ShippingSetupID,
-		input.ProvinceCode,
-		input.ProvinceName,
-	).WithRate(money.New(input.Rate))
-
-	if !input.IsAvailable {
-		coverage.MarkUnavailable()
-	}
-
-	if err := s.coverageRepo.Create(ctx, tx, coverage); err != nil {
-		return nil, fmt.Errorf("failed to create shipping coverage: %w", err)
-	}
-
-	return coverage, nil
-}
-
-// UpdateCoverageInput contains parameters for updating a shipping coverage.
-type UpdateCoverageInput struct {
-	// CoverageID is the ID of the coverage to update
-	CoverageID uuid.UUID
-
-	// SellerID is the authenticated seller ID (for ownership check)
-	SellerID uuid.UUID
-
-	// ProvinceName is the new province name (optional)
-	ProvinceName string
-
-	// Rate is the new shipping rate (optional)
-	Rate *int64
-
-	// IsAvailable indicates whether shipping is available (optional)
-	IsAvailable *bool
-}
-
-// UpdateCoverage updates an existing shipping coverage.
-func (s *SellerShippingService) UpdateCoverage(
-	ctx context.Context,
-	tx db.Tx,
-	input UpdateCoverageInput,
-) (*shippingEntity.ShippingCoverage, error) {
-	// Get coverage
-	coverage, err := s.coverageRepo.GetByID(ctx, tx, input.CoverageID)
-	if err != nil {
-		return nil, fmt.Errorf("coverage not found: %w", err)
-	}
-
-	// Verify ownership through shipping option
-	option, err := s.shippingSetupRepo.GetByID(ctx, tx, coverage.ShippingSetupID)
-	if err != nil {
-		return nil, fmt.Errorf("shipping option not found: %w", err)
-	}
-	if option.SellerID != input.SellerID {
-		return nil, fmt.Errorf("forbidden: coverage does not belong to seller's shipping option")
-	}
-
-	// Update fields if provided
-	updated := false
-
-	if input.ProvinceName != "" && input.ProvinceName != coverage.ProvinceName {
-		coverage.ProvinceName = input.ProvinceName
-		updated = true
-	}
-
-	if input.Rate != nil {
-		coverage.ProvinceRate = money.New(*input.Rate)
-		updated = true
-	}
-
-	if input.IsAvailable != nil {
-		if *input.IsAvailable {
-			coverage.MarkAvailable()
-		} else {
-			coverage.MarkUnavailable()
-		}
-		updated = true
-	}
-
-	if updated {
-		if err := s.coverageRepo.Update(ctx, tx, coverage); err != nil {
-			return nil, fmt.Errorf("failed to update coverage: %w", err)
-		}
-	}
-
-	return coverage, nil
-}
-
-// DeleteCoverage deletes a shipping coverage.
-func (s *SellerShippingService) DeleteCoverage(
-	ctx context.Context,
-	tx db.Tx,
-	coverageID uuid.UUID,
-	sellerID uuid.UUID,
-) error {
-	// Get coverage
-	coverage, err := s.coverageRepo.GetByID(ctx, tx, coverageID)
-	if err != nil {
-		return fmt.Errorf("coverage not found: %w", err)
-	}
-
-	// Verify ownership through shipping option
-	option, err := s.shippingSetupRepo.GetByID(ctx, tx, coverage.ShippingSetupID)
-	if err != nil {
-		return fmt.Errorf("shipping option not found: %w", err)
-	}
-	if option.SellerID != sellerID {
-		return fmt.Errorf("forbidden: coverage does not belong to seller's shipping option")
-	}
-
-	// Delete city overrides first
-	_ = s.cityOverrideRepo.DeleteByCoverage(ctx, tx, coverageID)
-
-	// Delete coverage
-	if err := s.coverageRepo.Delete(ctx, tx, coverageID); err != nil {
-		return fmt.Errorf("failed to delete coverage: %w", err)
-	}
-
-	return nil
-}
-
-// ListCoverages retrieves all coverages for a shipping option.
-func (s *SellerShippingService) ListCoverages(
-	ctx context.Context,
-	tx db.Tx,
-	shippingSetupID uuid.UUID,
-	sellerID uuid.UUID,
-) ([]*shippingEntity.ShippingCoverage, error) {
-	// Verify ownership
-	option, err := s.shippingSetupRepo.GetByID(ctx, tx, shippingSetupID)
-	if err != nil {
-		return nil, fmt.Errorf("shipping option not found: %w", err)
-	}
-	if option.SellerID != sellerID {
-		return nil, fmt.Errorf("forbidden: shipping option does not belong to seller")
-	}
-
-	return s.coverageRepo.GetByShippingSetup(ctx, tx, shippingSetupID)
 }
 
 // isValidTransportType checks if the transport type is valid.

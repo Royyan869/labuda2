@@ -195,25 +195,11 @@ class UserApiDatasource extends BaseApiRepository {
     );
   }
 
-  // ========================================
-  // Utility Operations
-  // ========================================
-
-  /// Check if username is available
-  Future<Result<bool>> checkUsernameAvailability(String username) async {
-    return executeRequest(
-      () => apiClient.get(
-        '/users/check-username',
-        queryParameters: {'username': username},
-      ),
-      parser: (data) {
-        if (data is Map<String, dynamic>) {
-          return data['available'] as bool? ?? false;
-        }
-        return false;
-      },
-    );
-  }
+  // Username availability has NO advisory endpoint: the backend is the
+  // SINGLE username authority and decides availability at the transactional
+  // moment (/auth/firebase/exchange or /auth/complete-profile), whose
+  // rejections map to inline, screen-local messages. Local validation is
+  // format-only — see CanonicalUsernameValidator.
 
   /// Update user avatar
   Future<Result<UserApiResponse>> updateAvatar(

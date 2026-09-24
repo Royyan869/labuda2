@@ -1,10 +1,12 @@
 import 'package:labuda/core/src/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/ui/base/base_component.dart';
+import 'package:labuda/core/media/media_upload_config.dart';
+import 'package:labuda/core/media/media_upload_orchestrator.dart';
 
-/// Atomic component untuk media upload dengan preview
-/// Single responsibility: Handle file upload dan preview
-/// MAKSIMAL 100 LINES - ENFORCED BY GUIDELINES
+/// @deprecated Gunakan [MediaGridUploader] / [CompactMediaStrip] + [MediaUploadOrchestrator].
+/// Wrapper dipertahankan untuk kompatibilitas, delegasi ke 1 mesin foto+video.
+@Deprecated('Gunakan MediaGridUploader + MediaUploadOrchestrator (1 mesin foto+video)')
 class MediaUploadComponent extends BaseComponent
     implements
         ValidatableComponent,
@@ -141,8 +143,16 @@ class MediaUploadComponent extends BaseComponent
   }
 
   void _handleUpload(BuildContext context) {
-    // TODO: Implement file picker
-    // This would integrate dengan image_picker atau file_picker
+    MediaUploadOrchestrator.showPicker(
+      context: context,
+      config: MediaUploadConfig(maxImages: maxFiles, maxVideos: maxFiles, maxTotal: maxFiles, maxImageSizeMb: maxFileSizeMB, maxVideoSizeMb: maxFileSizeMB),
+      currentCount: (getData() ?? []).length,
+      onUploaded: (urls) async {
+        final cur = List<String>.from(getData() ?? []);
+        cur.addAll(urls);
+        onMediaChanged?.call(cur);
+      },
+    );
   }
 
   void _removeMedia(int index) {
@@ -158,9 +168,7 @@ class MediaUploadComponent extends BaseComponent
   }
 
   @override
-  List<String>? getData() {
-    return initialMediaUrls; // In real implementation, this would track current state
-  }
+  List<String>? getData() => initialMediaUrls;
 
   @override
   void reset() {

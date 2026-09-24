@@ -12,7 +12,8 @@ class ShippingRemoteDatasource {
   // Shipping Option Methods
   // =====================================
 
-  /// Create a shipping option
+  /// Create a shipping option as ONE package (identity + destinations).
+  /// Bare options without destinations are rejected by the backend.
   Future<ShippingSetupDto> createShippingSetup(
     Map<String, dynamic> data,
   ) async {
@@ -31,7 +32,9 @@ class ShippingRemoteDatasource {
     return _decodeShippingSetupEnvelope(envelope).shippingSetup;
   }
 
-  /// Update shipping option
+  /// Update a shipping option as ONE package. When [data] carries
+  /// `destinations`, the backend replaces the full destination set in one
+  /// transaction. Editing is allowed at any time (orders keep their snapshot).
   Future<ShippingSetupDto> updateShippingSetup(
     String optionId,
     Map<String, dynamic> data,
@@ -44,7 +47,17 @@ class ShippingRemoteDatasource {
     return _decodeShippingSetupEnvelope(envelope).shippingSetup;
   }
 
-  /// Delete shipping option
+  /// Canonical retire/restore path (PATCH .../active). Linked options must be
+  /// deactivated, never hard-deleted.
+  Future<void> toggleShippingSetup(String optionId, bool isActive) async {
+    await _apiClient.patch(
+      '/seller/shipping/options/$optionId/active',
+      data: {'is_active': isActive},
+    );
+  }
+
+  /// Delete shipping option. The backend refuses (409) while the option is
+  /// linked to any listing — the seller must deactivate instead.
   Future<void> deleteShippingSetup(String optionId) async {
     await _apiClient.delete('/seller/shipping/options/$optionId');
   }
@@ -64,49 +77,6 @@ class ShippingRemoteDatasource {
   /// List my active shipping options only
   Future<List<ShippingSetupDto>> listMyActiveShippingSetups() async {
     return listMyShippingSetups(includeInactive: false);
-  }
-
-  /// Toggle shipping option active status via canonical PUT update
-  Future<void> toggleShippingSetup(String optionId, bool isActive) async {
-    await _apiClient.put(
-      '/seller/shipping/options/$optionId',
-      data: {'is_active': isActive},
-    );
-  }
-
-  // =====================================
-  // Shipping Coverage Methods
-  // =====================================
-
-  /// Add coverage to a shipping option
-  Future<ShippingCoverageDto> addCoverage(
-    String optionId,
-    Map<String, dynamic> data,
-  ) async {
-    final response = await _apiClient.post(
-      '/seller/shipping/options/$optionId/coverages',
-      data: data,
-    );
-    final envelope = _decodeEnvelope(response, 'add coverage');
-    return _decodeShippingCoverageEnvelope(envelope).coverage;
-  }
-
-  /// Update coverage
-  Future<ShippingCoverageDto> updateCoverage(
-    String coverageId,
-    Map<String, dynamic> data,
-  ) async {
-    final response = await _apiClient.put(
-      '/seller/shipping/coverages/$coverageId',
-      data: data,
-    );
-    final envelope = _decodeEnvelope(response, 'update coverage');
-    return _decodeShippingCoverageEnvelope(envelope).coverage;
-  }
-
-  /// Delete coverage
-  Future<void> deleteCoverage(String coverageId) async {
-    await _apiClient.delete('/seller/shipping/coverages/$coverageId');
   }
 
   // =====================================
@@ -224,6 +194,7 @@ ShippingSetupEnvelopeDto _decodeShippingSetupEnvelope(
       name: option.name,
       type: option.type,
       isActive: option.isActive,
+      internalPurpose: option.internalPurpose,
       coverages: coverages,
       createdAt: option.createdAt,
       updatedAt: option.updatedAt,
@@ -237,14 +208,6 @@ SellerShippingSetupsEnvelopeDto _decodeShippingSetupsEnvelope(
   return SellerShippingSetupsEnvelopeDto.fromJson(envelope);
 }
 
-ShippingCoverageEnvelopeDto _decodeShippingCoverageEnvelope(
-  Map<String, dynamic> envelope,
-) {
-  return ShippingCoverageEnvelopeDto(
-    coverage: ShippingCoverageDto.fromJson(_expectMap(envelope['coverage'])),
-  );
-}
-
 Map<String, dynamic> _expectMap(dynamic value) {
   if (value is! Map<String, dynamic>) {
     throw FormatException('Expected JSON object, got ${value.runtimeType}');
@@ -256,10 +219,4 @@ class ShippingSetupEnvelopeDto {
   final ShippingSetupDto shippingSetup;
 
   const ShippingSetupEnvelopeDto({required this.shippingSetup});
-}
-
-class ShippingCoverageEnvelopeDto {
-  final ShippingCoverageDto coverage;
-
-  const ShippingCoverageEnvelopeDto({required this.coverage});
 }

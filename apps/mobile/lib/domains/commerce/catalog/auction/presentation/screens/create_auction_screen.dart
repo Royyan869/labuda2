@@ -13,7 +13,7 @@ import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_providers.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_media_handler.dart';
+import 'package:labuda/shared/widgets/media_grid_uploader.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/widgets/seller_shipping_options_selector.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
@@ -739,108 +739,10 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   }
 
   Widget _buildMediaSection(bool isDark) {
-    return Column(
-      children: [
-        if (_mediaUrls.isEmpty)
-          GestureDetector(
-            onTap: () {
-              ForSaleMediaHandler.showMediaPicker(
-                context: context,
-                currentMediaCount: _mediaUrls.length,
-                onMediaUploaded: (urls) async {
-                  setState(() => _mediaUrls.addAll(urls));
-                },
-              );
-            },
-            child: Container(
-              height: 150,
-              decoration: BoxDecoration(
-                color: AppColors.neutralGray100,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppColors.neutralGray300,
-                  style: BorderStyle.solid,
-                ),
-              ),
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add_photo_alternate, size: 40),
-                    SizedBox(height: 8),
-                    Text('Tap untuk upload foto'),
-                    Text('(Minimal 1 foto)', style: TextStyle(fontSize: 12)),
-                  ],
-                ),
-              ),
-            ),
-          )
-        else
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: _mediaUrls.length + 1,
-            itemBuilder: (context, index) {
-              if (index < _mediaUrls.length) {
-                final url = _mediaUrls[index];
-                return Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(url, fit: BoxFit.cover),
-                    ),
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: GestureDetector(
-                        onTap: () => setState(() => _mediaUrls.removeAt(index)),
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.black54,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.close,
-                            size: 16,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              }
-              return GestureDetector(
-                onTap: () {
-                  ForSaleMediaHandler.showMediaPicker(
-                    context: context,
-                    currentMediaCount: _mediaUrls.length,
-                    onMediaUploaded: (urls) async {
-                      setState(() => _mediaUrls.addAll(urls));
-                    },
-                  );
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.neutralGray100,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: AppColors.neutralGray300,
-                      style: BorderStyle.solid,
-                    ),
-                  ),
-                  child: const Icon(Icons.add, size: 32),
-                ),
-              );
-            },
-          ),
-      ],
+    return MediaGridUploader(
+      mediaUrls: _mediaUrls,
+      onMediaAdded: (url) => setState(() => _mediaUrls.add(url)),
+      onMediaRemoved: (index) => setState(() => _mediaUrls.removeAt(index)),
     );
   }
 

@@ -357,7 +357,6 @@ class CreateForSaleRequestDto {
   final int price;
   final int quantity;
   final bool negotiationEnabled;
-  final String visibility;
   final List<String> mediaUrls;
   final String? variety;
   final int? sizeCm;
@@ -367,6 +366,8 @@ class CreateForSaleRequestDto {
   final String? bloodline;
   final List<String> certificates;
   final String? farmAddressId;
+  // Shipping selection (OWNER CANONICAL: create = publish — mandatory ≥1).
+  final List<String> shippingSetupIds;
   final String? preparationTime;
   final String? preparationNote;
 
@@ -376,7 +377,6 @@ class CreateForSaleRequestDto {
     required this.price,
     required this.quantity,
     this.negotiationEnabled = false,
-    this.visibility = 'public',
     this.mediaUrls = const [],
     this.variety,
     this.sizeCm,
@@ -386,6 +386,7 @@ class CreateForSaleRequestDto {
     this.bloodline,
     this.certificates = const [],
     this.farmAddressId,
+    this.shippingSetupIds = const [],
     this.preparationTime,
     this.preparationNote,
   });
@@ -396,7 +397,6 @@ class CreateForSaleRequestDto {
     'price': price,
     'quantity': quantity,
     'negotiation_enabled': negotiationEnabled,
-    'visibility': visibility,
     if (mediaUrls.isNotEmpty) 'media_urls': mediaUrls,
     if (variety != null) 'variety': variety,
     if (sizeCm != null) 'size_cm': sizeCm,
@@ -406,6 +406,7 @@ class CreateForSaleRequestDto {
     if (bloodline != null) 'bloodline': bloodline,
     if (certificates.isNotEmpty) 'certificates': certificates,
     if (farmAddressId != null) 'farm_address_id': farmAddressId,
+    'shipping_setup_ids': shippingSetupIds,
     if (preparationTime != null) 'preparation_time': preparationTime,
     if (preparationNote != null) 'preparation_note': preparationNote,
   };

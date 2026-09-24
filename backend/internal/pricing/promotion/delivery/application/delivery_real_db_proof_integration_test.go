@@ -261,6 +261,39 @@ func (h *deliveryHarness) qualify(ticketID uuid.UUID) (*deliveryentity.Qualified
 	return h.delivery.QualifyTicket(context.Background(), deliveryapp.QualifyTicketInput{TicketID: ticketID})
 }
 
+// cpmArithmeticPacingAge is the fixture's elapsed pacing time for proofs that
+// qualify several impressions back-to-back. It is chosen so the canonical
+// envelope admits the intended cumulative spend with margin: budget 50,000 over
+// a 3-day window at 1 hour elapsed gives expected = 50,000 x 3,600 / 259,200
+// ≈ 694 rupiah and tolerance = expected + expected/3 ≈ 925 rupiah, comfortably
+// above the largest cumulative spend these proofs reach (S(3) = 22).
+const cpmArithmeticPacingAge = time.Hour
+
+// agePacingWindow shifts a contract's planned delivery window into the past
+// (preserving planned_finish - planned_start) so the canonical pacing envelope
+// admits the fixture's deterministic impression churn.
+//
+// The canonical envelope is budget x elapsed / duration (with 1.33x tolerance),
+// enforced at issuance. Immediately after Create the elapsed fraction is ~0, so
+// the envelope is legitimately ~0 and a second issue within milliseconds is
+// throttled with ErrPacingThrottled — that is correct production behavior, not
+// a defect, but it makes it impossible to build several Qualified Impressions
+// for a pure CPM-arithmetic proof. Proofs that need N cumulative impressions
+// therefore present a contract whose delivery window has already elapsed long
+// enough to cover the intended cumulative spend. Pacing stays fully enforced and
+// production pacing parameters are untouched; only the fixture's contract clock
+// is made consistent with the spend it intends to prove.
+func (h *deliveryHarness) agePacingWindow(t *testing.T, contractID uuid.UUID, age time.Duration) {
+	t.Helper()
+	_, err := h.tdb.Pool().Exec(context.Background(), `
+		UPDATE promotion_contracts
+		SET planned_start  = planned_start  - make_interval(secs => $2),
+		    planned_finish = planned_finish - make_interval(secs => $2)
+		WHERE id = $1
+	`, contractID, age.Seconds())
+	require.NoError(t, err)
+}
+
 // --- read helpers -----------------------------------------------------------
 
 func (h *deliveryHarness) promoteBalance(t *testing.T, seller uuid.UUID) int64 {
@@ -425,6 +458,7 @@ func TestPromotionDelivery_Canonical_RealDB(t *testing.T) {
 		h.seedConfig(t, 7500, 10_000) // CPM 7500 -> charges 7,8,7 (S(3)=22)
 		seller := h.newSeller(t, 100_000)
 		c := h.createContract(t, seller, contractentity.KindInternal, 50_000, 3)
+		h.agePacingWindow(t, c.ID, cpmArithmeticPacingAge)
 		target := h.newForSale(t, seller)
 		revenueBefore := h.platformRevenue(t)
 
@@ -757,6 +791,7 @@ func TestPromotionDelivery_Canonical_RealDB(t *testing.T) {
 		h.seedConfig(t, 7500, 10_000)
 		seller := h.newSeller(t, 100_000)
 		c := h.createContract(t, seller, contractentity.KindInternal, 50_000, 3)
+		h.agePacingWindow(t, c.ID, cpmArithmeticPacingAge)
 		target := h.newForSale(t, seller)
 
 		// Issue + qualify 3 impressions (charges 7 + 8 + 7 = 22).
@@ -781,6 +816,62 @@ func TestPromotionDelivery_Canonical_RealDB(t *testing.T) {
 		require.True(t, sections["Qualified Impression Reconciliation"], "QI reconciliation section must pass")
 		require.True(t, sections["Promotion Financial Invariants"], "promotion financial invariants must pass")
 		require.True(t, sections["Account Balance Integrity"], "account balance integrity must pass")
+	})
+
+	t.Run("L_pacing_envelope_preserved_at_zero_elapsed", func(t *testing.T) {
+		// Documents the root cause of the CPM-arithmetic fixture fix: pacing is
+		// canonical delivery authorization and is NOT bypassed. Within
+		// milliseconds of planned_start the linear envelope is ~0, so after the
+		// first qualified impression a second issuance must be throttled. The
+		// CPM-arithmetic proofs therefore age the fixture window (agePacingWindow)
+		// instead of weakening pacing.
+		h.seedConfig(t, 7500, 10_000)
+		seller := h.newSeller(t, 100_000)
+		c := h.createContract(t, seller, contractentity.KindInternal, 50_000, 3)
+		target := h.newForSale(t, seller)
+
+		first := h.issue(t, c, promoentity.TargetTypeForSale, target, h.newViewer(t), 15*time.Minute)
+		_, err := h.qualify(first.ID)
+		require.NoError(t, err)
+
+		_, err = h.delivery.IssueTicket(ctx, deliveryapp.IssueTicketInput{
+			ContractID: c.ID,
+			TargetType: promoentity.TargetTypeForSale,
+			TargetID:   target,
+			ViewerID:   h.newViewer(t),
+			TTL:        15 * time.Minute,
+		})
+		require.ErrorIs(t, err, deliveryapp.ErrPacingThrottled,
+			"pacing must still throttle issuance over the envelope at ~0 elapsed")
+		require.Equal(t, 1, h.countQI(t, c.ID), "throttled issuance must not produce a QI")
+		require.Equal(t, int64(50_000-7), h.allocationBalance(t, seller, c.ID),
+			"throttled issuance must not move money")
+	})
+
+	t.Run("M_finance_overspend_atomic_rejection", func(t *testing.T) {
+		// Drives the allocation-insufficiency boundary at the delivery layer.
+		// A CPM snapshot so large that even the first impression's charge exceeds
+		// the entire allocation: QualifyTicket creates the Qualified Impression
+		// row and books the charge in ONE transaction, so the rejected charge must
+		// roll back the QI row and the ticket consumption together — no
+		// successful QI, no consumed ticket, no partial ledger movement.
+		h.seedConfig(t, 10_000_000_000, 10_000) // charge(1) = 10,000,000 rupiah
+		seller := h.newSeller(t, 100_000)
+		c := h.createContract(t, seller, contractentity.KindInternal, 30_000, 3)
+		target := h.newForSale(t, seller)
+		allocBefore := h.allocationBalance(t, seller, c.ID)
+		revenueBefore := h.platformRevenue(t)
+
+		ticket := h.issue(t, c, promoentity.TargetTypeForSale, target, h.newViewer(t), 15*time.Minute)
+		_, err := h.qualify(ticket.ID)
+		require.ErrorIs(t, err, financeapp.ErrPromotionAllocationInsufficient,
+			"an over-spend must be rejected by the canonical allocation authority")
+
+		require.Equal(t, 0, h.countQI(t, c.ID), "rejected charge must leave no Qualified Impression")
+		require.Equal(t, 0, h.qiLedgerTxCountForContract(t, c.ID), "no ledger transaction")
+		require.Equal(t, allocBefore, h.allocationBalance(t, seller, c.ID), "allocation unchanged")
+		require.Equal(t, revenueBefore, h.platformRevenue(t), "no platform revenue booked")
+		require.Equal(t, "issued", h.ticketStatus(t, ticket.ID), "ticket must stay issued (whole tx rolled back)")
 	})
 }
 

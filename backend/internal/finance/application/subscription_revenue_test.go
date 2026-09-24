@@ -55,17 +55,17 @@ func TestRecordSubscriptionRevenue_BalancedEntries(t *testing.T) {
 	if drEntry.AccountID != platformRevenueID {
 		t.Errorf("entry[0] account: got %s, want PLATFORM_REVENUE %s", drEntry.AccountID, platformRevenueID)
 	}
-	if drEntry.Amount.Int64() != 500000 {
-		t.Errorf("entry[0] amount: got %d, want +500000 (debit)", drEntry.Amount.Int64())
+	if drEntry.Amount.Int64() != -500000 {
+		t.Errorf("entry[0] amount: got %d, want -500000 (credit)", drEntry.Amount.Int64())
 	}
 
-	// Verify CR side: BANK_SETTLEMENT (-500000) — reserve drains
+	// Verify CR side: BANK_SETTLEMENT (+500000) — reserve drains (DR decreases liability)
 	crEntry := mock.lastEntries[1]
 	if crEntry.AccountID != bankSettlementID {
 		t.Errorf("entry[1] account: got %s, want BANK_SETTLEMENT %s", crEntry.AccountID, bankSettlementID)
 	}
-	if crEntry.Amount.Int64() != -500000 {
-		t.Errorf("entry[1] amount: got %d, want -500000 (credit)", crEntry.Amount.Int64())
+	if crEntry.Amount.Int64() != 500000 {
+		t.Errorf("entry[1] amount: got %d, want +500000 (debit)", crEntry.Amount.Int64())
 	}
 
 	// Verify idempotency key format: one key per payment identity
@@ -114,12 +114,12 @@ func TestRecordSubscriptionRevenue_LargeAmount(t *testing.T) {
 		t.Fatalf("ledger entries unbalanced for large amount: sum = %d", total.Int64())
 	}
 
-	// Verify exact amounts: DR PLATFORM_REVENUE, CR BANK_SETTLEMENT
-	if mock.lastEntries[0].Amount.Int64() != 10_000_000 {
-		t.Errorf("DR PLATFORM_REVENUE amount: got %d, want 10000000", mock.lastEntries[0].Amount.Int64())
+	// Verify exact amounts: CR PLATFORM_REVENUE, DR BANK_SETTLEMENT
+	if mock.lastEntries[0].Amount.Int64() != -10_000_000 {
+		t.Errorf("CR PLATFORM_REVENUE amount: got %d, want -10000000", mock.lastEntries[0].Amount.Int64())
 	}
-	if mock.lastEntries[1].Amount.Int64() != -10_000_000 {
-		t.Errorf("CR BANK_SETTLEMENT amount: got %d, want -10000000", mock.lastEntries[1].Amount.Int64())
+	if mock.lastEntries[1].Amount.Int64() != 10_000_000 {
+		t.Errorf("DR BANK_SETTLEMENT amount: got %d, want +10000000", mock.lastEntries[1].Amount.Int64())
 	}
 }
 

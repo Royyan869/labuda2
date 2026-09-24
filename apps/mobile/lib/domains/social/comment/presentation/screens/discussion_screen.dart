@@ -28,7 +28,6 @@ import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/object/object_preview.dart';
 import 'package:labuda/shared/object/object_preview_batch_provider.dart';
 import 'package:labuda/shared/object/object_reference.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
 import 'package:labuda/domains/social/like/domain/entities/like.dart';
 import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
 import 'package:labuda/domains/social/comment/presentation/utils/comment_like_handlers.dart';
@@ -476,13 +475,18 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
               );
               return true;
             } else {
-              // Inline gate: backend rejected because the user's email is
-              // not verified (HTTP 403 EMAIL_VERIFICATION_REQUIRED).
+              // Backend-rejection handler (defense-in-depth): the backend
+              // stays the single authority for EMAIL_VERIFICATION_REQUIRED.
               if (result.errorCode == 'EMAIL_VERIFICATION_REQUIRED') {
                 if (!context.mounted) return false;
-                await showBlockedActionGate(
-                  context,
-                  actionDescription: 'menulis komentar',
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Verifikasi email kamu diperlukan sebelum menulis komentar.',
+                    ),
+                    backgroundColor: AppColors.statusError,
+                    duration: Duration(seconds: 3),
+                  ),
                 );
                 return false;
               }

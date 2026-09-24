@@ -48,17 +48,32 @@ type CanonicalDeliveryMeasurement interface {
 // FeedPromotionInjector handles fetching, hydrating, and interleaving promoted
 // items into the organic feed response. All operations are fail-open.
 // Canonical-only: promotion_contracts is the sole authority.
+//
+// CANONICAL PRODUCTION DELIVERY PATH (one path, one billing authority):
+//
+//	contract selection → Delivery Ticket issuance (authorization only)
+//	→ card actually placed in the served response (delivery fact)
+//	→ server-side qualification → Qualified Impression → exact CPM charge
+//
+// Measurement (included / client-echoed impression / click) stays a
+// projection-only analytics authority and is never a financial fact.
 type FeedPromotionInjector struct {
 	canonicalHandoff CanonicalPromotionHandoff
 	canonicalMeasure CanonicalDeliveryMeasurement
+	issuer           deliveryApp.TicketIssuer
 	db               promotionQueryPool
 	log              *zap.Logger
 }
 
-// NewFeedPromotionInjector creates a canonical-only injector.
+// NewFeedPromotionInjector creates a canonical-only injector. issuer is the
+// canonical Delivery Ticket authority (deliveryApp.TicketIssuer, implemented
+// by the single DeliveryService); when nil, promoted cards are still injected
+// but can never produce a billable Qualified Impression (no ticket, no
+// billing — narrowly-scoped composition tests only).
 func NewFeedPromotionInjector(
 	canonicalHandoff CanonicalPromotionHandoff,
 	canonicalMeasure CanonicalDeliveryMeasurement,
+	issuer deliveryApp.TicketIssuer,
 	database promotionQueryPool,
 	log *zap.Logger,
 ) *FeedPromotionInjector {
@@ -68,6 +83,7 @@ func NewFeedPromotionInjector(
 	return &FeedPromotionInjector{
 		canonicalHandoff: canonicalHandoff,
 		canonicalMeasure: canonicalMeasure,
+		issuer:           issuer,
 		db:               database,
 		log:              log,
 	}
@@ -133,15 +149,13 @@ func (inj *FeedPromotionInjector) InjectPromotionsWithGeography(
 	}
 	candidates, err := inj.canonicalHandoff.SelectForDelivery(ctx, maxPromotedPerPage*2)
 	if err != nil {
+		// Selection carries the canonical delivery gate: when promotion
+		// delivery is platform-disabled it returns ErrDeliveryDisabled and
+		// NOTHING is distributed — no promoted cards, no tickets, no charges.
 		inj.log.Warn("feed promotion: canonical handoff failed, fail-open",
 			zap.Error(err))
 		return organicItems
 	}
-	if len(candidates) == 0 {
-		return organicItems
-	}
-	// Geographic eligibility — empty geography = nationwide
-	candidates = inj.filterCandidatesByGeography(ctx, candidates, viewerCityID, viewerHasPrimary)
 	if len(candidates) == 0 {
 		return organicItems
 	}
@@ -155,6 +169,16 @@ func (inj *FeedPromotionInjector) InjectPromotionsWithGeography(
 		return organicItems
 	}
 	filtered := applySlotPolicy(hydrated)
+	if len(filtered) == 0 {
+		return organicItems
+	}
+	// CANONICAL DELIVERY TICKET ISSUANCE — one server-issued, viewer-bound
+	// ticket per card actually about to be delivered. Issuance enforces the
+	// full delivery gate (platform enablement, active contract, no seller
+	// self-delivery, geographic eligibility, pacing envelope). A card whose
+	// ticket cannot be issued is NOT delivered (fail-closed for delivery:
+	// un-authorized delivery would create un-billable impressions).
+	filtered = inj.issueDeliveryTickets(ctx, filtered, viewerID, viewerCityID, viewerHasPrimary)
 	if len(filtered) == 0 {
 		return organicItems
 	}
@@ -189,55 +213,101 @@ func (inj *FeedPromotionInjector) InjectPromotionsWithGeography(
 			}
 		}
 	}
+	// CANONICAL QUALIFICATION — the ONLY billing path. Every delivered card
+	// (ticket issued + card actually placed in the served response) is
+	// server-qualified: the canonical QualifyTicket boundary re-validates
+	// ticket/contract/target/geo inside its locked transaction, produces the
+	// immutable Qualified Impression and books the exact cumulative CPM
+	// charge through FinanceService. Qualification errors never fail the
+	// response (fail-open presentation; money safety lives inside the
+	// qualification transaction itself).
+	inj.qualifyDeliveredTickets(ctx, filtered)
 	return merged
 }
 
-func (inj *FeedPromotionInjector) filterCandidatesByGeography(ctx context.Context, candidates []contractApp.DeliveryCandidate, viewerCityID string, viewerHasPrimary bool) []contractApp.DeliveryCandidate {
-	if inj.db == nil {
-		return candidates
+// issueDeliveryTickets issues the canonical viewer-bound Delivery Ticket for
+// each candidate card. A card that cannot be authorized is dropped from the
+// delivered set (platform disabled, inactive contract, seller self-delivery,
+// geo ineligibility, pacing throttle). Returns the subset of items that carry
+// a server-issued ticket — without a ticket a card can never bill.
+func (inj *FeedPromotionInjector) issueDeliveryTickets(
+	ctx context.Context,
+	items []hydratedPromotion,
+	viewerID uuid.UUID,
+	viewerCityID string,
+	viewerHasPrimary bool,
+) []hydratedPromotion {
+	if inj.issuer == nil {
+		// No ticket authority wired: cards can still be presented but can
+		// never produce a Qualified Impression (no ticket → no billing). This
+		// branch exists only for narrowly-scoped composition tests; production
+		// wiring always supplies the canonical issuer.
+		return items
 	}
-	if len(candidates) == 0 {
-		return candidates
-	}
-	ids := make([]uuid.UUID, 0, len(candidates))
-	for _, c := range candidates {
-		ids = append(ids, c.ContractID)
-	}
-	rows, err := inj.db.Query(ctx, `SELECT contract_id, city_id FROM promotion_contract_geographies WHERE contract_id = ANY($1)`, ids)
-	if err != nil {
-		return candidates
-	}
-	defer rows.Close()
-	contractCities := make(map[uuid.UUID]map[string]struct{})
-	contractHasRestriction := make(map[uuid.UUID]bool)
-	for rows.Next() {
-		var cid uuid.UUID
-		var cityID string
-		if err := rows.Scan(&cid, &cityID); err != nil {
+	issued := make([]hydratedPromotion, 0, len(items))
+	for _, item := range items {
+		if !item.Canonical || item.View == nil || item.View.TargetID == nil {
 			continue
 		}
-		if _, ok := contractCities[cid]; !ok {
-			contractCities[cid] = make(map[string]struct{})
-		}
-		contractCities[cid][cityID] = struct{}{}
-		contractHasRestriction[cid] = true
-	}
-	var out []contractApp.DeliveryCandidate
-	for _, c := range candidates {
-		cid := c.ContractID
-		hasRestriction := contractHasRestriction[cid]
-		if !hasRestriction {
-			out = append(out, c)
+		ticket, err := inj.issuer.IssueTicket(ctx, deliveryApp.IssueTicketInput{
+			ContractID:       item.View.DeliveryItemID,
+			TargetType:       item.View.TargetType,
+			TargetID:         *item.View.TargetID,
+			ViewerID:         viewerID,
+			ViewerCityID:     viewerCityID,
+			ViewerHasPrimary: viewerHasPrimary,
+		})
+		if err != nil {
+			inj.log.Warn("feed promotion: delivery ticket not issued, card dropped",
+				zap.String("contract_id", item.View.DeliveryItemID.String()),
+				zap.Error(err),
+			)
 			continue
 		}
-		if !viewerHasPrimary || viewerCityID == "" {
+		item.Response["canonical_ticket_id"] = ticket.ID.String()
+		issued = append(issued, item)
+	}
+	return issued
+}
+
+// qualifyDeliveredTickets runs the canonical server-side qualification for
+// every delivered card — the ONLY path that produces a billable Qualified
+// Impression and books the exact CPM charge to the ledger.
+func (inj *FeedPromotionInjector) qualifyDeliveredTickets(ctx context.Context, items []hydratedPromotion) {
+	if inj.issuer == nil {
+		return
+	}
+	for _, item := range items {
+		if item.View == nil {
 			continue
 		}
-		if _, ok := contractCities[cid][viewerCityID]; ok {
-			out = append(out, c)
+		ticketIDRaw, ok := item.Response["canonical_ticket_id"]
+		if !ok {
+			continue
 		}
+		ticketIDStr, ok := ticketIDRaw.(string)
+		if !ok {
+			continue
+		}
+		ticketID, err := uuid.Parse(ticketIDStr)
+		if err != nil {
+			continue
+		}
+		qi, err := inj.issuer.QualifyTicket(ctx, deliveryApp.QualifyTicketInput{TicketID: ticketID})
+		if err != nil {
+			inj.log.Warn("feed promotion: qualification did not produce a billable impression",
+				zap.String("contract_id", item.View.DeliveryItemID.String()),
+				zap.String("ticket_id", ticketID.String()),
+				zap.Error(err),
+			)
+			continue
+		}
+		inj.log.Info("feed promotion: qualified impression recorded",
+			zap.String("contract_id", qi.ContractID.String()),
+			zap.String("ticket_id", ticketID.String()),
+			zap.Int64("charge_rupiah", qi.ChargeRupiah),
+		)
 	}
-	return out
 }
 
 // hydrateCanonicalDeliveryItems is the canonical feed bridge.

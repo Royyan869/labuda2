@@ -31,7 +31,6 @@ import 'package:labuda/domains/chat/chat/presentation/utils/commerce_chat_naviga
 import 'package:labuda/domains/social/share/share.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_saved_item_action_button.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
 import 'package:labuda/domains/system/report/presentation/dialogs/report_submission_dialog.dart';
 
@@ -530,14 +529,15 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       AppSnackBar.showSuccess(this.context, 'Bid successful! Rp $amount');
     } else {
       final notifierState = ref.read(auctionNotifierProvider);
-      // Inline gate: backend rejected because the user's email is not
-      // verified. The bidding chain now propagates the API code via
-      // RepositoryResult.errorCode → AuctionNotifierState.errorCode.
+      // Backend-rejection handler (defense-in-depth): the backend stays the
+      // single authority for EMAIL_VERIFICATION_REQUIRED. The bidding chain
+      // propagates the API code via RepositoryResult.errorCode →
+      // AuctionNotifierState.errorCode.
       if (notifierState.errorCode == api_codes.emailVerificationRequired) {
         if (!mounted) return;
-        await showBlockedActionGate(
+        AppSnackBar.showError(
           this.context,
-          actionDescription: 'menempatkan bid',
+          'Verifikasi email kamu diperlukan sebelum menempatkan bid.',
         );
         return;
       }

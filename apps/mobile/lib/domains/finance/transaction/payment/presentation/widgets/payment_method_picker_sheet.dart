@@ -87,13 +87,18 @@ class PaymentMethodPickerSheet extends StatelessWidget {
                         final m = methods[index];
                         return ListTile(
                           title: Text(m.displayName),
+                          // The canonical currency formatter already carries the
+                          // 'Rp ' symbol — never prefix it a second time.
                           subtitle: Text(
                             m.buyerPaymentFeeAmount > 0
-                                ? 'Biaya layanan: Rp ${AppFormatters.formatCurrency(m.buyerPaymentFeeAmount.toDouble())}'
+                                ? 'Biaya layanan: '
+                                      '${AppFormatters.formatCurrency(m.buyerPaymentFeeAmount.toDouble())}'
                                 : 'Tanpa biaya layanan',
                           ),
                           trailing: Text(
-                            'Rp ${AppFormatters.formatCurrency(m.totalPayableAmount.toDouble())}',
+                            AppFormatters.formatCurrency(
+                              m.totalPayableAmount.toDouble(),
+                            ),
                             style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                           onTap: () => Navigator.of(context).pop(m.methodCode),

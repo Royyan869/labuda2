@@ -23,7 +23,6 @@ type UserListFilters struct {
 // UserSummary represents a simplified user for list views.
 type UserSummary struct {
 	ID            uuid.UUID
-	FirebaseUID   string
 	Email         string
 	PhoneNumber   *string
 	EmailVerified bool
@@ -46,7 +45,6 @@ type UserSummary struct {
 // UserDetails represents a complete user with all information.
 type UserDetails struct {
 	ID             uuid.UUID
-	FirebaseUID    string
 	Email          string
 	PhoneNumber    *string
 	EmailVerified  bool

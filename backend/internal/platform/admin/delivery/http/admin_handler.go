@@ -89,7 +89,6 @@ type UnbanUserRequest struct {
 // UserSummary represents a simplified user for list views.
 type UserSummary struct {
 	ID            uuid.UUID `json:"id"`
-	FirebaseUID   string    `json:"firebase_uid"`
 	Email         string    `json:"email"`
 	PhoneNumber   *string   `json:"phone_number,omitempty"`
 	EmailVerified bool      `json:"email_verified"`
@@ -116,7 +115,6 @@ type UserSummary struct {
 // UserDetails represents a complete user with all information.
 type UserDetails struct {
 	ID            uuid.UUID `json:"id"`
-	FirebaseUID   string    `json:"firebase_uid"`
 	Email         string    `json:"email"`
 	PhoneNumber   *string   `json:"phone_number,omitempty"`
 	EmailVerified bool      `json:"email_verified"`
@@ -801,7 +799,6 @@ func (h *AdminHandler) GetSLAMetrics(c *gin.Context) {
 func userSummaryFromRepo(u repository.UserSummary) UserSummary {
 	return UserSummary{
 		ID:            u.ID,
-		FirebaseUID:   u.FirebaseUID,
 		Email:         u.Email,
 		PhoneNumber:   u.PhoneNumber,
 		EmailVerified: u.EmailVerified,
@@ -825,7 +822,6 @@ func userSummaryFromRepo(u repository.UserSummary) UserSummary {
 func userDetailsFromRepo(u repository.UserDetails, capabilities []string) UserDetails {
 	return UserDetails{
 		ID:                 u.ID,
-		FirebaseUID:        u.FirebaseUID,
 		Email:              u.Email,
 		PhoneNumber:        u.PhoneNumber,
 		EmailVerified:      u.EmailVerified,
@@ -981,4 +977,3 @@ func (h *AdminHandler) GetFailedDeliveries(c *gin.Context) {
 		TotalPages: (result.Total + pageSize - 1) / pageSize,
 	})
 }
-

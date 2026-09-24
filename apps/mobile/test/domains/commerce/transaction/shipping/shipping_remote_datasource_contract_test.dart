@@ -123,9 +123,6 @@ class _RecordingApiClient implements ApiClient {
   }
 
   @override
-  bool isNetworkError(DioException e) => false;
-
-  @override
   bool isNotFound(DioException e) => false;
 
   @override
@@ -230,7 +227,7 @@ void main() {
             'data': {
               'shipping_option':              _shippingSetupJson(
                 id: 'so-2',
-                name: 'J&T Express',
+                name: 'Bus Handoyo',
                 isActive: true,
               ),
             },
@@ -238,49 +235,85 @@ void main() {
           };
         final ds = ShippingRemoteDatasource(client);
 
+        // ONE-PACKAGE contract: identity + destinations in one request.
         final option = await ds.createShippingSetup({
-          'name': 'J&T Express',
+          'name': 'Bus Handoyo',
           'transport_type': 'train',
+          'internal_purpose': '',
+          'destinations': [
+            {
+              'province_code': '31',
+              'province_name': 'DKI Jakarta',
+              'rate': 150000,
+              'is_available': true,
+              'city_qualifications': <Map<String, dynamic>>[],
+            },
+          ],
         });
 
         expect(client.lastPostPath, '/seller/shipping/options');
         expect(option.id, 'so-2');
-        expect(option.name, 'J&T Express');
+        expect(option.name, 'Bus Handoyo');
       },
     );
 
-    test('addCoverage parses the nested coverage object', () async {
-      final client = _RecordingApiClient()
-        ..postPayload = {
-          'success': true,
-          'data': {
-            'coverage': _coverageJson(
-              id: 'cov-1',
-              shippingSetupId: 'so-1',
-              provinceCode: '31',
-              provinceName: 'DKI Jakarta',
-              rate: 150000,
-              isAvailable: true,
-            ),
-          },
-          'timestamp': '2026-01-01T00:00:00Z',
-        };
-      final ds = ShippingRemoteDatasource(client);
+    test(
+      'getShippingSetup parses seller-private note and coverages',
+      () async {
+        final client = _RecordingApiClient()
+          ..getPayload = {
+            'success': true,
+            'data': {
+              'shipping_option': {
+                ..._shippingSetupJson(
+                  id: 'so-1',
+                  name: 'Bus Kencana',
+                  isActive: true,
+                ),
+                'internal_purpose': 'kantong besar, untuk 10 ekor',
+              },
+              'coverages': [
+                {
+                  ..._coverageJson(
+                    id: 'cov-1',
+                    shippingSetupId: 'so-1',
+                    provinceCode: '31',
+                    provinceName: 'DKI Jakarta',
+                    rate: 150000,
+                    isAvailable: true,
+                  ),
+                  'city_qualifications': [
+                    {
+                      'id': 'cq-1',
+                      'city_code': '3171',
+                      'city_name': 'Jakarta Pusat',
+                      'rate': 165000,
+                    },
+                  ],
+                },
+              ],
+              'coverage_count': 1,
+            },
+            'timestamp': '2026-01-01T00:00:00Z',
+          };
+        final ds = ShippingRemoteDatasource(client);
 
-      final coverage = await ds.addCoverage('so-1', {
-        'province_code': '31',
-        'province_name': 'DKI Jakarta',
-        'rate': 150000,
-        'is_available': true,
-      });
+        final option = await ds.getShippingSetup('so-1');
 
-      expect(client.lastPostPath, '/seller/shipping/options/so-1/coverages');
-      expect(coverage.id, 'cov-1');
-      expect(coverage.shippingSetupId, 'so-1');
-      expect(coverage.provinceCode, '31');
-      expect(coverage.rate, 150000);
-      expect(coverage.isAvailable, isTrue);
-    });
+        expect(client.lastGetPath, '/seller/shipping/options/so-1');
+        expect(option.internalPurpose, 'kantong besar, untuk 10 ekor');
+        expect(option.coverages, hasLength(1));
+        expect(option.coverages!.first.cityQualifications, hasLength(1));
+        expect(
+          option.coverages!.first.cityQualifications.first.cityCode,
+          '3171',
+        );
+        expect(
+          option.coverages!.first.cityQualifications.first.rate,
+          165000,
+        );
+      },
+    );
 
     test(
       'rejects a bare list response instead of silently casting it',

@@ -107,4 +107,9 @@ type ProductShippingSetupRepository interface {
 
 	// CountByProduct counts the number of shipping options linked to a product.
 	CountByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) (int64, error)
+
+	// CountLinksByShippingSetup counts how many selling surfaces link a shipping option.
+	// Used by the delete guard: an option linked to any product must never be
+	// hard-deleted (order history references it); only deactivate is allowed.
+	CountLinksByShippingSetup(ctx context.Context, tx db.Tx, shippingSetupID uuid.UUID) (int64, error)
 }

@@ -44,12 +44,8 @@ final shippingNotifierProvider =
       ShippingNotifier.new,
     );
 
-/// Provider for ShippingSetupDetailNotifier
-final shippingSetupDetailNotifierProvider =
-    NotifierProvider<ShippingSetupDetailNotifier, ShippingSetupDetailState>(
-      ShippingSetupDetailNotifier.new,
-    );
-
+// KILLED DESIGN: shippingSetupDetailNotifierProvider removed with the
+// per-coverage CRUD contract (one-package contract replaces it).
 // Phase 3 cleanup: deliveryCheckNotifierProvider and shippingProofNotifierProvider
 // removed. Both had zero ref.watch / ref.read call sites. The underlying
 // shippingRepositoryProvider and shippingProofRepositoryProvider remain for

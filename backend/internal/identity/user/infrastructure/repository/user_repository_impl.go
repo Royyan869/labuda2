@@ -30,6 +30,7 @@ func NewUserRepository(database *db.DB) repository.UserRepository {
 
 func (r *userRepositoryImpl) GetByID(ctx context.Context, tx db.Tx, userID uuid.UUID) (*entity.User, error) {
 	var user entity.User
+	var firebaseUID sql.NullString
 	var phoneNumber sql.NullString
 	var emailVerifiedAt, phoneVerifiedAt, idVerifiedAt, farmVerifiedAt, deletedAt sql.NullTime
 	query := `
@@ -43,7 +44,7 @@ func (r *userRepositoryImpl) GetByID(ctx context.Context, tx db.Tx, userID uuid.
 		WHERE id = $1 AND deleted_at IS NULL
 	`
 	err := tx.QueryRow(ctx, query, userID).Scan(
-		&user.ID, &user.FirebaseUID, &user.Email, &phoneNumber,
+		&user.ID, &firebaseUID, &user.Email, &phoneNumber,
 		&user.PhoneVerified, &user.AccountStatus,
 		&user.IsIDVerified, &user.IsFarmVerified,
 		&emailVerifiedAt, &phoneVerifiedAt, &idVerifiedAt, &farmVerifiedAt,
@@ -56,6 +57,7 @@ func (r *userRepositoryImpl) GetByID(ctx context.Context, tx db.Tx, userID uuid.
 		return nil, fmt.Errorf("failed to get user by ID: %w", err)
 	}
 	// Convert sql.NullString to *string
+	user.FirebaseUID = nullStringToPtr(firebaseUID)
 	user.PhoneNumber = nullStringToPtr(phoneNumber)
 	user.EmailVerifiedAt = nullTimeToPtr(emailVerifiedAt)
 	user.EmailVerified = user.EmailVerifiedAt != nil
@@ -68,6 +70,7 @@ func (r *userRepositoryImpl) GetByID(ctx context.Context, tx db.Tx, userID uuid.
 
 func (r *userRepositoryImpl) GetByIDForUpdate(ctx context.Context, tx db.Tx, userID uuid.UUID) (*entity.User, error) {
 	var user entity.User
+	var firebaseUID sql.NullString
 	var phoneNumber sql.NullString
 	var emailVerifiedAt, phoneVerifiedAt, idVerifiedAt, farmVerifiedAt, deletedAt sql.NullTime
 	query := `
@@ -82,7 +85,7 @@ func (r *userRepositoryImpl) GetByIDForUpdate(ctx context.Context, tx db.Tx, use
 		FOR UPDATE
 	`
 	err := tx.QueryRow(ctx, query, userID).Scan(
-		&user.ID, &user.FirebaseUID, &user.Email, &phoneNumber,
+		&user.ID, &firebaseUID, &user.Email, &phoneNumber,
 		&user.PhoneVerified, &user.AccountStatus,
 		&user.IsIDVerified, &user.IsFarmVerified,
 		&emailVerifiedAt, &phoneVerifiedAt, &idVerifiedAt, &farmVerifiedAt,
@@ -94,6 +97,7 @@ func (r *userRepositoryImpl) GetByIDForUpdate(ctx context.Context, tx db.Tx, use
 		}
 		return nil, fmt.Errorf("failed to get user by ID for update: %w", err)
 	}
+	user.FirebaseUID = nullStringToPtr(firebaseUID)
 	user.PhoneNumber = nullStringToPtr(phoneNumber)
 	user.EmailVerifiedAt = nullTimeToPtr(emailVerifiedAt)
 	user.EmailVerified = user.EmailVerifiedAt != nil
@@ -106,6 +110,7 @@ func (r *userRepositoryImpl) GetByIDForUpdate(ctx context.Context, tx db.Tx, use
 
 func (r *userRepositoryImpl) GetByFirebaseUID(ctx context.Context, tx db.Tx, firebaseUID string) (*entity.User, error) {
 	var user entity.User
+	var boundUID sql.NullString
 	var phoneNumber sql.NullString
 	var emailVerifiedAt, phoneVerifiedAt, idVerifiedAt, farmVerifiedAt, deletedAt sql.NullTime
 	query := `
@@ -119,7 +124,7 @@ func (r *userRepositoryImpl) GetByFirebaseUID(ctx context.Context, tx db.Tx, fir
 		WHERE firebase_uid = $1 AND deleted_at IS NULL
 	`
 	err := tx.QueryRow(ctx, query, firebaseUID).Scan(
-		&user.ID, &user.FirebaseUID, &user.Email, &phoneNumber,
+		&user.ID, &boundUID, &user.Email, &phoneNumber,
 		&user.PhoneVerified, &user.AccountStatus,
 		&user.IsIDVerified, &user.IsFarmVerified,
 		&emailVerifiedAt, &phoneVerifiedAt, &idVerifiedAt, &farmVerifiedAt,
@@ -131,6 +136,7 @@ func (r *userRepositoryImpl) GetByFirebaseUID(ctx context.Context, tx db.Tx, fir
 		}
 		return nil, fmt.Errorf("failed to get user by Firebase UID: %w", err)
 	}
+	user.FirebaseUID = nullStringToPtr(boundUID)
 	user.PhoneNumber = nullStringToPtr(phoneNumber)
 	user.EmailVerifiedAt = nullTimeToPtr(emailVerifiedAt)
 	user.EmailVerified = user.EmailVerifiedAt != nil
@@ -143,6 +149,7 @@ func (r *userRepositoryImpl) GetByFirebaseUID(ctx context.Context, tx db.Tx, fir
 
 func (r *userRepositoryImpl) GetByEmail(ctx context.Context, tx db.Tx, email string) (*entity.User, error) {
 	var user entity.User
+	var firebaseUID sql.NullString
 	var phoneNumber sql.NullString
 	var emailVerifiedAt, phoneVerifiedAt, idVerifiedAt, farmVerifiedAt, deletedAt sql.NullTime
 	query := `
@@ -157,7 +164,7 @@ func (r *userRepositoryImpl) GetByEmail(ctx context.Context, tx db.Tx, email str
 		LIMIT 1
 	`
 	err := tx.QueryRow(ctx, query, email).Scan(
-		&user.ID, &user.FirebaseUID, &user.Email, &phoneNumber,
+		&user.ID, &firebaseUID, &user.Email, &phoneNumber,
 		&user.PhoneVerified, &user.AccountStatus,
 		&user.IsIDVerified, &user.IsFarmVerified,
 		&emailVerifiedAt, &phoneVerifiedAt, &idVerifiedAt, &farmVerifiedAt,
@@ -169,6 +176,7 @@ func (r *userRepositoryImpl) GetByEmail(ctx context.Context, tx db.Tx, email str
 		}
 		return nil, fmt.Errorf("failed to get user by email: %w", err)
 	}
+	user.FirebaseUID = nullStringToPtr(firebaseUID)
 	user.PhoneNumber = nullStringToPtr(phoneNumber)
 	user.EmailVerifiedAt = nullTimeToPtr(emailVerifiedAt)
 	user.EmailVerified = user.EmailVerifiedAt != nil
@@ -204,10 +212,11 @@ func (r *userRepositoryImpl) GetMultipleByIDs(ctx context.Context, tx db.Tx, use
 	result := make(map[uuid.UUID]*entity.User)
 	for rows.Next() {
 		var user entity.User
+		var firebaseUID sql.NullString
 		var phoneNumber sql.NullString
 		var emailVerifiedAt, phoneVerifiedAt, idVerifiedAt, farmVerifiedAt, deletedAt sql.NullTime
 		err := rows.Scan(
-			&user.ID, &user.FirebaseUID, &user.Email, &phoneNumber,
+			&user.ID, &firebaseUID, &user.Email, &phoneNumber,
 			&user.PhoneVerified, &user.AccountStatus,
 			&user.IsIDVerified, &user.IsFarmVerified,
 			&emailVerifiedAt, &phoneVerifiedAt, &idVerifiedAt, &farmVerifiedAt,
@@ -216,6 +225,7 @@ func (r *userRepositoryImpl) GetMultipleByIDs(ctx context.Context, tx db.Tx, use
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user: %w", err)
 		}
+		user.FirebaseUID = nullStringToPtr(firebaseUID)
 		user.PhoneNumber = nullStringToPtr(phoneNumber)
 		user.EmailVerifiedAt = nullTimeToPtr(emailVerifiedAt)
 		user.EmailVerified = user.EmailVerifiedAt != nil

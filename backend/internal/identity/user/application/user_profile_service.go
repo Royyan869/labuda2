@@ -66,13 +66,13 @@ type SellerState struct {
 // UserProfileService handles cross-domain composition for user profiles
 // It orchestrates between user, seller, and subscription domains
 type UserProfileService struct {
-	userRepo            userProfileRepository
-	sellerRepo          sellerRepo.SellerRepository
-	subscriptionRepo    subscriptionRepo.SellerSubscriptionRepository
-	outboxRepo          *outboxInfra.OutboxRepository
-	firebaseClient      firebaseUserFetcher
-	db                  userProfileDB
-	refreshSessionRepo  refreshSessionRevoker
+	userRepo           userProfileRepository
+	sellerRepo         sellerRepo.SellerRepository
+	subscriptionRepo   subscriptionRepo.SellerSubscriptionRepository
+	outboxRepo         *outboxInfra.OutboxRepository
+	firebaseClient     firebaseUserFetcher
+	db                 userProfileDB
+	refreshSessionRepo refreshSessionRevoker
 }
 
 // NewUserProfileService creates a new UserProfileService
@@ -134,7 +134,12 @@ func (s *UserProfileService) RefreshVerificationSnapshot(
 			return ErrUserNotProvisioned
 		}
 
-		fbUser, err := s.firebaseClient.GetUser(ctx, user.FirebaseUID)
+		if user.FirebaseUID == nil {
+			// Unbound account: no provider identity to read verification truth
+			// from. Never invent one — report the upstream as unavailable.
+			return fmt.Errorf("%w: account has no bound Firebase identity", ErrVerificationRefreshUpstream)
+		}
+		fbUser, err := s.firebaseClient.GetUser(ctx, *user.FirebaseUID)
 		if err != nil {
 			return fmt.Errorf("%w: get firebase user: %v", ErrVerificationRefreshUpstream, err)
 		}

@@ -10,6 +10,9 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/commerce_resource_picker.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/resource_identity.dart';
+import 'package:labuda/core/media/media_upload_config.dart';
+import 'package:labuda/core/media/media_upload_orchestrator.dart';
+import 'package:labuda/shared/widgets/media_grid_uploader.dart';
 export 'resource_identity.dart';
 
 /// Canonical comment input with commerce reference capability.
@@ -18,6 +21,9 @@ export 'resource_identity.dart';
 /// (For Sale or Auction). Uses GoRouter for Create navigation.
 class CommentInputWithCommerceReference extends ConsumerStatefulWidget {
   final Future<bool> Function(String body, ResourceIdentity? resource) onSubmit;
+  /// Optional media-aware callback — if provided, foto+video URLs are forwarded.
+  /// When null, media is still pickable/uploadable and previewed (FE support).
+  final Future<bool> Function(String body, ResourceIdentity? resource, List<String> mediaUrls)? onSubmitWithMedia;
   final ResourceIdentity? initialResource;
   final String hintText;
   final bool isSeller;
@@ -26,6 +32,7 @@ class CommentInputWithCommerceReference extends ConsumerStatefulWidget {
   const CommentInputWithCommerceReference({
     super.key,
     required this.onSubmit,
+    this.onSubmitWithMedia,
     this.initialResource,
     this.hintText = 'Tulis komentar...',
     this.isSeller = false,
@@ -42,6 +49,7 @@ class _CommentInputWithCommerceReferenceState
   late TextEditingController _controller;
   ResourceIdentity? _selectedResource;
   CommerceResourceSelection? _selection;
+  final List<String> _mediaUrls = [];
   bool _isSubmitting = false;
 
   void _handleComposerChanged() {
@@ -92,6 +100,16 @@ class _CommentInputWithCommerceReferenceState
               ),
               const SizedBox(height: 12),
             ],
+            // Media strip — foto+video (1 mesin, orchestrator)
+            if (_mediaUrls.isNotEmpty) ...[
+              CompactMediaStrip(
+                mediaUrls: _mediaUrls,
+                config: MediaUploadConfig.forComment,
+                onMediaAdded: (url) => setState(() => _mediaUrls.add(url)),
+                onMediaRemoved: (i) => setState(() => _mediaUrls.removeAt(i)),
+              ),
+              const SizedBox(height: 12),
+            ],
             // Input row
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -122,6 +140,16 @@ class _CommentInputWithCommerceReferenceState
                   ),
                 ),
                 const SizedBox(width: 8),
+                // Foto/video picker — foto+video support
+                IconButton(
+                  onPressed: _pickMedia,
+                  icon: Icon(
+                    Icons.add_photo_alternate_outlined,
+                    color: _mediaUrls.isNotEmpty ? AppColors.primaryRed : AppColors.neutralGray600,
+                    size: 26,
+                  ),
+                  tooltip: 'Tambah foto/video',
+                ),
                 // Attach commerce resource button (seller only)
                 if (widget.isSeller)
                   IconButton(
@@ -171,25 +199,52 @@ class _CommentInputWithCommerceReferenceState
   }
 
   bool _canSubmit() =>
-      _controller.text.trim().isNotEmpty || _selectedResource != null;
+      _controller.text.trim().isNotEmpty || _selectedResource != null || _mediaUrls.isNotEmpty;
 
   Future<void> _handleSubmit() async {
     if (!_canSubmit() || _isSubmitting) return;
     final body = _controller.text.trim();
     final resource = _selectedResource;
+    final mediaSnapshot = List<String>.from(_mediaUrls);
     setState(() => _isSubmitting = true);
     try {
-      final success = await widget.onSubmit(body, resource);
+      final success = widget.onSubmitWithMedia != null
+          ? await widget.onSubmitWithMedia!(body, resource, mediaSnapshot)
+          : await widget.onSubmit(body, resource);
       if (success && mounted) {
         _controller.clear();
         setState(() {
           _selectedResource = null;
           _selection = null;
+          _mediaUrls.clear();
         });
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  void _pickMedia() {
+    if (_mediaUrls.length >= MediaUploadConfig.forComment.maxTotal) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Maksimal ${MediaUploadConfig.forComment.maxTotal} foto/video'), backgroundColor: AppColors.statusError),
+      );
+      return;
+    }
+    // canonical 1 mesin: foto+video via MediaUploadOrchestrator
+    _showMediaPicker();
+  }
+
+  void _showMediaPicker() {
+    MediaUploadOrchestrator.showPicker(
+      context: context,
+      config: MediaUploadConfig.forComment,
+      currentCount: _mediaUrls.length,
+      onUploaded: (urls) async {
+        if (!mounted) return;
+        setState(() => _mediaUrls.addAll(urls));
+      },
+    );
   }
 
   void _showCommercePicker() async {

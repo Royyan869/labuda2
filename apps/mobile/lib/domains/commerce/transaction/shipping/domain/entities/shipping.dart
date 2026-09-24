@@ -315,104 +315,123 @@ class ShippingSetup extends Equatable {
 // Request/Response Objects
 // =====================================
 
-/// Request untuk membuat shipping option baru
+/// Request untuk membuat shipping option sebagai SATU PAKET (kontrak
+/// canonical): identitas (nama, jenis, catatan privat seller) + destinasi
+/// (provinsi dengan tarif all-in ongkir+packing + kualifikasi kota).
+/// Backend menolak paket tanpa minimal satu destinasi.
 class CreateShippingSetupRequest {
   final String name;
   final ShippingType type;
+
+  /// Catatan privat seller ("kantong besar", "untuk 1 ekor", ...).
+  /// Tidak pernah tampil di sisi buyer.
   final String? internalNote;
-  final List<CreateShippingCoverageRequest>? coverages;
+
+  /// Minimal satu destinasi provinsi dengan tarif. Gerbang bisnis:
+  /// opsi tanpa destinasi tidak boleh tersimpan.
+  final List<ShippingDestinationRequest> destinations;
 
   const CreateShippingSetupRequest({
     required this.name,
     required this.type,
     this.internalNote,
-    this.coverages,
+    required this.destinations,
   });
-
-  CreateShippingSetupRequest copyWith({
-    String? name,
-    ShippingType? type,
-    String? internalNote,
-    List<CreateShippingCoverageRequest>? coverages,
-  }) {
-    return CreateShippingSetupRequest(
-      name: name ?? this.name,
-      type: type ?? this.type,
-      internalNote: internalNote ?? this.internalNote,
-      coverages: coverages ?? this.coverages,
-    );
-  }
 
   Map<String, dynamic> toJson() {
     return {
       'name': name,
       'transport_type': type.name,
-      if (internalNote != null) 'internal_note': internalNote,
-      if (coverages != null)
-        'coverages': coverages!.map((c) => c.toJson()).toList(),
+      'internal_purpose': internalNote ?? '',
+      'destinations': destinations.map((d) => d.toJson()).toList(),
     };
   }
 }
 
-/// Request untuk update shipping option
-class UpdateShippingSetupRequest {
-  final String? name;
-  final bool? isActive;
-
-  const UpdateShippingSetupRequest({
-    this.name,
-    this.isActive,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      if (name != null) 'name': name,
-      if (isActive != null) 'is_active': isActive,
-    };
-  }
-}
-
-/// Request untuk add coverage
-class AddCoverageRequest {
+/// Satu destinasi provinsi dalam paket shipping.
+class ShippingDestinationRequest {
   final String provinceCode;
   final String provinceName;
-  final double rate;
-  final bool isAvailable;
 
-  const AddCoverageRequest({
+  /// Tarif all-in (ongkir + packing) untuk seluruh kota di provinsi ini.
+  final int rate;
+  final bool isAvailable;
+  final List<CityQualificationRequest> cityQualifications;
+
+  const ShippingDestinationRequest({
     required this.provinceCode,
     required this.provinceName,
     required this.rate,
     this.isAvailable = true,
+    this.cityQualifications = const [],
   });
 
   Map<String, dynamic> toJson() {
     return {
       'province_code': provinceCode,
       'province_name': provinceName,
-      'rate': rate.toInt(),
+      'rate': rate,
       'is_available': isAvailable,
+      'city_qualifications': cityQualifications.map((c) => c.toJson()).toList(),
     };
   }
 }
 
-/// Request untuk update coverage
-class UpdateCoverageRequest {
-  final String? provinceName;
-  final double? provinceRate;
-  final bool? isAvailable;
+/// Kualifikasi per kota: beda tarif, atau dinonaktifkan (excluded).
+/// Nilai null / excluded=false tanpa override = ikut tarif provinsi.
+class CityQualificationRequest {
+  final String cityCode;
+  final String cityName;
 
-  const UpdateCoverageRequest({
-    this.provinceName,
-    this.provinceRate,
-    this.isAvailable,
+  /// Tarif override kota (null = ikut tarif provinsi).
+  final int? rateOverride;
+
+  /// Kota tidak dilayani (dinonaktifkan meski provinsinya dilayani).
+  final bool excluded;
+
+  const CityQualificationRequest({
+    required this.cityCode,
+    required this.cityName,
+    this.rateOverride,
+    this.excluded = false,
   });
 
   Map<String, dynamic> toJson() {
     return {
-      if (provinceName != null) 'province_name': provinceName,
-      if (provinceRate != null) 'rate': provinceRate!.toInt(),
-      if (isAvailable != null) 'is_available': isAvailable,
+      'city_code': cityCode,
+      'city_name': cityName,
+      if (!excluded && rateOverride != null) 'rate': rateOverride,
+      'is_available': !excluded,
+    };
+  }
+}
+
+/// Request untuk update shipping option sebagai SATU PAKET (full replace,
+/// satu transaksi di backend). Destinasi opsional di wire supaya edit
+/// identitas saja tidak memaksa kirim ulang destinasi.
+class UpdateShippingSetupRequest {
+  final String name;
+  final ShippingType type;
+  final String? internalNote;
+  final bool? isActive;
+  final List<ShippingDestinationRequest>? destinations;
+
+  const UpdateShippingSetupRequest({
+    required this.name,
+    required this.type,
+    this.internalNote,
+    this.isActive,
+    this.destinations,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'transport_type': type.name,
+      'internal_purpose': internalNote ?? '',
+      if (isActive != null) 'is_active': isActive,
+      if (destinations != null)
+        'destinations': destinations!.map((d) => d.toJson()).toList(),
     };
   }
 }
@@ -463,82 +482,4 @@ class DeliveryOption {
 
   @override
   int get hashCode => Object.hash(shippingSetupId, displayName, type, rate);
-}
-
-// =====================================
-// Full Update / City Rule Requests
-// =====================================
-
-class CreateShippingCityRuleRequest {
-  final String cityId;
-  final String cityName;
-  final int? overrideTariff;
-  final bool excluded;
-
-  const CreateShippingCityRuleRequest({
-    required this.cityId,
-    required this.cityName,
-    this.overrideTariff,
-    required this.excluded,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'city_id': cityId,
-      'city_name': cityName,
-      if (overrideTariff != null) 'override_tariff': overrideTariff,
-      'excluded': excluded,
-    };
-  }
-}
-
-class UpdateShippingCoverageRequest {
-  final String provinceId;
-  final String provinceName;
-  final int tariff;
-  final List<dynamic> cityRules;
-
-  const UpdateShippingCoverageRequest({
-    required this.provinceId,
-    required this.provinceName,
-    required this.tariff,
-    required this.cityRules,
-  });
-}
-
-class CreateShippingCoverageRequest {
-  final String provinceId;
-  final String provinceName;
-  final int tariff;
-  final List<CreateShippingCityRuleRequest> cityRules;
-
-  const CreateShippingCoverageRequest({
-    required this.provinceId,
-    required this.provinceName,
-    required this.tariff,
-    this.cityRules = const [],
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'province_id': provinceId,
-      'province_name': provinceName,
-      'tariff': tariff,
-      'city_rules': cityRules.map((r) => r.toJson()).toList(),
-    };
-  }
-}
-
-class UpdateShippingSetupFullRequest {
-  final String name;
-  final ShippingType transportType;
-  final String? internalNote;
-  final List<dynamic>? coverages;
-
-  const UpdateShippingSetupFullRequest({
-    required this.name,
-    required this.transportType,
-    this.internalNote,
-    this.coverages,
-  });
 }

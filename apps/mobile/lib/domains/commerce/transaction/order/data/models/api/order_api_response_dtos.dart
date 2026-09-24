@@ -228,6 +228,14 @@ class OrderApiResponse {
   final String? sourceType;
   final String? sourceId;
 
+  /// Checkout snapshot of the shipping option name — backend key
+  /// `shipping_option_name` (empty for quote-mode orders without a setup).
+  final String? shippingOptionName;
+
+  /// Checkout snapshot of the transport type — backend key
+  /// `shipping_transport_type` (train/bus/travel/plane/custom/manual).
+  final String? shippingTransportType;
+
   /// Canonical order line items — backend key `items` (OrderItemDTO[]).
   final List<OrderItemApiResponse> items;
 
@@ -293,6 +301,8 @@ class OrderApiResponse {
     this.completedAt,
     this.sourceType,
     this.sourceId,
+    this.shippingOptionName,
+    this.shippingTransportType,
     this.items = const [],
     this.shippingAddress,
     this.preparationTimeSnapshot,
@@ -329,6 +339,8 @@ class OrderApiResponse {
       commissionAmount: (json['commission_amount'] as num?)?.toDouble() ?? 0.0,
       serviceFeeAmount: (json['service_fee_amount'] as num?)?.toDouble(),
       totalPayableAmount: (json['total_payable_amount'] as num?)?.toDouble(),
+      shippingOptionName: json['shipping_option_name'] as String?,
+      shippingTransportType: json['shipping_transport_type'] as String?,
       totalBeforeCoinsAmount: (json['total_before_coins_amount'] as num?)
           ?.toDouble(),
       status: json['status'] as String? ?? '',

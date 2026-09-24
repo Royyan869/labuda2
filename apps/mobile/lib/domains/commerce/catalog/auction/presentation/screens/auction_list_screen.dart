@@ -11,7 +11,7 @@ import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/a
 /// Auction List Screen
 ///
 /// Shows active auctions in a 2-column grid layout
-/// Uses exploreAuctionsStreamProvider from auction_refactor
+/// Uses marketplaceAuctionsStreamProvider from auction_refactor
 class AuctionListScreen extends ConsumerStatefulWidget {
   const AuctionListScreen({super.key});
 
@@ -22,7 +22,7 @@ class AuctionListScreen extends ConsumerStatefulWidget {
 class _AuctionListScreenState extends ConsumerState<AuctionListScreen> {
   @override
   Widget build(BuildContext context) {
-    final auctionsAsync = ref.watch(exploreAuctionsStreamProvider);
+    final auctionsAsync = ref.watch(marketplaceAuctionsStreamProvider);
 
     return PopScope(
       canPop: true,

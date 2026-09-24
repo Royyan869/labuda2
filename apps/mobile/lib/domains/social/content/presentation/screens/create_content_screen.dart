@@ -13,7 +13,6 @@ import 'package:labuda/domains/social/content/presentation/widgets/create_conten
 import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_submission_handler.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_toolbar_section.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_type_visibility_header.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
 import 'package:labuda/shared/entities/post_location.dart' as loc;
 import 'package:labuda/shared/widgets/user_search_bottom_sheet.dart';
 
@@ -220,16 +219,10 @@ class _CreateContentScreenState extends ConsumerState<CreateContentScreen> {
         throw Exception('User not authenticated');
       }
 
-      // Pre-flight gate: backend will reject this with EMAIL_VERIFICATION_REQUIRED
-      // anyway. Pre-flighting here avoids burning a background upload only to
-      // surface the failure after the user has already navigated to home.
-      if (!authState.emailVerified) {
-        await showBlockedActionGate(
-          context,
-          actionDescription: 'membuat konten',
-        );
-        return;
-      }
+      // D2 HARD GATE (design scope v2): no client-side email-verification
+      // preflight — every authenticated user is already verified. The
+      // backend stays authoritative for EMAIL_VERIFICATION_REQUIRED on the
+      // submission result.
 
       final uploadProgressNotifier = ref.read(uploadProgressProvider.notifier);
       final taskId = ContentSubmissionHandler.startUploadTask(

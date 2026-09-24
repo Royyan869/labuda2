@@ -62,8 +62,9 @@ var AcknowledgedNoHandlerEvents = map[string]NoHandlerEntry{
 	// =========================================================================
 	// SELLER SUBSCRIPTION
 	// =========================================================================
-	// P5B-C: seller.subscription.activated now consumed by SetupPromotionHandlers
-	// (resumes paused promotions on subscription re-activation).
+	// seller.subscription.activated needs no promotion handler: promotion
+	// target/seller operability is read-time (canonical OperabilityChecker),
+	// and contracts never pause on subscription loss (delivery gate only).
 
 	// =========================================================================
 	// FINANCE — MONEY EVENTS
@@ -122,8 +123,9 @@ var AcknowledgedNoHandlerEvents = map[string]NoHandlerEntry{
 		Class: NoHandlerAuditOnly,
 		Note:  "auction activation audit trail",
 	},
-	// P4C1: auction.cancelled + auction.ended moved to knownConsumedEvents —
-	// promotion event handlers now ENABLED (SetupPromotionHandlers).
+	// auction.cancelled / auction.ended are consumed by notification handlers
+	// only — promotion target operability is read-time (no promotion event
+	// handlers exist; legacy SetupPromotionHandlers was purged).
 	"auction.claimed": {
 		Class: NoHandlerAuditOnly,
 		Note:  "auction claim (winner acceptance) audit trail",

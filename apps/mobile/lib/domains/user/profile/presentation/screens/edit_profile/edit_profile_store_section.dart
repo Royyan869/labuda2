@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/store_name_form_field.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/helpers/canonical_url_validator.dart';
 
@@ -21,18 +22,9 @@ class EditProfileStoreSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        AppTextField(
-          controller: storeNameController,
-          labelText: 'Store Name',
-          hintText: 'Enter your store name',
-          prefixIcon: Icons.store_outlined,
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Store name is required';
-            }
-            return null;
-          },
-        ),
+        // SINGLE AUTHORITY: canonical store/farm name field shared with the
+        // seller registration wizard — same label, hint, and validation.
+        StoreNameFormField(controller: storeNameController),
         const SizedBox(height: 16),
         AppTextField(
           controller: websiteController,

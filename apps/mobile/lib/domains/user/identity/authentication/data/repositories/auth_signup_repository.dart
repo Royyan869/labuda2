@@ -66,11 +66,14 @@ class AuthSignUpRepository {
     }
   }
 
-  /// Map Firebase Auth errors to user-friendly English messages
+  /// Map Firebase Auth errors to user-friendly messages.
+  /// `email-already-in-use` is the canonical duplicate-email signal that
+  /// Firebase already enforces — no pre-flight `fetchSignInMethodsForEmail`
+  /// is introduced (LABUDA_IDENTITY_AUTH_DESIGN_PROPOSAL.md:4.6).
   String _mapFirebaseError(FirebaseAuthException e) {
     switch (e.code) {
       case 'email-already-in-use':
-        return 'Email already used';
+        return 'Email ini sudah terdaftar. Silakan masuk dengan Google atau gunakan email lain.';
       case 'weak-password':
         return 'Password too weak';
       case 'invalid-email':

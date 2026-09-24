@@ -4,7 +4,6 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/social/share/domain/entities/share_target.dart';
 import 'package:labuda/domains/social/share/presentation/providers/share_notifier.dart';
 import 'package:labuda/domains/social/share/presentation/providers/share_state.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
 import 'package:labuda/features/home/home.dart';
 import 'share_preview_card.dart';
 
@@ -250,16 +249,10 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
       return;
     }
 
-    // Pre-flight gate: share-as-post creates a new Post → BLOCKED for
-    // unverified users per email-gating-matrix ("Create post").
-    if (authState is AuthStateAuthenticated && !authState.emailVerified) {
-      await showBlockedActionGate(
-        context,
-        actionDescription: 'membagikan ke feed',
-      );
-      return;
-    }
-
+    // D2 HARD GATE (design scope v2): no client-side email-verification
+    // preflight. Every authenticated user has already proven a verified
+    // email before the exchange; the backend stays authoritative for any
+    // EMAIL_VERIFICATION_REQUIRED rejection surfaced by the share notifier.
     setState(() => _isLoading = true);
 
     final notifier = ref.read(shareNotifierProvider.notifier);

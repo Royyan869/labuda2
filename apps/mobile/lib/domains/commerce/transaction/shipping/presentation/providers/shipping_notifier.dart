@@ -35,7 +35,8 @@ class ShippingNotifier extends Notifier<ShippingSetupsListState> {
     state = newState;
   }
 
-  /// Create new shipping option
+  /// Create a shipping option as ONE package (identity + destinations).
+  /// Bare options without destinations are rejected by the backend gate.
   Future<String?> createShippingSetup(
     CreateShippingSetupRequest request,
   ) async {
@@ -52,7 +53,9 @@ class ShippingNotifier extends Notifier<ShippingSetupsListState> {
     }
   }
 
-  /// Update shipping option
+  /// Update a shipping option as ONE package (full destination replace when
+  /// destinations are provided). Editing is allowed at any time — orders keep
+  /// their checkout snapshot.
   Future<bool> updateShippingSetup(
     String optionId,
     UpdateShippingSetupRequest request,
@@ -70,7 +73,8 @@ class ShippingNotifier extends Notifier<ShippingSetupsListState> {
     }
   }
 
-  /// Delete shipping option
+  /// Delete shipping option. Refused by the backend while the option is
+  /// linked to any listing — the seller must deactivate instead.
   Future<bool> deleteShippingSetup(String optionId) async {
     final result = await _repository.deleteShippingSetup(optionId);
 
@@ -81,7 +85,7 @@ class ShippingNotifier extends Notifier<ShippingSetupsListState> {
     return false;
   }
 
-  /// Toggle active status
+  /// Toggle active status (canonical retire/restore path).
   Future<bool> toggleActiveStatus(String optionId, bool isActive) async {
     final result = await _repository.toggleActiveStatus(optionId, isActive);
 
@@ -93,88 +97,6 @@ class ShippingNotifier extends Notifier<ShippingSetupsListState> {
   }
 }
 
-/// Notifier untuk Single Shipping Option Detail
-class ShippingSetupDetailNotifier extends Notifier<ShippingSetupDetailState> {
-  ShippingRepository get _repository => ref.read(shippingRepositoryProvider);
-
-  @override
-  ShippingSetupDetailState build() {
-    return const ShippingSetupDetailInitial();
-  }
-
-  /// Load single shipping option by ID
-  Future<void> loadOption(String optionId) async {
-    state = const ShippingSetupDetailLoading();
-    final result = await _repository.getShippingSetupById(optionId);
-
-    final newState = result.isSuccess && result.data != null
-        ? ShippingSetupDetailLoaded(result.data!)
-        : ShippingSetupDetailError(result.error ?? 'Unknown error');
-    state = newState;
-  }
-
-  /// Add coverage to current option
-  Future<bool> addCoverage(String optionId, AddCoverageRequest request) async {
-    final result = await _repository.addCoverage(optionId, request);
-
-    if (result.isSuccess) {
-      loadOption(optionId);
-      return true;
-    } else {
-      final newState = ShippingSetupDetailError(
-        result.error ?? 'Unknown error',
-      );
-      state = newState;
-      return false;
-    }
-  }
-
-  /// Update coverage
-  Future<bool> updateCoverage(
-    String coverageId,
-    UpdateCoverageRequest request,
-  ) async {
-    final result = await _repository.updateCoverage(coverageId, request);
-
-    if (result.isSuccess) {
-      final currentState = state;
-      if (currentState is ShippingSetupDetailLoaded) {
-        loadOption(currentState.option.id);
-      }
-      return true;
-    } else {
-      final newState = ShippingSetupDetailError(
-        result.error ?? 'Unknown error',
-      );
-      state = newState;
-      return false;
-    }
-  }
-
-  /// Delete coverage
-  Future<bool> deleteCoverage(String coverageId) async {
-    final result = await _repository.deleteCoverage(coverageId);
-
-    if (result.isSuccess) {
-      final currentState = state;
-      if (currentState is ShippingSetupDetailLoaded) {
-        loadOption(currentState.option.id);
-      }
-      return true;
-    } else {
-      final newState = ShippingSetupDetailError(
-        result.error ?? 'Unknown error',
-      );
-      state = newState;
-      return false;
-    }
-  }
-}
-
-// Phase 3 cleanup: DeliveryCheckNotifier and ShippingProofNotifier removed.
-// Both had zero consumers — the buyer-side delivery check flow uses
-// shippingRepository.checkDeliveryAvailability directly from
-// auction_claim_shipping_modal.dart, and the shipping-proof upload flow runs
-// through order_repository_impl.dart against the order datasource (not via
-// the shipping notifier). The underlying repository methods on
-// ShippingRepository / ShippingProofRepository remain available for future use.
+// KILLED DESIGN: ShippingSetupDetailNotifier (add/update/delete coverage)
+// removed with the per-coverage CRUD contract. Destinations are authored
+// inside the one-package setup screen and saved via create/update package.

@@ -358,10 +358,9 @@ class UserSyncService {
     );
   }
 
-  /// Check if username is available
-  Future<Result<bool>> checkUsernameAvailability(String username) async {
-    return _datasource.checkUsernameAvailability(username);
-  }
+  // Username availability is backend authority only (exchange /
+  // complete-profile decide transactionally; rejections surface as structured
+  // codes). Local validation is format-only — see CanonicalUsernameValidator.
 
   /// Update avatar URL
   Future<Result<AuthUser>> updateAvatar(String userId, String avatarUrl) async {

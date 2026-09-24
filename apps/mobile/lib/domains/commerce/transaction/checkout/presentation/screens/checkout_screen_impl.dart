@@ -61,7 +61,6 @@ import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart';
 import 'package:labuda/domains/commerce/transaction/order/presentation/providers/order_providers.dart';
 import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
 import 'package:labuda/domains/finance/transaction/payment/presentation/presentation.dart'
     show
         InitiatePaymentRequest,
@@ -315,14 +314,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     ref.listen<CheckoutState>(checkoutNotifierProvider, (previous, next) {
       if (next.error != null && mounted) {
         final errorMessage = next.error!;
-        // Inline gate: backend rejected order creation because the user's
-        // email is not verified. Buy-now and direct checkout funnel through
-        // this same notifier, so the gate covers both call sites.
+        // Backend-rejection handler (defense-in-depth): the backend stays
+        // the single authority for EMAIL_VERIFICATION_REQUIRED. Buy-now and
+        // direct checkout funnel through this same notifier.
         if (next.errorCode == api_codes.emailVerificationRequired) {
           ref.read(checkoutNotifierProvider.notifier).clearError();
-          showBlockedActionGate(
+          AppSnackBar.showError(
             context,
-            actionDescription: 'melakukan checkout',
+            'Verifikasi email kamu diperlukan sebelum melakukan checkout.',
           );
           return;
         }

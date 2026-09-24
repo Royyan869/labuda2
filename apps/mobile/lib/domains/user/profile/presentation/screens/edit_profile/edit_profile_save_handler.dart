@@ -225,7 +225,9 @@ mixin EditProfileSaveHandler<T extends ConsumerStatefulWidget>
         }
         return null;
       }
-      photoUrl = result.data;
+      // Persist the STORAGE KEY — backend PATCH /seller/profile validates the
+      // canonical key form, never a resolved read URL.
+      photoUrl = result.data!.storageKey;
     }
 
     return FarmInfo(

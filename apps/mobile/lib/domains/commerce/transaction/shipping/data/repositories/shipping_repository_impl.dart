@@ -86,8 +86,12 @@ class ShippingRepositoryImpl implements ShippingRepository {
   ) async {
     try {
       _logger.info(
-        'Creating shipping option',
-        extra: {'name': request.name, 'type': request.type.name},
+        'Creating shipping option package',
+        extra: {
+          'name': request.name,
+          'type': request.type.name,
+          'destinations': request.destinations.length,
+        },
       );
 
       final json = ShippingSetupMapper.toCreateJson(request);
@@ -95,13 +99,13 @@ class ShippingRepositoryImpl implements ShippingRepository {
       final option = ShippingSetupMapper.toEntity(dto);
 
       _logger.info(
-        'Shipping option created successfully',
+        'Shipping option package created successfully',
         extra: {'optionId': option.id},
       );
       return Result.success(option);
     } catch (e, stackTrace) {
       _logger.error(
-        'Failed to create shipping option',
+        'Failed to create shipping option package',
         extra: {'error': e.toString()},
         stackTrace: stackTrace,
       );
@@ -117,8 +121,7 @@ class ShippingRepositoryImpl implements ShippingRepository {
     try {
       _logger.info('Updating shipping option', extra: {'optionId': optionId});
 
-      final json = ShippingSetupMapper.toUpdateJson(request);
-      final dto = await _datasource.updateShippingSetup(optionId, json);
+      final dto = await _datasource.updateShippingSetup(optionId, request.toJson());
       final option = ShippingSetupMapper.toEntity(dto);
 
       _logger.info('Shipping option updated successfully');
@@ -131,25 +134,6 @@ class ShippingRepositoryImpl implements ShippingRepository {
       );
       return Result.error('Failed to update shipping option: $e');
     }
-  }
-
-  @override
-  Future<Result<ShippingSetup>> updateShippingSetupFull(
-    String optionId,
-    UpdateShippingSetupFullRequest request,
-  ) async {
-    // Fallback aman sementara: membungkus dummy ShippingSetup agar rantai
-    // compiler & alur screen tidak putus. TODO: implementasi API nyata.
-    return Result.success(
-      ShippingSetup(
-        id: optionId,
-        name: request.name,
-        type: request.transportType,
-        coverageAreas: const [],
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ),
-    );
   }
 
   @override
@@ -197,82 +181,10 @@ class ShippingRepositoryImpl implements ShippingRepository {
   }
 
   // =====================================
-  // Coverage Management
-  // =====================================
-
-  @override
-  Future<Result<ShippingCoverage>> addCoverage(
-    String optionId,
-    AddCoverageRequest request,
-  ) async {
-    try {
-      _logger.info(
-        'Adding coverage to shipping option',
-        extra: {'optionId': optionId, 'provinceCode': request.provinceCode},
-      );
-
-      final json = ShippingCoverageMapper.toAddCoverageJson(request);
-      final dto = await _datasource.addCoverage(optionId, json);
-      final coverage = ShippingCoverageMapper.toEntity(dto);
-
-      _logger.info('Coverage added successfully');
-      return Result.success(coverage);
-    } catch (e, stackTrace) {
-      _logger.error(
-        'Failed to add coverage',
-        extra: {'error': e.toString()},
-        stackTrace: stackTrace,
-      );
-      return Result.error('Failed to add coverage: $e');
-    }
-  }
-
-  @override
-  Future<Result<ShippingCoverage>> updateCoverage(
-    String coverageId,
-    UpdateCoverageRequest request,
-  ) async {
-    try {
-      _logger.info('Updating coverage', extra: {'coverageId': coverageId});
-
-      final json = ShippingCoverageMapper.toUpdateCoverageJson(request);
-      final dto = await _datasource.updateCoverage(coverageId, json);
-      final coverage = ShippingCoverageMapper.toEntity(dto);
-
-      _logger.info('Coverage updated successfully');
-      return Result.success(coverage);
-    } catch (e, stackTrace) {
-      _logger.error(
-        'Failed to update coverage',
-        extra: {'error': e.toString()},
-        stackTrace: stackTrace,
-      );
-      return Result.error('Failed to update coverage: $e');
-    }
-  }
-
-  @override
-  Future<Result<void>> deleteCoverage(String coverageId) async {
-    try {
-      _logger.info('Deleting coverage', extra: {'coverageId': coverageId});
-
-      await _datasource.deleteCoverage(coverageId);
-
-      _logger.info('Coverage deleted successfully');
-      return Result.success(null);
-    } catch (e, stackTrace) {
-      _logger.error(
-        'Failed to delete coverage',
-        extra: {'error': e.toString()},
-        stackTrace: stackTrace,
-      );
-      return Result.error('Failed to delete coverage: $e');
-    }
-  }
-
-  // =====================================
   // Product-Shipping Link
   // =====================================
+  // KILLED DESIGN: per-coverage CRUD repository methods are gone —
+  // destinations live inside the one-package create/update payload only.
 
   @override
   Future<Result<void>> setProductShippingSetups(

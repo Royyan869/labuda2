@@ -78,6 +78,54 @@ void main() {
     });
   });
 
+  group('AuthStatePendingEmailVerification (D2 hard gate)', () {
+    const verifyState = AuthState.pendingEmailVerification(
+      email: 'pending@test.com',
+      username: 'newbie',
+    );
+
+    test('from /splash redirects to /auth/verify-email', () {
+      final result = handleAuthRedirectForTest(
+        verifyState,
+        AppAuthStatus.initializing,
+        '/splash',
+      );
+      expect(result, equals('/auth/verify-email'));
+    });
+
+    test('from /home redirects to /auth/verify-email', () {
+      final result = handleAuthRedirectForTest(
+        verifyState,
+        AppAuthStatus.initializing,
+        '/home',
+      );
+      expect(result, equals('/auth/verify-email'));
+    });
+
+    test('already on /auth/verify-email stays (exclusive surface)', () {
+      final result = handleAuthRedirectForTest(
+        verifyState,
+        AppAuthStatus.initializing,
+        '/auth/verify-email',
+      );
+      expect(result, isNull);
+    });
+
+    test('the verify surface is EXCLUSIVE: a state that has left the gate '
+        '(e.g. post-verification USERNAME_TAKEN → unauthenticated) cannot '
+        'linger on it', () {
+      // After a username rejection the session returns to unauthenticated so
+      // the registration form can retry; the router must move the user off
+      // the gate screen to /welcome — never park them on a dead gate.
+      final result = handleAuthRedirectForTest(
+        const AuthState.unauthenticated(),
+        AppAuthStatus.unauthenticated,
+        '/auth/verify-email',
+      );
+      expect(result, equals('/welcome'));
+    });
+  });
+
   group('AuthStateRequiresProfileCompletion', () {
     const profileState = AuthState.requiresProfileCompletion(
       userId: 'user-1',

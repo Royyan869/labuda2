@@ -273,11 +273,12 @@ func newTestSubscriptionInitiateHandler(t *testing.T, paymentRepo subscriptionPa
 		paymentRepo:       paymentRepo,
 		paymentMethodRepo: &testPaymentMethodRepo{
 			method: &paymentmethodentity.Method{
-				Code:        "bca_va",
-				DisplayName: "BCA Virtual Account",
-				Enabled:     true,
-				FeeType:     paymentmethodentity.FeeTypePercent,
-				PercentBps:  250, // 2.5%
+				Code:             "bca_va",
+				DisplayName:      "BCA Virtual Account",
+				Enabled:          true,
+				FeeType:          paymentmethodentity.FeeTypePercent,
+				PercentBps:       250, // 2.5%
+				MidtransChannels: []string{"bca_va"},
 			},
 		},
 		midtransClient: snapClient,
@@ -795,4 +796,160 @@ func TestBuildSubscriptionPaymentMethodOptions_SkipsInvalidFeeFormula(t *testing
 	assert.Equal(t, "flat", options[0].MethodCode)
 	assert.Equal(t, int64(72500), options[0].GrossAmount)
 	assert.Equal(t, []string{"broken"}, skipped)
+}
+
+// ============================================================================
+// SNAP CHANNEL RESTRICTION (canonical method.MidtransChannels)
+// ============================================================================
+
+// TestInitiateSubscriptionPaymentTx_FreshSnapCarriesMethodMidtransChannels
+// locks the Snap channel restriction on the fresh-payment branch: EnabledPayments
+// is built directly from the canonical method row — exactly the MidtransChannels
+// bucket of the method the seller selected, never nil and never every
+// merchant-enabled channel.
+func TestInitiateSubscriptionPaymentTx_FreshSnapCarriesMethodMidtransChannels(t *testing.T) {
+	userID := uuid.New()
+	snapClient := &testSnapClient{}
+	handler := newTestSubscriptionInitiateHandler(
+		t,
+		&testSubscriptionPaymentRepo{},
+		snapClient,
+		&testSubscriptionRepo{config: newTestSubscriptionConfig()},
+	)
+
+	_, err := handler.initiateSubscriptionPaymentTx(
+		newTestGinContext(), context.Background(), &testTx{}, userID, "bca_va",
+	)
+
+	require.NoError(t, err)
+	require.NotNil(t, snapClient.req)
+	assert.Equal(t, []string{"bca_va"}, snapClient.req.EnabledPayments)
+}
+
+// TestInitiateSubscriptionPaymentTx_ReuseSnapCarriesMethodMidtransChannels
+// proves the idempotent/reuse branch (pending payment without a stored URL,
+// Snap called again) carries the same canonical restriction.
+func TestInitiateSubscriptionPaymentTx_ReuseSnapCarriesMethodMidtransChannels(t *testing.T) {
+	userID := uuid.New()
+	existingPayment := &paymentRepository.Payment{
+		ID:              uuid.New(),
+		UserID:          userID,
+		PaymentNumber:   "PAY-SUB-REUSE",
+		MidtransOrderID: "LAB-SUB-REUSE",
+		GrossAmount:     money.New(153750),
+		Status:          paymentRepository.PaymentStatusPending,
+		ReferenceType:   paymentRepository.ReferenceTypeSubscription,
+		ExpiredAt:       time.Now().Add(24 * time.Hour),
+	}
+	paymentRepo := &testSubscriptionPaymentRepo{
+		findPendingFn: func(context.Context, db.Tx, uuid.UUID) (*paymentRepository.Payment, error) {
+			return existingPayment, nil
+		},
+	}
+	snapClient := &testSnapClient{
+		resp: &midtrans.SnapResponse{RedirectURL: "https://midtrans.example/reuse"},
+	}
+	handler := newTestSubscriptionInitiateHandler(
+		t,
+		paymentRepo,
+		snapClient,
+		&testSubscriptionRepo{config: newTestSubscriptionConfig()},
+	)
+
+	_, err := handler.initiateSubscriptionPaymentTx(
+		newTestGinContext(), context.Background(), &testTx{}, userID, "bca_va",
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, snapClient.calls, "reuse branch must call Snap")
+	assert.Zero(t, paymentRepo.createCalls)
+	require.NotNil(t, snapClient.req)
+	assert.Equal(t, []string{"bca_va"}, snapClient.req.EnabledPayments)
+}
+
+// TestInitiateSubscriptionPaymentTx_SnapChannelsFollowCanonicalMethodRow
+// proves the restriction is read from the method row, not hardcoded: a method
+// with a different MidtransChannels bucket produces a different EnabledPayments.
+func TestInitiateSubscriptionPaymentTx_SnapChannelsFollowCanonicalMethodRow(t *testing.T) {
+	userID := uuid.New()
+	snapClient := &testSnapClient{}
+	handler := newTestSubscriptionInitiateHandler(
+		t,
+		&testSubscriptionPaymentRepo{},
+		snapClient,
+		&testSubscriptionRepo{config: newTestSubscriptionConfig()},
+	)
+	handler.paymentMethodRepo = &testPaymentMethodRepo{
+		method: &paymentmethodentity.Method{
+			Code:             "gopay",
+			DisplayName:      "GoPay",
+			Enabled:          true,
+			FeeType:          paymentmethodentity.FeeTypeFlat,
+			FlatAmount:       money.New(4000),
+			MidtransChannels: []string{"gopay", "other_qris"},
+		},
+	}
+
+	_, err := handler.initiateSubscriptionPaymentTx(
+		newTestGinContext(), context.Background(), &testTx{}, userID, "gopay",
+	)
+
+	require.NoError(t, err)
+	require.NotNil(t, snapClient.req)
+	assert.Equal(t, []string{"gopay", "other_qris"}, snapClient.req.EnabledPayments)
+}
+
+// TestSellerHandler_SubscriptionSnapBranchesCarryMethodChannels is a source
+// proof: inside initiateSubscriptionPaymentTx there must be exactly the two
+// canonical EnabledPayments assignments (fresh + reuse branch), both sourced
+// from method.MidtransChannels, and no nil/empty/hardcoded alternative.
+func TestSellerHandler_SubscriptionSnapBranchesCarryMethodChannels(t *testing.T) {
+	f, err := os.Open("seller_handler.go")
+	if err != nil {
+		t.Fatalf("failed to open seller_handler.go: %v", err)
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	inFunc := false
+	foundFunc := false
+	braceDepth := 0
+	canonical := 0
+	lineNum := 0
+	for scanner.Scan() {
+		lineNum++
+		line := scanner.Text()
+
+		if !inFunc {
+			if strings.Contains(line, "func (h *SellerHandler) initiateSubscriptionPaymentTx") {
+				inFunc = true
+				foundFunc = true
+				braceDepth = strings.Count(line, "{") - strings.Count(line, "}")
+			}
+			continue
+		}
+
+		braceDepth += strings.Count(line, "{") - strings.Count(line, "}")
+
+		if strings.Contains(line, "EnabledPayments:") {
+			if strings.Contains(line, "EnabledPayments: method.MidtransChannels,") {
+				canonical++
+			} else {
+				t.Fatalf("seller_handler.go:%d: non-canonical EnabledPayments assignment inside initiateSubscriptionPaymentTx: %q", lineNum, line)
+			}
+		}
+
+		if braceDepth <= 0 {
+			break
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatalf("failed to scan seller_handler.go: %v", err)
+	}
+	if !foundFunc {
+		t.Fatal("initiateSubscriptionPaymentTx function not found — subscription payment logic may have moved")
+	}
+	if canonical != 2 {
+		t.Fatalf("want exactly 2 canonical EnabledPayments assignments (fresh + reuse branch) in initiateSubscriptionPaymentTx, got %d", canonical)
+	}
 }

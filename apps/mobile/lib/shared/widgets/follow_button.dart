@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
 import 'package:labuda/domains/social/follow/follow.dart';
 
 // Alias for easier access
@@ -212,22 +211,11 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
     String currentUserName,
     bool currentFollowStatus,
   ) async {
-    // Preflight for FOLLOW only: backend gates POST /users/:id/follow with
-    // RequireInteractionAuthority (email-verified). Unfollow stays open by
-    // doctrine so reducing a relationship is never blocked by an interaction
-    // gate. The backend remains authoritative — this preflight just avoids
-    // a guaranteed 403 round-trip.
-    if (!currentFollowStatus) {
-      final authState = ref.read(authControllerProvider);
-      if (authState is AuthStateAuthenticated && !authState.emailVerified) {
-        await showBlockedActionGate(
-          context,
-          actionDescription: 'mengikuti pengguna',
-        );
-        return;
-      }
-    }
-
+    // D2 HARD GATE (design scope v2): no client-side email-verification
+    // preflight. Every authenticated user has already proven a verified
+    // email before the exchange; the backend stays authoritative and its
+    // EMAIL_VERIFICATION_REQUIRED rejection is handled by the follows
+    // provider error path.
     setState(() {
       _isLoading = true;
     });

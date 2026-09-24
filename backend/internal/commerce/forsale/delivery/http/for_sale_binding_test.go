@@ -36,7 +36,7 @@ func TestCreateForSaleRequest_IgnoresTypedMediaPayload(t *testing.T) {
 		"title": "Kohaku ForSale",
 		"description": "A test for_sale",
 		"price": 10000,
-		"visibility": "public",
+		"shipping_setup_ids": ["11111111-1111-1111-1111-111111111111"],
 		"media": [
 			{"type":"image","url":"https://cdn.example.com/a.jpg"},
 			{"type":"video","url":"https://cdn.example.com/b.mp4","duration":12}
@@ -55,7 +55,7 @@ func TestCreateForSaleRequest_BindsLegacyMediaURLs(t *testing.T) {
 		"title": "Kohaku ForSale",
 		"description": "A test for_sale",
 		"price": 10000,
-		"visibility": "public",
+		"shipping_setup_ids": ["11111111-1111-1111-1111-111111111111"],
 		"media_urls": [
 			"https://cdn.example.com/a.jpg"
 		]

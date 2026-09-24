@@ -13,37 +13,21 @@ import 'package:labuda/shared/utils/app_formatters.dart';
 import 'package:labuda/shared/widgets/wilayah/city_dropdown.dart';
 
 class ShippingSetupScreen extends ConsumerStatefulWidget {
-  /// When non-null the screen operates in edit mode: form fields are
-  /// pre-filled from this option and coverages are shown read-only.
-  final ShippingSetup? editOption;
-
-  /// When non-null the screen fetches the canonical detail by this ID
-  /// and then hydrates the form. Takes precedence over [editOption].
+  /// Canonical edit mode: the screen fetches the full package (option +
+  /// coverages + city qualifications) by this ID and hydrates the form.
+  /// Hydrating from a client-side object is forbidden — only the backend
+  /// detail endpoint guarantees complete destinations.
   final String? editOptionId;
 
-  const ShippingSetupScreen({super.key, this.editOption, this.editOptionId});
+  const ShippingSetupScreen({super.key, this.editOptionId});
 
   /// Opens the setup page in create mode.
   static Future<ShippingSetup?> open(BuildContext context) {
     return context.push<ShippingSetup>(RoutePaths.sellerShippingSetup);
   }
 
-  /// Opens the setup page in edit mode for the given option.
-  /// Prefer [openEditById] to ensure the editor is hydrated from the
-  /// canonical detail endpoint.
-  static Future<ShippingSetup?> openEdit(
-    BuildContext context,
-    ShippingSetup option,
-  ) {
-    return context.push<ShippingSetup>(
-      RoutePaths.sellerShippingSetup,
-      extra: option,
-    );
-  }
-
   /// Opens the setup page in edit mode by fetching the canonical detail
-  /// for [optionId]. This is the recommended path — it guarantees the
-  /// form is hydrated with full coverages and city rules.
+  /// for [optionId]. This is the ONLY edit path.
   static Future<ShippingSetup?> openEditById(
     BuildContext context,
     String optionId,
@@ -54,7 +38,7 @@ class ShippingSetupScreen extends ConsumerStatefulWidget {
     );
   }
 
-  bool get isEditMode => editOption != null || editOptionId != null;
+  bool get isEditMode => editOptionId != null;
 
   @override
   ConsumerState<ShippingSetupScreen> createState() =>
@@ -113,15 +97,15 @@ class _ShippingSetupScreenState
   @override
   void initState() {
     super.initState();
-    final option = widget.editOption;
-    if (option != null) {
-      _hydrateFromOption(option);
-    } else if (widget.editOptionId != null) {
+    if (widget.editOptionId != null) {
       _detailLoading = true;
       WidgetsBinding.instance.addPostFrameCallback((_) => _fetchDetail());
     }
   }
 
+  /// Hydrates the editor from the canonical backend detail (full package:
+  /// option + destinations + city qualifications). There is no client-side
+  /// hydration path — edit always goes through the backend detail endpoint.
   void _hydrateFromOption(ShippingSetup option) {
     _type = option.type;
     _nameController.text = option.name;
@@ -318,8 +302,10 @@ class _ShippingSetupScreenState
       return 'Nama opsi wajib diisi.';
     }
 
+    // BUSINESS GATE: at least one complete destination (province + all-in
+    // rate) is mandatory — a bare option can never be saved.
     if (_coverages.isEmpty) {
-      return 'Tambahkan minimal satu provinsi.';
+      return 'Tambahkan minimal satu provinsi tujuan beserta tarifnya.';
     }
 
     final seenProvinces = <String>{};
@@ -361,7 +347,44 @@ class _ShippingSetupScreenState
     return null;
   }
 
+  /// Save-gate for the action bar: enabled only when the package is
+  /// complete — type + name + at least one destination with a rate.
+  bool get _canSave {
+    if (_type == null) return false;
+    if (_nameController.text.trim().isEmpty) return false;
+    return _coverages.any(
+      (coverage) =>
+          coverage.province != null &&
+          (int.tryParse(coverage.tariffController.text.trim()) ?? 0) > 0,
+    );
+  }
+
+  List<ShippingDestinationRequest> _buildDestinations() {
+    return _coverages.map((coverage) {
+      final province = coverage.province!;
+      final tariff = int.parse(coverage.tariffController.text.trim());
+      return ShippingDestinationRequest(
+        provinceCode: province.id,
+        provinceName: province.name,
+        rate: tariff,
+        isAvailable: true,
+        cityQualifications: coverage.cityRules
+            .map(
+              (rule) => CityQualificationRequest(
+                cityCode: rule.cityId,
+                cityName: rule.cityName,
+                rateOverride: rule.overrideTariff,
+                excluded: rule.excluded,
+              ),
+            )
+            .toList(growable: false),
+      );
+    }).toList(growable: false);
+  }
+
   Future<void> _submit() async {
+    // ignore: avoid_print
+    print('DEBUG-SOURCE _submit entered');
     final validationError = _validate();
     if (validationError != null) {
       setState(() => _errorMessage = validationError);
@@ -373,44 +396,21 @@ class _ShippingSetupScreenState
       _errorMessage = null;
     });
 
-    final repo = ref.read(shippingRepositoryProvider);
+    final destinations = _buildDestinations();
+    final noteText = _internalNoteController.text.trim();
 
     if (_isEditMode) {
-      final fullRequest = UpdateShippingSetupFullRequest(
-        name: _nameController.text.trim(),
-        transportType: _type!,
-        internalNote: _internalNoteController.text.trim().isEmpty
-            ? null
-            : _internalNoteController.text.trim(),
-        coverages: _coverages
-            .map((coverage) {
-              final province = coverage.province!;
-              final tariff =
-                  int.parse(coverage.tariffController.text.trim());
-              return UpdateShippingCoverageRequest(
-                provinceId: province.id,
-                provinceName: province.name,
-                tariff: tariff,
-                cityRules: coverage.cityRules
-                    .map(
-                      (rule) => CreateShippingCityRuleRequest(
-                        cityId: rule.cityId,
-                        cityName: rule.cityName,
-                        overrideTariff: rule.overrideTariff,
-                        excluded: rule.excluded,
-                      ),
-                    )
-                    .toList(growable: false),
-              );
-            })
-            .toList(growable: false),
-      );
-
+      final optionId = widget.editOptionId!;
       final result = await ref
           .read(shippingRepositoryProvider)
-          .updateShippingSetupFull(
-            widget.editOption!.id,
-            fullRequest,
+          .updateShippingSetup(
+            optionId,
+            UpdateShippingSetupRequest(
+              name: _nameController.text.trim(),
+              type: _type!,
+              internalNote: noteText.isEmpty ? null : noteText,
+              destinations: destinations,
+            ),
           );
 
       if (!mounted) return;
@@ -426,37 +426,17 @@ class _ShippingSetupScreenState
       return;
     }
 
-    // Create mode — full atomic request with coverages
+    // Create mode — ONE package: identity + destinations in one request.
     final request = CreateShippingSetupRequest(
       name: _nameController.text.trim(),
       type: _type!,
-      internalNote: _internalNoteController.text.trim().isEmpty
-          ? null
-          : _internalNoteController.text.trim(),
-      coverages: _coverages
-          .map((coverage) {
-            final province = coverage.province!;
-            final tariff = int.parse(coverage.tariffController.text.trim());
-            return CreateShippingCoverageRequest(
-              provinceId: province.id,
-              provinceName: province.name,
-              tariff: tariff,
-              cityRules: coverage.cityRules
-                  .map(
-                    (rule) => CreateShippingCityRuleRequest(
-                      cityId: rule.cityId,
-                      cityName: rule.cityName,
-                      overrideTariff: rule.overrideTariff,
-                      excluded: rule.excluded,
-                    ),
-                  )
-                  .toList(growable: false),
-            );
-          })
-          .toList(growable: false),
+      internalNote: noteText.isEmpty ? null : noteText,
+      destinations: destinations,
     );
 
-    final result = await repo.createShippingSetup(request);
+    final result = await ref
+        .read(shippingRepositoryProvider)
+        .createShippingSetup(request);
 
     if (!mounted) return;
 
@@ -664,17 +644,55 @@ class _ShippingSetupScreenState
                     setState(() => _errorMessage = null);
                   },
                   decoration: const InputDecoration(
-                    labelText: 'Catatan internal (opsional)',
-                    hintText: 'Contoh: box besar',
+                    labelText: 'Catatan pribadi (opsional, hanya untuk Anda)',
+                    hintText: 'Contoh: kantong besar, untuk 10 ekor',
+                    helperText:
+                        'Pengingat pribadi untuk memilih opsi ini saat membuat '
+                        'ForSale — tidak pernah tampil ke pembeli.',
                     border: OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  'Cakupan dan tarif',
+                  'Tujuan dan tarif',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 8),
+                // BUSINESS TRUTH: the tariff is ALL-IN (shipping + packing).
+                // There is no separate packing field by design — this hint is
+                // the only packing-related surface.
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryBlue.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppColors.primaryBlue.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.inventory_2_outlined,
+                        size: 16,
+                        color: AppColors.primaryBlue,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Input biaya pengiriman beserta biaya packing jika ada. '
+                          'Di sisi pembeli, tarif ini tampil sebagai "Ongkir + Packing".',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.neutralGray700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
                 ...List.generate(_coverages.length, (index) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
@@ -733,10 +751,13 @@ class _ShippingSetupScreenState
           const SizedBox(width: 12),
           Expanded(
             child: ElevatedButton(
-              onPressed: _isSubmitting ? null : _submit,
+              // Save gate: enabled only when the package is complete
+              // (type + name + ≥1 destination with a rate).
+              onPressed: (_isSubmitting || !_canSave) ? null : _submit,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryRed,
                 foregroundColor: Colors.white,
+                disabledBackgroundColor: AppColors.neutralGray300,
                 minimumSize: const Size.fromHeight(50),
               ),
               child: _isSubmitting
@@ -1073,7 +1094,7 @@ class _CoverageCard extends StatelessWidget {
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             onChanged: (_) => onTariffChanged(),
             decoration: const InputDecoration(
-              labelText: 'Tarif provinsi *',
+              labelText: 'Tarif provinsi (ongkir + packing) *',
               prefixText: 'Rp ',
               border: OutlineInputBorder(),
             ),
@@ -1224,7 +1245,7 @@ class _CityRuleEditorDialogState extends ConsumerState<_CityRuleEditorDialog> {
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(
-                  labelText: 'Tarif override',
+                  labelText: 'Tarif override (ongkir + packing)',
                   prefixText: 'Rp ',
                   border: OutlineInputBorder(),
                 ),

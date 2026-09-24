@@ -122,9 +122,9 @@ class _FakeShippingRepository implements ShippingRepository {
   ) async => Result.error('not used');
 
   @override
-  Future<Result<ShippingSetup>> updateShippingSetupFull(
+  Future<Result<ShippingSetup>> updateShippingSetup(
     String optionId,
-    UpdateShippingSetupFullRequest request,
+    UpdateShippingSetupRequest request,
   ) async => Result.error('not used');
 
   @override
@@ -136,22 +136,6 @@ class _FakeShippingRepository implements ShippingRepository {
     String optionId,
     bool isActive,
   ) async => Result.error('not used');
-
-  @override
-  Future<Result<ShippingCoverage>> addCoverage(
-    String optionId,
-    AddCoverageRequest request,
-  ) async => Result.error('not used');
-
-  @override
-  Future<Result<ShippingCoverage>> updateCoverage(
-    String coverageId,
-    UpdateCoverageRequest request,
-  ) async => Result.error('not used');
-
-  @override
-  Future<Result<void>> deleteCoverage(String coverageId) async =>
-      Result.error('not used');
 
   @override
   Future<Result<void>> setProductShippingSetups(

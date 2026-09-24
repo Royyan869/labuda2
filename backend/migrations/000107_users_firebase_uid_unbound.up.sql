@@ -1,0 +1,24 @@
+-- 000107_users_firebase_uid_unbound
+--
+-- users.firebase_uid is the Firebase credential BINDING of a canonical account,
+-- not the account's identity. NULL expresses truthfully "no provider identity
+-- has been bound to this account yet".
+--
+-- Why this exists:
+--   - The account key is the normalized email (users_email_normalized_key).
+--   - users is the account; a Firebase identity is only the credential that
+--     proves control of that email.
+--   - Development/seed fixtures create account rows (with role, capability,
+--     seller profile, domain data) BEFORE any login has happened. Those rows
+--     previously had to carry a fabricated firebase_uid (a UUID string), which
+--     is an alias: an identity that can never authenticate. That is what made
+--     seeded accounts permanently unloggable.
+--
+-- Single writer: POST /api/v1/auth/firebase/exchange binds firebase_uid, and
+-- binds it only when the presented Firebase identity carries a VERIFIED email.
+-- No out-of-band SQL rebinding, no second linking endpoint.
+--
+-- Uniqueness is preserved by users_firebase_uid_key. PostgreSQL allows multiple
+-- NULLs in a unique index, so any number of unbound account rows coexist.
+
+ALTER TABLE users ALTER COLUMN firebase_uid DROP NOT NULL;

@@ -88,6 +88,10 @@ type OrderListItem struct {
 	ServiceFeeAmount   int64      `json:"service_fee_amount"`
 	TotalPayableAmount int64      `json:"total_payable_amount"`
 	ShippingSetupName  string     `json:"shipping_option_name"`
+	// ShippingTransportType is the checkout snapshot of the option's transport
+	// type (train, bus, travel, plane, custom, manual). Buyer-facing label
+	// surfaces combine it with the name: "Ongkir + Packing" tariff semantics.
+	ShippingTransportType string     `json:"shipping_transport_type"`
 	AutoReleaseAt      *int64     `json:"auto_release_at,omitempty"`
 	PaymentID          *uuid.UUID `json:"payment_id,omitempty"` // V1.1 Payment Contract Refactor
 	// PaymentStatus is the status of the active/latest payment for this order.
@@ -320,6 +324,7 @@ func (s *OrderQueryService) convertToListItem(
 		ServiceFeeAmount:   summary.ServiceFeeAmount,
 		TotalPayableAmount: summary.TotalPayableAmount,
 		ShippingSetupName:  summary.ShippingSetupName,
+		ShippingTransportType: summary.ShippingTransportType,
 		CreatedAt:          summary.CreatedAt.Unix(),
 		UpdatedAt:          summary.UpdatedAt.Unix(),
 		DisputeReason:      summary.DisputeReason,

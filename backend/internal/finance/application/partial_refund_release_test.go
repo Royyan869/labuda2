@@ -109,13 +109,13 @@ func TestRecordPartialRefundRelease_BalancedEntries(t *testing.T) {
 	if mock.lastEntries[0].AccountID != gatewayClearingID {
 		t.Errorf("entry[0] account: got %s, want GATEWAY_CLEARING", mock.lastEntries[0].AccountID)
 	}
-	if mock.lastEntries[0].Amount.Int64() != -85_000 {
-		t.Errorf("entry[0] amount: got %d, want -85000", mock.lastEntries[0].Amount.Int64())
+	if mock.lastEntries[0].Amount.Int64() != 85_000 {
+		t.Errorf("entry[0] amount: got %d, want +85000", mock.lastEntries[0].Amount.Int64())
 	}
 
 	// Entry[1]: SELLER_PAYABLE += sellerNet
-	if mock.lastEntries[1].Amount.Int64() != 81_250 {
-		t.Errorf("entry[1] amount: got %d, want +81250 (seller_net)", mock.lastEntries[1].Amount.Int64())
+	if mock.lastEntries[1].Amount.Int64() != -81_250 {
+		t.Errorf("entry[1] amount: got %d, want -81250 (seller_net)", mock.lastEntries[1].Amount.Int64())
 	}
 
 	// Entry[2]: PLATFORM_REVENUE += commission
@@ -123,8 +123,8 @@ func TestRecordPartialRefundRelease_BalancedEntries(t *testing.T) {
 	if mock.lastEntries[2].AccountID != platformRevenueID {
 		t.Errorf("entry[2] account: got %s, want PLATFORM_REVENUE", mock.lastEntries[2].AccountID)
 	}
-	if mock.lastEntries[2].Amount.Int64() != 3_750 {
-		t.Errorf("entry[2] amount: got %d, want +3750 (commission)", mock.lastEntries[2].Amount.Int64())
+	if mock.lastEntries[2].Amount.Int64() != -3_750 {
+		t.Errorf("entry[2] amount: got %d, want -3750 (commission)", mock.lastEntries[2].Amount.Int64())
 	}
 
 	// Verify reference type
@@ -169,8 +169,8 @@ func TestRecordPartialRefundRelease_GatewayClearingDrainsToZero(t *testing.T) {
 
 	// Verify GATEWAY_CLEARING is drained by exactly the remainder
 	gwEntry := mock.lastEntries[0]
-	if gwEntry.Amount.Int64() != -85_000 {
-		t.Fatalf("GATEWAY_CLEARING delta: got %d, want -85000", gwEntry.Amount.Int64())
+	if gwEntry.Amount.Int64() != 85_000 {
+		t.Fatalf("GATEWAY_CLEARING delta: got %d, want +85000", gwEntry.Amount.Int64())
 	}
 }
 
@@ -250,8 +250,8 @@ func TestRecordPartialRefundRelease_ZeroCommission(t *testing.T) {
 	if !total.IsZero() {
 		t.Fatalf("ledger unbalanced: sum = %d", total.Int64())
 	}
-	if mock.lastEntries[1].Amount.Int64() != 25_000 {
-		t.Errorf("seller_net: got %d, want 25000", mock.lastEntries[1].Amount.Int64())
+	if mock.lastEntries[1].Amount.Int64() != -25_000 {
+		t.Errorf("seller_net: got %d, want -25000", mock.lastEntries[1].Amount.Int64())
 	}
 	if mock.lastEntries[2].Amount.Int64() != 0 {
 		t.Errorf("commission: got %d, want 0", mock.lastEntries[2].Amount.Int64())

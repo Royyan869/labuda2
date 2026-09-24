@@ -65,7 +65,7 @@ func TestMarkPaid_NewlyPaid_ReturnsTrue(t *testing.T) {
 		ID:      uuid.New(),
 		PayerID: uuid.New(),
 		Status:  entity.StatusPending,
-		Type:    entity.TypePromotionPackage,
+		Type:    entity.TypePromoteBalanceTopUp,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
@@ -86,7 +86,7 @@ func TestMarkPaid_AlreadyPaid_ReturnsFalse(t *testing.T) {
 		ID:      uuid.New(),
 		PayerID: uuid.New(),
 		Status:  entity.StatusPaid, // already paid
-		Type:    entity.TypePromotionPackage,
+		Type:    entity.TypePromoteBalanceTopUp,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
@@ -106,7 +106,7 @@ func TestMarkPaid_AlreadyFailed_ReturnsError(t *testing.T) {
 		ID:      uuid.New(),
 		PayerID: uuid.New(),
 		Status:  entity.StatusFailed, // terminal state
-		Type:    entity.TypePromotionPackage,
+		Type:    entity.TypePromoteBalanceTopUp,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
@@ -132,7 +132,7 @@ func TestMarkPaid_SecondCallAfterFirstSucceeds_ReturnsFalse(t *testing.T) {
 		ID:      uuid.New(),
 		PayerID: uuid.New(),
 		Status:  entity.StatusPending,
-		Type:    entity.TypePromotionPackage,
+		Type:    entity.TypePromoteBalanceTopUp,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}

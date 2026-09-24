@@ -342,9 +342,12 @@ class _OrderSummaryContent extends StatelessWidget {
     // - Backend validates quote availability and returns authoritative mode
     final shippingMode = hasPricing ? previewResult!.shippingMode : 'standard';
     final isUsingQuote = shippingMode == 'quote';
+    // BUSINESS TRUTH: the seller tariff is ALL-IN (shipping + packing).
+    // Buyer-facing surfaces must label it "Ongkir + Packing", never bare
+    // "Ongkir", so no cost feels hidden.
     final shippingLabel = isUsingQuote
         ? 'Pengiriman (Hasil Negosiasi)'
-        : 'Biaya Pengiriman';
+        : 'Ongkir + Packing';
 
     // **DEFENSIVE ASSERT:** Ensure quote mode state is valid
     // - Verifies snapshot mode is either 'quote' or 'standard'
@@ -497,7 +500,7 @@ class _OrderSummaryContent extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const _PriceRow(
-              'Biaya Pengiriman',
+              'Ongkir + Packing',
               1,
               0,
               note: 'Akan dihitung oleh server',

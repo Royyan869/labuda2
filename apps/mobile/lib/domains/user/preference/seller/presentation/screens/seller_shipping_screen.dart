@@ -2,15 +2,19 @@
 ///
 /// Lets a seller manage their **global** shipping options (the seller-wide
 /// catalog of shipping methods). ForSales later select a subset of these
-/// options at create/edit time (Phase 2).
+/// options at create/edit time.
+///
+/// ONE-PACKAGE CONTRACT (Owner-locked): create and edit always route to the
+/// canonical setup screen ([RoutePaths.sellerShippingSetup]) where the option
+/// identity (jenis ekspedisi, nama ekspedisi, catatan privat seller) and its
+/// destinations (provinsi + tarif all-in ongkir+packing + kualifikasi kota)
+/// are authored and saved as ONE unit. The old metadata-only bottom-sheet
+/// form (name + type) is a killed design and must not be reintroduced.
 ///
 /// Reuses the existing data layer entirely:
 ///   - [shippingNotifierProvider] for the options list + CRUD
 ///   - [ShippingRepository] under the hood
 ///   - [ShippingHonestyMessages] for canonical UX copy
-///   - [ShippingType] enum from the domain
-///
-/// Per-option province/city coverage is managed on the option-detail screen.
 library;
 
 import 'package:flutter/material.dart';
@@ -55,7 +59,7 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
         foregroundColor: Colors.white,
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openCreateOptionSheet,
+        onPressed: _openCreateSetup,
         backgroundColor: AppColors.primaryRed,
         icon: const Icon(Icons.add),
         label: const Text('Tambah Opsi'),
@@ -77,7 +81,7 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
     }
     if (state is ShippingSetupsListLoaded) {
       if (state.options.isEmpty) {
-        return _EmptyView(onCreate: _openCreateOptionSheet);
+        return _EmptyView(onCreate: _openCreateSetup);
       }
       return ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -89,9 +93,9 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
           final opt = state.options[index - 1];
           return _OptionRow(
             option: opt,
-            onTap: () => _openOptionDetail(opt),
+            onTap: () => _openEditSetup(opt),
             onToggle: (v) => _toggleActive(opt, v),
-            onEdit: () => _openEditOptionSheet(opt),
+            onEdit: () => _openEditSetup(opt),
             onDelete: () => _confirmDelete(opt),
           );
         },
@@ -100,60 +104,29 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
     return const SizedBox.shrink();
   }
 
-  Future<void> _openCreateOptionSheet() async {
-    final result = await showModalBottomSheet<_OptionFormResult>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => _OptionFormSheet(initial: null),
+  /// Create mode — canonical one-package setup screen.
+  Future<void> _openCreateSetup() async {
+    final result = await context.push<ShippingSetup>(
+      RoutePaths.sellerShippingSetup,
     );
-    if (result == null || !mounted) return;
-    final created = await ref
-        .read(shippingNotifierProvider.notifier)
-        .createShippingSetup(
-          CreateShippingSetupRequest(
-            name: result.name,
-            type: result.type,
-          ),
-        );
     if (!mounted) return;
-    if (created != null) {
+    if (result != null) {
       AppSnackBar.showSuccess(context, 'Opsi pengiriman ditambahkan.');
-      _reload();
-    } else {
-      final s = ref.read(shippingNotifierProvider);
-      final msg = s is ShippingSetupsListError
-          ? s.message
-          : 'Gagal menambah opsi pengiriman.';
-      AppSnackBar.showError(context, msg);
     }
+    _reload();
   }
 
-  Future<void> _openEditOptionSheet(ShippingSetup opt) async {
-    final result = await showModalBottomSheet<_OptionFormResult>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => _OptionFormSheet(initial: opt),
+  /// Edit mode — hydrate the canonical setup screen from the option ID.
+  Future<void> _openEditSetup(ShippingSetup opt) async {
+    final result = await context.push<ShippingSetup>(
+      RoutePaths.sellerShippingSetup,
+      extra: opt.id,
     );
-    if (result == null || !mounted) return;
-    final ok = await ref
-        .read(shippingNotifierProvider.notifier)
-        .updateShippingSetup(
-          opt.id,
-          UpdateShippingSetupRequest(
-            name: result.name,
-          ),
-        );
     if (!mounted) return;
-    if (ok) {
+    if (result != null) {
       AppSnackBar.showSuccess(context, 'Opsi pengiriman diperbarui.');
-      _reload();
-    } else {
-      final s = ref.read(shippingNotifierProvider);
-      final msg = s is ShippingSetupsListError
-          ? s.message
-          : 'Gagal memperbarui opsi pengiriman.';
-      AppSnackBar.showError(context, msg);
     }
+    _reload();
   }
 
   Future<void> _toggleActive(ShippingSetup opt, bool isActive) async {
@@ -179,7 +152,8 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
         title: const Text('Hapus Opsi Pengiriman'),
         content: Text(
           'Hapus "${opt.displayName}" dari daftar opsi pengiriman Anda? '
-          'ForSale yang sebelumnya memilih opsi ini akan kehilangan tautan tersebut.',
+          'Jika opsi ini masih dipakai di ForSale atau Auction, penghapusan '
+          'akan ditolak — matikan lewat tombol aktif sebagai gantinya.',
         ),
         actions: [
           TextButton(
@@ -209,13 +183,10 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
       final s = ref.read(shippingNotifierProvider);
       final msg = s is ShippingSetupsListError
           ? s.message
-          : 'Gagal menghapus opsi pengiriman.';
+          : 'Opsi tidak dapat dihapus karena masih ter-link ke listing. '
+              'Matikan opsi ini sebagai gantinya.';
       AppSnackBar.showError(context, msg);
     }
-  }
-
-  void _openOptionDetail(ShippingSetup opt) {
-    context.push('/seller/shipping/${opt.id}');
   }
 }
 
@@ -263,7 +234,9 @@ class _HonestyBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  ShippingHonestyMessages.optionsBySeller,
+                  'Tentukan sendiri opsi pengiriman sesuai ekspedisi langganan '
+                  'Anda: pilih minimal satu provinsi tujuan beserta tarifnya. '
+                  'Input biaya pengiriman beserta biaya packing jika ada.',
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.neutralGray600,
@@ -303,8 +276,10 @@ class _EmptyView extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Tambahkan opsi pengiriman (kereta, bus, travel, pesawat, atau kustom). '
-          'ForSale baru wajib memilih minimal satu opsi sebelum bisa dipublish.',
+          'Buat satu paket opsi pengiriman: jenis ekspedisi, nama ekspedisi, '
+          'tujuan provinsi beserta tarif (termasuk packing), dan catatan '
+          'pribadi untuk Anda. ForSale baru wajib memilih minimal satu opsi '
+          'sebelum bisa dipublish.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 14, color: AppColors.neutralGray600),
         ),
@@ -378,6 +353,7 @@ class _OptionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final note = option.internalNote?.trim() ?? '';
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -412,12 +388,25 @@ class _OptionRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      option.type.label,
+                      '${option.type.label}'
+                      ' · ${option.coverageAreas.length} provinsi',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.neutralGray600,
                       ),
                     ),
+                    // Seller-private note: visible ONLY on seller surfaces.
+                    if (note.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Catatan: $note',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                          color: AppColors.neutralGray500,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -428,7 +417,7 @@ class _OptionRow extends StatelessWidget {
               ),
               PopupMenuButton<String>(
                 itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'edit', child: Text('Edit nama')),
+                  PopupMenuItem(value: 'edit', child: Text('Edit paket')),
                   PopupMenuItem(value: 'delete', child: Text('Hapus')),
                 ],
                 onSelected: (v) {
@@ -439,135 +428,6 @@ class _OptionRow extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-// =============================================================================
-// CREATE / EDIT FORM (BOTTOM SHEET)
-// =============================================================================
-
-class _OptionFormResult {
-  final String name;
-  final ShippingType type;
-  const _OptionFormResult({
-    required this.name,
-    required this.type,
-  });
-}
-
-class _OptionFormSheet extends StatefulWidget {
-  final ShippingSetup? initial;
-  const _OptionFormSheet({required this.initial});
-
-  @override
-  State<_OptionFormSheet> createState() => _OptionFormSheetState();
-}
-
-class _OptionFormSheetState extends State<_OptionFormSheet> {
-  late ShippingType _type;
-  late TextEditingController _nameCtrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _type = widget.initial?.type ?? ShippingType.custom;
-    _nameCtrl = TextEditingController(text: widget.initial?.name ?? '');
-  }
-
-  @override
-  void dispose() {
-    _nameCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isEdit = widget.initial != null;
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            isEdit ? 'Edit Opsi Pengiriman' : 'Tambah Opsi Pengiriman',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _nameCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Nama opsi *',
-              hintText: 'Contoh: JNE Reguler',
-              border: OutlineInputBorder(),
-            ),
-            textInputAction: TextInputAction.next,
-          ),
-          const SizedBox(height: 12),
-          if (!isEdit) ...[
-            const Text(
-              'Jenis transportasi',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: ShippingType.values.map((t) {
-                final selected = _type == t;
-                return ChoiceChip(
-                  label: Text('${t.emoji}  ${t.label}'),
-                  selected: selected,
-                  onSelected: (_) => setState(() => _type = t),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-          ],
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Batal'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryRed,
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: () {
-                    final optionName = _nameCtrl.text.trim();
-                    if (optionName.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Nama opsi wajib diisi.')),
-                      );
-                      return;
-                    }
-                    Navigator.of(context).pop(
-                      _OptionFormResult(
-                        name: optionName,
-                        type: _type,
-                      ),
-                    );
-                  },
-                  child: Text(isEdit ? 'Simpan' : 'Tambah'),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

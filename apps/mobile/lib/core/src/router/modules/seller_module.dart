@@ -12,8 +12,8 @@ import 'package:labuda/domains/user/preference/seller/presentation/screens/selle
     show SellerVerificationScreen;
 import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_shipping_screen.dart'
     show SellerShippingScreen;
-import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_shipping_option_detail_screen.dart'
-    show SellerShippingSetupDetailScreen;
+import 'package:labuda/domains/commerce/transaction/shipping/presentation/widgets/shipping_option_setup_screen.dart'
+    show ShippingSetupScreen, ShippingCityRulesScreen, ShippingCityRulesRouteArgs;
 import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_analytics_screen.dart'
     show CanonicalPromotionAnalyticsScreen;
 import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_create_screen.dart'
@@ -97,20 +97,37 @@ class SellerModule extends BaseModule {
       builder: (context, state) => const SellerVerificationScreen(),
     ),
 
-    // Phase 1: Seller global shipping setup (option list + create/edit/delete/toggle)
+    // Seller global shipping option list (canonical one-package catalog).
     GoRoute(
       path: RoutePaths.sellerShipping,
       name: 'sellerShipping',
       builder: (context, state) => const SellerShippingScreen(),
     ),
 
-    // Phase 1: Per-option coverage (province-level rates) management
+    // ONE-PACKAGE shipping setup: identity (type, name, seller-private note)
+    // + destinations (provinces with all-in shipping+packing rates and city
+    // qualifications) are authored and saved as ONE unit. Bare options
+    // without destinations can never be persisted.
     GoRoute(
-      path: RoutePaths.sellerShippingSetupDetail,
-      name: 'sellerShippingSetupDetail',
+      path: RoutePaths.sellerShippingSetup,
+      name: 'sellerShippingSetup',
       builder: (context, state) {
-        final optionId = state.pathParameters['optionId']!;
-        return SellerShippingSetupDetailScreen(optionId: optionId);
+        final extra = state.extra;
+        // Canonical edit path: extra is the option ID; the screen fetches
+        // the full package from the backend detail endpoint.
+        return ShippingSetupScreen(
+          editOptionId: extra is String ? extra : null,
+        );
+      },
+    ),
+
+    // City-level qualification editor for one province inside the setup flow.
+    GoRoute(
+      path: RoutePaths.sellerShippingSetupCityRules,
+      name: 'sellerShippingSetupCityRules',
+      builder: (context, state) {
+        final args = state.extra! as ShippingCityRulesRouteArgs;
+        return ShippingCityRulesScreen(args: args);
       },
     ),
 

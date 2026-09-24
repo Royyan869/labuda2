@@ -127,34 +127,4 @@ class SettingsSecurityPrivacySection extends StatelessWidget {
     );
   }
 
-  Widget _buildSwitchTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required bool value,
-    required Function(bool) onChanged,
-    required bool isDark,
-  }) {
-    return SwitchListTile(
-      secondary: Icon(
-        icon,
-        color: isDark ? AppColors.neutralGray300 : AppColors.neutralGray700,
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(
-          color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray600,
-        ),
-      ),
-      value: value,
-      onChanged: onChanged,
-      activeTrackColor: AppColors.primaryRed,
-    );
-  }
 }

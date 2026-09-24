@@ -712,6 +712,11 @@ func (h *SellerHandler) initiateSubscriptionPaymentTx(c *gin.Context, ctx contex
 				Unit:     "minute",
 				Duration: expiryMinutes,
 			},
+			// Snap channel restriction comes ONLY from the canonical method row.
+			// Without this the reused payment's Snap page would offer every
+			// merchant-enabled channel, not the bucket of the method the seller
+			// selected (see CorePaymentHandler.createMidtransTransaction).
+			EnabledPayments: method.MidtransChannels,
 		}
 		if h.frontendURL != "" {
 			snapReq.Callbacks = &midtrans.Callbacks{
@@ -783,6 +788,11 @@ func (h *SellerHandler) initiateSubscriptionPaymentTx(c *gin.Context, ctx contex
 			Unit:     "minute",
 			Duration: expiryMinutes,
 		},
+		// Snap channel restriction comes ONLY from the canonical method row:
+		// the Snap page must offer exactly the MidtransChannels bucket of the
+		// method the seller selected, never every merchant-enabled channel
+		// (mirrors CorePaymentHandler.createMidtransTransaction).
+		EnabledPayments: method.MidtransChannels,
 	}
 	if h.frontendURL != "" {
 		snapReq.Callbacks = &midtrans.Callbacks{

@@ -45,6 +45,7 @@ type ContentVisibilityChecker interface {
 type CommentService struct {
 	contentRepo             contentrepo.ContentRepository
 	commentRepo             repository.CommentRepository
+	commentMediaRepo        repository.CommentMediaRepository
 	forSaleService          *forSaleApp.ForSaleService
 	auctionValidator        AuctionValidator
 	visibilityChecker       ContentVisibilityChecker
@@ -53,6 +54,15 @@ type CommentService struct {
 	blockChecker            BlockChecker // For filtering comments from blocked users
 	invariantLogger         InvariantLogger // Logs invariant violations for monitoring
 	commerceRefValidator    commerceResponse.Validator // Validates commerce resource references for display
+}
+
+// CommentMediaInput carries foto+video presign result for a comment.
+type CommentMediaInput struct {
+	StorageKey string
+	MediaURL   string
+	MediaType  entity.MediaType
+	Position   int
+	ByteSize   *int64
 }
 
 // OutboxInserter defines the interface for inserting outbox events.
@@ -130,6 +140,11 @@ func (s *CommentService) SetCommerceReferenceValidator(v commerceResponse.Valida
 	s.commerceRefValidator = v
 }
 
+// SetCommentMediaRepository wires foto+video persistence for comments.
+func (s *CommentService) SetCommentMediaRepository(r repository.CommentMediaRepository) {
+	s.commentMediaRepo = r
+}
+
 // CommerceReferenceInput carries the canonical commerce-reference payload.
 type CommerceReferenceInput struct {
 	TargetID     uuid.UUID
@@ -155,13 +170,51 @@ func (s *CommentService) AddComment(
 	parentID *uuid.UUID,
 	idempotencyKey string,
 ) (*entity.Comment, error) {
+	return s.AddCommentWithMedia(ctx, tx, callerID, contentID, body, parentID, idempotencyKey, nil)
+}
+
+// AddCommentWithMedia adds a comment with optional foto+video attachments (max 5: 4 image +1 video).
+func (s *CommentService) AddCommentWithMedia(
+	ctx context.Context,
+	tx db.Tx,
+	callerID uuid.UUID,
+	contentID uuid.UUID,
+	body string,
+	parentID *uuid.UUID,
+	idempotencyKey string,
+	media []CommentMediaInput,
+) (*entity.Comment, error) {
 	// Validate caller
 	if err := auth.ValidateCaller(callerID); err != nil {
 		return nil, err
 	}
 
-	// Validate body
-	if body == "" {
+	// Media validation — foto+video 5 max (4 image +1 video)
+	if len(media) > 5 {
+		return nil, &entity.ErrInvalidComment{Reason: "max 5 media per comment"}
+	}
+	if len(media) > 0 {
+		img, vid := 0, 0
+		for _, m := range media {
+			if m.MediaType == entity.MediaTypeVideo {
+				vid++
+			} else {
+				img++
+			}
+			if m.StorageKey == "" || m.MediaURL == "" {
+				return nil, &entity.ErrInvalidComment{Reason: "media storage_key and url required"}
+			}
+			if m.MediaType != entity.MediaTypeImage && m.MediaType != entity.MediaTypeVideo {
+				return nil, &entity.ErrInvalidComment{Reason: "invalid media type"}
+			}
+		}
+		if img > 4 || vid > 1 {
+			return nil, &entity.ErrInvalidComment{Reason: "max 4 images + 1 video per comment"}
+		}
+	}
+
+	// body can be empty when media present
+	if body == "" && len(media) == 0 {
 		return nil, &entity.ErrInvalidComment{Reason: "body cannot be empty"}
 	}
 
@@ -254,21 +307,54 @@ func (s *CommentService) AddComment(
 		}
 	}
 
-	// Create comment
-	comment, err := entity.NewComment(contentID, callerID, body)
-	if err != nil {
-		return nil, err
-	}
-	comment.ID = commentID
-
-	// Set parent_id if provided
-	if parentID != nil {
-		comment.ParentID = parentID
+	// Create comment — allow body empty when media present (foto+video)
+	var comment *entity.Comment
+	if body == "" && len(media) > 0 {
+		empty := ""
+		comment = &entity.Comment{
+			ID:         commentID,
+			AuthorID:   callerID,
+			Body:       &empty,
+			Type:       entity.CommentTypeNormal,
+			TargetID:   contentID,
+			TargetType: entity.TargetContent,
+			ParentID:   parentID,
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
+		}
+	} else {
+		var err error
+		comment, err = entity.NewComment(contentID, callerID, body)
+		if err != nil {
+			return nil, err
+		}
+		comment.ID = commentID
+		if parentID != nil {
+			comment.ParentID = parentID
+		}
 	}
 
 	// Persist using repository
 	if err := s.commentRepo.Create(ctx, tx, comment); err != nil {
 		return nil, fmt.Errorf("create comment failed: %w", err)
+	}
+
+	// Persist foto+video attachments
+	if len(media) > 0 && s.commentMediaRepo != nil {
+		items := make([]*entity.CommentMedia, 0, len(media))
+		for i, m := range media {
+			var bs *int64
+			if m.ByteSize != nil {
+				bs = m.ByteSize
+			}
+			items = append(items, entity.NewCommentMedia(comment.ID, m.StorageKey, m.MediaURL, m.MediaType, i, bs))
+		}
+		if err := s.commentMediaRepo.CreateBatch(ctx, tx, items); err != nil {
+			return nil, fmt.Errorf("create comment media failed: %w", err)
+		}
+	} else if len(media) > 0 && s.commentMediaRepo == nil {
+		// Media requested but repo not wired — fail closed to avoid silent drop
+		return nil, fmt.Errorf("comment media repository not configured")
 	}
 
 	// Emit notification events
@@ -352,6 +438,14 @@ func (s *CommentService) ListComments(
 
 	// Comments are already entities from repository
 	return comments, nextCursor, nil
+}
+
+// GetCommentMediaBatch hydrates foto+video for a set of comment IDs.
+func (s *CommentService) GetCommentMediaBatch(ctx context.Context, tx db.Tx, commentIDs []uuid.UUID) (map[uuid.UUID][]*entity.CommentMedia, error) {
+	if s.commentMediaRepo == nil || len(commentIDs) == 0 {
+		return map[uuid.UUID][]*entity.CommentMedia{}, nil
+	}
+	return s.commentMediaRepo.GetByCommentIDs(ctx, tx, commentIDs)
 }
 
 // AddCommerceReferenceComment adds a commerce-reference comment to a content.

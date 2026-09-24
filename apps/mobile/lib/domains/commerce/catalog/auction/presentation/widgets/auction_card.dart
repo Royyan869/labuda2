@@ -9,7 +9,7 @@ import 'package:labuda/shared/utils/commerce_seller_identity.dart';
 
 /// Canonical buyer-facing auction card.
 ///
-/// Used by every discovery / browsing surface (Explore, ProfileStore).
+/// Used by every discovery / browsing surface (Marketplace, ProfileStore).
 /// Seller identity is redacted when [Auction.sellerUserLifecycle] is degraded,
 /// providing parity with SearchResultItem (E8.4).
 ///

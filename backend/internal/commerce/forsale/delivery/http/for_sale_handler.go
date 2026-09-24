@@ -68,7 +68,6 @@ type CreateForSaleRequest struct {
 	// set it explicitly to enable multi-quantity sale.
 	Quantity           *int   `json:"quantity" binding:"omitempty,min=1"`
 	NegotiationEnabled bool   `json:"negotiation_enabled"`
-	Visibility         string `json:"visibility" binding:"required,oneof=public private"`
 	// Optional koi-specific fields
 	MediaURLs    []string `json:"media_urls"`
 	Variety      string   `json:"variety"`
@@ -80,6 +79,9 @@ type CreateForSaleRequest struct {
 	Certificates []string `json:"certificates"`
 	// Shipping configuration
 	FarmAddressID *string `json:"farm_address_id"`
+	// Shipping selection (OWNER CANONICAL: create ships WITH its options —
+	// at least one shipping_setup_id is REQUIRED; create is publish.)
+	ShippingSetupIDs []string `json:"shipping_setup_ids" binding:"required,min=1,dive,uuid"`
 	// Shipping readiness
 	PreparationTime *string `json:"preparation_time" binding:"omitempty,oneof=immediate short medium long"`
 	PreparationNote *string `json:"preparation_note"`
@@ -177,19 +179,23 @@ func (h *ForSaleHandler) CreateForSale(c *gin.Context) {
 		// If error is "no rows", proceed with creation
 	}
 
-	// Parse visibility
-	visibility := entity.ForSaleVisibility(req.Visibility)
-	if !visibility.IsValid() {
-		response.BadRequest(c, "Invalid visibility: must be 'public' or 'private'")
-		return
-	}
-
 	// Parse optional UUID fields
 	var farmAddressID *uuid.UUID
 	if req.FarmAddressID != nil {
 		if id, err := uuid.Parse(*req.FarmAddressID); err == nil {
 			farmAddressID = &id
 		}
+	}
+
+	// Parse shipping selection IDs (required — create = publish).
+	shippingSetupIDs := make([]uuid.UUID, 0, len(req.ShippingSetupIDs))
+	for _, raw := range req.ShippingSetupIDs {
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			response.BadRequest(c, "Invalid shipping_setup_ids format")
+			return
+		}
+		shippingSetupIDs = append(shippingSetupIDs, id)
 	}
 
 	// Parse optional product_id for Product identity reuse.
@@ -240,9 +246,10 @@ func (h *ForSaleHandler) CreateForSale(c *gin.Context) {
 			PricePerUnit:       money.New(req.Price),
 			QuantityAvailable:  quantity,
 			NegotiationEnabled: req.NegotiationEnabled,
-			Visibility:         visibility,
 			// Shipping preferences
 			FarmAddressID: farmAddressID,
+			// Shipping selection — create = publish; options are mandatory.
+			ShippingSetupIDs: shippingSetupIDs,
 			// Shipping readiness
 			PreparationTime: preparationTime,
 			PreparationNote: req.PreparationNote,
@@ -255,7 +262,23 @@ func (h *ForSaleHandler) CreateForSale(c *gin.Context) {
 			zap.String("seller_id", sellerID.String()),
 			zap.Error(err),
 		)
-		response.InternalServerError(c, err.Error())
+		// CREATE = PUBLISH: the publish gates fire inside create now, so the
+		// typed gate errors must surface as machine-readable codes (never 500).
+		if err == auth.ErrMarketAuthorityRequired {
+			response.MarketAuthorityRequired(c, "Active seller subscription required to create for_sales")
+			return
+		}
+		if errors.Is(err, shippingApp.ErrShippingNotConfigured) {
+			response.Error(c, http.StatusBadRequest, "SHIPPING_NOT_CONFIGURED",
+				"ForSale tidak bisa dibuat: pilih minimal satu opsi pengiriman yang punya coverage aktif.")
+			return
+		}
+		if errors.Is(err, for_saleApp.ErrFarmAddressNotConfigured) {
+			response.Error(c, http.StatusBadRequest, "FARM_ADDRESS_NOT_CONFIGURED",
+				"ForSale tidak bisa dibuat: alamat pengirim (farm address) belum diatur atau tidak valid.")
+			return
+		}
+		response.BadRequest(c, err.Error())
 		return
 	}
 

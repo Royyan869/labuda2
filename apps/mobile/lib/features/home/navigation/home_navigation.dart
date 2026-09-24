@@ -14,7 +14,7 @@ void registerHomeTab(INavigationRegistry registry) {
       icon: Icons.home_outlined,
       selectedIcon: Icons.home,
       order:
-          0, // Position: Home (0), Explore (1), Create (2-center), Others (3+)
+          0, // Position: Home (0), Marketplace (1), Create (2-center), Others (3+)
       pageBuilder: () => const HomeScreen(),
     ),
   );

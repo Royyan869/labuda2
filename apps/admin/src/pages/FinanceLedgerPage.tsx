@@ -201,7 +201,12 @@ export function FinanceLedgerPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="space-y-1">
-                          {tx.entries.map((entry) => (
+                          {/* Defensive guard: the backend wire contract sends
+                              entries: [] (never null), but a legacy/cached
+                              response or proxy must never crash this page
+                              again ("Cannot read properties of null
+                              (reading 'map')"). */}
+                          {(tx.entries ?? []).map((entry) => (
                             <div key={entry.id} className="flex items-center gap-2 text-xs">
                               <Badge variant={entry.entry_type === 'debit' ? 'error' : 'success'}>
                                 {entry.entry_type === 'debit' ? 'DR' : 'CR'}

@@ -54,6 +54,28 @@ void main() {
       expect(kind, AuthSyncErrorKind.accountInactive);
     });
 
+    test('EMAIL_NOT_VERIFIED (403) classifies as pendingEmailVerification '
+        '(D2 hard gate: a business-flow state routed to the verify screen, '
+        'never a degraded backend state — INV-7)', () {
+      final kind = classifyAuthSyncError(
+        'Verify this email address before using it to sign in to an existing account.',
+        errorCode: 'EMAIL_NOT_VERIFIED',
+        statusCode: 403,
+      );
+      expect(kind, AuthSyncErrorKind.pendingEmailVerification);
+    });
+
+    test('IDENTITY_CONFLICT (409) classifies as identityConflict '
+        '(D4: bound row + different UID is a terminal anomaly — no re-bind)',
+        () {
+      final kind = classifyAuthSyncError(
+        'This email is already linked to a different sign-in method.',
+        errorCode: 'IDENTITY_CONFLICT',
+        statusCode: 409,
+      );
+      expect(kind, AuthSyncErrorKind.identityConflict);
+    });
+
     test('structured code wins even if the message text would otherwise '
         'match a different fallback bucket', () {
       // Message contains "connection" (a backendUnavailable keyword) but
@@ -144,6 +166,23 @@ void main() {
         'raw Firebase SDK "auth/invalid-credential" still classifies as identityInvalid',
         () {
           final kind = classifyAuthSyncError('auth/invalid-credential');
+          expect(kind, AuthSyncErrorKind.identityInvalid);
+        },
+      );
+
+      test(
+        'dead Firebase session "no-current-user" classifies as identityInvalid, '
+        'not a degraded backend state',
+        () {
+          // Regression: a User object whose underlying session is gone
+          // (account deleted out-of-band, token revoked mid-flow) throws
+          // firebase_auth/no-current-user from getIdToken(). Recovery via a
+          // degraded retry screen is impossible — the honest outcome is a
+          // clean sign-out (identityInvalid), not "Gagal Memuat Data".
+          final kind = classifyAuthSyncError(
+            'Sync error: [firebase_auth/no-current-user] No user currently '
+            'signed in.',
+          );
           expect(kind, AuthSyncErrorKind.identityInvalid);
         },
       );

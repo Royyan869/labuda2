@@ -90,6 +90,12 @@ class _FakeLikeRepository implements LikeRepository {
     });
     return controller.stream;
   }
+
+  @override
+  void pushOptimisticLikeStats(LikeStats stats) {}
+
+  @override
+  Future<void> refreshLikeStats({required String targetId, required LikeTargetType targetType, required String currentUserId}) async {}
 }
 
 class _FakeAuthController extends AuthController {
@@ -148,6 +154,12 @@ class _TrackingLikeRepository implements LikeRepository {
   }) {
     return Stream.value(initialStats);
   }
+
+  @override
+  void pushOptimisticLikeStats(LikeStats stats) {}
+
+  @override
+  Future<void> refreshLikeStats({required String targetId, required LikeTargetType targetType, required String currentUserId}) async {}
 }
 
 // ---------------------------------------------------------------------------

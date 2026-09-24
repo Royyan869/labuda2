@@ -99,7 +99,13 @@ class OrderMapper {
       postalCode: addr?.postalCode,
       latitude: addr?.latitude,
       longitude: addr?.longitude,
-      method: ShippingMethod.courier,
+      // Snapshot truth: the order stores the option's transport type.
+      // Map it through the canonical ShippingMethod vocabulary; 'manual'
+      // (quote-mode) falls back to custom. The killed 'courier'/'selfPickup'
+      // legacy values are never produced anymore.
+      method: ShippingMethodExtension.fromWireType(
+        dto.shippingTransportType,
+      ),
       shippingCost: dto.shippingTotal,
       // SHIPPING CONFIRMATION TRUTH: canonical tracking reference fields
       trackingNumber: dto.trackingNumber,

@@ -42,4 +42,14 @@ type Repository interface {
 	// (planned_start, planned_finish shifts, pause bookkeeping) MUST use the
 	// DB clock, never the application clock.
 	GetDBTime(ctx context.Context, tx db.Tx) (time.Time, error)
+
+	// ListDueForFinalization returns the ids of delivery-exhausted contracts
+	// whose planned delivery window has reached planned_finish and whose
+	// lifecycle is still finalizable (prepared / active). Paused contracts are
+	// deliberately excluded: pause freezes the seller's delivery window and
+	// resume shifts planned_finish by the exact pause duration, so a paused
+	// contract's window has not truly ended until it is resumed (or the seller
+	// stops it manually). Finalization itself stays in the canonical
+	// PromotionContractService boundary — this query is read-only observation.
+	ListDueForFinalization(ctx context.Context, tx db.Tx, now time.Time, limit int) ([]uuid.UUID, error)
 }

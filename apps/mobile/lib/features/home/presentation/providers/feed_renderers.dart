@@ -12,7 +12,7 @@
 ///
 /// SEMANTIC RULES:
 /// - Home feed shows ONLY universal social content and reposts
-/// - Commerce objects (auction, collection) belong in Explore, NOT here
+/// - Commerce objects (auction, collection) belong in Marketplace, NOT here
 /// - Reposts MUST be clearly distinguished from original content
 /// - "Ditutup" (closed) for social closure, NOT transaction completion
 library;
@@ -32,24 +32,20 @@ import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/domains/social/like/domain/entities/like.dart';
 import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
 import 'package:labuda/domains/social/share/share.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-// Navigation state for pending tab switch (e.g., Home -> Explore with specific sub-tab)
 class PendingTabSwitch {
   final String? target;
-  final int? exploreSubTab;
+  final int? marketplaceSubTab;
   final bool hasSwitch;
 
   const PendingTabSwitch({
     this.target,
-    this.exploreSubTab,
+    this.marketplaceSubTab,
     this.hasSwitch = false,
   });
 }
 
-/// Notifier for pending tab switch state (Riverpod 2.x Notifier pattern)
-/// Used for navigation between Home/Explore tabs with context preservation
 class PendingTabSwitchNotifier extends Notifier<PendingTabSwitch> {
   @override
   PendingTabSwitch build() => const PendingTabSwitch();
@@ -57,7 +53,7 @@ class PendingTabSwitchNotifier extends Notifier<PendingTabSwitch> {
   void setSwitch(String target, {int? subTab}) {
     state = PendingTabSwitch(
       target: target,
-      exploreSubTab: subTab,
+      marketplaceSubTab: subTab,
       hasSwitch: true,
     );
   }
@@ -66,8 +62,6 @@ class PendingTabSwitchNotifier extends Notifier<PendingTabSwitch> {
     state = const PendingTabSwitch();
   }
 }
-
-// Export tab switch provider as pendingTabSwitchProvider for explore module
 final pendingTabSwitchProvider =
     NotifierProvider<PendingTabSwitchNotifier, PendingTabSwitch>(
       PendingTabSwitchNotifier.new,
@@ -100,7 +94,7 @@ class FeedCardFactory {
 ///
 /// SEMANTIC RULES:
 /// - Home feed shows ONLY universal social content and reposts
-/// - Commerce objects (auction, collection) belong in Explore, NOT here
+/// - Commerce objects (auction, collection) belong in Marketplace, NOT here
 /// - Reposts MUST be clearly distinguished from original content
 /// - No fake engagement counts (hide if not available)
 ///
@@ -164,9 +158,23 @@ class FeedCard extends ConsumerWidget {
                     ? () => _navigateToResource(context, resourceProjection)
                     : null,
               ),
+            // AUTHOR + TEXT — canonical order: identity first, then content
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildAuthorInfo(context, isDark),
+                  const SizedBox(height: 8),
+                  _buildContentText(context, isDark),
+                ],
+              ),
+            ),
+            // MEDIA — below avatar/username + text (canonical)
+            if (item.media.isNotEmpty) _buildMedia(context, item.media.first),
             if (resourceProjection != null)
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
                 child: ContentResourceProjectionCard(
                   resourceProjection: resourceProjection,
                   onTap: !isUnavailable
@@ -174,26 +182,11 @@ class FeedCard extends ConsumerWidget {
                       : null,
                 ),
               ),
-            // MEDIA: canonical network-media path. MediaEntity.type is the
-            // authority — image renders through StableNetworkImage (which
-            // resolves storage references), video through CarouselVideoPlayer.
-            if (item.media.isNotEmpty) _buildMedia(context, item.media.first),
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Author info
-                    _buildAuthorInfo(context, isDark),
-                    const SizedBox(height: 8),
-                    // Content text
-                    _buildContentText(context, isDark),
-                    const SizedBox(height: 8),
-                    // Footer with Like, Comment, Share
-                    _buildHonestFooter(context, ref, isDark),
-                  ],
-                ),
-              ),
+            // Footer with Like, Comment, Share — canonical icon+count
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: _buildHonestFooter(context, ref, isDark),
+            ),
           ],
         ),
       ),
@@ -230,28 +223,25 @@ class FeedCard extends ConsumerWidget {
   /// - video — [CarouselVideoPlayer], the shared video primitive. A video
   ///   reference must never reach the image decoder.
   Widget _buildMedia(BuildContext context, MediaEntity media) {
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-      child: SizedBox(
-        width: double.infinity,
-        height: _mediaCardHeight,
-        child: media.type == MediaType.video
-            ? LayoutBuilder(
-                builder: (context, constraints) => CarouselVideoPlayer(
-                  videoUrl: media.originalUrl,
-                  width: constraints.maxWidth,
-                  height: constraints.maxHeight,
-                  fit: BoxFit.cover,
-                  onFullscreenTap: () => _navigateToDetail(context),
-                ),
-              )
-            : StableNetworkImage(
-                imageUrl: media.originalUrl,
-                logicalCacheKey: media.id,
+    return SizedBox(
+      width: double.infinity,
+      height: _mediaCardHeight,
+      child: media.type == MediaType.video
+          ? LayoutBuilder(
+              builder: (context, constraints) => CarouselVideoPlayer(
+                videoUrl: media.originalUrl,
+                width: constraints.maxWidth,
+                height: constraints.maxHeight,
                 fit: BoxFit.cover,
-                fallback: _buildMediaPlaceholder(),
+                onFullscreenTap: () => _navigateToDetail(context),
               ),
-      ),
+            )
+          : StableNetworkImage(
+              imageUrl: media.originalUrl,
+              logicalCacheKey: media.id,
+              fit: BoxFit.cover,
+              fallback: _buildMediaPlaceholder(),
+            ),
     );
   }
 
@@ -449,9 +439,10 @@ class FeedCard extends ConsumerWidget {
     final likeCount = stats?.totalLikes ?? 0;
     final isLiked = stats?.isLikedByCurrentUser ?? false;
 
+    // Canonical: icon+count only, no text label, no Spacer overflow
     return Row(
       children: [
-        // Like action
+        // Like — icon + count if >0
         InkWell(
           onTap: isAuthenticated
               ? () => _handleLike(context, ref, currentUserId, currentUserName)
@@ -490,39 +481,48 @@ class FeedCard extends ConsumerWidget {
             ),
           ),
         ),
-        const SizedBox(width: 8),
-        // Comment action
+        const SizedBox(width: 16),
+        // Comment — icon + count if available via additionalData, else icon only (no "Komentar" label)
         InkWell(
           onTap: () => _navigateToComments(context),
           borderRadius: BorderRadius.circular(8),
-          child: Row(
-            children: [
-              Icon(
-                Icons.comment_outlined,
-                size: 16,
-                color: AppColors.primaryRed,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                'Komentar',
-                style: TextStyle(
-                  fontSize: 12,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.chat_bubble_outline,
+                  size: 16,
                   color: AppColors.primaryRed,
-                  fontWeight: FontWeight.w500,
                 ),
-              ),
-            ],
+                if ((item.additionalData['commentCount'] as int? ?? 0) > 0) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    '${item.additionalData['commentCount']}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.primaryRed,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
-        const Spacer(),
-        // Share action
+        const SizedBox(width: 16),
+        // Share — icon only (no label, no Spacer)
         InkWell(
           onTap: () => _handleShareContent(context),
           borderRadius: BorderRadius.circular(8),
-          child: Icon(
-            Icons.share_outlined,
-            size: 16,
-            color: AppColors.neutralGray400,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            child: Icon(
+              Icons.share_outlined,
+              size: 16,
+              color: AppColors.neutralGray400,
+            ),
           ),
         ),
       ],
@@ -530,31 +530,69 @@ class FeedCard extends ConsumerWidget {
   }
 
   /// Handle like toggle for this content.
+  ///
+  /// Industry optimistic UX: 0ms local update + server reconcile.
+  /// D2 HARD GATE (design scope v2): no client-side email-verification
+  /// preflight — every authenticated user is already verified.
   void _handleLike(
     BuildContext context,
     WidgetRef ref,
     String currentUserId,
     String? currentUserName,
   ) async {
-    final authState = ref.read(authControllerProvider);
-    if (authState is AuthStateAuthenticated && !authState.emailVerified) {
-      if (context.mounted) {
-        await showBlockedActionGate(
-          context,
-          actionDescription: 'menyukai konten',
-        );
-      }
-      return;
+    final params = LikeStatsParams(
+      targetId: item.id,
+      targetType: LikeTargetType.content,
+      currentUserId: currentUserId,
+    );
+    final repository = ref.read(likeRepositoryProvider);
+    final currentStats = ref.read(likeStatsProvider(params)).asData?.value;
+
+    // 0ms optimistic push
+    LikeStats? optimistic;
+    if (currentStats != null) {
+      optimistic = repository.optimisticToggled(currentStats);
+      repository.pushOptimisticLikeStats(optimistic);
     }
 
     final notifier = ref.read(likeNotifierProvider.notifier);
-    await notifier.toggleLike(
+    final result = await notifier.toggleLike(
       targetId: item.id,
       targetType: LikeTargetType.content,
       userId: currentUserId,
       likerName: currentUserName ?? '',
       targetOwnerId: item.authorId,
     );
+
+    if (result.isSuccess) {
+      // Reconcile with authoritative server count (fixes race with other users)
+      await repository.refreshLikeStats(
+        targetId: item.id,
+        targetType: LikeTargetType.content,
+        currentUserId: currentUserId,
+      );
+    } else {
+      // Rollback optimistic on failure
+      if (currentStats != null) {
+        repository.pushOptimisticLikeStats(currentStats);
+      }
+      if (context.mounted) {
+        if (result.errorCode == 'EMAIL_VERIFICATION_REQUIRED') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Verifikasi email kamu diperlukan sebelum menyukai konten.',
+              ),
+              backgroundColor: AppColors.statusError,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Gagal menyukai konten')),
+          );
+        }
+      }
+    }
   }
 
   /// Handle share action - opens ShareBottomSheet for content

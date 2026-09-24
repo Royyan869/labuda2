@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/data/dto/promotion_contract_dto.dart';
+import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/promotion_contract_repository.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/canonical_promotion_providers.dart';
 import 'package:labuda/shared/utils/app_formatters.dart';
 
@@ -30,9 +31,7 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
     final promotionsAsync = ref.watch(myPromotionContractsProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Kelola Promosi'),
-      ),
+      appBar: AppBar(title: const Text('Kelola Promosi')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(RoutePaths.sellerPromotionContractCreate),
         icon: const Icon(Icons.add),
@@ -97,10 +96,7 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
             Text(
               'Promosi canonical Anda akan muncul di sini.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.neutralGray600,
-              ),
+              style: TextStyle(fontSize: 14, color: AppColors.neutralGray600),
             ),
           ],
         ),
@@ -133,10 +129,7 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.neutralGray600,
-              ),
+              style: TextStyle(fontSize: 14, color: AppColors.neutralGray600),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
@@ -165,10 +158,78 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
 }
 
 /// One canonical promotion contract row.
-class _PromotionListItem extends StatelessWidget {
+///
+/// Lifecycle actions map 1:1 to the canonical owner endpoints:
+///   active  → POST /promotions/contracts/:id/pause    (Jeda)
+///   paused  → POST /promotions/contracts/:id/resume   (Lanjutkan)
+///   active|paused → POST /promotions/contracts/:id/finalize (Hentikan)
+/// A finalized contract offers no actions. Stopping releases the remaining
+/// PROMOTION_ALLOCATION back to the reusable PROMOTE_BALANCE, so the reusable
+/// funding provider is invalidated afterwards.
+class _PromotionListItem extends ConsumerStatefulWidget {
   final PromotionContractDto contract;
 
   const _PromotionListItem({required this.contract});
+
+  @override
+  ConsumerState<_PromotionListItem> createState() => _PromotionListItemState();
+}
+
+class _PromotionListItemState extends ConsumerState<_PromotionListItem> {
+  bool _busy = false;
+
+  PromotionContractDto get contract => widget.contract;
+
+  Future<void> _run(
+    Future<Result<void>> Function(PromotionContractRepository repo) action,
+    String successMessage,
+  ) async {
+    setState(() => _busy = true);
+    final repo = ref.read(promotionContractRepositoryProvider);
+    final result = await action(repo);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (result.isSuccess) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(successMessage)));
+      ref.invalidate(myPromotionContractsProvider);
+      // Finalization releases unused allocation back to the reusable balance.
+      ref.invalidate(promoteBalanceProvider);
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(result.error ?? 'Aksi gagal')));
+    }
+  }
+
+  Future<void> _confirmStop() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hentikan promosi?'),
+        content: const Text(
+          'Promosi berhenti sekarang dan sisa anggaran yang belum terpakai '
+          'kembali ke saldo promo Anda.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Hentikan'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _run(
+      (repo) => repo.finalizeContract(contract.id),
+      'Promosi dihentikan',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -205,10 +266,16 @@ class _PromotionListItem extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text('Budget: ${AppFormatters.formatCurrencyInt(contract.budgetRupiah)}'),
+          Text(
+            'Budget: ${AppFormatters.formatCurrencyInt(contract.budgetRupiah)}',
+          ),
           Text('CPM: ${AppFormatters.formatCurrencyInt(contract.cpmRupiah)}'),
-          Text('Geografi: ${isNationwide ? 'Nasional' : contract.cityIds.join(', ')}'),
-          Text('Dibuat: ${AppFormatters.formatDate(DateTime.parse(contract.createdAt))}'),
+          Text(
+            'Geografi: ${isNationwide ? 'Nasional' : contract.cityIds.join(', ')}',
+          ),
+          Text(
+            'Dibuat: ${AppFormatters.formatDate(DateTime.parse(contract.createdAt))}',
+          ),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -222,19 +289,87 @@ class _PromotionListItem extends StatelessWidget {
               label: const Text('Lihat Analitik'),
             ),
           ),
+          ..._lifecycleActions(context),
         ],
       ),
     );
   }
 
+  /// Canonical owner lifecycle actions for this contract's status.
+  ///
+  /// active → Jeda (pause) + Hentikan (finalize)
+  /// paused → Lanjutkan (resume) + Hentikan (finalize)
+  /// finalized/other → none (terminal; no action can release or re-spend)
+  List<Widget> _lifecycleActions(BuildContext context) {
+    switch (contract.status) {
+      case 'active':
+        return [
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _busy
+                      ? null
+                      : () => _run(
+                          (repo) => repo.pauseContract(contract.id),
+                          'Promosi dijeda',
+                        ),
+                  child: const Text('Jeda'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _busy ? null : _confirmStop,
+                  child: const Text('Hentikan'),
+                ),
+              ),
+            ],
+          ),
+        ];
+      case 'paused':
+        return [
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _busy
+                      ? null
+                      : () => _run(
+                          (repo) => repo.resumeContract(contract.id),
+                          'Promosi dilanjutkan',
+                        ),
+                  child: const Text('Lanjutkan'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _busy ? null : _confirmStop,
+                  child: const Text('Hentikan'),
+                ),
+              ),
+            ],
+          ),
+        ];
+      default:
+        return const [];
+    }
+  }
+
+  /// Canonical lifecycle labels.
+  ///
+  /// Authority: promotion_contract_status_enum — exactly
+  /// prepared | active | paused | finalizing | finalized. The legacy
+  /// created/funded/eligible/cancelled/failed vocabulary belonged to the
+  /// competing `promotions` aggregate purged in migration 000081 and must
+  /// never reappear here.
   static String _statusLabel(String status) {
     switch (status) {
-      case 'created':
-        return 'Dibuat';
-      case 'funded':
-        return 'Didanai';
-      case 'eligible':
-        return 'Eligible';
+      case 'prepared':
+        return 'Disiapkan';
       case 'active':
         return 'Aktif';
       case 'paused':
@@ -243,10 +378,6 @@ class _PromotionListItem extends StatelessWidget {
         return 'Finalisasi';
       case 'finalized':
         return 'Selesai';
-      case 'cancelled':
-        return 'Dibatalkan';
-      case 'failed':
-        return 'Gagal';
       default:
         return status;
     }
@@ -259,8 +390,6 @@ class _PromotionListItem extends StatelessWidget {
       case 'paused':
         return AppColors.statusInfo;
       case 'finalized':
-      case 'cancelled':
-      case 'failed':
         return AppColors.neutralGray500;
       default:
         return AppColors.primaryBlue;

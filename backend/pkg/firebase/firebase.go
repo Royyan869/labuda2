@@ -103,8 +103,14 @@ func (c *Client) GetUserByEmail(ctx context.Context, email string) (*auth.UserRe
 	return user, nil
 }
 
-// CreateUser creates a new Firebase user
-func (c *Client) CreateUser(ctx context.Context, email, password string) (*auth.UserRecord, error) {
+// CreateUser creates a new Firebase user.
+//
+// emailVerified is explicit because it is a security-relevant attribute: the
+// canonical Firebase exchange binds a Firebase identity to an existing Labuda
+// account only when the presented email is VERIFIED. Development fixture
+// addresses (e.g. admin@test.local) have no mailbox to verify, so the caller
+// must decide — never a silent default.
+func (c *Client) CreateUser(ctx context.Context, email, password string, emailVerified bool) (*auth.UserRecord, error) {
 	if c.AuthClient == nil {
 		// Mock mode - return nil, this is not used in auth flow
 		return nil, fmt.Errorf("mock mode: CreateUser not supported")
@@ -113,7 +119,7 @@ func (c *Client) CreateUser(ctx context.Context, email, password string) (*auth.
 	params := (&auth.UserToCreate{}).
 		Email(email).
 		Password(password).
-		EmailVerified(false)
+		EmailVerified(emailVerified)
 
 	user, err := c.AuthClient.CreateUser(ctx, params)
 	if err != nil {

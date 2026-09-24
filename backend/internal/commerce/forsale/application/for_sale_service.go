@@ -55,6 +55,7 @@ type ForSaleService struct {
 	productRepo         productRepo.ProductRepository
 	outboxRepo          *outboxRepo.OutboxRepository
 	roleChecker         auth.RoleChecker
+	shippingSetupRepo   shippingRepo.ShippingSetupRepository
 	productShippingRepo shippingRepo.ProductShippingSetupRepository
 	coverageRepo        shippingRepo.ShippingCoverageRepository
 	shippingQuoteRepo   shippingquoteRepo.ShippingQuoteRepository
@@ -75,6 +76,8 @@ func NewForSaleService(args ...any) *ForSaleService {
 			svc.outboxRepo = v
 		case auth.RoleChecker:
 			svc.roleChecker = v
+		case shippingRepo.ShippingSetupRepository:
+			svc.shippingSetupRepo = v
 		case shippingRepo.ProductShippingSetupRepository:
 			svc.productShippingRepo = v
 		case shippingRepo.ShippingCoverageRepository:
@@ -211,20 +214,30 @@ type CreateForSaleInput struct {
 	PricePerUnit       money.Money
 	QuantityAvailable  int
 	NegotiationEnabled bool
-	Visibility         entity.ForSaleVisibility
 	// Shipping preferences
 	FarmAddressID *uuid.UUID
+	// Shipping selection (OWNER CANONICAL: create ships WITH its options —
+	// validated ownership + ≥1 active coverage, then linked to the product
+	// inside the same transaction. Create without options is rejected.)
+	ShippingSetupIDs []uuid.UUID
 	// Shipping readiness
 	PreparationTime entity.PreparationTime
 	PreparationNote *string
 }
 
-// Create creates a new for_sale.
+// Create creates a new for_sale that is IMMEDIATELY LIVE (status=active,
+// visibility=public) — OWNER CANONICAL: a seller who completes the create
+// form is publishing; there is no draft-first creation path.
 //
 // AUTHORITY MODEL (OWNER CANONICAL):
-// - Private/draft: workspace authority – active account + verified email + seller profile (NO subscription required)
-// - Public/market-visible: canonical market authority – HasActiveSellerCapability (active + not deleted + profile + active subscription interval)
-// Expired sellers can create private drafts but cannot publish to market.
+// - MARKET AUTHORITY: HasActiveSellerCapability (active + not deleted +
+//   profile + active subscription interval) is REQUIRED at create. An
+//   expired seller cannot create at all.
+// - SHIPPING: at least one shipping option (validated for ownership +
+//   active coverage) must be selected and is linked to the product in the
+//   same transaction. Farm/sender address must be valid.
+// Draft exists ONLY as a system-imposed demotion state when a subscription
+// lapses — never as a seller-chosen creation outcome.
 func (s *ForSaleService) Create(
 	ctx context.Context,
 	tx db.Tx,
@@ -242,15 +255,27 @@ func (s *ForSaleService) Create(
 		return nil, err
 	}
 
-	// MARKET AUTHORITY CHECK: Public for_sales require canonical seller market eligibility
-	if input.Visibility == entity.ForSaleVisibilityPublic {
-		hasCapability, err := s.roleChecker.HasActiveSellerCapability(ctx, input.SellerID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to verify market authority: %w", err)
-		}
-		if !hasCapability {
-			return nil, auth.ErrMarketAuthorityRequired
-		}
+	// MARKET AUTHORITY CHECK: canonical create requires market eligibility.
+	// Expired sellers are rejected up-front — they cannot create at all.
+	hasCapability, err := s.roleChecker.HasActiveSellerCapability(ctx, input.SellerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify market authority: %w", err)
+	}
+	if !hasCapability {
+		return nil, auth.ErrMarketAuthorityRequired
+	}
+
+	// SHIPPING SELECTION: canonical create ships WITH its options. Reject
+	// empty selections and validate ownership + ≥1 active coverage per option.
+	if len(input.ShippingSetupIDs) == 0 {
+		return nil, shippingApp.ErrShippingNotConfigured
+	}
+	validatedShippingIDs, err := shippingApp.ValidateSellableCreateShippingSelection(
+		ctx, tx, s.shippingSetupRepo, s.coverageRepo,
+		input.SellerID, input.ShippingSetupIDs,
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	// Create ForSale surface entity — surface-only, no hidden Product creation.
@@ -261,15 +286,17 @@ func (s *ForSaleService) Create(
 		input.PricePerUnit,
 		input.QuantityAvailable,
 		input.NegotiationEnabled,
-		input.Visibility,
+		entity.ForSaleVisibilityPublic,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create for_sale entity failed: %w", err)
 	}
 
-	// HARD RULE: Validate that for_sale was not created in invalid state
-	if for_sale.Status == entity.ForSaleStatusActive && for_sale.Visibility == entity.ForSaleVisibilityPrivate {
-		return nil, fmt.Errorf("invalid for_sale: active status requires public visibility")
+	// CREATE = PUBLISH: transition draft → active immediately. The entity
+	// still owns the transition (and the ACTIVE=PUBLIC hard rule); the seller
+	// never observes a draft stage during create.
+	if err := for_sale.Publish(); err != nil {
+		return nil, fmt.Errorf("publish-on-create failed: %w", err)
 	}
 
 	// Product handling — Product is the sole persistence authority for content.
@@ -325,6 +352,20 @@ func (s *ForSaleService) Create(
 	// Persist the for_sale surface (product already persisted)
 	if err := s.repo.Create(ctx, tx, for_sale); err != nil {
 		return nil, fmt.Errorf("persist for_sale failed: %w", err)
+	}
+
+	// Link validated shipping options to the product in the same transaction.
+	if err := s.productShippingRepo.CreateBulk(ctx, tx, for_sale.ProductID, validatedShippingIDs); err != nil {
+		return nil, fmt.Errorf("link shipping options failed: %w", err)
+	}
+
+	// Publish gates enforced at the create boundary too (defense in depth):
+	// active for_sales must be purchasable and shippable the moment they exist.
+	if err := s.EnsureShippingConfigured(ctx, tx, for_sale.ProductID); err != nil {
+		return nil, err
+	}
+	if err := s.EnsureFarmAddressValid(ctx, tx, for_sale); err != nil {
+		return nil, err
 	}
 
 	// Emit for_sale.created event

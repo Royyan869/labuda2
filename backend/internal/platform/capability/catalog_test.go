@@ -95,7 +95,7 @@ func TestCategory_DerivedFromCluster(t *testing.T) {
 		CapFinanceWithdrawRead:     "Finance",
 		CapGovernanceRoleAssign:    "Governance",
 		CapModerationAppealReview:  "Moderation",
-		CapPromotionCampaignStop:   "Promotion",
+		CapPromotionExternalProductReview: "Promotion",
 		CapSellerSubscriptionRecover: "Seller",
 		CapOrderRead:               "Order",
 		CapConfigUpdateFinancial:   "Config",

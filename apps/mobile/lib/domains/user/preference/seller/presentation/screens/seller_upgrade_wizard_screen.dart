@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/config/seller_upgrade_config_entity.dart';
@@ -10,7 +9,6 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment.dart'
     show PaymentMethodOption;
 import 'package:labuda/domains/finance/transaction/payment/presentation/widgets/payment_method_picker_sheet.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
 import 'package:labuda/domains/user/preference/seller/data/dto/seller_dto.dart';
 import 'package:labuda/domains/user/preference/seller/data/seller_providers.dart'
     show sellerRemoteDatasourceProvider, storePhotoUploadServiceProvider;
@@ -83,7 +81,7 @@ class _SellerUpgradeWizardScreenState
   String _initialPhone = '';
   String? _initialSenderAddressId;
   String _initialFarmName = '';
-  String? _initialFarmPhotoUrl;
+  String? _initialFarmPhotoDisplayUrl;
   String? _initialSelectedStorePhotoPath;
   final bool _initialAgreeToTerms = false;
 
@@ -91,7 +89,12 @@ class _SellerUpgradeWizardScreenState
   String? _senderAddressError;
   bool _isLoadingSenderAddress = false;
 
-  String? _farmPhotoUrl;
+  // Canonical store photo state. The STORAGE KEY (images/stores/{user_id}.jpg)
+  // is the ONLY value persisted to the backend (POST /seller/onboarding
+  // store_image_url); the display URL is the canonical read_url and is used
+  // for wizard preview rendering only. Never conflate the two.
+  String? _farmPhotoStorageKey;
+  String? _farmPhotoDisplayUrl;
   String? _selectedStorePhotoPath;
   bool _isStorePhotoUploading = false;
   bool _agreeToTerms = false;
@@ -186,11 +189,12 @@ class _SellerUpgradeWizardScreenState
       _initialPhone = '';
       _initialSenderAddressId = null;
       _initialFarmName = '';
-      _initialFarmPhotoUrl = null;
+      _initialFarmPhotoDisplayUrl = null;
       _initialSelectedStorePhotoPath = null;
       _selectedSenderAddress = null;
       _senderAddressError = null;
-      _farmPhotoUrl = null;
+      _farmPhotoStorageKey = null;
+      _farmPhotoDisplayUrl = null;
       _selectedStorePhotoPath = null;
       _agreeToTerms = false;
       _isLoadingSenderAddress = false;
@@ -276,14 +280,14 @@ class _SellerUpgradeWizardScreenState
         _farmNameController.text = _farmNameController.text.isEmpty
             ? farm.farmName
             : _farmNameController.text;
-        _farmPhotoUrl ??= farm.farmPhotoUrl;
+        _farmPhotoDisplayUrl ??= farm.farmPhotoUrl;
       }
 
       if (_initialFarmName.isEmpty &&
           _farmNameController.text.trim().isNotEmpty) {
         _initialFarmName = _farmNameController.text.trim();
       }
-      _initialFarmPhotoUrl ??= _farmPhotoUrl;
+      _initialFarmPhotoDisplayUrl ??= _farmPhotoDisplayUrl;
     });
   }
 
@@ -640,12 +644,7 @@ class _SellerUpgradeWizardScreenState
   }
 
   bool get _isAccountStepValid {
-    final authState = ref.read(authControllerProvider);
-    final emailVerified = authState is AuthStateAuthenticated
-        ? authState.user.isEmailVerified
-        : false;
     return SellerWizardHelpers.isAccountStepValid(
-      emailVerified: emailVerified,
       username: _usernameController.text.trim(),
       bio: _bioController.text.trim(),
       phoneNumber: _phoneController.text.trim(),
@@ -668,7 +667,7 @@ class _SellerUpgradeWizardScreenState
         _phoneController.text.trim() != _initialPhone ||
         _selectedSenderAddress?.id != _initialSenderAddressId ||
         _farmNameController.text.trim() != _initialFarmName ||
-        _farmPhotoUrl != _initialFarmPhotoUrl ||
+        _farmPhotoDisplayUrl != _initialFarmPhotoDisplayUrl ||
         _selectedStorePhotoPath != _initialSelectedStorePhotoPath ||
         _agreeToTerms != _initialAgreeToTerms;
   }
@@ -705,7 +704,7 @@ class _SellerUpgradeWizardScreenState
             senderAddress: _selectedSenderAddress?.fullAddress.trim() ?? '',
             emailVerified: isEmailVerified,
             farmName: _farmNameController.text.trim(),
-            farmPhotoUrl: _farmPhotoUrl,
+            farmPhotoUrl: _farmPhotoDisplayUrl,
             selectedStorePhotoPath: _selectedStorePhotoPath,
             packageFee: packageConfig.yearlyFee,
             packageDurationDays: packageConfig.durationDays,
@@ -801,7 +800,7 @@ class _SellerUpgradeWizardScreenState
                           formKey: _storeFormKey,
                           farmNameController: _farmNameController,
                           onStorePhotoUpload: _handleStorePhotoUpload,
-                          farmPhotoUrl: _farmPhotoUrl,
+                          farmPhotoUrl: _farmPhotoDisplayUrl,
                           selectedStorePhotoPath: _selectedStorePhotoPath,
                           isDark: isDark,
                         ),
@@ -1858,7 +1857,6 @@ class _SellerUpgradeWizardScreenState
   }
 
   Future<bool> _saveAccountPrerequisites() async {
-    final authState = ref.read(authControllerProvider);
     final requestEpoch = _principalEpoch;
     final userId = _currentAuthenticatedUserId();
     if (userId == null) {
@@ -1866,13 +1864,9 @@ class _SellerUpgradeWizardScreenState
       return false;
     }
 
-    final emailVerified = authState is AuthStateAuthenticated
-        ? authState.user.isEmailVerified
-        : false;
-    if (!emailVerified) {
-      await showBlockedActionGate(context, actionDescription: 'menjadi penjual');
-      return false;
-    }
+    // D2 HARD GATE (design scope v2): no client-side email-verification
+    // preflight — every authenticated user is already verified. The backend
+    // stays authoritative (EMAIL_VERIFICATION_REQUIRED handler on submit).
 
     final senderAddress = _selectedSenderAddress?.fullAddress.trim();
     if (senderAddress == null || senderAddress.isEmpty) {
@@ -1921,31 +1915,38 @@ class _SellerUpgradeWizardScreenState
   }
 
   void _handleStorePhotoUpload() {
-    final firebaseUser = FirebaseAuth.instance.currentUser;
-    if (firebaseUser == null) {
+    // AUTHORITY: the store-photo owner is the Labuda user ID from the
+    // canonical auth state. Backend fixed-key validation
+    // (images/stores/{user_id}.jpg) checks ownership against the JWT user ID —
+    // a Firebase UID would always be rejected with INVALID_STORAGE_KEY.
+    final requestEpoch = _principalEpoch;
+    final userId = _currentAuthenticatedUserId();
+    if (userId == null) {
       AppSnackBar.showError(context, 'User not authenticated');
       return;
     }
 
     AvatarEditorWidget.showEditModal(
       context: context,
-      userId: firebaseUser.uid,
+      userId: userId,
       showAdvancedCropper: true,
       onAvatarUpdated: (localPath) async {
         if (localPath == null) {
-          if (!mounted) return;
+          if (!_isCurrentPrincipalRequest(requestEpoch, userId)) return;
           setState(() {
             _selectedStorePhotoPath = null;
-            _farmPhotoUrl = null;
+            _farmPhotoDisplayUrl = null;
+            _farmPhotoStorageKey = null;
             _isStorePhotoUploading = false;
           });
           return;
         }
 
-        if (!mounted) return;
+        if (!_isCurrentPrincipalRequest(requestEpoch, userId)) return;
         setState(() {
           _selectedStorePhotoPath = localPath;
-          _farmPhotoUrl = null;
+          _farmPhotoDisplayUrl = null;
+          _farmPhotoStorageKey = null;
           _isStorePhotoUploading = true;
         });
 
@@ -1954,14 +1955,19 @@ class _SellerUpgradeWizardScreenState
         try {
           final result = await ref
               .read(storePhotoUploadServiceProvider)
-              .uploadStorePhoto(userId: firebaseUser.uid, imagePath: localPath);
+              .uploadStorePhoto(userId: userId, imagePath: localPath);
 
-          if (!mounted) return;
+          if (!mounted || !_isCurrentPrincipalRequest(requestEpoch, userId)) {
+            return;
+          }
 
           if (result.isSuccess && result.data != null) {
             setState(() {
               _selectedStorePhotoPath = localPath;
-              _farmPhotoUrl = result.data!;
+              // Persist the canonical STORAGE KEY via onboarding; the read
+              // URL is display-only for the wizard preview.
+              _farmPhotoStorageKey = result.data!.storageKey;
+              _farmPhotoDisplayUrl = result.data!.displayUrl;
               _isStorePhotoUploading = false;
             });
             AppSnackBar.showSuccess(
@@ -1969,18 +1975,26 @@ class _SellerUpgradeWizardScreenState
               'Store logo uploaded successfully',
             );
           } else {
+            if (!mounted ||
+                !_isCurrentPrincipalRequest(requestEpoch, userId)) {
+              return;
+            }
             setState(() {
               _selectedStorePhotoPath = null;
-              _farmPhotoUrl = null;
+              _farmPhotoDisplayUrl = null;
+              _farmPhotoStorageKey = null;
               _isStorePhotoUploading = false;
             });
             AppSnackBar.showError(context, result.error ?? 'Upload failed');
           }
         } catch (e) {
-          if (!mounted) return;
+          if (!mounted || !_isCurrentPrincipalRequest(requestEpoch, userId)) {
+            return;
+          }
           setState(() {
             _selectedStorePhotoPath = null;
-            _farmPhotoUrl = null;
+            _farmPhotoDisplayUrl = null;
+            _farmPhotoStorageKey = null;
             _isStorePhotoUploading = false;
           });
           AppSnackBar.showError(context, 'Gagal mengunggah logo. Coba lagi.');
@@ -2081,7 +2095,7 @@ class _SellerUpgradeWizardScreenState
       // SellerRenewalScreen — it never reaches this code path.
       await ref.read(sellerRemoteDatasourceProvider).performOnboarding(
             _farmNameController.text.trim(),
-            storeImageUrl: _farmPhotoUrl,
+            storeImageUrl: _farmPhotoStorageKey,
           );
 
       if (!_isCurrentPrincipalRequest(requestEpoch, userId)) {
@@ -2247,30 +2261,109 @@ class _SellerUpgradeWizardScreenState
   Future<void> _showPaymentPendingDialog({
     required _SellerPaymentOperationContext operationContext,
   }) async {
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogCtx) => _PaymentPendingDialog(
-        operationContext: operationContext,
-        isCurrentOperationPrincipal: () => _isCurrentPrincipalRequest(
-          operationContext.requestEpoch,
-          operationContext.initiatingUserId,
-        ),
-        onSuccess: () async {
-          if (Navigator.of(dialogCtx).canPop()) {
-            Navigator.of(dialogCtx).pop();
-          }
-
-          if (mounted) {
-            AppSnackBar.showSuccess(
-              context,
-              'Selamat! Anda sekarang penjual',
-            );
-            Navigator.of(context).pop(true);
-          }
-        },
-      ),
+    // Batch 2 parity with SellerRenewalScreen: settlement can outlive the 60s
+    // polling window (VA takes minutes-hours). After the user closes the
+    // pending dialog, the wizard keeps offering a manual status check until
+    // the backend confirms — the fresh seller is never stranded on step 5.
+    //
+    // successHandled breaks the loop the moment success was surfaced once —
+    // onSuccess may pop this screen, and the loop must never re-run its body
+    // after that (double snackbar / double pop).
+    var successHandled = false;
+    var firstIteration = true;
+    bool isCurrentPrincipal() => _isCurrentPrincipalRequest(
+      operationContext.requestEpoch,
+      operationContext.initiatingUserId,
     );
+    while (mounted && !successHandled && isCurrentPrincipal()) {
+      if (firstIteration) {
+        // Right after submit: the auto-polling window is the check.
+        firstIteration = false;
+      } else {
+        // Manual re-entry: check backend truth FIRST ("Cek status" must
+        // check, not reopen the polling dialog), then offer to poll again.
+        final confirmed = await _checkRegistrationPaymentConfirmed(
+          operationContext,
+        );
+        if (successHandled || !mounted || !isCurrentPrincipal()) return;
+        if (confirmed) {
+          successHandled = true;
+          AppSnackBar.showSuccess(
+            context,
+            'Selamat! Anda sekarang penjual',
+          );
+          Navigator.of(context).pop(true);
+          return;
+        }
+        final recheck = await showDialog<bool>(
+          context: context,
+          builder: (dialogCtx) => AlertDialog(
+            title: const Text('Pembayaran masih diproses'),
+            content: const Text(
+              'Pembayaran Anda belum terkonfirmasi. Cek ulang statusnya sekarang?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogCtx).pop(false),
+                child: const Text('Nanti saja'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogCtx).pop(true),
+                child: const Text('Cek status'),
+              ),
+            ],
+          ),
+        );
+        if (recheck != true) return;
+        // "Cek status" must CHECK, not reopen the polling dialog.
+        continue;
+      }
+
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogCtx) => _PaymentPendingDialog(
+          operationContext: operationContext,
+          isCurrentOperationPrincipal: isCurrentPrincipal,
+          onSuccess: () async {
+            successHandled = true;
+            if (Navigator.of(dialogCtx).canPop()) {
+              Navigator.of(dialogCtx).pop();
+            }
+
+            if (mounted) {
+              AppSnackBar.showSuccess(
+                context,
+                'Selamat! Anda sekarang penjual',
+              );
+              Navigator.of(context).pop(true);
+            }
+          },
+        ),
+      );
+      if (successHandled || !mounted || !isCurrentPrincipal()) return;
+    }
+  }
+
+  /// Manual status check for the Batch 2 re-entry loop. The registration
+  /// success predicate mirrors the polling dialog: seller profile exists AND
+  /// market authority is active (only ProcessSuccessfulPaymentTx writes the
+  /// first active interval).
+  Future<bool> _checkRegistrationPaymentConfirmed(
+    _SellerPaymentOperationContext operationContext,
+  ) async {
+    await ref.read(authControllerProvider.notifier).forceRefreshAuthState();
+    if (!mounted) return false;
+    if (!_isCurrentPrincipalRequest(
+      operationContext.requestEpoch,
+      operationContext.initiatingUserId,
+    )) {
+      return false;
+    }
+    final s = ref.read(authControllerProvider);
+    return s is AuthStateAuthenticated &&
+        s.user.hasSellerProfile == true &&
+        s.user.hasMarketAuthority == true;
   }
 
   Future<void> _handleSubscriptionApiException(ApiException e) async {
@@ -2286,9 +2379,11 @@ class _SellerUpgradeWizardScreenState
         await _showMissingRequirementsDialog(missing);
         return;
       case 'EMAIL_VERIFICATION_REQUIRED':
-        await showBlockedActionGate(
+        // Backend-rejection handler (defense-in-depth): the backend stays
+        // the single authority for EMAIL_VERIFICATION_REQUIRED.
+        AppSnackBar.showError(
           context,
-          actionDescription: 'menjadi penjual',
+          'Verifikasi email kamu diperlukan sebelum menjadi penjual.',
         );
         return;
       case 'ACCOUNT_SUSPENDED':
@@ -2323,15 +2418,15 @@ class _SellerUpgradeWizardScreenState
 
   Future<void> _showMissingRequirementsDialog(List<String> missing) async {
     final labels = missing.isEmpty
-        ? const ['account prerequisites']
+        ? const ['prasyarat akun']
         : missing.map(_formatRequirement).toList();
 
     await showDialog<void>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('Complete Seller Prerequisites'),
+        title: const Text('Lengkapi Prasyarat Seller'),
         content: Text(
-          'Please finish these fields before payment:\n${labels.map((item) => '- $item').join('\n')}',
+          'Selesaikan data berikut sebelum pembayaran:\n${labels.map((item) => '- $item').join('\n')}',
         ),
         actions: [
           TextButton(
@@ -2346,18 +2441,18 @@ class _SellerUpgradeWizardScreenState
   String _formatRequirement(String requirement) {
     switch (requirement) {
       case 'email_verified':
-        return 'Email verified';
+        return 'Email terverifikasi';
       case 'username':
         return 'Username';
       case 'bio':
         return 'Bio';
       case 'phone_number':
-        return 'Phone number';
+        return 'Nomor telepon';
       case 'sender_address':
       case 'location':
-        return 'Structured sender address';
+        return 'Alamat pengiriman';
       case 'seller_profile':
-        return 'Seller profile';
+        return 'Profil seller';
       default:
         return requirement.replaceAll('_', ' ');
     }
@@ -2399,7 +2494,8 @@ class _PaymentPendingDialog extends ConsumerStatefulWidget {
       _PaymentPendingDialogState();
 }
 
-class _PaymentPendingDialogState extends ConsumerState<_PaymentPendingDialog> {
+class _PaymentPendingDialogState extends ConsumerState<_PaymentPendingDialog>
+    with WidgetsBindingObserver {
   Timer? _timer;
   bool _timedOut = false;
   int _attempts = 0;
@@ -2407,13 +2503,27 @@ class _PaymentPendingDialogState extends ConsumerState<_PaymentPendingDialog> {
   @override
   void initState() {
     super.initState();
+    // Batch 2: settlement can land while the dialog is backgrounded (user
+    // switches to m-banking / wallet app). Resume is the natural moment the
+    // truth changed — refresh immediately instead of waiting for the next 3s
+    // tick or the 60s timeout.
+    WidgetsBinding.instance.addObserver(this);
     _startPolling();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    if (!widget.isCurrentOperationPrincipal()) return;
+    // Refresh once per resume; the periodic poll handles the rest.
+    ref.read(authControllerProvider.notifier).forceRefreshAuthState();
   }
 
   Future<void> _startPolling() async {
@@ -2468,7 +2578,7 @@ class _PaymentPendingDialogState extends ConsumerState<_PaymentPendingDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Processing payment'),
+      title: const Text('Memproses pembayaran'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2477,17 +2587,21 @@ class _PaymentPendingDialogState extends ConsumerState<_PaymentPendingDialog> {
           const SizedBox(height: 16),
           Text(
             _timedOut
-                ? 'Payment is still being processed. You can close this dialog and check again later.'
-                : 'We are waiting for payment confirmation and seller activation.',
+                ? 'Pembayaran masih diproses. Anda bisa menutup dialog ini dan memeriksa lagi nanti.'
+                : 'Kami menunggu konfirmasi pembayaran dan aktivasi seller Anda.',
           ),
         ],
       ),
       actions: [
-        if (_timedOut)
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
+        // Batch 2: manual re-entry point. Settlement can outlive the polling
+        // window (VA can take minutes-hours), so the user must never be left
+        // without a way to close this dialog and re-check. Closing keeps the
+        // wizard on step 5 for a fresh initiate (the backend reuses the same
+        // pending payment idempotently).
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cek status pembayaran'),
+        ),
       ],
     );
   }

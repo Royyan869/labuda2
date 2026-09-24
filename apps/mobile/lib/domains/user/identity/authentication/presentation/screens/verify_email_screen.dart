@@ -4,18 +4,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
-import '../providers/email_verification_controller.dart';
-import '../providers/email_verification_state.dart';
 
-/// Verify Email Screen — minimal compile-correct placeholder.
+/// Verify Email Screen — D2 HARD GATE surface (design scope v2).
 ///
-/// The legacy verification portal (removed in auth convergence) — the current
-/// canonical email-verified signal is [AuthStateAuthenticated.emailVerified]
-/// and [EmailVerificationState] (verified/unverified). This screen is no
-/// longer routed (see AuthModule — no verify-email route), but it must still
-/// type-check for the analyzer gate. The UI below preserves the original
-/// resend/refresh/sign-out affordances using the current
-/// [EmailVerificationController] API (sendVerificationEmail / refresh).
+/// Shown exclusively while the auth state machine is in
+/// [AuthStatePendingEmailVerification]: the Firebase identity exists but its
+/// email is not verified, so the backend exchange is forbidden (INV-8:
+/// verify → exchange, single path). This is the onboarding verify step —
+/// NOT a profile surface (the progressive-era profile resend path is dead:
+/// an authenticated user is always verified under the hard gate).
+///
+/// Behaviors:
+/// - Auto-polls Firebase `reload()` every 5s while visible so the flow
+///   continues by itself once the user clicks the link (read-only check;
+///   the exchange runs exactly once, driven by the auth state machine
+///   via [AuthController.checkPendingEmailVerification]).
+/// - Resend with a 60s display cooldown.
+/// - Escape hatch: "Ganti Akun" → clean signOut back to /welcome.
 class VerifyEmailScreen extends ConsumerStatefulWidget {
   const VerifyEmailScreen({super.key});
 
@@ -23,98 +28,85 @@ class VerifyEmailScreen extends ConsumerStatefulWidget {
   ConsumerState<VerifyEmailScreen> createState() => _VerifyEmailScreenState();
 }
 
-class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
-    with WidgetsBindingObserver {
-  Timer? _displayTimer;
-  int _displayCooldownSeconds = 0;
-  bool _isRefreshing = false;
+class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
+  Timer? _pollTimer;
+  Timer? _cooldownTimer;
+  int _cooldownSeconds = 0;
+  bool _isChecking = false;
   bool _isResending = false;
+
+  static const _pollInterval = Duration(seconds: 5);
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
+    _startPolling();
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _displayTimer?.cancel();
+    _pollTimer?.cancel();
+    _cooldownTimer?.cancel();
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
-    if (lifecycleState == AppLifecycleState.resumed) {
-      ref
-          .read(emailVerificationControllerProvider.notifier)
-          .refreshEmailVerificationStatus();
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(_pollInterval, (_) => _checkVerification());
+  }
+
+  Future<void> _checkVerification() async {
+    if (_isChecking || !mounted) return;
+    setState(() => _isChecking = true);
+    try {
+      // Single canonical bridge back into the exchange (INV-8). The
+      // controller reloads the Firebase user and either parks here again
+      // (still unverified) or runs the one exchange (verified).
+      await ref
+          .read(authControllerProvider.notifier)
+          .checkPendingEmailVerification();
+    } finally {
+      if (mounted) setState(() => _isChecking = false);
     }
   }
 
-  void _startDisplayTimer(int seconds) {
-    _displayCooldownSeconds = seconds;
-    _displayTimer?.cancel();
-    if (seconds <= 0) return;
-    _displayTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+  Future<void> _resendVerificationEmail() async {
+    if (_isResending || _cooldownSeconds > 0) return;
+    setState(() => _isResending = true);
+    final ok = await ref
+        .read(authControllerProvider.notifier)
+        .resendVerificationEmail();
+    if (!mounted) return;
+    setState(() {
+      _isResending = false;
+      if (ok) _cooldownSeconds = 60;
+    });
+    if (ok) {
+      _startCooldownCountdown();
+      AppSnackBar.showSuccess(context, 'Email verifikasi telah dikirim ulang');
+    } else {
+      AppSnackBar.showError(
+        context,
+        'Gagal mengirim email verifikasi. Coba lagi beberapa saat.',
+      );
+    }
+  }
+
+  void _startCooldownCountdown() {
+    _cooldownTimer?.cancel();
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
       setState(() {
-        if (_displayCooldownSeconds > 0) {
-          _displayCooldownSeconds--;
+        if (_cooldownSeconds > 0) {
+          _cooldownSeconds--;
         } else {
           timer.cancel();
         }
       });
     });
-  }
-
-  Future<void> _resendVerificationEmail() async {
-    if (_isResending || _displayCooldownSeconds > 0) return;
-    setState(() => _isResending = true);
-    final ok = await ref
-        .read(emailVerificationControllerProvider.notifier)
-        .sendVerificationEmail();
-    if (!mounted) return;
-    setState(() => _isResending = false);
-    if (ok) {
-      setState(() => _displayCooldownSeconds = 60);
-      _startDisplayTimer(60);
-      AppSnackBar.showSuccess(context, 'Email verifikasi telah dikirim ulang');
-    } else {
-      final state = ref.read(emailVerificationControllerProvider);
-      final msg = state is EmailVerificationError ? state.message : 'Gagal mengirim email verifikasi';
-      AppSnackBar.showError(context, msg);
-    }
-  }
-
-  Future<void> _checkVerificationStatus() async {
-    if (_isRefreshing) return;
-    setState(() => _isRefreshing = true);
-    try {
-      await ref
-          .read(emailVerificationControllerProvider.notifier)
-          .refreshEmailVerificationStatus();
-      if (mounted) {
-        setState(() => _isRefreshing = false);
-        final controllerState = ref.read(emailVerificationControllerProvider);
-        if (controllerState is EmailVerificationUnverified) {
-          AppSnackBar.showError(
-            context,
-            'Email belum terverifikasi. Silakan cek inbox atau spam.',
-          );
-        } else if (controllerState is EmailVerificationError) {
-          AppSnackBar.showError(context, controllerState.message);
-        }
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() => _isRefreshing = false);
-        AppSnackBar.showError(context, 'Gagal memeriksa status verifikasi');
-      }
-    }
   }
 
   void _signOut() {
@@ -125,9 +117,12 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final authState = ref.watch(authControllerProvider);
+
     String? email;
-    if (authState is AuthStateAuthenticated) {
-      email = authState.user.email;
+    String? pendingUsername;
+    if (authState is AuthStatePendingEmailVerification) {
+      email = authState.email;
+      pendingUsername = authState.username;
     }
 
     return Scaffold(
@@ -177,8 +172,13 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Akun kamu belum terverifikasi. '
-                    'Kirim ulang email verifikasi atau periksa inbox kamu untuk tautan verifikasi.',
+                    pendingUsername != null
+                        ? 'Hampir selesai, $pendingUsername! Kami mengirim tautan '
+                            'verifikasi ke email kamu. Buka tautan itu, lalu '
+                            'kembali ke sini — pendaftaran lanjut otomatis.'
+                        : 'Kami mengirim tautan verifikasi ke email kamu. '
+                            'Buka tautan itu, lalu kembali ke sini untuk '
+                            'melanjutkan masuk.',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: isDark
                           ? AppColors.neutralGray300
@@ -230,7 +230,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _isRefreshing ? null : _checkVerificationStatus,
+                      onPressed: _isChecking ? null : _checkVerification,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryRed,
                         foregroundColor: AppColors.light,
@@ -242,7 +242,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: _isRefreshing
+                      child: _isChecking
                           ? const SizedBox(
                               width: 20,
                               height: 20,
@@ -259,7 +259,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
                     width: double.infinity,
                     child: OutlinedButton(
                       onPressed:
-                          (_isResending || _displayCooldownSeconds > 0)
+                          (_isResending || _cooldownSeconds > 0)
                               ? null
                               : _resendVerificationEmail,
                       style: OutlinedButton.styleFrom(
@@ -274,8 +274,8 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
                         ),
                       ),
                       child: Text(
-                        _displayCooldownSeconds > 0
-                            ? 'Kirim Ulang dalam 00:${_displayCooldownSeconds.toString().padLeft(2, '0')}'
+                        _cooldownSeconds > 0
+                            ? 'Kirim Ulang dalam 00:${_cooldownSeconds.toString().padLeft(2, '0')}'
                             : 'Kirim Ulang Email',
                         style: TextStyle(
                           color: isDark
@@ -289,7 +289,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
                   SizedBox(
                     width: double.infinity,
                     child: TextButton(
-                      onPressed: _isRefreshing ? null : _signOut,
+                      onPressed: _isChecking ? null : _signOut,
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),

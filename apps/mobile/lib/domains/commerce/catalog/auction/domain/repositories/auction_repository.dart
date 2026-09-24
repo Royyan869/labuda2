@@ -134,7 +134,7 @@ abstract class AuctionRepository {
     int limit = 100,
   });
 
-  /// Watch active auctions (for explore tab)
+  /// Watch active auctions (for marketplace tab)
   Stream<List<Auction>> watchActiveAuctions({int limit = 50});
 
   /// Watch single auction (for detail screen real-time updates)

@@ -194,3 +194,7 @@ func (r *recordingProductShippingRepo) CountByProduct(ctx context.Context, tx db
 	r.lastCountByProduct = productID
 	return r.countByProduct, nil
 }
+
+func (r *recordingProductShippingRepo) CountLinksByShippingSetup(ctx context.Context, tx db.Tx, shippingSetupID uuid.UUID) (int64, error) {
+	return 0, nil
+}

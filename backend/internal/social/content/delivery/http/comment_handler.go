@@ -82,9 +82,20 @@ func NewCommentHandler(
 }
 
 // CreateCommentRequest holds the request body for creating a comment.
+// Body is required unless media (foto+video) is provided — foto+video max 5 (4 image +1 video).
 type CreateCommentRequest struct {
-	Body     string  `json:"body" binding:"required"`
-	ParentID *string `json:"parent_id,omitempty"`
+	Body     string                `json:"body"`
+	ParentID *string               `json:"parent_id,omitempty"`
+	Media    []CommentMediaRequest `json:"media,omitempty"`
+}
+
+// CommentMediaRequest carries a presigned S3 media attachment for a comment.
+type CommentMediaRequest struct {
+	StorageKey string `json:"storage_key" binding:"required"`
+	MediaURL   string `json:"media_url" binding:"required"`
+	MediaType  string `json:"media_type" binding:"required,oneof=image video"`
+	Position   int    `json:"position"`
+	ByteSize   *int64 `json:"byte_size,omitempty"`
 }
 
 // CreateComment handles POST /api/v1/contents/{id}/comments
@@ -146,11 +157,44 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 	// bidirectional block rule (fail-closed) — lives in
 	// CommentService.AddComment. Do not duplicate it here.
 
+	// Validate body/media: at least one required (foto+video support)
+	if req.Body == "" && len(req.Media) == 0 {
+		response.BadRequest(c, "body or media is required")
+		return
+	}
+	if len(req.Media) > 5 {
+		response.BadRequest(c, "max 5 media per comment")
+		return
+	}
+	mediaInputs := make([]contentApp.CommentMediaInput, 0, len(req.Media))
+	for i, m := range req.Media {
+		mt := entity.MediaType(m.MediaType)
+		if mt != entity.MediaTypeImage && mt != entity.MediaTypeVideo {
+			response.BadRequest(c, "invalid media_type")
+			return
+		}
+		if m.StorageKey == "" || m.MediaURL == "" {
+			response.BadRequest(c, "storage_key and media_url required")
+			return
+		}
+		mediaInputs = append(mediaInputs, contentApp.CommentMediaInput{
+			StorageKey: m.StorageKey,
+			MediaURL:   m.MediaURL,
+			MediaType:  mt,
+			Position:   i,
+			ByteSize:   m.ByteSize,
+		})
+	}
+
 	// Execute create within transaction
 	var newComment *entity.Comment
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
-		newComment, err = h.commentService.AddComment(ctx, tx, userID, contentID, req.Body, parentID, idempotencyKey)
+		if len(mediaInputs) > 0 {
+			newComment, err = h.commentService.AddCommentWithMedia(ctx, tx, userID, contentID, req.Body, parentID, idempotencyKey, mediaInputs)
+		} else {
+			newComment, err = h.commentService.AddComment(ctx, tx, userID, contentID, req.Body, parentID, idempotencyKey)
+		}
 		return err
 	})
 
@@ -218,7 +262,17 @@ func (h *CommentHandler) buildCreateCommentResponse(ctx context.Context, comment
 		}
 	}
 
-	return contentApp.NewCommentResponse(comment, preview, username, avatarURL, lifecycle)
+	// Foto+video: hydrate media for single create response
+	var media []*entity.CommentMedia
+	_ = h.db.WithTx(ctx, func(tx db.Tx) error {
+		m, err := h.commentService.GetCommentMediaBatch(ctx, tx, []uuid.UUID{comment.ID})
+		if err == nil {
+			media = m[comment.ID]
+		}
+		return nil
+	})
+
+	return contentApp.NewCommentResponseWithMedia(comment, preview, media, username, avatarURL, lifecycle)
 }
 
 // DeleteComment handles DELETE /api/v1/comments/{id}
@@ -462,6 +516,22 @@ func (h *CommentHandler) ListComments(c *gin.Context) {
 	// Fetch author info for all comment authors
 	authorInfoMap := h.fetchCommentAuthorsInfo(ctx, authorIDsMap)
 
+	// Foto+video: batch fetch comment media
+	commentIDs := make([]uuid.UUID, 0, len(comments))
+	for _, c := range comments {
+		commentIDs = append(commentIDs, c.ID)
+	}
+	mediaMap := map[uuid.UUID][]*entity.CommentMedia{}
+	if len(commentIDs) > 0 {
+		_ = h.db.WithTx(ctx, func(tx db.Tx) error {
+			m, err := h.commentService.GetCommentMediaBatch(ctx, tx, commentIDs)
+			if err == nil {
+				mediaMap = m
+			}
+			return nil
+		})
+	}
+
 	// Build comment responses
 	for _, comment := range comments {
 		var preview *contentApp.ForSalePreview
@@ -482,9 +552,10 @@ func (h *CommentHandler) ListComments(c *gin.Context) {
 			authorLifecycle = authorInfo.Lifecycle
 		}
 
-		commentResponses = append(commentResponses, contentApp.NewCommentResponse(
+		commentResponses = append(commentResponses, contentApp.NewCommentResponseWithMedia(
 			comment,
 			preview,
+			mediaMap[comment.ID],
 			authorUsername,
 			authorAvatarURL,
 			authorLifecycle,

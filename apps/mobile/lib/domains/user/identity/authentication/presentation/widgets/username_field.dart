@@ -1,12 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/helpers/canonical_username_validator.dart';
 
-class UsernameField extends ConsumerStatefulWidget {
+/// Canonical username input — the single username field used by BOTH the
+/// sign-up screen and the complete-profile screen (one widget, one language,
+/// no second authority).
+///
+/// 🔒 CANONICAL USERNAME AUTHORITY:
+/// - FORMAT validation is LOCAL via [CanonicalUsernameValidator] (mirrors the
+///   backend identityusername rules) and auto-lowercases as the user types.
+/// - AVAILABILITY (taken / reserved / final acceptance) is BACKEND authority,
+///   decided only at the transactional moment (exchange / complete-profile).
+///   There is NO client-side availability pre-check — this widget NEVER
+///   claims "available"; backend rejections surface inline via the owning
+///   screen's error slot.
+class UsernameField extends StatefulWidget {
   final TextEditingController controller;
   final bool isDark;
-  final Function(bool isValid, bool isAvailable) onValidationChanged;
+
+  /// Local format-only result: (isValidFormat, isFilled). Availability is
+  /// never claimed here — the second parameter is always false and exists
+  /// only to keep existing call sites compiling.
+  final void Function(bool isValidFormat, bool isAvailable) onValidationChanged;
 
   const UsernameField({
     super.key,
@@ -16,12 +31,14 @@ class UsernameField extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<UsernameField> createState() => _UsernameFieldState();
+  State<UsernameField> createState() => _UsernameFieldState();
 }
 
-class _UsernameFieldState extends ConsumerState<UsernameField> {
-  UsernameCheckResult? _checkResult;
-  bool _isChecking = false;
+class _UsernameFieldState extends State<UsernameField> {
+  /// Local format-only feedback: null = empty (neutral), false = invalid
+  /// format (red), true = valid format (neutral — "available" is never
+  /// claimed locally).
+  bool? _formatValid;
 
   @override
   void initState() {
@@ -35,133 +52,68 @@ class _UsernameFieldState extends ConsumerState<UsernameField> {
     super.dispose();
   }
 
-  /// Registration-time realtime feedback.
-  ///
-  /// Local validation establishes exactly three states: empty, invalid
-  /// format, or valid format (via the canonical backend authority
-  /// [CanonicalUsernameValidator]). It NEVER claims "available" — reserved
-  /// names, taken names, and final acceptance are backend authority and are
-  /// surfaced only when the authenticated exchange responds.
   void _onUsernameChanged() {
-    final canonical = CanonicalUsernameValidator.normalize(widget.controller.text);
+    final raw = widget.controller.text;
+    // Auto-lowercase as the user types: canonical usernames are lowercase
+    // only (backend identityusername rules), so the field must never show an
+    // "uppercase rejected" warning for input the user could not have known
+    // to avoid. toLowerCase preserves length for the allowed charset, so the
+    // selection offset stays valid. Re-fires the listener once (idempotent).
+    final lowered = raw.toLowerCase();
+    if (lowered != raw) {
+      final offset = widget.controller.selection.baseOffset;
+      final safeOffset =
+          offset < 0 ? lowered.length : offset.clamp(0, lowered.length);
+      widget.controller.value = TextEditingValue(
+        text: lowered,
+        selection: TextSelection.collapsed(offset: safeOffset),
+      );
+      return;
+    }
 
-    if (canonical == null) {
-      setState(() {
-        _checkResult = null;
-        _isChecking = false;
-      });
+    if (raw.isEmpty) {
+      if (mounted && _formatValid != null) {
+        setState(() => _formatValid = null);
+      }
       widget.onValidationChanged(false, false);
       return;
     }
 
-    if (!CanonicalUsernameValidator.isValid(canonical)) {
-      if (mounted) {
-        setState(() {
-          _checkResult = UsernameCheckResult.invalid(
-            'Username must be 3-30 chars: lowercase letters, numbers, '
-            'and underscores only',
-          );
-          _isChecking = false;
-        });
-        widget.onValidationChanged(false, false);
-      }
-      return;
-    }
+    final canonical = CanonicalUsernameValidator.normalize(raw);
+    final valid = canonical != null && CanonicalUsernameValidator.isValid(canonical);
 
-    if (mounted) {
-      setState(() {
-        _checkResult = UsernameCheckResult.validFormat();
-        _isChecking = false;
-      });
-      // Valid format only — availability is NOT claimed locally.
-      widget.onValidationChanged(true, false);
+    if (mounted && valid != _formatValid) {
+      setState(() => _formatValid = valid);
     }
+    widget.onValidationChanged(valid, false);
   }
 
   Color get _getBorderColor {
-    if (_checkResult == null) {
-      return widget.isDark ? AppColors.darkGray600 : AppColors.neutralGray300;
-    }
-
-    switch (_checkResult!.status) {
-      case UsernameCheckStatus.available:
-        return AppColors.success;
-      case UsernameCheckStatus.unavailable:
-      case UsernameCheckStatus.invalid:
-      case UsernameCheckStatus.error:
-        return AppColors.error;
-      case UsernameCheckStatus.checking:
-      case UsernameCheckStatus.validFormat:
-      case UsernameCheckStatus.idle:
-        return widget.isDark ? AppColors.darkGray600 : AppColors.neutralGray300;
-    }
+    if (_formatValid == false) return AppColors.error;
+    return widget.isDark ? AppColors.darkGray600 : AppColors.neutralGray300;
   }
 
   Widget? get _getSuffixIcon {
-    if (_isChecking) {
-      return const Padding(
-        padding: EdgeInsets.all(12),
-        child: SizedBox(
-          width: 16,
-          height: 16,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed),
-          ),
-        ),
-      );
+    if (_formatValid == true) {
+      return const Icon(Icons.check_circle, color: AppColors.success, size: 20);
     }
-
-    if (_checkResult == null) return null;
-
-    switch (_checkResult!.status) {
-      case UsernameCheckStatus.available:
-        return const Icon(
-          Icons.check_circle,
-          color: AppColors.success,
-          size: 20,
-        );
-      case UsernameCheckStatus.unavailable:
-      case UsernameCheckStatus.invalid:
-      case UsernameCheckStatus.error:
-        return const Icon(Icons.error, color: AppColors.error, size: 20);
-      case UsernameCheckStatus.checking:
-      case UsernameCheckStatus.validFormat:
-      case UsernameCheckStatus.idle:
-        return null;
-    }
-  }
-
-  String? get _getHelperText {
-    if (_checkResult == null) return 'Unique username for your profile';
-    if (_checkResult!.message?.isNotEmpty == true) {
-      return _checkResult!.message;
+    if (_formatValid == false) {
+      return const Icon(Icons.error, color: AppColors.error, size: 20);
     }
     return null;
   }
 
-  Color get _getHelperTextColor {
-    if (_checkResult == null) {
-      return widget.isDark
-          ? AppColors.neutralGray500
-          : AppColors.neutralGray400;
+  String? get _getHelperText {
+    if (_formatValid == false) {
+      return 'Username must be 3-30 chars: lowercase letters, numbers, '
+          'and underscores only';
     }
+    return 'Unique username for your profile';
+  }
 
-    switch (_checkResult!.status) {
-      case UsernameCheckStatus.available:
-        return AppColors.success;
-      case UsernameCheckStatus.unavailable:
-      case UsernameCheckStatus.invalid:
-      case UsernameCheckStatus.error:
-        return AppColors.error;
-      case UsernameCheckStatus.checking:
-        return AppColors.primaryRed;
-      case UsernameCheckStatus.validFormat:
-      case UsernameCheckStatus.idle:
-        return widget.isDark
-            ? AppColors.neutralGray500
-            : AppColors.neutralGray400;
-    }
+  Color get _getHelperTextColor {
+    if (_formatValid == false) return AppColors.error;
+    return widget.isDark ? AppColors.neutralGray500 : AppColors.neutralGray400;
   }
 
   @override
@@ -211,20 +163,11 @@ class _UsernameFieldState extends ConsumerState<UsernameField> {
             if (value == null || value.isEmpty) {
               return 'Username cannot be empty';
             }
-            if (_checkResult != null && !_checkResult!.isValid) {
-              return _checkResult!.message;
-            }
-            if (_isChecking) {
-              return 'Still checking username availability';
-            }
-            if (_checkResult != null &&
-                _checkResult!.status == UsernameCheckStatus.error) {
-              return null;
-            }
-            if (_checkResult != null &&
-                !_checkResult!.isAvailable &&
-                _checkResult!.status != UsernameCheckStatus.validFormat) {
-              return _checkResult!.message;
+            final canonical = CanonicalUsernameValidator.normalize(value);
+            if (canonical == null ||
+                !CanonicalUsernameValidator.isValid(canonical)) {
+              return 'Username must be 3-30 chars: lowercase letters, '
+                  'numbers, and underscores only';
             }
             return null;
           },
@@ -239,9 +182,7 @@ class _UsernameFieldState extends ConsumerState<UsernameField> {
                     style: TextStyle(
                       fontSize: 12,
                       color: _getHelperTextColor,
-                      fontWeight: _checkResult?.isAvailable == true
-                          ? FontWeight.w500
-                          : FontWeight.normal,
+                      fontWeight: FontWeight.normal,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

@@ -5,11 +5,10 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/domains/social/like/domain/entities/like.dart';
 import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
-import 'package:labuda/domains/user/identity/authentication/authentication.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
 
 /// Handlers for content like actions
 class ContentLikeHandlers {
@@ -25,24 +24,26 @@ class ContentLikeHandlers {
 
   /// Handle like content (post or request).
   ///
-  /// Preflight: backend route `POST /api/v1/likes/toggle` is gated by
-  /// `RequireInteractionAuthority` (email-verified). If the local auth
-  /// state already reports `!emailVerified`, surface the canonical
-  /// blocked-action gate instead of burning a guaranteed 403. Backend
-  /// remains the authoritative gate.
+  /// Industry optimistic UX: 0ms local update + server reconcile.
+  /// D2 HARD GATE (design scope v2): no client-side email-verification
+  /// preflight — every authenticated user is already verified. The backend
+  /// stays authoritative; its EMAIL_VERIFICATION_REQUIRED rejection still
+  /// surfaces the canonical gate below (defense-in-depth handler).
   Future<void> handleLike(String currentUserId, String currentUserName) async {
-    final authState = ref.read(authControllerProvider);
-    if (authState is AuthStateAuthenticated && !authState.emailVerified) {
-      await showBlockedActionGate(
-        context,
-        actionDescription: 'menyukai konten',
-      );
-      return;
+    final params = LikeStatsParams(
+      targetId: content.id,
+      targetType: LikeTargetType.content,
+      currentUserId: currentUserId,
+    );
+    final repository = ref.read(likeRepositoryProvider);
+    final currentStats = ref.read(likeStatsProvider(params)).asData?.value;
+    LikeStats? optimistic;
+    if (currentStats != null) {
+      optimistic = repository.optimisticToggled(currentStats);
+      repository.pushOptimisticLikeStats(optimistic);
     }
 
     final notifier = ref.read(likeNotifierProvider.notifier);
-
-    // BACKEND ALIGNMENT V1: Use 'content' for all content types (post and request)
     final result = await notifier.toggleLike(
       targetId: content.id,
       targetType: LikeTargetType.content,
@@ -51,21 +52,33 @@ class ContentLikeHandlers {
       targetOwnerId: content.authorId,
     );
 
-    if (!result.isSuccess && context.mounted) {
-      // If the backend rejected with EMAIL_VERIFICATION_REQUIRED despite our
-      // preflight (e.g. verification status changed mid-session), still surface
-      // the canonical gate rather than a generic snackbar.
-      if (result.errorCode == 'EMAIL_VERIFICATION_REQUIRED') {
-        await showBlockedActionGate(
-          context,
-          actionDescription: 'menyukai konten',
-        );
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Gagal menyukai konten')));
+    if (result.isSuccess) {
+      await repository.refreshLikeStats(
+        targetId: content.id,
+        targetType: LikeTargetType.content,
+        currentUserId: currentUserId,
+      );
+      return;
     }
-    // If successful, the likeStatsProvider will automatically update
+
+    // Rollback on failure
+    if (currentStats != null) {
+      repository.pushOptimisticLikeStats(currentStats);
+    }
+    if (!context.mounted) return;
+    if (result.errorCode == 'EMAIL_VERIFICATION_REQUIRED') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Verifikasi email kamu diperlukan sebelum menyukai konten.',
+          ),
+          backgroundColor: AppColors.statusError,
+        ),
+      );
+      return;
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Gagal menyukai konten')));
   }
 }

@@ -15,8 +15,7 @@ import 'package:labuda/domains/user/profile/data/services/user_sync_service.dart
 import 'package:labuda/domains/system/notification/data/notification_providers.dart'
     show fcmServiceProvider;
 
-
-/// PASS 2A / F1 â€” structured classification of a failed backend auth-sync
+/// PASS 2A / F1 — structured classification of a failed backend auth-sync
 /// call (POST /api/v1/auth/firebase/exchange, GET /users/me).
 ///
 /// Free-text message matching drifts silently whenever the backend's
@@ -32,11 +31,11 @@ import 'package:labuda/domains/system/notification/data/notification_providers.d
 enum AuthSyncErrorKind {
   /// Firebase ID token itself is invalid/expired (backend `INVALID_TOKEN`,
   /// HTTP 401). The client-side Firebase session can no longer be trusted
-  /// â€” force signOut.
+  /// — force signOut.
   identityInvalid,
 
   /// The account no longer exists (backend `ACCOUNT_DELETED`, HTTP 403).
-  /// Force signOut â€” there is nothing left to sync against.
+  /// Force signOut — there is nothing left to sync against.
   accountDeleted,
 
   /// The account exists but is suspended/banned/inactive (backend
@@ -46,14 +45,107 @@ enum AuthSyncErrorKind {
   /// elsewhere, which likewise never signs the user out).
   accountInactive,
 
-  /// Transient network/server issue (timeout, 5xx, no connection) â€” safe
-  /// to auto-retry with backoff.
+  /// D2 HARD GATE: backend rejected the exchange because the presented
+  /// Firebase identity's email is not verified (`EMAIL_NOT_VERIFIED`,
+  /// HTTP 403). This is a business-flow decision with its own UI (the
+  /// verify-email screen) — NOT a degraded backend state (INV-7: splash
+  /// degraded is reserved for infrastructure failures only).
+  pendingEmailVerification,
+
+  /// D4: backend rejected the exchange because the email's account row is
+  /// already bound to a DIFFERENT Firebase UID (`IDENTITY_CONFLICT`,
+  /// HTTP 409). Two Firebase identities claiming one account is a canonical
+  /// anomaly — terminal for this session; forces a clean sign-out. Never
+  /// auto-retried and never silently re-bound (no fallback exists).
+  identityConflict,
+
+  /// Transient network/server issue (timeout, 5xx, no connection) — terminal
+  /// degraded state. Recovery is explicit via manual retryBackendSync().
   backendUnavailable,
 
   /// Backend rejected the request for another reason (validation, business
-  /// rule, etc). Not retryable automatically, but not an identity or
-  /// availability problem either.
+  /// rule, etc). Terminal degraded state, not an identity or availability
+  /// problem.
   backendFailure,
+}
+
+/// D2-A — Minimal explicit operation intent for listener coordination.
+/// _isGoogleSigningIn remains separate (UI re-entrancy).
+sealed class AuthIntent {
+  const AuthIntent();
+}
+
+class EmailLoginIntent extends AuthIntent {
+  const EmailLoginIntent();
+}
+
+class EmailSignupIntent extends AuthIntent {
+  const EmailSignupIntent(this.username);
+  final String username;
+}
+
+class GoogleLoginIntent extends AuthIntent {
+  const GoogleLoginIntent();
+}
+
+/// D1/D2 — Intent stored while the session is parked in the
+/// pending-email-verification state. It carries everything the SINGLE
+/// post-verification exchange needs:
+/// - signup: the pending registration username (USERNAME_TAKEN retry path)
+/// - mixed-provider (D1): the Google credential that hit
+///   `account-exists-with-different-credential`, to be linked into the
+///   verified identity after verification (one Firebase UID per human).
+/// It is scoped to the Firebase UID + email it was created for, so a stale
+/// intent can never attach to a different identity.
+class PendingEmailVerificationIntent {
+  const PendingEmailVerificationIntent({
+    required this.email,
+    required this.firebaseUid,
+    this.username,
+    this.googleCredential,
+  });
+
+  final String email;
+  final String firebaseUid;
+  final String? username;
+  final AuthCredential? googleCredential;
+
+  /// Whether this intent provably belongs to [user] (same UID AND same email).
+  bool matches(User user) =>
+      user.uid == firebaseUid &&
+      (user.email ?? '').trim().toLowerCase() == email.trim().toLowerCase();
+}
+
+/// Outcome of [AuthController.completeProfile] — carries the backend's
+/// canonical rejection back to the completion SURFACE instead of mutating the
+/// global auth state, so the user corrects the username on the same screen
+/// (backend = the single username authority, inline feedback, one language
+/// shared with the registration form via [registrationUsernameErrorMessage]).
+class ProfileCompletionOutcome {
+  final bool success;
+
+  /// Backend rejected the chosen username (USERNAME_TAKEN / RESERVED /
+  /// INVALID_FORMAT / 409 race). Presentational — show inline, stay on the
+  /// completion screen.
+  final String? usernameError;
+
+  /// Transient/generic failure (unreachable backend, unexpected 4xx).
+  /// State is preserved; the surface shows the message and the user may
+  /// retry or use the Sign Out escape hatch.
+  final String? failureError;
+
+  const ProfileCompletionOutcome.success()
+    : success = true,
+      usernameError = null,
+      failureError = null;
+
+  const ProfileCompletionOutcome.usernameRejected(this.usernameError)
+    : success = false,
+      failureError = null;
+
+  const ProfileCompletionOutcome.failure(this.failureError)
+    : success = false,
+      usernameError = null;
 }
 
 /// Structured-first classification. See [AuthSyncErrorKind] for the
@@ -76,6 +168,14 @@ AuthSyncErrorKind classifyAuthSyncError(
       return AuthSyncErrorKind.accountDeleted;
     case 'ACCOUNT_INACTIVE':
       return AuthSyncErrorKind.accountInactive;
+    // D2 hard gate: the presented identity's email is not verified. Business
+    // flow with its own screen — never a degraded backend state (INV-7).
+    case 'EMAIL_NOT_VERIFIED':
+      return AuthSyncErrorKind.pendingEmailVerification;
+    // D4: the account row for this email is bound to a different Firebase
+    // UID. Canonical anomaly — terminal, clean sign-out, no re-bind.
+    case 'IDENTITY_CONFLICT':
+      return AuthSyncErrorKind.identityConflict;
   }
 
   // A 5xx with no matching structured code above is always a backend
@@ -94,26 +194,32 @@ AuthSyncErrorKind classifyAuthSyncError(
   return AuthSyncErrorKind.backendFailure;
 }
 
-/// ðŸ”’ ERROR CLASSIFICATION (fallback, free-text): Determine if error is
+/// 🔒 ERROR CLASSIFICATION (fallback, free-text): Determine if error is
 /// identity-related. Used only when no structured `errorCode` is available
-/// â€” see [classifyAuthSyncError] for the structured-first classification.
+/// — see [classifyAuthSyncError] for the structured-first classification.
 bool isIdentityErrorMessage(String? error) {
   if (error == null) return false;
   final lower = error.toLowerCase();
 
   // Identity errors - user's Firebase session is invalid
+  // `no-current-user` / `no user currently signed in`: the User object's
+  // underlying session is gone (account deleted out-of-band, token revoked
+  // mid-flow). Recovery via "Coba Lagi" is impossible — the honest state is
+  // a clean sign-out back to the welcome flow, NOT a degraded retry screen.
   return lower.contains('invalid token') ||
       lower.contains('token_expired') ||
       lower.contains('no user record') ||
       lower.contains('firebase_auth/unknown') ||
       lower.contains('user-not-found') ||
       lower.contains('user deleted') ||
+      lower.contains('no-current-user') ||
+      lower.contains('no user currently signed in') ||
       lower.contains('auth/invalid-credential');
 }
 
-/// ðŸ”’ ERROR CLASSIFICATION (fallback, free-text): Determine if error is
+/// 🔒 ERROR CLASSIFICATION (fallback, free-text): Determine if error is
 /// backend unavailable. Used only when no structured `errorCode`/
-/// `statusCode` is available â€” see [classifyAuthSyncError].
+/// `statusCode` is available — see [classifyAuthSyncError].
 bool isBackendUnavailableErrorMessage(String? error) {
   if (error == null) return false;
   final lower = error.toLowerCase();
@@ -131,15 +237,16 @@ bool isBackendUnavailableErrorMessage(String? error) {
       lower.contains('connection refused');
 }
 
-/// Maps a backend registration-username error code to a user-facing message
-/// for the registration screen. Returns `null` when the code is not one of the
-/// canonical username rejections (USERNAME_TAKEN / USERNAME_RESERVED /
-/// USERNAME_INVALID_FORMAT / USERNAME_IMMUTABLE), so the caller falls through
-/// to generic sync-error classification.
+/// THE single message mapping for backend username rejections
+/// (USERNAME_TAKEN / USERNAME_RESERVED / USERNAME_INVALID_FORMAT /
+/// USERNAME_IMMUTABLE) — shared by EVERY username surface (registration form
+/// AND complete-profile) so all screens speak the same language about the same
+/// backend authority. Returns `null` when the code is not a canonical username
+/// rejection.
 ///
 /// Backend remains the final authority for these outcomes (Stage 1A contract);
 /// this only converts the machine-readable code into presentational text.
-String? _mapRegistrationUsernameError(String? errorCode) {
+String? registrationUsernameErrorMessage(String? errorCode) {
   switch (errorCode) {
     case 'USERNAME_TAKEN':
       return 'Username ini sudah digunakan. Silakan pilih username lain.';
@@ -157,7 +264,7 @@ String? _mapRegistrationUsernameError(String? errorCode) {
 /// Authentication Controller - Owner of Auth State & Session
 ///
 /// **PRIMARY RESPONSIBILITIES (BOUNDARIES):**
-/// 1. AUTH: Firebase login/signup/signout, OAuth
+/// 1. AUTH: Firebase login/signup/signout, OAuth, provider linking (D1)
 /// 2. SESSION: Backend sync, periodic validation, FCM cleanup
 /// 3. STATE MACHINE: Emits states that router uses for decisions
 ///
@@ -176,20 +283,24 @@ String? _mapRegistrationUsernameError(String? errorCode) {
 /// - Profile Data (username, bio, avatarUrl): PostgreSQL via Backend API /users/me
 /// - Roles & Permissions: PostgreSQL via Backend API /users/me
 ///
-/// **âœ… NEW SIMPLIFIED EMAIL VERIFICATION FLOW:**
-/// - Signup â†’ Verify email (outside app) â†’ Login â†’ DONE
-/// - NO blocking for unverified emails - backend enforces verification
-/// - Users can sign in with unverified emails but functionality is limited
+/// **EMAIL VERIFICATION (D2 HARD GATE, design scope v2):**
+/// - Signup → createUser + sendEmailVerification → AuthStatePendingEmailVerification
+/// - Login with unverified email → AuthStatePendingEmailVerification
+/// - The backend exchange happens ONLY after Firebase reports emailVerified
+///   (INV-8: verify → exchange; there is no second path)
+/// - EMAIL_NOT_VERIFIED from the backend routes to the verify-email screen —
+///   it is a business decision, not a degraded server state (INV-7)
 ///
 /// **STATE MACHINE FLOW (Prevents Premature Routing):**
-/// 1. AuthStateInitial â†’ Initial state
-/// 2. AuthStateFirebaseAuthenticated â†’ Firebase login succeeded (internal transition)
-/// 3. AuthStateSyncingWithBackend â†’ Backend sync in progress (NO redirect)
-/// 4. AuthStateAuthenticated â†’ Backend data loaded, router can NOW evaluate redirects
-/// 5. AuthStateUnauthenticated â†’ User logged out
-/// 6. AuthStateError â†’ Error occurred
-/// 7. AuthStateRequiresProfileCompletion â†’ Profile completion needed (router â†’ /auth/complete-profile)
-/// 8. AuthStateBackendFailure/BackendUnavailable â†’ Degraded mode (router: no redirect)
+/// 1. AuthStateInitial → Initial state
+/// 2. AuthStateFirebaseAuthenticated → Firebase login succeeded (internal transition)
+/// 3. AuthStateSyncingWithBackend → Backend sync in progress (NO redirect)
+/// 4. AuthStateAuthenticated → Backend data loaded, router can NOW evaluate redirects
+/// 5. AuthStateUnauthenticated → User logged out
+/// 6. AuthStateError → Error occurred
+/// 7. AuthStateRequiresProfileCompletion → Profile completion needed (router → /auth/complete-profile)
+/// 8. AuthStatePendingEmailVerification → Email unverified (router → /auth/verify-email)
+/// 9. AuthStateBackendFailure/BackendUnavailable → Degraded mode (router: no redirect)
 ///
 /// **APP ENTRY ROUTING OWNER: goRouterProvider**
 /// - Router watches authControllerProvider state
@@ -197,9 +308,9 @@ String? _mapRegistrationUsernameError(String? errorCode) {
 /// - AuthController ONLY emits state, NEVER decides routes
 ///
 /// Mengikuti DEVELOPMENT_STANDARDS_V1_ID.md:
-/// - Interface-first design dengan dependency injection âœ…
-/// - Result pattern untuk error handling âœ…
-/// - Proper state management âœ…
+/// - Interface-first design dengan dependency injection ✅
+/// - Result pattern untuk error handling ✅
+/// - Proper state management ✅
 class AuthController extends Notifier<AuthState> {
   late final IAuthRepository _authRepository;
   late final ILoggerService _logger;
@@ -207,57 +318,43 @@ class AuthController extends Notifier<AuthState> {
   late final ILocalStorageService _localStorage;
   UserSyncService? _userSyncService; // Backend sync service for roles
 
-  // ðŸ”’ SECURITY FIX: Periodic session validation timer
+  // 🔒 SECURITY FIX: Periodic session validation timer
   Timer? _sessionValidationTimer;
 
-  // ðŸ” AUTH PERSISTENCE FIX: Stream subscription for Firebase Auth state changes
+  // 🔐 AUTH PERSISTENCE FIX: Stream subscription for Firebase Auth state changes
   StreamSubscription<User?>? _authStateSubscription;
 
-  // ðŸ”§ SYNC FIX: Track if backend sync has been completed for current user
+  // 🔧 SYNC FIX: Track if backend sync has been completed for current user
   // This prevents race condition where /users/me is called before /users/sync completes
   String? _syncedUserId;
-  bool _syncInProgress = false;
-
-  // ðŸ”’ MUTEX: Prevent concurrent sync operations
+  // 🔒 MUTEX: Prevent concurrent sync operations
   // Use Completable as a simple mutex lock
   Future<void>? _ongoingSync;
 
-  // ðŸ›¡ï¸ RE-ENTRANCY GUARD: Prevent multiple rapid taps on Google sign-in button
+  // 🛡️ RE-ENTRANCY GUARD: Prevent multiple rapid taps on Google sign-in button
   bool _isGoogleSigningIn = false;
 
-  // ðŸ” USERNAME DECOUPLING: Pending signup username (NOT from provider metadata)
-  // Set during email signup and used for backend sync
-  String? _pendingSignupUsername;
+  // D2-A — Single explicit intent carrying signup username.
+  // _isGoogleSigningIn remains separate (UI re-entrancy).
+  AuthIntent? _authIntent;
 
-  // ðŸ”’ FLOW AWARENESS: Flag to distinguish email signup from login
-  // Set in signUpWithEmail(), cleared after sync completes
-  // This makes _syncWithBackend() explicitly aware of the authentication flow
-  bool _isInitiatingEmailSignup = false;
+  // D1/D2 — Intent parked while the session waits for email verification.
+  // Flushed into the single post-verification exchange by
+  // [checkPendingEmailVerification].
+  PendingEmailVerificationIntent? _pendingVerificationIntent;
 
-  // ðŸ”„ DEGRADED MODE RETRY: Auto-retry with exponential backoff
-  int _retryCount = 0;
-  static const int _maxRetries = 3;
-  Timer? _retryTimer;
+  // Canonical username-rejection message from the LATEST backend rejection of
+  // the registration exchange. Consumed by the sign-up screen to render the
+  // SAME message the complete-profile surface shows inline — one language,
+  // one authority (backend). Cleared whenever a new signup/retry begins.
+  String? _lastRegistrationUsernameError;
+  String? get lastRegistrationUsernameError => _lastRegistrationUsernameError;
+
   int _authHydrationGeneration = 0;
 
-  // Phase 3D: Labuda startup single-flight and explicit login guard
+  // Phase 3D: Labuda startup single-flight
   Future<bool>? _labudaRestoreFuture;
-  bool _isExplicitLoginInProgress = false;
   bool _initialFirebaseEventPending = true;
-
-  /// True while an automatic backend-sync retry is still scheduled (or in
-  /// flight) after a transient backend-unavailable failure.
-  ///
-  /// STAGE 3B: this is the retry-budget signal consumed by the startup UI.
-  /// While it is true the degraded splash (e.g. "Server Tidak Bisa
-  /// Dijangkau") must NOT be shown — the app is still inside its canonical
-  /// automatic recovery cycle, so the startup presentation stays in a
-  /// pending/loading state. Once the budget is exhausted (no timer
-  /// scheduled) the degraded screen becomes the truthful terminal state
-  /// for that attempt.
-  ///
-  /// Pure read of existing retry state — no new auth semantics.
-  bool get isBackendRetryPending => _retryTimer != null;
 
   /// Set new state with logging for all transitions (debug-mode verbosity).
   void _setState(AuthState newState) {
@@ -265,7 +362,7 @@ class AuthController extends Notifier<AuthState> {
     state = newState;
 
     _logger.log(
-      '[AUTH] State: ${oldState.runtimeType} â†’ ${newState.runtimeType}',
+      '[AUTH] State: ${oldState.runtimeType} → ${newState.runtimeType}',
       level: LogLevel.info,
     );
   }
@@ -305,7 +402,7 @@ class AuthController extends Notifier<AuthState> {
   ///
   /// Router hanya membaca status ini, bukan AuthState secara langsung.
   /// State machine internal AuthState tetap kompleks, tapi router
-  /// hanya melihat 3 status final ini.
+  /// hanya melihat status final ini.
   AppAuthStatus get appAuthStatus {
     final currentState = state;
 
@@ -319,6 +416,14 @@ class AuthController extends Notifier<AuthState> {
 
     // Profile completion required - show complete profile screen
     if (currentState is AuthStateRequiresProfileCompletion) {
+      return AppAuthStatus.initializing;
+    }
+
+    // D2 hard gate: pending email verification is an explicit business-flow
+    // state. The router maps the AuthState directly to /auth/verify-email
+    // (same pattern as RequiresProfileCompletion); status-wise it parks on
+    // splash like the other pre-authenticated states.
+    if (currentState is AuthStatePendingEmailVerification) {
       return AppAuthStatus.initializing;
     }
 
@@ -393,7 +498,7 @@ class AuthController extends Notifier<AuthState> {
   ///
   /// In all of those cases the client-side session can no longer be
   /// trusted, so the only honest behavior is to drop into the
-  /// unauthenticated state. The router then redirects to /welcome â€”
+  /// unauthenticated state. The router then redirects to /welcome —
   /// no separate "session expired" route is needed because
   /// AuthStateUnauthenticated already drives the canonical sign-out
   /// flow.
@@ -414,7 +519,7 @@ class AuthController extends Notifier<AuthState> {
     }
 
     _logger.warning(
-      'handleSessionExpired: forcing signOut â€” '
+      'handleSessionExpired: forcing signOut — '
       'token refresh failed on a 401 (session no longer trustworthy)',
     );
 
@@ -522,6 +627,34 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
+  /// Listener-side routing after a Firebase identity event for a NON-explicit
+  /// flow (external session changes, token refresh). Explicit flows own their
+  /// own completion (AUTH-2). Applies the D2 hard gate so an unverified
+  /// session never reaches the exchange (INV-8), then delegates to the
+  /// canonical backend sync.
+  void _routeAfterFirebaseEvent(User firebaseUser) {
+    if (!firebaseUser.emailVerified) {
+      _logger.info(
+        '[AUTH] Firebase event with unverified email — entering pending '
+        'verification (hard gate, no exchange)',
+        extra: {'uid': firebaseUser.uid},
+      );
+      _publishIfCurrent(
+        _beginHydrationRequest(),
+        AuthState.pendingEmailVerification(email: firebaseUser.email ?? ''),
+      );
+      return;
+    }
+    // Restore a matching parked signup intent as the exchange intent so the
+    // post-verification exchange carries the registration username.
+    final intent = _pendingVerificationIntent;
+    if (intent != null && intent.matches(firebaseUser)) {
+      final username = intent.username?.trim() ?? '';
+      if (username.isNotEmpty) _authIntent = EmailSignupIntent(username);
+    }
+    _syncWithBackend(firebaseUser.uid, firebaseUser, isEmailSignup: false);
+  }
+
   void _setupFirebaseAuthListener() {
     _initialFirebaseEventPending = true;
     _authStateSubscription = FirebaseAuth.instance.authStateChanges().listen(
@@ -531,7 +664,10 @@ class AuthController extends Notifier<AuthState> {
         if (isInitial) _initialFirebaseEventPending = false;
         // Phase 3D: Firebase must NOT resurrect Labuda when Labuda missing at startup.
         // The initial emission reflects pre-existing Firebase session, not explicit login.
-        if (isInitial && user != null && !_isExplicitLoginInProgress && !_isInitiatingEmailSignup) {
+        if (isInitial &&
+            user != null &&
+            _authIntent == null &&
+            _pendingVerificationIntent == null) {
           bool hasLabuda = false;
           try {
             final r = await _localStorage.hasLabudaCredential();
@@ -545,7 +681,9 @@ class AuthController extends Notifier<AuthState> {
           }
         }
         if (user != null) {
-          if (!_isExplicitLoginInProgress && !_isInitiatingEmailSignup && !isInitial) {
+          if (_authIntent == null &&
+              _pendingVerificationIntent == null &&
+              !isInitial) {
             bool hasLabuda2 = false;
             try {
               final r2 = await _localStorage.hasLabudaCredential();
@@ -578,23 +716,22 @@ class AuthController extends Notifier<AuthState> {
             // initiating method owns the backend sync and its deterministic
             // completion (login must not depend on listener timing). The listener
             // is used for session lifecycle / external auth changes only. When an
-            // explicit login is in progress, defer the backend sync to it so we
-            // never produce a duplicate exchange or a conflicting terminal state.
-            final isEmailSignupFlow = _isInitiatingEmailSignup;
-            if (_isExplicitLoginInProgress || _isInitiatingEmailSignup) {
-              _logger.debug('[AUTH] Explicit login in progress — deferring sync to initiator');
+            // explicit flow (login or pending verification) is in progress,
+            // defer to it so we never produce a duplicate exchange or a
+            // conflicting terminal state.
+            if (_authIntent != null || _pendingVerificationIntent != null) {
+              _logger.debug('[AUTH] Explicit flow in progress — deferring sync to initiator');
               return;
             }
-            _syncWithBackend(refreshedUser.uid, refreshedUser, isEmailSignup: isEmailSignupFlow);
+            _routeAfterFirebaseEvent(refreshedUser);
           } catch (e) {
             _logger.error('Failed to reload Firebase user', extra: {'error': e.toString()});
             _setState(AuthState.firebaseAuthenticated(user.uid, principal: principal));
-            if (_isExplicitLoginInProgress || _isInitiatingEmailSignup) {
-              _logger.debug('[AUTH] Explicit login in progress — deferring sync to initiator (after reload failure)');
+            if (_authIntent != null || _pendingVerificationIntent != null) {
+              _logger.debug('[AUTH] Explicit flow in progress — deferring sync to initiator (after reload failure)');
               return;
             }
-            final isEmailSignupFlow = _isInitiatingEmailSignup;
-            _syncWithBackend(user.uid, user, isEmailSignup: isEmailSignupFlow);
+            _routeAfterFirebaseEvent(user);
           }
         } else {
           // Firebase signed out — but if Labuda still authenticated, keep Labuda (step 7)
@@ -644,22 +781,22 @@ class AuthController extends Notifier<AuthState> {
     });
   }
 
-  /// ðŸ”§ BACKEND SYNC: Sync user with backend and get complete user data
+  /// 🔧 BACKEND SYNC: Sync user with backend and get complete user data
   /// This is the PRIMARY method that handles the full sync flow:
   /// 1. Call /users/sync to ensure user exists in PostgreSQL
   /// 2. Call /users/me to get complete user data including roles
   /// 3. Only then set AuthStateAuthenticated (router can NOW evaluate redirects)
   ///
-  /// âœ… NEW SIMPLIFIED FLOW:
-  /// - NO email verification enforcement - backend handles it
-  /// - Users can sync regardless of emailVerified status
-  /// - Backend will enforce verification restrictions where needed
+  /// 🔐 D2 HARD GATE (defense-in-depth): signup exchanges are only reached
+  /// after verification. The explicit login/Google paths check
+  /// [_mayExchangeVerifiedEmail] BEFORE calling this method; an unverified
+  /// signup identity here is routed to the pending-verification state.
   ///
-  /// ðŸ”’ MUTEX GUARD: Only one sync operation can run at a time per user session.
+  /// 🔒 MUTEX GUARD: Only one sync operation can run at a time per user session.
   /// Multiple calls for the same userId will be deduplicated.
   ///
-  /// ðŸ” FLOW AWARENESS: username handling differs by authentication flow:
-  /// - Email signup (isEmailSignup=true): Requires _pendingSignupUsername; only username is collected at signup
+  /// 🔐 FLOW AWARENESS: username handling differs by authentication flow:
+  /// - Email signup (isEmailSignup=true): Requires the pending username; only username is collected at signup
   /// - Email login (isEmailSignup=false): Does NOT use pending values, does NOT generate new username
   /// - Google login (isEmailSignup=false): Generates username from email for new users
   Future<void> _syncWithBackend(
@@ -673,7 +810,7 @@ class AuthController extends Notifier<AuthState> {
       level: LogLevel.debug,
     );
 
-    // ðŸ”’ GUARD 1: Skip if already in a valid post-sync state
+    // 🔒 GUARD 1: Skip if already in a valid post-sync state
     // RequiresProfileCompletion is a valid completed state (sync succeeded, profile needs username)
     // Re-syncing from this state on token refresh causes splash loop
     if (_syncedUserId == userId) {
@@ -693,8 +830,8 @@ class AuthController extends Notifier<AuthState> {
       _syncedUserId = null;
     }
 
-    // ðŸ”’ GUARD 2: Wait for ongoing sync if any, then skip
-    if (_syncInProgress || _ongoingSync != null) {
+    // 🔒 GUARD 2: Wait for ongoing sync if any, then skip
+    if (_ongoingSync != null) {
       await _logger.info(
         'Sync already in progress, waiting',
         extra: {'userId': userId},
@@ -709,13 +846,41 @@ class AuthController extends Notifier<AuthState> {
       }
     }
 
-    // ðŸ”’ GUARD 3: Mark sync as in progress
-    _syncInProgress = true;
+    // 🔒 GUARD 3: Mark sync as in progress
     final syncCompleter = Completer<void>();
     _ongoingSync = syncCompleter.future;
     final requestGeneration = _beginHydrationRequest();
 
     try {
+      // 🔐 D2 HARD GATE (INV-4/INV-8, defense-in-depth): a signup exchange is
+      // only reachable after verification. An unverified signup identity here
+      // means a caller bypassed the pending-verification state — park it
+      // there instead of exchanging. Login/Google unverified sessions are
+      // gated before this call and, if the backend still rejects, the
+      // EMAIL_NOT_VERIFIED classification below routes them to the same
+      // verify screen.
+      if (isEmailSignup && !firebaseUser.emailVerified) {
+        _logger.warning(
+          '[SYNC] Signup exchange blocked: Firebase email not verified (hard gate)',
+          extra: {'uid': firebaseUser.uid},
+        );
+        _pendingVerificationIntent = PendingEmailVerificationIntent(
+          email: firebaseUser.email ?? '',
+          firebaseUid: firebaseUser.uid,
+          username: _authIntent is EmailSignupIntent
+              ? (_authIntent as EmailSignupIntent).username
+              : null,
+        );
+        _publishIfCurrent(
+          requestGeneration,
+          AuthState.pendingEmailVerification(
+            email: firebaseUser.email ?? '',
+            username: _pendingVerificationIntent!.username,
+          ),
+        );
+        return;
+      }
+
       _publishIfCurrent(
         requestGeneration,
         AuthState.syncingWithBackend(userId, principal: principal),
@@ -723,7 +888,7 @@ class AuthController extends Notifier<AuthState> {
 
       if (_userSyncService == null) {
         _logger.log(
-          '[SYNC] Backend service not configured â€” userSyncService is null',
+          '[SYNC] Backend service not configured — userSyncService is null',
           level: LogLevel.error,
         );
         _setState(const AuthState.unauthenticated());
@@ -731,12 +896,12 @@ class AuthController extends Notifier<AuthState> {
       }
       _logger.log('[SYNC] Calling /users/sync...', level: LogLevel.info);
 
-      // ðŸ” FLOW AWARENESS: Determine username based on explicit flow type
+      // 🔐 FLOW AWARENESS: Determine username based on explicit flow type
       String syncUsername;
 
       if (isEmailSignup) {
-        // ðŸ“§ EMAIL SIGNUP: Require pending username
-        if (_pendingSignupUsername == null) {
+        // 📧 EMAIL SIGNUP: Require pending username
+        if (_authIntent is! EmailSignupIntent) {
           _logger.error('[SYNC] Email signup missing username');
           _setState(
             const AuthState.error('Signup data missing. Please try again.'),
@@ -744,7 +909,7 @@ class AuthController extends Notifier<AuthState> {
           return;
         }
 
-        syncUsername = _pendingSignupUsername!.trim();
+        syncUsername = (_authIntent as EmailSignupIntent).username.trim();
 
         if (syncUsername.isEmpty) {
           _logger.error('[SYNC] Email signup has empty username');
@@ -757,7 +922,7 @@ class AuthController extends Notifier<AuthState> {
           level: LogLevel.debug,
         );
       } else {
-        // ðŸ” EMAIL LOGIN or GOOGLE: Send empty username â€” backend decides profileComplete
+        // 🔐 EMAIL LOGIN or GOOGLE: Send empty username — backend decides profileComplete
         syncUsername = '';
         _logger.log(
           '[SYNC] Login/Google - empty username, backend decides profileComplete',
@@ -782,14 +947,11 @@ class AuthController extends Notifier<AuthState> {
         await _logger.debugSyncFailed(userId, syncResult.error);
         final error = syncResult.error;
         if (syncResult.errorCode == 'SESSION_USER_MISMATCH') {
-          _retryTimer?.cancel();
-          _retryTimer = null;
-          _retryCount = 0;
           _setState(AuthState.error(error ?? 'Backend session user mismatch'));
           return;
         }
 
-        // ðŸ›¡ï¸ SIGN-OUT GUARD: Do not overwrite state if user already signed out
+        // 🛡️ SIGN-OUT GUARD: Do not overwrite state if user already signed out
         if (activeFirebaseUser == null || state is AuthStateUnauthenticated) {
           _logger.log(
             '[SYNC] User signed out during sync, preserving Unauthenticated state',
@@ -798,33 +960,35 @@ class AuthController extends Notifier<AuthState> {
           return;
         }
 
-        // ðŸ” REGISTRATION USERNAME REJECTION (Stage 1B contract):
+        // REGISTRATION USERNAME REJECTION (Stage 1B contract):
         // When the authenticated exchange rejects the registration username,
-        // surface a user-facing message and keep the user on the registration
-        // form (backendFailure → degraded → no router redirect) so they can
-        // correct the username and retry. These are terminal business
-        // rejections — NOT retryable with backoff and NOT identity errors, so
-        // they must not trigger signOut, auto-retry, or a generic message.
-        final usernameError = _mapRegistrationUsernameError(syncResult.errorCode);
+        // the canonical surface for the correction is the registration form:
+        // the session returns to the unauthenticated state (the Firebase
+        // identity and the pending signup intent are KEPT, so the sign-up
+        // screen retries via retryRegistrationUsername without recreating
+        // the account), and the router's exclusive-surface rule moves the
+        // user off the verify screen to /welcome. These are terminal
+        // business rejections — NOT identity errors: no signOut, no
+        // identityInvalid classification.
+        final usernameError = registrationUsernameErrorMessage(
+          syncResult.errorCode,
+        );
         if (usernameError != null) {
-          _retryTimer?.cancel();
-          _retryTimer = null;
-          _retryCount = 0;
           _logger.warning(
-            'Registration username rejected by backend',
+            'Registration username rejected by backend — returning to the '
+            'registration flow',
             extra: {'error': error, 'errorCode': syncResult.errorCode},
           );
-          _publishIfCurrent(
-            requestGeneration,
-            AuthState.backendFailure(usernameError),
-          );
+          _pendingVerificationIntent = null;
+          _lastRegistrationUsernameError = usernameError;
+          _setState(const AuthState.unauthenticated());
           return;
         }
 
         // PASS 2A / F1: structured-first classification using the backend's
         // errorCode/statusCode (INVALID_TOKEN, ACCOUNT_DELETED,
-        // ACCOUNT_INACTIVE), falling back to free-text matching only when
-        // no structured code is present.
+        // ACCOUNT_INACTIVE, EMAIL_NOT_VERIFIED, IDENTITY_CONFLICT), falling
+        // back to free-text matching only when no structured code is present.
         final errorKind = classifyAuthSyncError(
           error,
           errorCode: syncResult.errorCode,
@@ -835,7 +999,7 @@ class AuthController extends Notifier<AuthState> {
           return;
         }
 
-        // ðŸ”’ IDENTITY INVALID / ACCOUNT DELETED: Firebase token rejected or
+        // 🔒 IDENTITY INVALID / ACCOUNT DELETED: Firebase token rejected or
         // account no longer exists - MUST signOut. Leaving the Firebase
         // session alive here would keep the user in an indefinite retry
         // loop against a token/account the backend has already rejected.
@@ -849,60 +1013,68 @@ class AuthController extends Notifier<AuthState> {
           _setState(const AuthState.unauthenticated());
           return;
         }
+
+        // 🔐 D2: business-flow state — route to the verify-email screen.
+        // The backend refused the exchange because the email is unverified.
+        // This is NOT degraded (INV-7); no username is known here, so the
+        // pending intent is dropped (the user re-authenticates after
+        // verifying).
+        if (errorKind == AuthSyncErrorKind.pendingEmailVerification) {
+          _logger.warning(
+            '[SYNC] Backend rejected exchange: email not verified — routing to verify screen',
+            extra: {'errorCode': syncResult.errorCode},
+          );
+          _pendingVerificationIntent = null;
+          _publishIfCurrent(
+            requestGeneration,
+            AuthState.pendingEmailVerification(email: firebaseUser.email ?? ''),
+          );
+          return;
+        }
+
+        // 🔒 D4: canonical identity anomaly — the account row for this email
+        // is bound to a different Firebase UID. Terminal: sign out cleanly.
+        // Never auto-retried, never silently re-bound.
+        if (errorKind == AuthSyncErrorKind.identityConflict) {
+          _logger.warning(
+            '[SYNC] Backend rejected exchange: IDENTITY_CONFLICT — signing out cleanly',
+            extra: {'errorCode': syncResult.errorCode},
+          );
+          _pendingVerificationIntent = null;
+          _authIntent = null;
+          await performFirebaseSignOut();
+          _setState(const AuthState.unauthenticated());
+          return;
+        }
+
         // Account inactive sessions return a terminal auth error.
         // This path returns a terminal auth error when the backend exchange
         // cannot complete. We do not publish an authenticated state until
         // the backend session is fully established.
         if (errorKind == AuthSyncErrorKind.accountInactive) {
           _logger.warning(
-            'Account inactive detected during sync, not retrying',
+            'Account inactive detected during sync',
             extra: {'error': error, 'errorCode': syncResult.errorCode},
           );
-          _retryTimer?.cancel();
-          _retryTimer = null;
-          _retryCount = 0;
           _setState(AuthState.error(error ?? 'Your account is not active.'));
           return;
         }
-        // Backend unavailable: timeout, network, and 5xx errors do not sign out.
+        // Backend unavailable: timeout, network, and 5xx errors — terminal
+        // degraded state. Do not sign out; recovery is explicit via
+        // retryBackendSync() (current Firebase identity → _syncWithBackend).
         if (errorKind == AuthSyncErrorKind.backendUnavailable) {
           _logger.warning(
             'Backend unavailable - keeping Firebase session',
-            extra: {'error': error, 'retryCount': _retryCount},
+            extra: {'error': error},
           );
           _publishIfCurrent(
             requestGeneration,
             AuthState.backendUnavailable(error ?? 'Backend unavailable'),
           );
-
-          // ðŸ”„ AUTO-RETRY with exponential backoff
-          if (_retryCount < _maxRetries) {
-            _retryCount++;
-            final delay = Duration(seconds: 2 * _retryCount); // 2s, 4s, 6s
-            _logger.info(
-              'Scheduling auto-retry $_retryCount/$_maxRetries in ${delay.inSeconds}s',
-            );
-            _retryTimer?.cancel();
-            _retryTimer = Timer(delay, () {
-              if (activeFirebaseUser != null) {
-                _logger.info('Executing auto-retry $_retryCount/$_maxRetries');
-                _syncWithBackend(
-                  userId,
-                  firebaseUser,
-                  isEmailSignup: isEmailSignup,
-                );
-              }
-            });
-          } else {
-            // Max retries reached - user must manually retry or logout
-            _logger.error(
-              'Max retries ($_maxRetries) reached - manual retry required',
-            );
-          }
           return;
         }
 
-        // ðŸ”’ BACKEND FAILURE: 4xx validation errors - do NOT signOut
+        // 🔒 BACKEND FAILURE: 4xx validation errors - do NOT signOut
         _logger.warning(
           'Backend sync failed - validation/business error',
           extra: {'error': error},
@@ -917,12 +1089,7 @@ class AuthController extends Notifier<AuthState> {
       await _logger.debugSyncSuccess(userId);
       _syncedUserId = userId;
 
-      // ðŸ”„ DEGRADED MODE: Reset retry counter on successful sync
-      _retryCount = 0;
-      _retryTimer?.cancel();
-      _retryTimer = null;
-
-      // ðŸ” BACKEND-AUTHORITATIVE PROFILE COMPLETION: Check backend profile_complete flag
+      // 🔐 BACKEND-AUTHORITATIVE PROFILE COMPLETION: Check backend profile_complete flag
       // Profile completion is determined by backend, not by created flag or provider type
       // Backend returns profile_complete = true ONLY if username is set and not empty
       final syncData = syncResult.data!;
@@ -937,8 +1104,7 @@ class AuthController extends Notifier<AuthState> {
       }
 
       if (!profileComplete) {
-        _pendingSignupUsername = null;
-        _isInitiatingEmailSignup = false;
+        _authIntent = null;
         _publishIfCurrent(
           requestGeneration,
           AuthState.requiresProfileCompletion(
@@ -976,9 +1142,7 @@ class AuthController extends Notifier<AuthState> {
         );
         return;
       }
-
-      _pendingSignupUsername = null;
-      _isInitiatingEmailSignup = false;
+      _authIntent = null;
 
       _publishAuthenticatedIfCurrent(
         requestGeneration,
@@ -995,7 +1159,6 @@ class AuthController extends Notifier<AuthState> {
         parameters: {'method': 'firebase_auth', 'user_id': backendUser.id},
         userId: backendUser.id,
       );
-
     } catch (e, stackTrace) {
       final errorStr = e.toString();
       _logger.error(
@@ -1004,7 +1167,7 @@ class AuthController extends Notifier<AuthState> {
       );
       await _logger.debugSyncException(userId, errorStr, stackTrace.toString());
 
-      // ðŸ›¡ï¸ SIGN-OUT GUARD: Do not overwrite state if user already signed out
+      // 🛡️ SIGN-OUT GUARD: Do not overwrite state if user already signed out
       if (activeFirebaseUser == null || state is AuthStateUnauthenticated) {
         _logger.log(
           '[SYNC] User signed out during exception, preserving Unauthenticated state',
@@ -1018,7 +1181,7 @@ class AuthController extends Notifier<AuthState> {
       // falls back to free-text matching inside classifyAuthSyncError.
       final errorKind = classifyAuthSyncError(errorStr);
 
-      // ðŸ”’ IDENTITY ERROR in catch - MUST signOut
+      // 🔒 IDENTITY ERROR in catch - MUST signOut
       if (errorKind == AuthSyncErrorKind.identityInvalid ||
           errorKind == AuthSyncErrorKind.accountDeleted) {
         await performFirebaseSignOut();
@@ -1026,14 +1189,14 @@ class AuthController extends Notifier<AuthState> {
         return;
       }
 
-      // ðŸ”’ ACCOUNT INACTIVE in catch - unreachable in practice (no
+      // 🔒 ACCOUNT INACTIVE in catch - unreachable in practice (no
       // structured code is ever available here), kept for consistency.
       if (errorKind == AuthSyncErrorKind.accountInactive) {
         _setState(AuthState.error('Account inactive: $errorStr'));
         return;
       }
 
-      // ðŸ”’ BACKEND UNAVAILABLE in catch - do NOT signOut
+      // 🔒 BACKEND UNAVAILABLE in catch - do NOT signOut
       if (errorKind == AuthSyncErrorKind.backendUnavailable) {
         _publishIfCurrent(
           requestGeneration,
@@ -1042,271 +1205,153 @@ class AuthController extends Notifier<AuthState> {
         return;
       }
 
-      // ðŸ”’ BACKEND FAILURE in catch - do NOT signOut
+      // 🔒 BACKEND FAILURE in catch - do NOT signOut
       _publishIfCurrent(
         requestGeneration,
         AuthState.backendFailure('Sync error: $errorStr'),
       );
     } finally {
-      _syncInProgress = false;
       _ongoingSync = null;
-      _isExplicitLoginInProgress = false;
+      // D2-A: clear login intents, keep EmailSignupIntent for retry (USERNAME_TAKEN)
+      if (_authIntent is! EmailSignupIntent) {
+        _authIntent = null;
+      }
       syncCompleter.complete();
       _logger.log('[SYNC] Backend sync complete', level: LogLevel.debug);
     }
   }
 
-  /// ðŸ”’ SECURITY FIX: Start periodic session validation
-  void _startSessionValidation() {
-    // Cancel existing timer if any
-    _sessionValidationTimer?.cancel();
-
-    // Start new timer - validate every 5 minutes
-    _sessionValidationTimer = Timer.periodic(const Duration(minutes: 5), (
-      _,
-    ) async {
-      await _validateSession();
-    });
+  /// D2 HARD GATE (INV-8): the backend exchange is single-path and
+  /// verified-only. Returns true when the CURRENT Firebase identity's email
+  /// is verified and the caller may proceed; otherwise parks the session in
+  /// [AuthStatePendingEmailVerification] (router → /auth/verify-email) and
+  /// returns false. There is no "exchange dulu, gating belakangan" path.
+  bool _mayExchangeVerifiedEmail(User firebaseUser) {
+    if (firebaseUser.emailVerified) return true;
+    _logger.warning(
+      '[AUTH] Exchange blocked: Firebase email not verified (hard gate)',
+      extra: {'uid': firebaseUser.uid},
+    );
+    _publishIfCurrent(
+      _beginHydrationRequest(),
+      AuthState.pendingEmailVerification(email: firebaseUser.email ?? ''),
+    );
+    return false;
   }
 
-  /// ðŸ”’ SECURITY FIX: Stop periodic session validation
-  void _stopSessionValidation() {
-    _sessionValidationTimer?.cancel();
-    _sessionValidationTimer = null;
+  /// Consumes the stored pending Google credential when it provably belongs
+  /// to the CURRENT Firebase session (same UID + email). A stale/mismatched
+  /// intent (and its credential) is discarded — it must never be linked to
+  /// the wrong account.
+  AuthCredential? _takePendingGoogleCredentialFor(User firebaseUser) {
+    final intent = _pendingVerificationIntent;
+    if (intent == null) return null;
+    _pendingVerificationIntent = null;
+    if (intent.googleCredential != null && intent.matches(firebaseUser)) {
+      return intent.googleCredential;
+    }
+    return null;
   }
 
-  /// W14-B2: Public method to refresh user data (including roles) on app resume
-  /// Can be called from app lifecycle handlers to ensure role changes are reflected
-  Future<void> refreshUserData() async {
-    final currentState = state;
-    if (currentState is! AuthStateAuthenticated) {
-      // Not authenticated, nothing to refresh
+  /// Verify-screen "continue" authority (D2): runs once Firebase reports the
+  /// email as verified. This is the ONLY bridge from the
+  /// pending-verification state back into the canonical exchange
+  /// (INV-8: verify → exchange, one path, no "coba exchange dulu").
+  ///
+  /// - Signup intent → exchange carries the pending username
+  /// - Mixed-provider intent (D1) → the stored Google credential is linked
+  ///   into this identity first (one Firebase UID per human); on link
+  ///   failure the intent is KEPT so the user can retry from the screen
+  /// - Plain login intent → normal login exchange
+  Future<void> checkPendingEmailVerification() async {
+    final firebaseUser = activeFirebaseUser;
+    if (firebaseUser == null) {
+      _pendingVerificationIntent = null;
+      _setState(const AuthState.unauthenticated());
       return;
     }
 
-    final requestGeneration = _beginHydrationRequest();
-
     try {
-      // Get fresh user data from backend
-      final result = await _userSyncService!.getCurrentUser();
-
-      if (result.isSuccess && result.data != null) {
-        final freshUser = _canonicalizeBackendUser(result.data!);
-
-        // ID1F: Account restriction gate â€” mid-session suspension/ban on resume
-        final freshStatus = freshUser.accountStatus ?? AccountStatus.active;
-        if (freshStatus.isRestricted) {
-          _logger.warning(
-            '[RESUME] Account restricted: ${freshStatus.apiValue}',
-          );
-          _stopSessionValidation();
-          _publishIfCurrent(
-            requestGeneration,
-            AuthState.accountRestricted(
-              freshUser,
-              restrictionType: freshStatus,
-            ),
-          );
-          return;
-        }
-
-        // PASS 2A / F2: compare the WHOLE fresh user against the cached
-        // one, not just `.role`. AuthUser extends Equatable (via
-        // BaseEntity) over every backend-authoritative field â€” role,
-        // accountStatus, hasMarketAuthority, hasSellerProfile,
-        // sellerSubscriptionStatus, sellerTier, penalty points,
-        // verification flags â€” so this single `!=` check both (a) catches
-        // authority-relevant changes that don't touch role at all (e.g. a
-        // seller subscription expiring mid-session, which flips
-        // hasMarketAuthority but never touches roles) and (b) is a no-op
-        // when the user is genuinely unchanged, avoiding unnecessary
-        // rebuilds.
-        if (freshUser != currentState.user) {
-          _logger.info(
-            'Authority-relevant user data changed on resume: '
-            'role ${currentState.user.role} â†’ ${freshUser.role}, '
-            'hasMarketAuthority ${currentState.user.hasMarketAuthority} â†’ '
-            '${freshUser.hasMarketAuthority}',
-          );
-          // Update state with new user data so the router / SellerGuard /
-          // permission gates observe the change immediately instead of
-          // holding a stale cached AuthUser until the next full login sync.
-          // Preserve current emailVerified flag â€” this is the resume hook,
-          // not the email-verification refresh flow.
-          _publishAuthenticatedIfCurrent(
-            requestGeneration,
-            freshUser,
-            emailVerified: currentState.emailVerified,
-          );
-        }
-      } else {
-        final error = result.error ?? 'Failed to refresh user data';
-        final errorKind = classifyAuthSyncError(
-          error,
-          errorCode: result.errorCode,
-          statusCode: result.statusCode,
-        );
-
-        if (!_isCurrentHydrationRequest(requestGeneration)) {
-          return;
-        }
-
-        if (errorKind == AuthSyncErrorKind.identityInvalid ||
-            errorKind == AuthSyncErrorKind.accountDeleted) {
-          await performFirebaseSignOut();
-          _setState(const AuthState.unauthenticated());
-        } else if (errorKind == AuthSyncErrorKind.backendUnavailable) {
-          _publishIfCurrent(
-            requestGeneration,
-            AuthState.backendUnavailable(error),
-          );
-        } else if (errorKind == AuthSyncErrorKind.backendFailure) {
-          _publishIfCurrent(requestGeneration, AuthState.backendFailure(error));
-        }
-      }
+      await firebaseUser.reload();
     } catch (e) {
-      _logger.error(
-        'User data refresh error on resume',
+      _logger.warning(
+        '[AUTH] reload() failed while checking verification',
         extra: {'error': e.toString()},
       );
-      // Silently ignore - network issues or temporary problems
     }
-  }
+    final current = activeFirebaseUser;
+    if (current == null) {
+      _pendingVerificationIntent = null;
+      _setState(const AuthState.unauthenticated());
+      return;
+    }
 
-  /// ðŸ”’ SECURITY FIX: Validate current session and refresh roles
-  /// W14-B2: Enhanced to also refresh user data which includes role changes
-  Future<void> _validateSession() async {
-    try {
-      final currentState = state;
-      if (currentState is! AuthStateAuthenticated) {
-        // Not authenticated, stop validation
-        _stopSessionValidation();
+    if (!current.emailVerified) {
+      // Still unverified — stay parked on the verify screen.
+      _publishIfCurrent(
+        _beginHydrationRequest(),
+        AuthState.pendingEmailVerification(email: current.email ?? ''),
+      );
+      return;
+    }
+
+    // Stale intent for a different identity is discarded; a matching intent
+    // hands its Google credential to the D1 linking step below.
+    final intent = _pendingVerificationIntent;
+    if (intent != null && !intent.matches(current)) {
+      _logger.warning(
+        '[AUTH] Pending verification intent belongs to a different Firebase '
+        'identity — discarding',
+        extra: {'intentUid': intent.firebaseUid, 'sessionUid': current.uid},
+      );
+      _pendingVerificationIntent = null;
+    }
+
+    final matchingIntent = _pendingVerificationIntent;
+    final credential = matchingIntent?.googleCredential;
+    if (credential != null) {
+      // D1: unify the Google identity into THIS Firebase user before the
+      // exchange. Failure keeps the intent so the user can retry from the
+      // verify screen — no silent retry, no lost credential.
+      final linkResult = await _authRepository.signInWithGoogle(
+        pendingGoogleCredential: credential,
+      );
+      if (linkResult.isError) {
+        _logger.warning(
+          '[AUTH] Linking pending Google credential failed',
+          extra: {'error': linkResult.error},
+        );
+        _setState(
+          AuthState.error(linkResult.error ?? 'Gagal menautkan akun Google.'),
+        );
         return;
       }
-
-      final requestGeneration = _beginHydrationRequest();
-
-      // ðŸ” CRITICAL: RELOAD Firebase user to get fresh data
-      final firebaseUser = activeFirebaseUser;
-      if (firebaseUser == null) {
-        // Firebase session lost, sign out
-        _logger.warning('Firebase session lost during validation');
-        if (_isCurrentHydrationRequest(requestGeneration)) {
-          await signOut();
-        }
-        return;
-      }
-
-      try {
-        await firebaseUser.reload();
-      } catch (e) {
-        _logger.error(
-          'Failed to reload Firebase user during session validation',
-          extra: {'error': e.toString()},
-        );
-        // Continue validation even if reload fails
-      }
-
-      // Check if user still exists and refresh user data (including roles)
-      final result = await _userSyncService!.getCurrentUser();
-
-      if (result.isError || result.data == null) {
-        final error = result.error ?? 'Session validation failed';
-        final errorKind = classifyAuthSyncError(
-          error,
-          errorCode: result.errorCode,
-          statusCode: result.statusCode,
-        );
-
-        if (!_isCurrentHydrationRequest(requestGeneration)) {
-          return;
-        }
-
-        if (errorKind == AuthSyncErrorKind.identityInvalid ||
-            errorKind == AuthSyncErrorKind.accountDeleted) {
-          _logger.warning('Session validation failed, signing out user');
-          if (_isCurrentHydrationRequest(requestGeneration)) {
-            await signOut();
-          }
-        } else if (errorKind == AuthSyncErrorKind.backendUnavailable) {
-          _publishIfCurrent(
-            requestGeneration,
-            AuthState.backendUnavailable(error),
-          );
-        } else if (errorKind == AuthSyncErrorKind.backendFailure) {
-          _publishIfCurrent(requestGeneration, AuthState.backendFailure(error));
-        }
-      } else {
-        final freshUser = _canonicalizeBackendUser(result.data!);
-
-        // ID1F: Account restriction gate â€” mid-session suspension/ban
-        // Priority over role change: restricted user must be redirected
-        // regardless of any other state changes.
-        final freshStatus = freshUser.accountStatus ?? AccountStatus.active;
-        if (freshStatus.isRestricted) {
-          _logger.warning(
-            '[VALIDATE] Account restricted mid-session: ${freshStatus.apiValue}',
-          );
-          _stopSessionValidation();
-          _publishIfCurrent(
-            requestGeneration,
-            AuthState.accountRestricted(
-              freshUser,
-              restrictionType: freshStatus,
-            ),
-          );
-          return;
-        }
-
-        // W14-B2: Session valid - update state with fresh user data
-        // This ensures role changes are reflected without requiring re-login
-        //
-        // PASS 2A / F2: compare the WHOLE fresh user (Equatable over every
-        // backend-authoritative field), not just `.role` â€” otherwise a
-        // seller subscription expiring mid-session flips
-        // hasMarketAuthority/sellerSubscriptionStatus without ever
-        // changing role, and the stale cached AuthUser (still
-        // hasMarketAuthority=true) keeps being read by SellerGuard/the
-        // router's seller guard for up to the full 5-minute period between
-        // validations. See refreshUserData() above for the identical fix
-        // on the resume path.
-        if (freshUser != currentState.user) {
-          _logger.info(
-            'Authority-relevant user data changed during periodic '
-            'validation: role ${currentState.user.role} â†’ ${freshUser.role}, '
-            'hasMarketAuthority ${currentState.user.hasMarketAuthority} â†’ '
-            '${freshUser.hasMarketAuthority}',
-          );
-          // Refresh emailVerified from Firebase â€” the periodic validation is
-          // also a natural place to pick up an out-of-band verification.
-          final freshEmailVerified =
-              firebaseUser.emailVerified || currentState.emailVerified;
-          _publishAuthenticatedIfCurrent(
-            requestGeneration,
-            freshUser,
-            emailVerified: freshEmailVerified,
-          );
-        }
-      }
-    } catch (e) {
-      // âœ… FIXED: Don't force sign out on validation error
-      // Could be network issue or temporary problem
-      _logger.error('Session validation error', extra: {'error': e.toString()});
-      // Just log the error and continue - Firebase will handle auth state
     }
+
+    // Consume the intent: carry the signup username into the exchange.
+    _pendingVerificationIntent = null;
+    final username = matchingIntent?.username?.trim() ?? '';
+    if (username.isNotEmpty) {
+      _authIntent = EmailSignupIntent(username);
+    }
+    _syncedUserId = null;
+    await _syncWithBackend(
+      current.uid,
+      current,
+      isEmailSignup: _authIntent is EmailSignupIntent,
+    );
   }
 
-/// Sign in dengan email dan password
+  /// Sign in dengan email dan password
   ///
   /// 🔒 DETERMINISTIC FLOW (AUTH-2): Explicit login CANONICAL COMPLETION.
   ///
   /// This is the SINGLE canonical login-completion authority for email.
-  /// Instead of relying solely on the Firebase `authStateChanges` listener
-  /// (which may be late, guarded, or re-ordered and leave the user stranded
-  /// on a non-reactive Login screen), the explicit success path calls the
-  /// canonical backend sync directly. The Firebase listener is still used
-  /// for session lifecycle / external auth changes, but it DEDUPES against
-  /// the same `_syncedUserId` / `_syncInProgress` guards, so:
+  /// The explicit success path runs the D2 hard gate, completes the D1
+  /// mixed-provider link when a pending Google credential exists, and then
+  /// calls the canonical backend sync directly. The Firebase listener is
+  /// still used for session lifecycle / external auth changes, but it
+  /// DEDUPES against the same `_syncedUserId` / `in-flight` guards, so:
   ///   - explicit completion + listener event  → single backend exchange
   ///   - no double credential write
   ///   - no stale state overwrite
@@ -1319,7 +1364,7 @@ class AuthController extends Notifier<AuthState> {
     required String email,
     required String password,
   }) async {
-    _isExplicitLoginInProgress = true;
+    _authIntent = const EmailLoginIntent();
     _setState(const AuthState.loading());
 
     final result = await _authRepository.signInWithEmail(
@@ -1328,7 +1373,7 @@ class AuthController extends Notifier<AuthState> {
     );
 
     if (result.isError) {
-      _isExplicitLoginInProgress = false;
+      _authIntent = null;
       _setState(AuthState.error(result.error!));
       return;
     }
@@ -1337,9 +1382,45 @@ class AuthController extends Notifier<AuthState> {
     // Do NOT navigate manually — the router reacts to the resulting AuthState.
     final firebaseUser = activeFirebaseUser;
     if (firebaseUser == null) {
-      _isExplicitLoginInProgress = false;
+      _authIntent = null;
       _setState(const AuthState.unauthenticated());
       return;
+    }
+
+    // D1 mixed-provider: a previously stored Google credential for THIS
+    // identity is unified into it — after verification when the email is
+    // still unverified (credential travels with the parked intent), or
+    // immediately before the exchange when already verified.
+    final pendingCredential = _takePendingGoogleCredentialFor(firebaseUser);
+
+    // D2 HARD GATE: unverified email NEVER reaches the exchange — the
+    // session parks on the verify-email screen, carrying the pending Google
+    // credential so the D1 link happens once verification lands.
+    if (!firebaseUser.emailVerified) {
+      _pendingVerificationIntent = PendingEmailVerificationIntent(
+        email: firebaseUser.email ?? '',
+        firebaseUid: firebaseUser.uid,
+        googleCredential: pendingCredential,
+      );
+      _publishIfCurrent(
+        _beginHydrationRequest(),
+        AuthState.pendingEmailVerification(email: firebaseUser.email ?? ''),
+      );
+      _authIntent = null;
+      return;
+    }
+
+    if (pendingCredential != null) {
+      final linkResult = await _authRepository.signInWithGoogle(
+        pendingGoogleCredential: pendingCredential,
+      );
+      if (linkResult.isError) {
+        _authIntent = null;
+        _setState(
+          AuthState.error(linkResult.error ?? 'Gagal menautkan akun Google.'),
+        );
+        return;
+      }
     }
 
     await _syncWithBackend(
@@ -1347,44 +1428,36 @@ class AuthController extends Notifier<AuthState> {
       firebaseUser,
       isEmailSignup: false,
     );
-    // _isExplicitLoginInProgress cleared in _syncWithBackend finally.
+    // _authIntent cleared in _syncWithBackend finally.
   }
 
   /// Sign in dengan Google
   ///
-  /// ðŸ”’ DETERMINISTIC FLOW: Firebase auth listener handles backend sync
-  /// This method only initiates Firebase login, listener will trigger
-  /// and call _syncWithBackend() with mutex protection.
+  /// 🔒 DETERMINISTIC FLOW: explicit canonical completion (same as email).
   ///
-  /// âš ï¸ CRITICAL: Do NOT overwrite state after successful Firebase login.
-  /// The Firebase listener may have already triggered and set Authenticated state.
-  /// Overwriting would cause UI to get stuck in non-authenticated state.
-  ///
-  /// ðŸ”’ PREMATURE STATE FIX: NO state change before Firebase sign-in completes.
-  /// Setting loading state triggers router redirect to splash before Google picker.
-  /// Firebase auth state listener handles ALL state transitions on success.
-  ///
-  /// ðŸ›¡ï¸ RE-ENTRANCY GUARD: Prevent multiple rapid taps from triggering multiple flows.
+  /// 🛡️ RE-ENTRANCY GUARD: Prevent multiple rapid taps from triggering
+  /// multiple flows.
   Future<void> signInWithGoogle() async {
-    // ðŸ›¡ï¸ GUARD: Ignore if already signing in (user double-tapped button)
+    // 🛡️ GUARD: Ignore if already signing in (user double-tapped button)
     if (_isGoogleSigningIn) {
       await _logger.debug('Google sign-in already in progress, ignoring tap');
       return;
     }
 
-    // âŒ REMOVED: _setState(const AuthState.loading());
-    // This was causing premature redirect to splash screen
-    // before Google account picker completed.
-
     _isGoogleSigningIn = true;
-
-    _isExplicitLoginInProgress = true;
+    _authIntent = const GoogleLoginIntent();
     try {
-      final result = await _authRepository.signInWithGoogle();
+      final userBefore = activeFirebaseUser;
+      final pendingCredential = userBefore == null
+          ? null
+          : _takePendingGoogleCredentialFor(userBefore);
+
+      final result = await _authRepository.signInWithGoogle(
+        pendingGoogleCredential: pendingCredential,
+      );
 
       if (result.isError) {
-        // Only set error state if login failed
-        _isExplicitLoginInProgress = false;
+        _authIntent = null;
         _setState(AuthState.error(result.error!));
         return;
       }
@@ -1393,9 +1466,42 @@ class AuthController extends Notifier<AuthState> {
       // Do NOT navigate manually - the router reacts to the resulting AuthState.
       final firebaseUser = activeFirebaseUser;
       if (firebaseUser == null) {
-        _isExplicitLoginInProgress = false;
+        _authIntent = null;
         _setState(const AuthState.unauthenticated());
         return;
+      }
+
+      // D2 HARD GATE: unverified email NEVER reaches the exchange — the
+      // session parks on the verify-email screen. A consumed pending Google
+      // credential travels with the parked intent so the D1 link runs after
+      // verification (the repository re-parked its own copy on conflict).
+      if (!firebaseUser.emailVerified) {
+        _pendingVerificationIntent = PendingEmailVerificationIntent(
+          email: firebaseUser.email ?? '',
+          firebaseUid: firebaseUser.uid,
+          googleCredential: pendingCredential,
+        );
+        _publishIfCurrent(
+          _beginHydrationRequest(),
+          AuthState.pendingEmailVerification(email: firebaseUser.email ?? ''),
+        );
+        _authIntent = null;
+        return;
+      }
+
+      // Verified: unify the pending Google credential (if any) into this
+      // identity right before the exchange.
+      if (pendingCredential != null) {
+        final linkResult = await _authRepository.signInWithGoogle(
+          pendingGoogleCredential: pendingCredential,
+        );
+        if (linkResult.isError) {
+          _authIntent = null;
+          _setState(
+            AuthState.error(linkResult.error ?? 'Gagal menautkan akun Google.'),
+          );
+          return;
+        }
       }
 
       await _syncWithBackend(
@@ -1403,7 +1509,7 @@ class AuthController extends Notifier<AuthState> {
         firebaseUser,
         isEmailSignup: false,
       );
-      // _isExplicitLoginInProgress cleared in _syncWithBackend finally.
+      // _authIntent cleared in _syncWithBackend finally.
     } finally {
       _isGoogleSigningIn = false;
     }
@@ -1417,20 +1523,11 @@ class AuthController extends Notifier<AuthState> {
 
   /// Sign up dengan email dan password
   ///
-  /// ðŸ”’ DETERMINISTIC FLOW: Firebase auth listener handles backend sync
-  /// This method only initiates Firebase signup, listener will trigger
-  /// and call _syncWithBackend() with mutex protection.
-  ///
-  /// âš ï¸ CRITICAL: Do NOT overwrite state after successful Firebase signup.
-  /// The Firebase listener may have already triggered and set Authenticated state.
-  /// Overwriting would cause UI to get stuck in non-authenticated state.
-  ///
-  /// ðŸ” USERNAME DECOUPLING: Store username for backend sync
-  /// instead of relying on provider metadata as authoritative source.
-  ///
-  /// ðŸ”’ DATA INTEGRITY: Validate username is not empty before proceeding.
-  ///
-  /// ðŸ”’ FLOW AWARENESS: Set flag so _syncWithBackend() knows this is email signup
+  /// 🔐 D2 HARD GATE: signup NEVER exchanges before verification.
+  /// Flow: create Firebase account → sendEmailVerification (repository) →
+  /// park in [AuthStatePendingEmailVerification] (router → verify screen)
+  /// → user verifies → [checkPendingEmailVerification] runs the single
+  /// exchange with the pending username (INV-8).
   Future<void> signUpWithEmail({
     required String email,
     required String password,
@@ -1443,11 +1540,7 @@ class AuthController extends Notifier<AuthState> {
       return;
     }
 
-    // ðŸ”’ RACE CONDITION FIX: Set pending username BEFORE Firebase signup
-    // Firebase authStateChanges listener can fire during/after signUpWithEmail()
-    _isInitiatingEmailSignup = true;
-    _pendingSignupUsername = trimmedUsername;
-
+    _lastRegistrationUsernameError = null;
     _setState(const AuthState.loading());
 
     final result = await _authRepository.signUpWithEmail(
@@ -1456,36 +1549,60 @@ class AuthController extends Notifier<AuthState> {
     );
 
     if (result.isError) {
-      // Only set error state if signup failed
       _setState(AuthState.error(result.error!));
       return;
     }
 
-    // If success: DO NOT set state here
-    // Firebase listener will handle state transition:
-    // loading â†’ firebaseAuthenticated â†’ syncingWithBackend â†’ authenticated
-    // This prevents state overwrite race condition
-
-    // Track signup event for analytics (non-blocking)
     final firebaseUser = activeFirebaseUser;
-    if (firebaseUser != null) {
-      await _analytics.logEvent(
-        'sign_up',
-        parameters: {'method': 'email', 'user_id': firebaseUser.uid},
-        userId: firebaseUser.uid,
-      );
+    if (firebaseUser == null) {
+      _setState(const AuthState.unauthenticated());
+      return;
     }
+
+    await _analytics.logEvent(
+      'sign_up',
+      parameters: {'method': 'email', 'user_id': firebaseUser.uid},
+      userId: firebaseUser.uid,
+    );
+
+    if (!firebaseUser.emailVerified) {
+      // D2 HARD GATE: park in the explicit verification state. The pending
+      // username travels with the intent so the post-verification exchange
+      // completes registration without asking again.
+      _pendingVerificationIntent = PendingEmailVerificationIntent(
+        email: firebaseUser.email ?? '',
+        firebaseUid: firebaseUser.uid,
+        username: trimmedUsername,
+      );
+      _logger.info(
+        '[AUTH] Signup verification email sent — waiting for verification '
+        'before exchange',
+        extra: {'uid': firebaseUser.uid},
+      );
+      _publishIfCurrent(
+        _beginHydrationRequest(),
+        AuthState.pendingEmailVerification(
+          email: firebaseUser.email ?? '',
+          username: trimmedUsername,
+        ),
+      );
+      return;
+    }
+
+    // Already verified (e.g. re-provisioned identity): go straight to the
+    // canonical exchange.
+    _authIntent = EmailSignupIntent(trimmedUsername);
+    await _syncWithBackend(
+      firebaseUser.uid,
+      firebaseUser,
+      isEmailSignup: true,
+    );
+    // _authIntent cleared in _syncWithBackend (keep for retry on USERNAME_TAKEN)
   }
 
-  /// True while an email signup is mid-flight: the Firebase account has been
-  /// created but the backend registration username has not yet been committed.
-  ///
-  /// After a backend USERNAME_TAKEN / USERNAME_RESERVED / USERNAME_INVALID_FORMAT
-  /// rejection, `_isInitiatingEmailSignup` remains true and `_pendingSignupUsername`
-  /// still holds the rejected choice, so this is the signal the registration UI
-  /// uses to switch from "create a Firebase account" to "retry the exchange".
-  bool get hasPendingRegistration =>
-      _isInitiatingEmailSignup && _pendingSignupUsername != null;
+  /// True while an email signup exchange is mid-flight with a pending
+  /// registration username.
+  bool get hasPendingRegistration => _authIntent is EmailSignupIntent;
 
   /// Retry the authenticated exchange with a corrected registration username.
   ///
@@ -1496,6 +1613,9 @@ class AuthController extends Notifier<AuthState> {
   /// username — the Firebase account is never recreated and no session is
   /// broken. The canonical backend assigns the corrected username exactly once
   /// (Stage 1A), then a full session / authenticated state is emitted.
+  ///
+  /// D2: if the email is somehow still unverified, the corrected username is
+  /// parked into the pending-verification intent instead of being exchanged.
   Future<void> retryRegistrationUsername(String normalizedUsername) async {
     final trimmed = normalizedUsername.trim();
     if (trimmed.isEmpty) {
@@ -1503,19 +1623,31 @@ class AuthController extends Notifier<AuthState> {
       return;
     }
 
+    _lastRegistrationUsernameError = null;
+
     final firebaseUser = activeFirebaseUser;
     if (firebaseUser == null) {
       _setState(const AuthState.unauthenticated());
       return;
     }
 
-    _pendingSignupUsername = trimmed;
-    _isInitiatingEmailSignup = true;
+    if (!firebaseUser.emailVerified) {
+      _pendingVerificationIntent = PendingEmailVerificationIntent(
+        email: firebaseUser.email ?? '',
+        firebaseUid: firebaseUser.uid,
+        username: trimmed,
+      );
+      _publishIfCurrent(
+        _beginHydrationRequest(),
+        AuthState.pendingEmailVerification(
+          email: firebaseUser.email ?? '',
+          username: trimmed,
+        ),
+      );
+      return;
+    }
 
-    // Reset degraded-mode retry state before re-running the exchange.
-    _retryTimer?.cancel();
-    _retryTimer = null;
-    _retryCount = 0;
+    _authIntent = EmailSignupIntent(trimmed);
     _syncedUserId = null;
 
     _logger.log(
@@ -1536,16 +1668,12 @@ class AuthController extends Notifier<AuthState> {
   /// to ensure we can delete the token from Firestore while user is authenticated.
   /// This prevents notifications from going to wrong user after account switch.
   ///
-  /// ðŸ”’ DETERMINISTIC FIX: Reset sync locks on logout to ensure
+  /// 🔒 DETERMINISTIC FIX: Reset sync locks on logout to ensure
   /// next login session starts fresh without stale sync state.
   Future<void> signOut() async {
-    // ðŸ”’ SECURITY FIX: Stop session validation timer
+    // SECURITY FIX: Stop session validation timer
     _stopSessionValidation();
 
-    // ðŸ”„ DEGRADED MODE: Clear retry timer
-    _retryTimer?.cancel();
-    _retryTimer = null;
-    _retryCount = 0;
     final currentState = state;
 
     // 1. Attempt backend logout BEFORE any local cleanup removes tokens.
@@ -1625,7 +1753,7 @@ class AuthController extends Notifier<AuthState> {
       await ws.disconnect().timeout(const Duration(seconds: 3));
     } catch (e) {
       await _logger.warning(
-        'WebSocket disconnect failed during sign out â€” '
+        'WebSocket disconnect failed during sign out — '
         'connection may linger until OS reaps it',
         extra: {'error': e.toString()},
       );
@@ -1638,14 +1766,12 @@ class AuthController extends Notifier<AuthState> {
         parameters: {'user_id': currentState.user.id},
         userId: currentState.user.id,
       );
-
-
     }
 
     // 4. Reset sync locks - critical for deterministic flow on next login
     _syncedUserId = null;
-    _syncInProgress = false;
     _ongoingSync = null;
+    _pendingVerificationIntent = null;
 
     // 5. Proceed with Firebase Auth sign out
     final result = await _authRepository.signOut();
@@ -1660,9 +1786,6 @@ class AuthController extends Notifier<AuthState> {
   /// Sign out from all devices (logout-all).
   Future<void> signOutAll() async {
     _stopSessionValidation();
-    _retryTimer?.cancel();
-    _retryTimer = null;
-    _retryCount = 0;
     final currentState = state;
     if (currentState is AuthStateAuthenticated) {
       try {
@@ -1685,8 +1808,8 @@ class AuthController extends Notifier<AuthState> {
       await _analytics.logEvent('logout', parameters: {'user_id': currentState.user.id, 'all_devices': true}, userId: currentState.user.id);
     }
     _syncedUserId = null;
-    _syncInProgress = false;
     _ongoingSync = null;
+    _pendingVerificationIntent = null;
     final result = await _authRepository.signOut();
     if (result.isSuccess) {
       _setState(const AuthState.unauthenticated());
@@ -1732,8 +1855,13 @@ class AuthController extends Notifier<AuthState> {
 
   }
 
-  /// ðŸ”„ DEGRADED MODE: Manually retry backend sync after failure
-  /// Can be called by UI when user taps "Retry" button
+  /// Degraded manual recovery: retry backend sync using the current
+  /// Firebase identity. This is the sole recovery producer for
+  /// AuthStateBackendUnavailable / AuthStateBackendFailure (no automatic
+  /// timer). Called by the Splash degraded UI "Coba Lagi".
+  ///
+  /// D2: an unverified session is routed to the verify-email screen by the
+  /// hard gate — never to the exchange.
   Future<void> retryBackendSync() async {
     final firebaseUser = activeFirebaseUser;
     if (firebaseUser == null) {
@@ -1741,20 +1869,32 @@ class AuthController extends Notifier<AuthState> {
       return;
     }
 
-    // Clear any pending retry timer
-    _retryTimer?.cancel();
-    _retryTimer = null;
-
-    // Reset retry count for manual retry
-    _retryCount = 0;
-
     _logger.info('Manual retry triggered for backend sync');
+
+    if (!_mayExchangeVerifiedEmail(firebaseUser)) return;
 
     // Clear sync flag to force fresh sync
     _syncedUserId = null;
 
     // Trigger backend sync
     _syncWithBackend(firebaseUser.uid, firebaseUser, isEmailSignup: false);
+  }
+
+  /// Verify-screen resend authority (D2): sends the verification email for
+  /// the CURRENT pending-verification session. Returns true when Firebase
+  /// accepted the send; false otherwise (error state is set for display).
+  /// This is the ONLY resend path in the app — the profile resend path is
+  /// dead under the hard gate (an authenticated user is always verified).
+  Future<bool> resendVerificationEmail() async {
+    final result = await _authRepository.sendEmailVerification();
+    if (result.isError) {
+      _logger.warning(
+        '[AUTH] Resend verification email failed',
+        extra: {'error': result.error},
+      );
+      return false;
+    }
+    return true;
   }
 
   /// Change password for current user
@@ -1766,17 +1906,6 @@ class AuthController extends Notifier<AuthState> {
       currentPassword: currentPassword,
       newPassword: newPassword,
     );
-
-    if (result.isError) {
-      _setState(AuthState.error(result.error!));
-    }
-
-    return result.isSuccess;
-  }
-
-  /// Send email verification
-  Future<bool> sendEmailVerification() async {
-    final result = await _authRepository.sendEmailVerification();
 
     if (result.isError) {
       _setState(AuthState.error(result.error!));
@@ -1806,7 +1935,7 @@ class AuthController extends Notifier<AuthState> {
     );
 
     if (result.isSuccess) {
-      // Preserve current emailVerified flag â€” profile update does not affect
+      // Preserve current emailVerified flag — profile update does not affect
       // email-verification status.
       await forceRefreshAuthState();
       return true;
@@ -1817,11 +1946,22 @@ class AuthController extends Notifier<AuthState> {
   }
 
   /// Complete the profile after restricted Firebase exchange.
-  Future<bool> completeProfile({required String username}) async {
+  ///
+  /// CANONICAL USERNAME AUTHORITY: backend rejections of the chosen username
+  /// (USERNAME_TAKEN / USERNAME_RESERVED / USERNAME_INVALID_FORMAT / 409 race)
+  /// are returned as [ProfileCompletionOutcome.usernameRejected] so the
+  /// completion surface renders them INLINE without mutating the global auth
+  /// state — the user stays on the correction screen instead of being routed
+  /// away to the login flow.
+  Future<ProfileCompletionOutcome> completeProfile({
+    required String username,
+  }) async {
     final currentState = state;
     if (currentState is! AuthStateRequiresProfileCompletion) {
       _setState(AuthState.error('Invalid authentication state'));
-      return false;
+      return const ProfileCompletionOutcome.failure(
+        'Invalid authentication state',
+      );
     }
 
     final result = await _authRepository.completeProfile(username: username);
@@ -1830,7 +1970,9 @@ class AuthController extends Notifier<AuthState> {
       final firebaseUser = activeFirebaseUser;
       if (firebaseUser == null) {
         _setState(const AuthState.unauthenticated());
-        return false;
+        return const ProfileCompletionOutcome.failure(
+          'Your session has ended. Please sign in again.',
+        );
       }
 
       final completedUser = _canonicalizeBackendUser(result.data!);
@@ -1844,11 +1986,10 @@ class AuthController extends Notifier<AuthState> {
             restrictionType: completedStatus,
           ),
         );
-        return true;
+        return const ProfileCompletionOutcome.success();
       }
-
-      _pendingSignupUsername = null;
-      _isInitiatingEmailSignup = false;
+      _authIntent = null;
+      _pendingVerificationIntent = null;
       _syncedUserId = firebaseUser.uid;
 
       _publishAuthenticatedIfCurrent(
@@ -1868,7 +2009,7 @@ class AuthController extends Notifier<AuthState> {
         userId: completedUser.id,
       );
 
-      return true;
+      return const ProfileCompletionOutcome.success();
     }
 
     final errorCode = result.errorCode;
@@ -1876,7 +2017,7 @@ class AuthController extends Notifier<AuthState> {
 
     if (errorCode == 'SESSION_USER_MISMATCH') {
       _setState(AuthState.error(error));
-      return false;
+      return ProfileCompletionOutcome.failure(error);
     }
 
     if (errorCode == 'PROFILE_ALREADY_COMPLETED' ||
@@ -1887,7 +2028,27 @@ class AuthController extends Notifier<AuthState> {
         error.contains('invalid token') ||
         error.contains('expired')) {
       await refreshAuthState();
-      return true;
+      return const ProfileCompletionOutcome.success();
+    }
+
+    // CANONICAL USERNAME AUTHORITY — backend rejected the chosen username.
+    // Presentational only: same message mapping as the registration form,
+    // no global state mutation — the user stays here to correct it.
+    final usernameError = registrationUsernameErrorMessage(errorCode);
+    if (usernameError != null) {
+      _logger.warning(
+        'Complete-profile username rejected by backend',
+        extra: {'errorCode': errorCode},
+      );
+      return ProfileCompletionOutcome.usernameRejected(usernameError);
+    }
+
+    // 409 race fallback: the username passed pre-checks but lost the unique
+    // race between check and commit. Same inline surface as above.
+    if (result.statusCode == 409) {
+      return const ProfileCompletionOutcome.usernameRejected(
+        'Username ini baru saja diambil orang lain. Silakan pilih yang lain.',
+      );
     }
 
     final errorKind = classifyAuthSyncError(
@@ -1900,11 +2061,19 @@ class AuthController extends Notifier<AuthState> {
         '[AUTH] Preserving RequiresProfileCompletion state after transient failure',
         level: LogLevel.warning,
       );
-      return false;
+      return ProfileCompletionOutcome.failure(
+        'Tidak dapat terhubung ke server. Periksa koneksi lalu coba lagi.',
+      );
     }
 
-    _setState(AuthState.error(error));
-    return false;
+    // Generic unexpected failure (restricted token invalid/expired, etc.):
+    // state preserved — the surface shows the message and keeps the Sign Out
+    // escape hatch. Never a global error kick to the login flow.
+    _logger.warning(
+      'Complete-profile failed without state change',
+      extra: {'error': error, 'errorCode': errorCode},
+    );
+    return ProfileCompletionOutcome.failure(error);
   }
 
   /// Reset password via email
@@ -1928,11 +2097,14 @@ class AuthController extends Notifier<AuthState> {
   /// Refresh auth state after a Firebase user change that requires a full
   /// backend resync.
   ///
-  /// ðŸ” CRITICAL: RELOAD Firebase user to get fresh data
-  /// This ensures external verification (e.g., email link) is detected
+  /// 🔐 CRITICAL: RELOAD Firebase user to get fresh data
+  /// This ensures external verification (e.g., email link) is detected.
+  ///
+  /// D2: an unverified session is routed to the verify-email screen by the
+  /// hard gate — never to the exchange.
   Future<void> refreshAuthState() async {
     try {
-      // ðŸ” CRITICAL: RELOAD Firebase user before checking status
+      // 🔐 CRITICAL: RELOAD Firebase user before checking status
       await activeFirebaseUser?.reload();
       final firebaseUser = activeFirebaseUser;
       if (firebaseUser == null) {
@@ -1943,8 +2115,10 @@ class AuthController extends Notifier<AuthState> {
       // Clear sync flag to force fresh sync
       _syncedUserId = null;
 
+      if (!_mayExchangeVerifiedEmail(firebaseUser)) return;
+
       // Trigger full backend sync with refreshed user
-      // This handles the flow: firebaseAuthenticated â†’ syncingWithBackend â†’ authenticated
+      // This handles the flow: firebaseAuthenticated → syncingWithBackend → authenticated
       _syncWithBackend(firebaseUser.uid, firebaseUser, isEmailSignup: false);
     } catch (e) {
       _logger.error(
@@ -1958,7 +2132,438 @@ class AuthController extends Notifier<AuthState> {
         return;
       }
       _syncedUserId = null;
+      if (!_mayExchangeVerifiedEmail(firebaseUser)) return;
       _syncWithBackend(firebaseUser.uid, firebaseUser, isEmailSignup: false);
+    }
+  }
+
+  /// Force refresh auth state from backend API
+  /// SOURCE OF TRUTH: PostgreSQL (Backend API /users/me)
+  ///
+  /// 🔧 FIX: Allow refresh from RequiresProfileCompletion state
+  /// This enables navigation after profile completion
+  Future<void> forceRefreshAuthState() async {
+    final currentState = state;
+    final requestGeneration = _beginHydrationRequest();
+
+    // Allow refresh from Authenticated or RequiresProfileCompletion states
+    final canRefresh =
+        currentState is AuthStateAuthenticated ||
+        currentState is AuthStateRequiresProfileCompletion;
+
+    if (!canRefresh) {
+      _logger.log(
+        '[AUTH] forceRefreshAuthState skipped - invalid state: ${currentState.runtimeType}',
+        level: LogLevel.warning,
+      );
+      return;
+    }
+
+    // Clear sync flag to force fresh data fetch
+    _syncedUserId = null;
+
+    try {
+      // Get current Firebase user
+      final firebaseUser = activeFirebaseUser;
+      if (firebaseUser == null) {
+        _setState(const AuthState.unauthenticated());
+        return;
+      }
+
+      // Don't show loading for RequiresProfileCompletion -> keep UI stable
+      final shouldShowLoading = currentState is AuthStateAuthenticated;
+      if (shouldShowLoading) {
+        _setState(
+          AuthState.loading(
+            principal: FirebasePrincipal.fromFirebaseUser(firebaseUser),
+          ),
+        );
+      }
+
+      // SOURCE OF TRUTH: Get fresh user data from backend API (PostgreSQL)
+      final result = await _userSyncService!.getCurrentUser().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw Exception('GET USER TIMEOUT');
+        },
+      );
+
+      if (result.isSuccess && result.data != null) {
+        final completeUser = _canonicalizeBackendUser(result.data!);
+        await _logger.debugGetCurrentUserSuccess(
+          completeUser.id,
+          completeUser.isEmailVerified,
+        );
+
+        if (!_isCurrentHydrationRequest(requestGeneration)) {
+          return;
+        }
+
+        // Emit Authenticated state - router will navigate to Home.
+        // Pull emailVerified directly from Firebase user — forceRefresh is the
+        // path used after Complete Profile, where the flag is canonical.
+        _publishAuthenticatedIfCurrent(
+          requestGeneration,
+          completeUser,
+          emailVerified: firebaseUser.emailVerified,
+        );
+        _syncedUserId = firebaseUser.uid;
+
+        // Activate WS + Presence for the complete-profile→authenticated path.
+        // Idempotent: safe if already connected from primary login path.
+        _activateRealtimeServices(completeUser.id, firebaseUser);
+
+        await _logger.log(
+          '[AUTH] State → Authenticated (after profile completion)',
+          level: LogLevel.info,
+        );
+      } else {
+        // Backend API error - preserve current state for profile completion flow
+        final error = result.error ?? 'Failed to refresh user data';
+        await _logger.error('[AUTH] Refresh failed: $error');
+        final errorKind = classifyAuthSyncError(
+          error,
+          errorCode: result.errorCode,
+          statusCode: result.statusCode,
+        );
+
+        // For RequiresProfileCompletion, stay in that state (don't show error)
+        // For Authenticated, classify the refresh failure so degraded
+        // backend issues do not blow away the cached seller/user state.
+        if (errorKind == AuthSyncErrorKind.identityInvalid ||
+            errorKind == AuthSyncErrorKind.accountDeleted) {
+          if (!_isCurrentHydrationRequest(requestGeneration)) {
+            return;
+          }
+          await performFirebaseSignOut();
+          _setState(const AuthState.unauthenticated());
+        } else if (currentState is AuthStateRequiresProfileCompletion &&
+            (errorKind == AuthSyncErrorKind.backendUnavailable ||
+                errorKind == AuthSyncErrorKind.backendFailure)) {
+          _logger.log(
+            '[AUTH] Preserving RequiresProfileCompletion state after refresh failure',
+            level: LogLevel.warning,
+          );
+          // State already RequiresProfileCompletion, no change needed
+        } else if (errorKind == AuthSyncErrorKind.backendUnavailable) {
+          _publishIfCurrent(
+            requestGeneration,
+            AuthState.backendUnavailable(error),
+          );
+        } else if (errorKind == AuthSyncErrorKind.backendFailure) {
+          _publishIfCurrent(requestGeneration, AuthState.backendFailure(error));
+        } else {
+          _publishIfCurrent(requestGeneration, AuthState.error(error));
+        }
+      }
+    } catch (e, stackTrace) {
+      await _logger.error(
+        '[AUTH] forceRefreshAuthState error: $e',
+        extra: {'stackTrace': stackTrace.toString()},
+      );
+
+      // Fallback to previous state on error
+      if (!_isCurrentHydrationRequest(requestGeneration)) {
+        return;
+      }
+      _setState(currentState);
+    }
+  }
+
+  /// Reset state to initial
+  ///
+  /// 🔒 DETERMINISTIC FIX: Reset all sync locks when resetting controller.
+  /// This ensures clean state for testing or edge cases.
+  void reset() {
+    // 🔐 AUTH PERSISTENCE FIX: Cancel stream subscription when resetting
+    _authStateSubscription?.cancel();
+    _authStateSubscription = null;
+
+    // 🔒 SYNC LOCK RESET: Clear all sync state
+    _beginHydrationRequest();
+    _syncedUserId = null;
+    _ongoingSync = null;
+    _pendingVerificationIntent = null;
+    _setState(const AuthState.initial());
+  }
+
+  /// Deactivate user account with reason
+  Future<bool> deactivateAccount({
+    required String userId,
+    required String reason,
+  }) async {
+    final result = await _authRepository.deactivateAccount(
+      userId: userId,
+      reason: reason,
+    );
+
+    if (result.isSuccess) {
+      // Track account deactivation
+      await _analytics.logEvent(
+        'account_deactivated',
+        parameters: {'user_id': userId, 'reason': reason},
+        userId: userId,
+      );
+
+      // Sign out after deactivation
+      await signOut();
+      return true;
+    } else {
+      _setState(AuthState.error(result.error!));
+      return false;
+    }
+  }
+
+  /// Permanently delete the authenticated user's account.
+  ///
+  /// Calls backend soft-delete → Firebase credential delete → local signOut.
+  /// Returns the error string on failure (null on success).
+  Future<String?> deleteAccount() async {
+    final result = await _authRepository.deleteAccount();
+    if (result.isSuccess) {
+      await signOut();
+      return null;
+    }
+    return result.error ?? 'Failed to delete account';
+  }
+
+  /// 🔒 SECURITY FIX: Start periodic session validation
+  void _startSessionValidation() {
+    // Cancel existing timer if any
+    _sessionValidationTimer?.cancel();
+
+    // Start new timer - validate every 5 minutes
+    _sessionValidationTimer = Timer.periodic(const Duration(minutes: 5), (
+      _,
+    ) async {
+      await _validateSession();
+    });
+  }
+
+  /// 🔒 SECURITY FIX: Stop periodic session validation
+  void _stopSessionValidation() {
+    _sessionValidationTimer?.cancel();
+    _sessionValidationTimer = null;
+  }
+
+  /// W14-B2: Public method to refresh user data (including roles) on app resume
+  /// Can be called from app lifecycle handlers to ensure role changes are reflected
+  Future<void> refreshUserData() async {
+    final currentState = state;
+    if (currentState is! AuthStateAuthenticated) {
+      // Not authenticated, nothing to refresh
+      return;
+    }
+
+    final requestGeneration = _beginHydrationRequest();
+
+    try {
+      // Get fresh user data from backend
+      final result = await _userSyncService!.getCurrentUser();
+
+      if (result.isSuccess && result.data != null) {
+        final freshUser = _canonicalizeBackendUser(result.data!);
+
+        // ID1F: Account restriction gate — mid-session suspension/ban on resume
+        final freshStatus = freshUser.accountStatus ?? AccountStatus.active;
+        if (freshStatus.isRestricted) {
+          _logger.warning(
+            '[RESUME] Account restricted: ${freshStatus.apiValue}',
+          );
+          _stopSessionValidation();
+          _publishIfCurrent(
+            requestGeneration,
+            AuthState.accountRestricted(
+              freshUser,
+              restrictionType: freshStatus,
+            ),
+          );
+          return;
+        }
+
+        // PASS 2A / F2: compare the WHOLE fresh user against the cached
+        // one, not just `.role`. AuthUser extends Equatable (via
+        // BaseEntity) over every backend-authoritative field — role,
+        // accountStatus, hasMarketAuthority, hasSellerProfile,
+        // sellerSubscriptionStatus, sellerTier, penalty points,
+        // verification flags — so this single `!=` check both (a) catches
+        // authority-relevant changes that don't touch role at all (e.g. a
+        // seller subscription expiring mid-session, which flips
+        // hasMarketAuthority but never touches roles) and (b) is a no-op
+        // when the user is genuinely unchanged, avoiding unnecessary
+        // rebuilds.
+        if (freshUser != currentState.user) {
+          _logger.info(
+            'Authority-relevant user data changed on resume: '
+            'role ${currentState.user.role} → ${freshUser.role}, '
+            'hasMarketAuthority ${currentState.user.hasMarketAuthority} → '
+            '${freshUser.hasMarketAuthority}',
+          );
+          // Update state with new user data so the router / SellerGuard /
+          // permission gates observe the change immediately instead of
+          // holding a stale cached AuthUser until the next full login sync.
+          // Preserve current emailVerified flag — this is the resume hook,
+          // not the email-verification refresh flow.
+          _publishAuthenticatedIfCurrent(
+            requestGeneration,
+            freshUser,
+            emailVerified: currentState.emailVerified,
+          );
+        }
+      } else {
+        final error = result.error ?? 'Failed to refresh user data';
+        final errorKind = classifyAuthSyncError(
+          error,
+          errorCode: result.errorCode,
+          statusCode: result.statusCode,
+        );
+
+        if (!_isCurrentHydrationRequest(requestGeneration)) {
+          return;
+        }
+
+        if (errorKind == AuthSyncErrorKind.identityInvalid ||
+            errorKind == AuthSyncErrorKind.accountDeleted) {
+          await performFirebaseSignOut();
+          _setState(const AuthState.unauthenticated());
+        } else if (errorKind == AuthSyncErrorKind.backendUnavailable) {
+          _publishIfCurrent(
+            requestGeneration,
+            AuthState.backendUnavailable(error),
+          );
+        } else if (errorKind == AuthSyncErrorKind.backendFailure) {
+          _publishIfCurrent(requestGeneration, AuthState.backendFailure(error));
+        }
+      }
+    } catch (e) {
+      _logger.error(
+        'User data refresh error on resume',
+        extra: {'error': e.toString()},
+      );
+      // Silently ignore - network issues or temporary problems
+    }
+  }
+
+  /// 🔒 SECURITY FIX: Validate current session and refresh roles
+  /// W14-B2: Enhanced to also refresh user data which includes role changes
+  Future<void> _validateSession() async {
+    try {
+      final currentState = state;
+      if (currentState is! AuthStateAuthenticated) {
+        // Not authenticated, stop validation
+        _stopSessionValidation();
+        return;
+      }
+
+      final requestGeneration = _beginHydrationRequest();
+
+      // 🔐 CRITICAL: RELOAD Firebase user to get fresh data
+      final firebaseUser = activeFirebaseUser;
+      if (firebaseUser == null) {
+        // Firebase session lost, sign out
+        _logger.warning('Firebase session lost during validation');
+        if (_isCurrentHydrationRequest(requestGeneration)) {
+          await signOut();
+        }
+        return;
+      }
+
+      try {
+        await firebaseUser.reload();
+      } catch (e) {
+        _logger.error(
+          'Failed to reload Firebase user during session validation',
+          extra: {'error': e.toString()},
+        );
+        // Continue validation even if reload fails
+      }
+
+      // Check if user still exists and refresh user data (including roles)
+      final result = await _userSyncService!.getCurrentUser();
+
+      if (result.isError || result.data == null) {
+        final error = result.error ?? 'Session validation failed';
+        final errorKind = classifyAuthSyncError(
+          error,
+          errorCode: result.errorCode,
+          statusCode: result.statusCode,
+        );
+
+        if (!_isCurrentHydrationRequest(requestGeneration)) {
+          return;
+        }
+
+        if (errorKind == AuthSyncErrorKind.identityInvalid ||
+            errorKind == AuthSyncErrorKind.accountDeleted) {
+          _logger.warning('Session validation failed, signing out user');
+          if (_isCurrentHydrationRequest(requestGeneration)) {
+            await signOut();
+          }
+        } else if (errorKind == AuthSyncErrorKind.backendUnavailable) {
+          _publishIfCurrent(
+            requestGeneration,
+            AuthState.backendUnavailable(error),
+          );
+        } else if (errorKind == AuthSyncErrorKind.backendFailure) {
+          _publishIfCurrent(requestGeneration, AuthState.backendFailure(error));
+        }
+      } else {
+        final freshUser = _canonicalizeBackendUser(result.data!);
+
+        // ID1F: Account restriction gate — mid-session suspension/ban
+        // Priority over role change: restricted user must be redirected
+        // regardless of any other state changes.
+        final freshStatus = freshUser.accountStatus ?? AccountStatus.active;
+        if (freshStatus.isRestricted) {
+          _logger.warning(
+            '[VALIDATE] Account restricted mid-session: ${freshStatus.apiValue}',
+          );
+          _stopSessionValidation();
+          _publishIfCurrent(
+            requestGeneration,
+            AuthState.accountRestricted(
+              freshUser,
+              restrictionType: freshStatus,
+            ),
+          );
+          return;
+        }
+
+        // W14-B2: Session valid - update state with fresh user data
+        // This ensures role changes are reflected without requiring re-login
+        //
+        // PASS 2A / F2: compare the WHOLE fresh user (Equatable over every
+        // backend-authoritative field), not just `.role` — otherwise a
+        // seller subscription expiring mid-session flips
+        // hasMarketAuthority/sellerSubscriptionStatus without ever
+        // changing role, and the stale cached AuthUser (still
+        // hasMarketAuthority=true) keeps being read by SellerGuard/the
+        // router's seller guard for up to the full 5-minute period between
+        // validations. See refreshUserData() above for the identical fix
+        // on the resume path.
+        if (freshUser != currentState.user) {
+          _logger.info(
+            'Authority-relevant user data changed during periodic '
+            'validation: role ${currentState.user.role} → ${freshUser.role}, '
+            'hasMarketAuthority ${currentState.user.hasMarketAuthority} → '
+            '${freshUser.hasMarketAuthority}',
+          );
+          // Refresh emailVerified from Firebase — the periodic validation is
+          // also a natural place to pick up an out-of-band verification.
+          final freshEmailVerified =
+              firebaseUser.emailVerified || currentState.emailVerified;
+          _publishAuthenticatedIfCurrent(
+            requestGeneration,
+            freshUser,
+            emailVerified: freshEmailVerified,
+          );
+        }
+      }
+    } catch (e) {
+      // ✅ FIXED: Don't force sign out on validation error
+      // Could be network issue or temporary problem
+      _logger.error('Session validation error', extra: {'error': e.toString()});
+      // Just log the error and continue - Firebase will handle auth state
     }
   }
 
@@ -2074,196 +2679,6 @@ class AuthController extends Notifier<AuthState> {
       );
       return false;
     }
-  }
-
-  /// Force refresh auth state from backend API
-  /// SOURCE OF TRUTH: PostgreSQL (Backend API /users/me)
-  ///
-  /// ðŸ”§ FIX: Allow refresh from RequiresProfileCompletion state
-  /// This enables navigation after profile completion
-  Future<void> forceRefreshAuthState() async {
-    final currentState = state;
-    final requestGeneration = _beginHydrationRequest();
-
-    // Allow refresh from Authenticated or RequiresProfileCompletion states
-    final canRefresh =
-        currentState is AuthStateAuthenticated ||
-        currentState is AuthStateRequiresProfileCompletion;
-
-    if (!canRefresh) {
-      _logger.log(
-        '[AUTH] forceRefreshAuthState skipped - invalid state: ${currentState.runtimeType}',
-        level: LogLevel.warning,
-      );
-      return;
-    }
-
-    // Clear sync flag to force fresh data fetch
-    _syncedUserId = null;
-
-    try {
-      // Get current Firebase user
-      final firebaseUser = activeFirebaseUser;
-      if (firebaseUser == null) {
-        _setState(const AuthState.unauthenticated());
-        return;
-      }
-
-      // Don't show loading for RequiresProfileCompletion -> keep UI stable
-      final shouldShowLoading = currentState is AuthStateAuthenticated;
-      if (shouldShowLoading) {
-        _setState(
-          AuthState.loading(
-            principal: FirebasePrincipal.fromFirebaseUser(firebaseUser),
-          ),
-        );
-      }
-
-      // SOURCE OF TRUTH: Get fresh user data from backend API (PostgreSQL)
-      final result = await _userSyncService!.getCurrentUser().timeout(
-        const Duration(seconds: 15),
-        onTimeout: () {
-          throw Exception('GET USER TIMEOUT');
-        },
-      );
-
-      if (result.isSuccess && result.data != null) {
-        final completeUser = _canonicalizeBackendUser(result.data!);
-        await _logger.debugGetCurrentUserSuccess(
-          completeUser.id,
-          completeUser.isEmailVerified,
-        );
-
-        if (!_isCurrentHydrationRequest(requestGeneration)) {
-          return;
-        }
-
-        // Emit Authenticated state - router will navigate to Home.
-        // Pull emailVerified directly from Firebase user â€” forceRefresh is the
-        // path used after Complete Profile, where the flag is canonical.
-        _publishAuthenticatedIfCurrent(
-          requestGeneration,
-          completeUser,
-          emailVerified: firebaseUser.emailVerified,
-        );
-        _syncedUserId = firebaseUser.uid;
-
-        // Activate WS + Presence for the complete-profileâ†’authenticated path.
-        // Idempotent: safe if already connected from primary login path.
-        _activateRealtimeServices(completeUser.id, firebaseUser);
-
-        await _logger.log(
-          '[AUTH] State â†’ Authenticated (after profile completion)',
-          level: LogLevel.info,
-        );
-      } else {
-        // Backend API error - preserve current state for profile completion flow
-        final error = result.error ?? 'Failed to refresh user data';
-        await _logger.error('[AUTH] Refresh failed: $error');
-        final errorKind = classifyAuthSyncError(
-          error,
-          errorCode: result.errorCode,
-          statusCode: result.statusCode,
-        );
-
-        // For RequiresProfileCompletion, stay in that state (don't show error)
-        // For Authenticated, classify the refresh failure so degraded
-        // backend issues do not blow away the cached seller/user state.
-        if (errorKind == AuthSyncErrorKind.identityInvalid ||
-            errorKind == AuthSyncErrorKind.accountDeleted) {
-          if (!_isCurrentHydrationRequest(requestGeneration)) {
-            return;
-          }
-          await performFirebaseSignOut();
-          _setState(const AuthState.unauthenticated());
-        } else if (currentState is AuthStateRequiresProfileCompletion &&
-            (errorKind == AuthSyncErrorKind.backendUnavailable ||
-                errorKind == AuthSyncErrorKind.backendFailure)) {
-          _logger.log(
-            '[AUTH] Preserving RequiresProfileCompletion state after refresh failure',
-            level: LogLevel.warning,
-          );
-          // State already RequiresProfileCompletion, no change needed
-        } else if (errorKind == AuthSyncErrorKind.backendUnavailable) {
-          _publishIfCurrent(
-            requestGeneration,
-            AuthState.backendUnavailable(error),
-          );
-        } else if (errorKind == AuthSyncErrorKind.backendFailure) {
-          _publishIfCurrent(requestGeneration, AuthState.backendFailure(error));
-        } else {
-          _publishIfCurrent(requestGeneration, AuthState.error(error));
-        }
-      }
-    } catch (e, stackTrace) {
-      await _logger.error(
-        '[AUTH] forceRefreshAuthState error: $e',
-        extra: {'stackTrace': stackTrace.toString()},
-      );
-
-      // Fallback to previous state on error
-      if (!_isCurrentHydrationRequest(requestGeneration)) {
-        return;
-      }
-      _setState(currentState);
-    }
-  }
-
-  /// Reset state to initial
-  ///
-  /// ðŸ”’ DETERMINISTIC FIX: Reset all sync locks when resetting controller.
-  /// This ensures clean state for testing or edge cases.
-  void reset() {
-    // ðŸ” AUTH PERSISTENCE FIX: Cancel stream subscription when resetting
-    _authStateSubscription?.cancel();
-    _authStateSubscription = null;
-
-    // ðŸ”’ SYNC LOCK RESET: Clear all sync state
-    _beginHydrationRequest();
-    _syncedUserId = null;
-    _syncInProgress = false;
-    _ongoingSync = null;
-    _setState(const AuthState.initial());
-  }
-
-  /// Deactivate user account with reason
-  Future<bool> deactivateAccount({
-    required String userId,
-    required String reason,
-  }) async {
-    final result = await _authRepository.deactivateAccount(
-      userId: userId,
-      reason: reason,
-    );
-
-    if (result.isSuccess) {
-      // Track account deactivation
-      await _analytics.logEvent(
-        'account_deactivated',
-        parameters: {'user_id': userId, 'reason': reason},
-        userId: userId,
-      );
-
-      // Sign out after deactivation
-      await signOut();
-      return true;
-    } else {
-      _setState(AuthState.error(result.error!));
-      return false;
-    }
-  }
-
-  /// Permanently delete the authenticated user's account.
-  ///
-  /// Calls backend soft-delete â†’ Firebase credential delete â†’ local signOut.
-  /// Returns the error string on failure (null on success).
-  Future<String?> deleteAccount() async {
-    final result = await _authRepository.deleteAccount();
-    if (result.isSuccess) {
-      await signOut();
-      return null;
-    }
-    return result.error ?? 'Failed to delete account';
   }
 }
 

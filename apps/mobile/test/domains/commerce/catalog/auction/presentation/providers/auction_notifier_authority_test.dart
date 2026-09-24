@@ -363,7 +363,7 @@ void main() {
     addTearDown(container.dispose);
 
     final activeSub = container.listen(
-      exploreAuctionsStreamProvider,
+      marketplaceAuctionsStreamProvider,
       (previous, next) {},
       fireImmediately: true,
     );

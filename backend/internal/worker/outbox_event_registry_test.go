@@ -227,15 +227,11 @@ var knownConsumedEvents = []string{
 	"moderation.auction.restored",
 	"moderation.user.restored",
 
-	// SetupPromotionHandlers (P5B-C: target + seller governance + moderation)
-	"for_sale.sold",
-	"for_sale.withdrawn",
-	"for_sale.updated",
-	"auction.cancelled",
-	"seller.subscription.activated", // P5B-C: resumes paused promotions (was NoHandlerAuditOnly)
-	// auction.ended — fanout with notification handler (P14); already listed below under SetupNotificationHandlers
-	// seller.subscription.expired — fanout with existing handler (already listed below under SetupSellerSubscriptionExpiredHandler)
-	// moderation.for_sale.restored — fanout with existing enforcement+notification handlers (already listed above under SetupModerationHandlers)
+	// Promotion note: for_sale.sold / for_sale.withdrawn / for_sale.updated /
+	// auction.cancelled / auction.ended / seller.subscription.activated have NO
+	// promotion handlers — promotion target/seller operability is read-time
+	// (canonical OperabilityChecker); the legacy SetupPromotionHandlers was
+	// purged with the duration-package model.
 
 	// money.refunded / money.partial_refund / money.partial_release — dead handlers+setup deleted (B90)
 	// Events remain in AcknowledgedNoHandlerEvents (NoHandlerAuditOnly)

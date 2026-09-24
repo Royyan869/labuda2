@@ -508,8 +508,8 @@ void main() {
 
   group('AuthController principal runtime', () {
     test(
-      'A to B before retry fires keeps the old timer inert and lets B sync '
-      'independently',
+      'A to B via signOut keeps stale generation inert and lets B sync '
+      'independently (hydration generation proof)',
       () async {
         final firebaseUser = _MutableFirebaseUser(uidValue: 'uid-a');
         final controller = _TestAuthController(firebaseUser: firebaseUser);
@@ -532,7 +532,7 @@ void main() {
           user: _principalUser('uid-a'),
         );
 
-        // A's sync fails with backend unavailable → retry path arms.
+        // A's sync fails with backend unavailable → terminal degraded (no auto-retry).
         controller.refreshAuthState();
         await _flushMicrotasks();
         expect(userSyncService.syncCalls, hasLength(1));
@@ -544,7 +544,7 @@ void main() {
         await _flushMicrotasks();
         expect(controller.state, isA<AuthStateBackendUnavailable>());
 
-        // Switch to B before the retry timer fires.
+        // Switch to B (signOut clears generation budget; no timer exists).
         controller.signOut();
         await _flushMicrotasks();
         expect(controller.state, isA<AuthStateUnauthenticated>());
@@ -561,7 +561,7 @@ void main() {
         controller.refreshAuthState();
         await _flushMicrotasks();
 
-        // B performs its own sync; A's old retry must not re-fire.
+        // B performs its own sync; stale A generation must not re-fire.
         expect(userSyncService.syncCalls, hasLength(2));
 
         userSyncService.completeSync(1, _syncSuccess(_principalUser('uid-b')));

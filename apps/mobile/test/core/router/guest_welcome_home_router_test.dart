@@ -65,7 +65,7 @@ import 'package:labuda/domains/user/profile/data/profile_providers.dart'
 import 'package:labuda/domains/user/profile/data/services/user_sync_service.dart';
 import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/profile_view_provider.dart';
-import 'package:labuda/features/explore/explore.dart';
+import 'package:labuda/features/marketplace/marketplace.dart';
 import 'package:labuda/features/home/home.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 
@@ -561,7 +561,7 @@ class _FakeLikeRepository extends Fake implements LikeRepository {
   ));
 }
 
-// -- Auction (CommercePreviewSection / exploreAuctionsStreamProvider) ---
+// -- Auction (kept for Explore tab; Home no longer uses commerce preview) ---
 
 class _FakeAuctionRepository extends Fake implements AuctionRepository {
   @override
@@ -672,7 +672,7 @@ Future<ProviderContainer> _buildContainer({
   final fakeFirebaseUser = _FakeFirebaseUser(syncUser.id);
   final registry = NavigationRegistryImpl();
   registerHomeTab(registry);
-  registerExploreTab(registry);
+  registerMarketplaceTab(registry);
 
   final overrides = [
     // == TRANSPORT (the ONLY Feed pipeline override) ===================
@@ -711,8 +711,7 @@ Future<ProviderContainer> _buildContainer({
     likeRepositoryProvider.overrideWithValue(_FakeLikeRepository()),
     ratingRepositoryProvider.overrideWithValue(_FakeRatingRepository()),
 
-    // == COMMERCE (CommercePreviewSection uses forSalesProvider via
-    // apiClientProvider, plus auctionRepositoryProvider) ===============
+    // == COMMERCE (Explore tab; Home is now social-only, no preview) =====
     auctionRepositoryProvider.overrideWithValue(_FakeAuctionRepository()),
 
     // == USER SYNC =====================================================
@@ -746,8 +745,8 @@ Future<ProviderContainer> _buildContainer({
       );
     }),
 
-    // == COMMERCE AUCTION PREVIEW ======================================
-    exploreAuctionsStreamProvider.overrideWith((ref) {
+    // == COMMERCE AUCTION (Explore) ======================================
+    marketplaceAuctionsStreamProvider.overrideWith((ref) {
       return Stream.value(const <Auction>[]);
     }),
     getUserRatingSummaryProvider.overrideWith((ref, userId) async {
@@ -858,7 +857,9 @@ void main() {
         // SCREEN PROOF: canonical Home shell rendered (MainScreen + Home tab).
         expect(find.byType(MainScreen), findsOneWidget);
         expect(find.byType(HomeScreen), findsOneWidget);
-        expect(find.text('Komunitas & Marketplace Koi'), findsOneWidget);
+        // NEGATIVE PROOF: purged Home header/preview must NOT appear
+        expect(find.text('Komunitas & Marketplace Koi'), findsNothing);
+        expect(find.text('🔥 Sedang Laku Hari Ini'), findsNothing);
 
         // NEGATIVE PROOF: the For Sale catalog screen did NOT open.
         expect(find.byType(ForSaleListScreen), findsNothing);

@@ -58,6 +58,9 @@ func (r *stubProductShippingRepo) DeleteByShippingSetup(_ context.Context, _ db.
 func (r *stubProductShippingRepo) CreateBulk(_ context.Context, _ db.Tx, _ uuid.UUID, _ []uuid.UUID) error {
 	return nil
 }
+func (r *stubProductShippingRepo) CountLinksByShippingSetup(_ context.Context, _ db.Tx, _ uuid.UUID) (int64, error) {
+	return 0, nil
+}
 
 // ============================================================================
 // Stubs — coverage repo

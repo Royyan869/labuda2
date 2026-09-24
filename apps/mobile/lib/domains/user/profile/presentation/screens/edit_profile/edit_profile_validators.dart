@@ -1,4 +1,10 @@
-/// Validators and utility functions for edit profile screen
+import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/store_name_form_field.dart';
+
+/// Validators and utility functions for edit profile screen.
+///
+/// Seller store-name validation is NOT defined here — the single authority is
+/// [StoreNameFormField.validate] (seller domain), shared with the registration
+/// wizard.
 class EditProfileValidators {
   /// Mask email for privacy: "user@example.com" -> "us***@example.com"
   static String maskEmail(String email) {
@@ -29,14 +35,6 @@ class EditProfileValidators {
   static String? validateDisplayName(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Display name is required';
-    }
-    return null;
-  }
-
-  /// Validate farm name (seller only)
-  static String? validateFarmName(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Farm name is required';
     }
     return null;
   }

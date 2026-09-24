@@ -21,9 +21,9 @@ List<MainTab> _twoTabs() => [
     page: SizedBox.shrink(),
   ),
   const MainTab(
-    label: 'Explore',
-    icon: Icons.explore_outlined,
-    selectedIcon: Icons.explore,
+    label: 'Marketplace',
+    icon: Icons.storefront_outlined,
+    selectedIcon: Icons.storefront,
     page: SizedBox.shrink(),
   ),
 ];
@@ -54,7 +54,7 @@ void main() {
       await tester.pumpWidget(_wrap(tabs: _twoTabs(), onTap: (_) {}));
 
       expect(find.text('Home'), findsOneWidget);
-      expect(find.text('Explore'), findsOneWidget);
+      expect(find.text('Marketplace'), findsOneWidget);
       expect(find.text('Create'), findsOneWidget);
       expect(find.text('Orders'), findsOneWidget);
       expect(find.text('Settings'), findsOneWidget);
@@ -108,7 +108,7 @@ void main() {
         _wrap(tabs: _twoTabs(), onTap: (i) => tapped = i),
       );
 
-      await tester.tap(find.text('Explore'));
+      await tester.tap(find.text('Marketplace'));
       await tester.pump();
 
       expect(tapped, 1);
@@ -172,7 +172,7 @@ void main() {
 
         expect(find.byType(MainBottomNavigation), findsOneWidget);
         expect(find.text('Home'), findsOneWidget);
-        expect(find.text('Explore'), findsOneWidget);
+        expect(find.text('Marketplace'), findsOneWidget);
       },
     );
   });

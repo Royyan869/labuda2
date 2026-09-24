@@ -62,6 +62,35 @@ type CreatePromotionInput struct {
 	CityIDs      []string // geographic targeting: empty = nationwide, otherwise arbitrary set of city_id
 }
 
+// FundingPreview is the canonical read-only projection of promotion funding
+// sufficiency. It answers the question: "can this promotion proceed, and if
+// not, how much must the seller pay?"
+//
+// AUTHORITY: this is a READ-ONLY projection. It acquires NO locks, creates
+// NO contracts, and performs NO financial mutations. The balance is read from
+// the current PROMOTE_BALANCE ledger account (non-locking snapshot). The
+// actual allocation at Create time uses FOR UPDATE and may differ if another
+// transaction commits between PreviewFunding and Create — the caller must
+// treat this as informational guidance, not a binding reservation.
+type FundingPreview struct {
+	// RequiredCost is the minimum budget the seller must fund for this
+	// promotion (equal to BudgetRupiah when above minimum; otherwise
+	// the minimum required budget). Unit: whole Rupiah.
+	RequiredCost int64 `json:"required_cost"`
+
+	// AvailableFunding is the seller's current PROMOTE_BALANCE at the
+	// time of this read. Unit: whole Rupiah.
+	AvailableFunding int64 `json:"available_funding"`
+
+	// Shortage is max(RequiredCost - AvailableFunding, 0). Unit: whole Rupiah.
+	// When zero, the promotion may proceed to allocation without payment.
+	Shortage int64 `json:"shortage"`
+
+	// PaymentRequired is true when the seller must pay before allocation.
+	// Equivalent to Shortage > 0.
+	PaymentRequired bool `json:"payment_required"`
+}
+
 // PausePromotionInput targets an explicit seller-initiated pause.
 type PausePromotionInput struct {
 	SellerID   uuid.UUID
@@ -130,17 +159,17 @@ func (e *ErrPromotionSellerSlotOccupied) Error() string {
 
 // PromotionContractService owns the canonical contract lifecycle.
 type PromotionContractService struct {
-	db            *db.DB
-	repo          contractRepo.Repository
-	targets       contractRepo.ContractTargetRepository
-	geographies   contractRepo.ContractGeographyRepository
-	delivery      deliveryRepo.Repository
-	ledger        *ledgerRepoImpl.LedgerRepository
-	finance       *financeapp.FinanceService
-	config        *configapp.ConfigService
-	gate          SellerEligibilityGate
-	operability   TargetOperabilityAdapter
-	log           *zap.Logger
+	db          *db.DB
+	repo        contractRepo.Repository
+	targets     contractRepo.ContractTargetRepository
+	geographies contractRepo.ContractGeographyRepository
+	delivery    deliveryRepo.Repository
+	ledger      *ledgerRepoImpl.LedgerRepository
+	finance     *financeapp.FinanceService
+	config      *configapp.ConfigService
+	gate        SellerEligibilityGate
+	operability TargetOperabilityAdapter
+	log         *zap.Logger
 }
 
 // TargetOperabilityAdapter checks canonical target operability for queue management.
@@ -162,8 +191,6 @@ func NewPromotionContractService(
 	gate SellerEligibilityGate,
 	delivery deliveryRepo.Repository,
 ) *PromotionContractService {
-	impl := contractRepoImpl.NewContractTargetRepository()
-	_ = impl
 	return &PromotionContractService{
 		db:          db,
 		repo:        contractRepoImpl.NewContractRepository(),
@@ -297,7 +324,7 @@ func (s *PromotionContractService) Create(
 		// Atomic budget move. Insufficient Promote Balance surfaces as
 		// financeapp.ErrPromoteBalanceInsufficient and rolls back the whole
 		// transaction (no contract, no orphan allocation account).
-		if err := s.finance.RecordPromotionAllocation(ctx, tx, contractID, input.SellerID, input.BudgetRupiah); err != nil {
+		if _, err := s.finance.RecordPromotionAllocation(ctx, tx, contractID, input.SellerID, input.BudgetRupiah); err != nil {
 			return fmt.Errorf("promotion allocation failed: %w", err)
 		}
 
@@ -347,6 +374,92 @@ func (s *PromotionContractService) Create(
 		return nil, err
 	}
 	return created, nil
+}
+
+// ============================================================================
+// PREVIEW FUNDING — read-only shortage projection (no mutations)
+// ============================================================================
+
+// PreviewFunding returns the canonical funding sufficiency projection for a
+// proposed promotion. It applies the same input validation as Create (kind,
+// budget positivity, duration positivity, minimum daily budget) but performs
+// NO financial mutations, NO contract creation, and NO locking.
+//
+// The PROMOTE_BALANCE is read via a non-locking snapshot. If the balance
+// changes between this call and the subsequent Create, the Create will
+// independently re-validate and may fail — PreviewFunding is informational
+// guidance, not a reservation.
+//
+// AUTHORITY: single canonical funding projection. There is no second
+// calculation path. The shortage formula is:
+//
+//	shortage = max(required_cost - available_funding, 0)
+func (s *PromotionContractService) PreviewFunding(
+	ctx context.Context,
+	input CreatePromotionInput,
+) (*FundingPreview, error) {
+	if input.SellerID == uuid.Nil {
+		return nil, fmt.Errorf("PreviewFunding: seller_id required")
+	}
+	if !input.Kind.IsValid() {
+		return nil, ErrPromotionKindInvalid
+	}
+	if input.BudgetRupiah <= 0 {
+		return nil, ErrPromotionBudgetInvalid
+	}
+	if input.DurationDays <= 0 || input.DurationDays > maxContractDurationDays {
+		return nil, ErrPromotionDurationInvalid
+	}
+
+	var preview *FundingPreview
+	err := s.db.WithTx(ctx, func(tx db.Tx) error {
+		// Minimum daily budget rule — same authority as Create.
+		minDaily := s.config.GetPromotionMinDailyBudget(ctx, tx)
+		required, overflow := mulNonNeg(minDaily, input.DurationDays)
+		if overflow {
+			return &ErrPromotionBudgetBelowMinimum{
+				Budget:   input.BudgetRupiah,
+				Required: math.MaxInt64,
+			}
+		}
+		if input.BudgetRupiah < required {
+			return &ErrPromotionBudgetBelowMinimum{
+				Budget:   input.BudgetRupiah,
+				Required: required,
+			}
+		}
+
+		// Read the seller's current PROMOTE_BALANCE — non-locking snapshot.
+		promoteBalanceID, err := s.ledger.GetOrCreateUserAccount(
+			ctx, tx, finance.AccountPromoteBalance, input.SellerID,
+		)
+		if err != nil {
+			return fmt.Errorf("get promote balance account: %w", err)
+		}
+		balance, err := s.ledger.GetAccountBalance(ctx, tx, promoteBalanceID)
+		if err != nil {
+			return fmt.Errorf("read promote balance: %w", err)
+		}
+
+		requiredCost := input.BudgetRupiah
+		availableFunding := balance.Int64()
+		shortage := requiredCost - availableFunding
+		if shortage < 0 {
+			shortage = 0
+		}
+
+		preview = &FundingPreview{
+			RequiredCost:     requiredCost,
+			AvailableFunding: availableFunding,
+			Shortage:         shortage,
+			PaymentRequired:  shortage > 0,
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return preview, nil
 }
 
 // ============================================================================
@@ -481,49 +594,132 @@ func (s *PromotionContractService) Finalize(ctx context.Context, input FinalizeP
 		if c.SellerID != input.SellerID {
 			return ErrPromotionContractNotOwned
 		}
-		if c.Status.IsFinalized() || c.Status == entity.StatusFinalizing {
-			return ErrPromotionAlreadyFinalized
-		}
+		return s.runFinalization(ctx, tx, c)
+	})
+}
 
-		// Freeze outstanding tickets BEFORE any release: an issued ticket can
-		// never charge after finalization (Phase 3 boundary).
-		if err := s.delivery.InvalidateIssuedForContract(ctx, tx, c.ID); err != nil {
-			return fmt.Errorf("invalidate outstanding delivery tickets: %w", err)
+// FinalizeBySystem is the system-triggered finalization entry used by the
+// planned-finish finalization worker. It runs the SAME canonical finalization
+// boundary as the seller path (one finalization authority, no duplicated
+// logic) minus the seller-ownership check: the worker acts on behalf of the
+// platform, not on behalf of a caller. Concurrency safety is inherited from
+// the boundary itself — the contract row lock serializes concurrent triggers
+// (worker vs worker, worker vs seller stop), the status check makes the
+// second arrival a no-op, and the ledger release idempotency key
+// (promotion_allocation_release_<contract_id>) guarantees the remaining
+// allocation is released EXACTLY ONCE no matter how many processes observe
+// the same contract.
+func (s *PromotionContractService) FinalizeBySystem(ctx context.Context, contractID uuid.UUID) error {
+	if contractID == uuid.Nil {
+		return fmt.Errorf("FinalizeBySystem: contract_id required")
+	}
+	return s.db.WithTx(ctx, func(tx db.Tx) error {
+		c, err := s.repo.GetForUpdate(ctx, tx, contractID)
+		if err != nil {
+			return err
 		}
+		return s.runFinalization(ctx, tx, c)
+	})
+}
 
+// FinalizeDueContracts finalizes every contract whose planned delivery
+// window has reached planned_finish (Owner truth: planned-finish completion
+// finalizes automatically — the seller must never have to finalize manually
+// just to recover unused allocation).
+//
+// It is an ORCHESTRATION entry, not a second finalization authority: each
+// due contract is delegated to the canonical FinalizeBySystem boundary in
+// its own transaction. A failure on one contract is logged and skipped so a
+// single bad row cannot stall the queue; the next cycle retries it because
+// the due query re-selects non-finalized past-finish contracts.
+// Returns the number of contracts actually finalized this run.
+func (s *PromotionContractService) FinalizeDueContracts(ctx context.Context, limit int) (int, error) {
+	if limit <= 0 {
+		return 0, fmt.Errorf("FinalizeDueContracts: limit must be positive (got %d)", limit)
+	}
+	var due []uuid.UUID
+	err := s.db.WithTx(ctx, func(tx db.Tx) error {
 		now, err := s.repo.GetDBTime(ctx, tx)
 		if err != nil {
 			return fmt.Errorf("read db time: %w", err)
 		}
-
-		// Remaining allocation comes from the ledger account balance (FOR
-		// UPDATE) — the only financial truth.
-		allocationBal, err := s.ledger.GetAccountBalanceForUpdate(ctx, tx, c.AllocationAccountID)
-		if err != nil {
-			return fmt.Errorf("read allocation balance for finalization: %w", err)
-		}
-		remaining := allocationBal.Int64()
-
-		if remaining > 0 {
-			if err := s.finance.RecordPromotionAllocationRelease(ctx, tx, c.ID, c.SellerID, remaining); err != nil {
-				return fmt.Errorf("release remaining allocation: %w", err)
-			}
-		}
-
-		c.Status = entity.StatusFinalized
-		c.FinalizedAt = &now
-		c.PausedAt = nil
-		if err := s.repo.Update(ctx, tx, c); err != nil {
-			return err
-		}
-
-		s.log.Info("promotion_contract_finalized",
-			zap.String("contract_id", c.ID.String()),
-			zap.String("seller_id", c.SellerID.String()),
-			zap.Int64("released_rupiah", remaining),
-		)
-		return nil
+		due, err = s.repo.ListDueForFinalization(ctx, tx, now, limit)
+		return err
 	})
+	if err != nil {
+		return 0, err
+	}
+
+	finalized := 0
+	for _, id := range due {
+		if err := s.FinalizeBySystem(ctx, id); err != nil {
+			if errors.Is(err, ErrPromotionAlreadyFinalized) {
+				// Concurrent trigger (another worker/process or a seller stop)
+				// won the race — the contract is finalized exactly once, which
+				// is the required outcome.
+				continue
+			}
+			s.log.Warn("promotion_planned_finish_finalization_failed",
+				zap.String("contract_id", id.String()),
+				zap.Error(err),
+			)
+			continue
+		}
+		finalized++
+		s.log.Info("promotion_planned_finish_finalized",
+			zap.String("contract_id", id.String()),
+		)
+	}
+	return finalized, nil
+}
+
+// runFinalization is the single canonical finalization core shared by the
+// seller stop path (Finalize) and the planned-finish system path
+// (FinalizeBySystem). Caller must have already loaded the contract row
+// FOR UPDATE inside the caller's transaction.
+func (s *PromotionContractService) runFinalization(ctx context.Context, tx db.Tx, c *entity.Contract) error {
+	if c.Status.IsFinalized() || c.Status == entity.StatusFinalizing {
+		return ErrPromotionAlreadyFinalized
+	}
+
+	// Freeze outstanding tickets BEFORE any release: an issued ticket can
+	// never charge after finalization (Phase 3 boundary).
+	if err := s.delivery.InvalidateIssuedForContract(ctx, tx, c.ID); err != nil {
+		return fmt.Errorf("invalidate outstanding delivery tickets: %w", err)
+	}
+
+	now, err := s.repo.GetDBTime(ctx, tx)
+	if err != nil {
+		return fmt.Errorf("read db time: %w", err)
+	}
+
+	// Remaining allocation comes from the ledger account balance (FOR
+	// UPDATE) — the only financial truth.
+	allocationBal, err := s.ledger.GetAccountBalanceForUpdate(ctx, tx, c.AllocationAccountID)
+	if err != nil {
+		return fmt.Errorf("read allocation balance for finalization: %w", err)
+	}
+	remaining := allocationBal.Int64()
+
+	if remaining > 0 {
+		if err := s.finance.RecordPromotionAllocationRelease(ctx, tx, c.ID, c.SellerID, remaining); err != nil {
+			return fmt.Errorf("release remaining allocation: %w", err)
+		}
+	}
+
+	c.Status = entity.StatusFinalized
+	c.FinalizedAt = &now
+	c.PausedAt = nil
+	if err := s.repo.Update(ctx, tx, c); err != nil {
+		return err
+	}
+
+	s.log.Info("promotion_contract_finalized",
+		zap.String("contract_id", c.ID.String()),
+		zap.String("seller_id", c.SellerID.String()),
+		zap.Int64("released_rupiah", remaining),
+	)
+	return nil
 }
 
 // Get returns a contract owned by the seller (read-only).

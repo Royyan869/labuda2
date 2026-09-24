@@ -250,13 +250,64 @@ class _RecordingSyncService extends UserSyncService {
   }
 }
 
+class _PendingGoogleRepo extends Fake implements IAuthRepository {
+  int googleCallCount = 0;
+  Completer<Result<void>> googleCompleter = Completer<Result<void>>();
+
+  @override
+  Future<Result<void>> signInWithGoogle({AuthCredential? pendingGoogleCredential}) {
+    googleCallCount++;
+    return googleCompleter.future;
+  }
+
+  @override
+  Future<Result<FirebasePrincipal>> signInWithEmail({required String email, required String password}) async =>
+      Result.success(FirebasePrincipal(uid: 'uid-1', emailVerified: true));
+  @override
+  Future<Result<FirebasePrincipal>> signUpWithEmail({required String email, required String password}) async => Result.error('n/a');
+  @override
+  Future<Result<void>> signOut() async => Result.success(null);
+  @override
+  Future<Result<void>> logoutCurrentSession({required String refreshToken, String? fcmToken, String? deviceId}) async => Result.success(null);
+  @override
+  Future<Result<void>> logoutAllSessions({bool deactivateFcmTokens = true}) async => Result.success(null);
+  @override
+  Future<Result<List<AuthSessionDto>>> getActiveSessions() async => Result.success(const <AuthSessionDto>[]);
+  @override
+  Future<Result<void>> revokeSession(String familyId) async => Result.success(null);
+  @override
+  Future<Result<void>> resetPassword({required String email}) async => Result.success(null);
+  @override
+  Future<Result<void>> verifyEmail() async => Result.success(null);
+  @override
+  Future<Result<void>> sendEmailVerification() async => Result.success(null);
+  @override
+  Future<Result<UserProfilePatch>> updateProfile({String? photoUrl, String? phoneNumber, DateTime? phoneVerifiedAt, String? username, String? bio, String? location, DateTime? dateOfBirth}) async => Result.error('n/a');
+  @override
+  Future<Result<AuthUser>> completeProfile({required String username}) async => Result.error('n/a');
+  @override
+  Future<Result<void>> changePassword({required String currentPassword, required String newPassword}) async => Result.success(null);
+  @override
+  Future<Result<void>> deleteAccount() async => Result.success(null);
+  @override
+  Future<Result<AuthUser?>> getUserById(String userId) async => Result.success(null);
+  @override
+  Future<Result<List<AuthUser>>> searchUsers({required String query, int limit = 20}) async => Result.success(const <AuthUser>[]);
+  @override
+  Future<Result<void>> deactivateAccount({required String userId, required String reason}) async => Result.success(null);
+  @override
+  Future<Result<AuthUser>> updateUserRole({required String userId, required UserRole newRole}) async => Result.error('n/a');
+  @override
+  Stream<FirebasePrincipal?> get authStateChanges => const Stream<FirebasePrincipal?>.empty();
+}
+
 class _FakeRepo extends Fake implements IAuthRepository {
   final Future<Result<FirebasePrincipal>> Function() signIn;
   _FakeRepo(this.signIn);
   @override
   Future<Result<FirebasePrincipal>> signInWithEmail({required String email, required String password}) => signIn();
   @override
-  Future<Result<void>> signInWithGoogle() async => Result.success(null);
+  Future<Result<void>> signInWithGoogle({AuthCredential? pendingGoogleCredential}) async => Result.success(null);
   @override
   Future<Result<FirebasePrincipal>> signUpWithEmail({required String email, required String password}) async => Result.error('n/a');
   @override
@@ -438,5 +489,99 @@ void main() {
 
     expect(controller.state, isA<AuthStateRequiresProfileCompletion>());
     expect(sync.exchangeCalls, 1);
+  });
+
+  test(
+      'I9 Google sign-in double-tap while first pending does not create duplicate orchestration',
+      () async {
+    // G1 race window: first Google Future held pending → second call must be ignored.
+    final fakeUser = _FakeUser('uid-1');
+    final controller = _Controller(fakeUser);
+    final sync = _RecordingSyncService(auth: fakeUser);
+    final googleRepo = _PendingGoogleRepo();
+
+    // Build container with the pending Google repo (reuse existing harness shape).
+    final storage = _RecordingLocalStorage();
+    final container = ProviderContainer(
+      overrides: [
+        localStorageServiceProvider.overrideWithValue(storage),
+        auth_data.authRepositoryProvider.overrideWithValue(googleRepo),
+        profile_data.userSyncServiceProvider.overrideWithValue(sync),
+        loggerServiceProvider.overrideWithValue(const _NoopLogger()),
+        coreAnalyticsRepositoryProvider.overrideWithValue(_NoopAnalytics()),
+        fcmServiceProvider.overrideWithValue(_NoopFcm() as dynamic),
+        authControllerProvider.overrideWith(() => controller),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.read(authControllerProvider);
+
+    // 1) First tap: starts Firebase Google sign-in, Future stays pending.
+    final firstFuture = controller.signInWithGoogle();
+    await Future<void>.delayed(Duration.zero);
+    expect(googleRepo.googleCallCount, 1,
+        reason: 'first Google sign-in must have started');
+    expect(sync.exchangeCalls, 0,
+        reason: 'exchange must not start until Firebase Google succeeds');
+
+    // 2) Second tap while first still pending: must be ignored via _isGoogleSigningIn.
+    final secondFuture = controller.signInWithGoogle();
+    await secondFuture; // returns immediately via early guard
+    await Future<void>.delayed(Duration.zero);
+    expect(googleRepo.googleCallCount, 1,
+        reason: 'second tap must not start another Firebase Google call');
+    expect(sync.exchangeCalls, 0,
+        reason: 'second tap must not trigger exchange');
+
+    // 3) Complete first Firebase Google call — now canonical exchange starts.
+    googleRepo.googleCompleter.complete(Result.success(null));
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    expect(sync.exchangeCalls, 1,
+        reason: 'exactly one backend exchange after one successful Google sign-in');
+
+    // 4) Complete exchange and await firstFuture to finish orchestration.
+    sync.completeNext(Result.success(SyncUserResult(
+      user: _TestAuthUser.account(),
+      userId: 'uid-1',
+      email: 'a@example.com',
+      created: false,
+      profileComplete: true,
+      username: 'seller-one',
+    )));
+    await firstFuture;
+
+    expect(controller.state, isA<AuthStateAuthenticated>());
+    expect(googleRepo.googleCallCount, 1);
+    expect(sync.exchangeCalls, 1);
+
+    // 5) Guard must be reset via finally — a third tap after completion must be allowed.
+    // Note: after authenticated, _syncedUserId dedup suppresses a second exchange,
+    // so third call will increment googleCallCount but not exchangeCalls.
+    googleRepo.googleCompleter = Completer<Result<void>>();
+    final thirdFuture = controller.signInWithGoogle();
+    await Future<void>.delayed(Duration.zero);
+    expect(googleRepo.googleCallCount, 2,
+        reason: '_isGoogleSigningIn must be reset after first completes');
+    googleRepo.googleCompleter.complete(Result.success(null));
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    // Third exchange is deduped by _syncedUserId while still Authenticated, so
+    // pending may be empty — only complete if one was enqueued.
+    if (sync.pending.isNotEmpty) {
+      sync.completeNext(Result.success(SyncUserResult(
+        user: _TestAuthUser.account(),
+        userId: 'uid-1',
+        email: 'a@example.com',
+        created: false,
+        profileComplete: true,
+        username: 'seller-one',
+      )));
+    }
+    await thirdFuture;
+    expect(googleRepo.googleCallCount, 2,
+        reason: 'third call proves reset, not duplicate during pending window');
+    expect(sync.exchangeCalls, 1,
+        reason: 'third call deduped by _syncedUserId while still authenticated');
   });
 }

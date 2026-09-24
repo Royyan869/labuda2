@@ -505,7 +505,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
               width: 240,
               child: FilledButton.icon(
                 icon: Icon(
-                  isSeller ? Icons.add_circle_outline : Icons.explore_outlined,
+                  isSeller ? Icons.add_circle_outline : Icons.storefront_outlined,
                   size: 20,
                 ),
                 label: Text(

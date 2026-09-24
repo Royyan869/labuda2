@@ -1,7 +1,14 @@
 package entity
 
-// StopReason represents why a promotion instance was stopped.
-// These are canonical stop reason constants.
+// StopReason represents why a promotion target became ineligible for
+// delivery (target/seller governance vocabulary shared with the canonical
+// operability authority).
+//
+// NOTE: duration-purchase stop reasons ("duration_exhausted",
+// "validity_expired") are FORBIDDEN LEGACY (duration-purchase model purged,
+// canonical contract §28) and are deliberately absent here. Duration in the
+// canonical model is a pacing/planned-finish boundary only — it never
+// terminates a promotion as an entitlement.
 type StopReason string
 
 const (
@@ -11,10 +18,6 @@ const (
 
 	// Admin-initiated stops
 	StopReasonAdminCancelled StopReason = "admin_cancelled"
-
-	// Duration-based stops
-	StopReasonDurationExhausted StopReason = "duration_exhausted"
-	StopReasonValidityExpired   StopReason = "validity_expired"
 
 	// Fixed-price sale-specific stops
 	StopReasonForSaleSold      StopReason = "for_sale_sold"
@@ -40,7 +43,6 @@ const (
 func (s StopReason) IsValid() bool {
 	switch s {
 	case StopReasonUserPaused, StopReasonUserCancelled, StopReasonAdminCancelled,
-		StopReasonDurationExhausted, StopReasonValidityExpired,
 		StopReasonForSaleSold, StopReasonForSaleHidden, StopReasonForSaleDeleted,
 		StopReasonForSaleModerated, StopReasonForSaleExpired,
 		StopReasonAuctionEnded, StopReasonAuctionCancelled, StopReasonAuctionDeleted,

@@ -223,8 +223,8 @@ var _ interface{ Code() string } = (*mockPgError)(nil)
 // TestWebhookNoDefaultOperabilityChecker is a structural regression test.
 //
 // payment_webhook.go must NOT reference DefaultOperabilityChecker anywhere.
-// Promotion package purchase authority is purged; promotion funding flows
-// through the canonical Promote Balance + contract ledger, never the webhook.
+// Promotion funding flows through the canonical Promote Balance + contract
+// ledger, never the webhook.
 func TestWebhookNoDefaultOperabilityChecker(t *testing.T) {
 	f, err := os.Open("payment_webhook.go")
 	if err != nil {
@@ -247,28 +247,27 @@ func TestWebhookNoDefaultOperabilityChecker(t *testing.T) {
 	}
 }
 
-// TestWebhookPromotionPackageBranchIsForbidden is a structural regression test.
+// TestWebhookBillingTypeGuardIsCanonical is a structural regression test.
 //
-// The TypePromotionPackage webhook branch must HARD-REJECT (forbidden), never
-// call a legacy PurchasePackage. BillingService.MarkPaid fails closed for
-// TypePromotionPackage before any revenue booking, so a legacy package billing
-// row can never become paid platform revenue.
-func TestWebhookPromotionPackageBranchIsForbidden(t *testing.T) {
+// The webhook must reject any unrecognized billing type before revenue booking.
+// This is a defense-in-depth financial safety invariant: only recognized
+// canonical billing types may become paid platform revenue.
+func TestWebhookBillingTypeGuardIsCanonical(t *testing.T) {
 	f, err := os.Open("payment_webhook.go")
 	if err != nil {
 		t.Fatalf("failed to open payment_webhook.go: %v", err)
 	}
 	defer f.Close()
 
-	foundForbiddenBranch := false
+	foundGuard := false
 	foundPurchaseCall := false
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if strings.Contains(line, "promotion_package billing forbidden") ||
-			strings.Contains(line, "promotion package purchase forbidden") {
-			foundForbiddenBranch = true
+		if strings.Contains(line, "IsValidType") ||
+			strings.Contains(line, "unrecognized billing type") {
+			foundGuard = true
 		}
 		if strings.Contains(line, "PurchasePackage") ||
 			strings.Contains(line, "promotionService") {
@@ -279,11 +278,11 @@ func TestWebhookPromotionPackageBranchIsForbidden(t *testing.T) {
 		t.Fatalf("failed to scan payment_webhook.go: %v", err)
 	}
 
-	if !foundForbiddenBranch {
-		t.Fatal("TypePromotionPackage hard-reject branch not found — webhook must reject legacy package billing")
+	if !foundGuard {
+		t.Fatal("billing type guard not found — webhook must reject unrecognized billing types")
 	}
 	if foundPurchaseCall {
-		t.Fatal("payment_webhook.go must not reference PurchasePackage/promotionService — promotion package authority is purged")
+		t.Fatal("payment_webhook.go must not reference PurchasePackage/promotionService — legacy promotion package authority is purged")
 	}
 }
 

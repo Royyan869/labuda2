@@ -30,9 +30,9 @@ func (r *BillingRepository) CreateBillingTransaction(
 		INSERT INTO billing_transactions (
 			id, payer_id, target_id, type, gross_amount,
 			platform_fee_percent, platform_fee_amount, net_amount,
-			status, event_date, unlock_date, unlocked_at, created_at, updated_at
+			status, created_at, updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	`,
 		billing.ID,
 		billing.PayerID,
@@ -43,9 +43,6 @@ func (r *BillingRepository) CreateBillingTransaction(
 		billing.PlatformFeeAmount.Int64(),
 		billing.NetAmount.Int64(),
 		string(billing.Status),
-		billing.EventDate,
-		billing.UnlockDate,
-		billing.UnlockedAt,
 		billing.CreatedAt,
 		billing.UpdatedAt,
 	)
@@ -87,13 +84,12 @@ func (r *BillingRepository) scanBillingTransaction(
 	var id, payerID, targetID uuid.UUID
 	var grossAmount, platformFeePercent, platformFeeAmount, netAmount int64
 	var billingType, status string
-	var eventDate, unlockDate, unlockedAt *time.Time
 	var createdAt, updatedAt time.Time
 
 	query := `
 		SELECT id, payer_id, target_id, type, gross_amount,
 		       platform_fee_percent, platform_fee_amount, net_amount,
-		       status, event_date, unlock_date, unlocked_at, created_at, updated_at
+		       status, created_at, updated_at
 		FROM billing_transactions
 		WHERE id = $1
 	`
@@ -104,7 +100,7 @@ func (r *BillingRepository) scanBillingTransaction(
 	err := tx.QueryRow(ctx, query, billingID).Scan(
 		&id, &payerID, &targetID, &billingType, &grossAmount,
 		&platformFeePercent, &platformFeeAmount, &netAmount,
-		&status, &eventDate, &unlockDate, &unlockedAt, &createdAt, &updatedAt,
+		&status, &createdAt, &updatedAt,
 	)
 
 	if err != nil {
@@ -124,9 +120,6 @@ func (r *BillingRepository) scanBillingTransaction(
 		PlatformFeeAmount:  money.New(platformFeeAmount),
 		NetAmount:          money.New(netAmount),
 		Status:             entity.Status(status),
-		EventDate:          eventDate,
-		UnlockDate:         unlockDate,
-		UnlockedAt:         unlockedAt,
 		CreatedAt:          createdAt,
 		UpdatedAt:          updatedAt,
 	}
@@ -144,13 +137,11 @@ func (r *BillingRepository) UpdateStatus(
 
 	_, err := tx.Exec(ctx, `
 		UPDATE billing_transactions
-		SET status = $2, event_date = $3, unlock_date = $4, updated_at = $5
+		SET status = $2, updated_at = $3
 		WHERE id = $1
 	`,
 		billing.ID,
 		string(billing.Status),
-		billing.EventDate,
-		billing.UnlockDate,
 		now,
 	)
 
@@ -194,7 +185,7 @@ func (r *BillingRepository) GetByPayerID(
 	query := `
 		SELECT id, payer_id, target_id, type, gross_amount,
 		       platform_fee_percent, platform_fee_amount, net_amount,
-		       status, event_date, unlock_date, unlocked_at, created_at, updated_at
+		       status, created_at, updated_at
 		FROM billing_transactions
 		WHERE payer_id = $1
 		ORDER BY created_at DESC
@@ -214,13 +205,12 @@ func (r *BillingRepository) GetByPayerID(
 		var id, targetID uuid.UUID
 		var grossAmount, platformFeePercent, platformFeeAmount, netAmount int64
 		var billingType, status string
-		var eventDate, unlockDate, unlockedAt *time.Time
 		var createdAt, updatedAt time.Time
 
 		err := rows.Scan(
 			&id, &payerID, &targetID, &billingType, &grossAmount,
 			&platformFeePercent, &platformFeeAmount, &netAmount,
-			&status, &eventDate, &unlockDate, &unlockedAt, &createdAt, &updatedAt,
+			&status, &createdAt, &updatedAt,
 		)
 
 		if err != nil {
@@ -237,9 +227,6 @@ func (r *BillingRepository) GetByPayerID(
 			PlatformFeeAmount:  money.New(platformFeeAmount),
 			NetAmount:          money.New(netAmount),
 			Status:             entity.Status(status),
-			EventDate:          eventDate,
-			UnlockDate:         unlockDate,
-			UnlockedAt:         unlockedAt,
 			CreatedAt:          createdAt,
 			UpdatedAt:          updatedAt,
 		}
@@ -263,7 +250,7 @@ func (r *BillingRepository) GetByTargetID(
 	query := `
 		SELECT id, payer_id, target_id, type, gross_amount,
 		       platform_fee_percent, platform_fee_amount, net_amount,
-		       status, event_date, unlock_date, unlocked_at, created_at, updated_at
+		       status, created_at, updated_at
 		FROM billing_transactions
 		WHERE target_id = $1
 		ORDER BY created_at DESC
@@ -280,13 +267,12 @@ func (r *BillingRepository) GetByTargetID(
 		var id, payerID uuid.UUID
 		var grossAmount, platformFeePercent, platformFeeAmount, netAmount int64
 		var billingType, status string
-		var eventDate, unlockDate, unlockedAt *time.Time
 		var createdAt, updatedAt time.Time
 
 		err := rows.Scan(
 			&id, &payerID, &targetID, &billingType, &grossAmount,
 			&platformFeePercent, &platformFeeAmount, &netAmount,
-			&status, &eventDate, &unlockDate, &unlockedAt, &createdAt, &updatedAt,
+			&status, &createdAt, &updatedAt,
 		)
 
 		if err != nil {
@@ -303,9 +289,6 @@ func (r *BillingRepository) GetByTargetID(
 			PlatformFeeAmount:  money.New(platformFeeAmount),
 			NetAmount:          money.New(netAmount),
 			Status:             entity.Status(status),
-			EventDate:          eventDate,
-			UnlockDate:         unlockDate,
-			UnlockedAt:         unlockedAt,
 			CreatedAt:          createdAt,
 			UpdatedAt:          updatedAt,
 		}
@@ -319,6 +302,3 @@ func (r *BillingRepository) GetByTargetID(
 
 	return transactions, nil
 }
-
-
-

@@ -114,12 +114,12 @@ void main() {
     });
 
     // -----------------------------------------------------------------------
-    // DRAFT = WORKSPACE. The create screen writes a PRIVATE DRAFT, so market
-    // authority must not gate entry (backend POST /for-sale uses the workspace
-    // gate; capability is enforced at publish: draft → active).
+    // CREATE = PUBLISH. Completing the form publishes to the market, so the
+    // screen gates ENTRY on market authority — same as the auction create
+    // screen. An expired seller sees the renewal CTA, never the form.
     // -----------------------------------------------------------------------
     testWidgets(
-      'seller with a profile but no market authority reaches the create form',
+      'seller with a profile but no market authority gets the subscription gate',
       (tester) async {
         await tester.pumpWidget(
           _wrap(
@@ -135,20 +135,15 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Entry allowed: the draft form renders.
-        expect(find.text('Informasi Dasar'), findsOneWidget);
-        expect(find.byType(TextFormField), findsWidgets);
-        // No market-authority gate copy of any kind.
-        expect(find.text('Langganan Seller Habis'), findsNothing);
-        expect(find.text('Perpanjang Langganan'), findsNothing);
-        expect(find.text('Langganan Belum Aktif'), findsNothing);
-        expect(find.text('Aktifkan Langganan'), findsNothing);
-        expect(find.text('Jadi Seller Dulu'), findsNothing);
+        // Entry blocked: the form never renders.
+        expect(find.text('Langganan Belum Aktif'), findsOneWidget);
+        expect(find.text('Aktifkan Langganan'), findsOneWidget);
+        expect(find.text('Informasi Dasar'), findsNothing);
       },
     );
 
     testWidgets(
-      'expired-subscription seller with a profile also reaches the create form',
+      'expired-subscription seller gets the renewal gate',
       (tester) async {
         await tester.pumpWidget(
           _wrap(
@@ -164,10 +159,9 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Informasi Dasar'), findsOneWidget);
-        expect(find.byType(TextFormField), findsWidgets);
-        expect(find.text('Langganan Seller Habis'), findsNothing);
-        expect(find.text('Perpanjang Langganan'), findsNothing);
+        expect(find.text('Langganan Seller Habis'), findsOneWidget);
+        expect(find.text('Perpanjang Langganan'), findsOneWidget);
+        expect(find.text('Informasi Dasar'), findsNothing);
       },
     );
 

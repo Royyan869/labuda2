@@ -10,6 +10,9 @@ import (
 // ShippingCoverage defines geographic coverage for a shipping option at province level.
 // Contains province-level rate and availability.
 // NOTE: estimated_days was dropped by migration 000014.
+// CityOverrides carries the city-level qualification rows for this coverage.
+// It is populated by the application layer for read paths that need it
+// (seller edit form); persistence layers do not hydrate it implicitly.
 type ShippingCoverage struct {
 	ID               uuid.UUID
 	ShippingSetupID uuid.UUID
@@ -17,6 +20,7 @@ type ShippingCoverage struct {
 	ProvinceName     string
 	ProvinceRate     money.Money
 	IsAvailable      bool
+	CityOverrides    []*CityOverride
 	CreatedAt        time.Time
 }
 

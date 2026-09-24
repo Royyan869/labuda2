@@ -4,11 +4,16 @@ import 'package:equatable/equatable.dart';
 // Shipping Option DTOs
 // =====================================
 
-/// Shipping Option API DTO
+/// Shipping Option API DTO — seller-facing wire shape.
+///
+/// internalPurpose is the seller-private note ("kantong besar", "untuk 1
+/// ekor", ...). It is carried ONLY on seller endpoints and must never be
+/// forwarded to any buyer-facing surface.
 class ShippingSetupDto extends Equatable {
   final String id;
   final String name;
   final String type;
+  final String? internalPurpose;
   final bool isActive;
   final List<ShippingCoverageDto>? coverages;
   final DateTime createdAt;
@@ -18,6 +23,7 @@ class ShippingSetupDto extends Equatable {
     required this.id,
     required this.name,
     required this.type,
+    this.internalPurpose,
     required this.isActive,
     this.coverages,
     required this.createdAt,
@@ -29,6 +35,7 @@ class ShippingSetupDto extends Equatable {
       id: json['id'] as String,
       name: json['name'] as String,
       type: json['transport_type'] as String,
+      internalPurpose: json['internal_purpose'] as String?,
       isActive: json['is_active'] as bool,
       coverages: (json['coverages'] as List<dynamic>?)
           ?.map((e) => ShippingCoverageDto.fromJson(e as Map<String, dynamic>))
@@ -60,7 +67,8 @@ class ShippingSetupDto extends Equatable {
   ];
 }
 
-/// Shipping Coverage API DTO
+/// Shipping Coverage API DTO — one destination province of an option,
+/// with its city-level qualifications.
 class ShippingCoverageDto extends Equatable {
   final String id;
   final String shippingSetupId;
@@ -68,6 +76,7 @@ class ShippingCoverageDto extends Equatable {
   final String provinceName;
   final double rate;
   final bool isAvailable;
+  final List<CityQualificationDto> cityQualifications;
   final DateTime createdAt;
 
   const ShippingCoverageDto({
@@ -77,6 +86,7 @@ class ShippingCoverageDto extends Equatable {
     required this.provinceName,
     required this.rate,
     required this.isAvailable,
+    this.cityQualifications = const [],
     required this.createdAt,
   });
 
@@ -88,6 +98,13 @@ class ShippingCoverageDto extends Equatable {
       provinceName: json['province_name'] as String,
       rate: (json['rate'] as num).toDouble(),
       isAvailable: json['is_available'] as bool? ?? true,
+      cityQualifications:
+          (json['city_qualifications'] as List<dynamic>?)
+              ?.map(
+                (e) => CityQualificationDto.fromJson(e as Map<String, dynamic>),
+              )
+              .toList() ??
+          const [],
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -99,6 +116,7 @@ class ShippingCoverageDto extends Equatable {
     'province_name': provinceName,
     'rate': rate,
     'is_available': isAvailable,
+    'city_qualifications': cityQualifications.map((e) => e.toJson()).toList(),
     'created_at': createdAt.toIso8601String(),
   };
 
@@ -110,8 +128,48 @@ class ShippingCoverageDto extends Equatable {
     provinceName,
     rate,
     isAvailable,
+    cityQualifications,
     createdAt,
   ];
+}
+
+/// City-level qualification wire DTO.
+/// rate/isAvailable nullable = inherit the province default.
+class CityQualificationDto extends Equatable {
+  final String id;
+  final String cityCode;
+  final String cityName;
+  final double? rate;
+  final bool? isAvailable;
+
+  const CityQualificationDto({
+    required this.id,
+    required this.cityCode,
+    required this.cityName,
+    this.rate,
+    this.isAvailable,
+  });
+
+  factory CityQualificationDto.fromJson(Map<String, dynamic> json) {
+    return CityQualificationDto(
+      id: json['id'] as String,
+      cityCode: json['city_code'] as String,
+      cityName: (json['city_name'] as String?) ?? '',
+      rate: (json['rate'] as num?)?.toDouble(),
+      isAvailable: json['is_available'] as bool?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'city_code': cityCode,
+    'city_name': cityName,
+    if (rate != null) 'rate': rate,
+    if (isAvailable != null) 'is_available': isAvailable,
+  };
+
+  @override
+  List<Object?> get props => [id, cityCode, cityName, rate, isAvailable];
 }
 
 /// City Rate API DTO

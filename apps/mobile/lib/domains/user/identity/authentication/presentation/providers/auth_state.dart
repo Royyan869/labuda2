@@ -55,6 +55,10 @@ sealed class AuthState {
     required String userId,
     required String email,
   }) = AuthStateRequiresProfileCompletion;
+  const factory AuthState.pendingEmailVerification({
+    required String email,
+    String? username,
+  }) = AuthStatePendingEmailVerification;
   const factory AuthState.accountRestricted(
     domain.AuthUser user, {
     required AccountStatus restrictionType,
@@ -99,9 +103,9 @@ final class AuthStateSyncingWithBackend extends AuthState {
 /// Router ONLY evaluates redirects when in this state
 ///
 /// `emailVerified` reflects Firebase Auth's `emailVerified` flag at the
-/// last sync/refresh. Unverified email is NOT a separate auth state — it is a
-/// property of an Authenticated user. Surface unverified status via banner / inline
-/// gate, not via redirect.
+/// last sync/refresh. Under the D2 hard gate every authenticated user has
+/// already proven a verified email before the exchange; the flag remains
+/// for display/defense-in-depth reads only.
 final class AuthStateAuthenticated extends AuthState {
   final domain.AuthUser user;
   final bool emailVerified;
@@ -154,4 +158,26 @@ final class AuthStateAccountRestricted extends AuthState {
   final domain.AuthUser user;
   final AccountStatus restrictionType;
   const AuthStateAccountRestricted(this.user, {required this.restrictionType});
+}
+
+/// Pending Email Verification state — D2 hard gate (design scope v2).
+///
+/// The Firebase identity exists but its email is not verified yet, so the
+/// backend exchange is FORBIDDEN (INV-8: verify → exchange, single path,
+/// no "coba exchange dulu"). The router redirects exclusively to the
+/// verify-email screen — the same pattern as
+/// [AuthStateRequiresProfileCompletion] and [AuthStateAccountRestricted].
+/// This is a business-flow state, NOT a degraded/error state (INV-7):
+/// splash degraded is reserved for infrastructure failures only.
+///
+/// Carries the pending signup username (email-signup intent) so the
+/// post-verification exchange keeps the registration intent (USERNAME_TAKEN
+/// retry path); it is null for plain logins.
+final class AuthStatePendingEmailVerification extends AuthState {
+  final String email;
+  final String? username;
+  const AuthStatePendingEmailVerification({
+    required this.email,
+    this.username,
+  });
 }

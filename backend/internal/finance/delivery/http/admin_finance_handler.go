@@ -221,7 +221,13 @@ func (h *AdminFinanceHandler) queryLedgerTransactions(
 
 	var results []ledgerTxRow
 	var txIDs []uuid.UUID
-	txByID := map[uuid.UUID]*ledgerTxRow{}
+	// ALIASING RULE: associate rows by INDEX, never by *pointer into the
+	// results slice — append() reallocates the backing array, and pointers
+	// taken before a realloc go stale (entries appended through them were
+	// written into the abandoned copy and silently lost on return, which
+	// crashed the admin UI with entries: null). This exact pattern is
+	// forbidden by TestLedgerWireContract_EntriesAlwaysArrayLocked.
+	txByID := map[uuid.UUID]int{}
 
 	for txRows.Next() {
 		var row ledgerTxRow
@@ -233,6 +239,11 @@ func (h *AdminFinanceHandler) queryLedgerTransactions(
 			&refID, &orderID, &paymentID, &createdAt); err != nil {
 			return nil, 0, fmt.Errorf("scan ledger_transaction: %w", err)
 		}
+		// WIRE CONTRACT: entries must ALWAYS marshal as an array, never null.
+		// A nil slice marshals to null, and the admin UI crashes on it
+		// ("Cannot read properties of null (reading 'map')"). A transaction
+		// with zero visible entries is represented as [] on the wire.
+		row.Entries = []ledgerEntryRow{}
 		row.ID = id.String()
 		row.CreatedAt = time.Unix(createdAt, 0).UTC().Format(time.RFC3339)
 		if refID != nil {
@@ -249,7 +260,7 @@ func (h *AdminFinanceHandler) queryLedgerTransactions(
 		}
 		results = append(results, row)
 		txIDs = append(txIDs, id)
-		txByID[id] = &results[len(results)-1]
+		txByID[id] = len(results) - 1
 	}
 	if err := txRows.Err(); err != nil {
 		return nil, 0, fmt.Errorf("iterate ledger_transactions: %w", err)
@@ -283,12 +294,24 @@ func (h *AdminFinanceHandler) queryLedgerTransactions(
 		}
 		entry.ID = entryID.String()
 		entry.AccountID = accountID.String()
-		if tx, ok := txByID[txID]; ok {
-			tx.Entries = append(tx.Entries, entry)
+		if idx, ok := txByID[txID]; ok {
+			results[idx].Entries = append(results[idx].Entries, entry)
 		}
 	}
 	if err := entryRows.Err(); err != nil {
 		return nil, 0, fmt.Errorf("iterate ledger_entries: %w", err)
+	}
+
+	// Ledger integrity signal: a canonical ledger transaction must have
+	// entries. One that ends with none is an orphan anomaly (dropped
+	// ledger_entries rows or missing financial_accounts rows — the INNER
+	// JOIN silently hides them). The wire still returns it with entries: []
+	// (never null), but ops must see the anomaly.
+	for _, tx := range results {
+		if len(tx.Entries) == 0 {
+			h.log.Warn("ledger_transaction_without_entries",
+				zap.String("transaction_id", tx.ID))
+		}
 	}
 
 	return results, total, nil

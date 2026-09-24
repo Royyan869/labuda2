@@ -51,6 +51,15 @@ type ForSalePreview struct {
 //     JSON shape matches the previous authorref.AuthorRef so this is a
 //     drop-in replacement; the difference is doctrinal — the card is the
 //     canonical exposure type, not an "additive ref".
+type CommentMediaResponse struct {
+	ID         uuid.UUID `json:"id"`
+	StorageKey string    `json:"storage_key"`
+	MediaURL   string    `json:"media_url"`
+	MediaType  string    `json:"media_type"`
+	Position   int       `json:"position"`
+}
+
+// CommentResponse represents a comment with optional embedded resource preview.
 type CommentResponse struct {
 	ID       uuid.UUID `json:"id"`
 	TargetID uuid.UUID `json:"target_id"`
@@ -65,6 +74,7 @@ type CommentResponse struct {
 	ParentID  *uuid.UUID             `json:"parent_id,omitempty"` // Set for replies
 	Reference *entity.ShareReference `json:"reference,omitempty"`
 	ForSale   *ForSalePreview        `json:"forSale,omitempty"` // Populated only for commerce-reference comments
+	Media     []CommentMediaResponse `json:"media,omitempty"`   // foto+video attachments (max 5)
 	CreatedAt time.Time              `json:"created_at"`
 	DeletedAt *time.Time             `json:"deleted_at,omitempty"`
 }
@@ -84,6 +94,18 @@ type CommentResponse struct {
 func NewCommentResponse(
 	comment *entity.Comment,
 	forSale *ForSalePreview,
+	authorUsername string,
+	authorAvatarURL *string,
+	authorLifecycle string,
+) *CommentResponse {
+	return NewCommentResponseWithMedia(comment, forSale, nil, authorUsername, authorAvatarURL, authorLifecycle)
+}
+
+// NewCommentResponseWithMedia is the foto+video-aware variant.
+func NewCommentResponseWithMedia(
+	comment *entity.Comment,
+	forSale *ForSalePreview,
+	media []*entity.CommentMedia,
 	authorUsername string,
 	authorAvatarURL *string,
 	authorLifecycle string,
@@ -129,6 +151,19 @@ func NewCommentResponse(
 	// Only include forSale preview if this is a commerce reference comment
 	if comment.IsCommerceReference() && forSale != nil {
 		resp.ForSale = forSale
+	}
+
+	if len(media) > 0 {
+		resp.Media = make([]CommentMediaResponse, 0, len(media))
+		for _, m := range media {
+			resp.Media = append(resp.Media, CommentMediaResponse{
+				ID:         m.ID,
+				StorageKey: m.StorageKey,
+				MediaURL:   m.MediaURL,
+				MediaType:  string(m.MediaType),
+				Position:   m.Position,
+			})
+		}
 	}
 
 	return resp

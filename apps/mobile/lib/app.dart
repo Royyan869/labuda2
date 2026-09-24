@@ -6,7 +6,6 @@ import 'core/core.dart';
 import 'shared/shared.dart';
 import 'generated/app_localizations.dart';
 import 'domains/system/notification/notification.dart';
-import 'domains/user/identity/authentication/presentation/widgets/email_verification_banner.dart';
 
 class LabudaApp extends ConsumerWidget {
   const LabudaApp({super.key});
@@ -34,19 +33,14 @@ class LabudaApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
 
       // Wrap router builder with NavigationScope, KeyboardDismissWrapper, and NotificationInitializer.
-      // EmailVerificationBanner is injected here so it persists across the app
-      // shell. The banner already hides itself for non-authenticated/syncing
-      // auth states, so we do not need a root routerDelegate listener here.
+      // D2 HARD GATE (design scope v2): no email-verification banner — every
+      // authenticated user has already proven a verified email before the
+      // exchange, so a persistent "verify your email" surface is dead UI.
       builder: (context, child) {
         return NotificationInitializer(
           child: KeyboardDismissWrapper(
             child: NavigationScope(
-              child: Column(
-                children: [
-                  const EmailVerificationBanner(),
-                  Expanded(child: child ?? const SizedBox()),
-                ],
-              ),
+              child: child ?? const SizedBox(),
             ),
           ),
         );

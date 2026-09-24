@@ -13,11 +13,12 @@ import (
 // fakeFirebaseAuth is a test double for the firebaseAuth seam. It records calls
 // so tests can prove exactly which Firebase operations (and no others) ran.
 type fakeFirebaseAuth struct {
-	existing  *auth.UserRecord
-	findErr   error
-	createErr error
-	created   *auth.UserRecord
-	calls     []string
+	existing             *auth.UserRecord
+	findErr              error
+	createErr            error
+	created              *auth.UserRecord
+	createdEmailVerified bool
+	calls                []string
 }
 
 func (f *fakeFirebaseAuth) FindByEmail(_ context.Context, _ string) (*auth.UserRecord, bool, error) {
@@ -31,7 +32,8 @@ func (f *fakeFirebaseAuth) FindByEmail(_ context.Context, _ string) (*auth.UserR
 	return f.existing, true, nil
 }
 
-func (f *fakeFirebaseAuth) Create(_ context.Context, email, _ string) (*auth.UserRecord, error) {
+func (f *fakeFirebaseAuth) Create(_ context.Context, email, _ string, emailVerified bool) (*auth.UserRecord, error) {
+	f.createdEmailVerified = emailVerified
 	f.calls = append(f.calls, "Create")
 	if f.createErr != nil {
 		return nil, f.createErr
@@ -129,6 +131,12 @@ func TestProvision_CreatesWhenFirebaseUserAbsent(t *testing.T) {
 	}
 	if got := strings.Join(fb.calls, ","); got != "FindByEmail,Create" {
 		t.Fatalf("calls = %q, want FindByEmail,Create", got)
+	}
+	// The canonical exchange binds a Firebase identity to an existing Labuda
+	// account only when the email is verified, and a development fixture address
+	// has no mailbox — so provisioning must create it verified.
+	if !fb.createdEmailVerified {
+		t.Fatal("provisioned development identity must be created with emailVerified=true")
 	}
 }
 

@@ -47,8 +47,10 @@ class _FakeFirebaseUser extends Fake implements User {
   @override
   final String uid;
 
+  // D2 HARD GATE: the recovery flow is a post-verification retry path — the
+  // fake identity reports verified so the exchange can run.
   @override
-  bool get emailVerified => false;
+  bool get emailVerified => true;
 
   @override
   String? get email => '$uid@example.com';
@@ -301,7 +303,11 @@ void main() {
         statusCode: 409,
       );
       await notifier.retryRegistrationUsername('taken_alice');
-      expect(controller.state, isA<AuthStateBackendFailure>());
+      // D2 contract: the correction surface is the registration FORM. The
+      // session returns to unauthenticated (Firebase identity + retry intent
+      // kept) and the router's exclusive-surface rule moves the user off the
+      // verify screen to /welcome → sign-up.
+      expect(controller.state, isA<AuthStateUnauthenticated>());
 
       // 3. User corrects the username; the exchange is retried and succeeds.
       syncService.nextSyncResult = _syncSuccess(

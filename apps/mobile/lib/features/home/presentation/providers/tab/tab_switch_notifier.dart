@@ -12,10 +12,9 @@ class TabSwitchNotifier extends _$TabSwitchNotifier {
     return const TabSwitchState();
   }
 
-  /// Set pending tab switch untuk explore dengan sub-tab tertentu
-  void switchToExplore({required int subTab}) {
+  void switchToMarketplace({required int subTab}) {
     state = state.copyWith(
-      targetTab: 'explore',
+      targetTab: 'marketplace',
       subTabIndex: subTab,
       isPending: true,
     );

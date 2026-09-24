@@ -124,8 +124,6 @@ var criticalCapabilities = map[Capability]bool{
 	CapModerationEvidenceRead:        true,
 	CapModerationAppealReview:        true,
 	CapPromotionExternalProductReview: true,
-	CapPromotionPackageManage:        true,
-	CapPromotionCampaignStop:         true,
 	CapConfigUpdateGeneral:           true,
 	CapConfigUpdateFinancial:         true,
 }
@@ -167,9 +165,6 @@ var curatedDescriptions = map[Capability]string{
 	CapModerationAppealRead:           "Can view moderation appeals",
 	CapModerationAppealReview:         "Can review and decide moderation appeals",
 	CapPromotionExternalProductReview: "Can review external product promotions",
-	CapPromotionPackageManage:         "Can create, update, enable, and disable promotion packages",
-	CapPromotionCampaignView:          "Can view active and historical promotion campaigns",
-	CapPromotionCampaignStop:          "Can force-stop a running promotion campaign",
 	CapSellerVerificationReview:       "Can review seller verification requests",
 	CapSellerSubscriptionRecover:      "Can manually recover a settled subscription payment with no subscription row",
 	CapOrderRead:                      "Can view all orders",

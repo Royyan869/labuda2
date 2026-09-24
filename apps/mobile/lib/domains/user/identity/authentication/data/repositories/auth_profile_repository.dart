@@ -93,8 +93,7 @@ class AuthProfileRepository {
 
       // 1. Update user profile data via backend API
       // Uses /users/me/profile - backend extracts identity from auth token
-      // This endpoint now handles ALL profile updates including username
-      // Legacy PATCH /users/{id}/username call has been removed
+      // and handles ALL profile updates including username.
       final result = await _apiDatasource.updateProfile(
         username: username,
         bio: bio,
@@ -322,7 +321,7 @@ class AuthProfileRepository {
   }
 
   List<UserRole> _parseUserRoles(dynamic rolesData) {
-    // Default to user role (canonical, replaces legacy "buyer")
+    // Default role when the backend payload carries no roles.
     const defaultRole = UserRole.user;
 
     if (rolesData == null) {
@@ -464,11 +463,11 @@ class AuthProfileRepository {
     // shaped like publiccard.UserCard, with lifecycle ∈ {active, unavailable,
     // removed} coarsened server-side via viewercontext.CoarsenLifecycle.
     //
-    // /users/me and other legacy surfaces still return the flat UserDTO with
-    // no `identity` block; for them this falls through to the safe default
-    // ContentLifecycle.active (fromWire null → active). The mapper MUST NOT
-    // coarsen from raw `account_status` — that would replicate the
-    // coarsening rule client-side and violate ADR-006 §11.
+    // /users/me returns the flat UserDTO with no `identity` block; for it
+    // this falls through to the safe default ContentLifecycle.active (fromWire
+    // null → active). The mapper MUST NOT coarsen from raw `account_status` —
+    // that would replicate the coarsening rule client-side and violate
+    // ADR-006 §11.
     String? lifecycleWire;
     final identityRaw = data['identity'];
     if (identityRaw is Map) {

@@ -106,16 +106,16 @@ func TestRecordBuyerPaymentFeeRevenue_BalancedEntries(t *testing.T) {
 	if cr.AccountID != gatewayClearingID {
 		t.Errorf("entry[0] account = %s, want GATEWAY_CLEARING %s", cr.AccountID, gatewayClearingID)
 	}
-	if cr.Amount.Int64() != -4987 {
-		t.Errorf("entry[0] amount = %d, want -4987 (credit: fee leaves clearing)", cr.Amount.Int64())
+	if cr.Amount.Int64() != 4987 {
+		t.Errorf("entry[0] amount = %d, want +4987 (debit: fee leaves clearing)", cr.Amount.Int64())
 	}
 
 	dr := mock.lastEntries[1]
 	if dr.AccountID != platformRevenueID {
 		t.Errorf("entry[1] account = %s, want PLATFORM_REVENUE %s", dr.AccountID, platformRevenueID)
 	}
-	if dr.Amount.Int64() != 4987 {
-		t.Errorf("entry[1] amount = %d, want +4987 (debit: fee realized as revenue)", dr.Amount.Int64())
+	if dr.Amount.Int64() != -4987 {
+		t.Errorf("entry[1] amount = %d, want -4987 (credit: fee realized as revenue)", dr.Amount.Int64())
 	}
 
 	wantKey := "payment_fee_revenue_" + paymentID.String()

@@ -7,7 +7,7 @@
 //
 // Covers:
 //   1. UserApiDatasource.exchangeFirebaseSession sends `username` in the body.
-//   2. AuthApiDatasource.exchangeFirebaseSession sends `username` in the body.
+//   2. (D2) AuthApiDatasource duplicate removed — single canonical is UserApiDatasource.
 //   3. UserSyncService.syncUser forwards the `username` argument to the
 //      datasource exchange call (the caller-facing threading seam).
 //   4. Omitting username (login / Google-first-sync) sends only the ID token.
@@ -18,7 +18,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/api/api.dart';
-import 'package:labuda/domains/user/identity/authentication/data/datasources/auth_api_datasource.dart';
+// D2: AuthApiDatasource duplicate removed
+// import 'package:labuda/domains/user/identity/authentication/data/datasources/auth_api_datasource.dart';
 import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
 
 class _RecordingApiClient implements ApiClient {
@@ -172,42 +173,6 @@ void main() {
     });
   });
 
-  group('AuthApiDatasource.exchangeFirebaseSession username threading', () {
-    test('posts firebase_id_token + username when a registration username is '
-        'provided', () async {
-      final client = _RecordingApiClient();
-      final ds = AuthApiDatasource(client);
+  // D2 — AuthApiDatasource duplicate group removed; canonical is UserApiDatasource only.
 
-      final result = await ds.exchangeFirebaseSession(
-        firebaseIdToken: 'firebase-id-token-789',
-        username: 'bob_reg',
-      );
-
-      expect(result.isSuccess, isTrue);
-      expect(client.lastPath, equals('/auth/firebase/exchange'));
-      expect(
-        client.lastData,
-        equals({
-          'firebase_id_token': 'firebase-id-token-789',
-          'username': 'bob_reg',
-        }),
-      );
-      expect(client.lastOptions!.extra!['skipAuth'], isTrue);
-    });
-
-    test('omits username entirely when username is null', () async {
-      final client = _RecordingApiClient();
-      final ds = AuthApiDatasource(client);
-
-      final result = await ds.exchangeFirebaseSession(
-        firebaseIdToken: 'firebase-id-token-999',
-      );
-
-      expect(result.isSuccess, isTrue);
-      expect(
-        client.lastData,
-        equals({'firebase_id_token': 'firebase-id-token-999'}),
-      );
-    });
-  });
 }

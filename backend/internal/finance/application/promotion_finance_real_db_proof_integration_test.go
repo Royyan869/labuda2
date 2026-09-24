@@ -199,9 +199,18 @@ func (h *promotionFinanceHarness) fund(t *testing.T, ctx context.Context, amount
 }
 
 func (h *promotionFinanceHarness) allocate(t *testing.T, ctx context.Context, promotionID uuid.UUID, budget int64) error {
-	return h.tdb.WithTx(ctx, func(tx db.Tx) error {
-		return h.svc.RecordPromotionAllocation(ctx, tx, promotionID, h.seller, budget)
+	_, err := h.allocateID(ctx, promotionID, budget)
+	return err
+}
+
+func (h *promotionFinanceHarness) allocateID(ctx context.Context, promotionID uuid.UUID, budget int64) (uuid.UUID, error) {
+	var id uuid.UUID
+	err := h.tdb.WithTx(ctx, func(tx db.Tx) error {
+		var err error
+		id, err = h.svc.RecordPromotionAllocation(ctx, tx, promotionID, h.seller, budget)
+		return err
 	})
+	return id, err
 }
 
 func (h *promotionFinanceHarness) qualify(t *testing.T, ctx context.Context, promotionID uuid.UUID, qiID uuid.UUID, charge int64) error {
@@ -530,4 +539,59 @@ func TestPromotionFinance_ConcurrentDuplicateReleaseIsSafe(t *testing.T) {
 	promoteBal, _ := h.promoteBalance(t, ctx)
 	require.Equal(t, int64(10_000), promoteBal, "release must credit exactly once, never twice")
 	require.Equal(t, 1, countTxByKeyPrefix(t, ctx, h.tdb, "promotion_allocation_release_"))
+}
+
+// TestPromotionFinance_ConcurrentFinalBalanceExhaustion_IsSafe proves proof C:
+// two DISTINCT Qualified Impressions racing for the FINAL remaining allocation.
+// The allocation row FOR UPDATE lock inside RecordQualifiedImpression
+// serializes them; exactly one consumes the balance, the loser is rejected by
+// the sufficiency pre-check with no mutation. Total charge never exceeds the
+// allocation and PLATFORM_REVENUE receives exactly the single successful charge.
+func TestPromotionFinance_ConcurrentFinalBalanceExhaustion_IsSafe(t *testing.T) {
+	h := newPromotionFinanceHarness(t)
+	ctx := context.Background()
+
+	h.fund(t, ctx, 10_000)
+	promotionID := uuid.New()
+	require.NoError(t, h.allocate(t, ctx, promotionID, 10_000))
+
+	// Two distinct impressions, each asking for the ENTIRE allocation.
+	qiA, qiB := uuid.New(), uuid.New()
+	book := func(qiID uuid.UUID) error {
+		return h.tdb.WithTx(ctx, func(tx db.Tx) error {
+			return h.svc.RecordQualifiedImpression(ctx, tx, qiID, promotionID, h.seller, 10_000)
+		})
+	}
+
+	results := make(chan error, 2)
+	var wg sync.WaitGroup
+	for _, qiID := range []uuid.UUID{qiA, qiB} {
+		wg.Add(1)
+		go func(id uuid.UUID) {
+			defer wg.Done()
+			results <- book(id)
+		}(qiID)
+	}
+	wg.Wait()
+	close(results)
+
+	var wins, rejected int
+	for err := range results {
+		switch {
+		case err == nil:
+			wins++
+		case errors.Is(err, ErrPromotionAllocationInsufficient):
+			rejected++
+		default:
+			t.Fatalf("unexpected concurrent exhaustion error: %v", err)
+		}
+	}
+	require.Equal(t, 1, wins, "exactly one charge may consume the final allocation")
+	require.Equal(t, 1, rejected, "the loser must be rejected with no mutation")
+
+	allocBal, _ := h.allocationBalance(t, ctx, promotionID)
+	require.Equal(t, int64(0), allocBal, "allocation drained exactly once, never negative")
+	platform, _ := h.systemBalance(t, ctx, finance.AccountPlatformRevenue)
+	require.Equal(t, int64(10_000), platform, "revenue equals the single successful charge, no double charge")
+	require.Equal(t, 1, countTxByKeyPrefix(t, ctx, h.tdb, "promotion_qi_"), "exactly one ledger transaction")
 }

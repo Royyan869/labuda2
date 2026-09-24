@@ -1,14 +1,9 @@
-// PASS 2B: SplashScreen must render a dedicated, actionable UI for
-// AuthStateBackendUnavailable/AuthStateBackendFailure instead of the
-// ordinary loading spinner, and the retry button must call the existing
-// AuthController.retryBackendSync() path (not forceRefreshAuthState(),
-// which is guarded to only work from Authenticated/RequiresProfileCompletion
-// states and would silently no-op here).
-//
-// STAGE 3B: AuthStateBackendUnavailable is only rendered as the terminal
-// "Server Tidak Bisa Dijangkau" screen once the automatic retry budget is
-// exhausted (isBackendRetryPending == false). While a retry is still
-// scheduled the splash keeps the ordinary pending/loading presentation.
+// SplashScreen degraded UI: AuthStateBackendUnavailable /
+// AuthStateBackendFailure are terminal degraded states. Recovery is
+// explicit via Coba Lagi → retryBackendSync() (current Firebase
+// identity → _syncWithBackend). There is no automatic timer retry.
+// AuthStateBackendUnavailable always renders the terminal
+// "Server Tidak Bisa Dijangkau" scaffold with Coba Lagi enabled.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,18 +12,11 @@ import 'package:labuda/domains/user/preference/onboarding/presentation/screens/s
 
 /// Fake controller that starts directly in the given degraded state and
 /// records calls to retryBackendSync()/signOut() instead of touching
-/// Firebase/network. [isBackendRetryPending] is configurable to exercise
-/// the STAGE 3B retry-budget gating.
+/// Firebase/network.
 class _FakeDegradedAuthController extends AuthController {
-  _FakeDegradedAuthController(
-    this._initialState, {
-    this.isBackendRetryPending = false,
-  });
+  _FakeDegradedAuthController(this._initialState);
 
   final AuthState _initialState;
-
-  @override
-  final bool isBackendRetryPending;
 
   int retryCallCount = 0;
   int signOutCallCount = 0;
@@ -112,44 +100,6 @@ void main() {
     });
   });
 
-  group('SplashScreen — backendUnavailable while auto-retry pending (STAGE 3B)', () {
-    testWidgets(
-      'does NOT render the terminal unavailable screen while a retry is '
-      'still pending — keeps the loading presentation instead',
-      (tester) async {
-        final controller = _FakeDegradedAuthController(
-          const AuthState.backendUnavailable('Backend down'),
-          isBackendRetryPending: true,
-        );
-
-        await tester.pumpWidget(_wrap(controller));
-        // Not pumpAndSettle(): the loading indicator never settles.
-        await tester.pump(const Duration(seconds: 2));
-
-        expect(find.text('Server Tidak Bisa Dijangkau'), findsNothing);
-        expect(find.text('Coba Lagi'), findsNothing);
-        expect(find.text('Memuat aplikasi...'), findsOneWidget);
-      },
-    );
-
-    testWidgets(
-      'renders the terminal unavailable screen once the retry budget is '
-      'exhausted (no retry pending)',
-      (tester) async {
-        final controller = _FakeDegradedAuthController(
-          const AuthState.backendUnavailable('Backend down'),
-          isBackendRetryPending: false,
-        );
-
-        await tester.pumpWidget(_wrap(controller));
-        await tester.pumpAndSettle();
-
-        expect(find.text('Server Tidak Bisa Dijangkau'), findsOneWidget);
-        expect(find.text('Coba Lagi'), findsOneWidget);
-      },
-    );
-  });
-
   group('SplashScreen — AuthStateBackendFailure', () {
     testWidgets('renders the failure message and retry action', (tester) async {
       final controller = _FakeDegradedAuthController(
@@ -176,6 +126,35 @@ void main() {
       await tester.pump();
 
       expect(controller.retryCallCount, 1);
+    });
+  });
+
+  group('SplashScreen — AuthStateBackendUnavailable still retryable', () {
+    testWidgets('BackendUnavailable still renders Coba Lagi', (tester) async {
+      final controller = _FakeDegradedAuthController(
+        const AuthState.backendUnavailable('Backend down'),
+      );
+
+      await tester.pumpWidget(_wrap(controller));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Server Tidak Bisa Dijangkau'), findsOneWidget);
+      expect(find.text('Coba Lagi'), findsOneWidget);
+      expect(find.text('Keluar'), findsOneWidget);
+    });
+  });
+
+  group('SplashScreen — AuthStateBackendFailure still retryable', () {
+    testWidgets('BackendFailure still renders Coba Lagi', (tester) async {
+      final controller = _FakeDegradedAuthController(
+        const AuthState.backendFailure('validation failed'),
+      );
+
+      await tester.pumpWidget(_wrap(controller));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Gagal Memuat Data'), findsOneWidget);
+      expect(find.text('Coba Lagi'), findsOneWidget);
     });
   });
 

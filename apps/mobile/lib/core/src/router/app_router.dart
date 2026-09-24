@@ -187,6 +187,7 @@ String? _authRedirectForLocation(
 ) {
   const splashRoute = '/splash';
   const completeProfileRoute = '/auth/complete-profile';
+  const verifyEmailRoute = '/auth/verify-email';
 
   final normalizedProfileRoute = _normalizeProfileIngress(Uri.parse(location));
   if (normalizedProfileRoute != null) {
@@ -196,6 +197,25 @@ String? _authRedirectForLocation(
   if (authState is AuthStateAccountRestricted) {
     const restrictedRoute = RoutePaths.accountRestricted;
     return location == restrictedRoute ? null : restrictedRoute;
+  }
+
+  // D2 HARD GATE (design scope v2): an unverified session is parked in the
+  // explicit pending-verification state and routed exclusively to the
+  // verify-email screen — the same redirect pattern as
+  // RequiresProfileCompletion / AccountRestricted. This is a business-flow
+  // state (INV-7): splash degraded stays reserved for infra failures.
+  if (authState is AuthStatePendingEmailVerification) {
+    return location == verifyEmailRoute ? null : verifyEmailRoute;
+  }
+
+  // The verify-email surface is EXCLUSIVE to the pending state. Once the
+  // state has moved on — e.g. a post-verification USERNAME_TAKEN rejection
+  // returns the session to the registration flow (unauthenticated) — nobody
+  // may linger on a gate screen whose gate no longer applies.
+  if (location == verifyEmailRoute &&
+      (authStatus == AppAuthStatus.unauthenticated ||
+          authStatus == AppAuthStatus.degraded)) {
+    return '/welcome';
   }
 
   if (authState is AuthStateRequiresProfileCompletion) {

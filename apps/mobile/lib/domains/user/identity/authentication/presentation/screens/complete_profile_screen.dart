@@ -1,35 +1,35 @@
 library;
 
-import 'dart:async';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/data/username_service.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:labuda/shared/helpers/canonical_username_validator.dart';
 
-/// Username availability status for UI
-enum UsernameStatus {
-  idle,
-  checking,
-  available,
-  taken,
-  invalid,
-
-  /// Username just became unavailable (race condition during submit)
-  justBecameUnavailable,
-}
+import '../widgets/username_field.dart';
 
 /// Complete Profile Screen
 ///
-/// Shown after Google sign-in for new users.
-/// User must complete their profile (username, etc.) before proceeding.
+/// Shown after Google sign-in (or any provider) for users whose backend
+/// profile has no username yet (`requiresProfileCompletion`).
+///
+/// 🔒 CANONICAL USERNAME AUTHORITY (single contract shared with the sign-up
+/// screen — one language, one truth, no second authority):
+/// - FORMAT validation is LOCAL via [CanonicalUsernameValidator] (mirrors the
+///   backend identityusername rules) and auto-lowercases as the user types.
+/// - AVAILABILITY (taken / reserved / final acceptance) is BACKEND authority,
+///   decided at the transactional moment (`POST /auth/complete-profile`).
+///   There is NO client-side availability pre-check — an advisory endpoint
+///   cannot authenticate with the restricted token and would create a second,
+///   disagreeable source of truth.
+/// - Backend rejections surface INLINE on this screen via
+///   [ProfileCompletionOutcome.usernameError] (same message mapping as the
+///   registration flow) and never mutate the global auth state — the user
+///   stays here to correct the choice.
 ///
 /// Features:
-/// - Username input field with edit capability
-/// - "Complete Profile" button
+/// - Username input (shared [UsernameField] widget)
+/// - "Complete Profile" button gated on local format validity only
 /// - Sign out option
-/// - 409 Conflict handling for race conditions
 class CompleteProfileScreen extends ConsumerStatefulWidget {
   const CompleteProfileScreen({super.key});
 
@@ -39,184 +39,118 @@ class CompleteProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
-  late TextEditingController _usernameController;
-  UsernameStatus _usernameStatus = UsernameStatus.invalid;
-  Timer? _debounceTimer;
+  final _usernameController = TextEditingController();
+
+  /// Format validity from the shared [UsernameField] (local, instant).
+  bool _isUsernameValid = false;
+
+  /// Backend rejection / transient failure, shown INLINE under the field.
+  String? _inlineError;
+
   bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
-    _usernameController = TextEditingController();
+    // Same controller as [UsernameField]; clear the inline rejection as soon
+    // as the user starts correcting the username.
+    _usernameController.addListener(_onUsernameChanged);
   }
 
   @override
   void dispose() {
-    _debounceTimer?.cancel();
+    _usernameController.removeListener(_onUsernameChanged);
     _usernameController.dispose();
     super.dispose();
   }
 
-  /// Handle username input changes with debounce
-  void _onUsernameChanged(String value) {
-    // Reset race condition status when user types
-    if (_usernameStatus == UsernameStatus.justBecameUnavailable) {
-      setState(() => _usernameStatus = UsernameStatus.invalid);
+  void _onUsernameChanged() {
+    if (_inlineError != null && mounted) {
+      setState(() => _inlineError = null);
     }
-
-    // Cancel previous timer
-    _debounceTimer?.cancel();
-
-    // Check length >= 3 and regex validation (lowercase letters, numbers, underscore only)
-    if (value.length < 3) {
-      setState(() => _usernameStatus = UsernameStatus.invalid);
-      return;
-    }
-
-    if (!RegExp(r'^[a-z0-9_]+$').hasMatch(value)) {
-      setState(() => _usernameStatus = UsernameStatus.invalid);
-      return;
-    }
-
-    // Set checking state
-    setState(() => _usernameStatus = UsernameStatus.checking);
-
-    // Start 500ms debounce timer
-    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
-      final service = ref.read(usernameServiceProvider);
-      service.checkUsernameAvailability(
-        username: value.toLowerCase(),
-        onResult: (result) {
-          if (!mounted) return;
-          setState(() {
-            if (result.status == UsernameCheckStatus.available) {
-              _usernameStatus = UsernameStatus.available;
-            } else if (result.status == UsernameCheckStatus.unavailable) {
-              _usernameStatus = UsernameStatus.taken;
-            } else {
-              _usernameStatus = UsernameStatus.invalid;
-            }
-          });
-        },
-      );
-    });
   }
 
-  /// Submit profile completion with 409 Conflict handling
-  ///
-  /// 409 Detection:
-  /// - Catches DioException at repository level
-  /// - Checks statusCode == 409 or ConflictException type
-  /// - Sets UsernameStatus.justBecameUnavailable
-  /// - Shows specific error message
-  /// - Keeps user on screen (no navigation)
-  Future<void> _submitProfile() async {
-    if (_usernameStatus != UsernameStatus.available || _isSubmitting) return;
+  /// Format-only callback from the shared [UsernameField]. Availability is
+  /// NEVER claimed here — [isAvailable] is ignored by contract (backend
+  /// authority decides at submit time).
+  void _onValidationChanged(bool isValid, bool isAvailable) {
+    if (_isUsernameValid != isValid) {
+      setState(() => _isUsernameValid = isValid);
+    }
+  }
 
-    setState(() => _isSubmitting = true);
+  /// Submit profile completion. The backend exchange is the SINGLE authority:
+  /// a rejected username arrives as [ProfileCompletionOutcome.usernameError]
+  /// and is rendered inline; success flows through the router via the
+  /// AuthState change (no manual navigation).
+  Future<void> _submitProfile() async {
+    if (!_isUsernameValid || _isSubmitting) return;
+
+    setState(() {
+      _isSubmitting = true;
+      _inlineError = null;
+    });
+
+    final username =
+        CanonicalUsernameValidator.normalize(_usernameController.text) ?? '';
 
     try {
-      final username = _usernameController.text.trim().toLowerCase();
-      final authState = ref.read(authControllerProvider);
-
-      if (authState is! AuthStateRequiresProfileCompletion) {
-        if (mounted) setState(() => _isSubmitting = false);
-        AppSnackBar.showError(context, 'Invalid authentication state');
-        return;
-      }
-
-      final result = await ref
+      final outcome = await ref
           .read(authControllerProvider.notifier)
           .completeProfile(username: username);
 
-      if (mounted) setState(() => _isSubmitting = false);
+      if (!mounted) return;
 
-      if (!result) {
-        if (mounted) {
-          AppSnackBar.showError(context, 'Failed to complete profile');
-        }
-      }
-    } on DioException catch (e) {
-      if (mounted) setState(() => _isSubmitting = false);
-
-      // 🔍 409 CONFLICT DETECTION
-      final statusCode = e.response?.statusCode;
-      final error = e.error;
-
-      if (statusCode == 409 || error is ConflictException) {
-        // Username was taken between availability check and submit
-        if (mounted) {
-          setState(
-            () => _usernameStatus = UsernameStatus.justBecameUnavailable,
-          );
-          AppSnackBar.showError(context, 'Username just became unavailable');
-        }
+      if (outcome.success) {
+        // AuthStateAuthenticated (or restricted) drives the router redirect.
+        // Reset the spinner regardless: if navigation lags (or in tests, when
+        // the screen stays mounted), an eternal CircularProgressIndicator
+        // must never spin forever on a settled screen.
+        if (mounted) setState(() => _isSubmitting = false);
         return;
       }
 
-      // Other errors - show generic message
-      if (mounted) {
-        AppSnackBar.showError(
-          context,
-          'Failed to complete profile. Please try again.',
-        );
-      }
+      setState(() {
+        _isSubmitting = false;
+        _inlineError = outcome.usernameError ?? outcome.failureError;
+      });
     } catch (e) {
       if (mounted) {
-        setState(() => _isSubmitting = false);
-        AppSnackBar.showError(context, 'An unexpected error occurred');
+        setState(() {
+          _isSubmitting = false;
+          _inlineError = 'Gagal melengkapi profil. Coba lagi.';
+        });
       }
     }
   }
 
-  /// Build username status message widget
+  /// Inline status line under the username field — the single message surface
+  /// for both local format feedback and backend rejections.
   Widget _buildUsernameStatus(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    switch (_usernameStatus) {
-      case UsernameStatus.idle:
-        return const SizedBox.shrink();
-      case UsernameStatus.checking:
-        return Row(
-          children: [
-            SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Checking...',
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
-              ),
-            ),
-          ],
-        );
-      case UsernameStatus.available:
-        return const Text(
-          'Username available',
-          style: TextStyle(color: Colors.green, fontSize: 12),
-        );
-      case UsernameStatus.taken:
-        return const Text(
-          'Username already taken',
-          style: TextStyle(color: Colors.red, fontSize: 12),
-        );
-      case UsernameStatus.justBecameUnavailable:
-        return const Text(
-          'Username just became unavailable',
-          style: TextStyle(color: Colors.orange, fontSize: 12),
-        );
-      case UsernameStatus.invalid:
-        return const Text(
-          'Only lowercase letters, numbers, underscore',
-          style: TextStyle(color: Colors.red, fontSize: 12),
-        );
+    if (_inlineError != null) {
+      return Text(
+        _inlineError!,
+        style: const TextStyle(color: AppColors.error, fontSize: 12),
+      );
     }
+    if (_isUsernameValid) {
+      return Text(
+        'Username terlihat baik — ketersediaan diputuskan server saat disimpan.',
+        style: TextStyle(
+          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+          fontSize: 12,
+        ),
+      );
+    }
+    if (_usernameController.text.isNotEmpty) {
+      return const Text(
+        'Gunakan 3-30 karakter: huruf kecil, angka, dan underscore.',
+        style: TextStyle(color: Colors.orange, fontSize: 12),
+      );
+    }
+    return const SizedBox.shrink();
   }
 
   @override
@@ -231,17 +165,21 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
     }
 
     return Scaffold(
+      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralWhite,
       body: Container(
         decoration: BoxDecoration(
           gradient: isDark
-              ? LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.darkGray900, AppColors.darkGray800],
+              ? const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.darkGray900,
+                    AppColors.darkGray800,
+                  ],
                 )
               : const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                   colors: [AppColors.neutralGray50, AppColors.neutralWhite],
                 ),
         ),
@@ -259,7 +197,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                       color: AppColors.primaryRed.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.person_add_outlined,
                       size: 64,
                       color: AppColors.primaryRed,
@@ -292,22 +230,16 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                   ),
                   const SizedBox(height: 40),
 
-                  // Username Input Field
-                  TextField(
+                  // Username Input Field — the SAME canonical widget as the
+                  // sign-up screen (auto-lowercase, format-only validation).
+                  UsernameField(
                     controller: _usernameController,
-                    onChanged: _onUsernameChanged,
-                    decoration: InputDecoration(
-                      labelText: 'Username',
-                      hintText: 'Enter username',
-                      prefixIcon: const Icon(Icons.person_outline),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
+                    isDark: isDark,
+                    onValidationChanged: _onValidationChanged,
                   ),
                   const SizedBox(height: 8),
 
-                  // Username status message
+                  // Username status message (format hint / backend rejection)
                   _buildUsernameStatus(context),
                   const SizedBox(height: 16),
 
@@ -352,13 +284,13 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                     ),
                   const SizedBox(height: 40),
 
-                  // Complete Profile Button
+                  // Complete Profile Button — gated on LOCAL FORMAT validity
+                  // only (canonical contract). Backend rejections arrive after
+                  // submit and render inline without disabling the flow.
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed:
-                          (_usernameStatus == UsernameStatus.available &&
-                              !_isSubmitting)
+                      onPressed: (_isUsernameValid && !_isSubmitting)
                           ? _submitProfile
                           : null,
                       style: ElevatedButton.styleFrom(
@@ -406,7 +338,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                           fontSize: 16,
                           color: isDark
                               ? AppColors.neutralGray400
-                              : AppColors.neutralGray500,
+                              : AppColors.neutralGray600,
                         ),
                       ),
                     ),

@@ -17,9 +17,7 @@ type ShippingSetupRepositoryImpl struct{}
 // NewShippingSetupRepository creates a new ShippingSetupRepository.
 func NewShippingSetupRepository() ShippingSetupRepository {
 	return &ShippingSetupRepositoryImpl{}
-}
-
-// Create persists a new shipping option within a transaction.
+}//	Create persists a new shipping option within a transaction.
 func (r *ShippingSetupRepositoryImpl) Create(
 	ctx context.Context,
 	tx db.Tx,
@@ -27,15 +25,16 @@ func (r *ShippingSetupRepositoryImpl) Create(
 ) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO shipping_options (
-			id, seller_id, name, transport_type,
+			id, seller_id, name, transport_type, internal_purpose,
 			is_active, created_at, updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`,
 		option.ID,
 		option.SellerID,
 		option.Name,
 		string(option.TransportType),
+		option.InternalPurpose,
 		option.IsActive,
 		option.CreatedAt,
 		option.UpdatedAt,
@@ -46,9 +45,7 @@ func (r *ShippingSetupRepositoryImpl) Create(
 	}
 
 	return nil
-}
-
-// Update persists shipping option changes within a transaction.
+}//	Update persists shipping option changes within a transaction.
 func (r *ShippingSetupRepositoryImpl) Update(
 	ctx context.Context,
 	tx db.Tx,
@@ -56,13 +53,14 @@ func (r *ShippingSetupRepositoryImpl) Update(
 ) error {
 	_, err := tx.Exec(ctx, `
 		UPDATE shipping_options
-		SET name = $2, transport_type = $3,
-		    is_active = $4, updated_at = $5
+		SET name = $2, transport_type = $3, internal_purpose = $4,
+		    is_active = $5, updated_at = $6
 		WHERE id = $1
 	`,
 		option.ID,
 		option.Name,
 		string(option.TransportType),
+		option.InternalPurpose,
 		option.IsActive,
 		option.UpdatedAt,
 	)
@@ -72,9 +70,7 @@ func (r *ShippingSetupRepositoryImpl) Update(
 	}
 
 	return nil
-}
-
-// GetByID retrieves a shipping option without locking (for read-only operations).
+}//	GetByID retrieves a shipping option without locking (for read-only operations).
 func (r *ShippingSetupRepositoryImpl) GetByID(
 	ctx context.Context,
 	tx db.Tx,
@@ -83,16 +79,17 @@ func (r *ShippingSetupRepositoryImpl) GetByID(
 	var sellerID uuid.UUID
 	var name string
 	var transportType string
+	var internalPurpose string
 	var isActive bool
 	var createdAt, updatedAt time.Time
 
 	err := tx.QueryRow(ctx, `
-		SELECT id, seller_id, name, transport_type,
+		SELECT id, seller_id, name, transport_type, internal_purpose,
 		       is_active, created_at, updated_at
 		FROM shipping_options
 		WHERE id = $1
 	`, id).Scan(
-		&id, &sellerID, &name, &transportType,
+		&id, &sellerID, &name, &transportType, &internalPurpose,
 		&isActive, &createdAt, &updatedAt,
 	)
 
@@ -104,17 +101,16 @@ func (r *ShippingSetupRepositoryImpl) GetByID(
 	}
 
 	return &entity.ShippingSetup{
-		ID:            id,
-		SellerID:      sellerID,
-		Name:          name,
-		TransportType: entity.TransportType(transportType),
-		IsActive:      isActive,
-		CreatedAt:     createdAt,
-		UpdatedAt:     updatedAt,
+		ID:              id,
+		SellerID:        sellerID,
+		Name:            name,
+		TransportType:   entity.TransportType(transportType),
+		InternalPurpose: internalPurpose,
+		IsActive:        isActive,
+		CreatedAt:       createdAt,
+		UpdatedAt:       updatedAt,
 	}, nil
-}
-
-// GetForUpdate retrieves a shipping option with FOR UPDATE lock.
+}//	GetForUpdate retrieves a shipping option with FOR UPDATE lock.
 // This prevents concurrent modifications and must be used within a transaction.
 func (r *ShippingSetupRepositoryImpl) GetForUpdate(
 	ctx context.Context,
@@ -124,17 +120,18 @@ func (r *ShippingSetupRepositoryImpl) GetForUpdate(
 	var sellerID uuid.UUID
 	var name string
 	var transportType string
+	var internalPurpose string
 	var isActive bool
 	var createdAt, updatedAt time.Time
 
 	err := tx.QueryRow(ctx, `
-		SELECT id, seller_id, name, transport_type,
+		SELECT id, seller_id, name, transport_type, internal_purpose,
 		       is_active, created_at, updated_at
 		FROM shipping_options
 		WHERE id = $1
 		FOR UPDATE
 	`, id).Scan(
-		&id, &sellerID, &name, &transportType,
+		&id, &sellerID, &name, &transportType, &internalPurpose,
 		&isActive, &createdAt, &updatedAt,
 	)
 
@@ -146,13 +143,14 @@ func (r *ShippingSetupRepositoryImpl) GetForUpdate(
 	}
 
 	return &entity.ShippingSetup{
-		ID:            id,
-		SellerID:      sellerID,
-		Name:          name,
-		TransportType: entity.TransportType(transportType),
-		IsActive:      isActive,
-		CreatedAt:     createdAt,
-		UpdatedAt:     updatedAt,
+		ID:              id,
+		SellerID:        sellerID,
+		Name:            name,
+		TransportType:   entity.TransportType(transportType),
+		InternalPurpose: internalPurpose,
+		IsActive:        isActive,
+		CreatedAt:       createdAt,
+		UpdatedAt:       updatedAt,
 	}, nil
 }
 
@@ -165,7 +163,7 @@ func (r *ShippingSetupRepositoryImpl) GetBySeller(
 	onlyActive bool,
 ) ([]*entity.ShippingSetup, error) {
 	query := `
-		SELECT id, seller_id, name, transport_type,
+		SELECT id, seller_id, name, transport_type, internal_purpose,
 		       is_active, created_at, updated_at
 		FROM shipping_options
 		WHERE seller_id = $1
@@ -189,11 +187,12 @@ func (r *ShippingSetupRepositoryImpl) GetBySeller(
 		var id, sellerID uuid.UUID
 		var name string
 		var transportType string
+		var internalPurpose string
 		var isActive bool
 		var createdAt, updatedAt time.Time
 
 		err := rows.Scan(
-			&id, &sellerID, &name, &transportType,
+			&id, &sellerID, &name, &transportType, &internalPurpose,
 			&isActive, &createdAt, &updatedAt,
 		)
 		if err != nil {
@@ -201,20 +200,19 @@ func (r *ShippingSetupRepositoryImpl) GetBySeller(
 		}
 
 		options = append(options, &entity.ShippingSetup{
-			ID:            id,
-			SellerID:      sellerID,
-			Name:          name,
-			TransportType: entity.TransportType(transportType),
-			IsActive:      isActive,
-			CreatedAt:     createdAt,
-			UpdatedAt:     updatedAt,
+			ID:              id,
+			SellerID:        sellerID,
+			Name:            name,
+			TransportType:   entity.TransportType(transportType),
+			InternalPurpose: internalPurpose,
+			IsActive:        isActive,
+			CreatedAt:       createdAt,
+			UpdatedAt:       updatedAt,
 		})
 	}
 
 	return options, nil
-}
-
-// GetByName retrieves a shipping option by seller and name.
+}//	GetByName retrieves a shipping option by seller and name.
 func (r *ShippingSetupRepositoryImpl) GetByName(
 	ctx context.Context,
 	tx db.Tx,
@@ -223,16 +221,17 @@ func (r *ShippingSetupRepositoryImpl) GetByName(
 ) (*entity.ShippingSetup, error) {
 	var id uuid.UUID
 	var transportType string
+	var internalPurpose string
 	var isActive bool
 	var createdAt, updatedAt time.Time
 
 	err := tx.QueryRow(ctx, `
-		SELECT id, seller_id, name, transport_type,
+		SELECT id, seller_id, name, transport_type, internal_purpose,
 		       is_active, created_at, updated_at
 		FROM shipping_options
 		WHERE seller_id = $1 AND name = $2
 	`, sellerID, name).Scan(
-		&id, &sellerID, &name, &transportType,
+		&id, &sellerID, &name, &transportType, &internalPurpose,
 		&isActive, &createdAt, &updatedAt,
 	)
 
@@ -244,13 +243,14 @@ func (r *ShippingSetupRepositoryImpl) GetByName(
 	}
 
 	return &entity.ShippingSetup{
-		ID:            id,
-		SellerID:      sellerID,
-		Name:          name,
-		TransportType: entity.TransportType(transportType),
-		IsActive:      isActive,
-		CreatedAt:     createdAt,
-		UpdatedAt:     updatedAt,
+		ID:              id,
+		SellerID:        sellerID,
+		Name:            name,
+		TransportType:   entity.TransportType(transportType),
+		InternalPurpose: internalPurpose,
+		IsActive:        isActive,
+		CreatedAt:       createdAt,
+		UpdatedAt:       updatedAt,
 	}, nil
 }
 

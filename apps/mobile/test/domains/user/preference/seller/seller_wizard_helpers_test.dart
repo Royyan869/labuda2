@@ -4,9 +4,10 @@ import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizar
 void main() {
   group('SellerWizardHelpers', () {
     test('account step requires a structured sender address', () {
+      // D2 HARD GATE: emailVerified is no longer a client-side wizard gate —
+      // every authenticated user is already verified before the exchange.
       expect(
         SellerWizardHelpers.isAccountStepValid(
-          emailVerified: true,
           username: 'seller01',
           bio: 'Trusted koi farm',
           phoneNumber: '+628123456789',
@@ -17,7 +18,6 @@ void main() {
 
       expect(
         SellerWizardHelpers.isAccountStepValid(
-          emailVerified: true,
           username: 'seller01',
           bio: 'Trusted koi farm',
           phoneNumber: '+628123456789',

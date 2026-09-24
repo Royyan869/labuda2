@@ -454,8 +454,8 @@ final auctionNotifierProvider =
 
 // ========== Stream Providers (for UI) ==========
 
-/// Stream provider for active auctions (explore tab)
-final exploreAuctionsStreamProvider = StreamProvider<List<Auction>>((ref) {
+/// Stream provider for active auctions (marketplace tab)
+final marketplaceAuctionsStreamProvider = StreamProvider<List<Auction>>((ref) {
   final repository = ref.watch(auctionRepositoryProvider);
 
   return repository.watchActiveAuctions(limit: 50).map((auctions) {

@@ -168,3 +168,43 @@ func (r *ContractRepositoryImpl) Update(ctx context.Context, tx db.Tx, c *entity
 	}
 	return nil
 }
+
+// ListDueForFinalization returns delivery-exhausted contract ids (planned
+// finish reached, still finalizable). Paused contracts are excluded: pause
+// freezes the delivery window and resume shifts planned_finish by the exact
+// pause duration, so a paused contract's window has not truly ended.
+func (r *ContractRepositoryImpl) ListDueForFinalization(
+	ctx context.Context,
+	tx db.Tx,
+	now time.Time,
+	limit int,
+) ([]uuid.UUID, error) {
+	if limit <= 0 {
+		return nil, nil
+	}
+	rows, err := tx.Query(ctx, `
+		SELECT id
+		FROM promotion_contracts
+		WHERE status IN ('prepared', 'active')
+		  AND planned_finish <= $1
+		ORDER BY planned_finish ASC
+		LIMIT $2
+	`, now, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list promotion contracts due for finalization: %w", err)
+	}
+	defer rows.Close()
+
+	var out []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan promotion contract due id: %w", err)
+		}
+		out = append(out, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate promotion contracts due for finalization: %w", err)
+	}
+	return out, nil
+}

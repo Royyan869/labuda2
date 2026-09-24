@@ -14,7 +14,7 @@ import (
 )
 
 // BillingService handles billing transaction state transitions.
-// It processes non-order payments: promotion package purchase.
+// It processes non-order payments: Promote Balance top-up.
 //
 // LEDGER LOCKDOWN: billing domain CANNOT access ledger directly
 // All ledger operations MUST go through FinanceService
@@ -84,9 +84,9 @@ func (s *BillingService) CreateBillingTransaction(
 //
 // UNIFIED SETTLEMENT MODEL V2:
 //
-// For promotion_package:
-//   - platform_fee + net_amount → PLATFORM_REVENUE (full amount as revenue)
-//   - Status becomes paid (promotion ownership created immediately)
+// For promote_balance_top_up:
+//   - Credits seller's PROMOTE_BALANCE (funding, NOT revenue)
+//   - Status becomes paid
 //
 // Returns (newlyMarkedPaid bool, err error).
 // newlyMarkedPaid=false means the billing was already paid before this call;
@@ -132,14 +132,6 @@ func (s *BillingService) MarkPaidWithPayment(
 
 	// Process based on billing type
 	switch billing.Type {
-	case entity.TypePromotionPackage:
-		// Promotion Package is FORBIDDEN (§28) — the duration-purchase
-		// authority was purged. Canonical promotion funding is
-		// promotion_contracts + Promote Balance top-up. Failing closed here
-		// (before any revenue booking) guarantees a legacy package billing
-		// row can never become paid platform revenue.
-		return false, fmt.Errorf("promotion package purchase forbidden — use promotion_contracts")
-
 	case entity.TypePromoteBalanceTopUp:
 		// Promote Balance top-up: the verified payment credits the seller's
 		// PROMOTE_BALANCE (funding). This is NOT revenue: PLATFORM_REVENUE
@@ -157,7 +149,7 @@ func (s *BillingService) MarkPaidWithPayment(
 
 	// Persist status change
 	return true, s.billingRepo.UpdateStatus(ctx, tx, billing)
-}
+}
 
 // processPromoteBalanceTopUp books a verified Promote Balance top-up.
 //

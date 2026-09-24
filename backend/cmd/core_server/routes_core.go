@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/config"
 	"github.com/labuda/backend/internal/identity/auth/application"
 	"github.com/labuda/backend/internal/middleware"
@@ -239,7 +240,6 @@ func SetupRoutes(
 		// NOTE: GET /:id and GET /:id/contents moved to v1Browse (public browse group)
 		userRoutes := v1.Group("/users")
 		// Own profile endpoints - get/update authenticated user's profile
-		userRoutes.GET("/check-username", deps.UserProfileHandler.CheckUsername)
 		userRoutes.GET("/me", deps.UserProfileHandler.GetMyProfile)
 		userRoutes.PATCH("/me/profile", deps.UserProfileHandler.UpdateMyProfile)
 		userRoutes.POST("/me/verification/refresh", deps.UserProfileHandler.RefreshMyVerification)
@@ -524,29 +524,25 @@ func SetupRoutes(
 			// - Shipping options are linked to products for buyer visibility
 			// - Coverage defines which provinces are served and at what rate
 			//
-			// SHIPPING OPTION CRUD:
-			// - POST /api/v1/seller/shipping/options - Create shipping option
-			// - GET /api/v1/seller/shipping/options - List shipping options
-			// - GET /api/v1/seller/shipping/options/:id - Get shipping option with coverages
-			// - PUT /api/v1/seller/shipping/options/:id - Update shipping option
-			// - DELETE /api/v1/seller/shipping/options/:id - Delete shipping option
-			//
-			// COVERAGE CRUD:
-			// - POST /api/v1/seller/shipping/options/:id/coverages - Create coverage
-			// - GET /api/v1/seller/shipping/options/:id/coverages - List coverages
-			// - PUT /api/v1/seller/shipping/coverages/:id - Update coverage
-			// - DELETE /api/v1/seller/shipping/coverages/:id - Delete coverage
+			// SHIPPING OPTION — ONE-PACKAGE CONTRACT (Owner-locked business truth):
+			// An option is always saved as ONE package: identity (name, transport
+			// type, seller-private note) + destinations (provinces with all-in
+			// shipping+packing rates, optional city qualifications). Bare options
+			// without destinations cannot exist. Coverage CRUD endpoints are a
+			// killed design and must not be reintroduced.
+			// - POST   /api/v1/seller/shipping/options           - Create package
+			// - GET    /api/v1/seller/shipping/options           - List options
+			// - GET    /api/v1/seller/shipping/options/:id       - Get full package
+			// - PUT    /api/v1/seller/shipping/options/:id       - Replace package
+			// - PATCH  /api/v1/seller/shipping/options/:id/active - Retire/restore
+			// - DELETE /api/v1/seller/shipping/options/:id       - Delete (guarded:
+			//   refused while the option is linked to any listing)
 			sellerRoutes.POST("/shipping/options", deps.SellerShippingHandler.CreateShippingSetup)
 			sellerRoutes.GET("/shipping/options", deps.SellerShippingHandler.ListShippingSetups)
 			sellerRoutes.GET("/shipping/options/:id", deps.SellerShippingHandler.GetShippingSetup)
 			sellerRoutes.PUT("/shipping/options/:id", deps.SellerShippingHandler.UpdateShippingSetup)
+			sellerRoutes.PATCH("/shipping/options/:id/active", deps.SellerShippingHandler.SetShippingSetupActive)
 			sellerRoutes.DELETE("/shipping/options/:id", deps.SellerShippingHandler.DeleteShippingSetup)
-
-			// Coverage management routes
-			sellerRoutes.POST("/shipping/options/:id/coverages", deps.SellerShippingHandler.CreateCoverage)
-			sellerRoutes.GET("/shipping/options/:id/coverages", deps.SellerShippingHandler.ListCoverages)
-			sellerRoutes.PUT("/shipping/coverages/:id", deps.SellerShippingHandler.UpdateCoverage)
-			sellerRoutes.DELETE("/shipping/coverages/:id", deps.SellerShippingHandler.DeleteCoverage)
 
 		}
 
@@ -1450,6 +1446,38 @@ func SetupRoutes(
 				middleware.RequireActiveAccount(db.Pgx()),
 				middleware.RequireSellerMiddleware(deps.RoleChecker),
 				deps.PromotionContractHandler.CreateContract)
+			// Preview funding — read-only shortage projection (no mutations).
+			contractRoutes.POST("/preview-funding",
+				middleware.RequireActiveAccount(db.Pgx()),
+				middleware.RequireSellerMiddleware(deps.RoleChecker),
+				deps.PromotionContractHandler.PreviewFunding)
+			// Wire canonical billing→payment engine into FundingIntentHandler.
+			// This enables POST /payment-intent/:id/pay to delegate to the same
+			// CorePaymentHandler.InitiateBillingPayment used by POST /payments/billing.
+			deps.PromotionFundingIntentHandler.SetPaymentInitiator(
+				func(ctx context.Context, userID uuid.UUID, billingID uuid.UUID, methodCode string) (uuid.UUID, string, int64, error) {
+					result, err := deps.PaymentHandler.InitiateBillingPayment(ctx, userID, billingID, methodCode)
+					if err != nil {
+						return uuid.Nil, "", 0, err
+					}
+					return result.PaymentID, result.PaymentURL, result.GrossAmount, nil
+				})
+			// Payment intent — exact-shortage billing creation (no ledger mutation).
+			contractRoutes.POST("/payment-intent",
+				middleware.RequireActiveAccount(db.Pgx()),
+				middleware.RequireSellerMiddleware(deps.RoleChecker),
+				deps.PromotionFundingIntentHandler.CreateFundingIntent)
+			// Payment initiation — bridges FundingIntent to canonical billing→Midtrans engine.
+			contractRoutes.POST("/payment-intent/:id/pay",
+				middleware.RequireActiveAccount(db.Pgx()),
+				middleware.RequireSellerMiddleware(deps.RoleChecker),
+				deps.PromotionFundingIntentHandler.InitiatePayment)
+			// Payment-method disclosure — read-only method/fee/total for a valid,
+			// pending, caller-owned FundingIntent. No payment, no ledger, no mutation.
+			contractRoutes.GET("/payment-intent/:id/payment-methods",
+				middleware.RequireActiveAccount(db.Pgx()),
+				middleware.RequireSellerMiddleware(deps.RoleChecker),
+				deps.PromotionFundingIntentHandler.GetFundingPaymentMethods)
 			contractRoutes.GET("", deps.PromotionContractHandler.ListContracts)
 			contractRoutes.GET("/:id", deps.PromotionContractHandler.GetContract)
 			contractRoutes.POST("/:id/pause", deps.PromotionContractHandler.PauseContract)
@@ -1495,13 +1523,11 @@ func SetupRoutes(
 			// Production-reachable billing-row creator for TypePromoteBalanceTopUp.
 			// The handler creates ONLY a billing transaction; settlement stays on
 			// the existing POST /payments/billing + webhook + MarkPaid path.
-			// Seller eligibility reuses the canonical HasActiveSellerCapability gate
-			// (same 4-gate authority as contract creation / for_sale / auction).
+			// Seller balance read-only query. Top-up is via FundingIntent path.
 			promoteBalanceRoutes := v1.Group("/promote-balance")
-			promoteBalanceRoutes.POST("/topup",
-				middleware.RequireActiveAccount(db.Pgx()),
-				middleware.RequireSellerMiddleware(deps.RoleChecker),
-				deps.PromoteBalanceHandler.CreateTopUp)
+			{
+				promoteBalanceRoutes.GET("", deps.PromoteBalanceHandler.GetBalance)
+			}
 		}
 	}
 }

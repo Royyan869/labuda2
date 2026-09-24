@@ -85,7 +85,9 @@ func (s *ledgerSim) GetUserAccountID(_ context.Context, _ db.Tx, accountType str
 }
 
 func (s *ledgerSim) GetAccountBalance(_ context.Context, _ db.Tx, accountID uuid.UUID) (money.Money, error) {
-	return money.New(s.balances[accountID]), nil
+	// Canonical sign: liability/revenue balances are stored as Σ Amount (negative for CR increases)
+	// but economic balance is positive. Negate to return economic balance.
+	return money.New(-s.balances[accountID]), nil
 }
 
 func (s *ledgerSim) GetAccountBalanceForUpdate(ctx context.Context, tx db.Tx, accountID uuid.UUID) (money.Money, error) {
@@ -155,11 +157,11 @@ func TestRecordGatewayPaymentSettlement_CreditsClearingDebitsBankSettlement(t *t
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if got := sim.balanceOf(finance.AccountGatewayClearing); got != 124_000 {
-		t.Errorf("GATEWAY_CLEARING = %d, want 124000", got)
+	if got := sim.balanceOf(finance.AccountGatewayClearing); got != -124_000 {
+		t.Errorf("GATEWAY_CLEARING = %d, want -124000", got)
 	}
-	if got := sim.balanceOf(finance.AccountBankSettlement); got != -124_000 {
-		t.Errorf("BANK_SETTLEMENT = %d, want -124000", got)
+	if got := sim.balanceOf(finance.AccountBankSettlement); got != 124_000 {
+		t.Errorf("BANK_SETTLEMENT = %d, want 124000", got)
 	}
 }
 
@@ -178,8 +180,8 @@ func TestRecordGatewayPaymentSettlement_IdempotentOnReplay(t *testing.T) {
 		t.Fatalf("replay call: %v", err)
 	}
 
-	if got := sim.balanceOf(finance.AccountGatewayClearing); got != 100_000 {
-		t.Errorf("GATEWAY_CLEARING = %d, want 100000 (replay must not double-credit)", got)
+	if got := sim.balanceOf(finance.AccountGatewayClearing); got != -100_000 {
+		t.Errorf("GATEWAY_CLEARING = %d, want -100000 (replay must not double-credit)", got)
 	}
 }
 
@@ -218,7 +220,9 @@ func TestRecordOrderRelease_DrainsClearingToSellerAndRevenue(t *testing.T) {
 
 	// Pre-fund GATEWAY_CLEARING as if settlement + fee sweep already ran,
 	// leaving exactly the escrow amount (120_000 = BuyerBase) for this order.
-	sim.balances[sim.mustSystemAccount(finance.AccountGatewayClearing)] = 120_000
+	// Canonical sign: GATEWAY_CLEARING liability CR increases => settlement -gross + fee => net -120k stored via sim's simple addition.
+	// To keep final drain to 0 with canonical +gross, pre-seed as -120k.
+	sim.balances[sim.mustSystemAccount(finance.AccountGatewayClearing)] = -120_000
 
 	if err := svc.RecordOrderRelease(context.Background(), nil, uuid.New(), sellerID, 120_000, 5_000, 115_000); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -227,11 +231,11 @@ func TestRecordOrderRelease_DrainsClearingToSellerAndRevenue(t *testing.T) {
 	if got := sim.balanceOf(finance.AccountGatewayClearing); got != 0 {
 		t.Errorf("GATEWAY_CLEARING = %d, want 0 (fully drained for this order)", got)
 	}
-	if got := sim.userBalanceOf(finance.AccountSellerPayable, sellerID); got != 115_000 {
-		t.Errorf("SELLER_PAYABLE = %d, want 115000", got)
+	if got := sim.userBalanceOf(finance.AccountSellerPayable, sellerID); got != -115_000 {
+		t.Errorf("SELLER_PAYABLE = %d, want -115000", got)
 	}
-	if got := sim.balanceOf(finance.AccountPlatformRevenue); got != 5_000 {
-		t.Errorf("PLATFORM_REVENUE = %d, want 5000 (commission only, buyer fee not part of release)", got)
+	if got := sim.balanceOf(finance.AccountPlatformRevenue); got != -5_000 {
+		t.Errorf("PLATFORM_REVENUE = %d, want -5000 (commission only, buyer fee not part of release)", got)
 	}
 }
 
@@ -307,22 +311,22 @@ func TestLedgerScenario_SettlementSweepRelease_MatchesPassExample(t *testing.T) 
 	if err := svc.RecordGatewayPaymentSettlement(context.Background(), nil, paymentID, orderID, "txn-scenario", exGross); err != nil {
 		t.Fatalf("settlement: %v", err)
 	}
-	if got := sim.balanceOf(finance.AccountGatewayClearing); got != exGross {
-		t.Fatalf("after settlement: GATEWAY_CLEARING = %d, want %d", got, exGross)
+	if got := sim.balanceOf(finance.AccountGatewayClearing); got != -exGross {
+		t.Fatalf("after settlement: GATEWAY_CLEARING = %d, want %d", got, -exGross)
 	}
-	if got := sim.balanceOf(finance.AccountBankSettlement); got != -exGross {
-		t.Fatalf("after settlement: BANK_SETTLEMENT = %d, want %d", got, -exGross)
+	if got := sim.balanceOf(finance.AccountBankSettlement); got != exGross {
+		t.Fatalf("after settlement: BANK_SETTLEMENT = %d, want %d", got, exGross)
 	}
 
 	// 2. Buyer payment fee revenue sweep: fee leaves clearing immediately.
 	if err := svc.RecordBuyerPaymentFeeRevenue(context.Background(), nil, paymentID, orderID, exBuyerFee); err != nil {
 		t.Fatalf("fee sweep: %v", err)
 	}
-	if got := sim.balanceOf(finance.AccountGatewayClearing); got != exEscrow {
-		t.Fatalf("after fee sweep: GATEWAY_CLEARING = %d, want %d (escrow-equivalent only)", got, exEscrow)
+	if got := sim.balanceOf(finance.AccountGatewayClearing); got != -exEscrow {
+		t.Fatalf("after fee sweep: GATEWAY_CLEARING = %d, want %d (escrow-equivalent only)", got, -exEscrow)
 	}
-	if got := sim.balanceOf(finance.AccountPlatformRevenue); got != exBuyerFee {
-		t.Fatalf("after fee sweep: PLATFORM_REVENUE = %d, want %d (buyer fee only so far)", got, exBuyerFee)
+	if got := sim.balanceOf(finance.AccountPlatformRevenue); got != -exBuyerFee {
+		t.Fatalf("after fee sweep: PLATFORM_REVENUE = %d, want %d (buyer fee only so far)", got, -exBuyerFee)
 	}
 
 	// 3. Order release: escrow drains to seller + commission.
@@ -334,11 +338,11 @@ func TestLedgerScenario_SettlementSweepRelease_MatchesPassExample(t *testing.T) 
 	if got := sim.balanceOf(finance.AccountGatewayClearing); got != 0 {
 		t.Errorf("FINAL GATEWAY_CLEARING = %d, want 0 (no buyer-fee residual after sweep+release)", got)
 	}
-	if got := sim.userBalanceOf(finance.AccountSellerPayable, sellerID); got != 115_000 {
-		t.Errorf("FINAL SELLER_PAYABLE = %d, want 115000 (buyer fee never touches seller side)", got)
+	if got := sim.userBalanceOf(finance.AccountSellerPayable, sellerID); got != -115_000 {
+		t.Errorf("FINAL SELLER_PAYABLE = %d, want -115000 (buyer fee never touches seller side)", got)
 	}
-	if got := sim.balanceOf(finance.AccountPlatformRevenue); got != 9_000 {
-		t.Errorf("FINAL PLATFORM_REVENUE = %d, want 9000 (4000 fee + 5000 commission)", got)
+	if got := sim.balanceOf(finance.AccountPlatformRevenue); got != -9_000 {
+		t.Errorf("FINAL PLATFORM_REVENUE = %d, want -9000 (4000 fee + 5000 commission)", got)
 	}
 }
 
@@ -378,14 +382,14 @@ func TestLedgerScenario_FullRefundBeforeRelease_ExcludesBuyerFee(t *testing.T) {
 		t.Fatalf("refund reversal: %v", err)
 	}
 
-	if got := sim.userBalanceOf(finance.AccountBuyerRefundable, buyerID); got != exEscrow {
-		t.Errorf("BUYER_REFUNDABLE = %d, want %d (escrow only, fee excluded)", got, exEscrow)
+	if got := sim.userBalanceOf(finance.AccountBuyerRefundable, buyerID); got != -exEscrow {
+		t.Errorf("BUYER_REFUNDABLE = %d, want %d (escrow only, fee excluded)", got, -exEscrow)
 	}
 	if got := sim.balanceOf(finance.AccountGatewayClearing); got != 0 {
 		t.Errorf("GATEWAY_CLEARING = %d, want 0 (escrow refunded out, fee already swept earlier)", got)
 	}
-	if got := sim.balanceOf(finance.AccountPlatformRevenue); got != exBuyerFee {
-		t.Errorf("PLATFORM_REVENUE = %d, want %d (buyer fee kept — non-refundable per PASS_18V policy)", got, exBuyerFee)
+	if got := sim.balanceOf(finance.AccountPlatformRevenue); got != -exBuyerFee {
+		t.Errorf("PLATFORM_REVENUE = %d, want %d (buyer fee kept — non-refundable per PASS_18V policy)", got, -exBuyerFee)
 	}
 }
 
@@ -424,14 +428,14 @@ func TestLedgerScenario_FullRefundAfterRelease_ExcludesBuyerFee(t *testing.T) {
 		t.Fatalf("refund reversal: %v", err)
 	}
 
-	if got := sim.userBalanceOf(finance.AccountBuyerRefundable, buyerID); got != exEscrow {
-		t.Errorf("BUYER_REFUNDABLE = %d, want %d", got, exEscrow)
+	if got := sim.userBalanceOf(finance.AccountBuyerRefundable, buyerID); got != -exEscrow {
+		t.Errorf("BUYER_REFUNDABLE = %d, want %d", got, -exEscrow)
 	}
 	if got := sim.userBalanceOf(finance.AccountSellerPayable, sellerID); got != 0 {
 		t.Errorf("SELLER_PAYABLE = %d, want 0 (120000 released then fully reversed)", got)
 	}
-	if got := sim.balanceOf(finance.AccountPlatformRevenue); got != exBuyerFee {
-		t.Errorf("PLATFORM_REVENUE = %d, want %d (5000 commission reversed, 4000 buyer fee kept)", got, exBuyerFee)
+	if got := sim.balanceOf(finance.AccountPlatformRevenue); got != -exBuyerFee {
+		t.Errorf("PLATFORM_REVENUE = %d, want %d (5000 commission reversed, 4000 buyer fee kept)", got, -exBuyerFee)
 	}
 	if got := sim.balanceOf(finance.AccountGatewayClearing); got != 0 {
 		t.Errorf("GATEWAY_CLEARING = %d, want 0 (release path never touches clearing after full drain)", got)

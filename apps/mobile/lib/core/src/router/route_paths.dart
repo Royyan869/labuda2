@@ -9,6 +9,10 @@ class RoutePaths {
   /// Complete Profile Route - Required for new Google users
   static const String completeProfile = '/auth/complete-profile';
 
+  /// Verify Email Route - D2 hard gate: exclusive surface while a Firebase
+  /// identity's email is unverified (AuthStatePendingEmailVerification).
+  static const String verifyEmail = '/auth/verify-email';
+
   /// Account Restricted Route - Shown when account is suspended or banned
   static const String accountRestricted = '/account-restricted';
 
@@ -84,7 +88,6 @@ class RoutePaths {
   static const String sellerVerification = '/verification/seller';
   static const String sellerEarnings = '/seller/earnings';
   static const String sellerShipping = '/seller/shipping';
-  static const String sellerShippingSetupDetail = '/seller/shipping/:optionId';
   static const String sellerShippingSetup = '/seller/shipping/setup';
   static const String sellerShippingSetupCityRules =
       '/seller/shipping/setup/city-rules';
@@ -114,6 +117,7 @@ class RouteNames {
   static const String signUp = 'signUp';
   static const String forgotPassword = 'forgotPassword';
   static const String completeProfile = 'completeProfile';
+  static const String verifyEmail = 'verifyEmail';
   static const String accountRestricted = 'accountRestricted';
   static const String profile = 'profile';
   static const String addresses = 'addresses';

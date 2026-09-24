@@ -126,29 +126,7 @@ class _RecordingApiClient implements ApiClient {
 }
 
 void main() {
-  test(
-    'exchangeFirebaseSession posts only the Firebase ID token with skipAuth',
-    () async {
-      final client = _RecordingApiClient();
-      final datasource = AuthApiDatasource(client);
-
-      final result = await datasource.exchangeFirebaseSession(
-        firebaseIdToken: 'firebase-id-token-123',
-      );
-
-      expect(result.isSuccess, isTrue);
-      expect(client.lastPath, equals('/auth/firebase/exchange'));
-      expect(
-        client.lastData,
-        equals({'firebase_id_token': 'firebase-id-token-123'}),
-      );
-      expect(client.lastOptions, isNotNull);
-      final extra = client.lastOptions!.extra;
-      expect(extra, isNotNull);
-      expect(extra!['skipAuth'], isTrue);
-    },
-  );
-
+  // D2 — exchangeFirebaseSession canonical is UserApiDatasource only; AuthApiDatasource duplicate removed.
   test(
     'completeProfile posts username to /auth/complete-profile with restricted bearer and skipAuth',
     () async {

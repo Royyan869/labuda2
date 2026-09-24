@@ -9,8 +9,8 @@ String _source(String relativePath) {
 void main() {
   test('public marketplace surfaces use the shared grid primitive', () {
     final paths = <String>[
-      'lib/features/explore/presentation/widgets/explore_for_sale_tab.dart',
-      'lib/features/explore/presentation/widgets/explore_auction_tab.dart',
+      'lib/features/marketplace/presentation/widgets/explore_for_sale_tab.dart',
+      'lib/features/marketplace/presentation/widgets/explore_auction_tab.dart',
       'lib/domains/user/preference/seller/presentation/widgets/profile_store_tab.dart',
       'lib/domains/commerce/catalog/for_sale/presentation/screens/for_sale_list_screen.dart',
     ];
@@ -22,15 +22,14 @@ void main() {
     }
   });
 
-  test('home promo shelf uses the shared compact marketplace card shell', () {
-    final source = _source(
-      'lib/features/home/presentation/widgets/commerce_preview_section.dart',
+  test('home promo shelf has been purged (no Sedang Laku shelf)', () {
+    expect(
+      File(
+        'lib/features/home/presentation/widgets/commerce_preview_section.dart',
+      ).existsSync(),
+      isFalse,
+      reason: 'CommercePreviewSection must be purged — Home is social-only until promotion is active',
     );
-
-    expect(source, contains('CommerceMarketplaceCardShell('));
-    expect(source, contains('CommerceMarketplaceCardMedia('));
-    expect(source, contains('CommerceMarketplaceCardBadge('));
-    expect(source, isNot(contains('Image.network(')));
   });
 
   test('dormant auction browse screen has been removed', () {

@@ -320,7 +320,7 @@ Future<void> _submitStatusChange(WidgetTester tester) async {
   await tester.tap(find.text('Nonaktifkan'));
   await tester.pumpAndSettle();
 
-  expect(find.text('Ubah Status ForSale'), findsOneWidget);
+  expect(find.text('Ubah Status For Sale'), findsOneWidget);
   await tester.tap(find.text('Ya, Ubah'));
   await tester.pumpAndSettle();
 }
@@ -368,7 +368,7 @@ void main() {
         await _submitStatusChange(tester);
 
         expect(find.textContaining('dibatasi'), findsOneWidget);
-        expect(find.textContaining('mengubah status forSale'), findsOneWidget);
+        expect(find.textContaining('mengubah status For Sale'), findsOneWidget);
         expect(find.textContaining('Hubungi dukungan'), findsOneWidget);
         expect(harness.navigation.renewalCalls, 0);
         expect(harness.navigation.upgradeCalls, 0);
@@ -393,7 +393,7 @@ void main() {
         expect(find.text('Pengiriman Belum Dipilih'), findsOneWidget);
         expect(find.text('Tutup'), findsOneWidget);
         expect(find.text('Atur Opsi'), findsOneWidget);
-        expect(find.text('Edit ForSale'), findsOneWidget);
+        expect(find.text('Edit For Sale'), findsOneWidget);
         expect(harness.navigation.renewalCalls, 0);
         expect(find.textContaining('dibatasi'), findsNothing);
         expect(find.textContaining('Gagal mengubah status'), findsNothing);

@@ -22,7 +22,6 @@ class _MutationTestRepo implements ShippingRepository {
   bool failDelete = false;
   bool deleteConflict = false;
   CreateShippingSetupRequest? lastCreateRequest;
-  UpdateShippingSetupFullRequest? lastFullUpdate;
   String? lastToggledId;
   bool? lastToggleValue;
 
@@ -72,18 +71,6 @@ class _MutationTestRepo implements ShippingRepository {
   }
 
   @override
-  Future<Result<ShippingSetup>> updateShippingSetupFull(
-      String optionId, UpdateShippingSetupFullRequest request) async {
-    lastFullUpdate = request;
-    final idx = _options.indexWhere((o) => o.id == optionId);
-    if (idx >= 0) {
-      _options[idx] = _options[idx].copyWith(name: request.name);
-      return Result.success(_options[idx]);
-    }
-    return Result.error('not found');
-  }
-
-  @override
   Future<Result<void>> deleteShippingSetup(String optionId) async {
     if (failDelete) return Result.error('delete failed');
     if (deleteConflict) {
@@ -110,17 +97,6 @@ class _MutationTestRepo implements ShippingRepository {
   }
 
   // Unused stubs
-  @override
-  Future<Result<ShippingCoverage>> addCoverage(
-          String optionId, AddCoverageRequest request) async =>
-      Result.error('not used');
-  @override
-  Future<Result<ShippingCoverage>> updateCoverage(
-          String coverageId, UpdateCoverageRequest request) async =>
-      Result.error('not used');
-  @override
-  Future<Result<void>> deleteCoverage(String coverageId) async =>
-      Result.error('not used');
   @override
   Future<Result<void>> setProductShippingSetups(
           String productId, List<String> ids) async =>
@@ -384,8 +360,8 @@ void main() {
       await tester.tap(find.text('Tambah Opsi Pengiriman'));
       await tester.pumpAndSettle();
 
-      // Bottom sheet form opened with name input
-      expect(find.text('Nama opsi *'), findsOneWidget);
+      // Canonical ONE-PACKAGE setup screen opened (identity + destinations)
+      expect(find.text('Nama ekspedisi / layanan *'), findsOneWidget);
     });
   });
 }

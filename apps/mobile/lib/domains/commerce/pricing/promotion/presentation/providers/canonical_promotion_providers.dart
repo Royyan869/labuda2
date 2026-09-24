@@ -13,13 +13,27 @@ import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/prom
 /// Promotion Contract repository provider — canonical authority promotion_contracts.
 final promotionContractRepositoryProvider =
     Provider<PromotionContractRepository>((ref) {
-  final apiClient = ref.watch(apiClientProvider);
-  return PromotionContractRepositoryImpl(apiClient);
-});
+      final apiClient = ref.watch(apiClientProvider);
+      return PromotionContractRepositoryImpl(apiClient);
+    });
 
 /// My promotion contracts provider — canonical list via GET /promotions/contracts.
 final myPromotionContractsProvider =
     FutureProvider.autoDispose<Result<PromotionContractListDto>>((ref) async {
-  final repo = ref.watch(promotionContractRepositoryProvider);
-  return repo.listMyContracts();
-});
+      final repo = ref.watch(promotionContractRepositoryProvider);
+      return repo.listMyContracts();
+    });
+
+/// Reusable promotion funding provider — canonical PROMOTE_BALANCE projection
+/// via GET /promote-balance.
+///
+/// This is the ONLY mobile authority for "how much reusable promotion funding
+/// does the seller have". It is a read-only projection of the ledger; the
+/// client never computes or mutates the balance. Locked PROMOTION_ALLOCATION of
+/// an active promotion is deliberately NOT part of this number — unused
+/// allocation only becomes reusable after canonical finalization.
+final promoteBalanceProvider =
+    FutureProvider.autoDispose<Result<PromoteBalanceDto>>((ref) async {
+      final repo = ref.watch(promotionContractRepositoryProvider);
+      return repo.getPromoteBalance();
+    });

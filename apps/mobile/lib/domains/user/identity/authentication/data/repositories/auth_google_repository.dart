@@ -25,7 +25,21 @@ class AuthGoogleRepository {
             signInOption: SignInOption.standard,
           );
 
-  Future<Result<void>> signInWithGoogle() async {
+  /// Normal Google sign-in, or — when [pendingCredential] is provided — a
+  /// D1 LINK into the CURRENT Firebase identity.
+  ///
+  /// Flow (design scope v2): Google sign-in that hits
+  /// `account-exists-with-different-credential` parks the Google credential
+  /// with the controller (pending-verification intent). After the email
+  /// identity is verified, the controller calls this method again with that
+  /// credential: `linkWithCredential` unifies BOTH providers under ONE
+  /// Firebase UID (one Firebase user per human), so the backend never sees
+  /// two UIDs claiming one email. Link failures surface explicitly — there
+  /// is no silent retry and no fallback sign-in.
+  Future<Result<void>> signInWithGoogle({AuthCredential? pendingCredential}) async {
+    if (pendingCredential != null) {
+      return _linkGoogleCredential(pendingCredential);
+    }
     try {
       if (_googleSignIn == null) {
         return Result.error('Google Sign In not available');
@@ -83,6 +97,40 @@ class AuthGoogleRepository {
     }
   }
 
+  /// D1: link a Google credential into the CURRENT Firebase identity.
+  /// No Google picker is shown — the credential was already consented.
+  Future<Result<void>> _linkGoogleCredential(AuthCredential credential) async {
+    try {
+      final currentUser = _firebaseAuth.currentUser;
+      if (currentUser == null) {
+        return Result.error(
+          'Sesi tidak ditemukan. Masuk dengan email dulu, lalu coba lagi.',
+        );
+      }
+      await currentUser.linkWithCredential(credential);
+      return Result.success(null);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'credential-already-in-use') {
+        // The Google identity is already bound to another Firebase user.
+        // Under D4 this is a canonical anomaly: do NOT switch accounts
+        // silently — surface it and let the user decide.
+        return Result.error(
+          'Akun Google ini sudah terhubung ke akun Labuda lain. '
+          'Masuk dengan metode semula.',
+        );
+      }
+      if (e.code == 'requires-recent-login') {
+        return Result.error(
+          'Sesi terlalu lama. Masuk ulang dengan email, lalu coba tautkan '
+          'Google lagi.',
+        );
+      }
+      return Result.error(_mapFirebaseError(e));
+    } catch (e) {
+      return Result.error('Gagal menautkan akun Google: ${e.toString()}');
+    }
+  }
+
   /// Map Google Sign-In errors to user-friendly messages
   /// Error code 10: Usually means configuration issue
   String _mapGoogleSignInError(dynamic e) {
@@ -119,19 +167,20 @@ class AuthGoogleRepository {
     }
   }
 
-  /// Map Firebase Auth errors to user-friendly English messages
+  /// Map Firebase Auth errors to user-friendly messages
   String _mapFirebaseError(FirebaseAuthException e) {
     switch (e.code) {
       case 'account-exists-with-different-credential':
-        return 'Account already registered with different login method';
+        return 'Akun ini terdaftar dengan metode masuk berbeda. Masuk dengan '
+            'metode semula, lalu tautkan Google setelah verifikasi email.';
       case 'invalid-credential':
-        return 'Invalid Google credentials';
+        return 'Kredensial Google tidak valid atau sudah kedaluwarsa';
       case 'operation-not-allowed':
-        return 'Google Sign-In not enabled in Firebase Console';
+        return 'Google Sign-In belum diaktifkan di Firebase Console';
       case 'user-disabled':
-        return 'Your account has been disabled';
+        return 'Akun kamu telah dinonaktifkan';
       default:
-        return 'Error occurred: ${e.message}';
+        return 'Terjadi kesalahan: ${e.message}';
     }
   }
 }

@@ -37,7 +37,7 @@ func (r *AdminRepositoryImpl) ListUsers(
 	// Build base query
 	baseQuery := `
 		SELECT
-			u.id, u.firebase_uid, u.email, u.phone_number,
+			u.id, u.email, u.phone_number,
 			(u.email_verified_at IS NOT NULL) AS email_verified, u.phone_verified, u.account_status,
 			u.role, u.created_at, u.updated_at,
 			up.username, up.is_verified,
@@ -209,7 +209,7 @@ func (r *AdminRepositoryImpl) GetUserDetails(
 
 	query := `
 		SELECT
-			u.id, u.firebase_uid, u.email, u.phone_number,
+			u.id, u.email, u.phone_number,
 			(u.email_verified_at IS NOT NULL) AS email_verified, u.phone_verified, u.account_status,
 			u.role, u.created_at, u.updated_at,
 			up.username, up.bio, up.avatar_url,
@@ -276,7 +276,7 @@ func (r *AdminRepositoryImpl) GetUserDetails(
 	var isVerified pgtype.Bool
 
 	err := dbTx.QueryRow(ctx, query, userID, paymentRepo.SettledPaymentStatuses()).Scan(
-		&userDetails.ID, &userDetails.FirebaseUID, &userDetails.Email, &phoneNumber,
+		&userDetails.ID, &userDetails.Email, &phoneNumber,
 		&userDetails.EmailVerified, &userDetails.PhoneVerified, &userDetails.AccountStatus,
 		&userDetails.Role, &userDetails.CreatedAt, &userDetails.UpdatedAt,
 		&username, &bio, &avatarURL,
@@ -704,7 +704,7 @@ func (r *AdminRepositoryImpl) scanUserSummary(rows pgx.Rows) (*repository.UserSu
 	// seeded/bootstrapped admin account) yields NULL for every up.*
 	// column, so it must be scanned as nullable like username/phoneNumber.
 	err := rows.Scan(
-		&u.ID, &u.FirebaseUID, &u.Email, &phoneNumber,
+		&u.ID, &u.Email, &phoneNumber,
 		&u.EmailVerified, &u.PhoneVerified, &u.AccountStatus,
 		&u.Role, &u.CreatedAt, &u.UpdatedAt,
 		&username, &isVerified,

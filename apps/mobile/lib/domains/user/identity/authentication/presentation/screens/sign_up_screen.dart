@@ -47,6 +47,19 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
   // submission; the form only gates on LOCAL format validity.
   bool _isUsernameValid = false;
 
+  // Backend's canonical username rejection (USERNAME_TAKEN / RESERVED /
+  // INVALID_FORMAT) from the LATEST exchange — rendered INLINE under the
+  // username field with the SAME message mapping the complete-profile screen
+  // uses. One language, one authority. Cleared as soon as the user edits.
+  String? _backendUsernameError;
+
+  // Firebase duplicate-email error (email-already-in-use) — the canonical
+  // Firebase signal for "email ini sudah terdaftar dengan Google". Rendered
+  // INLINE under the email field so the user stays on /auth/sign-up (router
+  // allows /auth for unauthenticated: app_router.dart:230) and never gets a
+  // fake "Account created" snackbar + bounce to /welcome.
+  String? _backendEmailError;
+
   @override
   void initState() {
     super.initState();
@@ -99,7 +112,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
   void _onUsernameValidationChanged(bool isValid, bool isAvailable) {
     setState(() {
       _isUsernameValid = isValid;
+      // The user is correcting the choice — clear the stale rejection.
+      if (_backendUsernameError != null) _backendUsernameError = null;
     });
+  }
+
+  void _onEmailChanged() {
+    if (_backendEmailError != null) {
+      setState(() => _backendEmailError = null);
+    }
+    _controller.clearError();
   }
 
   /// Check if form is valid for enabling submit button
@@ -141,6 +163,13 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
       final controller = ref.read(authControllerProvider.notifier);
       final username = _usernameController.text.trim();
 
+      // Clear stale inline errors before the attempt.
+      setState(() {
+        _backendUsernameError = null;
+        _backendEmailError = null;
+      });
+      _controller.clearError();
+
       // Stage 1C recovery: if the Firebase account already exists and the
       // backend rejected the first username (USERNAME_TAKEN / RESERVED /
       // INVALID_FORMAT), retry ONLY the authenticated exchange with the
@@ -156,13 +185,48 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
         );
       }
 
-      if (mounted) {
+      if (!mounted) return;
+
+      // 1) Firebase duplicate-email is surfaced via AuthState.error
+      // ("Email ini sudah terdaftar..."). This is the canonical signal that
+      // Firebase already rejected `createUserWithEmailAndPassword` — the
+      // email belongs to a Google identity. Stay on this form, render INLINE,
+      // never show the fake success snackbar and never let the router drift
+      // to /welcome (app_router.dart:230 keeps /auth for unauthenticated).
+      final authState = ref.read(authControllerProvider);
+      if (authState is AuthStateError) {
+        final msg = authState.message;
+        setState(() => _backendEmailError = msg);
+        _controller.showError(msg);
+        return;
+      }
+
+      // 2) Canonical username rejection: the exchange was refused and the session
+      // returned to this form with the pending registration intact. Surface
+      // the backend's message INLINE (same wording as complete-profile) —
+      // never a silent bounce, never a fake success snackbar.
+      final rejection = controller.lastRegistrationUsernameError;
+      setState(() => _backendUsernameError = rejection);
+      if (rejection != null) return;
+
+      // 3) Pending verification → router will move to /auth/verify-email.
+      // Only show the success snackbar when we actually parked there.
+      final parkedState = ref.read(authControllerProvider);
+      if (parkedState is AuthStatePendingEmailVerification) {
         AppSnackBar.showSuccess(
           context,
           'Account created! Verification email sent.',
         );
+        return;
       }
-      // Router akan menangani redirect ketika AuthStateAuthenticated tercapai
+      // Any other state (degraded/backendFailure) is already surfaced by
+      // AuthStateView / the banner below — don't fake success.
+      if (parkedState is AuthStateBackendFailure ||
+          parkedState is AuthStateBackendUnavailable) {
+        return;
+      }
+      // Fallback: if we somehow landed in authenticated (re-provisioned
+      // verified identity), let the router handle the redirect silently.
     } catch (e) {
       if (mounted) {
         _controller.showError('Registration failed. Please try again.');
@@ -213,6 +277,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
     // resolves to degraded (no redirect), keeping the user on this screen.
     String? authBackendError;
     if (authState is AuthStateBackendFailure) {
+      authBackendError = authState.message;
+    } else if (authState is AuthStateError) {
+      // Firebase duplicate-email lands here (sign_up_repository → AuthState.error).
+      // Render it in the same banner so a headless error never looks like a
+      // silent bounce to /welcome; the inline email field below also shows it.
       authBackendError = authState.message;
     }
 
@@ -294,14 +363,37 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
           onValidationChanged: _onUsernameValidationChanged,
         ),
 
+        // Canonical backend rejection — inline, same message mapping as the
+        // complete-profile screen (one language, one authority).
+        if (_backendUsernameError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              _backendUsernameError!,
+              style: const TextStyle(
+                color: AppColors.error,
+                fontSize: 12,
+              ),
+            ),
+          ),
+
         const SizedBox(height: 16),
 
-        // Email field
+        // Email field — clears stale duplicate-email rejection on edit.
         AuthTextField.email(
           controller: _emailController,
+          onChanged: (_) => _onEmailChanged(),
           validator: (value) =>
               CanonicalEmailValidator.validationMessage(value),
         ),
+        if (_backendEmailError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              _backendEmailError!,
+              style: const TextStyle(color: AppColors.error, fontSize: 12),
+            ),
+          ),
 
         const SizedBox(height: 16),
 

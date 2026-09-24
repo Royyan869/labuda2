@@ -8,8 +8,6 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/identity/authentication/data/datasources/auth_api_datasource.dart';
 import 'package:labuda/domains/user/identity/authentication/data/repositories/auth_profile_repository.dart';
 import 'package:labuda/domains/user/identity/authentication/data/repositories/auth_signup_repository.dart';
-import 'package:labuda/domains/user/identity/authentication/data/username_service.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/user_profile_patch.dart';
 import 'package:labuda/domains/user/profile/presentation/screens/edit_profile/edit_profile_personal_section.dart';
 
@@ -248,21 +246,6 @@ class _RecordingAuthApiDatasource extends AuthApiDatasource {
   }
 }
 
-class _FakeUsernameService extends UsernameService {
-  _FakeUsernameService() : super(_MockUsernameDatasource());
-
-  @override
-  void checkUsernameAvailability({
-    required String username,
-    required void Function(UsernameCheckResult) onResult,
-    Duration delay = const Duration(milliseconds: 500),
-  }) {
-    onResult(UsernameCheckResult.available());
-  }
-}
-
-class _MockUsernameDatasource extends Mock implements UserApiDatasource {}
-
 class _FakeAuthController extends AuthController {
   _FakeAuthController(this._state);
 
@@ -273,9 +256,11 @@ class _FakeAuthController extends AuthController {
   AuthState build() => _state;
 
   @override
-  Future<bool> completeProfile({required String username}) async {
+  Future<ProfileCompletionOutcome> completeProfile({
+    required String username,
+  }) async {
     lastCompletedUsername = username;
-    return true;
+    return const ProfileCompletionOutcome.success();
   }
 }
 
@@ -406,7 +391,6 @@ void main() {
       ProviderScope(
         overrides: [
           authControllerProvider.overrideWith(() => authController),
-          usernameServiceProvider.overrideWithValue(_FakeUsernameService()),
         ],
         child: const MaterialApp(home: CompleteProfileScreen()),
       ),
@@ -416,8 +400,9 @@ void main() {
     expect(find.byType(TextField), findsOneWidget);
     expect(find.text('seeded_username'), findsNothing);
 
+    // Format-valid input enables the submit button IMMEDIATELY (local
+    // format-only gate; no advisory availability pre-check exists).
     await tester.enterText(find.byType(TextField), 'seeded_username');
-    await tester.pump(const Duration(milliseconds: 600));
     await tester.pump();
 
     final button = tester.widget<ElevatedButton>(find.byType(ElevatedButton));

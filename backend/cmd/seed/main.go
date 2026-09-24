@@ -28,8 +28,8 @@ import (
 	"github.com/labuda/backend/internal/identity/auth"
 	coinsApp "github.com/labuda/backend/internal/incentive/coins/application"
 	coinsRepo2 "github.com/labuda/backend/internal/incentive/coins/infrastructure/repository"
-	"github.com/labuda/backend/internal/platform/capability"
 	paymentSettlementRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
+	"github.com/labuda/backend/internal/platform/capability"
 	platformconfigApp "github.com/labuda/backend/internal/platform/config/application"
 	platformconfigRepo "github.com/labuda/backend/internal/platform/config/infrastructure/repository"
 	"github.com/labuda/backend/internal/platform/logger"
@@ -319,14 +319,18 @@ func (s *Seeder) seedUsers(ctx context.Context) (buyerID, sellerID, adminID uuid
 	for _, u := range users {
 		// Insert user directly into database
 		// Using raw SQL because there's no UserService for creating users
+		//
+		// firebase_uid is the CREDENTIAL BINDING, not an identity: a fixture row
+		// is created UNBOUND (NULL) and the canonical Firebase exchange binds it
+		// on the first login carrying a Firebase-VERIFIED email. Fabricating a UID
+		// here is what used to make fixture accounts permanently unloggable.
 		query := `
 			INSERT INTO users (id, firebase_uid, email, email_verified_at, account_status, role, created_at, updated_at)
-			VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+			VALUES ($1, NULL, $2, $3, $4, $5, NOW(), NOW())
 			ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, role = EXCLUDED.role
 		`
 		_, err := s.db.Pgx().Pool().Exec(ctx, query,
 			u.id,
-			u.id.String(), // Use UUID as firebase_uid for testing
 			u.email,
 			time.Now(),
 			"active",
@@ -671,6 +675,10 @@ func (r *stubProductShippingSetupRepository) DeleteByShippingSetup(ctx context.C
 func (r *stubProductShippingSetupRepository) CreateBulk(ctx context.Context, tx db.Tx, productID uuid.UUID, shippingSetupIDs []uuid.UUID) error {
 	return nil
 }
+func (r *stubProductShippingSetupRepository) CountLinksByShippingSetup(ctx context.Context, tx db.Tx, shippingSetupID uuid.UUID) (int64, error) {
+	return 0, nil
+}
+
 func (r *stubProductShippingSetupRepository) CountByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) (int64, error) {
 	return 1, nil
 }

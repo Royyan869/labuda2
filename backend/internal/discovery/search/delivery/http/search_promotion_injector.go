@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/labuda/backend/internal/governance/viewercontext"
 	contractApp "github.com/labuda/backend/internal/pricing/promotion/contract/application"
+	deliveryApp "github.com/labuda/backend/internal/pricing/promotion/delivery/application"
 	promoentity "github.com/labuda/backend/internal/pricing/promotion/entity"
 	"go.uber.org/zap"
 )
@@ -29,15 +30,23 @@ type CanonicalSearchHandoff interface {
 }
 
 // SearchPromotionInjector builds a promoted items sidecar for search responses.
-// Canonical authority: promotion_contracts → queue → pacing → ticket/QI. No legacy discovery.
+// Canonical authority: promotion_contracts → queue → Delivery Ticket →
+// Qualified Impression → CPM charge (the single canonical delivery/billing
+// path — same TicketIssuer authority as the feed bridge).
+//
+// VIEWER BINDING: a Delivery Ticket requires a bound viewer identity
+// (structural self-delivery detection + qualification), so anonymous search
+// viewers receive NO promoted delivery.
 type SearchPromotionInjector struct {
 	canonicalHandoff CanonicalSearchHandoff
+	issuer           deliveryApp.TicketIssuer
 	db               promotionQueryPool
 	log              *zap.Logger
 }
 
 func NewSearchPromotionInjector(
 	canonicalHandoff CanonicalSearchHandoff,
+	issuer deliveryApp.TicketIssuer,
 	database promotionQueryPool,
 	log *zap.Logger,
 ) *SearchPromotionInjector {
@@ -46,6 +55,7 @@ func NewSearchPromotionInjector(
 	}
 	return &SearchPromotionInjector{
 		canonicalHandoff: canonicalHandoff,
+		issuer:           issuer,
 		db:               database,
 		log:              log,
 	}
@@ -62,13 +72,14 @@ func (inj *SearchPromotionInjector) GetPromotedSidecar(
 	organicIDs []uuid.UUID,
 	organicSellerIDs []uuid.UUID,
 ) []map[string]interface{} {
-	return inj.GetPromotedSidecarWithGeography(ctx, organicIDs, organicSellerIDs, "", false)
+	return inj.GetPromotedSidecarWithGeography(ctx, organicIDs, organicSellerIDs, uuid.Nil, "", false)
 }
 
 func (inj *SearchPromotionInjector) GetPromotedSidecarWithGeography(
 	ctx context.Context,
 	organicIDs []uuid.UUID,
 	organicSellerIDs []uuid.UUID,
+	viewerID uuid.UUID,
 	viewerCityID string,
 	viewerHasPrimary bool,
 ) []map[string]interface{} {
@@ -78,15 +89,19 @@ func (inj *SearchPromotionInjector) GetPromotedSidecarWithGeography(
 	if len(organicIDs) < searchMinOrganicForInjection {
 		return nil
 	}
+	// Canonical viewer binding: a Delivery Ticket requires a bound viewer —
+	// anonymous search viewers receive no promoted delivery at all.
+	if viewerID == uuid.Nil {
+		return nil
+	}
 	candidates, err := inj.canonicalHandoff.SelectForDelivery(ctx, searchMaxPromotedPerPage*3)
 	if err != nil {
+		// Selection carries the canonical delivery gate: when promotion
+		// delivery is platform-disabled it returns ErrDeliveryDisabled and
+		// NOTHING is distributed — no promoted cards, no tickets, no charges.
 		inj.log.Warn("search promotion: canonical handoff failed, fail-open", zap.Error(err))
 		return nil
 	}
-	if len(candidates) == 0 {
-		return nil
-	}
-	candidates = inj.filterCandidatesByGeography(ctx, candidates, viewerCityID, viewerHasPrimary)
 	if len(candidates) == 0 {
 		return nil
 	}
@@ -110,12 +125,107 @@ func (inj *SearchPromotionInjector) GetPromotedSidecarWithGeography(
 	if len(filtered) == 0 {
 		return nil
 	}
+	// CANONICAL DELIVERY TICKET ISSUANCE — one server-issued, viewer-bound
+	// ticket per card actually about to be delivered (full delivery gate:
+	// platform enablement, active contract, no seller self-delivery,
+	// geographic eligibility, pacing envelope). A card that cannot be
+	// authorized is NOT delivered (fail-closed for delivery).
+	filtered = inj.issueDeliveryTickets(ctx, filtered, viewerID, viewerCityID, viewerHasPrimary)
+	if len(filtered) == 0 {
+		return nil
+	}
 	sidecar := make([]map[string]interface{}, 0, len(filtered))
 	for _, item := range filtered {
 		item.Response["inject_at"] = searchInjectAtIndex
 		sidecar = append(sidecar, item.Response)
 	}
+	// CANONICAL QUALIFICATION — the ONLY billing path: every delivered card is
+	// server-qualified into the immutable Qualified Impression + exact CPM
+	// charge. Errors never fail the search response (fail-open presentation;
+	// money safety lives inside the qualification transaction).
+	inj.qualifyDeliveredTickets(ctx, filtered)
 	return sidecar
+}
+
+// issueDeliveryTickets issues the canonical viewer-bound Delivery Ticket for
+// each candidate card; unauthorized cards are dropped.
+func (inj *SearchPromotionInjector) issueDeliveryTickets(
+	ctx context.Context,
+	items []searchHydratedPromotion,
+	viewerID uuid.UUID,
+	viewerCityID string,
+	viewerHasPrimary bool,
+) []searchHydratedPromotion {
+	if inj.issuer == nil {
+		// No ticket authority wired: cards can be presented but never bill.
+		// Narrowly-scoped composition tests only; production wiring always
+		// supplies the canonical issuer.
+		return items
+	}
+	issued := make([]searchHydratedPromotion, 0, len(items))
+	for _, item := range items {
+		if item.Candidate == nil {
+			continue
+		}
+		ticket, err := inj.issuer.IssueTicket(ctx, deliveryApp.IssueTicketInput{
+			ContractID:       item.Candidate.ContractID,
+			TargetType:       promoentity.TargetType(item.Candidate.TargetType),
+			TargetID:         item.Candidate.TargetID,
+			ViewerID:         viewerID,
+			ViewerCityID:     viewerCityID,
+			ViewerHasPrimary: viewerHasPrimary,
+		})
+		if err != nil {
+			inj.log.Warn("search promotion: delivery ticket not issued, card dropped",
+				zap.String("contract_id", item.Candidate.ContractID.String()),
+				zap.Error(err),
+			)
+			continue
+		}
+		item.Response["canonical_ticket_id"] = ticket.ID.String()
+		issued = append(issued, item)
+	}
+	return issued
+}
+
+// qualifyDeliveredTickets runs the canonical server-side qualification for
+// every delivered card — the ONLY path that produces a billable Qualified
+// Impression and books the exact CPM charge to the ledger.
+func (inj *SearchPromotionInjector) qualifyDeliveredTickets(ctx context.Context, items []searchHydratedPromotion) {
+	if inj.issuer == nil {
+		return
+	}
+	for _, item := range items {
+		if item.Candidate == nil {
+			continue
+		}
+		ticketIDRaw, ok := item.Response["canonical_ticket_id"]
+		if !ok {
+			continue
+		}
+		ticketIDStr, ok := ticketIDRaw.(string)
+		if !ok {
+			continue
+		}
+		ticketID, err := uuid.Parse(ticketIDStr)
+		if err != nil {
+			continue
+		}
+		qi, err := inj.issuer.QualifyTicket(ctx, deliveryApp.QualifyTicketInput{TicketID: ticketID})
+		if err != nil {
+			inj.log.Warn("search promotion: qualification did not produce a billable impression",
+				zap.String("contract_id", item.Candidate.ContractID.String()),
+				zap.String("ticket_id", ticketID.String()),
+				zap.Error(err),
+			)
+			continue
+		}
+		inj.log.Info("search promotion: qualified impression recorded",
+			zap.String("contract_id", qi.ContractID.String()),
+			zap.String("ticket_id", ticketID.String()),
+			zap.Int64("charge_rupiah", qi.ChargeRupiah),
+		)
+	}
 }
 
 // ---------- Hydration over canonical candidates ----------
@@ -536,53 +646,6 @@ func searchBuildExternalResponseCanonical(
 	resp["seller_farm_name"] = sellerFarmName
 	resp["seller_lifecycle"] = sellerLifecycle
 	return resp
-}
-
-func (inj *SearchPromotionInjector) filterCandidatesByGeography(ctx context.Context, candidates []contractApp.DeliveryCandidate, viewerCityID string, viewerHasPrimary bool) []contractApp.DeliveryCandidate {
-	if inj.db == nil {
-		return candidates
-	}
-	if len(candidates) == 0 {
-		return candidates
-	}
-	ids := make([]uuid.UUID, 0, len(candidates))
-	for _, c := range candidates {
-		ids = append(ids, c.ContractID)
-	}
-	rows, err := inj.db.Query(ctx, `SELECT contract_id, city_id FROM promotion_contract_geographies WHERE contract_id = ANY($1)`, ids)
-	if err != nil {
-		return candidates
-	}
-	defer rows.Close()
-	contractCities := make(map[uuid.UUID]map[string]struct{})
-	contractHasRestriction := make(map[uuid.UUID]bool)
-	for rows.Next() {
-		var cid uuid.UUID
-		var cityID string
-		if err := rows.Scan(&cid, &cityID); err != nil {
-			continue
-		}
-		if _, ok := contractCities[cid]; !ok {
-			contractCities[cid] = make(map[string]struct{})
-		}
-		contractCities[cid][cityID] = struct{}{}
-		contractHasRestriction[cid] = true
-	}
-	var out []contractApp.DeliveryCandidate
-	for _, c := range candidates {
-		cid := c.ContractID
-		if !contractHasRestriction[cid] {
-			out = append(out, c)
-			continue
-		}
-		if !viewerHasPrimary || viewerCityID == "" {
-			continue
-		}
-		if _, ok := contractCities[cid][viewerCityID]; ok {
-			out = append(out, c)
-		}
-	}
-	return out
 }
 
 // ---------- Slot policy ----------

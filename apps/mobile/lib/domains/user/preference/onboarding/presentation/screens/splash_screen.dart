@@ -119,37 +119,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
-    final authController = ref.watch(authControllerProvider.notifier);
-    // STAGE 3B: retry-budget signal — true while the canonical automatic
-    // backend-sync retry is still scheduled/in flight after a transient
-    // backend-unavailable failure.
-    final isRetryPending = authController.isBackendRetryPending;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Canonical UX: BackendUnavailable while retry budget remains shows
-    // an explicit "retrying" state (not generic "Memuat aplikasi..."),
-    // so the user understands the app is actively reconnecting.
-    // Terminal degraded is only shown once retry budget is exhausted.
-    // BackendFailure (4xx) is immediate degraded (no retry).
+    // Degraded states are terminal — recovery is explicit via Coba Lagi
+    // (retryBackendSync) using the current Firebase identity.
+    // There is no automatic timer retry.
     if (authState is AuthStateBackendUnavailable) {
-      if (isRetryPending) {
-        return _buildRetryingScaffold(context, isDark);
-      }
-      return _buildDegradedScaffold(
-        context,
-        isDark,
-        authState,
-        isRetryPending: isRetryPending,
-      );
+      return _buildDegradedScaffold(context, isDark, authState);
     }
     if (authState is AuthStateBackendFailure) {
-      return _buildDegradedScaffold(
-        context,
-        isDark,
-        authState,
-        isRetryPending: isRetryPending,
-      );
+      return _buildDegradedScaffold(context, isDark, authState);
     }
 
     return Scaffold(
@@ -217,21 +197,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     );
   }
 
-  /// PASS 2B: dedicated UI for AuthStateBackendUnavailable /
-  /// AuthStateBackendFailure — replaces the ordinary spinner + the old
-  /// silent bounce to /welcome. Explains that the SERVER (not the
-  /// device's internet connection) cannot be reached, offers a manual
-  /// retry that calls the existing AuthController.retryBackendSync() path,
-  /// and a logout escape hatch. Safe to call signOut() here: this state is
-  /// reached only during the pre-authenticated sync flow, so
+  /// Degraded UI for AuthStateBackendUnavailable / AuthStateBackendFailure.
+  /// Explains that the SERVER cannot be reached / the backend rejected the
+  /// request, offers manual retry via AuthController.retryBackendSync()
+  /// (current Firebase identity → _syncWithBackend) and a logout escape hatch.
+  /// There is no automatic retry. Safe to call signOut() here: this state
+  /// is reached only during the pre-authenticated sync flow, so
   /// AuthController.signOut()'s AuthStateAuthenticated-only branches
   /// (backend logout call, FCM cleanup) are simply skipped.
   Widget _buildDegradedScaffold(
     BuildContext context,
     bool isDark,
-    AuthState authState, {
-    required bool isRetryPending,
-  }) {
+    AuthState authState,
+  ) {
     final isUnavailable = authState is AuthStateBackendUnavailable;
     final message = isUnavailable
         ? 'Tidak bisa terhubung ke server Labuda. Pastikan backend sedang '
@@ -285,23 +263,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
-                // STAGE 3B: the manual "Coba Lagi" must not create a
-                // parallel recovery cycle — it is disabled whenever the
-                // canonical automatic retry is still pending. (The degraded
-                // scaffold itself is only reached once the retry budget is
-                // exhausted, so this guard also covers the window where a
-                // fresh failure just scheduled a new automatic retry.)
                 SizedBox(
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton.icon(
-                    onPressed: isRetryPending
-                        ? null
-                        : () {
-                            ref
-                                .read(authControllerProvider.notifier)
-                                .retryBackendSync();
-                          },
+                    onPressed: () {
+                      ref
+                          .read(authControllerProvider.notifier)
+                          .retryBackendSync();
+                    },
                     icon: const Icon(Icons.refresh),
                     label: const Text('Coba Lagi'),
                     style: ElevatedButton.styleFrom(
@@ -329,102 +299,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Retrying state: backend unreachable but automatic retry is in flight.
-  /// Shows explicit "Menghubungkan..." instead of generic loading.
-  Widget _buildRetryingScaffold(BuildContext context, bool isDark) {
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: isDark
-              ? const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.darkGray900,
-                    AppColors.darkGray800,
-                    AppColors.darkGray900,
-                  ],
-                  stops: [0.0, 0.5, 1.0],
-                )
-              : const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.neutralWhite,
-                    AppColors.neutralGray50,
-                    AppColors.neutralWhite,
-                  ],
-                  stops: [0.0, 0.5, 1.0],
-                ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedBuilder(
-                animation: _logoController,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: _logoScaleAnimation.value,
-                    child: Opacity(
-                      opacity: _logoFadeAnimation.value,
-                      child: _buildLogo(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 32),
-              FadeTransition(
-                opacity: _textFadeAnimation,
-                child: _buildBrandText(),
-              ),
-              const SizedBox(height: 48),
-              FadeTransition(
-                opacity: _buttonFadeAnimation,
-                child: Column(
-                  children: [
-                    SizedBox(
-                      width: 32,
-                      height: 32,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 3,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.primaryRed,
-                        ),
-                        backgroundColor: isDark
-                            ? AppColors.darkGray600
-                            : AppColors.neutralGray200,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Menghubungkan ke server...',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: isDark
-                                ? AppColors.neutralGray300
-                                : AppColors.neutralGray600,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Mencoba lagi secara otomatis',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: isDark
-                                ? AppColors.neutralGray500
-                                : AppColors.neutralGray500,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ),
         ),
       ),

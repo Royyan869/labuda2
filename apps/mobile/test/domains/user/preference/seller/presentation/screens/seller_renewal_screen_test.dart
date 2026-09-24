@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -144,9 +146,32 @@ class _FakeSellerRepository implements SellerRepository {
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+/// Backend with NO seller_subscriptions row: GET /seller/subscription → 404
+/// (first activation — the seller has never had an interval).
+class _FakeSellerRepositoryNoSubscription implements SellerRepository {
+  int subscriptionCalls = 0;
+
+  @override
+  Future<RepositoryResult<SellerSubscription>> getSubscription(
+    String sellerId,
+  ) async {
+    subscriptionCalls++;
+    return RepositoryResult<SellerSubscription>.failure('Not Found');
+  }
+
+  @override
+  Stream<SellerSubscription?> watchSubscription(String sellerId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 AuthUser _sellerUser({
   required String id,
   required bool hasMarketAuthority,
+  String subscriptionStatus = 'expired',
 }) {
   final now = DateTime.utc(2026, 1, 1);
   return AuthUser(
@@ -163,7 +188,7 @@ AuthUser _sellerUser({
     provider: AuthProvider.email,
     // Renewal only exists for users who ALREADY have a seller profile.
     hasSellerProfile: true,
-    sellerSubscriptionStatus: hasMarketAuthority ? 'active' : 'expired',
+    sellerSubscriptionStatus: hasMarketAuthority ? 'active' : subscriptionStatus,
     hasMarketAuthority: hasMarketAuthority,
     sellerTier: SellerTier.sellerElite,
     isIdVerified: false,
@@ -195,7 +220,7 @@ Widget _wrap(
   _FakeAuthController controller,
   _FakeAuthRepository authRepository,
   _FakeSellerRemoteDatasource sellerRemoteDatasource,
-  _FakeSellerRepository sellerRepository,
+  SellerRepository sellerRepository,
 ) {
   return ProviderScope(
     overrides: [
@@ -267,7 +292,7 @@ Future<void> _returnFromPaymentWebView(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
 
-  expect(find.text('Processing payment'), findsOneWidget);
+  expect(find.text('Memproses pembayaran'), findsOneWidget);
 }
 
 List<MethodCall> _mockUrlLauncher(TestWidgetsFlutterBinding binding) {
@@ -311,7 +336,7 @@ void main() {
         await _openRenewal(tester);
 
         // Read-only context.
-        expect(find.text('Renewal mode'), findsOneWidget);
+        expect(find.text('Mode perpanjang'), findsOneWidget);
         expect(find.text('Seller Payment Summary'), findsOneWidget);
 
         // No registration surface whatsoever: no account/store fields and no
@@ -427,7 +452,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 50));
 
-        expect(find.text('Processing payment'), findsOneWidget);
+        expect(find.text('Memproses pembayaran'), findsOneWidget);
         expect(
           find.text('Perpanjangan seller berhasil diproses'),
           findsNothing,
@@ -444,7 +469,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 600));
 
-        expect(find.text('Processing payment'), findsNothing);
+        expect(find.text('Memproses pembayaran'), findsNothing);
         expect(
           find.text('Perpanjangan seller berhasil diproses'),
           findsOneWidget,
@@ -481,7 +506,7 @@ void main() {
       );
       await _openRenewal(tester);
 
-      expect(find.text('Early renewal mode'), findsOneWidget);
+      expect(find.text('Mode perpanjang dini'), findsOneWidget);
 
       await _selectPaymentMethod(tester);
       await tester.tap(find.text('Bayar & Perpanjang'));
@@ -491,6 +516,227 @@ void main() {
       expect(sellerRemoteDatasource.onboardingCalls, 0);
       expect(authRepository.updateProfileCalls, 0);
       expect(sellerRemoteDatasource.paymentCalls, 1);
+    });
+  });
+
+  group('SellerRenewalScreen — first activation pending dialog (P1 regression)', () {
+    // REGRESSION (P1): for a seller who has NEVER had a subscription interval,
+    // GET /seller/subscription returns 404 → baseline null. The old dialog
+    // dead-ended there (`if (baseline == null) return;` without cancelling the
+    // timer): even after the payment settled and hasMarketAuthority flipped to
+    // true, success was NEVER surfaced — the dialog always fell through to the
+    // 60s timeout ("Payment is still being processed").
+    testWidgets(
+      'activation success surfaces without any baseline interval and stops polling',
+      (tester) async {
+        final binding = TestWidgetsFlutterBinding.ensureInitialized();
+        final urlLauncherCalls = _mockUrlLauncher(binding);
+
+        final notYetActiveUser = _sellerUser(
+          id: 'first-activation-seller',
+          hasMarketAuthority: false,
+          subscriptionStatus: 'none',
+        );
+        final activatedUser = _sellerUser(
+          id: 'first-activation-seller',
+          hasMarketAuthority: true,
+          subscriptionStatus: 'active',
+        );
+        final controller = _FakeAuthController(
+          AuthState.authenticated(notYetActiveUser, emailVerified: true),
+        );
+        final authRepository = _FakeAuthRepository();
+        final sellerRemoteDatasource = _FakeSellerRemoteDatasource()
+          ..paymentUrl = 'https://example.com/pay';
+        // Backend has NO subscription row yet: GET /seller/subscription → 404.
+        final sellerRepository = _FakeSellerRepositoryNoSubscription();
+
+        await tester.pumpWidget(
+          _wrap(
+            controller,
+            authRepository,
+            sellerRemoteDatasource,
+            sellerRepository,
+          ),
+        );
+        await _openRenewal(tester);
+
+        await _selectPaymentMethod(tester);
+        // State 'none' → activation mode copy (Batch 3).
+        await tester.tap(find.text('Bayar & Aktifkan'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 10));
+
+        expect(urlLauncherCalls, isEmpty);
+        await _returnFromPaymentWebView(tester);
+
+        // Backend settles the payment: market authority flips true. With no
+        // baseline interval, this ALONE must complete the dialog — an expiry
+        // comparison is impossible and must not be required.
+        controller.update(
+          AuthState.authenticated(activatedUser, emailVerified: true),
+        );
+        await tester.pump(const Duration(seconds: 3));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 600));
+
+        expect(find.text('Memproses pembayaran'), findsNothing);
+        expect(
+          find.text('Aktivasi seller berhasil — Anda sudah bisa jual dan lelang'),
+          findsOneWidget,
+        );
+        // The "perpanjangan" copy is semantically wrong for first activation.
+        expect(find.text('Perpanjangan seller berhasil diproses'), findsNothing);
+
+        // Baseline was fetched exactly once (before the dialog); success never
+        // required — and never received — an expiry-extended subscription.
+        expect(sellerRepository.subscriptionCalls, 1);
+
+        // Seller identity untouched by payment confirmation.
+        expect(sellerRemoteDatasource.onboardingCalls, 0);
+        expect(authRepository.updateProfileCalls, 0);
+
+        // Polling stopped after success: further timer ticks change nothing.
+        await tester.pump(const Duration(seconds: 3));
+        expect(
+          find.text('Aktivasi seller berhasil — Anda sudah bisa jual dan lelang'),
+          findsOneWidget,
+        );
+        expect(find.text('Memproses pembayaran'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'Batch 2: manual status check after closing the pending dialog completes activation',
+      (tester) async {
+        final binding = TestWidgetsFlutterBinding.ensureInitialized();
+        _mockUrlLauncher(binding);
+
+        final notYetActiveUser = _sellerUser(
+          id: 'first-activation-seller',
+          hasMarketAuthority: false,
+          subscriptionStatus: 'none',
+        );
+        final activatedUser = _sellerUser(
+          id: 'first-activation-seller',
+          hasMarketAuthority: true,
+          subscriptionStatus: 'active',
+        );
+        final controller = _FakeAuthController(
+          AuthState.authenticated(notYetActiveUser, emailVerified: true),
+        );
+        final authRepository = _FakeAuthRepository();
+        final sellerRemoteDatasource = _FakeSellerRemoteDatasource()
+          ..paymentUrl = 'https://example.com/pay';
+        final sellerRepository = _FakeSellerRepositoryNoSubscription();
+
+        await tester.pumpWidget(
+          _wrap(
+            controller,
+            authRepository,
+            sellerRemoteDatasource,
+            sellerRepository,
+          ),
+        );
+        await _openRenewal(tester);
+
+        await _selectPaymentMethod(tester);
+        await tester.tap(find.text('Bayar & Aktifkan'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 10));
+        await _returnFromPaymentWebView(tester);
+
+        // Settlement lands later; the user closes the pending dialog via the
+        // always-available manual re-entry button instead of waiting for the
+        // polling window to expire.
+        await tester.tap(find.text('Cek status pembayaran'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+
+        // First manual check: backend not yet confirmed → re-entry offer.
+        expect(find.text('Pembayaran masih diproses'), findsOneWidget);
+
+        // Backend truth lands; the user re-checks via the re-entry dialog.
+        controller.update(
+          AuthState.authenticated(activatedUser, emailVerified: true),
+        );
+        await tester.tap(find.text('Cek status'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+        await tester.pump(const Duration(milliseconds: 600));
+
+        expect(
+          find.text('Aktivasi seller berhasil — Anda sudah bisa jual dan lelang'),
+          findsOneWidget,
+        );
+        expect(find.text('Memproses pembayaran'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'Batch 2: closing the dialog without confirmation returns to the renewal screen for re-initiate',
+      (tester) async {
+        final binding = TestWidgetsFlutterBinding.ensureInitialized();
+        _mockUrlLauncher(binding);
+
+        final user = _sellerUser(
+          id: 'first-activation-seller',
+          hasMarketAuthority: false,
+          subscriptionStatus: 'none',
+        );
+        final controller = _FakeAuthController(
+          AuthState.authenticated(user, emailVerified: true),
+        );
+        final authRepository = _FakeAuthRepository();
+        final sellerRemoteDatasource = _FakeSellerRemoteDatasource()
+          ..paymentUrl = 'https://example.com/pay';
+        final sellerRepository = _FakeSellerRepositoryNoSubscription();
+
+        await tester.pumpWidget(
+          _wrap(
+            controller,
+            authRepository,
+            sellerRemoteDatasource,
+            sellerRepository,
+          ),
+        );
+        await _openRenewal(tester);
+
+        await _selectPaymentMethod(tester);
+        await tester.tap(find.text('Bayar & Aktifkan'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 10));
+        await _returnFromPaymentWebView(tester);
+
+        await tester.tap(find.text('Cek status pembayaran'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+
+        // Not confirmed → the re-entry dialog offers to check again later.
+        expect(find.text('Pembayaran masih diproses'), findsOneWidget);
+        await tester.tap(find.text('Nanti saja'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        // Back on the renewal form: the user can re-initiate (the backend
+        // reuses the same pending payment idempotently).
+        expect(find.text('Bayar & Aktifkan'), findsOneWidget);
+        expect(sellerRemoteDatasource.paymentCalls, 1);
+      },
+    );
+
+    test('no silent dead-end: null baseline completes success, never bare-returns', () {
+      final source = File(
+        'lib/domains/user/preference/seller/presentation/screens/seller_renewal_screen.dart',
+      ).readAsStringSync();
+      expect(
+        source.contains('if (baseline == null) return;'),
+        isFalse,
+        reason:
+            'the P1 dead-end must not be reintroduced: baseline null = first '
+            'activation = success signal, not a silent return',
+      );
+      expect(source.contains('Aktivasi seller berhasil'), isTrue);
     });
   });
 }

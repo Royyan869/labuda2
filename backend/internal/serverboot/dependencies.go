@@ -169,7 +169,7 @@ import (
 	promotionEntity "github.com/labuda/backend/internal/pricing/promotion/entity"
 	promotionInfraRepo "github.com/labuda/backend/internal/pricing/promotion/infrastructure/repository"
 
-	// Billing domain - for promotion package purchases + promote balance funding (Phase 4B)
+	// Billing domain - for promote balance funding (Phase 4B)
 	billingApp "github.com/labuda/backend/internal/finance/billing/application"
 	billingHTTP "github.com/labuda/backend/internal/finance/billing/delivery/http"
 
@@ -253,6 +253,7 @@ type Dependencies struct {
 	PromotionHandler            *promotionHTTP.PromotionHandler           // PROMOTION PHASE 4: external product surface
 	PromotionContractService    *contractApp.PromotionContractService     // PHASE 4A: canonical contract runtime composition
 	PromotionContractHandler    *contractHTTP.ContractHandler             // PHASE 4A: canonical contract HTTP surface
+	PromotionFundingIntentHandler *contractHTTP.FundingIntentHandler    // PHASE 4C: exact-shortage payment intent
 	PromotionMeasurementHandler *promotionHTTP.MeasurementHandler         // CANONICAL delivery measurement ack surface (impressions/clicks)
 	PromotionDeliveryHandoff    *contractApp.DeliveryHandoffService       // CANONICAL contract-based selection (feed/search injectors)
 	PromoteBalanceHandler       *billingHTTP.PromoteBalanceFundingHandler // PHASE 4B: canonical promote balance funding entry (TypePromoteBalanceTopUp)
@@ -915,6 +916,7 @@ func InitServices(
 	forSaleService := forSaleApp.NewForSaleService(
 		outboxRepository,
 		roleChecker,
+		shippingSetupRepo,
 		productShippingRepo,
 		coverageRepo,
 		shippingQuoteRepository,
@@ -1544,11 +1546,16 @@ func InitServices(
 	//    operable queue target (promotion_contracts + promotion_contract_targets
 	//    authority). Consumed by the feed/search injectors. Filter only — the
 	//    hard billing authority is Delivery Ticket issuance + Qualification.
+	//    CARRIER OF THE SINGLE CANONICAL DELIVERY GATE: selection enforces the
+	//    platform promotion_delivery_enabled config, so a disabled platform
+	//    distributes NO promoted cards anywhere (Owner truth: one gate, no
+	//    delivery while disabled).
 	canonicalDeliveryHandoffService := contractApp.NewDeliveryHandoffService(
 		db.Pgx(),
 		contractRepoImpl.NewContractRepository(),
 		contractRepoImpl.NewContractTargetRepository(),
 		&canonicalPromotionOperabilityAdapterForContract{checker: operabilityChecker},
+		configService,
 	)
 
 	// 3. Canonical delivery measurement: the truthful server-side observation
@@ -1560,6 +1567,21 @@ func InitServices(
 		db.Pgx(),
 		deliveryRepoImpl.NewMeasurementRepository(),
 	)
+
+	// 3b. Canonical DeliveryService — THE single production delivery/billing
+	//     authority (Delivery Ticket issuance + Qualified Impression
+	//     qualification + exact CPM charge). Consumed by the feed/search
+	//     injectors as their TicketIssuer; the same instance gates issuance and
+	//     qualification via IsPromotionDeliveryEnabled.
+	canonicalDeliveryService := deliveryApp.NewDeliveryService(
+		db.Pgx(),
+		contractRepoImpl.NewContractRepository(),
+		deliveryRepoImpl.NewDeliveryRepository(db.Pgx()),
+		settlementFinanceService,
+		configService,
+		operabilityChecker, // canonical target/seller authority (same OperabilityCheckerImpl as queue + selection)
+	)
+	canonicalDeliveryService.SetGeographyRepository(contractRepoImpl.NewContractGeographyRepository())
 
 	// 4. Client-explicit impression/click acknowledgement surface.
 	promotionMeasurementHandler := promotionHTTP.NewMeasurementHandler(
@@ -2320,9 +2342,14 @@ func InitServices(
 	// P3A — Promotion feed injector. Interleaves active promoted items into
 	// the organic feed. Nil-safe: a nil injector disables injection entirely.
 	// CANONICAL CONVERGENCE: feed uses ONLY canonical handoff.
+	// CANONICAL PRODUCTION DELIVERY PATH: the injector receives the canonical
+	// TicketIssuer (the single DeliveryService) so every delivered card carries
+	// a server-issued viewer-bound Delivery Ticket and is server-qualified into
+	// a billable Qualified Impression — the ONLY billing path (Owner truth).
 	feedPromotionInjector := feedHTTP.NewFeedPromotionInjector(
 		canonicalDeliveryHandoffService,
 		canonicalDeliveryMeasurementService,
+		canonicalDeliveryService,
 		db.Pgx().Pool(),
 		log.Logger,
 	)
@@ -2388,6 +2415,7 @@ func InitServices(
 	// CommentHandler.contentService for its parent-content visibility gate;
 	// wiring nil earlier made the production list endpoint panic at runtime.
 	commentRepo := contentrepo.NewCommentRepository()
+	commentMediaRepo := contentrepo.NewCommentMediaRepository()
 	// C-IPC — idempotency_records authority shared with commerce-reference
 	// comment creates. Wired so normal comment POST enforces the mandatory
 	// Idempotency-Key header (replay vs conflict) inside AddComment.
@@ -2415,6 +2443,7 @@ func InitServices(
 	)
 	contentService.SetCommerceReferenceValidator(commerceRefValidator)
 	commentService.SetCommerceReferenceValidator(commerceRefValidator)
+	commentService.SetCommentMediaRepository(commentMediaRepo)
 	chatService.SetCommerceReferenceValidator(commerceRefValidator)
 
 	commentHandler := contentHTTP.NewCommentHandler(
@@ -2627,22 +2656,54 @@ func InitServices(
 	canonicalContractHandler := contractHTTP.NewContractHandler(canonicalContractService, canonicalDeliveryMeasurementService, log.Logger)
 
 	// =============================================================================
-	// CANONICAL PROMOTION DELIVERY COMPOSITION (PHASE 4C)
+	// CANONICAL FUNDING INTENT SERVICE (EXACT-SHORTAGE PAYMENT)
 	// =============================================================================
-	// Constructs the canonical DeliveryService to establish config-authority
-	// injection. No trigger is added. IssueTicket and QualifyTicket remain
-	// uncalled in production. The gate consumes IsPromotionDeliveryEnabled.
-	// Geography wired for hard gate.
-	ds := deliveryApp.NewDeliveryService(
-		db.Pgx(),
-		contractRepoImpl.NewContractRepository(),
-		deliveryRepoImpl.NewDeliveryRepository(db.Pgx()),
-		settlementFinanceService,
-		configService,
-		operabilityChecker, // canonical target/seller authority (same OperabilityCheckerImpl as queue + selection)
+	fundingIntentService := contractApp.NewFundingIntentService(
+		canonicalContractService,
+		billingService,
+		log.Logger,
 	)
-	ds.SetGeographyRepository(contractRepoImpl.NewContractGeographyRepository())
-	_ = ds
+	// Payment-method disclosure authority for the exact-shortage funding
+	// obligation: the same canonical payment method table (and the same
+	// CalculateFee) that InitiateBillingPayment charges on. Read-only — no
+	// payment, no ledger, no intent mutation.
+	fundingIntentService.SetPaymentMethodReader(paymentMethodRepository)
+	fundingIntentHandler := contractHTTP.NewFundingIntentHandler(fundingIntentService, log.Logger)
+
+	// =============================================================================
+	// CANONICAL PROMOTION PLANNED-FINISH FINALIZATION WORKER (OWNER TRUTH #6)
+	// =============================================================================
+	// Automatic finalization at planned finish: when a contract's planned
+	// delivery window ends, delivery stops (selection + qualification already
+	// enforce the boundary) and the worker triggers the SINGLE canonical
+	// FinalizeBySystem boundary to settle and release the unused allocation
+	// back to the seller's Promote Balance exactly once. The worker owns NO
+	// finalization logic and NO ledger writes — concurrency safety and the
+	// exact-once release live in the canonical boundary (row lock + ledger
+	// release idempotency key).
+	promotionFinalizationWorker := worker.NewPromotionFinalizationWorker(canonicalContractService, log.Logger)
+	if workerEnabled("PROMOTION_FINALIZATION_WORKER", true, log.Logger) {
+		workerStartups = append(workerStartups, func() {
+			promotionFinalizationWorker.Start()
+			log.Info("PromotionFinalizationWorker started",
+				zap.Duration("check_interval", worker.DefaultPromotionFinalizationInterval),
+				zap.Int("batch_size", worker.DefaultPromotionFinalizationBatchSize),
+			)
+		})
+	} else {
+		_ = promotionFinalizationWorker
+	}
+
+	// =============================================================================
+	// CANONICAL PROMOTION DELIVERY COMPOSITION (PHASE 4C — ACTIVE PATH)
+	// =============================================================================
+	// The canonical DeliveryService is THE production delivery/billing
+	// authority: the feed/search injectors consume it as their TicketIssuer,
+	// so every delivered card carries a server-issued viewer-bound Delivery
+	// Ticket and is server-qualified into a billable Qualified Impression
+	// (exact cumulative CPM charge through FinanceService). The gate consumes
+	// IsPromotionDeliveryEnabled; selection carries the same single gate.
+	// Geography wired for hard gate.
 
 	// =============================================================================
 	// CANONICAL PROMOTE BALANCE FUNDING ENTRY (PHASE 4B)
@@ -2658,8 +2719,6 @@ func InitServices(
 	// auth.RoleChecker.HasActiveSellerCapability (same 4-gate authority used
 	// by PromotionContractService / For Sale / Auction creation).
 	promoteBalanceHandler := billingHTTP.NewPromoteBalanceFundingHandler(
-		billingService,
-		roleChecker,
 		db.Pgx(),
 		log.Logger,
 	)
@@ -2691,9 +2750,12 @@ func InitServices(
 	// Enforcement is unconditional.
 	searchContentShadowRunner := evaluator.NewSearchContentShadowRunner(log.Logger)
 
-	// P3B — Search promotion injector. Canonical contract handoff (feed parity).
+	// P3B — Search promotion injector. Canonical contract handoff (feed parity)
+	// plus the canonical TicketIssuer: same single delivery/billing path as the
+	// feed. Anonymous search viewers receive no promoted delivery (viewer
+	// binding is required by the ticket authority).
 	searchPromotionInjector := searchHTTP.NewSearchPromotionInjector(
-		canonicalDeliveryHandoffService, db.Pgx().Pool(), log.Logger,
+		canonicalDeliveryHandoffService, canonicalDeliveryService, db.Pgx().Pool(), log.Logger,
 	)
 
 	// Initialize search handler — /search/content enforcement is
@@ -3151,6 +3213,7 @@ func InitServices(
 		PromotionHandler:            promotionHandler,                // PROMOTION PHASE 4: external product surface
 		PromotionContractService:    canonicalContractService,        // PHASE 4A: canonical contract runtime composition
 		PromotionContractHandler:    canonicalContractHandler,        // PHASE 4A: canonical contract HTTP surface
+		PromotionFundingIntentHandler: fundingIntentHandler,          // PHASE 4C: exact-shortage payment intent
 		PromotionMeasurementHandler: promotionMeasurementHandler,     // CANONICAL delivery measurement ack surface (impressions/clicks)
 		PromotionDeliveryHandoff:    canonicalDeliveryHandoffService, // CANONICAL contract-based selection (feed/search injectors)
 		PromoteBalanceHandler:       promoteBalanceHandler,           // PHASE 4B: canonical promote balance funding entry
@@ -3857,64 +3920,45 @@ func (h *CorePaymentHandler) ListPaymentMethods(c *gin.Context) {
 	})
 }
 
-// CreateBillingPayment creates a payment for a billing transaction.
+// BillingPaymentResult holds the outcome of a billing payment initiation.
+type BillingPaymentResult struct {
+	PaymentID   uuid.UUID
+	PaymentURL  string
+	GrossAmount int64
+	ExpiredAt   time.Time
+	ReferenceType string
+	ReferenceID   *uuid.UUID
+}
+
+// InitiateBillingPayment creates a payment for a billing transaction and
+// initiates the Midtrans Snap redirect. This is the canonical billing→payment
+// engine reused by both POST /payments/billing and the FundingIntent payment
+// initiation endpoint.
 //
-// Canonical use-case: promotion package purchase.
-// Source of truth for amount is billing.gross_amount (server-derived).
-func (h *CorePaymentHandler) CreateBillingPayment(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	userIDVal, exists := c.Get("userID")
-	if !exists {
-		response.Unauthorized(c, "User not authenticated")
-		return
-	}
-	userID, ok := userIDVal.(uuid.UUID)
-	if !ok {
-		response.InternalServerError(c, "Invalid user ID in context")
-		return
-	}
-
-	var req CreateBillingPaymentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, fmt.Sprintf("Invalid request: %v", err))
-		return
-	}
-
-	// PASS_18V: Load the payment method BEFORE the transaction so we can
-	// calculate the fee. The backend is the sole authority for the buyer
-	// payment fee — the client never submits a fee or gross amount.
+// AUTHORITY: single canonical billing payment initiation. No second path.
+func (h *CorePaymentHandler) InitiateBillingPayment(
+	ctx context.Context,
+	userID uuid.UUID,
+	billingID uuid.UUID,
+	paymentMethodCode string,
+) (*BillingPaymentResult, error) {
+	// Load payment method
 	var method *paymentmethodentity.Method
-	var err error
-	err = h.db.WithTx(ctx, func(tx db.Tx) error {
+	err := h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
-		method, err = h.paymentMethodRepo.GetByCode(ctx, tx, req.PaymentMethodCode)
+		method, err = h.paymentMethodRepo.GetByCode(ctx, tx, paymentMethodCode)
 		return err
 	})
 	if err != nil {
-		if errors.Is(err, paymentmethodrepo.ErrMethodNotFound) {
-			response.BadRequest(c, fmt.Sprintf("Unknown payment method: %s", req.PaymentMethodCode))
-			return
-		}
-		h.log.Error("Failed to load payment method",
-			zap.String("method_code", req.PaymentMethodCode),
-			zap.Error(err),
-		)
-		response.InternalServerError(c, "Failed to load payment method")
-		return
+		return nil, fmt.Errorf("load payment method: %w", err)
 	}
 	if !method.Enabled {
-		response.BadRequest(c, fmt.Sprintf("Payment method is disabled: %s", method.Code))
-		return
+		return nil, fmt.Errorf("payment method is disabled: %s", method.Code)
 	}
 
-	var (
-		billing *billingentity.BillingTransaction
-		payment *repository.Payment
-	)
+	var payment *repository.Payment
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
-		var fetchErr error
-		billing, fetchErr = h.billingRepo.GetForUpdate(ctx, tx, req.BillingID)
+		billing, fetchErr := h.billingRepo.GetForUpdate(ctx, tx, billingID)
 		if fetchErr != nil {
 			return fetchErr
 		}
@@ -3927,7 +3971,7 @@ func (h *CorePaymentHandler) CreateBillingPayment(c *gin.Context) {
 		}
 
 		existing, existingErr := h.paymentRepo.GetPaymentByReference(
-			ctx, tx, repository.ReferenceTypeBilling, req.BillingID,
+			ctx, tx, repository.ReferenceTypeBilling, billingID,
 		)
 		if existingErr == nil && existing != nil &&
 			existing.Status == repository.PaymentStatusPending &&
@@ -3936,9 +3980,6 @@ func (h *CorePaymentHandler) CreateBillingPayment(c *gin.Context) {
 			return nil
 		}
 
-		// Calculate payment-method fee: F = CalculateFee(billing principal, method)
-		// The billing principal (A) is billing.GrossAmount — the requested top-up amount.
-		// Gateway charge = A + F. Promote Balance receives only A.
 		billingPrincipal := billing.GrossAmount
 		paymentFee, err := paymentmethodentity.CalculateFee(billingPrincipal, *method)
 		if err != nil {
@@ -3952,7 +3993,7 @@ func (h *CorePaymentHandler) CreateBillingPayment(c *gin.Context) {
 		paymentNumber := fmt.Sprintf("PAY-BILL-%d", time.Now().UnixNano())
 		midtransOrderID := fmt.Sprintf("LAB-BILL-%s", uuid.New().String())
 		expiredAt := time.Now().Add(24 * time.Hour)
-		referenceID := req.BillingID
+		referenceID := billingID
 		methodCode := method.Code
 
 		created, createErr := h.paymentRepo.CreatePayment(ctx, tx, repository.CreatePaymentInput{
@@ -3974,28 +4015,12 @@ func (h *CorePaymentHandler) CreateBillingPayment(c *gin.Context) {
 		payment = created
 		return nil
 	})
-
 	if err != nil {
-		if errors.Is(err, auth.ErrOwnerRequired) {
-			response.Forbidden(c, "You can only create payment for your own billing")
-			return
-		}
-		if strings.Contains(err.Error(), "not pending") {
-			response.Conflict(c, "Billing is not payable")
-			return
-		}
-		h.log.Error("Failed to create billing payment",
-			zap.String("user_id", userID.String()),
-			zap.String("billing_id", req.BillingID.String()),
-			zap.Error(err),
-		)
-		response.InternalServerError(c, "Failed to create billing payment")
-		return
+		return nil, err
 	}
 
 	if payment == nil {
-		response.InternalServerError(c, "Failed to create billing payment")
-		return
+		return nil, fmt.Errorf("failed to create billing payment")
 	}
 
 	var paymentURL string
@@ -4006,13 +4031,7 @@ func (h *CorePaymentHandler) CreateBillingPayment(c *gin.Context) {
 	} else {
 		paymentURL, err = h.createMidtransTransaction(ctx, payment, nil, nil, nil)
 		if err != nil {
-			h.log.Error("Failed to create Midtrans transaction for billing payment",
-				zap.String("payment_id", payment.ID.String()),
-				zap.String("billing_id", req.BillingID.String()),
-				zap.Error(err),
-			)
-			response.InternalServerError(c, "Failed to initialize payment gateway")
-			return
+			return nil, fmt.Errorf("create midtrans transaction: %w", err)
 		}
 
 		err = h.db.WithTx(ctx, func(tx db.Tx) error {
@@ -4026,13 +4045,74 @@ func (h *CorePaymentHandler) CreateBillingPayment(c *gin.Context) {
 		}
 	}
 
+	return &BillingPaymentResult{
+		PaymentID:     payment.ID,
+		PaymentURL:    paymentURL,
+		GrossAmount:   payment.GrossAmount.Int64(),
+		ExpiredAt:     payment.ExpiredAt,
+		ReferenceType: payment.ReferenceType,
+		ReferenceID:   payment.ReferenceID,
+	}, nil
+}
+
+// CreateBillingPayment creates a payment for a billing transaction.
+//
+// Canonical use-case: Promote Balance top-up.
+// Source of truth for amount is billing.gross_amount (server-derived).
+func (h *CorePaymentHandler) CreateBillingPayment(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		response.InternalServerError(c, "Invalid user ID in context")
+		return
+	}
+
+	var req CreateBillingPaymentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, fmt.Sprintf("Invalid request: %v", err))
+		return
+	}
+
+	result, err := h.InitiateBillingPayment(ctx, userID, req.BillingID, req.PaymentMethodCode)
+	if err != nil {
+		if errors.Is(err, auth.ErrOwnerRequired) {
+			response.Forbidden(c, "You can only create payment for your own billing")
+			return
+		}
+		if strings.Contains(err.Error(), "not pending") {
+			response.Conflict(c, "Billing is not payable")
+			return
+		}
+		if strings.Contains(err.Error(), "payment method is disabled") {
+			response.BadRequest(c, err.Error())
+			return
+		}
+		if strings.Contains(err.Error(), "load payment method") {
+			response.BadRequest(c, err.Error())
+			return
+		}
+		h.log.Error("Failed to create billing payment",
+			zap.String("user_id", userID.String()),
+			zap.String("billing_id", req.BillingID.String()),
+			zap.Error(err),
+		)
+		response.InternalServerError(c, "Failed to create billing payment")
+		return
+	}
+
 	response.Success(c, gin.H{
-		"payment_id":     payment.ID,
-		"payment_url":    paymentURL,
-		"gross_amount":   payment.GrossAmount.Int64(),
-		"expired_at":     payment.ExpiredAt,
-		"reference_type": payment.ReferenceType,
-		"reference_id":   payment.ReferenceID,
+		"payment_id":     result.PaymentID,
+		"payment_url":    result.PaymentURL,
+		"gross_amount":   result.GrossAmount,
+		"expired_at":     result.ExpiredAt,
+		"reference_type": result.ReferenceType,
+		"reference_id":   result.ReferenceID,
 	})
 }
 
@@ -4714,6 +4794,10 @@ func (r *stubProductShippingSetupRepository) DeleteByShippingSetup(ctx context.C
 func (r *stubProductShippingSetupRepository) CreateBulk(ctx context.Context, tx db.Tx, productID uuid.UUID, shippingSetupIDs []uuid.UUID) error {
 	return nil
 }
+func (r *stubProductShippingSetupRepository) CountLinksByShippingSetup(ctx context.Context, tx db.Tx, shippingSetupID uuid.UUID) (int64, error) {
+	return 0, nil
+}
+
 func (r *stubProductShippingSetupRepository) CountByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) (int64, error) {
 	return 0, nil
 }

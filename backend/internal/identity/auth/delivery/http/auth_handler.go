@@ -193,38 +193,12 @@ func (h *AuthHandler) FirebaseExchange(c *gin.Context) {
 
 			createdAuthUser, createdFlag, createErr := h.createUser(ctx, tx, firebaseUID, email, firebaseEmailVerified)
 			if createErr != nil {
-				if errors.Is(createErr, errEmailAlreadyRegistered) {
-					h.log.Warn("Email already registered to another account (concurrent creation race), rejecting",
-						zap.String("incoming_firebase_uid", firebaseUID),
-					)
-					response.Error(c, http.StatusConflict, "EMAIL_ALREADY_REGISTERED", "This email is already registered to another account. Please sign in with your original provider or use explicit account linking.")
-					return
-				}
 				h.log.Error("Failed to create user", zap.Error(createErr))
 				response.InternalServerError(c, "Failed to create user")
 				return
 			}
 			authUser = createdAuthUser
 			created = createdFlag
-		} else {
-			// B2 — Explicit identity linking (Owner-locked).
-			// Firebase Exchange MUST NOT silently overwrite an existing
-			// firebase_uid merely because normalized email matches.
-			// Authentication and identity linking are separate operations.
-			if authUser.AccountStatus != "active" {
-				h.log.Warn("User account is not active",
-					zap.String("user_id", authUser.ID.String()),
-					zap.String("account_status", authUser.AccountStatus),
-				)
-				response.Error(c, http.StatusForbidden, "ACCOUNT_INACTIVE", fmt.Sprintf("Account is %s", authUser.AccountStatus))
-				return
-			}
-			h.log.Warn("Email already registered to another account, rejecting automatic linking",
-				zap.String("existing_user_id", authUser.ID.String()),
-				zap.String("incoming_firebase_uid", firebaseUID),
-			)
-			response.Error(c, http.StatusConflict, "EMAIL_ALREADY_REGISTERED", "This email is already registered to another account. Please sign in with your original provider or use explicit account linking.")
-			return
 		}
 	}
 
@@ -235,6 +209,53 @@ func (h *AuthHandler) FirebaseExchange(c *gin.Context) {
 		)
 		response.Error(c, http.StatusForbidden, "ACCOUNT_INACTIVE", fmt.Sprintf("Account is %s", authUser.AccountStatus))
 		return
+	}
+
+	// ── SINGLE BINDING RULE (canonical exchange matrix) ───────────────────
+	// The users row IS the account; its normalized email is the account key;
+	// a Firebase identity is only the credential that proves control of that
+	// email. This handler is the ONLY writer of users.firebase_uid outside of
+	// account creation, and it only ever binds to an UNBOUND row.
+	//
+	// Canonical outcomes when the presented UID is not the bound one:
+	//   row unbound + verified email  → bind (proof of email control)
+	//   row unbound + unverified      → 403 EMAIL_NOT_VERIFIED
+	//   row bound + same UID          → normal path (never reached here)
+	//   row bound + DIFFERENT UID     → 409 IDENTITY_CONFLICT (two Firebase
+	//     identities claim one account: canonical anomaly, never re-bound;
+	//     client-side Firebase linking is the sole mechanism that unifies
+	//     multiple providers under ONE Firebase UID).
+	// There is no seventh case.
+	if authUser.FirebaseUID.Valid && authUser.FirebaseUID.String != firebaseUID {
+		h.log.Warn("Firebase identity conflict: a different UID is already bound to this account",
+			zap.String("user_id", authUser.ID.String()),
+			zap.String("bound_firebase_uid", authUser.FirebaseUID.String),
+			zap.String("incoming_firebase_uid", firebaseUID),
+		)
+		response.Error(c, http.StatusConflict, "IDENTITY_CONFLICT", "This email is already linked to a different sign-in method. Sign in with the original method and link Google from account settings.")
+		return
+	}
+
+	if !authUser.FirebaseUID.Valid {
+		if !firebaseEmailVerified {
+			h.log.Warn("Unverified Firebase email cannot bind to an unbound account",
+				zap.String("user_id", authUser.ID.String()),
+				zap.String("incoming_firebase_uid", firebaseUID),
+			)
+			response.Error(c, http.StatusForbidden, "EMAIL_NOT_VERIFIED", "Verify this email address before using it to sign in to an existing account.")
+			return
+		}
+
+		if bindErr := h.bindFirebaseIdentity(ctx, tx, authUser.ID, firebaseUID); bindErr != nil {
+			h.log.Error("Failed to bind Firebase identity", zap.Error(bindErr))
+			response.InternalServerError(c, "Database error")
+			return
+		}
+		authUser.FirebaseUID = sql.NullString{String: firebaseUID, Valid: true}
+		h.log.Info("Firebase identity bound to unbound canonical account",
+			zap.String("user_id", authUser.ID.String()),
+			zap.String("firebase_uid", firebaseUID),
+		)
 	}
 
 	if err := h.syncEmailVerifiedSnapshot(ctx, tx, authUser, firebaseEmailVerified); err != nil {
@@ -358,8 +379,10 @@ func (h *AuthHandler) FirebaseExchange(c *gin.Context) {
 // createUser creates a new user in PostgreSQL from Firebase auth data
 // This is idempotent - it will only create the user if they don't exist
 type authUserRecord struct {
-	ID              uuid.UUID
-	FirebaseUID     string
+	ID uuid.UUID
+	// FirebaseUID is the bound Firebase credential. NULL = unbound (an account
+	// row that exists before any provider identity has been bound to it).
+	FirebaseUID     sql.NullString
 	Email           *string
 	AccountStatus   string
 	Role            string
@@ -447,9 +470,10 @@ func (h *AuthHandler) createUser(ctx context.Context, tx pgx.Tx, firebaseUID, em
 			return nil, false, fmt.Errorf("failed to resolve user by email after insert conflict: %w", loadErr)
 		}
 		if authUser != nil {
-			// B2: Do not silently link on insert-conflict race either.
-			// The normalized email is already owned by an active Labuda account.
-			return nil, false, fmt.Errorf("%w: %s", errEmailAlreadyRegistered, *normalizedEmail)
+			// Race: another request created/bound this email first. Hand the
+			// canonical row back to the caller — the caller's single binding
+			// rule decides whether the presented UID may be bound to it.
+			return authUser, false, nil
 		}
 	}
 
@@ -548,13 +572,16 @@ func (h *AuthHandler) hasSoftDeletedUser(ctx context.Context, tx pgx.Tx, query s
 	return exists, nil
 }
 
-// linkFirebaseIdentity updates the canonical firebase_uid for a Labuda account.
+// bindFirebaseIdentity writes the canonical Firebase credential binding of a
+// Labuda account. It is the single writer of users.firebase_uid outside of
+// account creation and is called only from FirebaseExchange, under the single
+// binding rule: a Firebase-VERIFIED email binds an UNBOUND account row.
+// Rows that are already bound to a different UID are rejected upstream with
+// IDENTITY_CONFLICT — this function must never overwrite a binding.
 //
-// B2 — Explicit linking invariant: this helper MUST NOT be called from
-// FirebaseExchange automatic linking. It is retained only for a future
-// explicit identity-linking flow (separate bounded scope). Automatic
-// email-based overwrite is forbidden.
-func (h *AuthHandler) linkFirebaseIdentity(ctx context.Context, tx pgx.Tx, userID uuid.UUID, firebaseUID string) error {
+// Binding creates no account, grants no role/capability, and issues no session
+// by itself.
+func (h *AuthHandler) bindFirebaseIdentity(ctx context.Context, tx pgx.Tx, userID uuid.UUID, firebaseUID string) error {
 	_, err := tx.Exec(ctx, `
 		UPDATE users
 		SET firebase_uid = $1, updated_at = NOW()
@@ -585,7 +612,6 @@ func (h *AuthHandler) syncEmailVerifiedSnapshot(ctx context.Context, tx pgx.Tx, 
 var (
 	errSignupUsernameTaken     = errors.New("username already taken")
 	errSignupUsernameImmutable = errors.New("username is immutable after registration")
-	errEmailAlreadyRegistered  = errors.New("email already registered to another account")
 )
 
 // applyRegistrationUsername stamps the canonical username chosen at

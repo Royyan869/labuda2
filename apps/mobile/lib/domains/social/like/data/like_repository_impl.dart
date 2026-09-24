@@ -10,14 +10,16 @@ import 'package:labuda/domains/social/like/data/remote/like_api_datasource.dart'
 /// API-based implementation of LikeRepository
 ///
 /// Handles Like operations through the Go backend API.
-/// Uses polling for real-time streams until WebSocket support is added.
+/// Industry standard: optimistic UI (0ms) + server reconcile + push.
+/// Polling removed to prevent N x Timer thundering herd (see like_handler.go:180).
+/// Real-time for other users via single WS/SSE subscription (future) or
+/// explicit [refreshLikeStats] after mutations.
 class LikeRepositoryImpl implements LikeRepository {
   final LikeApiDatasource _datasource;
   final ILoggerService? _logger;
 
-  // Polling timers for real-time streams
-  final Map<String, Timer> _activePollingTimers = {};
-  final Map<String, StreamController> _activeStreamControllers = {};
+  // Active streams keyed by target (no per-card Timer)
+  final Map<String, StreamController<LikeStats>> _activeStreamControllers = {};
 
   LikeRepositoryImpl(this._datasource, {ILoggerService? logger})
     : _logger = logger;
@@ -67,8 +69,11 @@ class LikeRepositoryImpl implements LikeRepository {
   }
 
   // ===========================================
-  // REAL-TIME STREAMS (POLLING-BASED)
+  // REAL-TIME STREAMS (OPTIMISTIC + ON-DEMAND)
   // ===========================================
+
+  String _streamKey(String targetId, LikeTargetType targetType) =>
+      'likeStats_${targetId}_$targetType';
 
   @override
   Stream<LikeStats> watchLikeStats({
@@ -76,7 +81,7 @@ class LikeRepositoryImpl implements LikeRepository {
     required LikeTargetType targetType,
     required String currentUserId,
   }) {
-    final key = 'likeStats_${targetId}_$targetType';
+    final key = _streamKey(targetId, targetType);
     _cleanupExistingStream(key);
 
     final controller = StreamController<LikeStats>.broadcast(
@@ -84,21 +89,35 @@ class LikeRepositoryImpl implements LikeRepository {
     );
     _activeStreamControllers[key] = controller;
 
-    // Initial fetch
+    // Initial fetch only - no periodic Timer (industry: 0ms optimistic + reconcile)
     _fetchAndEmitLikeStats(targetId, targetType, currentUserId, controller);
 
-    // Poll every 10 seconds (frequent for likes)
-    _activePollingTimers[key] = Timer.periodic(
-      const Duration(seconds: 10),
-      (_) => _fetchAndEmitLikeStats(
-        targetId,
-        targetType,
-        currentUserId,
-        controller,
-      ),
-    );
-
     return controller.stream;
+  }
+
+  @override
+  void pushOptimisticLikeStats(LikeStats stats) {
+    final key = _streamKey(stats.targetId, stats.targetType);
+    final controller = _activeStreamControllers[key];
+    if (controller == null || controller.isClosed) return;
+    controller.add(stats);
+  }
+
+  @override
+  Future<void> refreshLikeStats({
+    required String targetId,
+    required LikeTargetType targetType,
+    required String currentUserId,
+  }) async {
+    final key = _streamKey(targetId, targetType);
+    final controller = _activeStreamControllers[key];
+    if (controller == null || controller.isClosed) return;
+    _fetchAndEmitLikeStats(
+      targetId,
+      targetType,
+      currentUserId,
+      controller,
+    );
   }
 
   // ===========================================
@@ -130,25 +149,16 @@ class LikeRepositoryImpl implements LikeRepository {
   }
 
   void _cleanupStream(String key) {
-    _activePollingTimers[key]?.cancel();
-    _activePollingTimers.remove(key);
     _activeStreamControllers.remove(key);
   }
 
   void _cleanupExistingStream(String key) {
-    _activePollingTimers[key]?.cancel();
-    _activePollingTimers.remove(key);
     _activeStreamControllers[key]?.close();
     _activeStreamControllers.remove(key);
   }
 
-  /// Cleanup all active streams and timers
+  /// Cleanup all active streams
   void dispose() {
-    for (final timer in _activePollingTimers.values) {
-      timer.cancel();
-    }
-    _activePollingTimers.clear();
-
     for (final controller in _activeStreamControllers.values) {
       controller.close();
     }

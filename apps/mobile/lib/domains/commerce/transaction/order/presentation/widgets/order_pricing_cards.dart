@@ -63,7 +63,9 @@ class _CommercePricingCard extends StatelessWidget {
           ),
           if (pricing.shippingCost > 0)
             _PricingRow(
-              label: 'Biaya Pengiriman',
+              // Seller tariff is ALL-IN (shipping + packing) — see
+              // checkout_order_summary_section.dart for the label contract.
+              label: 'Ongkir + Packing',
               value: AppFormatters.formatCurrency(pricing.shippingCost),
             ),
           if (pricing.serviceFeeAmount != null)
@@ -138,7 +140,7 @@ class OrderSellerPricingCard extends StatelessWidget {
             value: AppFormatters.formatCurrency(pricing.subtotal),
           ),
           _PricingRow(
-            label: 'Biaya Pengiriman',
+            label: 'Ongkir + Packing',
             value: AppFormatters.formatCurrency(pricing.shippingCost),
           ),
           const Divider(height: 24),

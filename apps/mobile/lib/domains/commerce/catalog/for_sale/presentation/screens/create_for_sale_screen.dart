@@ -13,12 +13,12 @@ import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/core/api/api_error_codes.dart' as api_codes;
 import 'package:labuda/core/common/types/preparation_time.dart';
+import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_media_handler.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
+import 'package:labuda/shared/widgets/media_grid_uploader.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/widgets/seller_shipping_options_selector.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
+import 'package:labuda/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
 
 /// Create ForSale Screen
 ///
@@ -54,8 +54,8 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
   // Shipping readiness
   PreparationTime _preparationTime = PreparationTime.immediate;
 
-  // Phase 2: shipping option IDs the seller selects to apply to this forSale.
-  // Drives the post-create PUT /products/:id/shipping call.
+  // Shipping option IDs the seller selects to apply to this forSale. They
+  // travel INSIDE the create request — create = publish, no separate linking.
   List<String> _selectedShippingSetupIds = const [];
 
   bool _isSubmitting = false;
@@ -67,6 +67,22 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
     _descriptionController.dispose();
     _preparationNoteController.dispose();
     super.dispose();
+  }
+
+  /// CREATE = PUBLISH: the submit button stays disabled until the form is
+  /// complete — required fields filled AND at least one shipping option
+  /// selected. The backend re-validates everything (defense in depth).
+  bool get _canSubmit {
+    final senderAddressId = ref.watch(senderAddressIdProvider).value;
+    return !_isSubmitting &&
+        senderAddressId != null &&
+        _titleController.text.trim().isNotEmpty &&
+        _descriptionController.text.trim().isNotEmpty &&
+        _mediaUrls.isNotEmpty &&
+        _price != null &&
+        _variety != null &&
+        _sizeInCm != null &&
+        _selectedShippingSetupIds.isNotEmpty;
   }
 
   Future<void> _submitForm() async {
@@ -100,19 +116,26 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
       return;
     }
 
+    // CREATE = PUBLISH: shipping selection is mandatory — the backend
+    // rejects a create without at least one option that has active coverage.
+    if (_selectedShippingSetupIds.isEmpty) {
+      setState(() => _errorMessage = 'Pilih minimal 1 opsi pengiriman untuk forSale ini');
+      return;
+    }
+
     setState(() => _isSubmitting = true);
     _errorMessage = null;
 
     try {
-      // Build request using forSale domain model
-      // NOTE: Create as draft (private visibility) - publish happens later with validation
+      // CREATE = PUBLISH: one request carries everything — content, price,
+      // shipping selection — and the backend publishes in the same
+      // transaction. There is no draft stage in this flow.
       final request = CreateForSaleRequest(
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         price: _price!,
         quantity: _quantity,
         negotiationEnabled: _isNegotiable,
-        visibility: 'private', // Create as draft - publish separately
         mediaUrls: _mediaUrls,
         variety: _variety,
         sizeCm: _sizeInCm,
@@ -120,6 +143,8 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
         gender: _gender,
         breeder: _breeder,
         bloodline: _bloodline,
+        farmAddressId: ref.read(senderAddressIdProvider).value,
+        shippingSetupIds: _selectedShippingSetupIds,
         preparationTime: _preparationTime,
         preparationNote: _preparationNoteController.text.trim().isEmpty
             ? null
@@ -136,42 +161,11 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
 
       if (result.isSuccess && result.data != null) {
         final forSale = result.data!;
-        // Phase 2: link the seller-selected shipping subset to the brand-new
-        // forSale. We only call PUT when the seller actually picked something;
-        // an empty selection is permitted for draft, but the publish gate
-        // (SHIPPING_NOT_CONFIGURED) will fire later if the seller never links.
-        if (_selectedShippingSetupIds.isNotEmpty) {
-          final productId = forSale.productId;
-          if (productId == null || productId.isEmpty) {
-            setState(() {
-              _errorMessage =
-                  'Draft forSale tersimpan, tetapi product_id belum tersedia untuk menautkan opsi pengiriman.';
-            });
-            return;
-          }
-          final linkResult = await ref
-              .read(shippingRepositoryProvider)
-              .setProductShippingSetups(productId, _selectedShippingSetupIds);
-          if (!mounted) return;
-          if (linkResult.isError) {
-            // ForSale exists (as draft) but shipping linking failed — be
-            // explicit so the seller can retry from the edit screen.
-            setState(() {
-              _errorMessage =
-                  'Draft forSale tersimpan, tapi opsi pengiriman gagal ditautkan: '
-                  '${linkResult.error ?? 'kesalahan tidak diketahui'}. '
-                  'Buka Edit ForSale untuk mencoba lagi sebelum publish.';
-            });
-            return;
-          }
-        }
         // Show success and navigate back with forSale data
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              _selectedShippingSetupIds.isEmpty
-                  ? 'Draft forSale tersimpan. Pilih opsi pengiriman sebelum publish.'
-                  : 'Draft forSale tersimpan dengan ${_selectedShippingSetupIds.length} opsi pengiriman.',
+              'ForSale tayang dengan ${_selectedShippingSetupIds.length} opsi pengiriman.',
             ),
             backgroundColor: AppColors.successGreen,
             duration: const Duration(seconds: 3),
@@ -179,10 +173,11 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
         );
         Navigator.of(context).pop(forSale); // Return created forSale
       } else if (result.errorCode == api_codes.emailVerificationRequired) {
-        // Defensive backend fail-close: keep honoring the server's rejection.
-        await showBlockedActionGate(
+        // Backend-rejection handler (defense-in-depth): the backend stays
+        // the single authority for EMAIL_VERIFICATION_REQUIRED.
+        AppSnackBar.showError(
           context,
-          actionDescription: 'membuat forSale',
+          'Verifikasi email kamu diperlukan sebelum membuat iklan.',
         );
       } else {
         final consumed = CommerceRestrictionPresenter.handle(
@@ -226,6 +221,11 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
           onPressed: () => context.push('/auth/sign-in'),
         );
 
+      // D2 hard gate: unverified sessions never reach an authenticated
+      // surface; the router parks them on the verify-email screen.
+      case AuthStatePendingEmailVerification():
+        return _buildLoadingScaffold(context);
+
       case AuthStateRequiresProfileCompletion():
         return const CompleteProfileScreen();
 
@@ -244,10 +244,25 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
           );
         }
 
-        // NO market-authority gate: this screen creates a PRIVATE DRAFT
-        // (workspace state — see the `visibility: 'private'` payload below).
-        // Market authority is enforced by the owning service at publish
-        // (draft → active); blocking draft creation on it was an over-gate.
+        // CREATE = PUBLISH: an expired seller cannot create at all. Same
+        // gate and same renewal CTA as the auction create screen.
+        if (user.hasMarketAuthority != true) {
+          final isExpired = ref.watch(isSellerSubscriptionExpiredProvider);
+          return _buildAccessGate(
+            context,
+            title: isExpired
+                ? 'Langganan Seller Habis'
+                : 'Langganan Belum Aktif',
+            message: isExpired
+                ? 'Aktifkan kembali langganan seller agar bisa membuat forSale.'
+                : 'Aktifkan langganan seller agar bisa membuat forSale.',
+            buttonLabel: isExpired
+                ? 'Perpanjang Langganan'
+                : 'Aktifkan Langganan',
+            onPressed: () => context.push(RoutePaths.sellerRenewal),
+          );
+        }
+
         return _buildFormScaffold(context);
     }
   }
@@ -382,10 +397,10 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
 
             const SizedBox(height: 24),
 
-            // Media Upload Section
+            // Media Upload Section — foto+video via 1 mesin (orchestrator)
             const _SectionTitle('Media Produk'),
             const SizedBox(height: 12),
-            _MediaUploadSection(
+            MediaGridUploader(
               mediaUrls: _mediaUrls,
               onMediaAdded: (url) => setState(() => _mediaUrls.add(url)),
               onMediaRemoved: (index) =>
@@ -489,9 +504,9 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
 
             const SizedBox(height: 16),
 
-            // Submit button
+            // Submit button — disabled until the form is complete.
             ElevatedButton(
-              onPressed: _isSubmitting ? null : _submitForm,
+              onPressed: _canSubmit ? _submitForm : null,
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
                 backgroundColor: AppColors.primaryRed,
@@ -507,7 +522,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
                       ),
                     )
                   : const Text(
-                      'Buat ForSale',
+                      'Publikasikan ForSale',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -525,13 +540,14 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
 
   /// Blocked-action message for a failed [ForSaleController.canCreateForSale].
   ///
-  /// Reaching this means the principal is not in a seller workspace yet (no
-  /// usable session, or no seller profile). Market authority is not consulted:
-  /// draft creation is workspace state, and the capability gate lives at publish.
+  /// Reaching this means the principal lacks market authority — no usable
+  /// session, no seller profile, or no active seller subscription.
   String _createForSaleAccessMessage(AuthState authState) {
     return switch (authState) {
       AuthStateAuthenticated(:final user) when user.hasSellerProfile != true =>
         'Buat seller profile dulu untuk membuat forSale.',
+      AuthStateAuthenticated(:final user) when user.hasMarketAuthority != true =>
+        'Langganan seller belum aktif atau sudah berakhir. Perpanjang dulu untuk membuat forSale.',
       _ => 'Sesi autentikasi belum siap untuk membuat forSale.',
     };
   }
@@ -603,153 +619,6 @@ class _DescriptionField extends StatelessWidget {
         }
         return null;
       },
-    );
-  }
-}
-
-class _MediaUploadSection extends StatelessWidget {
-  final List<String> mediaUrls;
-  final void Function(String) onMediaAdded;
-  final void Function(int) onMediaRemoved;
-
-  const _MediaUploadSection({
-    required this.mediaUrls,
-    required this.onMediaAdded,
-    required this.onMediaRemoved,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        if (mediaUrls.isEmpty)
-          GestureDetector(
-            onTap: () {
-              ForSaleMediaHandler.showMediaPicker(
-                context: context,
-                currentMediaCount: mediaUrls.length,
-                onMediaUploaded: (urls) async {
-                  for (final url in urls) {
-                    onMediaAdded(url);
-                  }
-                },
-              );
-            },
-            child: Container(
-              height: 150,
-              decoration: BoxDecoration(
-                color: AppColors.neutralGray100,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppColors.neutralGray300,
-                  style: BorderStyle.solid,
-                ),
-              ),
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add_photo_alternate, size: 40),
-                    SizedBox(height: 8),
-                    Text('Tap untuk upload foto/video'),
-                    Text('(Minimal 1 media)', style: TextStyle(fontSize: 12)),
-                  ],
-                ),
-              ),
-            ),
-          )
-        else
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: mediaUrls.length + 1,
-            itemBuilder: (context, index) {
-              if (index < mediaUrls.length) {
-                return _MediaTile(
-                  url: mediaUrls[index],
-                  onRemove: () => onMediaRemoved(index),
-                );
-              }
-              return _AddMediaTile(
-                onTap: () {
-                  ForSaleMediaHandler.showMediaPicker(
-                    context: context,
-                    currentMediaCount: mediaUrls.length,
-                    onMediaUploaded: (urls) async {
-                      // Add uploaded URLs to the list
-                      for (final url in urls) {
-                        onMediaAdded(url);
-                      }
-                    },
-                  );
-                },
-              );
-            },
-          ),
-      ],
-    );
-  }
-}
-
-class _MediaTile extends StatelessWidget {
-  final String url;
-  final VoidCallback onRemove;
-
-  const _MediaTile({required this.url, required this.onRemove});
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.network(url, fit: BoxFit.cover),
-        ),
-        Positioned(
-          top: 4,
-          right: 4,
-          child: GestureDetector(
-            onTap: onRemove,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Colors.black54,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.close, size: 16, color: Colors.white),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _AddMediaTile extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _AddMediaTile({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.neutralGray100,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: AppColors.neutralGray300,
-            style: BorderStyle.solid,
-          ),
-        ),
-        child: const Icon(Icons.add, size: 32),
-      ),
     );
   }
 }

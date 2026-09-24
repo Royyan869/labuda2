@@ -53,7 +53,7 @@ import 'package:labuda/domains/user/profile/data/profile_providers.dart'
 import 'package:labuda/domains/user/profile/data/services/user_sync_service.dart';
 import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/profile_view_provider.dart';
-import 'package:labuda/features/explore/explore.dart';
+import 'package:labuda/features/marketplace/marketplace.dart';
 import 'package:labuda/features/home/home.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 
@@ -549,7 +549,7 @@ class _FakeLikeRepository extends Fake implements LikeRepository {
   ));
 }
 
-// -- Auction (CommercePreviewSection / exploreAuctionsStreamProvider) ---
+// -- Auction (kept for Explore tab; Home no longer uses commerce preview) ---
 
 class _FakeAuctionRepository extends Fake implements AuctionRepository {
   @override
@@ -665,7 +665,7 @@ Future<ProviderContainer> _buildContainer({
   final fakeFirebaseUser = _FakeFirebaseUser(syncUser.id);
   final registry = NavigationRegistryImpl();
   registerHomeTab(registry);
-  registerExploreTab(registry);
+  registerMarketplaceTab(registry);
 
   final overrides = [
     // == TRANSPORT (the ONLY Feed pipeline override) ===================
@@ -704,8 +704,7 @@ Future<ProviderContainer> _buildContainer({
     likeRepositoryProvider.overrideWithValue(_FakeLikeRepository()),
     ratingRepositoryProvider.overrideWithValue(_FakeRatingRepository()),
 
-    // == COMMERCE (CommercePreviewSection uses forSalesProvider via
-    // apiClientProvider, plus auctionRepositoryProvider) ===============
+    // == COMMERCE (Explore tab; Home is now social-only, no preview) =====
     auctionRepositoryProvider.overrideWithValue(_FakeAuctionRepository()),
 
     // == USER SYNC =====================================================
@@ -739,8 +738,8 @@ Future<ProviderContainer> _buildContainer({
       );
     }),
 
-    // == COMMERCE AUCTION PREVIEW ======================================
-    exploreAuctionsStreamProvider.overrideWith((ref) {
+    // == COMMERCE AUCTION (Explore) ======================================
+    marketplaceAuctionsStreamProvider.overrideWith((ref) {
       return Stream.value(const <Auction>[]);
     }),
     getUserRatingSummaryProvider.overrideWith((ref, userId) async {
@@ -780,7 +779,7 @@ Future<void> _pumpHarness(
 
 /// Pump enough frames for the Feed async chain to resolve.
 /// Uses a bounded loop rather than pumpAndSettle to avoid hanging when
-/// stream-based providers (ExploreScreen tabs, notification badges) keep
+/// stream-based providers (MarketplaceScreen tabs, notification badges) keep
 /// scheduling frames.
 Future<void> _settleFeed(WidgetTester tester) async {
   for (int i = 0; i < 30; i++) {
@@ -841,11 +840,13 @@ void main() {
       // PROOF 1c: Home tab is active (Home tab is index 0).
       // Verified by HomeScreen being rendered (IndexedStack at index 0).
       // We also verify the Explore tab is NOT visible (different tab).
-      // ExploreScreen may be in the IndexedStack but not visible.
+      // MarketplaceScreen may be in the IndexedStack but not visible.
       // The key proof is that HomeScreen renders (it's inside IndexedStack).
 
-      // PROOF 1d: HomeScreen renders its header text.
-      expect(find.text('Komunitas & Marketplace Koi'), findsOneWidget);
+      // PROOF 1d: Home is social-only — no marketplace header, no preview shelf.
+      expect(find.text('Komunitas & Marketplace Koi'), findsNothing);
+      expect(find.text('🔥 Sedang Laku Hari Ini'), findsNothing);
+      expect(find.byType(HomeScreen), findsOneWidget);
     });
   });
 
@@ -1027,11 +1028,11 @@ void main() {
       expect(adapter.feedRequestCount, 1);
 
       // PROOF 4b: Switch to Explore tab.
-      await tester.tap(find.text('Explore'));
+      await tester.tap(find.text('Marketplace'));
       await _settleFeed(tester);
 
-      // ExploreScreen should now be visible.
-      expect(find.byType(ExploreScreen), findsOneWidget);
+      // MarketplaceScreen should now be visible.
+      expect(find.byType(MarketplaceScreen), findsOneWidget);
 
       // PROOF 4c: Feed request count did NOT increment during tab switch.
       expect(adapter.feedRequestCount, 1);

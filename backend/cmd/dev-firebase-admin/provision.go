@@ -37,8 +37,9 @@ const (
 // Options are the validated, non-secret inputs for one provisioning run.
 type Options struct {
 	// Email is the Firebase email. It must match the email of an existing
-	// seeded/bootstrapped Labuda admin so the canonical email-link fallback in
-	// FirebaseExchange can associate the Firebase UID with that admin row.
+	// seeded/bootstrapped Labuda admin. Provisioning alone does not bind
+	// anything: FirebaseExchange binds the provisioned UID to that admin row on
+	// the first login, because a Firebase-VERIFIED email is the account key.
 	Email string
 
 	// Password is the development password to set when creating the Firebase
@@ -64,8 +65,9 @@ type firebaseAuth interface {
 	// FindByEmail returns (nil, false, nil) when no Firebase user exists.
 	FindByEmail(ctx context.Context, email string) (*auth.UserRecord, bool, error)
 
-	// Create provisions a new Firebase user.
-	Create(ctx context.Context, email, password string) (*auth.UserRecord, error)
+	// Create provisions a new Firebase user with an explicit email-verified
+	// attribute.
+	Create(ctx context.Context, email, password string, emailVerified bool) (*auth.UserRecord, error)
 }
 
 // realFirebaseAuth adapts the existing canonical Firebase client to firebaseAuth.
@@ -94,8 +96,8 @@ func (r realFirebaseAuth) FindByEmail(ctx context.Context, email string) (*auth.
 }
 
 // Create provisions a new Firebase user through the canonical client.
-func (r realFirebaseAuth) Create(ctx context.Context, email, password string) (*auth.UserRecord, error) {
-	return r.client.CreateUser(ctx, email, password)
+func (r realFirebaseAuth) Create(ctx context.Context, email, password string, emailVerified bool) (*auth.UserRecord, error) {
+	return r.client.CreateUser(ctx, email, password, emailVerified)
 }
 
 // isFirebaseUserNotFound reports whether the error chain contains a Firebase
@@ -174,7 +176,11 @@ func Provision(ctx context.Context, fb firebaseAuth, opts Options) (*Result, err
 		return &Result{Status: StatusAlreadyExists, UID: existing.UID, Email: email}, nil
 	}
 
-	created, err := fb.Create(ctx, email, opts.Password)
+	// Development provisioning always marks the address verified: the canonical
+	// exchange binds a Firebase identity to an existing Labuda account only when
+	// the email is verified, and a development fixture address (admin@test.local)
+	// has no mailbox to click a verification link in.
+	created, err := fb.Create(ctx, email, opts.Password, true)
 	if err != nil {
 		return nil, fmt.Errorf("firebase create failed: %w", err)
 	}

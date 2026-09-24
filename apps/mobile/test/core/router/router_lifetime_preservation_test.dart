@@ -39,7 +39,7 @@ import 'package:labuda/domains/system/notification/domain/entities/notification_
 import 'package:labuda/domains/system/notification/domain/repositories/i_notification_repository.dart';
 import 'package:labuda/domains/system/notification/services/fcm_service.dart';
 import 'package:labuda/domains/system/notification/services/local_notification_service.dart';
-import 'package:labuda/features/explore/explore.dart';
+import 'package:labuda/features/marketplace/marketplace.dart';
 import 'package:labuda/features/home/home.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 
@@ -725,7 +725,7 @@ Future<ProviderContainer> _buildContainer({
   final fakeFirebaseUser = _FakeFirebaseUser(syncUser.id);
   final registry = NavigationRegistryImpl();
   registerHomeTab(registry);
-  registerExploreTab(registry);
+  registerMarketplaceTab(registry);
 
   final overrides = [
     authControllerProvider.overrideWith(
@@ -778,7 +778,7 @@ Future<ProviderContainer> _buildContainer({
     forSalesProvider.overrideWith((ref, params) async {
       return [forSale];
     }),
-    exploreAuctionsStreamProvider.overrideWith((ref) {
+    marketplaceAuctionsStreamProvider.overrideWith((ref) {
       return Stream.value([auction]);
     }),
     forSaleDetailProvider.overrideWith((ref, forSaleId) async {
@@ -1025,16 +1025,16 @@ void main() {
       expect(find.byType(MainScreen), findsOneWidget);
       final mainState = tester.state(find.byType(MainScreen));
 
-      await tester.tap(find.text('Explore'));
+      await tester.tap(find.text('Marketplace'));
       await tester.pumpAndSettle();
-      expect(find.byType(ExploreScreen), findsOneWidget);
+      expect(find.byType(MarketplaceScreen), findsOneWidget);
 
       final routerBefore = container.read(goRouterProvider);
       await _refreshSamePrincipal(tester, container);
 
       expect(container.read(goRouterProvider), same(routerBefore));
       expect(tester.state(find.byType(MainScreen)), same(mainState));
-      expect(find.byType(ExploreScreen), findsOneWidget);
+      expect(find.byType(MarketplaceScreen), findsOneWidget);
     },
   );
 }

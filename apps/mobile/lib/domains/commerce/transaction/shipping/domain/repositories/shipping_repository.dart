@@ -22,43 +22,19 @@ abstract class ShippingRepository {
     CreateShippingSetupRequest request,
   );
 
-  /// Update shipping option
+  /// Update a shipping option as ONE package (identity +, when provided,
+  /// full destination replace in a single backend transaction).
   Future<Result<ShippingSetup>> updateShippingSetup(
     String optionId,
     UpdateShippingSetupRequest request,
   );
 
-  /// Update a shipping option together with its coverages in a single
-  /// atomic request.
-  Future<Result<ShippingSetup>> updateShippingSetupFull(
-    String optionId,
-    UpdateShippingSetupFullRequest request,
-  );
-
-  /// Delete shipping option
+  /// Delete shipping option. Refused (409) while the option is linked to any
+  /// listing — retire via [toggleActiveStatus] instead.
   Future<Result<void>> deleteShippingSetup(String optionId);
 
-  /// Toggle active status
+  /// Toggle active status (canonical retire/restore path).
   Future<Result<void>> toggleActiveStatus(String optionId, bool isActive);
-
-  // =====================================
-  // Coverage Management
-  // =====================================
-
-  /// Add coverage to a shipping option
-  Future<Result<ShippingCoverage>> addCoverage(
-    String optionId,
-    AddCoverageRequest request,
-  );
-
-  /// Update coverage
-  Future<Result<ShippingCoverage>> updateCoverage(
-    String coverageId,
-    UpdateCoverageRequest request,
-  );
-
-  /// Delete coverage
-  Future<Result<void>> deleteCoverage(String coverageId);
 
   // =====================================
   // Product-Shipping Link

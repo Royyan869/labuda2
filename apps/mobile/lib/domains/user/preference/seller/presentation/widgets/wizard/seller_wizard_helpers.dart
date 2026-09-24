@@ -37,16 +37,20 @@ class SellerWizardHelpers {
     return result ?? false;
   }
 
-  /// Check if Step 1 (Account Prerequisites) is valid
+  /// Check if Step 1 (Account Prerequisites) is valid.
+  ///
+  /// D2 HARD GATE (design scope v2): emailVerified is no longer part of this
+  /// client-side gate — every authenticated user has already proven a
+  /// verified email before the exchange, so the check is provably dead. The
+  /// backend stays authoritative (EMAIL_VERIFICATION_REQUIRED handler on the
+  /// submission path remains as defense-in-depth).
   static bool isAccountStepValid({
-    required bool emailVerified,
     required String username,
     required String bio,
     required String phoneNumber,
     required String senderAddress,
   }) {
-    return emailVerified &&
-        username.isNotEmpty &&
+    return username.isNotEmpty &&
         bio.isNotEmpty &&
         phoneNumber.isNotEmpty &&
         senderAddress.isNotEmpty;
@@ -55,26 +59,5 @@ class SellerWizardHelpers {
   /// Check if Step 2 (Store Info) is valid
   static bool isStoreStepValid({required String storeName}) {
     return storeName.isNotEmpty;
-  }
-
-  /// Check if any form field has been filled
-  static bool hasAnyChanges({
-    required String username,
-    required String bio,
-    required String phoneNumber,
-    required String senderAddress,
-    required String farmName,
-    required String? farmPhotoUrl,
-    required String? selectedStorePhotoPath,
-    required bool agreeToTerms,
-  }) {
-    return username.isNotEmpty ||
-        bio.isNotEmpty ||
-        phoneNumber.isNotEmpty ||
-        senderAddress.isNotEmpty ||
-        farmName.isNotEmpty ||
-        farmPhotoUrl != null ||
-        selectedStorePhotoPath != null ||
-        agreeToTerms;
   }
 }

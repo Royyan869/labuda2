@@ -23,7 +23,7 @@ import 'domains/system/notification/services/fcm_service.dart';
 import 'domains/system/notification/services/in_app_banner_service.dart';
 import 'domains/system/notification/services/local_notification_service.dart';
 import 'domains/system/notification/services/notification_trigger_impl.dart';
-import 'features/explore/explore.dart';
+import 'features/marketplace/marketplace.dart';
 import 'features/home/home.dart';
 import 'firebase_options.dart';
 import 'shared/services/logger_service.dart' show LoggerService;
@@ -223,7 +223,7 @@ Future<_AppBootstrap> _initServices() async {
 
 void _registerNavigationTabs(INavigationRegistry registry) {
   registerHomeTab(registry);
-  registerExploreTab(registry);
+  registerMarketplaceTab(registry);
 }
 
 /// Removes auth tokens from error strings before logging.

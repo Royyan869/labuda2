@@ -23,4 +23,15 @@ abstract class LikeRepository {
     required LikeTargetType targetType,
     required String currentUserId,
   });
+
+  /// Push optimistic stats to active stream (0ms UX).
+  /// No-op if no active watcher for [targetId]/[targetType].
+  void pushOptimisticLikeStats(LikeStats stats);
+
+  /// Re-fetch authoritative stats from backend and push to stream.
+  Future<void> refreshLikeStats({
+    required String targetId,
+    required LikeTargetType targetType,
+    required String currentUserId,
+  });
 }

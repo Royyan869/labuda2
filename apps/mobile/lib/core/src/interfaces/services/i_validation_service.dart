@@ -16,8 +16,7 @@ import 'package:labuda/core/common/result.dart';
 /// audit proved zero consumers. Remaining methods all delegate to canonical
 /// authorities (CanonicalEmailValidator / CanonicalPhoneValidator /
 /// CanonicalUrlValidator / CanonicalPasswordPolicy). Username format
-/// authority is CanonicalUsernameValidator via UsernameValidationService —
-/// NOT this interface.
+/// authority is CanonicalUsernameValidator directly — NOT this interface.
 abstract class IValidationService {
   /// Validasi email dengan `Result<T>` pattern
   Future<Result<bool>> validateEmail(String email);

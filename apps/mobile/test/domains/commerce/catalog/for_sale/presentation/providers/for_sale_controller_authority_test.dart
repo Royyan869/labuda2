@@ -250,8 +250,8 @@ AuthUser _seller({
   );
 }
 
-/// Mirrors the payload the create screen builds: a PRIVATE workspace draft
-/// (`create_for_sale_screen.dart` → `visibility: 'private'`).
+/// Mirrors the payload the create screen builds: create = publish — the
+/// request carries its shipping selection; there is no visibility field.
 CreateForSaleRequest _request() => const CreateForSaleRequest(
   title: 'Kohaku 50cm',
   description: 'Healthy koi',
@@ -260,13 +260,13 @@ CreateForSaleRequest _request() => const CreateForSaleRequest(
   mediaUrls: ['https://example.com/1.jpg'],
   variety: 'Kohaku',
   sizeCm: 50,
-  visibility: 'private',
+  shippingSetupIds: ['11111111-1111-1111-1111-111111111111'],
 );
 
 void main() {
-  group('ForSaleController draft-create authority boundary', () {
+  group('ForSaleController create-as-publish authority boundary', () {
     test(
-      'seller with a profile but NO market authority can create a private draft',
+      'seller with a profile but NO market authority is BLOCKED at create',
       () async {
         final repo = _FakeForSaleRepository();
         final controller = ForSaleController(
@@ -286,15 +286,16 @@ void main() {
           ),
         );
 
-        expect(result.isSuccess, isTrue);
-        expect(repo.createCalls, 1);
-        // Still a PRIVATE workspace draft — market exposure is a later step.
-        expect(repo.lastRequest?.visibility, 'private');
+        // CREATE = PUBLISH: creating without an active subscription is
+        // rejected locally with the canonical code.
+        expect(result.isError, isTrue);
+        expect(result.errorCode, 'MARKET_AUTHORITY_REQUIRED');
+        expect(repo.createCalls, 0);
       },
     );
 
     test(
-      'expired-subscription seller can also create a private draft',
+      'expired-subscription seller is also blocked at create',
       () async {
         final repo = _FakeForSaleRepository();
         final controller = ForSaleController(
@@ -314,8 +315,9 @@ void main() {
           ),
         );
 
-        expect(result.isSuccess, isTrue);
-        expect(repo.createCalls, 1);
+        expect(result.isError, isTrue);
+        expect(result.errorCode, 'MARKET_AUTHORITY_REQUIRED');
+        expect(repo.createCalls, 0);
       },
     );
 
@@ -360,7 +362,7 @@ void main() {
       expect(repo.createCalls, 0);
     });
 
-    test('canCreateForSale is workspace-keyed, not capability-keyed', () {
+    test('canCreateForSale requires profile AND capability', () {
       final controller = ForSaleController(
         repository: _FakeForSaleRepository(),
         logger: const _NoopLogger(),
@@ -382,9 +384,18 @@ void main() {
         ),
         emailVerified: true,
       );
+      final activeSeller = AuthState.authenticated(
+        _seller(
+          hasSellerProfile: true,
+          hasMarketAuthority: true,
+          sellerSubscriptionStatus: 'active',
+        ),
+        emailVerified: true,
+      );
 
-      expect(controller.canCreateForSale(sellerWithoutCapability), isTrue);
+      expect(controller.canCreateForSale(sellerWithoutCapability), isFalse);
       expect(controller.canCreateForSale(nonSeller), isFalse);
+      expect(controller.canCreateForSale(activeSeller), isTrue);
       expect(controller.canCreateForSale(const AuthState.loading()), isFalse);
     });
 

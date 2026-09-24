@@ -45,9 +45,9 @@ class _ShippingRepo implements ShippingRepository {
   }
 
   @override
-  Future<Result<ShippingSetup>> updateShippingSetupFull(
+  Future<Result<ShippingSetup>> updateShippingSetup(
     String optionId,
-    UpdateShippingSetupFullRequest request,
+    UpdateShippingSetupRequest request,
   ) async {
     throw UnimplementedError();
   }
@@ -62,27 +62,6 @@ class _ShippingRepo implements ShippingRepository {
     String optionId,
     bool isActive,
   ) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Result<ShippingCoverage>> addCoverage(
-    String optionId,
-    AddCoverageRequest request,
-  ) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Result<ShippingCoverage>> updateCoverage(
-    String coverageId,
-    UpdateCoverageRequest request,
-  ) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Result<void>> deleteCoverage(String coverageId) async {
     throw UnimplementedError();
   }
 

@@ -9,7 +9,7 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/utils/media_extensions.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_media_handler.dart';
+import 'package:labuda/shared/widgets/media_grid_uploader.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/widgets/seller_shipping_options_selector.dart';
 
@@ -365,7 +365,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
 
             const _SectionTitle('Media Produk'),
             const SizedBox(height: 12),
-            _MediaUploadSection(
+            MediaGridUploader(
               mediaUrls: _mediaUrls,
               onMediaAdded: (url) => setState(() => _mediaUrls.add(url)),
               onMediaRemoved: (index) =>
@@ -515,152 +515,6 @@ class _DescriptionField extends StatelessWidget {
         }
         return null;
       },
-    );
-  }
-}
-
-class _MediaUploadSection extends StatelessWidget {
-  final List<String> mediaUrls;
-  final void Function(String) onMediaAdded;
-  final void Function(int) onMediaRemoved;
-
-  const _MediaUploadSection({
-    required this.mediaUrls,
-    required this.onMediaAdded,
-    required this.onMediaRemoved,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        if (mediaUrls.isEmpty)
-          GestureDetector(
-            onTap: () {
-              ForSaleMediaHandler.showMediaPicker(
-                context: context,
-                currentMediaCount: mediaUrls.length,
-                onMediaUploaded: (urls) async {
-                  for (final url in urls) {
-                    onMediaAdded(url);
-                  }
-                },
-              );
-            },
-            child: Container(
-              height: 150,
-              decoration: BoxDecoration(
-                color: AppColors.neutralGray100,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppColors.neutralGray300,
-                  style: BorderStyle.solid,
-                ),
-              ),
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add_photo_alternate, size: 40),
-                    SizedBox(height: 8),
-                    Text('Tap untuk upload foto/video'),
-                    Text('(Minimal 1 media)', style: TextStyle(fontSize: 12)),
-                  ],
-                ),
-              ),
-            ),
-          )
-        else
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: mediaUrls.length + 1,
-            itemBuilder: (context, index) {
-              if (index < mediaUrls.length) {
-                return _MediaTile(
-                  url: mediaUrls[index],
-                  onRemove: () => onMediaRemoved(index),
-                );
-              }
-              return _AddMediaTile(
-                onTap: () {
-                  ForSaleMediaHandler.showMediaPicker(
-                    context: context,
-                    currentMediaCount: mediaUrls.length,
-                    onMediaUploaded: (urls) async {
-                      for (final url in urls) {
-                        onMediaAdded(url);
-                      }
-                    },
-                  );
-                },
-              );
-            },
-          ),
-      ],
-    );
-  }
-}
-
-class _MediaTile extends StatelessWidget {
-  final String url;
-  final VoidCallback onRemove;
-
-  const _MediaTile({required this.url, required this.onRemove});
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.network(url, fit: BoxFit.cover),
-        ),
-        Positioned(
-          top: 4,
-          right: 4,
-          child: GestureDetector(
-            onTap: onRemove,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Colors.black54,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.close, size: 16, color: Colors.white),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _AddMediaTile extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _AddMediaTile({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.neutralGray100,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: AppColors.neutralGray300,
-            style: BorderStyle.solid,
-          ),
-        ),
-        child: const Icon(Icons.add, size: 32),
-      ),
     );
   }
 }

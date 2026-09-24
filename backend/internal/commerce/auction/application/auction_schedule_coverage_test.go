@@ -55,6 +55,9 @@ func (r *scheduleStubProductShippingRepo) CreateBulk(_ context.Context, _ db.Tx,
 func (r *scheduleStubProductShippingRepo) CountByProduct(_ context.Context, _ db.Tx, _ uuid.UUID) (int64, error) {
 	return int64(len(r.options)), nil
 }
+func (r *scheduleStubProductShippingRepo) CountLinksByShippingSetup(_ context.Context, _ db.Tx, _ uuid.UUID) (int64, error) {
+	return 0, nil
+}
 
 // ============================================================================
 // Stubs — coverage repo

@@ -43,6 +43,15 @@ class AuthModule extends BaseModule {
       name: RouteNames.completeProfile,
       builder: (context, state) => const CompleteProfileScreen(),
     ),
+
+    // Verify Email Route - D2 hard gate surface. Routed ONLY while the auth
+    // state machine is in AuthStatePendingEmailVerification (the router
+    // redirects away from it in every other state).
+    GoRoute(
+      path: RoutePaths.verifyEmail,
+      name: RouteNames.verifyEmail,
+      builder: (context, state) => const VerifyEmailScreen(),
+    ),
   ];
 
   @override

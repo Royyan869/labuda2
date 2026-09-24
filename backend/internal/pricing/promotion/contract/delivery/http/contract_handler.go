@@ -18,6 +18,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/labuda/backend/internal/finance"
 	financeApp "github.com/labuda/backend/internal/finance/application"
 	"github.com/labuda/backend/internal/identity/auth"
 	"github.com/labuda/backend/internal/middleware"
@@ -86,6 +87,12 @@ type ContractResponse struct {
 	CreatedAt           string   `json:"created_at"`
 	UpdatedAt           string   `json:"updated_at"`
 	CityIDs             []string `json:"city_ids"`
+	// EstimatedImpressions is an informational-only projection of how many
+	// Qualified Impressions the seller's budget can approximately buy at the
+	// contract's immutable CPM snapshot. It is NOT a guarantee, NOT a
+	// financial authority, and NOT a billing unit — purely informational
+	// (Owner truth: estimated impressions are informational only).
+	EstimatedImpressions int64    `json:"estimated_impressions"`
 }
 
 func formatTime(t time.Time) string {
@@ -111,6 +118,9 @@ func toContractResponseWithGeography(c *contractEntity.Contract, cityIDs []strin
 	if cityIDs == nil {
 		cityIDs = []string{}
 	}
+	// Informational-only estimated impression count (canonical estimator —
+	// no second calculator). Zero on error (config-dependent CPM).
+	est, _ := finance.PromotionEstimatedImpressions(c.BudgetRupiah, c.CPMRupiah)
 	return ContractResponse{
 		ID:                  c.ID.String(),
 		SellerID:            c.SellerID.String(),
@@ -126,6 +136,7 @@ func toContractResponseWithGeography(c *contractEntity.Contract, cityIDs []strin
 		CreatedAt:           formatTime(c.CreatedAt),
 		UpdatedAt:           formatTime(c.UpdatedAt),
 		CityIDs:             cityIDs,
+		EstimatedImpressions: est,
 	}
 }
 
@@ -165,6 +176,58 @@ func (h *ContractHandler) CreateContract(c *gin.Context) {
 	response.Created(c, gin.H{
 		"message":  "Promotion contract created and funded",
 		"contract": toContractResponseWithGeography(created, cityIDs),
+	})
+}
+
+// ============================================================================
+// PREVIEW FUNDING — read-only shortage projection
+// ============================================================================
+
+// PreviewFundingRequest mirrors CreateContractRequest for the preview endpoint.
+// The seller supplies the same inputs they would for creation; the system
+// returns the funding sufficiency projection without creating anything.
+type PreviewFundingRequest struct {
+	Kind         string   `json:"kind" binding:"required,oneof=internal external"`
+	BudgetRupiah int64    `json:"budget_rupiah" binding:"required,min=1"`
+	DurationDays int64    `json:"duration_days" binding:"required,min=1"`
+	CityIDs      []string `json:"city_ids"`
+}
+
+// PreviewFunding handles POST /api/v1/promotions/contracts/preview-funding.
+//
+// It returns a read-only FundingPreview with the exact shortage the seller
+// would face if they attempted to create this promotion. No contract, no
+// allocation, and no financial mutation occurs.
+//
+// AUTHORITY: single canonical funding projection endpoint. There is no
+// second calculation path.
+func (h *ContractHandler) PreviewFunding(c *gin.Context) {
+	callerID, err := middleware.GetUserIDFromContext(c)
+	if err != nil {
+		response.Unauthorized(c, "Authentication required")
+		return
+	}
+
+	var req PreviewFundingRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	preview, err := h.service.PreviewFunding(c.Request.Context(), contractApp.CreatePromotionInput{
+		SellerID:     callerID,
+		Kind:         contractEntity.Kind(req.Kind),
+		BudgetRupiah: req.BudgetRupiah,
+		DurationDays: req.DurationDays,
+		CityIDs:      req.CityIDs,
+	})
+	if err != nil {
+		h.writeError(c, "preview promotion funding", err)
+		return
+	}
+
+	response.Success(c, gin.H{
+		"preview": preview,
 	})
 }
 

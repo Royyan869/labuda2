@@ -369,12 +369,27 @@ func TestPromotionContractCanonical_RealDB(t *testing.T) {
 		require.NoError(t, err)
 		originalFinish := c.PlannedFinish
 
-		// Pause (DB time) must NOT shift planned_finish by itself.
+		// Capture financial state to prove pause/resume never touches money.
+		budget := c.BudgetRupiah
+		cpm := c.CPMRupiah
+		promoteBefore := h.promoteBalance(t, seller)
+		allocationBefore, allocOk := h.allocationBalance(t, seller, c.ID)
+		require.True(t, allocOk, "allocation account must exist after create")
+
+		// Pause (DB time) must NOT shift planned_finish by itself, and must not
+		// change any financial state (budget, CPM snapshot, allocation, promote
+		// balance). Pause is a delivery/pacing boundary only.
 		require.NoError(t, h.svc.Pause(ctx, application.PausePromotionInput{SellerID: seller, ContractID: c.ID}))
 		paused := h.getContract(t, seller, c.ID)
 		require.Equal(t, entity.StatusPaused, paused.Status)
 		require.NotNil(t, paused.PausedAt)
 		require.Equal(t, originalFinish, paused.PlannedFinish, "pause alone must not shift planned_finish")
+		require.Equal(t, budget, paused.BudgetRupiah, "pause must not change budget")
+		require.Equal(t, cpm, paused.CPMRupiah, "pause must not change the CPM snapshot")
+		require.Equal(t, promoteBefore, h.promoteBalance(t, seller), "pause must not change promote balance")
+		allocationPaused, pausedOk := h.allocationBalance(t, seller, c.ID)
+		require.True(t, pausedOk)
+		require.Equal(t, allocationBefore, allocationPaused, "pause must not change allocation")
 
 		// Measured explicit pause interval (DB time based).
 		time.Sleep(2 * time.Second)
@@ -385,6 +400,16 @@ func TestPromotionContractCanonical_RealDB(t *testing.T) {
 		resumed := h.getContract(t, seller, c.ID)
 		require.Equal(t, entity.StatusActive, resumed.Status)
 		require.Nil(t, resumed.PausedAt)
+
+		// Resume must keep the SAME CPM business semantics and move NO money:
+		// budget, CPM snapshot, promote balance and allocation are all unchanged.
+		require.Equal(t, budget, resumed.BudgetRupiah, "resume must not change budget")
+		require.Equal(t, cpm, resumed.CPMRupiah, "resume must preserve the CPM snapshot")
+		require.Equal(t, promoteBefore, h.promoteBalance(t, seller), "resume must not change promote balance")
+		allocationResumed, resumedOk := h.allocationBalance(t, seller, c.ID)
+		require.True(t, resumedOk)
+		require.Equal(t, allocationBefore, allocationResumed, "resume must not change allocation")
+		require.Zero(t, h.platformRevenue(t), "pause/resume must not create platform revenue")
 
 		expectedShift := resumeAt.Sub(pausedAt)
 		actualShift := resumed.PlannedFinish.Sub(originalFinish)
@@ -409,6 +434,81 @@ func TestPromotionContractCanonical_RealDB(t *testing.T) {
 		require.ErrorIs(t, h.svc.Resume(ctx, application.ResumePromotionInput{SellerID: seller, ContractID: c.ID}), application.ErrPromotionResumeNotAllowed)
 		require.NoError(t, h.svc.Pause(ctx, application.PausePromotionInput{SellerID: seller, ContractID: c.ID}), "an active contract may pause again")
 		require.ErrorIs(t, h.svc.Pause(ctx, application.PausePromotionInput{SellerID: seller, ContractID: c.ID}), application.ErrPromotionAlreadyPaused)
+	})
+
+	t.Run("F2_paused_at_planned_finish_boundary", func(t *testing.T) {
+		h.seedConfig(t, 7500, 10_000)
+		seller := h.newSeller(t, 100_000)
+		c, err := h.create(t, seller, entity.KindInternal, 30_000, 1)
+		require.NoError(t, err)
+
+		// Capture financial state: pause/resume/finalization must never alter it
+		// except for the exact-once release at finalization.
+		promoteBefore := h.promoteBalance(t, seller)
+		allocationBefore, allocOk := h.allocationBalance(t, seller, c.ID)
+		require.True(t, allocOk, "allocation account must exist after create")
+
+		// 1. PAUSE before the planned finish.
+		require.NoError(t, h.svc.Pause(ctx, application.PausePromotionInput{SellerID: seller, ContractID: c.ID}))
+
+		// 2. The planned_finish boundary passes WHILE the contract is PAUSED.
+		// Model the elapsed pause: paused_at was 25h ago and the original
+		// planned_finish (1h ago) is now in the past — the boundary was reached
+		// during the pause. planned_start is moved back so the schema CHECK
+		// (planned_finish > planned_start) still holds.
+		_, err = h.tdb.Pool().Exec(ctx, `
+			UPDATE promotion_contracts
+			SET paused_at = NOW() - INTERVAL '25 hours',
+			    planned_start = NOW() - INTERVAL '2 days',
+			    planned_finish = NOW() - INTERVAL '1 hour'
+			WHERE id = $1`, c.ID)
+		require.NoError(t, err)
+
+		// A PAUSED contract whose boundary has passed must NOT be finalized.
+		count, err := h.svc.FinalizeDueContracts(ctx, 10)
+		require.NoError(t, err)
+		require.Equal(t, 0, count, "a paused contract must never be due for finalization")
+		stillPaused := h.getContract(t, seller, c.ID)
+		require.Equal(t, entity.StatusPaused, stillPaused.Status)
+		require.Equal(t, promoteBefore, h.promoteBalance(t, seller), "no release while paused")
+		allocPaused, allocOk := h.allocationBalance(t, seller, c.ID)
+		require.True(t, allocOk)
+		require.Equal(t, allocationBefore, allocPaused, "allocation untouched while paused")
+
+		// 3. RESUME shifts planned_finish by the exact pause duration and lands
+		// in the FUTURE (old_finish + (resume - pause) = now + 24h here).
+		require.NoError(t, h.svc.Resume(ctx, application.ResumePromotionInput{SellerID: seller, ContractID: c.ID}))
+		resumed := h.getContract(t, seller, c.ID)
+		require.Equal(t, entity.StatusActive, resumed.Status)
+		require.True(t, resumed.PlannedFinish.After(h.dbNow(t)),
+			"resumed planned_finish must move into the future by the pause duration")
+
+		// Not due before the NEW boundary is reached.
+		count, err = h.svc.FinalizeDueContracts(ctx, 10)
+		require.NoError(t, err)
+		require.Equal(t, 0, count, "resumed contract must not be due before the new boundary")
+
+		// 4. The NEW boundary is reached → the contract is eligible and the
+		// canonical finalization releases the unused allocation exactly once.
+		_, err = h.tdb.Pool().Exec(ctx, `
+			UPDATE promotion_contracts
+			SET planned_start = NOW() - INTERVAL '3 days',
+			    planned_finish = NOW() - INTERVAL '1 minute'
+			WHERE id = $1 AND status = 'active'`, c.ID)
+		require.NoError(t, err)
+
+		count, err = h.svc.FinalizeDueContracts(ctx, 10)
+		require.NoError(t, err)
+		require.Equal(t, 1, count, "contract becomes eligible at the new planned-finish boundary")
+
+		finalized := h.getContract(t, seller, c.ID)
+		require.Equal(t, entity.StatusFinalized, finalized.Status)
+		// Full unused allocation (30_000) is released back on top of the
+		// post-create balance, restoring the originally funded amount.
+		require.Equal(t, promoteBefore+allocationBefore, h.promoteBalance(t, seller), "full unused allocation released back to Promote Balance")
+		allocFinal, allocOk := h.allocationBalance(t, seller, c.ID)
+		require.True(t, allocOk)
+		require.Equal(t, int64(0), allocFinal, "allocation fully released after finalization")
 	})
 
 	t.Run("G_stop_finalization_exact_release", func(t *testing.T) {

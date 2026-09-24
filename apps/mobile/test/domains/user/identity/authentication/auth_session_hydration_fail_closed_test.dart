@@ -637,7 +637,7 @@ class _FailingAuthRepository extends Fake implements IAuthRepository {
   }) async => Result.error('not used');
 
   @override
-  Future<Result<void>> signInWithGoogle() async => Result.success(null);
+  Future<Result<void>> signInWithGoogle({AuthCredential? pendingGoogleCredential}) async => Result.success(null);
 
   @override
   Future<Result<FirebasePrincipal>> signUpWithEmail({
@@ -1041,7 +1041,7 @@ void main() {
 
       final result = await controller.completeProfile(username: 'seller-two');
 
-      expect(result, isFalse);
+      expect(result.success, isFalse);
       expect(controller.state, isA<AuthStateRequiresProfileCompletion>());
     },
   );
@@ -1076,7 +1076,7 @@ void main() {
 
       final result = await controller.completeProfile(username: 'seller-two');
 
-      expect(result, isFalse);
+      expect(result.success, isFalse);
       expect(controller.state, isA<AuthStateError>());
     },
   );

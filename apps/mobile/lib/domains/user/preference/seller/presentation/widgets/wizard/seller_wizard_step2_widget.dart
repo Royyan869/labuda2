@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/store_name_form_field.dart';
 import 'package:labuda/shared/shared.dart';
 
 /// Step 2: Store Information Widget
@@ -83,14 +84,9 @@ class SellerWizardStep2Widget extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          AppTextField(
-            controller: farmNameController,
-            labelText: 'Nama Toko/Farm *',
-            hintText: 'Example: Mutiara Koi Farm',
-            prefixIcon: Icons.store_outlined,
-            validator: (value) =>
-                value == null || value.trim().isEmpty ? 'Required' : null,
-          ),
+          // SINGLE AUTHORITY: canonical store/farm name field shared with
+          // edit profile — same label, hint, and validation.
+          StoreNameFormField(controller: farmNameController),
         ],
       ),
     );

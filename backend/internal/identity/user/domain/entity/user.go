@@ -9,8 +9,11 @@ import (
 // User represents the core identity of a user in the system.
 // This maps to the users table.
 type User struct {
-	ID              uuid.UUID
-	FirebaseUID     string
+	ID uuid.UUID
+	// FirebaseUID is the bound Firebase credential of this account. nil =
+	// unbound: the account row exists but no provider identity is bound yet.
+	// The canonical Firebase exchange is the only writer (see auth_handler).
+	FirebaseUID     *string
 	Email           *string
 	PhoneNumber     *string
 	EmailVerified   bool
@@ -93,5 +96,3 @@ type UserRole struct {
 	UserID uuid.UUID
 	Role   string
 }
-
-

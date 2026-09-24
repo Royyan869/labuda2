@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -203,30 +204,22 @@ func TestUpdateMyProfile_SameUsernameResubmitted_NotTreatedAsRename(t *testing.T
 	}
 }
 
-// 4. CheckUsername remains a pure availability check — it must never mutate state.
-func TestCheckUsername_DoesNotMutateAnyState(t *testing.T) {
-	tdb, h, cleanup := setupUsernameImmutabilityTest(t)
+// 4. NEGATIVE CONTRACT — the advisory GET /users/check-username endpoint is
+// RETIRED (zero-to-one: no compatibility, no resurrection). Username
+// availability has exactly one authority: the transactional moment (exchange,
+// complete-profile, update-profile), where reserved/format/taken rules are
+// enforced with full context. An advisory pre-check is a competing authority
+// and must not return. If UserHandler.CheckUsername is ever re-added, this
+// proof fails and the domain must not be considered closed.
+func TestAdvisoryUsernameCheck_IsRetired_NoActivePath(t *testing.T) {
+	_, h, cleanup := setupUsernameImmutabilityTest(t)
 	defer cleanup()
 
-	ctx := context.Background()
-	userID := insertImmutabilityTestUser(t, ctx, tdb.Pool(), nil)
-
-	gin.SetMode(gin.TestMode)
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	req, err := http.NewRequest(http.MethodGet, "/api/v1/users/check-username?username=freshhandle", nil)
-	require.NoError(t, err)
-	c.Request = req
-	c.Set("userID", userID)
-
-	h.CheckUsername(c)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d; body=%s", w.Code, w.Body.String())
+	handlerType := reflect.TypeOf(h)
+	if _, ok := handlerType.MethodByName("CheckUsername"); ok {
+		t.Fatal("UserHandler.CheckUsername must stay deleted: the advisory availability endpoint is a retired second authority; availability is decided only at the transactional moment")
 	}
-
-	saved := queryPersistedUsername(t, ctx, tdb.Pool(), userID)
-	if saved != "" {
-		t.Fatalf("CheckUsername must never mutate username, got %q", saved)
+	if _, ok := handlerType.MethodByName("checkUsernameResponse"); ok {
+		t.Fatal("checkUsernameResponse must stay deleted alongside the retired advisory endpoint")
 	}
 }

@@ -19,6 +19,21 @@ import 'package:labuda/core/core.dart';
 /// **REALIGNMENT NOTE:** Although this service is used by both seller and profile domains
 /// (for store photo upload in profile editing), it is conceptually owned by Seller domain
 /// as it manages seller-specific assets.
+/// Outcome of a successful store photo upload.
+///
+/// [storageKey] is the canonical persisted form (`images/stores/{userId}.jpg`)
+/// — the ONLY value that may be written to the backend. [displayUrl] is the
+/// resolved read URL for immediate UI rendering; never persist it.
+class StorePhotoUploadOutcome {
+  final String storageKey;
+  final String displayUrl;
+
+  const StorePhotoUploadOutcome({
+    required this.storageKey,
+    required this.displayUrl,
+  });
+}
+
 class StorePhotoUploadService {
   final S3Service _s3Service;
   final ILoggerService _logger;
@@ -33,7 +48,10 @@ class StorePhotoUploadService {
 
   /// Upload store photo/logo
   /// Uses fixed filename '{userId}.jpg' - will auto-replace old file if exists
-  Future<Result<String>> uploadStorePhoto({
+  ///
+  /// Returns the canonical [StorePhotoUploadOutcome]: the STORAGE KEY to
+  /// persist plus the read URL for display-only rendering.
+  Future<Result<StorePhotoUploadOutcome>> uploadStorePhoto({
     required String userId,
     required String imagePath,
   }) async {
@@ -57,13 +75,17 @@ class StorePhotoUploadService {
       );
 
       if (result.isSuccess) {
-        // Persist canonical storage key; read_url is resolved server-side via mediaresolve.
+        // Persist the canonical STORAGE KEY (images/stores/{userId}.jpg); the
+        // read URL is display-only and is re-resolved server-side via
+        // mediaresolve on hydration.
         final storageKey = result.data!.key;
         _logger.info(
           'Store photo uploaded successfully',
           extra: {'userId': userId, 'storageKey': storageKey, 'readUrl': result.data!.url},
         );
-        return Result.success(storageKey);
+        return Result.success(
+          StorePhotoUploadOutcome(storageKey: storageKey, displayUrl: result.data!.url),
+        );
       } else {
         _logger.error(
           'Failed to upload store photo',
@@ -81,9 +103,9 @@ class StorePhotoUploadService {
     }
   }
 
-  /// Store photo removal clears the DB reference — no S3 delete per locked decision.
-  Future<Result<void>> deleteStorePhoto(String userId) async {
-    _logger.info('Store photo removal — DB reference clear only (no S3 delete)', extra: {'userId': userId});
-    return Result.success(null);
-  }
+  // NOTE: There is intentionally NO deleteStorePhoto method. Canonical store
+  // photo removal is a backend write — PATCH /seller/profile with
+  // store_image_url: "" clears the DB reference (see edit_profile_save_handler).
+  // A client-side delete stub would imply a parallel removal authority that
+  // does not exist.
 }

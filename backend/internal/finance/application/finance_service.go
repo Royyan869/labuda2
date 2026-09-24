@@ -98,10 +98,10 @@ func (s *FinanceService) GetSellerTotalEarnings(
 //     sellerNet + commission MUST equal gross
 //   - tx is the same DB transaction used to update escrow.status / order.status
 //
-// Ledger movements (Î£ entries = 0 invariant):
-//   - GATEWAY_CLEARING balance -= gross   (entry amount = -gross)
-//   - SELLER_PAYABLE[seller]   += sellerNet (entry amount = +sellerNet)
-//   - PLATFORM_REVENUE         += commission (entry amount = +commission)
+// Ledger movements (Σ entries = 0 invariant, class-aware):
+//   - GATEWAY_CLEARING balance -= gross   (Amount = +gross, DR decreases liability)
+//   - SELLER_PAYABLE[seller]   += sellerNet (Amount = -sellerNet, CR increases liability)
+//   - PLATFORM_REVENUE         += commission (Amount = -commission, CR increases revenue)
 //
 // Buyer accounts and any wallet.* balances are NOT touched. Seller's
 // withdrawable surface is financial_accounts[SELLER_PAYABLE], not wallet.
@@ -138,12 +138,10 @@ func (s *FinanceService) RecordOrderRelease(
 		return fmt.Errorf("get/create seller payable account: %w", err)
 	}
 
-	// Sign convention (verified against finance/infrastructure/repository/ledger_repository.go:160):
-	// newBalance = oldBalance + entry.Amount.
-	// â†’ positive amount increases balance, negative amount decreases.
-	// At release, GATEWAY_CLEARING is drained into SELLER_PAYABLE + PLATFORM_REVENUE.
-	// CANONICAL SIGN ARCHITECTURE: GATEWAY_CLEARING (liability) DR decreases,
-	// SELLER_PAYABLE (liability) CR increases, PLATFORM_REVENUE (revenue) CR increases.
+	// Canonical sign (ledger_repository.go:176 class-aware):
+	// Asset/Expense: new = old + Amount (DR increases)
+	// Liability/Revenue: new = old - Amount (CR increases)
+	// GATEWAY_CLEARING (liab) DR decreases, SELLER_PAYABLE (liab) CR increases, PLATFORM_REVENUE (rev) CR increases.
 	entries := []ledgerepo.Entry{
 		{AccountID: gatewayClearingID, Amount: money.New(gross)},       // DR: liability decreases (clearing drains)
 		{AccountID: sellerPayableID, Amount: money.New(-sellerNet)},    // CR: liability increases (seller owed)
@@ -175,9 +173,9 @@ func (s *FinanceService) RecordOrderRelease(
 // Subscription payments do NOT flow through RecordGatewayPaymentSettlement.
 // See RecordBillingServiceRevenue for rationale.
 //
-// Ledger entries (Î£ entries = 0 invariant):
-// - Debit:  PLATFORM_REVENUE (+amount) â€” platform keeps full amount
-// - Credit: BANK_SETTLEMENT  (-amount) â€” reserve drains
+// Ledger entries (Σ entries = 0, class-aware):
+// - PLATFORM_REVENUE += amount (Amount = -amount, CR increases revenue)
+// - BANK_SETTLEMENT  -= amount (Amount = +amount, DR decreases liability)
 //
 // IDEMPOTENCY (PMF02-A1): idempotency_key = "seller_subscription_payment_<payment_id>".
 //
@@ -208,10 +206,7 @@ func (s *FinanceService) RecordSubscriptionRevenue(
 	// Build idempotency key
 	idempotencyKey := fmt.Sprintf("seller_subscription_payment_%s", paymentID.String())
 
-	// Build ledger entries
-	// DR PLATFORM_REVENUE (positive = debit, revenue increases)
-	// CR BANK_SETTLEMENT  (negative = credit, reserve drains)
-	// CANONICAL SIGN: PLATFORM_REVENUE (revenue) CR increases, BANK_SETTLEMENT (liability) DR decreases.
+	// Class-aware: PLATFORM_REVENUE (rev) CR increases => Amount -amount; BANK_SETTLEMENT (liab) DR decreases => Amount +amount
 	entries := []ledgerepo.Entry{
 		{AccountID: platformRevenueID, Amount: money.New(-amount)}, // CR: revenue increases
 		{AccountID: bankSettlementID, Amount: money.New(amount)},   // DR: reserve decreases

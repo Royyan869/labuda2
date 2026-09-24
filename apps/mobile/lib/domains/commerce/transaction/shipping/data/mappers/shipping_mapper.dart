@@ -15,24 +15,18 @@ class ShippingSetupMapper {
               .toList() ??
           const [],
       isActive: dto.isActive,
+      // Seller-private note (internal_purpose). Never render on buyer surfaces.
+      internalNote: dto.internalPurpose,
       createdAt: dto.createdAt,
       updatedAt: dto.updatedAt,
     );
   }
 
-  /// Convert Entity to DTO (for create/update requests)
+  /// Convert a one-package create request to the canonical wire payload:
+  /// identity (name, transport_type, internal_purpose) + destinations
+  /// (provinces with all-in shipping+packing rates + city qualifications).
   static Map<String, dynamic> toCreateJson(
     CreateShippingSetupRequest request,
-  ) {
-    return {
-      'name': request.name,
-      'transport_type': request.type.name,
-    };
-  }
-
-  /// Convert Entity to DTO (for update requests)
-  static Map<String, dynamic> toUpdateJson(
-    UpdateShippingSetupRequest request,
   ) {
     return request.toJson();
   }
@@ -45,26 +39,25 @@ class ShippingSetupMapper {
 
 /// Mapper untuk Shipping Coverage Entity ↔ DTO
 class ShippingCoverageMapper {
-  /// Convert DTO to Entity
+  /// Convert DTO to Entity (hydrates city qualifications)
   static ShippingCoverage toEntity(ShippingCoverageDto dto) {
     return ShippingCoverage(
       provinceId: dto.provinceCode,
       provinceName: dto.provinceName,
       provinceRate: dto.rate,
       isAvailable: dto.isAvailable,
+      cityOverrides:
+          dto.cityQualifications
+              .map(
+                (city) => CityShippingRate(
+                  cityId: city.cityCode,
+                  cityName: city.cityName,
+                  rate: city.rate ?? 0,
+                  excluded: city.isAvailable == false,
+                ),
+              )
+              .toList(growable: false),
     );
-  }
-
-  /// Convert Entity to Add Coverage Request JSON
-  static Map<String, dynamic> toAddCoverageJson(AddCoverageRequest request) {
-    return request.toJson();
-  }
-
-  /// Convert Entity to Update Coverage Request JSON
-  static Map<String, dynamic> toUpdateCoverageJson(
-    UpdateCoverageRequest request,
-  ) {
-    return request.toJson();
   }
 
   /// Convert list of DTOs to Entities

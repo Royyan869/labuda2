@@ -39,10 +39,6 @@ type updateProfileRequest struct {
 	PhoneNumber   *string `json:"phone_number"`
 }
 
-type checkUsernameResponse struct {
-	Available bool   `json:"available"`
-	Reason    string `json:"reason,omitempty"`
-}
 
 type profileUpdateError struct {
 	status  int
@@ -307,61 +303,6 @@ func (h *UserHandler) UpdateMyProfile(c *gin.Context) {
 	response.Success(c, profile)
 }
 
-// CheckUsername handles GET /api/v1/users/check-username.
-func (h *UserHandler) CheckUsername(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
-
-	username := identityusername.Normalize(c.Query("username"))
-	if err := identityusername.ValidateFormat(username); err != nil {
-		response.Success(c, checkUsernameResponse{
-			Available: false,
-			Reason:    "USERNAME_INVALID_FORMAT",
-		})
-		return
-	}
-	if identityusername.IsReserved(username) {
-		response.Success(c, checkUsernameResponse{
-			Available: false,
-			Reason:    "USERNAME_RESERVED",
-		})
-		return
-	}
-
-	repo := userRepo.NewUserRepository(h.db)
-	var available bool
-	err := h.db.WithTx(ctx, func(tx db.Tx) error {
-		taken, err := repo.IsUsernameTaken(ctx, tx, username, userID)
-		if err != nil {
-			return err
-		}
-		available = !taken
-		return nil
-	})
-	if err != nil {
-		h.log.Error("Failed to check username",
-			zap.String("user_id", userID.String()),
-			zap.String("username", username),
-			zap.Error(err),
-		)
-		response.InternalServerError(c, "Failed to check username")
-		return
-	}
-
-	if !available {
-		response.Success(c, checkUsernameResponse{
-			Available: false,
-			Reason:    "USERNAME_UNAVAILABLE",
-		})
-		return
-	}
-
-	response.Success(c, checkUsernameResponse{Available: true})
-}
 
 func currentUserID(c *gin.Context) (uuid.UUID, bool) {
 	userIDVal, exists := c.Get("userID")

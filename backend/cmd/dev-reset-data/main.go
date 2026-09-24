@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"flag"
 	"fmt"
 	"log"
@@ -46,7 +47,6 @@ var referenceTables = []string{
 	"platform_configs",
 	"configs",
 	"seller_subscription_configs",
-	"promotion_packages",
 }
 
 // identityTables: user-scoped rows preserved ONLY for whitelisted users.
@@ -127,9 +127,6 @@ var domainTables = []string{
 	"product_shipping_options",
 	"products",
 	"projection_tracker",
-	"promotion_events",
-	"promotion_instances",
-	"promotion_ownerships",
 	"push_retry_queue",
 	"reconciliation_results",
 	"refund_evidence",
@@ -157,9 +154,18 @@ var domainTables = []string{
 type keptUser struct {
 	ID          string
 	Email       string
-	FirebaseUID string
+	FirebaseUID *string // nil = account row has no bound Firebase identity
 	Role        string
 	Status      string
+}
+
+// uidOrUnbound renders the credential binding for operator output. An unbound
+// account is reported as such — never as an empty or fabricated UID.
+func uidOrUnbound(uid *string) string {
+	if uid == nil {
+		return "(unbound)"
+	}
+	return *uid
 }
 
 func main() {
@@ -268,8 +274,12 @@ func main() {
 	var keptIDs []string
 	for rows.Next() {
 		var u keptUser
-		if err := rows.Scan(&u.ID, &u.Email, &u.FirebaseUID, &u.Role, &u.Status); err != nil {
+		var firebaseUID sql.NullString
+		if err := rows.Scan(&u.ID, &u.Email, &firebaseUID, &u.Role, &u.Status); err != nil {
 			log.Fatal("whitelist scan failed: ", err)
+		}
+		if firebaseUID.Valid {
+			u.FirebaseUID = &firebaseUID.String
 		}
 		found[strings.ToLower(u.Email)] = u
 		keptIDs = append(keptIDs, u.ID)
@@ -283,7 +293,7 @@ func main() {
 			username := lookupUsername(ctx, pool, u.ID)
 			fmt.Printf("  PRESERVED  %s\n", e)
 			fmt.Printf("             user_id=%s firebase_uid=%s role=%s status=%s username=%s\n",
-				u.ID, u.FirebaseUID, u.Role, u.Status, username)
+				u.ID, uidOrUnbound(u.FirebaseUID), u.Role, u.Status, username)
 		} else {
 			missingKeep = append(missingKeep, e)
 			fmt.Printf("  MISSING    %s — NO users row in this database\n", e)
@@ -300,7 +310,8 @@ func main() {
 	}
 	deleteUserCount := 0
 	for delRows.Next() {
-		var id, email, fuid, role string
+		var id, email, role string
+		var fuid sql.NullString
 		if err := delRows.Scan(&id, &email, &fuid, &role); err != nil {
 			log.Fatal("user scan failed: ", err)
 		}

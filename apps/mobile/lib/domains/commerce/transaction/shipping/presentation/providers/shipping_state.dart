@@ -27,31 +27,9 @@ class ShippingSetupsListError extends ShippingSetupsListState {
   const ShippingSetupsListError(this.message);
 }
 
-// =====================================
-// Shipping Option Detail States
-// =====================================
-
-abstract class ShippingSetupDetailState {
-  const ShippingSetupDetailState();
-}
-
-class ShippingSetupDetailInitial extends ShippingSetupDetailState {
-  const ShippingSetupDetailInitial();
-}
-
-class ShippingSetupDetailLoading extends ShippingSetupDetailState {
-  const ShippingSetupDetailLoading();
-}
-
-class ShippingSetupDetailLoaded extends ShippingSetupDetailState {
-  final ShippingSetup option;
-  const ShippingSetupDetailLoaded(this.option);
-}
-
-class ShippingSetupDetailError extends ShippingSetupDetailState {
-  final String message;
-  const ShippingSetupDetailError(this.message);
-}
+// KILLED DESIGN: ShippingSetupDetailState family removed with the
+// per-coverage CRUD contract. The one-package setup screen edits a full
+// package and persists via create/update package.
 
 // Phase 3 cleanup: DeliveryCheckState* and ShippingProofState* families
 // removed. Both were exclusively consumed by their dedicated notifiers

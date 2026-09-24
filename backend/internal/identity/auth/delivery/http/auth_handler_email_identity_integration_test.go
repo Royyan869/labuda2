@@ -5,6 +5,7 @@ package http_test
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -71,11 +72,13 @@ func countUsersByEmail(t *testing.T, ctx context.Context, pool *testdb.TestDB, e
 	return count
 }
 
-func getUserByEmail(t *testing.T, ctx context.Context, pool *testdb.TestDB, email string) (uuid.UUID, string) {
+// getUserByEmail returns the canonical row id plus its credential binding.
+// A nil binding means the account row is unbound (firebase_uid IS NULL).
+func getUserByEmail(t *testing.T, ctx context.Context, pool *testdb.TestDB, email string) (uuid.UUID, *string) {
 	t.Helper()
 
 	var id uuid.UUID
-	var firebaseUID string
+	var firebaseUID sql.NullString
 	if err := pool.Pool().QueryRow(ctx, `
 		SELECT id, firebase_uid
 		FROM users
@@ -84,7 +87,10 @@ func getUserByEmail(t *testing.T, ctx context.Context, pool *testdb.TestDB, emai
 	`, email).Scan(&id, &firebaseUID); err != nil {
 		t.Fatalf("getUserByEmail: %v", err)
 	}
-	return id, firebaseUID
+	if !firebaseUID.Valid {
+		return id, nil
+	}
+	return id, &firebaseUID.String
 }
 
 func TestFirebaseAuth_RejectsDuplicateNormalizedEmailInDatabase(t *testing.T) {
@@ -120,13 +126,14 @@ func TestFirebaseAuth_RejectsDuplicateNormalizedEmailInDatabase(t *testing.T) {
 	}
 }
 
-func TestFirebaseAuth_SequentialSameEmailLinksToLatestFirebaseUID(t *testing.T) {
-	// B2 — Explicit identity linking (Owner-locked 2026-09-14).
-	// Firebase Exchange MUST NOT silently overwrite an existing
-	// firebase_uid merely because normalized email matches.
-	// The second Firebase identity with same normalized email but different
-	// UID must be rejected with EMAIL_ALREADY_REGISTERED and the original
-	// firebase_uid must remain unchanged (no last-writer-wins).
+func TestFirebaseAuth_DifferentUIDToBoundAccountIsIdentityConflict(t *testing.T) {
+	// SINGLE BINDING RULE (canonical exchange matrix): the users row IS the
+	// account and its normalized email is the account key; a Firebase identity
+	// is only the credential that proves control of that email. A row that is
+	// ALREADY BOUND never accepts a different UID — verified or not. Two
+	// Firebase identities claiming one account is a canonical anomaly:
+	// 409 IDENTITY_CONFLICT, binding untouched (D4 — no re-bind, ever).
+	// Client-side Firebase linking unifies providers under ONE UID upstream.
 	tdb, handler, fb, cleanup := setupEmailIdentityHandlerTest(t)
 	defer cleanup()
 
@@ -137,9 +144,12 @@ func TestFirebaseAuth_SequentialSameEmailLinksToLatestFirebaseUID(t *testing.T) 
 	if err != nil {
 		t.Fatalf("first token mock: %v", err)
 	}
-	_, err = fb.VerifyIDTokenMock(ctx, secondToken)
+	secondTok, err := fb.VerifyIDTokenMock(ctx, secondToken)
 	if err != nil {
 		t.Fatalf("second token mock: %v", err)
+	}
+	if firstTok.UID == secondTok.UID {
+		t.Fatal("precondition: the two tokens must yield different Firebase UIDs")
 	}
 
 	w1 := callFirebaseAuth(t, handler, firstToken)
@@ -152,27 +162,112 @@ func TestFirebaseAuth_SequentialSameEmailLinksToLatestFirebaseUID(t *testing.T) 
 
 	w2 := callFirebaseAuth(t, handler, secondToken)
 	if w2.Code != http.StatusConflict {
-		t.Fatalf("second auth call must be rejected with 409 EMAIL_ALREADY_REGISTERED (explicit linking), got %d, body=%s", w2.Code, w2.Body.String())
+		t.Fatalf("different UID on a bound row must be IDENTITY_CONFLICT: got %d, body=%s", w2.Code, w2.Body.String())
 	}
-	if !bytes.Contains(w2.Body.Bytes(), []byte("EMAIL_ALREADY_REGISTERED")) {
-		t.Fatalf("expected EMAIL_ALREADY_REGISTERED code in body, got %s", w2.Body.String())
+	if !bytes.Contains(w2.Body.Bytes(), []byte("IDENTITY_CONFLICT")) {
+		t.Fatalf("expected IDENTITY_CONFLICT code in body, got %s", w2.Body.String())
 	}
 
-	id, firebaseUID := getUserByEmail(t, ctx, tdb, "caseemail@test.com")
+	id, boundUID := getUserByEmail(t, ctx, tdb, "caseemail@test.com")
 	if id == uuid.Nil {
 		t.Fatal("expected canonical user id")
 	}
-	// B2 invariant: existing firebase_uid must NOT have been overwritten.
-	if firebaseUID != firstTok.UID {
-		t.Fatalf("expected firebase_uid to remain original UID %q (no overwrite), got %q", firstTok.UID, firebaseUID)
+	if boundUID == nil || *boundUID != firstTok.UID {
+		t.Fatalf("expected firebase_uid to remain the original UID %q, got %v", firstTok.UID, boundUID)
+	}
+}
+
+func TestFirebaseAuth_UnverifiedEmailCannotBindUnboundRow(t *testing.T) {
+	// Matrix row: row UNBOUND + unverified token → 403 EMAIL_NOT_VERIFIED.
+	// The binding stays NULL — an unverified email proves nothing.
+	tdb, handler, fb, cleanup := setupEmailIdentityHandlerTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	fixtureID := uuid.New()
+	if _, err := tdb.Pool().Exec(ctx, `
+		INSERT INTO users (id, firebase_uid, email, account_status, created_at, updated_at)
+		VALUES ($1, NULL, $2, 'active', NOW(), NOW())
+	`, fixtureID, "unboundmail@test.com"); err != nil {
+		t.Fatalf("insert unbound fixture: %v", err)
+	}
+
+	// Mock convention: tokens WITHOUT the "verified" substring are unverified.
+	token := "unboundmail"
+	tok, err := fb.VerifyIDTokenMock(ctx, token)
+	if err != nil {
+		t.Fatalf("mock token: %v", err)
+	}
+	if verified, _ := tok.Claims["email_verified"].(bool); verified {
+		t.Fatal("precondition: mock token must be unverified")
+	}
+
+	w := callFirebaseAuth(t, handler, token)
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("unverified email must not bind an unbound row: got %d, body=%s", w.Code, w.Body.String())
+	}
+	if !bytes.Contains(w.Body.Bytes(), []byte("EMAIL_NOT_VERIFIED")) {
+		t.Fatalf("expected EMAIL_NOT_VERIFIED code in body, got %s", w.Body.String())
+	}
+
+	id, boundUID := getUserByEmail(t, ctx, tdb, "unboundmail@test.com")
+	if id != fixtureID {
+		t.Fatalf("expected the fixture row to be kept: want %s got %s", fixtureID, id)
+	}
+	if boundUID != nil {
+		t.Fatalf("expected firebase_uid to stay NULL, got %q", *boundUID)
+	}
+}
+
+func TestFirebaseAuth_VerifiedEmailBindsUnboundFixtureAccount(t *testing.T) {
+	// Dev/seed fixtures exist as UNBOUND account rows (firebase_uid IS NULL)
+	// carrying role/capability/profile. The first login with a
+	// Firebase-VERIFIED email binds that row — there is no second linking path
+	// and no fabricated UID anywhere in the flow.
+	tdb, handler, fb, cleanup := setupEmailIdentityHandlerTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	fixtureID := uuid.New()
+	if _, err := tdb.Pool().Exec(ctx, `
+		INSERT INTO users (id, firebase_uid, email, account_status, created_at, updated_at)
+		VALUES ($1, NULL, $2, 'active', NOW(), NOW())
+	`, fixtureID, "fixtureverified@test.com"); err != nil {
+		t.Fatalf("insert unbound fixture: %v", err)
+	}
+
+	token := "fixtureverified"
+	tok, err := fb.VerifyIDTokenMock(ctx, token)
+	if err != nil {
+		t.Fatalf("mock token: %v", err)
+	}
+	if verified, _ := tok.Claims["email_verified"].(bool); !verified {
+		t.Fatal("precondition: mock token must carry email_verified=true")
+	}
+	if got := tok.Claims["email"]; got != "fixtureverified@test.com" {
+		t.Fatalf("precondition: mock email must match the fixture, got %v", got)
+	}
+
+	w := callFirebaseAuth(t, handler, token)
+	if w.Code != http.StatusOK {
+		t.Fatalf("verified login must bind the unbound fixture: got %d, body=%s", w.Code, w.Body.String())
+	}
+
+	id, boundUID := getUserByEmail(t, ctx, tdb, "fixtureverified@test.com")
+	if id != fixtureID {
+		t.Fatalf("binding must reuse the canonical fixture row: want %s got %s", fixtureID, id)
+	}
+	if boundUID == nil || *boundUID != tok.UID {
+		t.Fatalf("expected firebase_uid bound to %q, got %v", tok.UID, boundUID)
 	}
 }
 
 func TestFirebaseAuth_ConcurrentSameEmailKeepsOneCanonicalRow(t *testing.T) {
-	// B2 — Concurrent same-email with different Firebase UIDs must NEVER
-	// create duplicate Labuda accounts and MUST NOT last-writer-wins.
-	// Under explicit linking, exactly one succeeds (201/200) and the other
-	// is rejected with 409 EMAIL_ALREADY_REGISTERED. Advisory lock serializes.
+	// Concurrent same-email logins with different Firebase UIDs must NEVER
+	// create duplicate Labuda accounts and MUST NOT last-writer-wins. Under the
+	// single binding rule exactly one succeeds (it creates and binds the row)
+	// and the other is rejected with IDENTITY_CONFLICT: the row it now faces is
+	// already bound to a different UID. The advisory lock serializes them.
 	tdb, handler, _, cleanup := setupEmailIdentityHandlerTest(t)
 	defer cleanup()
 
@@ -210,7 +305,7 @@ func TestFirebaseAuth_ConcurrentSameEmailKeepsOneCanonicalRow(t *testing.T) {
 		}
 	}
 	if okCount != 1 || conflictCount != 1 {
-		t.Fatalf("expected exactly 1 success and 1 conflict (explicit linking), got ok=%d conflict=%d", okCount, conflictCount)
+		t.Fatalf("expected exactly 1 success and 1 IDENTITY_CONFLICT, got ok=%d conflict=%d", okCount, conflictCount)
 	}
 
 	if got := countUsersByEmail(t, ctx, tdb, "raceemail@test.com"); got != 1 {

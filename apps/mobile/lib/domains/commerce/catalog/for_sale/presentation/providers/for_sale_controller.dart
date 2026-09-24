@@ -23,17 +23,17 @@ class ForSaleController {
   /// Returns true only when the current authenticated principal may open the
   /// create-forSale flow.
   ///
-  /// DRAFT = WORKSPACE STATE: the authority here is the seller workspace
-  /// (backend route gate = active account + verified email + seller profile).
-  /// Market authority is deliberately NOT required — a private draft never
-  /// creates market exposure. The capability gate belongs to publish
-  /// (draft → active), which the owning service enforces transactionally.
+  /// CREATE = PUBLISH (OWNER CANONICAL): completing the create form publishes
+  /// the for_sale to the market. The authority is therefore the FULL market
+  /// authority — seller profile AND an active seller subscription. An expired
+  /// seller cannot create at all; draft is never a seller-chosen outcome.
   bool canCreateForSale(AuthState authState) {
     if (authState is! AuthStateAuthenticated) {
       return false;
     }
 
-    return authState.user.hasSellerProfile == true;
+    final user = authState.user;
+    return user.hasSellerProfile == true && user.hasMarketAuthority == true;
   }
 
   /// Get list of forSales
@@ -130,6 +130,8 @@ class ForSaleController {
   ///
   /// The caller should use [canCreateForSale] to gate the UI, but this method
   /// also rechecks the current auth state before touching the repository.
+  /// CREATE = PUBLISH: market authority (active subscription) is required —
+  /// the backend enforces the same gate transactionally (defense in depth).
   Future<Result<ForSale>> createForSaleIfAuthorized(
     CreateForSaleRequest request,
     AuthState authState,
@@ -149,9 +151,13 @@ class ForSaleController {
       );
     }
 
-    // NO market-authority gate here: this path writes a PRIVATE DRAFT, which is
-    // workspace state. Publish (draft → active) remains capability-gated by the
-    // backend and is never reached from this method.
+    if (user.hasMarketAuthority != true) {
+      return Result.error(
+        'Langganan seller belum aktif atau sudah berakhir. Perpanjang dulu untuk membuat forSale.',
+        code: 'MARKET_AUTHORITY_REQUIRED',
+      );
+    }
+
     return createForSale(request);
   }
 

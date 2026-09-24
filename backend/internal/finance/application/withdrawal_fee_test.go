@@ -208,27 +208,27 @@ func TestWithdrawalRequestAndCompletionSplitFeeFromAmount(t *testing.T) {
 	require.Len(t, repo.transactions, 1)
 	require.Equal(t, "withdrawal_request", repo.transactions[0].referenceType)
 	require.Len(t, repo.transactions[0].entries, 2)
-	require.Equal(t, int64(-requestedAmount), repo.transactions[0].entries[0].Amount.Int64())
-	require.Equal(t, int64(requestedAmount), repo.transactions[0].entries[1].Amount.Int64())
+	require.Equal(t, int64(requestedAmount), repo.transactions[0].entries[0].Amount.Int64())
+	require.Equal(t, int64(-requestedAmount), repo.transactions[0].entries[1].Amount.Int64())
 
 	err = svc.RecordWithdrawalCommit(context.Background(), nil, sellerID, requestedAmount, feeAmount, withdrawalID)
 	require.NoError(t, err)
 	require.Len(t, repo.transactions, 2)
 	require.Equal(t, "withdrawal_commit", repo.transactions[1].referenceType)
-	require.Equal(t, int64(-requestedAmount), repo.transactions[1].entries[0].Amount.Int64())
-	require.Equal(t, int64(requestedAmount), repo.transactions[1].entries[1].Amount.Int64())
+	require.Equal(t, int64(requestedAmount), repo.transactions[1].entries[0].Amount.Int64())
+	require.Equal(t, int64(-requestedAmount), repo.transactions[1].entries[1].Amount.Int64())
 
 	err = svc.RecordWithdrawalComplete(context.Background(), nil, sellerID, requestedAmount, feeAmount, withdrawalID)
 	require.NoError(t, err)
 	require.Len(t, repo.transactions, 3)
 	require.Equal(t, "withdrawal_complete", repo.transactions[2].referenceType)
 	require.Len(t, repo.transactions[2].entries, 3)
-	// committed account: -requestedAmount (full reservation drained)
-	require.Equal(t, int64(-requestedAmount), repo.transactions[2].entries[0].Amount.Int64())
-	// platform bank: +netPayout (Rp95,000 — what actually reaches the seller's bank)
-	require.Equal(t, int64(netPayout), repo.transactions[2].entries[1].Amount.Int64())
-	// platform revenue: +feeAmount (Rp5,000 — the platform's cut)
-	require.Equal(t, int64(feeAmount), repo.transactions[2].entries[2].Amount.Int64())
+	// committed account: +requestedAmount (full reservation drained, DR decreases liability)
+	require.Equal(t, int64(requestedAmount), repo.transactions[2].entries[0].Amount.Int64())
+	// platform bank: -netPayout (Rp95,000 — what actually reaches the seller's bank, CR decreases asset)
+	require.Equal(t, int64(-netPayout), repo.transactions[2].entries[1].Amount.Int64())
+	// platform revenue: -feeAmount (Rp5,000 — the platform's cut, CR increases revenue)
+	require.Equal(t, int64(-feeAmount), repo.transactions[2].entries[2].Amount.Int64())
 
 	// Duplicate success should not double-book because the idempotency key
 	// collapses the repeated transaction into a no-op.
@@ -252,14 +252,14 @@ func TestWithdrawalFailureRestoresRequestedAmountOnly(t *testing.T) {
 	err := svc.RecordWithdrawalReject(context.Background(), nil, sellerID, requestedAmount, feeAmount, withdrawalID)
 	require.NoError(t, err)
 	require.Len(t, repo.transactions, 1)
-	require.Equal(t, int64(-requestedAmount), repo.transactions[0].entries[0].Amount.Int64())
-	require.Equal(t, int64(requestedAmount), repo.transactions[0].entries[1].Amount.Int64())
+	require.Equal(t, int64(requestedAmount), repo.transactions[0].entries[0].Amount.Int64())
+	require.Equal(t, int64(-requestedAmount), repo.transactions[0].entries[1].Amount.Int64())
 
 	err = svc.RecordWithdrawalRestore(context.Background(), nil, sellerID, requestedAmount, feeAmount, withdrawalID)
 	require.NoError(t, err)
 	require.Len(t, repo.transactions, 2)
-	require.Equal(t, int64(-requestedAmount), repo.transactions[1].entries[0].Amount.Int64())
-	require.Equal(t, int64(requestedAmount), repo.transactions[1].entries[1].Amount.Int64())
+	require.Equal(t, int64(requestedAmount), repo.transactions[1].entries[0].Amount.Int64())
+	require.Equal(t, int64(-requestedAmount), repo.transactions[1].entries[1].Amount.Int64())
 }
 
 // TestRecordWithdrawalComplete_RejectsFeeGreaterOrEqualToAmount guards the

@@ -154,9 +154,10 @@ func stage5Shipping(t *testing.T, ctx context.Context, tdb *testdb.TestDB, selle
 	optionID := uuid.New()
 	optionName := "JNE-" + optionID.String()[:8]
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
+		// internal_purpose is NOT NULL (migration 000110): an empty note is ''.
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO shipping_options (id, seller_id, name, transport_type, is_active, created_at, updated_at, internal_purpose)
-			VALUES ($1, $2, $3, 'train', true, NOW(), NOW(), NULL)
+			VALUES ($1, $2, $3, 'train', true, NOW(), NOW(), '')
 		`, optionID, sellerID, optionName); err != nil {
 			return err
 		}

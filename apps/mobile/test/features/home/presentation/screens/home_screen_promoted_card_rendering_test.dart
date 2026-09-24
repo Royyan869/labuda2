@@ -365,7 +365,7 @@ Widget _buildHarness(
       authControllerProvider.overrideWith(
         _FakeAuthenticatedAuthController.new,
       ),
-      // Unrelated commerce providers needed by CommercePreviewSection.
+      // Commerce provider kept for Explore tab (Home is now social-only, no preview).
       
       auctionRepositoryProvider.overrideWithValue(_FakeAuctionRepository()),
       // Like repository — prevents real API calls.

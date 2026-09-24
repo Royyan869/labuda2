@@ -8,7 +8,7 @@ import 'package:labuda/shared/utils/commerce_seller_identity.dart';
 
 /// Canonical buyer-facing forSale card.
 ///
-/// Used by every discovery / browsing surface (Explore, ForSaleList,
+/// Used by every discovery / browsing surface (Marketplace, ForSaleList,
 /// ProfileStore). Seller identity is redacted when [ForSale.sellerUserLifecycle]
 /// is degraded, providing parity with SearchResultItem (E8.4).
 ///

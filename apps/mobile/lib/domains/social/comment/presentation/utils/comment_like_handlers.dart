@@ -23,11 +23,22 @@ class CommentLikeHandlers {
 
   /// Handle like comment
   ///
-  /// Uses canonical Like system to toggle like status for comments.
-  /// Optimistic update: UI updates immediately, rolls back on error.
+  /// Industry optimistic UX: 0ms local update + server reconcile.
   Future<void> handleLike(String currentUserId, String currentUserName) async {
-    final notifier = ref.read(likeNotifierProvider.notifier);
+    final params = LikeStatsParams(
+      targetId: comment.id,
+      targetType: LikeTargetType.comment,
+      currentUserId: currentUserId,
+    );
+    final repository = ref.read(likeRepositoryProvider);
+    final currentStats = ref.read(likeStatsProvider(params)).asData?.value;
+    if (currentStats != null) {
+      repository.pushOptimisticLikeStats(
+        repository.optimisticToggled(currentStats),
+      );
+    }
 
+    final notifier = ref.read(likeNotifierProvider.notifier);
     final result = await notifier.toggleLike(
       targetId: comment.id,
       targetType: LikeTargetType.comment,
@@ -36,12 +47,23 @@ class CommentLikeHandlers {
       targetOwnerId: comment.authorId,
     );
 
-    if (!result.isSuccess && context.mounted) {
-      // Show error if toggle failed
+    if (result.isSuccess) {
+      await repository.refreshLikeStats(
+        targetId: comment.id,
+        targetType: LikeTargetType.comment,
+        currentUserId: currentUserId,
+      );
+      return;
+    }
+
+    // Rollback
+    if (currentStats != null) {
+      repository.pushOptimisticLikeStats(currentStats);
+    }
+    if (context.mounted) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Gagal menyukai komentar')));
     }
-    // If successful, the likeStatsProvider will automatically update
   }
 }

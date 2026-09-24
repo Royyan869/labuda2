@@ -12,7 +12,6 @@ import 'package:labuda/domains/user/identity/verification/verification.dart';
 import 'package:labuda/domains/user/profile/presentation/screens/ktp_camera_screen.dart';
 import 'package:labuda/domains/system/support/presentation/screens/help_center_screen.dart';
 import 'package:labuda/domains/system/support/presentation/widgets/pre_chat_form_sheet.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/widgets/blocked_action_gate.dart';
 
 /// Seller Verification Screen
 ///
@@ -841,9 +840,16 @@ class _SellerVerificationScreenState
     final state = ref.read(sellerVerificationV2NotifierProvider);
     switch (state.errorCode) {
       case 'EMAIL_VERIFICATION_REQUIRED':
-        await showBlockedActionGate(
-          context,
-          actionDescription: 'mengajukan verifikasi penjual',
+        // Backend-rejection handler (defense-in-depth): the backend stays
+        // the single authority for EMAIL_VERIFICATION_REQUIRED.
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Verifikasi email kamu diperlukan sebelum mengajukan verifikasi penjual.',
+            ),
+            backgroundColor: AppColors.error,
+          ),
         );
         return;
       case 'ACCOUNT_SUSPENDED':
@@ -873,9 +879,16 @@ class _SellerVerificationScreenState
   Future<void> _handleApiException(ApiException e) async {
     switch (e.code) {
       case 'EMAIL_VERIFICATION_REQUIRED':
-        await showBlockedActionGate(
-          context,
-          actionDescription: 'mengajukan verifikasi penjual',
+        // Backend-rejection handler (defense-in-depth): the backend stays
+        // the single authority for EMAIL_VERIFICATION_REQUIRED.
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Verifikasi email kamu diperlukan sebelum mengajukan verifikasi penjual.',
+            ),
+            backgroundColor: AppColors.error,
+          ),
         );
         return;
       case 'ACCOUNT_SUSPENDED':

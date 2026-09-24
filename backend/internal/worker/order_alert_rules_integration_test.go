@@ -79,6 +79,7 @@ func TestDisputeOpenStuckRule_PostgresCompatibleAndDeterministic(t *testing.T) {
 	alertSvc := application.NewAlertService(db.NewFromPool(tdb.Pool()), alertrepo.NewAlertRepository(), zap.NewNop())
 
 	var finding *AnomalyFinding
+	var oldestDisputeID uuid.UUID
 	err := tdb.WithTx(ctx, func(tx db.Tx) error {
 		buyerID := insertWorkerTestUser(t, ctx, tx, "buyer")
 		sellerID := insertWorkerTestUser(t, ctx, tx, "seller")
@@ -87,7 +88,7 @@ func TestDisputeOpenStuckRule_PostgresCompatibleAndDeterministic(t *testing.T) {
 
 		oldest := time.Now().UTC().Add(-time.Duration(DisputeOpenStuckWarnHours+2) * time.Hour)
 		newer := oldest.Add(30 * time.Minute)
-		oldestDisputeID := insertWorkerTestDispute(t, ctx, tx, firstOrderID, buyerID, sellerID, oldest)
+		oldestDisputeID = insertWorkerTestDispute(t, ctx, tx, firstOrderID, buyerID, sellerID, oldest)
 		newerDisputeID := insertWorkerTestDispute(t, ctx, tx, secondOrderID, buyerID, sellerID, newer)
 
 		detected, f, detectErr := rule.Detect(ctx, tx)
@@ -100,6 +101,11 @@ func TestDisputeOpenStuckRule_PostgresCompatibleAndDeterministic(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, finding)
+	// "Oldest" must be the dispute with the earliest opened_at (tie-break on
+	// id), NOT the lexicographically smallest uuid — PostgreSQL <= 17 has no
+	// min(uuid) aggregate, and MIN(id) would also be semantically wrong.
+	require.Equal(t, oldestDisputeID.String(), finding.Metadata["oldest_dispute_id"],
+		"oldest_dispute_id must reference the dispute with the earliest opened_at")
 
 	first, err := alertSvc.CreateAlert(
 		ctx,

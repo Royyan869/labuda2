@@ -5,17 +5,9 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/ui/src/helpers/media_picker_helper.dart';
 import 'package:labuda/shared/ui/src/screens/custom_camera_screen.dart';
 
-/// ForSale Media Handler — handles image + video selection for For Sale forSales.
-///
-/// Uses canonical upload primitives:
-/// - S3Service.uploadImage() for images
-/// - S3Service.uploadVideo() for videos
-///
-/// Ordering: preserves selection order (sequential upload, no concurrency).
-/// Business rule: photos first, then videos — enforced by caller selection order.
-///
-/// S3 dependency is obtained from the canonical [s3ServiceProvider], not through
-/// direct [S3Service()] construction.
+/// @deprecated Gunakan [MediaUploadOrchestrator.forCommerce()] — 1 mesin foto+video.
+/// Dipertahankan untuk kompatibilitas, delegasi ke orchestrator.
+@Deprecated('Gunakan MediaUploadOrchestrator.forCommerce()')
 class ForSaleMediaHandler {
   static const int maxMedia = 10;
   static const int maxImageSizeMb = 10;
@@ -183,21 +175,23 @@ class ForSaleMediaHandler {
   }
 
   /// Show media picker bottom sheet — Gallery & Camera.
+  ///
+  /// Fixed P1: uses [outerContext] (form scaffold) for pick/upload, not the
+  /// ephemeral bottomSheet [sheetContext] which is unmounted after pop.
   static void showMediaPicker({
     required BuildContext context,
     required Future<void> Function(List<String> urls) onMediaUploaded,
     int currentMediaCount = 0,
   }) {
     final handler = ForSaleMediaHandler();
-
-
+    final outerContext = context;
 
     showModalBottomSheet(
-      context: context,
+      context: outerContext,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
+      builder: (sheetContext) => Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
+          color: Theme.of(sheetContext).scaffoldBackgroundColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.all(20),
@@ -205,45 +199,42 @@ class ForSaleMediaHandler {
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildOption(
-              context: context,
+              context: sheetContext,
               icon: Icons.photo_library,
               label: 'Galeri',
               onTap: () async {
-                final ctx = context;
-                Navigator.pop(ctx);
+                Navigator.pop(sheetContext);
+                // Use outerContext — sheetContext is dead after pop.
                 final files = await handler.pickMediaFromGallery(
-                  context: ctx,
+                  context: outerContext,
                   currentMediaCount: currentMediaCount,
                 );
-                if (ctx.mounted) {
-                  await _handleMediaSelection(
-                    context: ctx,
-                    handler: handler,
-                    files: files,
-                    onMediaUploaded: onMediaUploaded,
-                  );
-                }
+                if (!outerContext.mounted) return;
+                await _handleMediaSelection(
+                  context: outerContext,
+                  handler: handler,
+                  files: files,
+                  onMediaUploaded: onMediaUploaded,
+                );
               },
             ),
             _buildOption(
-              context: context,
+              context: sheetContext,
               icon: Icons.camera_alt,
               label: 'Kamera',
               onTap: () async {
-                final ctx = context;
-                Navigator.pop(ctx);
+                Navigator.pop(sheetContext);
                 final files = await handler.openCamera(
-                  context: ctx,
+                  context: outerContext,
                   currentMediaCount: currentMediaCount,
                 );
-                if (ctx.mounted) {
-                  await _handleMediaSelection(
-                    context: ctx,
-                    handler: handler,
-                    files: files,
-                    onMediaUploaded: onMediaUploaded,
-                  );
-                }
+                if (!outerContext.mounted) return;
+                await _handleMediaSelection(
+                  context: outerContext,
+                  handler: handler,
+                  files: files,
+                  onMediaUploaded: onMediaUploaded,
+                );
               },
             ),
           ],
@@ -266,18 +257,44 @@ class ForSaleMediaHandler {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const _UploadProgressDialog(),
+      builder: (dialogContext) => const _UploadProgressDialog(),
     );
 
-    final urls = await handler.uploadMedia(context: context, files: files);
+    List<String> urls = [];
+    try {
+      urls = await handler.uploadMedia(context: context, files: files);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Upload gagal: $e'),
+            backgroundColor: AppColors.statusError,
+          ),
+        );
+      }
+    } finally {
+      if (context.mounted) {
+        // Close progress dialog — pop only if dialog is still on stack.
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+      }
+    }
 
-    // Close progress dialog
     if (!context.mounted) return;
-    Navigator.of(context).pop();
 
-    // Notify callback with uploaded URLs
+    // Always notify if urls exist; surface empty case explicitly.
     if (urls.isNotEmpty) {
       await onMediaUploaded(urls);
+    } else {
+      // No leaked silent failure — user already saw per-file error/snackbar
+      // from uploadMedia, but ensure form knows attempt finished.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tidak ada media yang berhasil diupload. Coba lagi.'),
+          backgroundColor: AppColors.statusError,
+        ),
+      );
     }
   }
 

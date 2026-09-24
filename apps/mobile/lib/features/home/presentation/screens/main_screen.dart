@@ -5,7 +5,7 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/generated/app_localizations.dart';
 import 'package:labuda/features/home/home.dart';
-import 'package:labuda/features/explore/presentation/screens/explore_screen.dart';
+import 'package:labuda/features/marketplace/presentation/screens/marketplace_screen.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
 import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
 
@@ -15,7 +15,7 @@ import 'package:labuda/domains/user/preference/seller/domain/entities/seller_sta
 /// - AppBar dengan search bar dan action buttons (Box, Chat, Notifications)
 /// - Bottom navigation dengan Create button di tengah
 /// - Drawer dengan menu navigasi dan user profile
-/// - Tab switching untuk Home, Explore, Profile, etc.
+/// - Tab switching untuk Home, Marketplace, Profile, etc.
 class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
 
@@ -23,9 +23,35 @@ class MainScreen extends ConsumerStatefulWidget {
   ConsumerState<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends ConsumerState<MainScreen> {
+class _MainScreenState extends ConsumerState<MainScreen>
+    with WidgetsBindingObserver {
   int _currentIndex = 0;
   DateTime? _lastBackPressed;
+
+  @override
+  void initState() {
+    super.initState();
+    // Batch 2: a seller payment (subscription activation/renewal) often
+    // settles while the app is backgrounded (m-banking / wallet app). The
+    // stale "Langganan belum aktif" sheet is exactly what confused fresh
+    // sellers ("saya belum bisa jualan") — resume is the natural moment to
+    // re-read backend truth so the sheet reflects it.
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    final s = ref.read(authControllerProvider);
+    if (s is! AuthStateAuthenticated) return;
+    ref.read(authControllerProvider.notifier).forceRefreshAuthState();
+  }
 
   /// Helper untuk find tab index by label
   int _findTabIndexByLabel(String label, INavigationRegistry registry) {
@@ -59,15 +85,12 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           if (profileTabIndex >= 0) {
             setState(() => _currentIndex = profileTabIndex);
           }
-        } else if (next.target == 'explore') {
-          // Find Explore tab index
-          final exploreTabIndex = _findTabIndexByLabel(
-            'Explore',
+        } else if (next.target == 'marketplace') {
+          final marketplaceTabIndex = _findTabIndexByLabel(
+            'Marketplace',
             navigationRegistry,
           );
-          if (exploreTabIndex >= 0) {
-            setState(() => _currentIndex = exploreTabIndex);
-          }
+          if (marketplaceTabIndex >= 0) setState(() => _currentIndex = marketplaceTabIndex);
         }
         // Clear pending switch
         Future.microtask(() {
@@ -101,10 +124,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
               page: const HomeScreen(),
             ),
             MainTab(
-              label: 'Explore',
-              icon: Icons.explore_outlined,
-              selectedIcon: Icons.explore,
-              page: const ExploreScreen(),
+              label: 'Marketplace',
+              icon: Icons.storefront_outlined,
+              selectedIcon: Icons.storefront,
+              page: const MarketplaceScreen(),
             ),
           ];
 
