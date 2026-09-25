@@ -88,7 +88,9 @@ void main() {
                     height: 96,
                     child: StableNetworkImage(
                       imageUrl: imageUrl,
-                      logicalCacheKey: 'detail-media-1',
+                      // Codebase factual: cache-busting slot is `reloadToken`
+                      // (renamed from the old logicalCacheKey contract).
+                      reloadToken: 'detail-media-1',
                       fallback: const Text('error-state'),
                     ),
                   ),

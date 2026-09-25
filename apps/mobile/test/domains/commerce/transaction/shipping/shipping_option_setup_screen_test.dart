@@ -332,8 +332,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Settings "Pengiriman" goes to management list (SellerShippingScreen)
-      await tester.tap(find.text('Pengiriman').last);
+      // Settings "Shipping" goes to management list (SellerShippingScreen)
+      await tester.tap(find.text('Shipping').last);
       await tester.pumpAndSettle();
       expect(find.byType(SellerShippingScreen), findsOneWidget);
 
@@ -559,8 +559,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap "Pengiriman" in settings
-      await tester.tap(find.text('Pengiriman').last);
+      // Tap "Shipping" in settings (factual tile label)
+      await tester.tap(find.text('Shipping').last);
       await tester.pumpAndSettle();
 
       // Should open the management list (SellerShippingScreen), not setup
@@ -582,7 +582,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Pengiriman').last);
+      await tester.tap(find.text('Shipping').last);
       await tester.pumpAndSettle();
 
       // Should stay on list with empty state, not auto-redirect to setup
@@ -603,7 +603,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Pengiriman').last);
+      await tester.tap(find.text('Shipping').last);
       await tester.pumpAndSettle();
 
       // Empty-state CTA — opens the canonical one-package setup screen

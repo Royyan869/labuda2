@@ -145,7 +145,7 @@ class MediaUploadComponent extends BaseComponent
   void _handleUpload(BuildContext context) {
     MediaUploadOrchestrator.showPicker(
       context: context,
-      config: MediaUploadConfig(maxImages: maxFiles, maxVideos: maxFiles, maxTotal: maxFiles, maxImageSizeMb: maxFileSizeMB, maxVideoSizeMb: maxFileSizeMB),
+      config: MediaUploadConfig(maxImages: maxFiles, maxVideos: maxFiles, maxTotal: maxFiles, maxImageSizeMb: maxFileSizeMB.round(), maxVideoSizeMb: maxFileSizeMB.round()),
       currentCount: (getData() ?? []).length,
       onUploaded: (urls) async {
         final cur = List<String>.from(getData() ?? []);

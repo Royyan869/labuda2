@@ -857,8 +857,10 @@ void main() {
         );
         await tester.pump();
         final a = tester.widget<HybridAvatar>(find.byType(HybridAvatar));
+        // Owner decision 2026-09-24: no initials fallback anywhere — avatar
+        // is photo-or-person-icon, resolved via userId + AvatarCacheService.
         expect(a.userId, _canonicalRowUserId);
-        expect(a.initials, 'JD');
+        expect(a.savedAvatarUrl, isNull);
       });
 
       testWidgets('HybridAvatar imageUrl is null when no farmPhoto', (tester) async {
@@ -877,7 +879,7 @@ void main() {
         expect(a.savedAvatarUrl, isNull);
       });
 
-      testWidgets('initials derived from farmName via UserInitialsHelper', (tester) async {
+      testWidgets('HybridAvatar renders via userId only (initials fallback removed)', (tester) async {
         await tester.pumpWidget(
           _wrapWidget(
             recordingService: _RecordingSearchApiService(),
@@ -890,7 +892,10 @@ void main() {
         );
         await tester.pump();
         final a = tester.widget<HybridAvatar>(find.byType(HybridAvatar));
-        expect(a.initials, 'JD');
+        // farmName no longer derives initials — the avatar is resolved from
+        // userId via AvatarCacheService; savedAvatarUrl stays null here.
+        expect(a.userId, _canonicalRowUserId);
+        expect(a.savedAvatarUrl, isNull);
       });
 
       testWidgets('no location text when location null', (tester) async {
@@ -958,16 +963,16 @@ void main() {
         );
         await tester.pump();
         final a = tester.widget<HybridAvatar>(find.byType(HybridAvatar));
-        // Current row does not wire farmPhotoUrl to HybridAvatar (only userId + initials)
-        // Canonical assertion is initials + userId; savedAvatarUrl remains null and is fetched via AvatarCacheService
+        // Current row does not wire farmPhotoUrl to HybridAvatar (only userId).
+        // savedAvatarUrl remains null and is fetched via AvatarCacheService;
+        // initials are gone (owner decision 2026-09-24).
         expect(a.userId, _canonicalAvatarRowUserId);
-        expect(a.initials, 'CB');
         expect(a.savedAvatarUrl, isNull);
       });
     });
 
     group('empty farmName', () {
-      testWidgets('HybridAvatar initials empty when farmName null', (tester) async {
+      testWidgets('HybridAvatar shows no initials state when farmName null', (tester) async {
         await tester.pumpWidget(
           _wrapWidget(
             recordingService: _RecordingSearchApiService(),
@@ -980,7 +985,8 @@ void main() {
         );
         await tester.pump();
         final a = tester.widget<HybridAvatar>(find.byType(HybridAvatar));
-        expect(a.initials, '');
+        // Initials no longer exist on the widget contract.
+        expect(a.userId, _canonicalRowUserId);
         expect(find.byType(HybridAvatar), findsOneWidget);
       });
 

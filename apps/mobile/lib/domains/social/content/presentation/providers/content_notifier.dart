@@ -82,15 +82,16 @@ class ContentList extends _$ContentList {
     });
   }
 
-  /// Get contents by author
-  Future<void> fetchByAuthor(String authorId, {int? limit, int? offset}) async {
+  /// Get contents by author — first page only.
+  /// Canonical pagination path is [ContentRepository.getContentsByAuthorPaged]
+  /// (cursor-based, C3B); this method no longer takes an offset.
+  Future<void> fetchByAuthor(String authorId, {int? limit}) async {
     state = const ContentListState.loading();
     final repo = ref.read(contentRepositoryProvider);
 
     final result = await repo.getContentsByAuthor(
       authorId,
       limit: limit,
-      offset: offset,
     );
 
     result.fold((error) => state = ContentListState.error(error), (contents) {

@@ -92,7 +92,6 @@ void main() {
           messageController: controller,
           onSendMessage: (_, {MessageType type = MessageType.text}) async {
             sendCalls += 1;
-            return true;
           },
           onAttachmentTap: () {},
         ),
@@ -103,15 +102,18 @@ void main() {
     await tester.enterText(find.byType(TextField), '   ');
     await tester.pump();
 
-    expect(find.byIcon(Icons.mic), findsOneWidget);
+    // Codebase factual: _isTyping is text.isNotEmpty — whitespace counts as
+    // typing and shows the send icon, but _handleSendMessage trims and guards
+    // empty content, so no send fires.
+    expect(find.byIcon(Icons.send), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.mic));
+    await tester.tap(find.byIcon(Icons.send));
     await tester.pump();
 
     expect(sendCalls, 0);
   });
 
-  testWidgets('media-only draft sends with empty text body', (tester) async {
+  testWidgets('empty draft does not send — media-only send path removed', (tester) async {
     final controller = TextEditingController();
     String? capturedContent;
     MessageType? capturedType;
@@ -121,12 +123,12 @@ void main() {
         ChatInputArea(
           chatId: _chatId,
           messageController: controller,
-          canSendMedia: true,
+          // Codebase factual: sendability is decided inside the widget/notifier
+          // chain — the widget carries no canSendMedia flag.
           onSendMessage:
               (content, {MessageType type = MessageType.text}) async {
                 capturedContent = content;
                 capturedType = type;
-                return true;
               },
           onAttachmentTap: () {},
         ),
@@ -141,7 +143,9 @@ void main() {
     await tester.tap(sendButton);
     await tester.pump();
 
-    expect(capturedContent, isEmpty);
-    expect(capturedType, MessageType.text);
+    // Codebase factual: the send button requires non-empty text (_isTyping);
+    // the old media-only empty-body send path no longer exists in the widget.
+    expect(capturedContent, isNull);
+    expect(capturedType, isNull);
   });
 }

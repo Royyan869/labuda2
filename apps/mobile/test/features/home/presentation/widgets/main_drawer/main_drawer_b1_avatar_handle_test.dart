@@ -133,12 +133,12 @@ void main() {
 
       final avatar = tester.widget<HybridAvatar>(find.byType(HybridAvatar));
       expect(avatar.userId, _userAId);
-      // UserInitialsHelper.fromName('john_doe') single word → 'JO' (first 2 chars)
-      expect(avatar.initials, 'JO');
-      expect(find.byIcon(Icons.person), findsNothing);
+      // Owner decision 2026-09-24: initials fallback is removed — avatar is
+      // photo-or-person-icon. Without a photo the person icon renders.
+      expect(find.byIcon(Icons.person), findsOneWidget);
     });
 
-    testWidgets('numeric-only username renders initials 12', (tester) async {
+    testWidgets('numeric-only username renders person icon (no initials)', (tester) async {
       final user = _user(id: _userAId, username: '12345');
       final controller = _FakeAuthController(
         AuthState.authenticated(user, emailVerified: true),
@@ -147,9 +147,10 @@ void main() {
       await tester.pumpWidget(_wrap(controller));
       await tester.pump();
 
-      final avatar = tester.widget<HybridAvatar>(find.byType(HybridAvatar));
-      expect(avatar.initials, '12');
-      expect(find.text('12'), findsOneWidget);
+      // Initials are gone from the avatar contract — numeric usernames get
+      // the same photo-or-person-icon rendering as everyone else.
+      expect(find.text('12'), findsNothing);
+      expect(find.byIcon(Icons.person), findsOneWidget);
     });
 
     testWidgets(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:labuda/domains/commerce/transaction/checkout/presentation/screens/payment_result_screen_impl.dart';
 import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment.dart';
 import 'package:labuda/domains/finance/transaction/payment/presentation/providers/payment_result_notifier.dart';
@@ -66,7 +67,10 @@ Payment _payment({
     referenceType: 'order',
     referenceId: 'order-1',
     createdAt: DateTime.utc(2026, 6, 1),
-    expiredAt: expiredAt ?? DateTime.utc(2026, 8, 2),
+    // Deterministic relative to the test run — a hardcoded date becomes a
+    // time bomb: once it passes, hasReusablePaymentUrl factually hides the
+    // reopen action and these tests break for no code reason.
+    expiredAt: expiredAt ?? DateTime.now().add(const Duration(days: 30)),
     paymentUrl: paymentUrl,
   );
 }
@@ -77,20 +81,36 @@ Future<_FakePaymentResultNotifier> _pumpScreen(
   String? returnToChat,
 }) async {
   final notifier = _FakePaymentResultNotifier(state);
-  await tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        paymentResultProvider.overrideWith(() => notifier),
-        authControllerProvider.overrideWith(_FakeAuthController.new),
-      ],
-      child: MaterialApp(
-        home: PaymentResultScreen(
-          orderId: 'order-1',
-          orderNumber: 'ORD-1',
-          returnToChat: returnToChat,
+  // Codebase factual: "Lanjutkan Pembayaran" opens the payment URL via
+  // GoRouter push to the internal payment WebView — the harness must
+  // provide a router or the tap throws "No GoRouter found in context".
+  final router = GoRouter(
+    initialLocation: '/payment-result',
+    routes: [
+      GoRoute(
+        path: '/payment-result',
+        builder: (context, state) => ProviderScope(
+          overrides: [
+            paymentResultProvider.overrideWith(() => notifier),
+            authControllerProvider.overrideWith(_FakeAuthController.new),
+          ],
+          child: PaymentResultScreen(
+            orderId: 'order-1',
+            orderNumber: 'ORD-1',
+            returnToChat: returnToChat,
+          ),
         ),
       ),
-    ),
+      GoRoute(
+        path: '/payment-webview',
+        builder: (context, state) => const Scaffold(
+          body: Text('PAYMENT_WEBVIEW_TARGET'),
+        ),
+      ),
+    ],
+  );
+  await tester.pumpWidget(
+    MaterialApp.router(routerConfig: router),
   );
   await tester.pump();
   return notifier;
@@ -124,6 +144,28 @@ void main() {
 
         expect(find.text('Coba Lagi'), findsOneWidget);
         expect(find.text('Lanjutkan Pembayaran'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'Lanjutkan Pembayaran is hidden when the payment URL has expired',
+      (tester) async {
+        // Codebase factual contract: hasReusablePaymentUrl requires a
+        // non-expired URL — reopening an expired payment link would mislead.
+        await _pumpScreen(
+          tester,
+          PaymentResultState.checking(
+            pollAttempts: 5,
+            payment: _payment(
+              status: PaymentStatus.pending,
+              paymentUrl: 'https://pay.example.com/snap/1',
+              expiredAt: DateTime.now().subtract(const Duration(days: 1)),
+            ),
+          ),
+        );
+
+        expect(find.text('Coba Lagi'), findsOneWidget);
+        expect(find.text('Lanjutkan Pembayaran'), findsNothing);
       },
     );
 

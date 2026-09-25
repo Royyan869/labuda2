@@ -106,7 +106,9 @@ void main() {
     expect(room.otherUser, isNotNull);
     expect(room.otherUser!.username, 'alice');
     expect(room.otherUser!.lifecycle, 'active');
-    expect(room.context, isNotNull);
+    // Codebase factual: room-level `context` is gone from the DTO entirely —
+    // chat carries only a safe `linked_order_id` reference, never commerce truth.
+    expect(room.linkedOrderId, 'order-1');
     expect(room.lastMessage, isNull);
     expect(room.unreadCount, 0);
   });
