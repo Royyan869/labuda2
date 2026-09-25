@@ -61,7 +61,8 @@ Dilarang rollback/restore dari GitHub — semua perbaikan maju.
    peta kontrak factual follow (FollowableUser.lifecycle string coarsened,
    ContentLifecycle enum di AuthUser, NavigationHandler.navigateToSellerRenewal),
    lalu align semua 4 file sekaligus.
-3. `seller_wizard_helpers_test` — param `bio` tidak ada (refactor wizard).
+3. ~~`seller_wizard_helpers_test` — param `bio`~~ ✅ SELESAI (ea8aca6,
+   sesuai keputusan owner purge bio seller).
 4. Break lib lain: 7 warning `lib/` (unused import/element/field,
    hidden name RefundRequest/RefundStatus) — kecil, sekali jalan.
 5. Test debt pre-existing commerce (terverifikasi baseline):
@@ -69,11 +70,17 @@ Dilarang rollback/restore dari GitHub — semua perbaikan maju.
 6. Test debt non-commerce dari daftar lama (perlu re-baseline dulu):
    promoted feed HTTP-mock, `/settings` toggle, `saved_item` backend contract.
 
-### B. Keputusan owner (parkiran lama yang masih valid)
-- Drop kolom DB `for_sale_type` yang dormant (migrasi terpisah).
+### B. Keputusan owner — SUDAH DIEKSEKUSI
+- ✅ Drop kolom DB `for_sale_type` — commit b2dee89 (migrasi 000112,
+  IF EXISTS aman di DB fresh & lama; README breadcrumb 000113).
+- ✅ Purge bio seller — commit ea8aca6. Factual: bio hanya ada di
+  `user_profiles` (user authority); domain seller backend & mobile sudah
+  bersih; satu-satunya sisa (fixture wizard test) di-align.
+
+### C. Keputusan owner — MENUNGGU
 - Audit wire for_sale dengan lensa Scope 3 (raw status sold/withdrawn
   ke non-owner?).
 
 ## Komit acuan
-e1fb4ae, c9ab974, a00b230, 94c1ce8, 7b0b1c8, 64e9f24, 23d36d9, 30874c6
-(+ commit audit factual berikutnya).
+e1fb4ae, c9ab974, a00b230, 94c1ce8, 7b0b1c8, 64e9f24, 23d36d9, 30874c6,
+1b95590, b2dee89, ea8aca6.
