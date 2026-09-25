@@ -34,8 +34,11 @@ const (
 )
 
 // PayoutGateway defines the interface for payment gateway integration.
+// PAYOUT-03: GetPayoutStatus is used by reconciliation to query gateway status
+// without resubmitting payouts.
 type PayoutGateway interface {
 	SubmitPayout(ctx context.Context, req PayoutGatewayRequest) (*PayoutGatewayResponse, error)
+	GetPayoutStatus(ctx context.Context, referenceNo string) (*PayoutStatusCheck, error)
 }
 
 // PayoutGatewayRequest represents a payout request to the gateway.
@@ -66,6 +69,9 @@ const (
 	PayoutResponseStatusPending  PayoutResponseStatus = "PENDING"
 	PayoutResponseStatusFailed   PayoutResponseStatus = "FAILED"
 	PayoutResponseStatusRejected PayoutResponseStatus = "REJECTED"
+	// PAYOUT-01B: UNKNOWN is returned when the gateway status is unrecognized.
+	// This prevents unknown statuses from silently triggering financial transitions.
+	PayoutResponseStatusUnknown  PayoutResponseStatus = "UNKNOWN"
 )
 
 // PayoutErrorType indicates the nature of a payout error.
@@ -561,7 +567,7 @@ func (w *PayoutWorker) submitWithdrawal(ctx context.Context, withdrawal *reposit
 			zap.String("gateway_ref", resp.GatewayReferenceID),
 			zap.Duration("submit_latency_ms", latency.ProcessingToSubmitted),
 		)
-		return w.markSubmissionSuccess(ctx, withdrawal.ID, externalRef, resp.RawResponse)
+		return w.markSubmissionSuccess(ctx, withdrawal.ID, externalRef, resp.GatewayReferenceID, resp.RawResponse)
 	}
 
 	// Gateway rejected the payout
@@ -582,16 +588,18 @@ func (w *PayoutWorker) submitWithdrawal(ctx context.Context, withdrawal *reposit
 	return w.markSubmissionFailed(ctx, withdrawal.ID, ErrorTypePermanent, resp.Message)
 }
 
-// markSubmissionSuccess marks a withdrawal as successfully submitted to the gateway
+// markSubmissionSuccess marks a withdrawal as successfully submitted to the gateway.
+// PAYOUT-01B: Now also persists gateway_reference_no for status queries.
 func (w *PayoutWorker) markSubmissionSuccess(
 	ctx context.Context,
 	withdrawalID uuid.UUID,
 	externalRef string,
+	gatewayRefNo string,
 	gatewayResponse string,
 ) error {
 	return w.db.WithTx(ctx, func(tx db.Tx) error {
 		// Update for submission (PROCESSING -> SUBMITTED)
-		if err := w.withdrawRepo.UpdateForSubmission(ctx, tx, withdrawalID, externalRef, gatewayResponse); err != nil {
+		if err := w.withdrawRepo.UpdateForSubmission(ctx, tx, withdrawalID, externalRef, gatewayRefNo, gatewayResponse); err != nil {
 			return fmt.Errorf("update for submission: %w", err)
 		}
 

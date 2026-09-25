@@ -171,7 +171,7 @@ func (m *MidtransPayoutGateway) mapResponse(resp *midtransPayout.PayoutResponse)
 	}
 
 	// Map Iris status strings to human-readable messages
-	// Iris status values: "queued", "processed", "failed" (UNVERIFIED at runtime)
+	// Iris status values: "queued", "processed", "completed", "failed" (documented, runtime-unconfirmed)
 	switch resp.Status {
 	case "queued":
 		gatewayResp.Message = "Payout queued in Midtrans Iris, awaiting approval"
@@ -243,18 +243,22 @@ func (m *MidtransPayoutGateway) simulatePayout(ctx context.Context, req PayoutGa
 // STATUS CHECK (for reconciliation)
 // ============================================================================
 
-// GetPayoutStatus checks the status of a payout by external reference ID
-// This is used by the reconciliation worker
-func (m *MidtransPayoutGateway) GetPayoutStatus(ctx context.Context, externalRef string) (*PayoutStatusCheck, error) {
+// GetPayoutStatus checks the status of a payout by Midtrans reference_no.
+//
+// PAYOUT-01B: The Iris API uses reference_no (not external_id) as the
+// path parameter for status queries.
+//
+// This is used by the future reconciliation worker.
+func (m *MidtransPayoutGateway) GetPayoutStatus(ctx context.Context, referenceNo string) (*PayoutStatusCheck, error) {
 	if m.config.SimulateMode {
 		return &PayoutStatusCheck{
-			ExternalReferenceID: externalRef,
+			GatewayReferenceID: referenceNo,
 			Status:              "PENDING",
 			RawResponse:         `{"simulated": true}`,
 		}, nil
 	}
 
-	statusResp, err := m.client.GetPayoutStatus(ctx, externalRef)
+	statusResp, err := m.client.GetPayoutStatus(ctx, referenceNo)
 	if err != nil {
 		return nil, err
 	}
@@ -277,18 +281,27 @@ type PayoutStatusCheck struct {
 	RawResponse         string
 }
 
-// mapMidtransStatus maps Midtrans status to internal status
+// mapMidtransStatus maps Midtrans status to internal status.
+//
+// PAYOUT-01B: Corrected mapping based on official Iris documentation.
+// Iris statuses: queued, processed, completed, failed.
+//
+// Key corrections:
+//   - "processed" → "SETTLING" (non-terminal, bank acknowledged)
+//   - "completed" → "SETTLED" (terminal success, funds received)
+//   - unknown → "UNKNOWN" (not SUBMITTED, not FAILED)
 func mapMidtransStatus(status string) string {
-	// Iris status values (UNVERIFIED at runtime — Iris credentials unavailable in TASK 58)
 	switch status {
 	case "processed":
+		return "SETTLING"
+	case "completed":
 		return "SETTLED"
 	case "queued":
 		return "SUBMITTED"
 	case "failed":
 		return "FAILED_FINAL"
 	default:
-		return "SUBMITTED"
+		return "UNKNOWN"
 	}
 }
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { LogOut, User, ChevronDown } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { logoutAdmin } from '@/lib/api'
+import { Avatar } from '@/components/ui/Avatar'
 
 export function Topbar() {
   const { user } = useAuthStore()
@@ -30,18 +31,14 @@ export function Topbar() {
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-gray-100 transition-colors"
           >
-            {/* Avatar — canonical from user_profiles.avatar_url */}
-            {user?.avatarUrl ? (
-              <img
-                src={user.avatarUrl}
-                alt={user.username || user.email}
-                className="h-8 w-8 rounded-full object-cover"
-              />
-            ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white text-sm font-medium">
-                {(user?.username || user?.email)?.charAt(0).toUpperCase() || 'A'}
-              </div>
-            )}
+            {/* Avatar — canonical: photo or person icon. No initials,
+                including for the read-only admin account itself. */}
+            <Avatar
+              src={user?.avatarUrl}
+              userId={user?.username || user?.email}
+              name={user?.username || user?.email}
+              size="sm"
+            />
 
             {/* User Info — canonical username from user_profiles */}
             <div className="text-left">

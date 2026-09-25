@@ -54,6 +54,7 @@ class CommentRepositoryImpl implements CommentRepository {
     required String content,
     String? parentId,
     List<String> mentionedUserIds = const [],
+    List<String> mediaUrls = const [],
   }) async {
     _logger?.info('Creating comment on $targetType: $targetId');
 
@@ -61,12 +62,15 @@ class CommentRepositoryImpl implements CommentRepository {
     // transport retry of that attempt (never regenerated mid-call).
     final idempotencyKey = const Uuid().v4();
 
+    final mediaDtos = _mapMediaUrlsToDtos(mediaUrls);
+
     final request = CreateCommentDto(
       targetId: targetId,
       targetType: targetType.name,
       content: content,
       parentId: parentId,
       mentionedUserIds: mentionedUserIds.isEmpty ? null : mentionedUserIds,
+      media: mediaDtos.isEmpty ? null : mediaDtos,
     );
 
     final result = await _datasource.createComment(
@@ -127,6 +131,22 @@ class CommentRepositoryImpl implements CommentRepository {
   }
 
   @override
+  Future<Result<Comment>> updateComment({
+    required String commentId,
+    required String body,
+  }) async {
+    _logger?.info('Updating comment: $commentId');
+    final result = await _datasource.updateComment(
+      commentId: commentId,
+      body: body,
+    );
+    return result.fold(
+      (error) => Result.error(error),
+      (dto) => Result.success(CommentMapper.toEntity(dto)),
+    );
+  }
+
+  @override
   Future<Result<bool>> validateContent(String content) async {
     try {
       if (content.trim().isEmpty) {
@@ -142,5 +162,33 @@ class CommentRepositoryImpl implements CommentRepository {
       _logger?.error('Error validating content: $e');
       return Result.error('Failed to validate content: $e');
     }
+  }
+
+  List<CommentCreateMediaDto> _mapMediaUrlsToDtos(List<String> urls) {
+    final dtos = <CommentCreateMediaDto>[];
+    for (int i = 0; i < urls.length; i++) {
+      final url = urls[i].trim();
+      if (url.isEmpty) continue;
+      final lower = url.toLowerCase();
+      final isVideo =
+          lower.endsWith('.mp4') ||
+          lower.endsWith('.mov') ||
+          lower.endsWith('.webm') ||
+          lower.endsWith('.m4v');
+      // Derive storageKey from URL last segment; fallback to url
+      final uri = Uri.tryParse(url);
+      final storageKey = uri != null && uri.pathSegments.isNotEmpty
+          ? uri.pathSegments.last
+          : url;
+      dtos.add(
+        CommentCreateMediaDto(
+          storageKey: storageKey,
+          mediaUrl: url,
+          mediaType: isVideo ? 'video' : 'image',
+          position: i,
+        ),
+      );
+    }
+    return dtos;
   }
 }

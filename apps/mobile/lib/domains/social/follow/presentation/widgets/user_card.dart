@@ -58,12 +58,7 @@ class UserCard extends ConsumerWidget {
 
               // Follow button suppressed for degraded users.
               if (showFollowButton && !isDegraded)
-                FollowButton(
-                  userId: user.id,
-                  buttonSize: 32,
-                  iconSize: 14,
-                  fontSize: 12,
-                ),
+                FollowButton(userId: user.id),
             ],
           ),
         ),

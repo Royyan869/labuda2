@@ -21,7 +21,6 @@ import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/object/object_preview.dart' as obj;
 import 'package:labuda/shared/object/presentation/widgets/object_preview_card.dart';
 import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/helpers/user_identity_formatter.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
 import 'package:labuda/domains/system/report/presentation/dialogs/report_submission_dialog.dart';
 
@@ -53,6 +52,10 @@ class CommentCard extends ConsumerWidget {
   /// Callback when user taps on reply button (only for top-level comments)
   final VoidCallback? onReply;
 
+  /// Edit/delete callbacks for author
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+
   /// Pre-resolved live preview data (from batch provider)
   /// If provided, will be used directly without calling objectPreviewProvider
   final obj.ObjectPreview? preResolved;
@@ -69,6 +72,8 @@ class CommentCard extends ConsumerWidget {
     this.onFixedPriceSaleTap,
     this.onAuthorTap,
     this.onReply,
+    this.onEdit,
+    this.onDelete,
     this.preResolved,
   });
 
@@ -215,32 +220,13 @@ class CommentCard extends ConsumerWidget {
     // Create tappable area for author info if userId is provided
     final authorSection = Row(
       children: [
-        // Avatar — degraded author always renders a neutral fallback
-        // icon (no NetworkImage, no initials from a redacted name).
-        CircleAvatar(
-          radius: 16,
-          backgroundColor: authorRedacted
-              ? AppColors.neutralGray200
-              : AppColors.primaryRed.withValues(alpha: 0.1),
-          backgroundImage: (!authorRedacted && userAvatar != null)
-              ? NetworkImage(userAvatar!)
-              : null,
-          child: authorRedacted
-              ? const Icon(
-                  Icons.person_off_outlined,
-                  size: 18,
-                  color: AppColors.neutralGray500,
-                )
-              : (userAvatar == null
-                    ? Text(
-                        UserIdentityFormatter.avatarInitials(userName) ?? '•',
-                        style: const TextStyle(
-                          color: AppColors.primaryRed,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      )
-                    : null),
+        // Avatar — canonical: user photo or user icon. Degraded authors
+        // render the same icon (no NetworkImage of a redacted account,
+        // no initials anywhere).
+        ProfileAvatar(
+          userId: userId ?? '',
+          size: 32,
+          imageUrl: (!authorRedacted && userAvatar != null) ? userAvatar : null,
         ),
         const SizedBox(width: 12),
         // Username + badges + timestamp
@@ -318,15 +304,28 @@ class CommentCard extends ConsumerWidget {
             ],
           ),
         ),
-        // Report button (for non-authors)
-        if (userId != null && currentUserId != null && userId != currentUserId)
-          PopupMoreOptionsButton(
-            contentType: PopupMoreOptionsContentType.content,
-            isCreator: false,
-            isDeleting: false,
-            iconSize: 16,
-            onReport: () => _handleReportComment(context),
-          ),
+        // Author actions (edit/delete) vs Report for others
+        if (userId != null && currentUserId != null)
+          if (userId == currentUserId)
+            PopupMenuButton<String>(
+              icon: Icon(Icons.more_horiz, size: 16, color: AppColors.neutralGray600),
+              onSelected: (value) {
+                if (value == 'edit' && onEdit != null) onEdit!.call();
+                if (value == 'delete' && onDelete != null) onDelete!.call();
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                const PopupMenuItem(value: 'delete', child: Text('Hapus')),
+              ],
+            )
+          else
+            PopupMoreOptionsButton(
+              contentType: PopupMoreOptionsContentType.content,
+              isCreator: false,
+              isDeleting: false,
+              iconSize: 16,
+              onReport: () => _handleReportComment(context),
+            ),
       ],
     );
 

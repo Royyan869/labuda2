@@ -60,7 +60,6 @@ type DatabaseConfig struct {
 	MinConnections int
 
 	ConnMaxLifetime time.Duration
-	AutoMigrate     bool
 	// Test database configuration (used when TEST_MODE=true)
 	TestName     string
 	TestHost     string
@@ -279,7 +278,6 @@ func Load() (*Config, error) {
 			MaxConnections: getIntEnv("DB_MAX_CONNECTIONS", 10),
 			MinConnections: getIntEnv("DB_MIN_CONNECTIONS", 2),
 			ConnMaxLifetime: getDurationEnv("DB_CONN_MAX_LIFETIME", 1800) * time.Second,
-			AutoMigrate:     getBoolEnv("AUTO_MIGRATE", false), // Deprecated compatibility flag; ignored by runtime
 			// Test database defaults to same host with different database name
 			TestName:     getEnv("DB_TEST_NAME", "labuda_test"),
 			TestHost:     getEnv("DB_TEST_HOST", ""),
@@ -653,21 +651,15 @@ func (c *Config) IsPayoutSandbox() bool {
 	return c.Payout.Environment == "sandbox" || c.Payout.GatewayProvider == "sandbox"
 }
 
-// reconciliationProvidesCompletion is FALSE and must stay false until
-// PayoutReconciliationService genuinely queries the gateway and can move a
-// payout to a terminal state.
+// reconciliationProvidesCompletion is TRUE because PayoutReconciliationService
+// now genuinely queries the Midtrans Iris gateway and applies canonical
+// transitions via WebhookHandler.HandleCallback().
 //
-// PASS_18S evidence: PayoutReconciliationService.QueryGatewayStatus
-// (internal/finance/worker/payout_reconciliation.go) is a stub — it returns
-// a hardcoded "gateway_status": "UNKNOWN" / "mode": "sandbox_query" without
-// calling any real gateway API, and MarkPayoutStuck explicitly does not
-// transition status ("we don't have a dedicated 'stuck' status... leave it
-// as-is for manual intervention"). Enabling PAYOUT_ENABLE_RECONCILIATION
-// today only produces a periodic log report — it cannot resolve a stuck
-// payout. Counting it as a completion path here would fake safety that does
-// not exist. Flip this to true only once that worker is rewritten to
-// genuinely poll the gateway and finalize state.
-const reconciliationProvidesCompletion = false
+// PAYOUT-03: Reconciliation is now a real completion path that can resolve
+// stuck payouts without manual intervention. The worker queries gateway status,
+// maps it to WebhookCallback, and calls the same canonical transition authority
+// as the webhook handler.
+const reconciliationProvidesCompletion = true
 
 // PayoutCompletionSafety describes whether a genuine completion path exists
 // for the currently configured payout worker (PASS_18S). A "completion

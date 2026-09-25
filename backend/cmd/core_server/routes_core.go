@@ -1248,10 +1248,11 @@ func SetupRoutes(
 		contentRoutes.POST("/:id/comments", middleware.RequireActiveAccount(db.Pgx()), deps.CommentHandler.CreateComment)
 		contentRoutes.GET("/:id/comments", deps.CommentHandler.ListComments)
 
-		// Comment-specific routes (delete by comment ID)
+		// Comment-specific routes (delete/edit by comment ID)
 		// Content-removal doctrine: comment deletion is content removal, not a social-graph
 		// reduction (unlike unfollow/unblock). All content operations require active account.
 		v1.DELETE("/comments/:id", middleware.RequireActiveAccount(db.Pgx()), deps.CommentHandler.DeleteComment)
+		v1.PUT("/comments/:id", middleware.RequireActiveAccount(db.Pgx()), deps.CommentHandler.UpdateComment)
 
 		// Commerce reference comment routes (seller responses to requests / auctions)
 		contentRoutes.POST("/:id/comments/reference", middleware.RequireActiveAccount(db.Pgx()), deps.CommentHandler.CreateCommerceReferenceComment)

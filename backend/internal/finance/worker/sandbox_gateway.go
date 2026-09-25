@@ -523,6 +523,16 @@ func (s *SandboxPayoutGateway) GetStatus() map[string]interface{} {
 	}
 }
 
+// GetPayoutStatus checks the status of a payout by reference_no.
+// PAYOUT-03: Sandbox gateway returns PENDING for all status queries.
+func (s *SandboxPayoutGateway) GetPayoutStatus(ctx context.Context, referenceNo string) (*PayoutStatusCheck, error) {
+	return &PayoutStatusCheck{
+		GatewayReferenceID: referenceNo,
+		Status:              "PENDING",
+		RawResponse:         `{"simulated": true, "status": "PENDING"}`,
+	}, nil
+}
+
 // ============================================================================
 // BRIDGE TYPES
 // ============================================================================

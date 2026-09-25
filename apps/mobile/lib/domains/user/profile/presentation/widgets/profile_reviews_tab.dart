@@ -349,23 +349,10 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
             // Reviewer info
             Row(
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: AppColors.primaryRed.withValues(alpha: 0.1),
-                  backgroundImage: author?.avatarUrl != null
-                      ? NetworkImage(author.avatarUrl)
-                      : null,
-                  child: author?.avatarUrl == null
-                      ? Text(
-                          author?.username?.isNotEmpty == true
-                              ? author.username.substring(0, 1).toUpperCase()
-                              : 'U',
-                          style: const TextStyle(
-                            color: AppColors.primaryRed,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                      : null,
+                ProfileAvatar(
+                  userId: (isReceived ? rating.buyerId : rating.sellerId),
+                  size: 40,
+                  imageUrl: author?.avatarUrl,
                 ),
                 const SizedBox(width: 12),
                 Expanded(

@@ -134,13 +134,16 @@ func (r *fspyWithdrawalRow) Scan(dest ...any) error {
 			*d.(*int64) = 500000
 		case 4:
 			*d.(*repository.WithdrawalStatus) = r.status
-		case 5, 6, 7, 8, 9, 10, 11, 12: // string fields — zero value fine
+		case 5, 6, 7, 8, 9, 10, 11, 12, 13: // string fields — zero value fine
+			// indices: idempotency_key, bank_name_snapshot, bank_code_snapshot,
+			// account_number_snapshot, account_holder_snapshot, external_reference_id,
+			// gateway_reference_no, gateway_response, failure_reason
 			*d.(*string) = ""
-		case 13, 14: // int64 unix timestamps
+		case 14, 15: // int64 unix timestamps (submitted_at, settled_at)
 			*d.(*int64) = 0
-		case 15: // retry_count (int)
+		case 16: // retry_count (int)
 			*d.(*int) = 0
-		case 16, 17: // created_at / updated_at
+		case 17, 18: // created_at / updated_at
 			*d.(*time.Time) = now
 		}
 	}

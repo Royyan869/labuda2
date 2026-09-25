@@ -71,11 +71,8 @@ class ProfileActions extends ConsumerWidget {
   List<Widget> _buildOtherProfileButtons(BuildContext context, bool isDark) {
     final disabled = lifecycle.isDegraded;
     return [
-      // Use existing FollowButton from shared module.
-      // E5.2 — disabled on degraded; the FollowButton widget itself remains
-      // untouched (separate convergence); we mute it via Opacity +
-      // IgnorePointer at the call site so it cannot fire on a degraded
-      // target.
+      // Single authority: FollowButton canonical (big, solid). Gated via
+      // IgnorePointer+Opacity so degraded identities cannot be followed.
       IgnorePointer(
         ignoring: disabled,
         child: Opacity(

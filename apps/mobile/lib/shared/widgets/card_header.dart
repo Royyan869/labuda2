@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/helpers/user_identity_formatter.dart';
-import 'package:labuda/shared/widgets/profile_avatar.dart';
+import 'package:labuda/shared/widgets/hybrid_avatar.dart';
 
 /// Card Header Widget
 ///
@@ -55,12 +54,10 @@ class CardHeader extends StatelessWidget {
                 onTap: onAvatarTap,
                 child: Stack(
                   children: [
-                    ProfileAvatar(
+                    HybridAvatar(
                       userId: name,
+                      savedAvatarUrl: avatarUrl.isEmpty ? null : avatarUrl,
                       size: avatarSize,
-                      imageUrl: avatarUrl.isEmpty ? null : avatarUrl,
-                      initials: UserIdentityFormatter.avatarInitials(name),
-                      showShadow: false,
                     ),
                     if (showOnlineIndicator && isOnline)
                       Positioned(

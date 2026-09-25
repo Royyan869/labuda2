@@ -34,6 +34,9 @@ export 'attachment/attachment.dart';
 // Widget exports
 export 'widgets/profile_avatar.dart'; // ⭐ Avatar component
 export 'widgets/hybrid_avatar.dart'; // ⭐ Hybrid avatar with smart caching
+export 'widgets/seller_dual_avatar.dart'; // ⭐ Dual seller avatar (store + personal)
+export 'widgets/seller_identity_view.dart'; // ⭐ Seller identity composite (profile/drawer/detail)
+export 'widgets/seller_avatar.dart'; // ⭐ Seller-aware avatar composite + online badge
 export 'widgets/follow_button.dart'; // ⭐ Follow button component
 export 'widgets/app_button.dart'; // ⭐ Modern buttons
 export 'widgets/app_text_field.dart'; // ⭐ Modern text fields

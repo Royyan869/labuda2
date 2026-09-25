@@ -29,7 +29,6 @@ String? resolveNetworkImageUrl(String? value) {
 /// is published before the next fetch completes.
 class StableNetworkImage extends StatefulWidget {
   final String? imageUrl;
-  final String? logicalCacheKey;
   final String? reloadToken;
   final Widget fallback;
   final BoxFit fit;
@@ -39,7 +38,6 @@ class StableNetworkImage extends StatefulWidget {
   const StableNetworkImage({
     super.key,
     required this.imageUrl,
-    this.logicalCacheKey,
     this.reloadToken,
     required this.fallback,
     this.fit = BoxFit.cover,
@@ -53,7 +51,6 @@ class StableNetworkImage extends StatefulWidget {
 
 class _StableNetworkImageState extends State<StableNetworkImage> {
   String? _displayedUrl;
-  String? _displayedLogicalCacheKey;
   String? _displayedReloadToken;
   bool _hasSuccessfulFrame = false;
 
@@ -61,7 +58,6 @@ class _StableNetworkImageState extends State<StableNetworkImage> {
   void initState() {
     super.initState();
     _displayedUrl = resolveNetworkImageUrl(widget.imageUrl);
-    _displayedLogicalCacheKey = _normalize(widget.logicalCacheKey);
     _displayedReloadToken = _normalize(widget.reloadToken);
     _hasSuccessfulFrame = false;
   }
@@ -71,32 +67,25 @@ class _StableNetworkImageState extends State<StableNetworkImage> {
     super.didUpdateWidget(oldWidget);
 
     final nextUrl = resolveNetworkImageUrl(widget.imageUrl);
-    final nextLogicalKey = _normalize(widget.logicalCacheKey);
     final nextReloadToken = _normalize(widget.reloadToken);
     if (nextUrl == _displayedUrl && nextReloadToken == _displayedReloadToken) {
-      _displayedLogicalCacheKey = nextLogicalKey;
       return;
     }
 
     if (nextUrl == null) {
       _displayedUrl = null;
-      _displayedLogicalCacheKey = null;
       _displayedReloadToken = null;
       _hasSuccessfulFrame = false;
       return;
     }
 
     _displayedUrl ??= nextUrl;
-    if (_displayedUrl == nextUrl) {
-      _displayedLogicalCacheKey = nextLogicalKey;
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final nextUrl = resolveNetworkImageUrl(widget.imageUrl);
     final currentUrl = _displayedUrl;
-    final nextLogicalKey = _normalize(widget.logicalCacheKey);
     final nextReloadToken = _normalize(widget.reloadToken);
     final hasReloadRequest =
         currentUrl != null &&
@@ -121,15 +110,9 @@ class _StableNetworkImageState extends State<StableNetworkImage> {
               if (!mounted) return;
               setState(() {
                 _displayedUrl = nextUrl;
-                _displayedLogicalCacheKey = nextLogicalKey;
                 _displayedReloadToken = nextReloadToken;
                 _hasSuccessfulFrame = true;
               });
-            });
-          } else if (_displayedLogicalCacheKey != nextLogicalKey) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) return;
-              setState(() => _displayedLogicalCacheKey = nextLogicalKey);
             });
           }
           return child;

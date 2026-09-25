@@ -117,6 +117,7 @@ func (r *feedRepositoryImpl) GetFeed(ctx context.Context, tx interface{}, viewer
 			c.id, c.author_id,
 			CASE WHEN c.original_author_id IS NOT NULL THEN 'repost' ELSE 'post' END AS type,
 			c.status,
+			c.visibility,
 			COALESCE(c.caption, '') AS body,
 			c.caption,
 			c.city, c.province,
@@ -265,6 +266,7 @@ func (r *feedRepositoryImpl) GetFeed(ctx context.Context, tx interface{}, viewer
 			&item.AuthorID,
 			&item.Type,
 			&item.Status,
+			&item.Visibility,
 			&item.Body, // SCHEMA ALIGNMENT (Batch 3J): from COALESCE(c.caption, '')
 			&item.Caption,
 			&city,

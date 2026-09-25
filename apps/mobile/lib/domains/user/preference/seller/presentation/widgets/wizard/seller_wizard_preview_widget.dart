@@ -11,7 +11,6 @@ import 'package:labuda/shared/shared.dart';
 /// the seller/store data before the user moves to payment.
 class SellerWizardPreviewWidget extends StatelessWidget {
   final String username;
-  final String bio;
   final String phoneNumber;
   final String senderAddress;
   final bool emailVerified;
@@ -29,7 +28,6 @@ class SellerWizardPreviewWidget extends StatelessWidget {
   const SellerWizardPreviewWidget({
     super.key,
     required this.username,
-    required this.bio,
     required this.phoneNumber,
     required this.senderAddress,
     required this.emailVerified,
@@ -101,30 +99,6 @@ class SellerWizardPreviewWidget extends StatelessWidget {
               ),
               _buildInfoRow('Phone', phoneNumber, isDark),
               _buildInfoRow('Sender Address', senderAddress, isDark),
-              if (bio.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Bio / Description',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.neutralGray300
-                        : AppColors.neutralGray700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  bio,
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.5,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
-                  ),
-                ),
-              ],
             ],
           ),
 

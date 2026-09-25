@@ -39,7 +39,7 @@ import (
 //   (production base assumed from sandbox URL pattern — NOT runtime-verified)
 // - Payout creation:  POST /payouts   (operator key)
 // - Payout approval:  POST /payouts/approve  (approver key)
-// - Status check:     GET  /payouts/{external_id}
+// - Status check:     GET  /payouts/{reference_no}
 // - Balance:          GET  /balance
 //
 // ============================================================================
@@ -146,10 +146,11 @@ func (cb *PayoutCircuitBreaker) getState() CircuitState {
 // Amount is a string in Iris (not a number).
 // Payouts are submitted as an array (Iris batch format).
 //
-// NOTE: Iris status values are UNVERIFIED at runtime (blocked by missing Iris
-// credentials in TASK 58). Status values below are from Iris documentation:
-//   "queued"     — submitted, awaiting approval
-//   "processed"  — approved and disbursed
+// NOTE: Iris status values are documented (Midtrans docs) but UNVERIFIED at
+// runtime (Iris sandbox credentials unavailable). Status values from docs:
+//   "queued"     — submitted, awaiting execution
+//   "processed"  — sent to bank, NON-TERMINAL
+//   "completed"  — received by beneficiary, TERMINAL SUCCESS
 //   "failed"     — disbursement failed
 // Status mapping to internal values is in MapToGatewayStatus().
 //
@@ -199,7 +200,7 @@ type PayoutRequest = IrisPayoutItem
 
 // PayoutResponse wraps a single Iris payout result for gateway adapter use.
 type PayoutResponse struct {
-	// Status — Iris values: "queued", "processed", "failed" (UNVERIFIED at runtime)
+	// Status — Iris values: "queued", "processed", "completed", "failed" (documented, runtime-unconfirmed)
 	Status     string `json:"status"`
 	ID         string `json:"id"`
 	ExternalID string `json:"external_id"`
@@ -214,18 +215,28 @@ type PayoutResponse struct {
 	ErrorMessages []string `json:"error_messages,omitempty"`
 }
 
-// PayoutStatusResponse is GET /payouts/{external_id} response
+// PayoutStatusResponse is GET /payouts/{reference_no} response.
+// PAYOUT-01B: Updated to match actual Midtrans Iris API contract.
 type PayoutStatusResponse struct {
-	Status             string `json:"status"`
-	ExternalID         string `json:"external_id"`
-	Amount             string `json:"amount"`
-	BeneficiaryName    string `json:"beneficiary_name"`
-	BeneficiaryAccount string `json:"beneficiary_account"`
-	BeneficiaryBank    string `json:"beneficiary_bank"`
-	ReferenceNo        string `json:"reference_no,omitempty"`
-	FailedReason       string `json:"failed_reason,omitempty"`
-	CreatedAt          string `json:"created_at,omitempty"`
-	UpdatedAt          string `json:"updated_at,omitempty"`
+	Status             string          `json:"status"`
+	ExternalID         string          `json:"external_id"`
+	Amount             string          `json:"amount"`
+	BeneficiaryName    string          `json:"beneficiary_name"`
+	BeneficiaryAccount string          `json:"beneficiary_account"`
+	BeneficiaryBank    string          `json:"beneficiary_bank"`
+	ReferenceNo        string          `json:"reference_no,omitempty"`
+	FailedReason       string          `json:"failed_reason,omitempty"`
+	CreatedAt          string          `json:"created_at,omitempty"`
+	UpdatedAt          string          `json:"updated_at,omitempty"`
+	// PAYOUT-01B: error_details is present when status is "failed"
+	ErrorDetails       *IrisErrorDetail `json:"error_details,omitempty"`
+}
+
+// IrisErrorDetail represents structured error information from the Iris API.
+// Present when payout status is "failed".
+type IrisErrorDetail struct {
+	Message string `json:"message"`
+	Code    string `json:"code"`
 }
 
 // PayoutClient is the Midtrans Iris payout client
@@ -366,8 +377,15 @@ func (c *PayoutClient) SubmitPayout(ctx context.Context, req *IrisPayoutItem) (*
 	return payoutResp, nil
 }
 
-// GetPayoutStatus checks payout status via GET /payouts/{external_id}.
-func (c *PayoutClient) GetPayoutStatus(ctx context.Context, externalID string) (*PayoutStatusResponse, error) {
+// GetPayoutStatus checks payout status via GET /payouts/{reference_no}.
+//
+// PAYOUT-01B: The Iris API uses reference_no (not external_id) as the path
+// parameter. reference_no is the Midtrans-assigned unique identifier returned
+// in the payout creation response.
+//
+// IMPORTANT: Do not call immediately after payout creation — Midtrans docs
+// require a 10-minute buffer for status accuracy.
+func (c *PayoutClient) GetPayoutStatus(ctx context.Context, referenceNo string) (*PayoutStatusResponse, error) {
 	if c.irisOperatorKey == "" {
 		return nil, fmt.Errorf("Midtrans Iris credentials missing: MIDTRANS_IRIS_OPERATOR_KEY not set")
 	}
@@ -376,11 +394,11 @@ func (c *PayoutClient) GetPayoutStatus(ctx context.Context, externalID string) (
 		return nil, fmt.Errorf("midtrans Iris payout circuit breaker is %s - service unavailable", c.cb.getState())
 	}
 
-	// /disbursements path returned 404 in TASK 58; /payouts/{id} is the correct path
-	url := fmt.Sprintf("%s/payouts/%s", c.getPayoutStatusURL(), externalID)
+	// Correct endpoint: GET /payouts/{reference_no} (NOT /payouts/{external_id})
+	url := fmt.Sprintf("%s/payouts/%s", c.getPayoutStatusURL(), referenceNo)
 
 	c.log.Debug("Checking Iris payout status",
-		zap.String("external_id", externalID),
+		zap.String("reference_no", referenceNo),
 	)
 
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -451,13 +469,14 @@ func maskAccountNumber(accountNumber string) string {
 // STATUS MAPPING
 // ============================================================================
 //
-// Iris status values (UNVERIFIED at runtime — Iris credentials unavailable in TASK 58):
-//   "queued"     → PENDING  (submitted, awaiting approval)
-//   "processed"  → SUCCESS  (approved and disbursed)
+// Iris status values (verified against Midtrans docs, runtime-unconfirmed):
+//   "queued"     → PENDING  (submitted, awaiting execution)
+//   "processed"  → PENDING  (sent to bank, non-terminal per docs)
+//   "completed"  → SUCCESS  (received by beneficiary, terminal)
 //   "failed"     → FAILED
 //
-// These values come from Iris documentation and must be confirmed when
-// Iris credentials are available and a real payout is submitted.
+// PAYOUT-01B: Corrected mapping. "processed" is NOT terminal.
+// Reference: https://docs.midtrans.com/reference/get-payout-details
 //
 // ============================================================================
 
@@ -477,17 +496,34 @@ func (r *PayoutResponse) IsFailed() bool {
 }
 
 // MapToGatewayStatus maps Iris status strings to internal gateway status.
-// Iris values: "queued", "processed", "failed" (UNVERIFIED at runtime).
+//
+// PAYOUT-01B: Corrected mapping based on official Midtrans Iris documentation.
+// Iris has 4 status values: queued, processed, completed, failed.
+//
+// Key corrections:
+//   - "processed" is NOT terminal (payout sent to bank, awaiting confirmation)
+//   - "completed" IS terminal success (received by beneficiary account)
+//   - unknown status does NOT map to FAILED (fail-closed on unknown)
+//
+// Official docs: https://docs.midtrans.com/reference/get-payout-details
 func (r *PayoutResponse) MapToGatewayStatus() string {
 	switch r.Status {
 	case "processed":
+		// PAYOUT-01B FIX: processed is NON-TERMINAL — bank acknowledged but
+		// beneficiary may not have received funds yet. Maps to PENDING (→ SETTLING).
+		return "PENDING"
+	case "completed":
+		// PAYOUT-01B FIX: completed is the TRUE terminal success state.
+		// Only completed confirms funds received by beneficiary.
 		return "SUCCESS"
 	case "queued":
 		return "PENDING"
 	case "failed":
 		return "FAILED"
 	default:
-		return "FAILED"
+		// PAYOUT-01B FIX: unknown status does NOT map to FAILED.
+		// Returns UNKNOWN so the caller can handle it explicitly.
+		return "UNKNOWN"
 	}
 }
 

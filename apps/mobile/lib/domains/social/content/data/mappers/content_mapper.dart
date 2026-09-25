@@ -31,21 +31,17 @@ class ContentMapper {
       authorCity: dto.authorCity,
       authorProvince: dto.authorProvince,
       status: _mapContentStatus(dto.status),
-      // D1 — canonical governance lifecycle parsed tolerantly. Backend
-      // emits this as a separate top-level field aligned with feed /
-      // search. Null / missing / unknown → active (legacy payloads stay
-      // backward compatible).
+      // D1 — canonical governance lifecycle. Backend emits this as
+      // a separate top-level field. Null / missing / unknown → unavailable
+      // (fail-closed, per ContentLifecycleParse.fromWire).
       lifecycle: ContentLifecycleParse.fromWire(dto.lifecycle),
-      // E6 — canonical author identity lifecycle parsed from the wire's
-      // nested `card.author.lifecycle` slot (extracted by ContentDto's
-      // hand-written factory). Null / missing / unknown → active.
+      // E6 — author identity lifecycle from `card.author.lifecycle`.
+      // Null / missing / unknown → unavailable (fail-closed).
       authorLifecycle: ContentLifecycleParse.fromWire(dto.authorLifecycle),
       media: dto.media.map(_mapMediaEntity).toList(),
       tags: dto.tags,
       mentionedUserIds: dto.mentionedUserIds,
-      settings: ContentSettings(
-        visibility: _mapVisibility(dto.visibility),
-      ),
+      settings: ContentSettings(visibility: _mapVisibility(dto.visibility)),
       // C7C: engagement nullable from DTO — canonical fields only.
       engagement: ContentEngagement(
         likeCount: dto.engagement?.likeCount ?? 0,
@@ -83,7 +79,9 @@ class ContentMapper {
           ? entity.media.map(_mapMediaToDto).toList()
           : null,
       tags: entity.tags.isNotEmpty ? entity.tags : null,
-      mentionedUserIds: entity.mentionedUserIds.isNotEmpty ? entity.mentionedUserIds : null,
+      mentionedUserIds: entity.mentionedUserIds.isNotEmpty
+          ? entity.mentionedUserIds
+          : null,
       location: entity.location != null
           ? ContentLocationDto(
               city: entity.location!.city,

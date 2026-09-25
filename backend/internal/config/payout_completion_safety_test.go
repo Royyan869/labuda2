@@ -71,12 +71,11 @@ func TestEvaluatePayoutCompletionSafety_WebhookConfigured_Safe(t *testing.T) {
 	}
 }
 
-// TestEvaluatePayoutCompletionSafety_ReconciliationAlone_StillUnsafe is the
-// PASS_18S "do not fake it" regression test: PayoutReconciliationService is
-// a stub (QueryGatewayStatus never calls the real gateway, MarkPayoutStuck
-// never transitions state), so enabling PAYOUT_ENABLE_RECONCILIATION alone
-// must NOT be treated as a real completion path.
-func TestEvaluatePayoutCompletionSafety_ReconciliationAlone_StillUnsafe(t *testing.T) {
+// TestEvaluatePayoutCompletionSafety_ReconciliationAlone_Safe proves that
+// reconciliation is now a real completion path (PAYOUT-03). The reconciliation
+// worker genuinely queries the Midtrans Iris gateway and applies canonical
+// transitions via WebhookHandler.HandleCallback().
+func TestEvaluatePayoutCompletionSafety_ReconciliationAlone_Safe(t *testing.T) {
 	cfg := &Config{Payout: PayoutConfig{
 		EnableWorker:         true,
 		SecretKey:            "",
@@ -88,11 +87,11 @@ func TestEvaluatePayoutCompletionSafety_ReconciliationAlone_StillUnsafe(t *testi
 	if !safety.PayoutReconciliationEnabled {
 		t.Fatal("expected PayoutReconciliationEnabled=true to be reported (it IS enabled)")
 	}
-	if safety.CompletionPathAvailable {
-		t.Fatal("reconciliation-enabled-but-non-functional must NOT count as a completion path (do not fake safety)")
+	if !safety.CompletionPathAvailable {
+		t.Fatal("reconciliation is now a real completion path — CompletionPathAvailable must be true")
 	}
-	if !safety.Degraded {
-		t.Fatal("expected Degraded=true even with reconciliation enabled, since it cannot resolve a stuck payout")
+	if safety.Degraded {
+		t.Fatal("reconciliation is now functional — Degraded must be false")
 	}
 }
 

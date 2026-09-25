@@ -290,7 +290,6 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
 
     return StableNetworkImage(
       imageUrl: media.originalUrl,
-      logicalCacheKey: media.id,
       fit: BoxFit.cover,
       fallback: _buildMediaPlaceholder(),
     );
@@ -354,26 +353,28 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     final authorDegraded = content.authorLifecycle.isDegraded;
     final authorPlaceholder = _authorRedactionLabel(content.authorLifecycle);
     final showAvatar = !authorDegraded && content.authorAvatarUrl != null;
+    final authState = ref.watch(authControllerProvider);
+    final isOwner =
+        authState is AuthStateAuthenticated &&
+        authState.user.id == content.authorId;
+    final visibilityIcon = isOwner
+        ? _visibilityIcon(content.settings.visibility)
+        : null;
 
     return Row(
       children: [
         Expanded(
           child: InkWell(
-            onTap: authorDegraded ? null : () => _navigateToAuthorProfile(context, content),
+            onTap: authorDegraded
+                ? null
+                : () => _navigateToAuthorProfile(context, content),
             borderRadius: BorderRadius.circular(8),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: authorDegraded ? AppColors.neutralGray200 : null,
-                  backgroundImage: showAvatar ? NetworkImage(content.authorAvatarUrl!) : null,
-                  child: showAvatar
-                      ? null
-                      : Icon(
-                          Icons.person,
-                          size: 20,
-                          color: authorDegraded ? AppColors.neutralGray400 : null,
-                        ),
+                ProfileAvatar(
+                  userId: content.authorId,
+                  size: 40,
+                  imageUrl: showAvatar ? content.authorAvatarUrl : null,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -395,11 +396,24 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
                         Flexible(
                           child: Text(
                             '@${content.authorUsername}',
-                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
                           ),
                         ),
                       if (!authorDegraded)
-                        _ContentAuthorVerificationBadge(authorId: content.authorId),
+                        _ContentAuthorVerificationBadge(
+                          authorId: content.authorId,
+                        ),
+                      if (visibilityIcon != null) ...[
+                        const SizedBox(width: 6),
+                        Icon(
+                          visibilityIcon,
+                          size: 14,
+                          color: AppColors.neutralGray500,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -414,6 +428,17 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
         ),
       ],
     );
+  }
+
+  IconData? _visibilityIcon(ContentVisibility visibility) {
+    switch (visibility) {
+      case ContentVisibility.public:
+        return Icons.public;
+      case ContentVisibility.followersOnly:
+        return Icons.people_outline;
+      case ContentVisibility.private:
+        return Icons.lock_outline;
+    }
   }
 
   /// Content-detail author redaction label.
@@ -481,12 +506,20 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.chat_bubble_outline, size: 16, color: AppColors.primaryRed),
+                const Icon(
+                  Icons.chat_bubble_outline,
+                  size: 16,
+                  color: AppColors.primaryRed,
+                ),
                 if (content.engagement.commentCount > 0) ...[
                   const SizedBox(width: 4),
                   Text(
                     '${content.engagement.commentCount}',
-                    style: const TextStyle(fontSize: 12, color: AppColors.primaryRed, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.primaryRed,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ],
@@ -499,7 +532,11 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           borderRadius: BorderRadius.circular(8),
           child: const Padding(
             padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-            child: Icon(Icons.share_outlined, size: 16, color: AppColors.neutralGray400),
+            child: Icon(
+              Icons.share_outlined,
+              size: 16,
+              color: AppColors.neutralGray400,
+            ),
           ),
         ),
       ],
@@ -513,8 +550,15 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     String? currentUserId,
     String? currentUserName,
   }) {
-    Widget buildLikeRow({required IconData icon, required int count, required bool isActive, VoidCallback? onTap}) {
-      final color = isActive ? AppColors.primaryRed : (onTap != null ? AppColors.primaryRed : AppColors.neutralGray500);
+    Widget buildLikeRow({
+      required IconData icon,
+      required int count,
+      required bool isActive,
+      VoidCallback? onTap,
+    }) {
+      final color = isActive
+          ? AppColors.primaryRed
+          : (onTap != null ? AppColors.primaryRed : AppColors.neutralGray500);
       return InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
@@ -526,7 +570,14 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
               Icon(icon, size: 16, color: color),
               if (count > 0) ...[
                 const SizedBox(width: 4),
-                Text('$count', style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+                Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ],
           ),
@@ -535,20 +586,43 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     }
 
     if (currentUserId == null || currentUserId.isEmpty) {
-      return buildLikeRow(icon: Icons.favorite_border, count: content.engagement.likeCount, isActive: false);
+      return buildLikeRow(
+        icon: Icons.favorite_border,
+        count: content.engagement.likeCount,
+        isActive: false,
+      );
     }
 
     return likeStatsAsync?.when(
           data: (stats) => buildLikeRow(
-            icon: stats.isLikedByCurrentUser ? Icons.favorite : Icons.favorite_border,
+            icon: stats.isLikedByCurrentUser
+                ? Icons.favorite
+                : Icons.favorite_border,
             count: stats.totalLikes,
             isActive: stats.isLikedByCurrentUser,
-            onTap: () => _handleContentLike(context, content, currentUserId, currentUserName ?? ''),
+            onTap: () => _handleContentLike(
+              context,
+              content,
+              currentUserId,
+              currentUserName ?? '',
+            ),
           ),
-          loading: () => buildLikeRow(icon: Icons.favorite_border, count: content.engagement.likeCount, isActive: false),
-          error: (_, _) => buildLikeRow(icon: Icons.favorite_border, count: content.engagement.likeCount, isActive: false),
+          loading: () => buildLikeRow(
+            icon: Icons.favorite_border,
+            count: content.engagement.likeCount,
+            isActive: false,
+          ),
+          error: (_, _) => buildLikeRow(
+            icon: Icons.favorite_border,
+            count: content.engagement.likeCount,
+            isActive: false,
+          ),
         ) ??
-        buildLikeRow(icon: Icons.favorite_border, count: content.engagement.likeCount, isActive: false);
+        buildLikeRow(
+          icon: Icons.favorite_border,
+          count: content.engagement.likeCount,
+          isActive: false,
+        );
   }
 
   /// Handle content like action using canonical Like system

@@ -2137,14 +2137,23 @@ func InitServices(
 	}
 
 	// Initialize payout reconciliation service
+	// PAYOUT-03: Reconciliation now requires gateway and webhook handler for real
+	// status queries and canonical transitions.
+	reconciliationWebhookHandler := financeWorker.NewWebhookHandler(
+		withdrawRepo,
+		ledgerRepo,
+		outboxRepository,
+		log.Logger,
+	)
 	payoutReconciliationService := financeWorker.NewPayoutReconciliationService(
 		withdrawRepo,
 		db,
 		log.Logger,
 		financeWorker.PayoutReconciliationConfig{
-			StuckThresholdMinutes:         cfg.Payout.StuckThresholdMinutes,
 			ReconciliationIntervalMinutes: cfg.Payout.ReconciliationIntervalMinutes,
 		},
+		payoutGateway,
+		reconciliationWebhookHandler,
 	)
 
 	// Reconciliation worker: read-only — queries stuck payouts and logs, no mutations.

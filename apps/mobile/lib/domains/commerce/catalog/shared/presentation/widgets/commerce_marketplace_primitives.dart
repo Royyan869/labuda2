@@ -304,7 +304,6 @@ class CommerceMarketplaceCardShell extends StatelessWidget {
 
 class CommerceMarketplaceCardMedia extends StatelessWidget {
   final String? imageUrl;
-  final String? logicalCacheKey;
   final String? reloadToken;
   final Widget fallback;
   final double aspectRatio;
@@ -319,7 +318,6 @@ class CommerceMarketplaceCardMedia extends StatelessWidget {
     super.key,
     required this.imageUrl,
     required this.fallback,
-    this.logicalCacheKey,
     this.reloadToken,
     this.aspectRatio = 4 / 5,
     this.fit = BoxFit.cover,
@@ -337,7 +335,7 @@ class CommerceMarketplaceCardMedia extends StatelessWidget {
       children: [
         StableNetworkImage(
           imageUrl: imageUrl,
-          logicalCacheKey: logicalCacheKey,
+
           reloadToken: reloadToken,
           fit: fit,
           alignment: alignment,

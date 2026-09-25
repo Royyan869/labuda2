@@ -112,6 +112,13 @@ class FeedItemDto {
   final String? authorUsername;
   @JsonKey(name: 'author_avatar')
   final String? authorAvatar;
+  final String? visibility;
+
+  // C7C — engagement live from backend (same authority as detail)
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final int? likeCount;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final int? commentCount;
 
   // MEDIA INTEGRATION: Media from backend Feed domain
   // Contract: Sourced from content_media table
@@ -164,11 +171,14 @@ class FeedItemDto {
     required this.updatedAt,
     this.authorUsername,
     this.authorAvatar,
+    this.visibility,
     this.media = const [],
     this.originalAuthorId,
     this.resourceProjection,
     this.authorLifecycle,
     this.originalAuthorLifecycle,
+    this.likeCount,
+    this.commentCount,
   });
 
   /// Hand-written factory: delegates to the generated parser for every
@@ -180,7 +190,21 @@ class FeedItemDto {
     final base = _$FeedItemDtoFromJson(json);
     final authorLc = _readAuthorLifecycle(json);
     final origAuthorLc = _readOriginalAuthorLifecycle(json);
-    if (authorLc == null && origAuthorLc == null) return base;
+    final engagement = _readEngagement(json);
+    final lc = engagement?['likeCount'] as int?;
+    final cc = engagement?['commentCount'] as int?;
+    // Also support flat keys
+    final flatLc = json['likeCount'] as int?;
+    final flatCc = json['commentCount'] as int?;
+    final likeCount = lc ?? flatLc;
+    final commentCount = cc ?? flatCc;
+    final visibility = json['visibility'] as String? ?? base.visibility;
+    if (authorLc == null &&
+        origAuthorLc == null &&
+        likeCount == null &&
+        commentCount == null &&
+        visibility == base.visibility)
+      return base;
     return FeedItemDto(
       id: base.id,
       authorId: base.authorId,
@@ -195,12 +219,23 @@ class FeedItemDto {
       updatedAt: base.updatedAt,
       authorUsername: base.authorUsername,
       authorAvatar: base.authorAvatar,
+      visibility: visibility,
       media: base.media,
       originalAuthorId: base.originalAuthorId,
-      resourceProjection: _readResourceProjection(json),
-      authorLifecycle: authorLc,
-      originalAuthorLifecycle: origAuthorLc,
+      resourceProjection: authorLc != null || origAuthorLc != null
+          ? _readResourceProjection(json)
+          : base.resourceProjection,
+      authorLifecycle: authorLc ?? base.authorLifecycle,
+      originalAuthorLifecycle: origAuthorLc ?? base.originalAuthorLifecycle,
+      likeCount: likeCount,
+      commentCount: commentCount,
     );
+  }
+
+  static Map<String, dynamic>? _readEngagement(Map<String, dynamic> json) {
+    final eng = json['engagement'];
+    if (eng is Map<String, dynamic>) return eng;
+    return null;
   }
 
   Map<String, dynamic> toJson() => _$FeedItemDtoToJson(this);

@@ -483,6 +483,33 @@ class AuthProfileRepository {
     final sellerTierRaw = data['seller_tier'] as String?;
     final sellerTier = SellerTier.fromApiValue(sellerTierRaw);
 
+    // Canonical seller-state convergence (OWNER TRUTH, see user_api_models.dart):
+    // - Private/self (GET /users/me) uses has_seller_profile + has_market_authority (capability)
+    // - Public (GET /users/:id) uses is_seller (identity = has seller_profiles) + store_name
+    // Expired sellers remain sellers for display/showcase; only market actions are gated
+    // by hasMarketAuthority. Therefore is_seller MUST NOT be used to infer capability.
+    final isSellerPublic = data['is_seller'] as bool?;
+    bool? hasSellerProfileVal = data['has_seller_profile'] as bool?;
+    final hasMarketAuthorityVal = data['has_market_authority'] as bool?;
+    final sellerSubStatusVal = data['seller_subscription_status']?.toString();
+    if (isSellerPublic != null) {
+      if (isSellerPublic) {
+        hasSellerProfileVal ??= true;
+      } else {
+        final store = data['store_name']?.toString().trim();
+        if (store != null && store.isNotEmpty) {
+          hasSellerProfileVal ??= true;
+        }
+      }
+      // DO NOT infer hasMarketAuthority / subscription status from is_seller;
+      // public wire carries identity only. Capability stays null for public.
+    } else {
+      final store = data['store_name']?.toString().trim();
+      if (store != null && store.isNotEmpty) {
+        hasSellerProfileVal ??= true;
+      }
+    }
+
     return AuthUser(
       id: id,
       email: email,
@@ -498,6 +525,9 @@ class AuthProfileRepository {
       updatedAt: updatedAt ?? DateTime.now(),
       lifecycle: lifecycle,
       sellerTier: sellerTier,
+      hasSellerProfile: hasSellerProfileVal,
+      sellerSubscriptionStatus: sellerSubStatusVal,
+      hasMarketAuthority: hasMarketAuthorityVal,
     );
   }
 

@@ -17,7 +17,7 @@ class SupportIdentity {
 
   // Avatar URL
   static const String avatarUrl =
-      'https://firebasestorage.googleapis.com/v0/b/labuda-79de2.firefox.storage.app/o/assets%2Flabuda_logo.png?alt=media';
+      'https://firebasestorage.googleapis.com/v0/b/labuda-79de2.firebasestorage.app/o/assets%2Flabuda_logo.png?alt=media';
 
   // Support email
   static const String supportEmail = 'support@labuda.com';

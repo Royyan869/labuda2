@@ -123,7 +123,7 @@ export 'presentation/widgets/personal_information_section.dart';
 export 'presentation/widgets/ktp_upload_section.dart';
 export 'presentation/widgets/ktp_preview_section.dart';
 // REMOVED: achievement_badge.dart - NO backend support, deleted in PROFILE PURGE
-export 'presentation/widgets/profile_avatar.dart';
+// REMOVED: presentation/widgets/profile_avatar.dart - duplicate authority; canonical ProfileAvatar lives in shared/widgets/profile_avatar.dart
 export 'presentation/widgets/profile_cover.dart';
 export 'presentation/widgets/profile_info.dart';
 export 'presentation/widgets/profile_actions.dart';

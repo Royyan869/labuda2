@@ -145,13 +145,17 @@ class _AuctionTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auctionsAsync = ref.watch(userAuctionsStreamProvider(userId));
+    // One engine with For Sale: FutureProvider, not Stream
+    final auctionsAsync = ref.watch(sellerAuctionsProvider(userId));
 
     return auctionsAsync.when(
       data: (auctions) {
-        // Filter to show only active auctions
+        // Canonical discoverable = scheduled (upcoming) + active; hide ended/cancelled/draft.
         final activeAuctions = auctions
-            .where((a) => a.isActive && !a.hasEnded)
+            .where((a) =>
+                (a.status == AuctionStatus.scheduled ||
+                    a.status == AuctionStatus.active) &&
+                !a.hasEnded)
             .toList();
 
         if (activeAuctions.isEmpty) {
@@ -160,7 +164,7 @@ class _AuctionTab extends ConsumerWidget {
 
         return RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(userAuctionsStreamProvider(userId));
+            ref.invalidate(sellerAuctionsProvider(userId));
           },
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -177,13 +181,18 @@ class _AuctionTab extends ConsumerWidget {
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: AppColors.statusError),
-            const SizedBox(height: 16),
-            Text('Gagal memuat lelang', style: AppTypography.bodyLarge),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: AppColors.statusError),
+              const SizedBox(height: 16),
+              Text('Gagal memuat lelang', style: AppTypography.bodyLarge),
+              const SizedBox(height: 8),
+              Text(error.toString(), textAlign: TextAlign.center, style: AppTypography.bodySmall),
+            ],
+          ),
         ),
       ),
     );

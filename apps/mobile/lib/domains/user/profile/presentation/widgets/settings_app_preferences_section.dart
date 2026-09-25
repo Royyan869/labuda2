@@ -4,7 +4,9 @@ import 'package:labuda/shared/shared.dart';
 import 'package:labuda/generated/app_localizations.dart';
 
 class SettingsAppPreferencesSection extends StatelessWidget {
-  const SettingsAppPreferencesSection({super.key});
+  final void Function(String route)? onNavigate;
+
+  const SettingsAppPreferencesSection({super.key, this.onNavigate});
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +23,14 @@ class SettingsAppPreferencesSection extends StatelessWidget {
         ),
         const ThemeSelectorTile(),
         const LanguageSelectorTile(),
+        if (onNavigate != null)
+          _buildSettingsTile(
+            icon: Icons.notifications_outlined,
+            title: 'Notification Settings',
+            subtitle: 'Manage notification preferences',
+            onTap: () => onNavigate!('notifications'),
+            isDark: isDark,
+          ),
       ],
     );
   }
@@ -53,6 +63,40 @@ class SettingsAppPreferencesSection extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSettingsTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    required bool isDark,
+  }) {
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: isDark ? AppColors.neutralGray300 : AppColors.neutralGray700,
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+          fontSize: 13,
+        ),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray400,
+      ),
+      onTap: onTap,
     );
   }
 }

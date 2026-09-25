@@ -82,22 +82,6 @@ extension StringExtensions on String {
     return toLowerCase().contains(other.toLowerCase());
   }
 
-  String get initials {
-    final words = trim().split(RegExp(r'\s+'));
-    if (words.isEmpty) return '';
-
-    if (words.length == 1) {
-      return words[0].isNotEmpty
-          ? words[0].substring(0, 1.clamp(0, words[0].length)).toUpperCase()
-          : '';
-    }
-
-    return words
-        .take(2)
-        .map((word) => word.isNotEmpty ? word[0].toUpperCase() : '')
-        .join('');
-  }
-
   String get hideEmail {
     if (!isValidEmail) return this;
 

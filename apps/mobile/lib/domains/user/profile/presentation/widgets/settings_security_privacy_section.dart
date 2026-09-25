@@ -9,10 +9,7 @@ import 'package:labuda/generated/app_localizations.dart';
 class SettingsSecurityPrivacySection extends StatelessWidget {
   final Function(String) onNavigate;
 
-  const SettingsSecurityPrivacySection({
-    super.key,
-    required this.onNavigate,
-  });
+  const SettingsSecurityPrivacySection({super.key, required this.onNavigate});
 
   @override
   Widget build(BuildContext context) {
@@ -32,13 +29,6 @@ class SettingsSecurityPrivacySection extends StatelessWidget {
           title: l10n.security,
           subtitle: 'Password and active sessions',
           onTap: () => onNavigate('security'),
-          isDark: isDark,
-        ),
-        _buildSettingsTile(
-          icon: Icons.notifications_outlined,
-          title: 'Notification Settings',
-          subtitle: 'Manage notification preferences',
-          onTap: () => onNavigate('notifications'),
           isDark: isDark,
         ),
         _buildSettingsTile(
@@ -126,5 +116,4 @@ class SettingsSecurityPrivacySection extends StatelessWidget {
       onTap: onTap,
     );
   }
-
 }

@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/helpers/user_identity_formatter.dart';
 import 'package:labuda/shared/models/seller_identity_data.dart';
 import 'package:labuda/shared/widgets/profile_avatar.dart';
 import 'package:labuda/shared/widgets/stable_network_image.dart';
 
-/// Pure seller dual-avatar primitive.
-///
-/// No provider access and no global state. The personal overlay renders
-/// through [ProfileAvatar] with initials fallback.
+/// CANONICAL dual avatar for sellers — store/farm image as the main circle
+/// (storefront icon when no photo) with the personal [ProfileAvatar] overlaid
+/// bottom-right. Non-sellers never render this widget: the single-surface
+/// gate lives in [SellerIdentityView] (`identity.isSeller`).
 class SellerDualAvatar extends StatelessWidget {
   final SellerIdentityData identity;
   final double size;
@@ -74,7 +73,6 @@ class SellerDualAvatar extends StatelessWidget {
                 userId: identity.userId,
                 size: personalSize,
                 imageUrl: identity.normalizedAvatarUrl,
-                initials: UserIdentityFormatter.avatarInitials(identity.normalizedUsername),
                 showShadow: false,
               ),
             ),

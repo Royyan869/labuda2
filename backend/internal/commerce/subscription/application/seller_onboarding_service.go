@@ -73,7 +73,6 @@ func NewSellerOnboardingService(
 // This prevents fake seller entry by ensuring:
 // - Email is verified
 // - Username exists
-// - Bio exists (user_profiles.bio IS NOT NULL)
 // - Phone number exists (phone_number IS NOT NULL)
 // - Sender address exists (structured address row with purpose="sender")
 // - Seller profile exists (seller_profile must be created first)
@@ -117,16 +116,13 @@ func (s *SellerOnboardingService) ValidateOnboarding(ctx context.Context, tx db.
 		missing.add("phone_number")
 	}
 
-	// Check profile completeness from username and bio.
+	// Check profile completeness from username.
 	userProfile, err := s.userRepo.GetProfileByID(ctx, tx, userID)
 	if err != nil {
 		return fmt.Errorf("failed to check user profile: %w", err)
 	}
 	if userProfile == nil || userProfile.Username == nil || *userProfile.Username == "" {
 		missing.add("username")
-	}
-	if userProfile.Bio == nil || *userProfile.Bio == "" {
-		missing.add("bio")
 	}
 
 	hasSenderAddress, err := s.hasSenderAddress(ctx, tx, userID)
@@ -190,16 +186,13 @@ func (s *SellerOnboardingService) ValidateOnboardingWithoutProfile(ctx context.C
 		missing.add("phone_number")
 	}
 
-	// Check profile completeness from username and bio.
+	// Check profile completeness from username.
 	userProfile, err := s.userRepo.GetProfileByID(ctx, tx, userID)
 	if err != nil {
 		return missingRequirements // Return empty on error, let caller handle
 	}
 	if userProfile == nil || userProfile.Username == nil || *userProfile.Username == "" {
 		missing.add("username")
-	}
-	if userProfile.Bio == nil || *userProfile.Bio == "" {
-		missing.add("bio")
 	}
 
 	hasSenderAddress, err := s.hasSenderAddress(ctx, tx, userID)

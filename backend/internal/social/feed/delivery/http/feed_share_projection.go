@@ -75,6 +75,7 @@ func feedItemToResponseCanonicalWithProjection(
 		"type":       item.Type,
 		"status":     contententity.PublicLifecycleFromString(item.Status),
 		"lifecycle":  cardLifecycle,
+		"visibility": item.Visibility,
 		"body":       item.Body,
 		"created_at": item.CreatedAt.Format(time.RFC3339),
 		"updated_at": item.UpdatedAt.Format(time.RFC3339),

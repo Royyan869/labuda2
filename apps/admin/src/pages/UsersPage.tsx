@@ -3,6 +3,7 @@ import { Users, Eye, Filter, RefreshCw, Shield, Search } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { Avatar } from '@/components/ui/Avatar'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table'
 import { UserDetailModal } from '@/components/users/UserDetailModal'
 import { useUsers } from '@/hooks/useUsers'
@@ -259,17 +260,12 @@ export function UsersPage() {
                     <TableRow key={user.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {user.photo_url ? (
-                            <img
-                              src={user.photo_url}
-                              alt=""
-                              className="w-8 h-8 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                              <Users className="h-4 w-4 text-gray-500" />
-                            </div>
-                          )}
+                          <Avatar
+                            src={user.photo_url}
+                            userId={user.id}
+                            name={user.username}
+                            size="sm"
+                          />
                           <div>
                             <p className="font-medium text-sm">@{user.username}</p>
                           </div>

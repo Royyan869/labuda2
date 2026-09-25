@@ -4,161 +4,155 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/shared/helpers/user_identity_formatter.dart';
 import 'package:labuda/shared/shared.dart';
 
-/// Negative-contract tests for Slice A canonical shared-avatar chain.
+/// Negative-contract tests for the canonical shared-avatar chain.
 ///
-/// These verify:
-/// - shared [ProfileAvatar] primary constructor excludes `userId` and
-///   `initials` (narrow parameter-block inspection)
-/// - every named constructor excludes `userId` and `initials`
-/// - shared [ProfileAvatar] source never calls
-///   [UserInitialsHelper] / `fromUserId`
-/// - [UserHeaderWidget] delegates handle formatting to
-///   [UserIdentityFormatter.formatHandle]
-/// - profile-screen avatar boundary supplies raw username (no `@` prefix)
+/// Business truth (Owner decision 2026-09-24):
+/// - A user avatar is ALWAYS the user's photo or the user icon.
+/// - Initials do not exist ANYWHERE in the avatar chain - the parameter,
+///   the fallback, the formatter method, and every named constructor were
+///   killed at the source so the old design cannot nest again.
 ///
-/// UserHeaderWidget is a [ConsumerWidget] that pulls deep Riverpod
-/// dependencies (HybridAvatar → authControllerProvider → apiClientProvider).
-/// We verify its contract through source-structure checks rather than widget
-/// pumping, to avoid wiring a test-only provider graph.
+/// These verify (through source-structure inspection, because
+/// [HybridAvatar] pulls deep Riverpod dependencies):
+/// - shared [ProfileAvatar] source contains no initials concept at all
+/// - [ProfileAvatar] exposes no named constructors (vestigial sizes gone)
+/// - [UserIdentityFormatter] no longer carries an initials method
+/// - [UserHeaderWidget] renders through the canonical [HybridAvatar]
+/// - profile-screen avatar boundary stays on the seller composite
 
 /// Reads the shared [ProfileAvatar] source file once.
 String _profileAvatarSource() =>
     File('lib/shared/widgets/profile_avatar.dart').readAsStringSync();
 
-/// Extracts the primary-constructor parameter block:
-///   const ProfileAvatar({ … });
-String _primaryConstructorBlock(String source) {
-  final start = source.indexOf('const ProfileAvatar({');
-  if (start == -1) throw StateError('Primary constructor not found');
-  final end = source.indexOf('});', start);
-  if (end == -1) throw StateError('Primary constructor end not found');
-  return source.substring(start, end + 3); // include '});'
-}
 
-/// Extracts the parameter block for a named constructor:
-///   `static ProfileAvatar <name>({ … }) { … }`
-String _namedConstructorBlock(String source, String name) {
-  final start = source.indexOf('static ProfileAvatar $name({');
-  if (start == -1) throw StateError('Named constructor $name not found');
-  final end = source.indexOf('}) {', start);
-  if (end == -1) throw StateError('Named constructor $name end not found');
-  return source.substring(start, end + 2); // include '})'
-}
+/// Strips comment lines so the ban applies to CODE, not doc prose that
+/// explains the ban itself.
+String _codeOnly(String source) => source
+    .split(String.fromCharCode(10))
+    .where((line) => !line.trim().startsWith('//'))
+    .join(String.fromCharCode(10));
 
 void main() {
   group('Shared ProfileAvatar API contracts', () {
-    // ------------------------------------------------------------------
-    // Constructor parameter-block locks
-    // ------------------------------------------------------------------
-    test('primary constructor does not default initials from userId', () {
-      final source = _profileAvatarSource();
+    test('source contains no initials concept at all', () {
+      final source = _codeOnly(_profileAvatarSource());
+
+      expect(
+        source.toLowerCase().contains('initials'),
+        isFalse,
+        reason:
+            'Initials are banned business-wide (Owner decision 2026-09-24). '
+            'A user avatar is ALWAYS the user photo or the user icon.',
+      );
+
       expect(source.contains('fromUserId'), isFalse);
       expect(source.contains('UserInitialsHelper'), isFalse);
     });
 
-    test('named constructors do not leak initials via userId', () {
-      final source = _profileAvatarSource();
-      expect(source.contains('fromUserId'), isFalse);
+    test('no vestigial named constructors remain', () {
+      final source = _codeOnly(_profileAvatarSource());
+
+      expect(
+        source.contains('static ProfileAvatar'),
+        isFalse,
+        reason:
+            'Named size constructors (.small/.medium/...) were removed with '
+            'the initials flow - call ProfileAvatar(size: ...) directly.',
+      );
     });
 
-    // ------------------------------------------------------------------
-    // Legacy-pattern bans (whole-file)
-    // ------------------------------------------------------------------
-    test('source never calls UserInitialsHelper or fromUserId', () {
-      final source = _profileAvatarSource();
+    test('renders through StableNetworkImage (anti-flicker authority)', () {
+      final source = _codeOnly(_profileAvatarSource());
 
       expect(
-        source.contains('UserInitialsHelper'),
-        isFalse,
+        source.contains('StableNetworkImage'),
+        isTrue,
         reason:
-            'Shared ProfileAvatar must not call UserInitialsHelper '
-            '— use UserIdentityFormatter.avatarInitials instead.',
+            'Rotating signed URLs must never flash a placeholder - all '
+            'user-avatar rendering goes through gapless StableNetworkImage.',
       );
-
       expect(
-        source.contains('fromUserId'),
+        source.contains('CachedNetworkImage'),
         isFalse,
         reason:
-            'Shared ProfileAvatar must not call fromUserId — fallback '
-            'initials derive from canonical username only.',
+            'CachedNetworkImage is not the canonical renderer for avatars; '
+            'use StableNetworkImage.',
+      );
+    });
+
+    test('fallback is the user icon, never text', () {
+      final source = _codeOnly(_profileAvatarSource());
+
+      expect(source.contains('Icons.person'), isTrue);
+      expect(
+        source.contains('Text('),
+        isFalse,
+        reason: 'A user avatar never renders text - no initials exist.',
       );
     });
   });
 
-  group('UserHeaderWidget handle formatting', () {
-    test('delegates to formatHandle — source imports formatter', () {
-      final source = File(
-        'lib/shared/widgets/user_header_widget.dart',
-      ).readAsStringSync();
-
-      // Must use UserIdentityFormatter.formatHandle, never manual @-concat.
-      expect(
-        source.contains('UserIdentityFormatter.formatHandle'),
-        isTrue,
-        reason:
-            'UserHeaderWidget must delegate handle formatting to '
-            'UserIdentityFormatter.formatHandle.',
+  group('UserIdentityFormatter contract', () {
+    test('formatter source contains no initials concept', () {
+      final source = _codeOnly(
+        File(
+          'lib/shared/helpers/user_identity_formatter.dart',
+        ).readAsStringSync(),
       );
 
-      // Must NOT construct a handle manually.
       expect(
-        source.contains("'@\$") ||
-            source.contains("'@\${") ||
-            source.contains('"@\$') ||
-            source.contains('"@\${'),
+        source.toLowerCase().contains('initials'),
         isFalse,
-        reason:
-            'UserHeaderWidget must not construct @-prefixed handles '
-            'manually — use formatHandle().',
+        reason: 'avatarInitials was killed at the source; the formatter '
+            'handles username presentation only.',
       );
     });
 
     test('formatHandle returns null for bare @', () {
-      // Unit test on the formatter — formatHandle('@') → null.
-      // When UserHeaderWidget gets null, it displays '' (line 73: ?? '').
-      // This prevents bare '@' or '@@' in the rendered widget.
       expect(UserIdentityFormatter.formatHandle('@'), isNull);
       expect(UserIdentityFormatter.formatHandle(''), isNull);
       expect(UserIdentityFormatter.formatHandle('john_doe'), '@john_doe');
     });
   });
 
-  group('Profile-screen avatar boundary supplies raw username', () {
-    test('profileData[username] is never @-prefixed in profile_screen.dart', () {
+  group('UserHeaderWidget canonical rendering', () {
+    test('renders through the canonical HybridAvatar', () {
+      final source = File(
+        'lib/shared/widgets/user_header_widget.dart',
+      ).readAsStringSync();
+
+      expect(source.contains('HybridAvatar('), isTrue);
+      expect(
+        source.toLowerCase().contains('initials'),
+        isFalse,
+        reason: 'No initials anywhere in the header chain.',
+      );
+    });
+  });
+
+  group('Profile-screen avatar boundary', () {
+    test('uses the seller composite and never @-prefixes username literals',
+        () {
       final source = File(
         'lib/domains/user/profile/presentation/screens/profile_screen.dart',
       ).readAsStringSync();
 
       expect(
-        source.contains("'username': '@"),
+        source.contains('ProfileAvatar('),
         isFalse,
         reason:
-            "Found @-prefixed literal in profileData['username'] assignment — "
-            'avatar must receive raw username, not presentation handle.',
+            'The profile header avatar must be the seller-aware composite '
+            '(SellerAvatar) - the dual/single gate lives there.',
       );
-
+      expect(source.contains('SellerAvatar('), isTrue);
       expect(
-        source.contains('"username": "@'),
+        source.toLowerCase().contains('initials'),
         isFalse,
-        reason:
-            'Found @-prefixed literal (double-quoted) in username assignment.',
+        reason: 'No initials anywhere in the profile avatar boundary.',
       );
+      // NOTE: @-prefixed literals in profileData ('name'/'username') belong
+      // to the TEXT-display contract, not the avatar boundary - avatars no
+      // longer read profileData['username'] at all.
     });
-
-    test(
-      'profileData[username] is never @-prefixed in profile_screen.dart',
-      () {
-        final source = File(
-          'lib/domains/user/profile/presentation/screens/profile_screen.dart',
-        ).readAsStringSync();
-
-        expect(
-          source.contains("'username': '@"),
-          isFalse,
-          reason:
-              'profile_screen must not inject @-prefixed username literal.',
-        );
-      },
-    );
   });
 }

@@ -55,7 +55,7 @@ describe('Topbar authenticated identity presentation', () => {
     expect(avatarImg).toHaveAttribute('src', 'https://cdn.labuda.com/avatars/user-1.jpg')
   })
 
-  it('renders initial-based avatar fallback when avatarUrl is absent', () => {
+  it('renders person-icon avatar fallback when avatarUrl is absent (no initials)', () => {
     useAuthStore.setState({
       user: {
         id: 'user-1',
@@ -68,10 +68,12 @@ describe('Topbar authenticated identity presentation', () => {
 
     render(<Topbar />)
 
-    // No img element should exist when avatarUrl is absent
-    expect(screen.queryByRole('img')).not.toBeInTheDocument()
-    // The initial 'B' from username should be rendered
-    expect(screen.getByText('B')).toBeInTheDocument()
+    // Canonical fallback: person icon in a circle, exposed as role="img"
+    // with the identity label — never text initials.
+    const avatarFallback = screen.getByRole('img', { name: 'busiyono79' })
+    expect(avatarFallback).toBeInTheDocument()
+    // Initials are banned business-wide (Owner decision 2026-09-24)
+    expect(screen.queryByText('B')).not.toBeInTheDocument()
   })
 
   it('does NOT render DB UUID prefix as authenticated username', () => {

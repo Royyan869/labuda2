@@ -126,7 +126,8 @@ type Withdrawal struct {
 	AccountHolderSnapshot string // Account holder name snapshot at time of request
 
 	// Execution metadata (for payout worker / gateway integration)
-	ExternalReferenceID string // External reference from payment gateway (for idempotency)
+	ExternalReferenceID string // Merchant-supplied external_id (for gateway submission + idempotency)
+	GatewayReferenceNo  string // Midtrans-assigned reference_no (for status queries via GET /payouts/{reference_no})
 	GatewayResponse     string // Raw gateway response (JSON, for audit/debug)
 	FailureReason       string // Human-readable failure reason
 	SubmittedAt         int64  // Unix timestamp when submitted to gateway
@@ -216,7 +217,7 @@ func (r *WithdrawRepository) GetByID(
 		SELECT w.id, w.seller_id, COALESCE(up.username, '') AS seller_username, COALESCE(sp.store_name, '') AS seller_farm_name,
 		       w.amount, w.fee_amount, w.status, w.idempotency_key,
 		       w.bank_name_snapshot, w.bank_code_snapshot, w.account_number_snapshot, w.account_holder_snapshot,
-		       w.external_reference_id, w.gateway_response, w.failure_reason,
+		       w.external_reference_id, w.gateway_reference_no, w.gateway_response, w.failure_reason,
 		       w.submitted_at, w.settled_at, w.retry_count,
 		       w.created_at, w.updated_at
 		FROM withdrawals w
@@ -225,7 +226,7 @@ func (r *WithdrawRepository) GetByID(
 		WHERE w.id = $1
 	`, id).Scan(&w.ID, &w.SellerID, &w.SellerUsername, &w.SellerFarmName, &w.Amount, &w.FeeAmount, &w.Status, &w.IdempotencyKey,
 		&w.BankNameSnapshot, &w.BankCodeSnapshot, &w.AccountNumberSnapshot, &w.AccountHolderSnapshot,
-		&w.ExternalReferenceID, &w.GatewayResponse, &w.FailureReason,
+		&w.ExternalReferenceID, &w.GatewayReferenceNo, &w.GatewayResponse, &w.FailureReason,
 		&w.SubmittedAt, &w.SettledAt, &w.RetryCount,
 		&createdAt, &updatedAt)
 
@@ -252,15 +253,14 @@ func (r *WithdrawRepository) LockForUpdate(
 	var createdAt, updatedAt time.Time
 	err := tx.QueryRow(ctx, `
 		SELECT id, seller_id, amount, fee_amount, status, idempotency_key,
-		       bank_name_snapshot, bank_code_snapshot, account_number_snapshot, account_holder_snapshot,
-		       external_reference_id, gateway_response, failure_reason,
-		       submitted_at, settled_at, retry_count,
-		       created_at, updated_at
+		       bank_name_snapshot, bank_code_snapshot, account_number_snapshot, account_holder_snapshot,       external_reference_id, gateway_reference_no, gateway_response, failure_reason,
+       submitted_at, settled_at, retry_count,
+       created_at, updated_at
 		FROM withdrawals WHERE id = $1
 		FOR UPDATE
 	`, id).Scan(&w.ID, &w.SellerID, &w.Amount, &w.FeeAmount, &w.Status, &w.IdempotencyKey,
 		&w.BankNameSnapshot, &w.BankCodeSnapshot, &w.AccountNumberSnapshot, &w.AccountHolderSnapshot,
-		&w.ExternalReferenceID, &w.GatewayResponse, &w.FailureReason,
+		&w.ExternalReferenceID, &w.GatewayReferenceNo, &w.GatewayResponse, &w.FailureReason,
 		&w.SubmittedAt, &w.SettledAt, &w.RetryCount,
 		&createdAt, &updatedAt)
 
@@ -333,7 +333,7 @@ func (r *WithdrawRepository) GetBySellerID(
 		SELECT w.id, w.seller_id, COALESCE(up.username, '') AS seller_username, COALESCE(sp.store_name, '') AS seller_farm_name,
 		       w.amount, w.fee_amount, w.status, w.idempotency_key,
 		       w.bank_name_snapshot, w.bank_code_snapshot, w.account_number_snapshot, w.account_holder_snapshot,
-		       w.external_reference_id, w.gateway_response, w.failure_reason,
+		       w.external_reference_id, w.gateway_reference_no, w.gateway_response, w.failure_reason,
 		       w.submitted_at, w.settled_at, w.retry_count,
 		       w.created_at, w.updated_at
 		FROM withdrawals w
@@ -353,7 +353,7 @@ func (r *WithdrawRepository) GetBySellerID(
 		var createdAt, updatedAt time.Time
 		if err := rows.Scan(&w.ID, &w.SellerID, &w.SellerUsername, &w.SellerFarmName, &w.Amount, &w.FeeAmount, &w.Status, &w.IdempotencyKey,
 			&w.BankNameSnapshot, &w.BankCodeSnapshot, &w.AccountNumberSnapshot, &w.AccountHolderSnapshot,
-			&w.ExternalReferenceID, &w.GatewayResponse, &w.FailureReason,
+			&w.ExternalReferenceID, &w.GatewayReferenceNo, &w.GatewayResponse, &w.FailureReason,
 			&w.SubmittedAt, &w.SettledAt, &w.RetryCount,
 			&createdAt, &updatedAt); err != nil {
 			return nil, fmt.Errorf("withdraw: scan failed: %w", err)
@@ -392,7 +392,7 @@ func (r *WithdrawRepository) GetActiveBySellerID(
 		SELECT w.id, w.seller_id, COALESCE(up.username, '') AS seller_username, COALESCE(sp.store_name, '') AS seller_farm_name,
 		       w.amount, w.fee_amount, w.status, w.idempotency_key,
 		       w.bank_name_snapshot, w.bank_code_snapshot, w.account_number_snapshot, w.account_holder_snapshot,
-		       w.external_reference_id, w.gateway_response, w.failure_reason,
+		       w.external_reference_id, w.gateway_reference_no, w.gateway_response, w.failure_reason,
 		       w.submitted_at, w.settled_at, w.retry_count,
 		       w.created_at, w.updated_at
 		FROM withdrawals w
@@ -404,7 +404,7 @@ func (r *WithdrawRepository) GetActiveBySellerID(
 		LIMIT 1
 	`, sellerID).Scan(&w.ID, &w.SellerID, &w.SellerUsername, &w.SellerFarmName, &w.Amount, &w.FeeAmount, &w.Status, &w.IdempotencyKey,
 		&w.BankNameSnapshot, &w.BankCodeSnapshot, &w.AccountNumberSnapshot, &w.AccountHolderSnapshot,
-		&w.ExternalReferenceID, &w.GatewayResponse, &w.FailureReason,
+		&w.ExternalReferenceID, &w.GatewayReferenceNo, &w.GatewayResponse, &w.FailureReason,
 		&w.SubmittedAt, &w.SettledAt, &w.RetryCount,
 		&createdAt, &updatedAt)
 
@@ -482,7 +482,7 @@ func (r *WithdrawRepository) GetEligibleForSubmission(
 		SELECT w.id, w.seller_id, COALESCE(up.username, '') AS seller_username, COALESCE(sp.store_name, '') AS seller_farm_name,
 		       w.amount, w.fee_amount, w.status, w.idempotency_key,
 		       w.bank_name_snapshot, w.bank_code_snapshot, w.account_number_snapshot, w.account_holder_snapshot,
-		       w.external_reference_id, w.gateway_response, w.failure_reason,
+		       w.external_reference_id, w.gateway_reference_no, w.gateway_response, w.failure_reason,
 		       w.submitted_at, w.settled_at, w.retry_count,
 		       w.created_at, w.updated_at
 		FROM withdrawals w
@@ -504,7 +504,7 @@ func (r *WithdrawRepository) GetEligibleForSubmission(
 		var createdAt, updatedAt time.Time
 		if err := rows.Scan(&w.ID, &w.SellerID, &w.SellerUsername, &w.SellerFarmName, &w.Amount, &w.FeeAmount, &w.Status, &w.IdempotencyKey,
 			&w.BankNameSnapshot, &w.BankCodeSnapshot, &w.AccountNumberSnapshot, &w.AccountHolderSnapshot,
-			&w.ExternalReferenceID, &w.GatewayResponse, &w.FailureReason,
+			&w.ExternalReferenceID, &w.GatewayReferenceNo, &w.GatewayResponse, &w.FailureReason,
 			&w.SubmittedAt, &w.SettledAt, &w.RetryCount,
 			&createdAt, &updatedAt); err != nil {
 			return nil, fmt.Errorf("withdraw: scan failed: %w", err)
@@ -531,7 +531,7 @@ func (r *WithdrawRepository) GetPendingSettlement(
 		SELECT w.id, w.seller_id, COALESCE(up.username, '') AS seller_username, COALESCE(sp.store_name, '') AS seller_farm_name,
 		       w.amount, w.fee_amount, w.status, w.idempotency_key,
 		       w.bank_name_snapshot, w.bank_code_snapshot, w.account_number_snapshot, w.account_holder_snapshot,
-		       w.external_reference_id, w.gateway_response, w.failure_reason,
+		       w.external_reference_id, w.gateway_reference_no, w.gateway_response, w.failure_reason,
 		       w.submitted_at, w.settled_at, w.retry_count,
 		       w.created_at, w.updated_at
 		FROM withdrawals w
@@ -552,7 +552,7 @@ func (r *WithdrawRepository) GetPendingSettlement(
 		var createdAt, updatedAt time.Time
 		if err := rows.Scan(&w.ID, &w.SellerID, &w.SellerUsername, &w.SellerFarmName, &w.Amount, &w.FeeAmount, &w.Status, &w.IdempotencyKey,
 			&w.BankNameSnapshot, &w.BankCodeSnapshot, &w.AccountNumberSnapshot, &w.AccountHolderSnapshot,
-			&w.ExternalReferenceID, &w.GatewayResponse, &w.FailureReason,
+			&w.ExternalReferenceID, &w.GatewayReferenceNo, &w.GatewayResponse, &w.FailureReason,
 			&w.SubmittedAt, &w.SettledAt, &w.RetryCount,
 			&createdAt, &updatedAt); err != nil {
 			return nil, fmt.Errorf("withdraw: scan failed: %w", err)
@@ -569,12 +569,17 @@ func (r *WithdrawRepository) GetPendingSettlement(
 }
 
 // UpdateForSubmission updates a withdrawal when it's submitted to the gateway.
-// Sets status to SUBMITTED, records external reference ID, gateway response, and submission time.
+// Sets status to SUBMITTED, records external reference ID, gateway reference_no,
+// gateway response, and submission time.
+//
+// PAYOUT-01B: The gateway_reference_no is the Midtrans-assigned reference_no,
+// which is required for status queries via GET /payouts/{reference_no}.
 func (r *WithdrawRepository) UpdateForSubmission(
 	ctx context.Context,
 	tx db.Tx,
 	id uuid.UUID,
 	externalReferenceID string,
+	gatewayReferenceNo string,
 	gatewayResponse string,
 ) error {
 	now := time.Now()
@@ -582,11 +587,12 @@ func (r *WithdrawRepository) UpdateForSubmission(
 		UPDATE withdrawals
 		SET status = 'SUBMITTED',
 		    external_reference_id = $1,
-		    gateway_response = $2,
-		    submitted_at = $3,
-		    updated_at = $4
-		WHERE id = $5 AND status = 'PROCESSING'
-	`, externalReferenceID, gatewayResponse, now.Unix(), now, id)
+		    gateway_reference_no = $2,
+		    gateway_response = $3,
+		    submitted_at = $4,
+		    updated_at = $5
+		WHERE id = $6 AND status = 'PROCESSING'
+	`, externalReferenceID, gatewayReferenceNo, gatewayResponse, now.Unix(), now, id)
 
 	if err != nil {
 		return fmt.Errorf("withdraw: update for submission failed: %w", err)
@@ -785,14 +791,13 @@ func (r *WithdrawRepository) GetByExternalReference(
 	var createdAt, updatedAt time.Time
 	err := tx.QueryRow(ctx, `
 		SELECT id, seller_id, amount, fee_amount, status, idempotency_key,
-		       bank_name_snapshot, bank_code_snapshot, account_number_snapshot, account_holder_snapshot,
-		       external_reference_id, gateway_response, failure_reason,
-		       submitted_at, settled_at, retry_count,
-		       created_at, updated_at
+		       bank_name_snapshot, bank_code_snapshot, account_number_snapshot, account_holder_snapshot,       external_reference_id, gateway_reference_no, gateway_response, failure_reason,
+       submitted_at, settled_at, retry_count,
+       created_at, updated_at
 		FROM withdrawals WHERE external_reference_id = $1
 	`, externalReferenceID).Scan(&w.ID, &w.SellerID, &w.Amount, &w.FeeAmount, &w.Status, &w.IdempotencyKey,
 		&w.BankNameSnapshot, &w.BankCodeSnapshot, &w.AccountNumberSnapshot, &w.AccountHolderSnapshot,
-		&w.ExternalReferenceID, &w.GatewayResponse, &w.FailureReason,
+		&w.ExternalReferenceID, &w.GatewayReferenceNo, &w.GatewayResponse, &w.FailureReason,
 		&w.SubmittedAt, &w.SettledAt, &w.RetryCount,
 		&createdAt, &updatedAt)
 
@@ -825,10 +830,9 @@ func (r *WithdrawRepository) GetRetryableWithdrawals(
 ) ([]*Withdrawal, error) {
 	rows, err := tx.Query(ctx, `
 		SELECT id, seller_id, amount, fee_amount, status, idempotency_key,
-		       bank_name_snapshot, bank_code_snapshot, account_number_snapshot, account_holder_snapshot,
-		       external_reference_id, gateway_response, failure_reason,
-		       submitted_at, settled_at, retry_count,
-		       created_at, updated_at
+		       bank_name_snapshot, bank_code_snapshot, account_number_snapshot, account_holder_snapshot,       external_reference_id, gateway_reference_no, gateway_response, failure_reason,
+       submitted_at, settled_at, retry_count,
+       created_at, updated_at
 		FROM withdrawals
 		WHERE status = 'FAILED_RETRYABLE'
 		  AND retry_count < $1
@@ -854,7 +858,7 @@ func (r *WithdrawRepository) GetRetryableWithdrawals(
 		var createdAt, updatedAt time.Time
 		if err := rows.Scan(&w.ID, &w.SellerID, &w.Amount, &w.FeeAmount, &w.Status, &w.IdempotencyKey,
 			&w.BankNameSnapshot, &w.BankCodeSnapshot, &w.AccountNumberSnapshot, &w.AccountHolderSnapshot,
-			&w.ExternalReferenceID, &w.GatewayResponse, &w.FailureReason,
+			&w.ExternalReferenceID, &w.GatewayReferenceNo, &w.GatewayResponse, &w.FailureReason,
 			&w.SubmittedAt, &w.SettledAt, &w.RetryCount,
 			&createdAt, &updatedAt); err != nil {
 			return nil, fmt.Errorf("withdraw: scan retryable failed: %w", err)
@@ -929,10 +933,9 @@ func (r *WithdrawRepository) GetStuckPayouts(
 ) ([]*Withdrawal, error) {
 	rows, err := tx.Query(ctx, `
 		SELECT id, seller_id, amount, fee_amount, status, idempotency_key,
-		       bank_name_snapshot, bank_code_snapshot, account_number_snapshot, account_holder_snapshot,
-		       external_reference_id, gateway_response, failure_reason,
-		       submitted_at, settled_at, retry_count,
-		       created_at, updated_at
+		       bank_name_snapshot, bank_code_snapshot, account_number_snapshot, account_holder_snapshot,       external_reference_id, gateway_reference_no, gateway_response, failure_reason,
+       submitted_at, settled_at, retry_count,
+       created_at, updated_at
 		FROM withdrawals
 		WHERE status IN ('SUBMITTED', 'SETTLING')
 		  AND updated_at < $1
@@ -950,7 +953,7 @@ func (r *WithdrawRepository) GetStuckPayouts(
 		var createdAt, updatedAt time.Time
 		if err := rows.Scan(&w.ID, &w.SellerID, &w.Amount, &w.FeeAmount, &w.Status, &w.IdempotencyKey,
 			&w.BankNameSnapshot, &w.BankCodeSnapshot, &w.AccountNumberSnapshot, &w.AccountHolderSnapshot,
-			&w.ExternalReferenceID, &w.GatewayResponse, &w.FailureReason,
+			&w.ExternalReferenceID, &w.GatewayReferenceNo, &w.GatewayResponse, &w.FailureReason,
 			&w.SubmittedAt, &w.SettledAt, &w.RetryCount,
 			&createdAt, &updatedAt); err != nil {
 			return nil, fmt.Errorf("withdraw: scan stuck payouts failed: %w", err)
@@ -961,6 +964,62 @@ func (r *WithdrawRepository) GetStuckPayouts(
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("withdraw: iterate stuck payouts failed: %w", err)
+	}
+
+	return withdrawals, nil
+}
+
+// GetReconciliationCandidates retrieves withdrawals eligible for reconciliation.
+// PAYOUT-03: Candidates must have:
+//   - status IN ('SUBMITTED', 'SETTLING')
+//   - submitted_at > 0 (gateway submission timestamp known)
+//   - gateway_reference_no != '' (can query gateway)
+//   - submitted_at <= $1 (age >= 10 minutes, Iris timing requirement)
+func (r *WithdrawRepository) GetReconciliationCandidates(
+	ctx context.Context,
+	tx db.Tx,
+	maxSubmittedAt int64, // Unix timestamp: now - 10 minutes
+	limit int,
+) ([]*Withdrawal, error) {
+	rows, err := tx.Query(ctx, `
+		SELECT w.id, w.seller_id, COALESCE(up.username, '') AS seller_username, COALESCE(sp.store_name, '') AS seller_farm_name,
+		       w.amount, w.fee_amount, w.status, w.idempotency_key,
+		       w.bank_name_snapshot, w.bank_code_snapshot, w.account_number_snapshot, w.account_holder_snapshot,
+		       w.external_reference_id, w.gateway_reference_no, w.gateway_response, w.failure_reason,
+		       w.submitted_at, w.settled_at, w.retry_count,
+		       w.created_at, w.updated_at
+		FROM withdrawals w
+		LEFT JOIN user_profiles up ON up.user_id = w.seller_id
+		LEFT JOIN seller_profiles sp ON sp.user_id = w.seller_id
+		WHERE w.status IN ('SUBMITTED', 'SETTLING')
+		  AND w.submitted_at > 0
+		  AND w.gateway_reference_no != ''
+		  AND w.submitted_at <= $1
+		ORDER BY w.submitted_at ASC
+		LIMIT $2
+	`, maxSubmittedAt, limit)
+	if err != nil {
+		return nil, fmt.Errorf("withdraw: query reconciliation candidates failed: %w", err)
+	}
+	defer rows.Close()
+
+	var withdrawals []*Withdrawal
+	for rows.Next() {
+		var w Withdrawal
+		var createdAt, updatedAt time.Time
+		if err := rows.Scan(&w.ID, &w.SellerID, &w.SellerUsername, &w.SellerFarmName, &w.Amount, &w.FeeAmount, &w.Status, &w.IdempotencyKey,
+			&w.BankNameSnapshot, &w.BankCodeSnapshot, &w.AccountNumberSnapshot, &w.AccountHolderSnapshot,
+			&w.ExternalReferenceID, &w.GatewayReferenceNo, &w.GatewayResponse, &w.FailureReason,
+			&w.SubmittedAt, &w.SettledAt, &w.RetryCount,
+			&createdAt, &updatedAt); err != nil {
+			return nil, fmt.Errorf("withdraw: scan reconciliation candidates failed: %w", err)
+		}
+		w.CreatedAt = createdAt.Unix()
+		w.UpdatedAt = updatedAt.Unix()
+		withdrawals = append(withdrawals, &w)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("withdraw: iterate reconciliation candidates failed: %w", err)
 	}
 
 	return withdrawals, nil
@@ -1086,7 +1145,7 @@ func (r *WithdrawRepository) ListWithFilters(
 		SELECT w.id, w.seller_id, COALESCE(up.username, '') AS seller_username, COALESCE(sp.store_name, '') AS seller_farm_name,
 		       w.amount, w.fee_amount, w.status, w.idempotency_key,
 		       w.bank_name_snapshot, w.bank_code_snapshot, w.account_number_snapshot, w.account_holder_snapshot,
-		       w.external_reference_id, w.gateway_response, w.failure_reason,
+		       w.external_reference_id, w.gateway_reference_no, w.gateway_response, w.failure_reason,
 		       w.submitted_at, w.settled_at, w.retry_count,
 		       w.created_at, w.updated_at
 		FROM withdrawals w
@@ -1110,7 +1169,7 @@ func (r *WithdrawRepository) ListWithFilters(
 		var createdAt, updatedAt time.Time
 		if err := rows.Scan(&w.ID, &w.SellerID, &w.SellerUsername, &w.SellerFarmName, &w.Amount, &w.FeeAmount, &w.Status, &w.IdempotencyKey,
 			&w.BankNameSnapshot, &w.BankCodeSnapshot, &w.AccountNumberSnapshot, &w.AccountHolderSnapshot,
-			&w.ExternalReferenceID, &w.GatewayResponse, &w.FailureReason,
+			&w.ExternalReferenceID, &w.GatewayReferenceNo, &w.GatewayResponse, &w.FailureReason,
 			&w.SubmittedAt, &w.SettledAt, &w.RetryCount,
 			&createdAt, &updatedAt); err != nil {
 			return nil, fmt.Errorf("withdraw: scan failed: %w", err)

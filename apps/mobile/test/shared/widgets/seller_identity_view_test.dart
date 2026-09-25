@@ -154,7 +154,8 @@ void main() {
 
       final avatar = tester.widget<ProfileAvatar>(find.byType(ProfileAvatar));
       expect(avatar.imageUrl, isNull);
-      expect(avatar.initials, 'QI');
+      // Canonical: no image on the personal overlay renders the user icon.
+      expect(find.byIcon(Icons.person), findsOneWidget);
       expect(find.text('@Qiqi Store'), findsNothing);
     },
   );

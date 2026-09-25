@@ -306,6 +306,78 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
     });
   }
 
+  Future<bool> _handleCommentSubmit(
+    String body,
+    ResourceIdentity? resource,
+    List<String> mediaUrls,
+  ) async {
+    final trimmed = body.trim();
+    final hasMedia = mediaUrls.isNotEmpty;
+    if (trimmed.isEmpty && resource == null && !hasMedia) return false;
+
+    final isReplying = _replyingToComment != null;
+
+    final result = resource != null
+        ? await ref
+              .read(commentProvider.notifier)
+              .createCommerceReferenceComment(
+                contentId: widget.contentId,
+                resourceType: resource.resourceType.wireValue,
+                resourceId: resource.resourceId,
+                body: trimmed.isEmpty ? null : trimmed,
+              )
+        : await ref
+              .read(commentProvider.notifier)
+              .createComment(
+                targetId: widget.contentId,
+                targetType: CommentTargetType.content,
+                content: trimmed.isEmpty && hasMedia ? '' : body,
+                parentId: isReplying ? _replyingToComment!.id : null,
+                mediaUrls: mediaUrls,
+              );
+
+    if (!mounted) return result.isSuccess;
+
+    if (result.isSuccess) {
+      if (isReplying) _cancelReply();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            resource != null
+                ? 'Respons Penjual berhasil dikirim'
+                : isReplying
+                ? 'Balasan berhasil dikirim'
+                : 'Komentar berhasil dikirim',
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return true;
+    }
+
+    if (result.errorCode == 'EMAIL_VERIFICATION_REQUIRED') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Verifikasi email kamu diperlukan sebelum menulis komentar.',
+          ),
+          backgroundColor: AppColors.statusError,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return false;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result.error ?? 'Gagal mengirim komentar'),
+        duration: const Duration(seconds: 3),
+        backgroundColor: AppColors.statusError,
+      ),
+    );
+    return false;
+  }
+
   Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Column(
@@ -431,76 +503,10 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
               isSeller &&
               !isReplying &&
               _canAttachCommerceResource, // Disable seller features when content is not active
-          onSubmit: (body, resource) async {
-            if (body.trim().isEmpty && resource == null) return false;
-
-            // Create comment - use the canonical commerce-reference endpoint
-            final result = resource != null
-                ? await ref
-                      .read(commentProvider.notifier)
-                      .createCommerceReferenceComment(
-                        contentId: widget.contentId,
-                        resourceType: resource.resourceType.wireValue,
-                        resourceId: resource.resourceId,
-                        body: body.trim().isEmpty ? null : body.trim(),
-                      )
-                : await ref
-                      .read(commentProvider.notifier)
-                      .createComment(
-                        targetId: widget.contentId,
-                        targetType: CommentTargetType.content,
-                        content: body,
-                        parentId: isReplying ? _replyingToComment!.id : null,
-                      );
-
-            if (!context.mounted) return result.isSuccess;
-
-            if (result.isSuccess) {
-              // Clear reply mode on success
-              if (isReplying) {
-                _cancelReply();
-              }
-              // Comment was added successfully
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    resource != null
-                        ? 'Respons Penjual berhasil dikirim'
-                        : isReplying
-                        ? 'Balasan berhasil dikirim'
-                        : 'Komentar berhasil dikirim',
-                  ),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-              return true;
-            } else {
-              // Backend-rejection handler (defense-in-depth): the backend
-              // stays the single authority for EMAIL_VERIFICATION_REQUIRED.
-              if (result.errorCode == 'EMAIL_VERIFICATION_REQUIRED') {
-                if (!context.mounted) return false;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Verifikasi email kamu diperlukan sebelum menulis komentar.',
-                    ),
-                    backgroundColor: AppColors.statusError,
-                    duration: Duration(seconds: 3),
-                  ),
-                );
-                return false;
-              }
-              // Show error - composer will preserve draft for retry
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(result.error ?? 'Gagal mengirim komentar'),
-                  duration: const Duration(seconds: 3),
-                  backgroundColor: AppColors.statusError,
-                ),
-              );
-              return false;
-            }
-          },
+          onSubmit: (body, resource) async =>
+              _handleCommentSubmit(body, resource, const []),
+          onSubmitWithMedia: (body, resource, mediaUrls) async =>
+              _handleCommentSubmit(body, resource, mediaUrls),
         ),
       ],
     );
@@ -596,7 +602,13 @@ class _CommentsBatchWidget extends ConsumerWidget {
 
           final item = flatList[index];
           if (item.isReply) {
-            return _buildReplyItem(context, ref, item.comment, currentUserId, currentUserName);
+            return _buildReplyItem(
+              context,
+              ref,
+              item.comment,
+              currentUserId,
+              currentUserName,
+            );
           }
 
           final comment = item.comment;
@@ -624,9 +636,97 @@ class _CommentsBatchWidget extends ConsumerWidget {
             onFixedPriceSaleTap: onFixedPriceSaleTap,
             onAuthorTap: onAuthorTap,
             onReply: () => onReply(comment),
+            onEdit: () => _showEditDialog(context, ref, comment),
+            onDelete: () => _showDeleteConfirm(context, ref, comment),
             preResolved: preResolved,
           );
         },
+      ),
+    );
+  }
+
+  Future<void> _showEditDialog(
+    BuildContext context,
+    WidgetRef ref,
+    Comment comment,
+  ) async {
+    final controller = TextEditingController(text: comment.body ?? '');
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Komentar'),
+        content: TextField(
+          controller: controller,
+          maxLines: 4,
+          maxLength: 2000,
+          decoration: const InputDecoration(hintText: 'Tulis komentar...'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result == null || result == comment.body) return;
+    if (result.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Komentar tidak boleh kosong')),
+        );
+      }
+      return;
+    }
+    final res = await ref
+        .read(commentProvider.notifier)
+        .updateComment(commentId: comment.id, body: result);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(res.isSuccess ? 'Komentar diperbarui' : res.error ?? 'Gagal mengedit'),
+        backgroundColor: res.isSuccess ? null : AppColors.statusError,
+      ),
+    );
+  }
+
+  Future<void> _showDeleteConfirm(
+    BuildContext context,
+    WidgetRef ref,
+    Comment comment,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Komentar'),
+        content: const Text('Yakin ingin menghapus komentar ini?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.statusError),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    final res = await ref
+        .read(commentProvider.notifier)
+        .deleteComment(comment.id);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(res.isSuccess ? 'Komentar dihapus' : res.error ?? 'Gagal menghapus'),
+        backgroundColor: res.isSuccess ? null : AppColors.statusError,
       ),
     );
   }
@@ -701,7 +801,14 @@ class _CommentsBatchWidget extends ConsumerWidget {
             ),
           // Like button for replies — same canonical Comment Like system
           if (currentUserId != null && currentUserId.isNotEmpty)
-            _buildReplyLikeSection(context, ref, likeStatsAsync, comment, currentUserId, currentUserName),
+            _buildReplyLikeSection(
+              context,
+              ref,
+              likeStatsAsync,
+              comment,
+              currentUserId,
+              currentUserName,
+            ),
         ],
       ),
     );
@@ -728,8 +835,11 @@ class _CommentsBatchWidget extends ConsumerWidget {
               handlers.handleLike(currentUserId, currentUserName ?? '');
             },
           ),
-          loading: () =>
-              const _ReplyLikeButton(likeCount: null, isLiked: false, onTap: null),
+          loading: () => const _ReplyLikeButton(
+            likeCount: null,
+            isLiked: false,
+            onTap: null,
+          ),
           error: (_, _) => _ReplyLikeButton(
             likeCount: 0,
             isLiked: false,
@@ -798,7 +908,10 @@ class _ReplyLikeButton extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 likeCount! > 0 ? '$likeCount' : '',
-                style: const TextStyle(fontSize: 12, color: AppColors.neutralGray600),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.neutralGray600,
+                ),
               ),
             ],
           ],

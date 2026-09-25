@@ -210,19 +210,10 @@ class _BlockedUserTile extends StatelessWidget {
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      leading: CircleAvatar(
-        radius: 24,
-        backgroundImage: avatarUrl != null && avatarUrl!.isNotEmpty
-            ? NetworkImage(avatarUrl!)
-            : null,
-        child: avatarUrl == null || avatarUrl!.isEmpty
-            ? Icon(
-                Icons.person,
-                color: isDark
-                    ? AppColors.neutralGray600
-                    : AppColors.neutralGray400,
-              )
-            : null,
+      leading: ProfileAvatar(
+        userId: userId,
+        size: 48,
+        imageUrl: avatarUrl,
       ),
       title: Text(
         '@$username',

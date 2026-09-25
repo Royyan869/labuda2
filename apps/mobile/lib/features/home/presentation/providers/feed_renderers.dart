@@ -62,6 +62,7 @@ class PendingTabSwitchNotifier extends Notifier<PendingTabSwitch> {
     state = const PendingTabSwitch();
   }
 }
+
 final pendingTabSwitchProvider =
     NotifierProvider<PendingTabSwitchNotifier, PendingTabSwitch>(
       PendingTabSwitchNotifier.new,
@@ -238,7 +239,6 @@ class FeedCard extends ConsumerWidget {
             )
           : StableNetworkImage(
               imageUrl: media.originalUrl,
-              logicalCacheKey: media.id,
               fit: BoxFit.cover,
               fallback: _buildMediaPlaceholder(),
             ),
@@ -253,11 +253,7 @@ class FeedCard extends ConsumerWidget {
       width: double.infinity,
       height: _mediaCardHeight,
       color: AppColors.neutralGray200,
-      child: const Icon(
-        Icons.image,
-        size: 48,
-        color: AppColors.neutralGray400,
-      ),
+      child: const Icon(Icons.image, size: 48, color: AppColors.neutralGray400),
     );
   }
 
@@ -309,12 +305,6 @@ class FeedCard extends ConsumerWidget {
   }
 
   Widget _buildAuthorInfo(BuildContext context, bool isDark) {
-    // FIX-3: Use canonical enum-safe getter — no raw magic-string compare.
-
-    // E2.1 — Author lifecycle redaction. Independent from content
-    // lifecycle: an active post by a suspended author still renders, with
-    // the author block redacted and tap-to-profile disabled. Active /
-    // null / unknown fall through to current behavior.
     final authorRedacted = item.authorLifecycle.isDegraded;
     final authorPlaceholder = _authorRedactionLabel(item.authorLifecycle);
 
@@ -325,59 +315,74 @@ class FeedCard extends ConsumerWidget {
         ? AppColors.neutralGray300
         : AppColors.neutralGray900;
 
-    return InkWell(
-      // Disable tap when the author identity is degraded — no profile
-      // navigation off a tombstoned / suspended author block.
-      onTap: authorRedacted ? null : () => _navigateToAuthorProfile(context),
-      borderRadius: BorderRadius.circular(8),
-      child: Row(
-        children: [
-          // Avatar — when the author is degraded, drop the network image and
-          // fall back to the person icon. Never crash on null avatar; never
-          // surface stale identity through a cached image.
-          CircleAvatar(
-            radius: 16,
-            backgroundImage: (!authorRedacted && item.authorAvatarUrl != null)
-                ? NetworkImage(item.authorAvatarUrl!)
-                : null,
-            child: (authorRedacted || item.authorAvatarUrl == null)
-                ? Icon(
-                    Icons.person,
-                    size: 16,
-                    color: authorRedacted ? AppColors.neutralGray400 : null,
-                  )
-                : null,
-          ),
-          const SizedBox(width: 8),
-          // Public identity (OWNER TRUTH: username only).
-          // E2.1 — When the author is redacted, emit a placeholder label
-          // ("Pengguna tidak tersedia" / "Pengguna dihapus") instead of
-          // the canonical handle. No fallback when both null and active.
-          Expanded(
-            child: Text(
-              authorRedacted
-                  ? authorPlaceholder
-                  : (item.authorUsername != null
-                        ? '@${item.authorUsername}'
-                        : ''),
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-                fontStyle: authorRedacted ? FontStyle.italic : FontStyle.normal,
-                color: authorRedacted ? authorMutedColor : authorNormalColor,
+    return Consumer(
+      builder: (context, ref, _) {
+        final authState = ref.watch(authControllerProvider);
+        final isOwner =
+            authState is AuthStateAuthenticated &&
+            authState.user.id == item.authorId;
+        final visibilityIcon = isOwner
+            ? _visibilityIcon(item.visibility)
+            : null;
+
+        return InkWell(
+          onTap: authorRedacted
+              ? null
+              : () => _navigateToAuthorProfile(context),
+          borderRadius: BorderRadius.circular(8),
+          child: Row(
+            children: [
+              ProfileAvatar(
+                userId: item.authorId,
+                size: 32,
+                imageUrl: (!authorRedacted && item.authorAvatarUrl != null)
+                    ? item.authorAvatarUrl
+                    : null,
               ),
-            ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        authorRedacted
+                            ? authorPlaceholder
+                            : (item.authorUsername != null
+                                  ? '@${item.authorUsername}'
+                                  : ''),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          fontStyle: authorRedacted
+                              ? FontStyle.italic
+                              : FontStyle.normal,
+                          color: authorRedacted
+                              ? authorMutedColor
+                              : authorNormalColor,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (visibilityIcon != null) ...[
+                      const SizedBox(width: 6),
+                      Icon(
+                        visibilityIcon,
+                        size: 14,
+                        color: AppColors.neutralGray500,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Text(
+                _formatTime(item.createdAt),
+                style: TextStyle(fontSize: 12, color: AppColors.neutralGray500),
+              ),
+            ],
           ),
-          // Time
-          Text(
-            _formatTime(item.createdAt),
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.neutralGray500,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -385,6 +390,19 @@ class FeedCard extends ConsumerWidget {
   /// Delegates to the canonical [ContentLifecycleParse.publicRedactionLabel].
   String _authorRedactionLabel(ContentLifecycle authorLifecycle) =>
       authorLifecycle.publicRedactionLabel;
+
+  IconData? _visibilityIcon(String? visibility) {
+    switch (visibility) {
+      case 'public':
+        return Icons.public;
+      case 'followers_only':
+        return Icons.people_outline;
+      case 'private':
+        return Icons.lock_outline;
+      default:
+        return null;
+    }
+  }
 
   /// Navigate to author's profile when author info is tapped
   void _navigateToAuthorProfile(BuildContext context) {
@@ -432,10 +450,7 @@ class FeedCard extends ConsumerWidget {
           )
         : null;
 
-    final stats = likeStatsAsync?.maybeWhen(
-      data: (s) => s,
-      orElse: () => null,
-    );
+    final stats = likeStatsAsync?.maybeWhen(data: (s) => s, orElse: () => null);
     final likeCount = stats?.totalLikes ?? 0;
     final isLiked = stats?.isLikedByCurrentUser ?? false;
 
@@ -689,10 +704,9 @@ void _recordCanonicalPromotionClick(WidgetRef ref, String exposureId) {
   _canonicalClickAcks[exposureId] = true;
   () async {
     try {
-      await ref.read(apiClientProvider).post(
-        '/promotions/clicks',
-        data: {'exposure_id': exposureId},
-      );
+      await ref
+          .read(apiClientProvider)
+          .post('/promotions/clicks', data: {'exposure_id': exposureId});
     } catch (_) {
       _canonicalClickAcks[exposureId] = false;
     }
@@ -737,13 +751,12 @@ void _recordCanonicalPromotionImpression(
   _canonicalImpressionAcks[exposureId] = true;
   () async {
     try {
-      await ref.read(apiClientProvider).post(
-        '/promotions/impressions',
-        data: {
-          'exposure_id': exposureId,
-          'contract_id': contractId,
-        },
-      );
+      await ref
+          .read(apiClientProvider)
+          .post(
+            '/promotions/impressions',
+            data: {'exposure_id': exposureId, 'contract_id': contractId},
+          );
     } catch (_) {
       _canonicalImpressionAcks[exposureId] = false;
     }
@@ -828,8 +841,12 @@ class PromotedForSaleCard extends ConsumerWidget {
       key: Key('promo_imp_${contractId}_feed_for_sale'),
       onVisibilityChanged: (info) {
         if (info.visibleFraction >= 0.5) {
-          _recordPromotionImpression(ref, contractId, 'feed',
-              canonicalExposureId: canonicalExposureId);
+          _recordPromotionImpression(
+            ref,
+            contractId,
+            'feed',
+            canonicalExposureId: canonicalExposureId,
+          );
         }
       },
       child: Card(
@@ -845,8 +862,12 @@ class PromotedForSaleCard extends ConsumerWidget {
         child: InkWell(
           onTap: forSaleId != null
               ? () {
-                  _recordPromotionClick(ref, contractId, 'feed',
-                      canonicalExposureId: canonicalExposureId);
+                  _recordPromotionClick(
+                    ref,
+                    contractId,
+                    'feed',
+                    canonicalExposureId: canonicalExposureId,
+                  );
                   context.push(
                     RoutePaths.forSaleDetail.replaceFirst(
                       ':forSaleId',
@@ -984,8 +1005,12 @@ class PromotedAuctionCard extends ConsumerWidget {
       key: Key('promo_imp_${contractId}_feed_auction'),
       onVisibilityChanged: (info) {
         if (info.visibleFraction >= 0.5) {
-          _recordPromotionImpression(ref, contractId, 'feed',
-              canonicalExposureId: canonicalExposureId);
+          _recordPromotionImpression(
+            ref,
+            contractId,
+            'feed',
+            canonicalExposureId: canonicalExposureId,
+          );
         }
       },
       child: Card(
@@ -1001,8 +1026,12 @@ class PromotedAuctionCard extends ConsumerWidget {
         child: InkWell(
           onTap: auctionId != null
               ? () {
-                  _recordPromotionClick(ref, contractId, 'feed',
-                      canonicalExposureId: canonicalExposureId);
+                  _recordPromotionClick(
+                    ref,
+                    contractId,
+                    'feed',
+                    canonicalExposureId: canonicalExposureId,
+                  );
                   context.push('/auction/$auctionId');
                 }
               : null,
@@ -1161,8 +1190,12 @@ class PromotedExternalCard extends ConsumerWidget {
       key: Key('promo_imp_${contractId}_feed_external'),
       onVisibilityChanged: (info) {
         if (info.visibleFraction >= 0.5) {
-          _recordPromotionImpression(ref, contractId, 'feed',
-              canonicalExposureId: canonicalExposureId);
+          _recordPromotionImpression(
+            ref,
+            contractId,
+            'feed',
+            canonicalExposureId: canonicalExposureId,
+          );
         }
       },
       child: Card(
@@ -1178,8 +1211,12 @@ class PromotedExternalCard extends ConsumerWidget {
         child: InkWell(
           onTap: externalUrl != null
               ? () {
-                  _recordPromotionClick(ref, contractId, 'feed',
-                      canonicalExposureId: canonicalExposureId);
+                  _recordPromotionClick(
+                    ref,
+                    contractId,
+                    'feed',
+                    canonicalExposureId: canonicalExposureId,
+                  );
                   showExternalLinkInterstitial(context, url: externalUrl);
                 }
               : null,

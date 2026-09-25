@@ -4,7 +4,6 @@ import 'package:labuda/features/search/search/search.dart'; // R3.1: Full import
 import 'package:labuda/features/search/search/data/dto/search_dto.dart'; // R3.1: Import for UserSearchResultDto.toUserSearch() extension
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/helpers/user_identity_formatter.dart';
 
 /// Bottom sheet untuk search dan select users (Instagram style)
 /// Digunakan untuk tag people di create post/request
@@ -348,21 +347,10 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
 
   Widget _buildUserTile(UserSearch user, bool isSelected, bool isDark) {
     return ListTile(
-      leading: CircleAvatar(
-        radius: 24,
-        backgroundColor: AppColors.primaryBlue.withValues(alpha: 0.1),
-        backgroundImage: user.avatarUrl != null
-            ? NetworkImage(user.avatarUrl!)
-            : null,
-        child: user.avatarUrl == null
-            ? Text(
-                UserIdentityFormatter.avatarInitials(user.username) ?? '•',
-                style: const TextStyle(
-                  color: AppColors.primaryBlue,
-                  fontWeight: FontWeight.w600,
-                ),
-              )
-            : null,
+      leading: ProfileAvatar(
+        userId: user.userId,
+        size: 48,
+        imageUrl: user.avatarUrl,
       ),
       title: Text(
         user.username,

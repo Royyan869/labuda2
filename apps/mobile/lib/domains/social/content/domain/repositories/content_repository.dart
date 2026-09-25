@@ -31,11 +31,10 @@ abstract class ContentRepository {
   /// Get content by ID
   Future<ContentRepositoryResult<Content>> getContentById(String contentId);
 
-  /// Get contents by author with pagination
+  /// Get contents by author — first page only (no offset, use getContentsByAuthorPaged for pagination)
   Future<ContentRepositoryResult<List<Content>>> getContentsByAuthor(
     String authorId, {
     int? limit,
-    int? offset,
   });
 
   /// Get contents by author with cursor pagination (C3B — profile feed tab).

@@ -393,16 +393,34 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     }
 
     if (chat.isSupportChat) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      // Support chat: the agent/admin avatar leads the title row. Admin is
+      // never a seller — single personal avatar, no dual layout.
+      final adminId = chat.assignedToAdmin;
+      final adminAvatar = adminId != null
+          ? chat.participantAvatars[adminId]
+          : null;
+
+      return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('Support'),
-          if (chat.assignedAdminName != null)
-            Text(
-              'Agent: ${chat.assignedAdminName}',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+          ProfileAvatar(
+            userId: adminId ?? '',
+            size: 36,
+            imageUrl: adminAvatar,
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Support'),
+              if (chat.assignedAdminName != null)
+                Text(
+                  'Agent: ${chat.assignedAdminName}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+            ],
+          ),
         ],
       );
     }
@@ -412,6 +430,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       final otherUserName = chat.getOtherParticipantName(userId);
       final otherUserHandle = formatChatHandle(otherUserName);
       final otherUserId = chat.getOtherParticipantId(userId);
+      final otherUserAvatar = chat.participantAvatars[otherUserId];
       final isOnline = ref.watch(isUserOnlineProvider(otherUserId));
 
       // E4.3 — Participant lifecycle redaction in the chat appbar. When
@@ -432,36 +451,51 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           ? chatLifecycleRedactionLabel(otherLifecycle)
           : otherUserHandle;
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
+          ProfileAvatar(
+            userId: otherUserId,
+            size: 36,
+            // E4.3 parity: degraded identity never surfaces a network image.
+            imageUrl: participantDegraded ? null : otherUserAvatar,
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                displayName,
-                style: participantDegraded
-                    ? const TextStyle(
-                        fontStyle: FontStyle.italic,
-                        color: AppColors.neutralGray500,
-                      )
-                    : null,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      displayName,
+                      overflow: TextOverflow.ellipsis,
+                      style: participantDegraded
+                          ? const TextStyle(
+                              fontStyle: FontStyle.italic,
+                              color: AppColors.neutralGray500,
+                            )
+                          : null,
+                    ),
+                  ),
+                  if (!participantDegraded) ...[
+                    const SizedBox(width: 6),
+                    // VERIFICATION UI: compact badge in chat header
+                    _ChatVerificationBadge(userId: otherUserId),
+                  ],
+                ],
               ),
-              if (!participantDegraded) ...[
-                const SizedBox(width: 6),
-                // VERIFICATION UI: Show compact verification badge in chat header
-                _ChatVerificationBadge(userId: otherUserId),
-              ],
+              if (isOnline && !participantDegraded)
+                Text(
+                  'Online',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.green),
+                ),
             ],
           ),
-          if (isOnline && !participantDegraded)
-            Text(
-              'Online',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.green),
-            ),
         ],
       );
     } catch (_) {

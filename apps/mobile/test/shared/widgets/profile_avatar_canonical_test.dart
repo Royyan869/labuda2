@@ -1,95 +1,167 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/helpers/user_identity_formatter.dart';
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/shared/widgets/stable_network_image.dart';
+
+/// CANONICAL ProfileAvatar contract (Owner decision 2026-09-24).
+///
+/// Business truth:
+/// - A user avatar is ALWAYS the user's photo, or the `Icons.person` user
+///   icon when there is no photo. Initials do not exist anywhere.
+/// - Rendering goes through StableNetworkImage (gapless playback) so a
+///   rotating signed URL never flashes a placeholder over a visible frame.
+///
+/// The old initials-flow tests (avatarInitials, named size constructors,
+/// CachedNetworkImage cacheKey stripping) were killed together with the
+/// feature they locked in.
+
+/// Strips comment lines so the ban applies to CODE, not doc prose that
+/// explains the ban itself.
+String _codeOnly(String source) => source
+    .split(String.fromCharCode(10))
+    .where((line) => !line.trim().startsWith('//'))
+    .join(String.fromCharCode(10));
 
 void main() {
-  group('ProfileAvatar canonical fallback behavior (UserIdentityFormatter)', () {
-    testWidgets('no image + john_doe → JD via avatarInitials', (tester) async {
-      final initials = UserIdentityFormatter.avatarInitials('john_doe');
-      expect(initials, 'JD');
+  group('ProfileAvatar canonical behavior (no initials exist)', () {
+    testWidgets('no image → renders the user icon', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: ProfileAvatar(size: 40, userId: 'x', initials: initials)),
-        ),
-      );
-      expect(find.text('JD'), findsOneWidget);
-    });
-
-    testWidgets('alice-smith → AS via avatarInitials', (tester) async {
-      final initials = UserIdentityFormatter.avatarInitials('alice-smith');
-      expect(initials, 'AS');
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: ProfileAvatar(size: 40, userId: 'x', initials: initials)),
-        ),
-      );
-      expect(find.text('AS'), findsOneWidget);
-    });
-
-    test('numeric-only 12345 → null (generic icon)', () {
-      expect(UserIdentityFormatter.avatarInitials('12345'), isNull);
-    });
-
-    testWidgets('numeric-only renders generic icon, not initials', (tester) async {
-      final initials = UserIdentityFormatter.avatarInitials('12345');
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: ProfileAvatar(size: 40, userId: 'x', initials: initials)),
+        const MaterialApp(
+          home: Scaffold(body: ProfileAvatar(size: 40, userId: 'u1')),
         ),
       );
       expect(find.byIcon(Icons.person), findsOneWidget);
-      expect(find.text('12'), findsNothing);
+      expect(find.byType(Text), findsNothing);
     });
 
-    testWidgets('empty username renders generic icon', (tester) async {
+    testWidgets('valid image enters the image branch (no icon, no text)', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: ProfileAvatar(size: 40, userId: 'x', initials: UserIdentityFormatter.avatarInitials('')))),
-      );
-      expect(find.byIcon(Icons.person), findsOneWidget);
-      expect(find.text('U'), findsNothing);
-    });
-
-    testWidgets('valid image path enters image loading branch', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
-            body: ProfileAvatar(size: 40, imageUrl: 'https://example.com/avatar.png', userId: 'x', initials: 'JD'),
+            body: ProfileAvatar(
+              size: 40,
+              userId: 'u1',
+              imageUrl: 'https://example.com/avatar.png',
+            ),
           ),
         ),
       );
       await tester.pump();
       expect(find.byType(Text), findsNothing);
-      expect(find.byIcon(Icons.person), findsNothing);
-    });
-
-    testWidgets('signed URL query params stripped from cache key', (tester) async {
-      const signedOne = 'https://cdn.example.com/avatar.png?X-Amz-Signature=one';
-      const baseUrl = 'https://cdn.example.com/avatar.png';
-      await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: ProfileAvatar(size: 40, imageUrl: signedOne, userId: 'x', initials: 'JD'))),
+      // The image always routes through the gapless renderer with the user
+      // icon as its error-fallback (test env has no HTTP, so the fallback
+      // legitimately renders after failure - that IS the canonical path).
+      expect(find.byType(StableNetworkImage), findsOneWidget);
+      final stable = tester.widget<StableNetworkImage>(
+        find.byType(StableNetworkImage),
       );
-      final first = tester.widget<CachedNetworkImage>(find.byType(CachedNetworkImage));
-      expect(first.cacheKey, baseUrl);
+      expect(stable.imageUrl, 'https://example.com/avatar.png');
     });
 
-    testWidgets('named size constructors preserve sizing via initials', (tester) async {
+    testWidgets('blank/whitespace image URL → user icon, never text', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
-            body: Column(children: [
-              ProfileAvatar.small(userId: 'x', initials: 'TE'),
-              ProfileAvatar.medium(userId: 'x', initials: 'TE'),
-              ProfileAvatar.large(userId: 'x', initials: 'TE'),
-              ProfileAvatar.extraLarge(userId: 'x', initials: 'TE'),
-              ProfileAvatar.comment(userId: 'x', initials: 'TE'),
-              ProfileAvatar.postHeader(userId: 'x', initials: 'TE'),
-            ]),
+            body: ProfileAvatar(size: 40, userId: 'u1', imageUrl: '   '),
           ),
         ),
       );
-      expect(find.text('TE'), findsWidgets);
+      expect(find.byIcon(Icons.person), findsOneWidget);
+      expect(find.text('J'), findsNothing);
+      expect(find.text('JD'), findsNothing);
+    });
+
+    testWidgets('edit icon renders only when requested', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: ProfileAvatar(size: 80, userId: 'u1', showEditIcon: true),
+          ),
+        ),
+      );
+      expect(find.byIcon(Icons.camera_alt), findsOneWidget);
+    });
+  });
+
+  group('Anti-flicker contract (StableNetworkImage gapless)', () {
+    testWidgets(
+      'rotating signed URL keeps the gapless image branch (no fallback flash)',
+      (tester) async {
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(
+              body: ProfileAvatar(
+                size: 40,
+                userId: 'u1',
+                imageUrl: 'https://example.com/a.png',
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+
+        // Rotating signed URL: same logical image, new query string.
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(
+              body: ProfileAvatar(
+                size: 40,
+                userId: 'u1',
+                imageUrl: 'https://example.com/a.png?X-Amz-Signature=two',
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+
+        final stable = tester.widget<StableNetworkImage>(
+          find.byType(StableNetworkImage),
+        );
+        expect(
+          stable.imageUrl,
+          'https://example.com/a.png?X-Amz-Signature=two',
+        );
+        expect(find.byIcon(Icons.person), findsNothing);
+      },
+    );
+  });
+
+  group('Avatar source-structure bans (no initials can nest again)', () {
+    test('ProfileAvatar source contains no initials concept', () {
+      final source = _codeOnly(
+        File(
+          'lib/shared/widgets/profile_avatar.dart',
+        ).readAsStringSync(),
+      );
+      expect(source.contains('initials'), isFalse);
+      expect(source.contains('Initials'), isFalse);
+    });
+
+    test('formatter source contains no initials concept', () {
+      final source = _codeOnly(
+        File(
+          'lib/shared/helpers/user_identity_formatter.dart',
+        ).readAsStringSync(),
+      );
+      expect(source.contains('initials'), isFalse);
+      expect(source.contains('Initials'), isFalse);
+    });
+
+    test('profile-screen avatar is the seller composite, no initials', () {
+      final source = File(
+        'lib/domains/user/profile/presentation/screens/profile_screen.dart',
+      ).readAsStringSync();
+      expect(source.contains('initials'), isFalse);
+      expect(source.contains('SellerAvatar('), isTrue);
+      expect(source.contains('OnlineBadge('), isTrue);
     });
   });
 }

@@ -6,6 +6,7 @@ import 'package:labuda/domains/chat/chat/presentation/utils/chat_identity_displa
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_lifecycle_redaction.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/providers/auth_status_providers.dart';
+import 'package:labuda/shared/widgets/profile_avatar.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 /// Chat Card Widget
@@ -67,6 +68,7 @@ class ChatCard extends ConsumerWidget {
             _buildAvatar(
               otherUserAvatar,
               otherUserName,
+              otherUserId,
               degraded: participantDegraded,
             ),
             const SizedBox(width: 12),
@@ -136,42 +138,18 @@ class ChatCard extends ConsumerWidget {
 
   Widget _buildAvatar(
     String? avatarUrl,
-    String userName, {
+    String userName,
+    String userId, {
     bool degraded = false,
   }) {
     // E4.3 — Degraded participants always render the neutral fallback
-    // (no NetworkImage of a redacted account, no initials derived from
-    // the redaction placeholder). Matches the E3.1 comment-author and
-    // E2.1 feed-author redaction visuals.
-    if (degraded) {
-      return const CircleAvatar(
-        radius: 28,
-        backgroundColor: AppColors.neutralGray200,
-        child: Icon(
-          Icons.person_off_outlined,
-          color: AppColors.neutralGray500,
-          size: 28,
-        ),
-      );
-    }
-
-    final initial = userName.isNotEmpty ? userName[0].toUpperCase() : '?';
-
-    return CircleAvatar(
-      radius: 28,
-      backgroundColor: Colors.blue[100],
-      backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-          ? NetworkImage(avatarUrl)
-          : null,
-      child: avatarUrl == null || avatarUrl.isEmpty
-          ? Text(
-              initial,
-              style: TextStyle(
-                color: Colors.blue[800],
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            )
+    // (no NetworkImage of a redacted account, no initials anywhere).
+    // Canonical avatar: user photo or user icon.
+    return ProfileAvatar(
+      userId: userId,
+      size: 56,
+      imageUrl: (!degraded && avatarUrl != null && avatarUrl.isNotEmpty)
+          ? avatarUrl
           : null,
     );
   }

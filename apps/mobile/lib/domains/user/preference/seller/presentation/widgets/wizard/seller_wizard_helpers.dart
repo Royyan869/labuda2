@@ -46,12 +46,10 @@ class SellerWizardHelpers {
   /// submission path remains as defense-in-depth).
   static bool isAccountStepValid({
     required String username,
-    required String bio,
     required String phoneNumber,
     required String senderAddress,
   }) {
     return username.isNotEmpty &&
-        bio.isNotEmpty &&
         phoneNumber.isNotEmpty &&
         senderAddress.isNotEmpty;
   }

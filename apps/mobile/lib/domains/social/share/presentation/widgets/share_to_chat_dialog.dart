@@ -286,21 +286,12 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
     final label =
         UserIdentityFormatter.formatHandle(recipient.username) ??
         recipient.username;
-    final initialSource = recipient.username.trim();
-    final initial = initialSource.isNotEmpty
-        ? initialSource[0].toUpperCase()
-        : '?';
-
     return InputChip(
-      avatar: CircleAvatar(
-        backgroundColor: AppColors.neutralGray200,
-        child: Text(
-          initial,
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            color: AppColors.neutralGray600,
-          ),
-        ),
+      avatar: ProfileAvatar(
+        userId: recipient.userId,
+        size: 28,
+        imageUrl: recipient.avatarUrl,
+        showShadow: false,
       ),
       label: Text(label),
       onDeleted: _isSending
@@ -523,24 +514,15 @@ class _ShareRecipientRow extends StatelessWidget {
     final subtitleColor = isDark
         ? AppColors.neutralGray400
         : AppColors.neutralGray600;
-    final initialSource = user.username.trim();
-    final initial = initialSource.isNotEmpty
-        ? initialSource[0].toUpperCase()
-        : '?';
-
     return Material(
       color: Colors.transparent,
       child: ListTile(
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        leading: CircleAvatar(
-          backgroundColor: isDark
-              ? AppColors.darkGray700
-              : AppColors.neutralGray200,
-          child: Text(
-            initial,
-            style: TextStyle(color: subtitleColor, fontWeight: FontWeight.w700),
-          ),
+        leading: ProfileAvatar(
+          userId: user.userId,
+          size: 40,
+          imageUrl: user.avatarUrl,
         ),
         title: Text(
           label,

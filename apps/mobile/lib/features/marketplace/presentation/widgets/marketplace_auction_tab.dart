@@ -12,33 +12,42 @@ class MarketplaceAuctionTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auctionsAsync = ref.watch(marketplaceAuctionsStreamProvider);
+    // One engine with For Sale: FutureProvider + RefreshIndicator + invalidate after create
+    final auctionsAsync = ref.watch(marketplaceAuctionsProvider);
 
     return auctionsAsync.when(
       data: (auctions) {
-        return CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            if (auctions.isEmpty)
-              SliverFillRemaining(child: _buildEmptyState(context))
-            else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final auction = auctions[index];
-                    return AuctionCard(
-                      auction: auction,
-                      onTap: () => _navigateToAuctionDetail(context, auction),
-                    );
-                  }, childCount: auctions.length),
+        return RefreshIndicator(
+          onRefresh: () => ref.refresh(marketplaceAuctionsProvider.future),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              if (auctions.isEmpty)
+                SliverFillRemaining(child: _buildEmptyState(context))
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final auction = auctions[index];
+                      return AuctionCard(
+                        auction: auction,
+                        onTap: () => _navigateToAuctionDetail(context, auction),
+                      );
+                    }, childCount: auctions.length),
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => const Center(child: Text('Data belum bisa dimuat.')),
+      error: (error, st) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text('Gagal: $error', textAlign: TextAlign.center),
+        ),
+      ),
     );
   }
 

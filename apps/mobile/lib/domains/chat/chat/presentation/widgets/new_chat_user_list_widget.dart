@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/helpers/user_identity_formatter.dart';
 import 'package:labuda/domains/user/profile/profile.dart';
 import 'package:labuda/domains/chat/chat/data/chat_providers.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
@@ -37,17 +36,10 @@ class NewChatUserListWidget extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            // Avatar
-            // Initials must come from real identity, never from UUID bytes.
-            // ProfileEntity carries no name/username (moved to AuthUser); the
-            // only truthful name in this widget is FarmInfo.farmName (sellers).
-            // For non-sellers we pass '' so ProfileAvatar renders a blank
-            // gradient circle instead of UUID-derived fake initials.
+            // Avatar — canonical: image or user icon. No initials exist
+            // anywhere in the app (Owner decision 2026-09-24).
             HybridAvatar.medium(
               userId: profile.userId,
-              initials: profile.farmInfo?.farmName.trim().isNotEmpty == true
-                  ? UserIdentityFormatter.avatarInitials(profile.farmInfo!.farmName) ?? ''
-                  : '',
             ),
             const SizedBox(width: 12),
 

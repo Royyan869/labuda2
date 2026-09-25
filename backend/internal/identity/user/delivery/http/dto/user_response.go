@@ -119,9 +119,10 @@ type SyncUserResponse struct {
 //     identity-verification telemetry that doctrine reserves for the
 //     target's own self-profile and for SellerCard contexts where the
 //     viewer is transacting.
-//   - `is_seller` is derived from has-market-authority (active subscription
-//   - seller profile present); it is the only publicly-safe trust flag
-//     this surface emits.
+//   - `is_seller` is derived from seller identity (seller_profiles present),
+//     NOT market capability. Expired sellers remain sellers for display/showcase;
+//     only market actions (create for_sale/auction) require has-market-authority.
+//     This is the only publicly-safe identity flag this surface emits.
 //
 // E5.1 — Identity is the canonical public-card seam per ADR-006. It carries
 // the publiccard.UserCard with lifecycle populated via

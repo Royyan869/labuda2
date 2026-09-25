@@ -72,12 +72,10 @@ class _SellerUpgradeWizardScreenState
   final _storeFormKey = GlobalKey<FormState>();
 
   final _usernameController = TextEditingController();
-  final _bioController = TextEditingController();
   final _phoneController = TextEditingController();
   final _farmNameController = TextEditingController();
 
   String _initialUsername = '';
-  String _initialBio = '';
   String _initialPhone = '';
   String? _initialSenderAddressId;
   String _initialFarmName = '';
@@ -122,7 +120,6 @@ class _SellerUpgradeWizardScreenState
 
     for (final controller in [
       _usernameController,
-      _bioController,
       _phoneController,
       _farmNameController,
     ]) {
@@ -181,11 +178,9 @@ class _SellerUpgradeWizardScreenState
     setState(() {
       _currentStep = 0;
       _usernameController.clear();
-      _bioController.clear();
       _phoneController.clear();
       _farmNameController.clear();
       _initialUsername = '';
-      _initialBio = '';
       _initialPhone = '';
       _initialSenderAddressId = null;
       _initialFarmName = '';
@@ -224,10 +219,8 @@ class _SellerUpgradeWizardScreenState
 
     setState(() {
       _usernameController.text = user.username;
-      _bioController.text = user.bio ?? '';
       _phoneController.text = user.phoneNumber ?? '';
       _initialUsername = _usernameController.text.trim();
-      _initialBio = _bioController.text.trim();
       _initialPhone = _phoneController.text.trim();
     });
 
@@ -632,7 +625,6 @@ class _SellerUpgradeWizardScreenState
     _profileSubscription?.close();
     for (final controller in [
       _usernameController,
-      _bioController,
       _phoneController,
       _farmNameController,
     ]) {
@@ -646,7 +638,6 @@ class _SellerUpgradeWizardScreenState
   bool get _isAccountStepValid {
     return SellerWizardHelpers.isAccountStepValid(
       username: _usernameController.text.trim(),
-      bio: _bioController.text.trim(),
       phoneNumber: _phoneController.text.trim(),
       senderAddress: _selectedSenderAddress?.fullAddress.trim() ?? '',
     );
@@ -663,7 +654,6 @@ class _SellerUpgradeWizardScreenState
 
   bool get _hasAnyChanges {
     return _usernameController.text.trim() != _initialUsername ||
-        _bioController.text.trim() != _initialBio ||
         _phoneController.text.trim() != _initialPhone ||
         _selectedSenderAddress?.id != _initialSenderAddressId ||
         _farmNameController.text.trim() != _initialFarmName ||
@@ -699,7 +689,6 @@ class _SellerUpgradeWizardScreenState
           )
         : SellerWizardPreviewWidget(
             username: _usernameController.text.trim(),
-            bio: _bioController.text.trim(),
             phoneNumber: _phoneController.text.trim(),
             senderAddress: _selectedSenderAddress?.fullAddress.trim() ?? '',
             emailVerified: isEmailVerified,
@@ -1074,16 +1063,6 @@ class _SellerUpgradeWizardScreenState
             ),
           const SizedBox(height: 16),
           AppTextField(
-            controller: _bioController,
-            labelText: 'Bio *',
-            hintText: 'Tell customers about your store or farm',
-            prefixIcon: Icons.description_outlined,
-            maxLines: 4,
-            validator: (value) =>
-                value == null || value.trim().isEmpty ? 'Required' : null,
-          ),
-          const SizedBox(height: 16),
-          AppTextField(
             controller: _phoneController,
             labelText: 'Phone Number *',
             hintText: '+62...',
@@ -1102,7 +1081,7 @@ class _SellerUpgradeWizardScreenState
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              'Username is read only when already saved. Bio, phone, and sender address remain required for seller onboarding.',
+              'Username is read only when already saved. Phone and sender address remain required for seller onboarding.',
               style: TextStyle(
                 fontSize: 13,
                 color: isDark
@@ -1883,7 +1862,6 @@ class _SellerUpgradeWizardScreenState
         .read(authRepositoryProvider)
         .updateProfile(
           username: _usernameController.text.trim(),
-          bio: _bioController.text.trim(),
           phoneNumber: _phoneController.text.trim(),
         );
 
@@ -2444,8 +2422,6 @@ class _SellerUpgradeWizardScreenState
         return 'Email terverifikasi';
       case 'username':
         return 'Username';
-      case 'bio':
-        return 'Bio';
       case 'phone_number':
         return 'Nomor telepon';
       case 'sender_address':

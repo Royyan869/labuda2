@@ -314,16 +314,19 @@ func (s *UserProfileService) GetPublicProfile(ctx context.Context, targetUserID 
 	// New consumers MUST read identity.* (in particular identity.lifecycle for
 	// the public lifecycle state).
 	resp := &dto.PublicUserResponse{
-		UserID:              publicInfo.UserID,
-		Username:            publicInfo.Username,
-		Bio:                 publicInfo.Bio,
-		AvatarURL:           avatarForResponse,
-		CoverPhotoURL:       coverForResponse,
-		Location:            publicInfo.Location,
-		FollowersCount:      publicInfo.FollowersCount,
-		FollowingCount:      publicInfo.FollowingCount,
-		IsSeller:            sellerState.HasMarketAuthority, // derived; uses authority, not just role
-		Roles:               publicInfo.Roles,
+		UserID:         publicInfo.UserID,
+		Username:       publicInfo.Username,
+		Bio:            publicInfo.Bio,
+		AvatarURL:      avatarForResponse,
+		CoverPhotoURL:  coverForResponse,
+		Location:       publicInfo.Location,
+		FollowersCount: publicInfo.FollowersCount,
+		FollowingCount: publicInfo.FollowingCount,
+		// OWNER TRUTH: seller display is identity axis (has seller_profiles), not capability.
+		// Expired sellers remain sellers for display/showcase; only market actions (create
+		// for_sale/auction) are gated by HasMarketAuthority. See cara-kerja/OWNER decision.
+		IsSeller: sellerState.HasProfile,
+		Roles:    publicInfo.Roles,
 		CreatedAt:           createdAt,
 		Identity:            &identityCard,
 		SellerTier:          publicSellerTier(lifecycle, sellerState),

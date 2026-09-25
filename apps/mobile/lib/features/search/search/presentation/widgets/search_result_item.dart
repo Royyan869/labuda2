@@ -282,12 +282,6 @@ class SearchResultItem extends ConsumerWidget {
   ///
   /// Only shows for user type results. Uses the result.id as userId.
   Widget _buildFollowButton(BuildContext context, WidgetRef ref) {
-    // For user results, result.id is the userId
-    return FollowButton(
-      userId: result.id,
-      buttonSize: 32,
-      iconSize: 14,
-      fontSize: 12,
-    );
+    return FollowButton(userId: result.id);
   }
 }

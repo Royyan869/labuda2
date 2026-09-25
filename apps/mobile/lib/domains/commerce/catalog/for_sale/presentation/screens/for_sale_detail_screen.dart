@@ -12,7 +12,8 @@ import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/commerce_chat_navigation.dart';
-import 'package:labuda/domains/user/profile/profile.dart' show userDataProvider;
+import 'package:labuda/domains/user/profile/profile.dart'
+    show userDataProvider, profileStreamProvider;
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/governance/seller_tier_badge.dart';
 import 'package:labuda/shared/shared.dart';
@@ -480,6 +481,16 @@ class _ForSaleSellerCard extends ConsumerWidget {
                   ? fallbackAvatarUrl
                   : null);
 
+        // Store truth for the dual avatar comes from the seller's profile
+        // stream (canonical FarmInfo), never fabricated.
+        final profileAsync = ref.watch(profileStreamProvider(forSale.sellerId));
+        final farmInfo = profileAsync.value?.farmInfo;
+        // BUSINESS TRUTH: the author of a for-sale listing is a seller by
+        // definition (only sellers can publish listings) — the dual avatar
+        // gate never depends on a user-lookup race.
+        const isSeller = true;
+        final storeImageUrl = farmInfo?.farmPhotoUrl;
+
         // Hide rather than fabricate when no truth is available.
         if (!hasFarm && !hasUsername) {
           return const SizedBox.shrink();
@@ -495,10 +506,15 @@ class _ForSaleSellerCard extends ConsumerWidget {
 
         final row = _buildRow(
           context,
-          avatar: CircleAvatar(
-            radius: 24,
-            backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-            child: avatarUrl == null ? const Icon(Icons.person) : null,
+          avatar: SellerAvatar(
+            userId: forSale.sellerId,
+            avatarUrl: avatarUrl,
+            storeImageUrl: storeImageUrl,
+            isSeller: isSeller,
+            size: 48,
+            onTap: () => ref
+                .read(navigationHandlerProvider)
+                .navigateToUserProfile(forSale.sellerId),
           ),
           displayName: identity.line1,
           username: identity.line2,
@@ -527,7 +543,7 @@ class _ForSaleSellerCard extends ConsumerWidget {
       },
       loading: () => _buildRow(
         context,
-        avatar: const CircleAvatar(radius: 24, child: Icon(Icons.person)),
+        avatar: ProfileAvatar(userId: forSale.sellerId, size: 48),
         // Non-identity loading hint — does not assert any seller identity.
         displayName: 'Memuat...',
         username: null,
@@ -622,18 +638,7 @@ class _ForSaleSellerCard extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: isDark
-                ? AppColors.darkGray600
-                : AppColors.neutralGray200,
-            child: Icon(
-              Icons.person,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
-            ),
-          ),
+          ProfileAvatar(userId: '', size: 48),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

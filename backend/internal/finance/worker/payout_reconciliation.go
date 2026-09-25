@@ -6,69 +6,87 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/finance/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 	"go.uber.org/zap"
 )
 
+// IrisTimingBuffer is the minimum time after gateway submission before querying status.
+// Midtrans Iris requires a 10-minute buffer after payout creation.
+const IrisTimingBuffer = 10 * time.Minute
+
+// MaxReconciliationBatchSize is the maximum number of payouts to reconcile per cycle.
+const MaxReconciliationBatchSize = 50
+
 // PayoutReconciliationService detects and handles stuck or mismatched payouts.
 //
-// RECONCILIATION CHECKS:
-// 1. Stuck payouts - SUBMITTED/SETTLING for too long
-// 2. Orphaned payouts - FAILED_RETRYABLE that can be retried
-// 3. Status mismatch - gateway status differs from our records
+// PAYOUT-03: This service now performs real automated reconciliation by:
+// 1. Finding eligible payouts (SUBMITTED/SETTLING, age >= 10 minutes)
+// 2. Querying Midtrans Iris for actual gateway status
+// 3. Mapping gateway status to WebhookCallback
+// 4. Calling WebhookHandler.HandleCallback() for canonical transition
 //
 // SAFETY GUARDS:
-// - READ-ONLY queries by default
-// - Explicit action required for state changes
-// - All actions logged for audit
+// - Observe-only: never calls CreatePayout/SubmitPayout
+// - 10-minute buffer: respects Iris timing requirement
+// - Canonical transition: uses same path as webhook handler
+// - Idempotent: duplicate reconciliations produce no duplicate effects
+// - Unknown status: no financial transition, logged for investigation
 type PayoutReconciliationService struct {
-	withdrawRepo *repository.WithdrawRepository
-	log          *zap.Logger
-	db           Transactor
+	withdrawRepo   *repository.WithdrawRepository
+	ledgerRepo     *LedgerRepositoryWrapper
+	log            *zap.Logger
+	db             Transactor
+	gateway        PayoutGateway
+	webhookHandler *WebhookHandler
 
 	// Configuration
-	stuckThreshold         time.Duration // How long before considering a payout stuck
 	reconciliationInterval time.Duration // How often to run reconciliation
+}
+
+// LedgerRepositoryWrapper wraps the repository ledger repo for dependency injection.
+type LedgerRepositoryWrapper struct {
+	*repository.LedgerRepository
 }
 
 // PayoutReconciliationConfig holds configuration for the reconciliation service.
 type PayoutReconciliationConfig struct {
-	StuckThresholdMinutes        int // Default: 30 minutes
 	ReconciliationIntervalMinutes int // Default: 10 minutes
 }
 
 // DefaultPayoutReconciliationConfig returns default configuration.
 func DefaultPayoutReconciliationConfig() PayoutReconciliationConfig {
 	return PayoutReconciliationConfig{
-		StuckThresholdMinutes:        30,
 		ReconciliationIntervalMinutes: 10,
 	}
 }
 
 // NewPayoutReconciliationService creates a new reconciliation service.
+// PAYOUT-03: Now requires gateway and webhook handler for real reconciliation.
 func NewPayoutReconciliationService(
 	withdrawRepo *repository.WithdrawRepository,
 	db Transactor,
 	log *zap.Logger,
 	cfg PayoutReconciliationConfig,
+	gateway PayoutGateway,
+	webhookHandler *WebhookHandler,
 ) *PayoutReconciliationService {
 	if log == nil {
 		log = zap.NewNop()
 	}
 
-	stuckThreshold := time.Duration(cfg.StuckThresholdMinutes) * time.Minute
-	if stuckThreshold == 0 {
-		stuckThreshold = 30 * time.Minute
+	reconciliationInterval := time.Duration(cfg.ReconciliationIntervalMinutes) * time.Minute
+	if reconciliationInterval == 0 {
+		reconciliationInterval = 10 * time.Minute
 	}
 
 	return &PayoutReconciliationService{
 		withdrawRepo:          withdrawRepo,
 		log:                   log,
 		db:                    db,
-		stuckThreshold:        stuckThreshold,
-		reconciliationInterval: time.Duration(cfg.ReconciliationIntervalMinutes) * time.Minute,
+		gateway:               gateway,
+		webhookHandler:        webhookHandler,
+		reconciliationInterval: reconciliationInterval,
 	}
 }
 
@@ -78,13 +96,16 @@ func NewPayoutReconciliationService(
 
 // ReconciliationReport contains the results of a reconciliation check.
 type ReconciliationReport struct {
-	CheckTimestamp       time.Time              `json:"check_timestamp"`
-	StuckPayouts         []*StuckPayoutInfo     `json:"stuck_payouts"`
-	RetryablePayouts     []*RetryablePayoutInfo `json:"retryable_payouts"`
-	OrphanedPayouts      []*OrphanedPayoutInfo  `json:"orphaned_payouts"`
-	TotalPayoutsChecked  int                    `json:"total_payouts_checked"`
-	ActionsTaken         []string               `json:"actions_taken"`
-	RequiresManualReview int                    `json:"requires_manual_review"`
+	CheckTimestamp        time.Time              `json:"check_timestamp"`
+	CandidatesFound       int                    `json:"candidates_found"`
+	QueriesAttempted      int                    `json:"queries_attempted"`
+	TransitionsApplied    int                    `json:"transitions_applied"`
+	QueryFailures         int                    `json:"query_failures"`
+	UnknownStatuses       int                    `json:"unknown_statuses"`
+	TerminalSkipped       int                    `json:"terminal_skipped"`
+	MissingReferenceNo    int                    `json:"missing_reference_no"`
+	TooYoung              int                    `json:"too_young"`
+	ActionsTaken          []string               `json:"actions_taken"`
 
 	// Enrichment fields
 	PilotBlockedCount       int                  `json:"pilot_blocked_count"`
@@ -100,326 +121,171 @@ type OperatorRec struct {
 	Action   string `json:"action"`
 }
 
-// StuckPayoutInfo contains information about a stuck payout.
-type StuckPayoutInfo struct {
-	WithdrawalID        uuid.UUID `json:"withdrawal_id"`
-	ExternalReferenceID string    `json:"external_reference_id"`
-	Status              string    `json:"status"`
-	GatewayReferenceID  string    `json:"gateway_reference_id"`
-	Amount              int64     `json:"amount"`
-	SellerID            uuid.UUID `json:"seller_id"`
-	DurationInState     int64     `json:"duration_in_state_seconds"`
-	LastUpdated         time.Time `json:"last_updated"`
-	RecommendedAction   string    `json:"recommended_action"`
-	Severity            string    `json:"severity"`    // CRITICAL / WARNING / INFO
-	RunbookURL          string    `json:"runbook_url"` // operator-facing runbook link
-
-	// Enrichment
-	LineageSummary         string `json:"lineage_summary"`          // one-line human description
-	GatewayMismatchCategory string `json:"gateway_mismatch_category"` // TIMEOUT / REJECTED / MISSING / UNKNOWN
-	OperatorRecommendation string `json:"operator_recommendation"`
-}
-
-// RetryablePayoutInfo contains information about a payout that can be retried.
-type RetryablePayoutInfo struct {
-	WithdrawalID        uuid.UUID `json:"withdrawal_id"`
-	ExternalReferenceID string    `json:"external_reference_id"`
-	Status              string    `json:"status"`
-	RetryCount          int       `json:"retry_count"`
-	LastRetryAt         time.Time `json:"last_retry_at"`
-	CanRetry            bool      `json:"can_retry"`
-	RetrySeverity       string    `json:"retry_severity"` // LOW (<3) / MEDIUM (3-4) / HIGH (>=5)
-}
-
-// OrphanedPayoutInfo contains information about a payout with no matching gateway record.
-type OrphanedPayoutInfo struct {
-	WithdrawalID        uuid.UUID `json:"withdrawal_id"`
-	ExternalReferenceID string    `json:"external_reference_id"`
-	Status              string    `json:"status"`
-	GatewayReferenceID  string    `json:"gateway_reference_id"`
-	SubmittedAt         time.Time `json:"submitted_at"`
-}
-
 // ============================================================================
-// RECONCILIATION METHODS
+// RECONCILIATION CANDIDATE SELECTION
 // ============================================================================
 
-// CheckStuckPayouts finds payouts that have been in SUBMITTED or SETTLING status
-// for longer than the stuck threshold.
-func (r *PayoutReconciliationService) CheckStuckPayouts(ctx context.Context) (*ReconciliationReport, error) {
-	report := &ReconciliationReport{
-		CheckTimestamp: time.Now(),
-	}
+// GetReconciliationCandidates finds payouts eligible for reconciliation.
+// PAYOUT-03: Eligibility requires:
+//   - status IN ('SUBMITTED', 'SETTLING')
+//   - submitted_at > 0 (gateway submission timestamp known)
+//   - gateway_reference_no != '' (can query gateway)
+//   - submitted_at <= now - 10 minutes (Iris timing requirement)
+func (r *PayoutReconciliationService) GetReconciliationCandidates(ctx context.Context) ([]*repository.Withdrawal, error) {
+	// Calculate the maximum submitted_at for eligibility (now - 10 minutes)
+	maxSubmittedAt := time.Now().Add(-IrisTimingBuffer).Unix()
 
-	r.log.Info("Starting payout reconciliation check",
-		zap.Duration("stuck_threshold", r.stuckThreshold),
-	)
-
-	// Query for payouts in SUBMITTED or SETTLING status older than threshold
-	cutoff := time.Now().Add(-r.stuckThreshold)
-
-	var stuckPayouts []*repository.Withdrawal
+	var candidates []*repository.Withdrawal
 	if err := r.db.WithTx(ctx, func(tx db.Tx) error {
-		var e error
-		stuckPayouts, e = r.withdrawRepo.GetStuckPayouts(ctx, tx, cutoff, 100)
-		return e
+		var err error
+		candidates, err = r.withdrawRepo.GetReconciliationCandidates(ctx, tx, maxSubmittedAt, MaxReconciliationBatchSize)
+		return err
 	}); err != nil {
-		r.log.Error("Failed to query stuck payouts", zap.Error(err))
-		return nil, fmt.Errorf("query stuck payouts: %w", err)
+		return nil, fmt.Errorf("query reconciliation candidates: %w", err)
 	}
 
-	report.TotalPayoutsChecked = len(stuckPayouts)
-
-	for _, payout := range stuckPayouts {
-		// UpdatedAt is int64 Unix timestamp, convert to time.Time
-		updatedAt := time.Unix(payout.UpdatedAt, 0)
-		duration := time.Since(updatedAt)
-		info := &StuckPayoutInfo{
-			WithdrawalID:        payout.ID,
-			ExternalReferenceID: payout.ExternalReferenceID,
-			Status:              string(payout.Status),
-			GatewayReferenceID:  extractGatewayRefID(payout.GatewayResponse),
-			Amount:              payout.Amount,
-			SellerID:            payout.SellerID,
-			DurationInState:     int64(duration.Seconds()),
-			LastUpdated:         updatedAt,
-		}
-
-		// Determine recommended action, severity, runbook, and enrichment
-		switch payout.Status {
-		case repository.WithdrawalStatusSubmitted:
-			if duration > 1*time.Hour {
-				info.RecommendedAction = "query_gateway_status"
-				info.Severity = "CRITICAL"
-				info.RunbookURL = "https://internal.labuda.id/runbooks/payout/stuck-submitted"
-				info.GatewayMismatchCategory = "TIMEOUT"
-				info.OperatorRecommendation = "Check gateway dashboard for external_ref=" + payout.ExternalReferenceID + "; if settled, update DB manually."
-			} else {
-				info.RecommendedAction = "wait_for_callback"
-				info.Severity = "WARNING"
-				info.RunbookURL = "https://internal.labuda.id/runbooks/payout/pending-submitted"
-				info.GatewayMismatchCategory = "PENDING"
-				info.OperatorRecommendation = "No action needed yet; will escalate if not resolved within 1h."
-			}
-		case repository.WithdrawalStatusSettling:
-			if duration > 2*time.Hour {
-				info.RecommendedAction = "mark_failed_final_or_query_gateway"
-				info.Severity = "CRITICAL"
-				info.RunbookURL = "https://internal.labuda.id/runbooks/payout/stuck-settling"
-				info.GatewayMismatchCategory = "TIMEOUT"
-				info.OperatorRecommendation = "Query gateway for final status. If bank rejected, mark FAILED_FINAL. If bank settled, mark SETTLED."
-			} else {
-				info.RecommendedAction = "wait_for_callback"
-				info.Severity = "WARNING"
-				info.RunbookURL = "https://internal.labuda.id/runbooks/payout/pending-settling"
-				info.GatewayMismatchCategory = "PENDING"
-				info.OperatorRecommendation = "No action needed yet; escalate if not resolved within 2h."
-			}
-		default:
-			info.RecommendedAction = "manual_review"
-			info.Severity = "CRITICAL"
-			info.RunbookURL = "https://internal.labuda.id/runbooks/payout/unknown-stuck"
-			info.GatewayMismatchCategory = "UNKNOWN"
-			info.OperatorRecommendation = "Unexpected status for stuck payout. Escalate immediately."
-		}
-
-		info.LineageSummary = fmt.Sprintf(
-			"withdrawal:%s ext:%s gw:%s status:%s age:%ds",
-			payout.ID, payout.ExternalReferenceID,
-			extractGatewayRefID(payout.GatewayResponse),
-			string(payout.Status),
-			int64(duration.Seconds()),
-		)
-
-		report.StuckPayouts = append(report.StuckPayouts, info)
-		report.RequiresManualReview++
-	}
-
-	// Query PILOT_BLOCKED count for alert awareness
-	pilotBlockedCount, err := r.queryPilotBlockedCount(ctx)
-	if err != nil {
-		r.log.Warn("Failed to query PILOT_BLOCKED count", zap.Error(err))
-	} else {
-		report.PilotBlockedCount = pilotBlockedCount
-		if pilotBlockedCount > 0 {
-			report.OperatorRecommendations = append(report.OperatorRecommendations, OperatorRec{
-				Priority: "HIGH",
-				Category: "pilot_mode",
-				Message:  fmt.Sprintf("%d withdrawals are PILOT_BLOCKED", pilotBlockedCount),
-				Action:   "Add sellers to PAYOUT_PILOT_WHITELIST or disable pilot mode",
-			})
-		}
-	}
-
-	r.log.Info("Reconciliation check completed",
-		zap.Int("stuck_payouts", len(report.StuckPayouts)),
-		zap.Int("requires_manual_review", report.RequiresManualReview),
-	)
-
-	return report, nil
-}
-
-// CheckRetryablePayouts finds payouts that are in FAILED_RETRYABLE status
-// and may be eligible for retry.
-func (r *PayoutReconciliationService) CheckRetryablePayouts(ctx context.Context) ([]*RetryablePayoutInfo, error) {
-	var retryableInfos []*RetryablePayoutInfo
-
-	// Query for payouts in FAILED_RETRYABLE status
-	var retryablePayouts []*repository.Withdrawal
-	if err := r.db.WithTx(ctx, func(tx db.Tx) error {
-		var e error
-		retryablePayouts, e = r.withdrawRepo.GetRetryableWithdrawals(ctx, tx, 100)
-		return e
-	}); err != nil {
-		r.log.Error("Failed to query retryable payouts", zap.Error(err))
-		return nil, fmt.Errorf("query retryable payouts: %w", err)
-	}
-
-	for _, payout := range retryablePayouts {
-		// UpdatedAt is int64 Unix timestamp, convert to time.Time
-		updatedAt := time.Unix(payout.UpdatedAt, 0)
-		info := &RetryablePayoutInfo{
-			WithdrawalID:        payout.ID,
-			ExternalReferenceID: payout.ExternalReferenceID,
-			Status:              string(payout.Status),
-			RetryCount:          payout.RetryCount,
-			LastRetryAt:         updatedAt,
-			CanRetry:            payout.RetryCount < 5, // Max 5 retries
-			RetrySeverity:       classifyRetrySeverity(payout.RetryCount),
-		}
-
-		retryableInfos = append(retryableInfos, info)
-	}
-
-	r.log.Debug("Retryable payouts check completed",
-		zap.Int("count", len(retryableInfos)),
-	)
-
-	return retryableInfos, nil
+	return candidates, nil
 }
 
 // ============================================================================
-// AUTOMATED ACTIONS
+// GATEWAY STATUS QUERY
 // ============================================================================
 
-// QueryGatewayStatus checks the status of a payout with the gateway.
-// This is a READ-ONLY operation that does not change any state.
+// QueryGatewayStatus queries the Midtrans Iris gateway for payout status.
+// PAYOUT-03: This is observe-only - never submits or resubmits payouts.
 func (r *PayoutReconciliationService) QueryGatewayStatus(
 	ctx context.Context,
-	withdrawalID uuid.UUID,
-) (map[string]interface{}, error) {
-	// Get the withdrawal record
-	withdrawal, err := r.withdrawRepo.GetByID(ctx, nil, withdrawalID)
+	referenceNo string,
+) (*PayoutStatusCheck, error) {
+	if r.gateway == nil {
+		return nil, fmt.Errorf("gateway not configured")
+	}
+
+	status, err := r.gateway.GetPayoutStatus(ctx, referenceNo)
 	if err != nil {
-		return nil, fmt.Errorf("get withdrawal: %w", err)
+		return nil, fmt.Errorf("query gateway status: %w", err)
 	}
 
-	if withdrawal == nil {
-		return nil, fmt.Errorf("withdrawal not found")
-	}
-
-	// For sandbox mode, return simulated status
-	result := map[string]interface{}{
-		"withdrawal_id":         withdrawal.ID.String(),
-		"external_reference_id": withdrawal.ExternalReferenceID,
-		"gateway_reference_id":  extractGatewayRefID(withdrawal.GatewayResponse),
-		"our_status":            string(withdrawal.Status),
-		"gateway_status":        "UNKNOWN",
-		"last_updated":          withdrawal.UpdatedAt,
-		"mode":                  "sandbox_query",
-		"action_required":       "manual_verification",
-	}
-
-	r.log.Info("Gateway status queried",
-		zap.String("withdrawal_id", withdrawalID.String()),
-		zap.String("status", string(withdrawal.Status)),
-	)
-
-	return result, nil
+	return status, nil
 }
 
-// MarkPayoutStuck marks a payout as stuck for manual review.
-// This transitions the payout to a state that requires admin intervention.
-func (r *PayoutReconciliationService) MarkPayoutStuck(
+// ============================================================================
+// STATUS MAPPING
+// ============================================================================
+
+// MapGatewayStatusToCallback maps Iris gateway status to WebhookCallback.
+// PAYOUT-03: Correct mapping based on Iris documentation:
+//   - queued → WebhookStatusPending (non-terminal)
+//   - processed → WebhookStatusPending (non-terminal, bank acknowledged)
+//   - completed → WebhookStatusSuccess (terminal success)
+//   - failed → WebhookStatusFailed (terminal failure)
+//   - unknown → WebhookStatusUnknown (no transition)
+func MapGatewayStatusToCallback(
+	externalReferenceID string,
+	gatewayReferenceNo string,
+	gatewayStatus string,
+	errorMessage string,
+) WebhookCallback {
+	var status WebhookStatus
+	switch gatewayStatus {
+	case "completed":
+		status = WebhookStatusSuccess // Terminal success
+	case "processed":
+		status = WebhookStatusPending // Non-terminal, bank acknowledged
+	case "queued":
+		status = WebhookStatusPending // Non-terminal, waiting
+	case "failed":
+		status = WebhookStatusFailed // Terminal failure
+	default:
+		status = WebhookStatusUnknown // Unknown, do not transition
+	}
+
+	return WebhookCallback{
+		ExternalReferenceID: externalReferenceID,
+		GatewayReferenceID:  gatewayReferenceNo,
+		Status:              status,
+		Message:             errorMessage,
+		Timestamp:           time.Now().Unix(),
+		RawPayload:          "", // Empty for synthetic callbacks
+	}
+}
+
+// ============================================================================
+// CANONICAL TRANSITION
+// ============================================================================
+
+// ReconcilePayout queries gateway status and applies canonical transition.
+// PAYOUT-03: This is the core reconciliation logic:
+// 1. Query Midtrans Iris for actual status
+// 2. Map to WebhookCallback
+// 3. Call WebhookHandler.HandleCallback() for canonical transition
+//
+// SAFETY:
+// - Gateway query occurs OUTSIDE database transaction
+// - Canonical transition occurs WITHIN database transaction
+// - Never calls CreatePayout/SubmitPayout
+// - Unknown status produces no financial transition
+func (r *PayoutReconciliationService) ReconcilePayout(
 	ctx context.Context,
-	withdrawalID uuid.UUID,
-	reason string,
-) error {
-	return r.db.WithTx(ctx, func(tx db.Tx) error {
-		withdrawal, err := r.withdrawRepo.LockForUpdate(ctx, tx, withdrawalID)
-		if err != nil {
-			return fmt.Errorf("lock withdrawal: %w", err)
-		}
-
-		if withdrawal.Status.IsFinal() {
-			r.log.Info("Withdrawal already in final state, cannot mark as stuck",
-				zap.String("withdrawal_id", withdrawalID.String()),
-				zap.String("status", string(withdrawal.Status)),
-			)
-			return nil
-		}
-
-		// For now, we don't have a dedicated "stuck" status
-		// We'll log it and leave it as-is for manual intervention
-		r.log.Warn("Payout marked as stuck for manual review",
-			zap.String("withdrawal_id", withdrawalID.String()),
-			zap.String("status", string(withdrawal.Status)),
-			zap.String("reason", reason),
-			zap.Int("retry_count", withdrawal.RetryCount),
-		)
-
-		return nil
-	})
-}
-
-// ============================================================================
-// OBSERVABILITY
-// ============================================================================
-
-// LogReconciliationReport logs the reconciliation report for monitoring.
-func (r *PayoutReconciliationService) LogReconciliationReport(report *ReconciliationReport) {
-	r.log.Info("Payout reconciliation report",
-		zap.Time("check_timestamp", report.CheckTimestamp),
-		zap.Int("total_checked", report.TotalPayoutsChecked),
-		zap.Int("stuck_payouts", len(report.StuckPayouts)),
-		zap.Int("retryable_payouts", len(report.RetryablePayouts)),
-		zap.Int("orphaned_payouts", len(report.OrphanedPayouts)),
-		zap.Int("requires_manual_review", report.RequiresManualReview),
-		zap.Strings("actions_taken", report.ActionsTaken),
+	withdrawal *repository.Withdrawal,
+) (string, error) {
+	// Step 1: Query gateway (outside DB transaction)
+	r.log.Info("Querying gateway for payout status",
+		zap.String("withdrawal_id", withdrawal.ID.String()),
+		zap.String("external_ref", withdrawal.ExternalReferenceID),
+		zap.String("gateway_ref_no", withdrawal.GatewayReferenceNo),
+		zap.String("current_status", string(withdrawal.Status)),
 	)
 
-	// Log individual stuck payouts for alerting
-	for _, stuck := range report.StuckPayouts {
-		r.log.Warn("Stuck payout detected",
-			zap.String("withdrawal_id", stuck.WithdrawalID.String()),
-			zap.String("external_ref", stuck.ExternalReferenceID),
-			zap.String("status", stuck.Status),
-			zap.Int64("duration_seconds", stuck.DurationInState),
-			zap.String("severity", stuck.Severity),
-			zap.String("recommended_action", stuck.RecommendedAction),
-			zap.String("runbook_url", stuck.RunbookURL),
+	status, err := r.QueryGatewayStatus(ctx, withdrawal.GatewayReferenceNo)
+	if err != nil {
+		r.log.Warn("Gateway query failed",
+			zap.String("withdrawal_id", withdrawal.ID.String()),
+			zap.Error(err),
 		)
-	}
-}
-
-// GetReconciliationMetrics returns metrics for monitoring.
-func (r *PayoutReconciliationService) GetReconciliationMetrics(ctx context.Context) (map[string]interface{}, error) {
-	// Get counts by status
-	var statusCounts []repository.StatusCount
-	if err := r.db.WithTx(ctx, func(tx db.Tx) error {
-		var e error
-		statusCounts, e = r.withdrawRepo.GetStatusCounts(ctx, tx)
-		return e
-	}); err != nil {
-		return nil, fmt.Errorf("get status counts: %w", err)
+		return "query_failed", fmt.Errorf("gateway query: %w", err)
 	}
 
-	return map[string]interface{}{
-		"stuck_threshold_minutes":        int(r.stuckThreshold.Minutes()),
-		"reconciliation_interval_minutes": int(r.reconciliationInterval.Minutes()),
-		"status_counts":                  statusCounts,
-		"last_check_timestamp":           time.Now(),
-	}, nil
+	// Step 2: Map to WebhookCallback
+	callback := MapGatewayStatusToCallback(
+		withdrawal.ExternalReferenceID,
+		withdrawal.GatewayReferenceNo,
+		status.Status,
+		status.RawResponse,
+	)
+
+	r.log.Info("Gateway status observed",
+		zap.String("withdrawal_id", withdrawal.ID.String()),
+		zap.String("gateway_status", status.Status),
+		zap.String("mapped_status", string(callback.Status)),
+	)
+
+	// Step 3: Handle unknown status (no transition)
+	if callback.Status == WebhookStatusUnknown {
+		r.log.Warn("Unknown gateway status - no transition applied",
+			zap.String("withdrawal_id", withdrawal.ID.String()),
+			zap.String("gateway_status", status.Status),
+		)
+		return "unknown_status", nil
+	}
+
+	// Step 4: Apply canonical transition (within DB transaction)
+	err = r.db.WithTx(ctx, func(tx db.Tx) error {
+		return r.webhookHandler.HandleCallback(ctx, tx, callback)
+	})
+
+	if err != nil {
+		// ErrDuplicateCallback is not an error - it means already processed
+		if err == ErrDuplicateCallback {
+			r.log.Info("Payout already in terminal state, skipping",
+				zap.String("withdrawal_id", withdrawal.ID.String()),
+			)
+			return "terminal_skipped", nil
+		}
+		return "transition_failed", fmt.Errorf("canonical transition: %w", err)
+	}
+
+	return "transition_applied", nil
 }
 
 // ============================================================================
@@ -470,7 +336,7 @@ func (w *PayoutReconciliationWorker) Stop() {
 		return
 	}
 
-	w.log.Info("Stopping payout reconciliation worker...")
+	w.log.Info("Stopping reconciliation worker...")
 	close(w.stopCh)
 	w.running = false
 }
@@ -494,45 +360,139 @@ func (w *PayoutReconciliationWorker) run() {
 	}
 }
 
-// performReconciliation executes a single reconciliation check.
-// Wall-clock duration is logged for scaling-bottleneck visibility.
+// performReconciliation executes a single reconciliation cycle.
+// PAYOUT-03: Now performs real gateway queries and canonical transitions.
 func (w *PayoutReconciliationWorker) performReconciliation() {
 	ctx := context.Background()
 	cycleStart := time.Now()
 
-	w.log.Debug("Performing payout reconciliation check")
+	w.log.Debug("Starting reconciliation cycle")
 
-	report, err := w.service.CheckStuckPayouts(ctx)
+	// Step 1: Find eligible candidates
+	candidates, err := w.service.GetReconciliationCandidates(ctx)
 	if err != nil {
-		w.log.Error("Reconciliation check failed", zap.Error(err))
+		w.log.Error("Failed to query reconciliation candidates", zap.Error(err))
 		return
 	}
 
-	w.service.LogReconciliationReport(report)
-
-	// Log metrics
-	if metrics, err := w.service.GetReconciliationMetrics(ctx); err == nil {
-		w.log.Debug("Reconciliation metrics", zap.Any("metrics", metrics))
+	if len(candidates) == 0 {
+		w.log.Debug("No reconciliation candidates found")
+		return
 	}
 
-	cycleDuration := time.Since(cycleStart)
-	fields := []zap.Field{zap.Duration("reconcile_cycle_duration_ms", cycleDuration)}
-	if cycleDuration > 5*time.Second {
-		w.log.Warn("PAYOUT_RECONCILE_CYCLE_SLOW", fields...)
-	} else {
-		w.log.Debug("PAYOUT_RECONCILE_CYCLE_DURATION", fields...)
+	w.log.Info("Reconciliation candidates found", zap.Int("count", len(candidates)))
+
+	// Step 2: Reconcile each candidate
+	report := &ReconciliationReport{
+		CheckTimestamp:  time.Now(),
+		CandidatesFound: len(candidates),
 	}
+
+	for _, withdrawal := range candidates {
+		action, err := w.service.ReconcilePayout(ctx, withdrawal)
+		if err != nil {
+			w.log.Error("Reconciliation failed for payout",
+				zap.String("withdrawal_id", withdrawal.ID.String()),
+				zap.Error(err),
+			)
+			report.QueryFailures++
+			continue
+		}
+
+		report.QueriesAttempted++
+		switch action {
+		case "transition_applied":
+			report.TransitionsApplied++
+			report.ActionsTaken = append(report.ActionsTaken,
+				fmt.Sprintf("transitioned %s", withdrawal.ID.String()))
+		case "terminal_skipped":
+			report.TerminalSkipped++
+		case "unknown_status":
+			report.UnknownStatuses++
+			report.ActionsTaken = append(report.ActionsTaken,
+				fmt.Sprintf("unknown status for %s", withdrawal.ID.String()))
+		case "query_failed":
+			// Already counted above
+		}
+	}
+
+	// Log report
+	w.log.Info("Reconciliation cycle completed",
+		zap.Int("candidates", report.CandidatesFound),
+		zap.Int("queries_attempted", report.QueriesAttempted),
+		zap.Int("transitions_applied", report.TransitionsApplied),
+		zap.Int("query_failures", report.QueryFailures),
+		zap.Int("unknown_statuses", report.UnknownStatuses),
+		zap.Duration("cycle_duration", time.Since(cycleStart)),
+	)
 }
 
 // ManualCheck triggers an immediate reconciliation check.
 func (w *PayoutReconciliationWorker) ManualCheck(ctx context.Context) (*ReconciliationReport, error) {
-	return w.service.CheckStuckPayouts(ctx)
+	// Find candidates
+	candidates, err := w.service.GetReconciliationCandidates(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	report := &ReconciliationReport{
+		CheckTimestamp:  time.Now(),
+		CandidatesFound: len(candidates),
+	}
+
+	// Reconcile each candidate
+	for _, withdrawal := range candidates {
+		action, err := w.service.ReconcilePayout(ctx, withdrawal)
+		if err != nil {
+			report.QueryFailures++
+			continue
+		}
+
+		report.QueriesAttempted++
+		switch action {
+		case "transition_applied":
+			report.TransitionsApplied++
+		case "terminal_skipped":
+			report.TerminalSkipped++
+		case "unknown_status":
+			report.UnknownStatuses++
+		}
+	}
+
+	return report, nil
 }
 
 // IsRunning returns true if the worker is running.
 func (w *PayoutReconciliationWorker) IsRunning() bool {
 	return w.running
 }
+
+// ============================================================================
+// OBSERVABILITY
+// ============================================================================
+
+// GetReconciliationMetrics returns metrics for monitoring.
+func (r *PayoutReconciliationService) GetReconciliationMetrics(ctx context.Context) (map[string]interface{}, error) {
+	// Get counts by status
+	var statusCounts []repository.StatusCount
+	if err := r.db.WithTx(ctx, func(tx db.Tx) error {
+		var e error
+		statusCounts, e = r.withdrawRepo.GetStatusCounts(ctx, tx)
+		return e
+	}); err != nil {
+		return nil, fmt.Errorf("get status counts: %w", err)
+	}
+
+	return map[string]interface{}{
+		"reconciliation_interval_minutes": int(r.reconciliationInterval.Minutes()),
+		"status_counts":                   statusCounts,
+		"last_check_timestamp":            time.Now(),
+	}, nil
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
 
 // extractGatewayRefID parses the raw Midtrans gateway response JSON and returns
 // the gateway-assigned payout reference ID ("id" field). Returns empty string
@@ -577,5 +537,3 @@ func classifyRetrySeverity(retryCount int) string {
 		return "LOW"
 	}
 }
-
-

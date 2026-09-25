@@ -23,6 +23,10 @@ class SettingsMarketingSection extends ConsumerWidget {
     final sellerCapabilityStatus = ref.watch(sellerCapabilityStatusProvider);
     final isSeller = sellerCapabilityStatus == SellerCapabilityStatus.active;
 
+    // Honest UI: entire section hidden unless hasMarketAuthority.
+    // Prevents ghost header for non-seller / pending / expired.
+    if (!isSeller) return const SizedBox.shrink();
+
     return Column(
       children: [
         _buildSectionHeaderWithIcon(
@@ -31,14 +35,13 @@ class SettingsMarketingSection extends ConsumerWidget {
           'Marketing & Promotion',
           isDark,
         ),
-        if (isSeller)
-          _buildSettingsTile(
-            icon: Icons.discount_outlined,
-            title: 'Promotions & Discounts',
-            subtitle: 'Create and manage special offers',
-            onTap: () => _navigateToDiscountManagement(context),
-            isDark: isDark,
-          ),
+        _buildSettingsTile(
+          icon: Icons.discount_outlined,
+          title: 'Promotions & Discounts',
+          subtitle: 'Create and manage special offers',
+          onTap: () => _navigateToDiscountManagement(context),
+          isDark: isDark,
+        ),
       ],
     );
   }

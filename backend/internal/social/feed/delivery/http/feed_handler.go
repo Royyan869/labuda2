@@ -229,6 +229,14 @@ func (h *FeedHandler) GetFeed(c *gin.Context) {
 			h.log.Warn("failed to render feed item with canonical projection", zap.String("item_id", item.ID.String()), zap.Error(err))
 			resp = feedItemToResponseCanonical(item, lifecycleOverrides, origAuthorLifecycles)
 		}
+		// C7C — best-effort engagement hydration (same authority as detail: CountTopLevelCommentsByContent + CountLikes).
+		// Fail-open: 0 on error, never blocks feed. Single canonical source for card & detail.
+		var cc, lc int
+		_ = h.db.Pool().QueryRow(ctx, `SELECT COUNT(*) FROM comments WHERE target_id = $1 AND target_type = 'content' AND deleted_at IS NULL AND parent_id IS NULL`, item.ID).Scan(&cc)
+		_ = h.db.Pool().QueryRow(ctx, `SELECT COUNT(*) FROM content_likes WHERE content_id = $1`, item.ID).Scan(&lc)
+		resp["commentCount"] = cc
+		resp["likeCount"] = lc
+		resp["engagement"] = map[string]interface{}{"commentCount": cc, "likeCount": lc}
 		items[i] = resp
 	}
 

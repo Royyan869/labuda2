@@ -348,7 +348,6 @@ class ObjectPreviewCard extends ConsumerWidget {
           height: 60,
           child: StableNetworkImage(
             imageUrl: imageUrl,
-            logicalCacheKey: reference.targetId,
             fit: BoxFit.cover,
             fallback: _buildThumbnailFallback(),
           ),

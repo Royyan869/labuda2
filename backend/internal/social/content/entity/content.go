@@ -140,29 +140,6 @@ func (c *Content) IsRepost() bool {
 	return c.OriginalAuthorID != nil
 }
 
-// MarkAsRepostWithStatus marks this content as a repost with explicit deletion status.
-// This creates a reference to the original content without copying it.
-//
-// SHARE VALIDATION V1: Accepts explicit isDeleted flag for honest UI rendering.
-// Service layer must validate original content before calling this method.
-func (c *Content) MarkAsRepostWithStatus(originalContentID uuid.UUID, originalAuthorID uuid.UUID, title string, imageURL string, isDeleted bool) error {
-	// Guard: Cannot modify deleted content
-	if c.Status == StatusDeleted {
-		return &AlreadyDeletedError{ContentID: c.ID}
-	}
-
-	originalAuthor := originalAuthorID
-	c.OriginalAuthorID = &originalAuthor
-	// Legacy share_reference storage has been removed; repost state now
-	// derives solely from original_author_id plus the canonical occurrence row.
-	_ = originalContentID
-	_ = title
-	_ = imageURL
-	_ = isDeleted
-	c.UpdatedAt = time.Now()
-	return nil
-}
-
 // GetOriginalAuthorID returns the original author ID if this is a repost, nil otherwise.
 func (c *Content) GetOriginalAuthorID() *uuid.UUID {
 	return c.OriginalAuthorID

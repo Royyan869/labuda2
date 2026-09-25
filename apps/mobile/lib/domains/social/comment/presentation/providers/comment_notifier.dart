@@ -164,20 +164,20 @@ class CommentNotifier extends _$CommentNotifier {
     required String content,
     String? parentId,
     List<String> mentionedUserIds = const [],
+    List<String> mediaUrls = const [],
     String? targetOwnerId,
     String? currentUserId,
     String? currentUserName,
   }) async {
-    // Use usecase for validation
-    final validateCommentContent = ref.read(
-      validateCommentContentUseCaseProvider,
-    );
-    final validationResult = await validateCommentContent(
-      content: content,
-    );
-
-    if (validationResult.isError) {
-      return Result.error(validationResult.error ?? 'Validation failed');
+    // Media can stand alone: allow empty body when media present
+    if (content.trim().isEmpty && mediaUrls.isEmpty) {
+      final validateCommentContent = ref.read(
+        validateCommentContentUseCaseProvider,
+      );
+      final validationResult = await validateCommentContent(content: content);
+      if (validationResult.isError) {
+        return Result.error(validationResult.error ?? 'Validation failed');
+      }
     }
 
     final result = await _repository.createComment(
@@ -186,6 +186,7 @@ class CommentNotifier extends _$CommentNotifier {
       content: content,
       parentId: parentId,
       mentionedUserIds: mentionedUserIds,
+      mediaUrls: mediaUrls,
     );
 
     if (result.isSuccess) {
@@ -246,6 +247,32 @@ class CommentNotifier extends _$CommentNotifier {
     return result;
   }
 
+  /// Update a comment body (author only)
+  Future<Result<Comment>> updateComment({
+    required String commentId,
+    required String body,
+  }) async {
+    final trimmed = body.trim();
+    if (trimmed.isEmpty) {
+      return Result.error('Body cannot be empty');
+    }
+    if (trimmed.length > 2000) {
+      return Result.error('Body too long');
+    }
+    final result = await _repository.updateComment(
+      commentId: commentId,
+      body: trimmed,
+    );
+    if (result.isSuccess) {
+      final updated = result.data!;
+      final updatedComments = state.comments
+          .map((c) => c.id == commentId ? updated : c)
+          .toList();
+      state = state.copyWith(comments: updatedComments);
+    }
+    return result;
+  }
+
   /// Clear error state
   void clearError() {
     state = state.copyWith(error: null);
@@ -259,4 +286,3 @@ class CommentNotifier extends _$CommentNotifier {
     }
   }
 }
-

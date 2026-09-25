@@ -89,4 +89,19 @@ class CommentApiDatasource extends BaseApiRepository {
       parser: (_) {},
     );
   }
+
+  /// Update a comment body
+  /// PUT /comments/{commentId}
+  Future<Result<CommentDto>> updateComment({
+    required String commentId,
+    required String body,
+  }) async {
+    return executeRequest(
+      () => apiClient.put(
+        '/comments/$commentId',
+        data: {'body': body},
+      ),
+      parser: (data) => CommentDto.fromJson(data as Map<String, dynamic>),
+    );
+  }
 }

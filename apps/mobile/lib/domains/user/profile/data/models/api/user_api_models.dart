@@ -477,6 +477,34 @@ class UserApiResponse extends Equatable {
       }
     }
 
+    // Canonical seller-state convergence (OWNER TRUTH):
+    // - Private/self (GET /users/me) uses has_seller_profile + has_market_authority (capability)
+    // - Public (GET /users/:id) uses is_seller (identity = has seller_profiles) + store_name
+    // Expired sellers remain sellers for display/showcase; only market actions are gated
+    // by hasMarketAuthority. Therefore is_seller MUST NOT be used to infer capability.
+    final isSellerPublic = json['is_seller'] as bool?;
+    bool? hasSellerProfileVal = json['has_seller_profile'] as bool?;
+    final hasMarketAuthorityVal = json['has_market_authority'] as bool?;
+    final sellerSubStatusVal =
+        json['seller_subscription_status']?.toString();
+    if (isSellerPublic != null) {
+      if (isSellerPublic) {
+        hasSellerProfileVal ??= true;
+      } else {
+        final store = json['store_name']?.toString().trim();
+        if (store != null && store.isNotEmpty) {
+          hasSellerProfileVal ??= true;
+        }
+      }
+      // DO NOT infer hasMarketAuthority / subscription status from is_seller;
+      // public wire carries identity only. Capability stays null for public.
+    } else {
+      final store = json['store_name']?.toString().trim();
+      if (store != null && store.isNotEmpty) {
+        hasSellerProfileVal ??= true;
+      }
+    }
+
     final parsed = UserApiResponse(
       id: id,
       email: email,
@@ -487,10 +515,9 @@ class UserApiResponse extends Equatable {
       accountStatus: safeString('account_status', defaultValue: 'active'),
       roles: parsedRoles,
       sellerTier: json['seller_tier']?.toString(),
-      // S2: Seller state fields from backend
-      hasSellerProfile: json['has_seller_profile'] as bool?,
-      sellerSubscriptionStatus: json['seller_subscription_status']?.toString(),
-      hasMarketAuthority: json['has_market_authority'] as bool?,
+      hasSellerProfile: hasSellerProfileVal,
+      sellerSubscriptionStatus: sellerSubStatusVal,
+      hasMarketAuthority: hasMarketAuthorityVal,
       // Penalty points
       totalPenaltyPoints: json['total_penalty_points'] as int?,
       activePenaltyPoints: json['active_penalty_points'] as int?,

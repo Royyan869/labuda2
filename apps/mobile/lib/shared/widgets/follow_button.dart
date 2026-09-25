@@ -7,26 +7,16 @@ import 'package:labuda/domains/social/follow/follow.dart';
 // Alias for easier access
 final followProvider = followStatusProvider;
 
-/// Compact Follow Button untuk ContentCard dan RequestCard headers
+/// Canonical Follow Button — single authority for all follow surfaces.
 ///
-/// Features:
-/// - Real follow functionality dengan Firebase
-/// - Loading states dan error handling
-/// - Theme-aware design
-/// - Compact size untuk headers
+/// Replaces the legacy mini outline variant (height 24, radius 12, transparent).
+/// Now identical to ProfileActions _CompactButton: solid primaryRed for
+/// "Follow", secondary gray for "Following", padding 12/8, font 13, icon 16,
+/// radius 8. One size, one style, no variants.
 class FollowButton extends ConsumerStatefulWidget {
-  final String userId; // User yang akan di-follow
-  final double? buttonSize;
-  final double? iconSize;
-  final double? fontSize;
+  final String userId;
 
-  const FollowButton({
-    super.key,
-    required this.userId,
-    this.buttonSize,
-    this.iconSize = 14,
-    this.fontSize = 12,
-  });
+  const FollowButton({super.key, required this.userId});
 
   @override
   ConsumerState<FollowButton> createState() => _FollowButtonState();
@@ -40,12 +30,10 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final authState = ref.watch(authControllerProvider);
 
-    // Show placeholder while auth is loading
     if (authState is AuthStateLoading) {
-      return _buildPlaceholderButton(isDark);
+      return _buildPlaceholderButton(isDark, disabled: true);
     }
 
-    // Don't show if not authenticated
     if (authState is! AuthStateAuthenticated) {
       return const SizedBox.shrink();
     }
@@ -53,36 +41,28 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
     final currentUserId = authState.user.id;
     final currentUserName = authState.user.username;
 
-    // Don't show if trying to follow yourself
     if (currentUserId == widget.userId) {
       return const SizedBox.shrink();
     }
 
-    // Watch follow state dari follows module
     final followState = ref.watch(followProvider);
     final isFollowing = followState.followStatusMap[widget.userId] ?? false;
 
-    // Always show button, even if status is not loaded yet
-    // This prevents flickering and provides better UX
     if (!followState.followStatusMap.containsKey(widget.userId)) {
-      // Trigger initial status check without blocking UI
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          ref
-              .read(followProvider.notifier)
-              .checkFollowStatus(
-                followerId: currentUserId,
-                followingId: widget.userId,
-              );
+          ref.read(followProvider.notifier).checkFollowStatus(
+            followerId: currentUserId,
+            followingId: widget.userId,
+          );
         }
       });
-      // Show default follow button instead of loading
       return _buildFollowButton(
         context,
         isDark,
         currentUserId,
         currentUserName,
-        false, // Default to not following
+        false,
       );
     }
 
@@ -95,38 +75,32 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
     );
   }
 
-  Widget _buildPlaceholderButton(bool isDark) {
-    return Container(
-      height: widget.buttonSize ?? 24,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray400,
-          width: 1,
+  Widget _buildPlaceholderButton(bool isDark, {bool disabled = false}) {
+    final bg = isDark ? AppColors.darkGray700 : AppColors.neutralGray100;
+    final fg = isDark ? AppColors.neutralWhite : AppColors.neutralGray700;
+    return Opacity(
+      opacity: disabled ? 0.4 : 1.0,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(8),
         ),
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.transparent,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.person_add,
-            size: widget.iconSize ?? 14,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            'Follow',
-            style: TextStyle(
-              fontSize: widget.fontSize ?? 12,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
-              fontWeight: FontWeight.w500,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.person_add_outlined, size: 16, color: fg),
+            const SizedBox(width: 4),
+            Text(
+              'Follow',
+              style: TextStyle(
+                fontSize: 13,
+                color: fg,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -138,69 +112,55 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
     String currentUserName,
     bool isFollowing,
   ) {
-    return GestureDetector(
-      onTap: _isLoading
-          ? null
-          : () => _toggleFollow(currentUserId, currentUserName, isFollowing),
-      child: Container(
-        height: widget.buttonSize ?? 24,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: isFollowing
-                ? AppColors.primaryRed
-                : (isDark
-                      ? AppColors.neutralGray500
-                      : AppColors.neutralGray400),
-            width: 1,
-          ),
-          borderRadius: BorderRadius.circular(12),
-          color: isFollowing
-              ? AppColors.primaryRed.withValues(alpha: 0.1)
-              : Colors.transparent,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_isLoading)
-              SizedBox(
-                width: widget.iconSize ?? 14,
-                height: widget.iconSize ?? 14,
-                child: CircularProgressIndicator(
-                  strokeWidth: 1.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    isFollowing
-                        ? AppColors.primaryRed
-                        : (isDark
-                              ? AppColors.neutralWhite
-                              : AppColors.neutralGray700),
+    final bg = isFollowing
+        ? (isDark ? AppColors.darkGray700 : AppColors.neutralGray100)
+        : AppColors.primaryRed;
+    final fg = isFollowing
+        ? (isDark ? AppColors.neutralWhite : AppColors.neutralGray700)
+        : AppColors.neutralWhite;
+
+    return Opacity(
+      opacity: _isLoading ? 0.6 : 1.0,
+      child: Material(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: _isLoading
+              ? null
+              : () => _toggleFollow(currentUserId, currentUserName, isFollowing),
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_isLoading)
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(fg),
+                    ),
+                  )
+                else
+                  Icon(
+                    isFollowing ? Icons.person_remove : Icons.person_add_outlined,
+                    size: 16,
+                    color: fg,
+                  ),
+                const SizedBox(width: 4),
+                Text(
+                  isFollowing ? 'Following' : 'Follow',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: fg,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              )
-            else
-              Icon(
-                isFollowing ? Icons.person_remove : Icons.person_add,
-                size: widget.iconSize ?? 14,
-                color: isFollowing
-                    ? AppColors.primaryRed
-                    : (isDark
-                          ? AppColors.neutralWhite
-                          : AppColors.neutralGray700),
-              ),
-            const SizedBox(width: 4),
-            Text(
-              isFollowing ? 'Unfollow' : 'Follow',
-              style: TextStyle(
-                fontSize: widget.fontSize ?? 12,
-                color: isFollowing
-                    ? AppColors.primaryRed
-                    : (isDark
-                          ? AppColors.neutralWhite
-                          : AppColors.neutralGray700),
-                fontWeight: FontWeight.w500,
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -211,16 +171,8 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
     String currentUserName,
     bool currentFollowStatus,
   ) async {
-    // D2 HARD GATE (design scope v2): no client-side email-verification
-    // preflight. Every authenticated user has already proven a verified
-    // email before the exchange; the backend stays authoritative and its
-    // EMAIL_VERIFICATION_REQUIRED rejection is handled by the follows
-    // provider error path.
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
-    // Use follows module provider - error handling is done in Provider
     if (currentFollowStatus) {
       await ref
           .read(followProvider.notifier)
@@ -232,12 +184,8 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
     }
 
     if (!mounted) return;
+    setState(() => _isLoading = false);
 
-    setState(() {
-      _isLoading = false;
-    });
-
-    // Check if operation was successful by checking error state
     final followState = ref.read(followProvider);
     if (followState.error == null) {
       AppSnackBar.showSuccess(
@@ -245,7 +193,6 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
         currentFollowStatus ? 'Unfollowed user' : 'Started following user',
       );
     } else {
-      // Error is handled by Provider, show it here
       AppSnackBar.showError(
         context,
         followState.error ??

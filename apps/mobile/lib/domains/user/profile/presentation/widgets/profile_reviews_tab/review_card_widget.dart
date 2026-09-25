@@ -31,33 +31,11 @@ class ReviewCardWidget extends StatelessWidget {
             // Reviewer info
             Row(
               children: [
-                // Avatar with real image or initial fallback (author avatar)
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: AppColors.primaryRed.withValues(alpha: 0.1),
-                  backgroundImage: review['authorAvatar'] != null
-                      ? NetworkImage(review['authorAvatar'])
-                      : null,
-                  child: review['authorAvatar'] == null
-                      ? Text(
-                          review['authorName'].toString().isNotEmpty
-                              ? review['authorName']
-                                    .toString()
-                                    .substring(
-                                      0,
-                                      1.clamp(
-                                        0,
-                                        review['authorName'].toString().length,
-                                      ),
-                                    )
-                                    .toUpperCase()
-                              : 'U',
-                          style: const TextStyle(
-                            color: AppColors.primaryRed,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                      : null,
+                // Canonical avatar: user photo or user icon. No initials.
+                ProfileAvatar(
+                  userId: review['authorId']?.toString() ?? '',
+                  size: 40,
+                  imageUrl: review['authorAvatar']?.toString(),
                 ),
                 const SizedBox(width: 12),
 

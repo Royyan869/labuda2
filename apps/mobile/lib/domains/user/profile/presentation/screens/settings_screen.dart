@@ -35,6 +35,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     // Use centralized providers (TANGGUNG_JAWAB_MODUL compliance)
     final currentUser = ref.watch(authenticatedUserProvider);
     final sellerIdentityStatus = ref.watch(sellerIdentityStatusProvider);
+    final sellerCapabilityStatus = ref.watch(sellerCapabilityStatusProvider);
     final isSeller = sellerIdentityStatus == SellerIdentityStatus.seller;
 
     return Scaffold(
@@ -67,20 +68,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             // 👤 Profile & Identity Section
             SettingsProfileIdentitySection(onNavigate: _handleNavigation),
 
-            // 📢 Marketing & Promotion Section
-            if (currentUser != null)
+            // 📢 Marketing & Promotion Section — seller capability only (hasMarketAuthority)
+            if (currentUser != null &&
+                sellerCapabilityStatus == SellerCapabilityStatus.active)
               SettingsMarketingSection(
                 onNavigate: _handleNavigation,
                 userId: currentUser.id,
               ),
 
             // 🔒 Security & Privacy Section
-            SettingsSecurityPrivacySection(
-              onNavigate: _handleNavigation,
-            ),
+            SettingsSecurityPrivacySection(onNavigate: _handleNavigation),
 
             // 🔔 Notifications & Preferences Section
-            const SettingsAppPreferencesSection(),
+            SettingsAppPreferencesSection(onNavigate: _handleNavigation),
 
             // ========================================
             // FOOTER
@@ -136,10 +136,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       case 'myReports':
         _navigateToMyReports(context);
         break;
-      // Coins feature removed for BI compliance - no longer available
-      // case 'coins':
-      //   _navigateToCoins(context);
-      //   break;
       case 'about':
         _showAboutDialog(context, l10n);
         break;
@@ -376,7 +372,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Pengiriman',
+                        'Shipping',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -387,7 +383,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Atur opsi & tarif pengiriman untuk produk Anda',
+                        'Manage shipping options & rates for your products',
                         style: TextStyle(
                           fontSize: 12,
                           color: AppColors.neutralGray600,

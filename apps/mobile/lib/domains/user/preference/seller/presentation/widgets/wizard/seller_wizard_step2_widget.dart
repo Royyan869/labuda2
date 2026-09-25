@@ -9,7 +9,6 @@ import 'package:labuda/shared/shared.dart';
 /// Step 2: Store Information Widget
 ///
 /// Collects the seller's store/farm name plus an optional logo/photo.
-/// Canonical description fields live in the account step via AuthUser.bio.
 class SellerWizardStep2Widget extends StatelessWidget {
   final GlobalKey<FormState> formKey;
   final TextEditingController farmNameController;

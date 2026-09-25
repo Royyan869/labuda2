@@ -62,7 +62,7 @@ class ContentRepositoryImpl implements ContentRepository {
         settings: settings,
         location: location,
         engagement: const ContentEngagement(),
-        
+
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -98,11 +98,8 @@ class ContentRepositoryImpl implements ContentRepository {
   Future<ContentRepositoryResult<List<Content>>> getContentsByAuthor(
     String authorId, {
     int? limit,
-    int? offset,
   }) async {
     try {
-      // Delegates to cursor-paginated datasource; offset is not forwarded
-      // (no backend support). Always fetches the first page.
       final page = await _datasource.getUserContents(
         authorId,
         limit: limit ?? 20,

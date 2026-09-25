@@ -66,6 +66,7 @@ class FeedItem {
   final String authorId;
   final String? authorUsername;
   final String? authorAvatarUrl;
+  final String? visibility;
   final FeedItemType type;
   final DateTime createdAt;
 
@@ -103,6 +104,7 @@ class FeedItem {
     required this.authorId,
     this.authorUsername,
     this.authorAvatarUrl,
+    this.visibility,
     required this.type,
     required this.createdAt,
     this.media = const [],
@@ -128,6 +130,7 @@ class FeedItem {
     String? authorId,
     String? authorUsername,
     String? authorAvatarUrl,
+    String? visibility,
     FeedItemType? type,
     DateTime? createdAt,
     List<MediaEntity>? media,
@@ -142,6 +145,7 @@ class FeedItem {
       authorId: authorId ?? this.authorId,
       authorUsername: authorUsername ?? this.authorUsername,
       authorAvatarUrl: authorAvatarUrl ?? this.authorAvatarUrl,
+      visibility: visibility ?? this.visibility,
       type: type ?? this.type,
       createdAt: createdAt ?? this.createdAt,
       media: media ?? this.media,

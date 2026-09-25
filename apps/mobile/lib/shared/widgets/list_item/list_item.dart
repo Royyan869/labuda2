@@ -8,6 +8,5 @@
 library;
 
 export 'list_item_types.dart';
-export 'list_item_leading.dart';
 export 'list_item_trailing.dart';
 export 'list_item_decorations.dart';

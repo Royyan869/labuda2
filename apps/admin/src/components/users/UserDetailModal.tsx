@@ -24,6 +24,7 @@ import { Modal, ModalFooter } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Avatar } from '@/components/ui/Avatar'
 import { useUserDetail, useUserActions } from '@/hooks/useUsers'
 import { formatDate, formatRupiah } from '@/lib/utils'
 import { hasCapability } from '@/lib/permissions'
@@ -613,17 +614,12 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-start gap-4">
-                    {displayData.photo_url ? (
-                      <img
-                        src={displayData.photo_url}
-                        alt=""
-                        className="w-16 h-16 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
-                        <User className="h-8 w-8 text-gray-500" />
-                      </div>
-                    )}
+                    <Avatar
+                      src={displayData.photo_url}
+                      userId={displayData.id}
+                      name={primaryIdentity}
+                      size="lg"
+                    />
                     <div className="flex-1 space-y-3">
                       <div>
                         <p className="font-medium text-lg">{primaryIdentity}</p>

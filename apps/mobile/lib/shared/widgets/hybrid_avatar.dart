@@ -23,7 +23,6 @@ class HybridAvatar extends ConsumerWidget {
   final String?
   savedAvatarUrl; // dari post.authorAvatarUrl atau request.userAvatarUrl
   final double size;
-  final String? initials;
   final VoidCallback? onTap;
   final bool showOnlineStatus;
 
@@ -32,7 +31,6 @@ class HybridAvatar extends ConsumerWidget {
     required this.userId,
     this.savedAvatarUrl,
     this.size = 36,
-    this.initials,
     this.onTap,
     this.showOnlineStatus = false,
   });
@@ -41,14 +39,12 @@ class HybridAvatar extends ConsumerWidget {
   factory HybridAvatar.postHeader({
     required String userId,
     String? savedAvatarUrl,
-    String? initials,
     VoidCallback? onTap,
   }) {
     return HybridAvatar(
       userId: userId,
       savedAvatarUrl: savedAvatarUrl,
       size: 36,
-      initials: initials,
       onTap: onTap,
     );
   }
@@ -57,14 +53,12 @@ class HybridAvatar extends ConsumerWidget {
   factory HybridAvatar.medium({
     required String userId,
     String? savedAvatarUrl,
-    String? initials,
     VoidCallback? onTap,
   }) {
     return HybridAvatar(
       userId: userId,
       savedAvatarUrl: savedAvatarUrl,
       size: 40,
-      initials: initials,
       onTap: onTap,
     );
   }
@@ -98,7 +92,7 @@ class HybridAvatar extends ConsumerWidget {
         // Priority logic:
         // 1. Fresh avatar dari API (jika ada dan berbeda)
         // 2. Fallback avatar (current user atau saved)
-        // 3. Null (akan fallback ke initials)
+        // 3. Null (renders the user icon - no initials exist)
 
         String? finalAvatarUrl;
 
@@ -116,7 +110,6 @@ class HybridAvatar extends ConsumerWidget {
           userId: userId,
           size: size,
           imageUrl: finalAvatarUrl,
-          initials: initials,
           onTap: onTap,
         );
 

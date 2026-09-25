@@ -30,7 +30,7 @@ extension FeedItemMapper on FeedItemDto {
   /// QUALITY PASS NOTES:
   /// - Canonical resourceProjection and repost attribution are preserved
   /// - Status is passed through for lifecycle display
-  /// - Engagement counts are 0 (backend doesn't provide them)
+  /// - C7C: Engagement is live from backend (same authority as detail)
   /// - Media is properly mapped from FeedMediaDto to MediaEntity
   FeedItem toFeedItem() {
     // Map backend type to FeedItemType
@@ -48,6 +48,7 @@ extension FeedItemMapper on FeedItemDto {
       authorId: authorId,
       authorUsername: authorUsername,
       authorAvatarUrl: authorAvatar,
+      visibility: visibility,
       type: feedType,
       createdAt: createdAt,
       // MEDIA INTEGRATION: Use mapped MediaEntity list from backend
@@ -71,6 +72,9 @@ extension FeedItemMapper on FeedItemDto {
         'isRepost': isRepost,
         'originalAuthorId': originalAuthorId,
         'resourceProjection': resourceProjection,
+        // C7C — canonical engagement (same authority as detail)
+        'likeCount': likeCount,
+        'commentCount': commentCount,
       },
     );
   }

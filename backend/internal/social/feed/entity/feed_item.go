@@ -87,6 +87,9 @@ type FeedItem struct {
 	// public emission. No other surface is wired through this seam yet.
 	AuthorLifecycle string
 
+	// Visibility — canonical contents.visibility for owner-only badge (public/followers_only/private)
+	Visibility string `json:"visibility"`
+
 	// SHARE CONTRACT V1: Repost attribution fields
 	// If non-nil, this item is a repost/shares of another content
 	OriginalAuthorID *uuid.UUID

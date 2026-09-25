@@ -30,6 +30,7 @@ abstract class CommentRepository {
     required String content,
     String? parentId,
     List<String> mentionedUserIds = const [],
+    List<String> mediaUrls = const [],
   });
 
   /// Create a commerce reference comment.
@@ -46,6 +47,12 @@ abstract class CommentRepository {
 
   /// Delete a comment (soft delete)
   Future<Result<bool>> deleteComment(String commentId);
+
+  /// Update a comment body (author only)
+  Future<Result<Comment>> updateComment({
+    required String commentId,
+    required String body,
+  });
 
   /// Validate comment content (anti-circumvention, length check)
   Future<Result<bool>> validateContent(String content);

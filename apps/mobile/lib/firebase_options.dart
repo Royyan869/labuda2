@@ -18,15 +18,6 @@ class DefaultFirebaseOptions {
         return android;
       case TargetPlatform.iOS:
         return ios;
-      case TargetPlatform.macOS:
-        return macos;
-      case TargetPlatform.windows:
-        return windows;
-      case TargetPlatform.linux:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for linux - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
       default:
         throw UnsupportedError(
           'DefaultFirebaseOptions are not supported for this platform.',
@@ -52,29 +43,12 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyADSSTsciRZw7DvCR_2QUoz3FB82GnCKeA',
-    appId: '1:883544146901:ios:9d14717d7f9e5a5cfaf35c',
+    apiKey: 'AIzaSyCzMgnWF-YnyYxF1_Ha3THszw8DJ7h7Yik',
+    appId: '1:883544146901:ios:33b4631274b2eb26faf35c',
     messagingSenderId: '883544146901',
     projectId: 'labuda-79de2',
     storageBucket: 'labuda-79de2.firebasestorage.app',
-    iosBundleId: 'com.labuda.app',
+    iosBundleId: 'com.labuda.app.labuda',
   );
 
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyADSSTsciRZw7DvCR_2QUoz3FB82GnCKeA',
-    appId: '1:883544146901:ios:9d14717d7f9e5a5cfaf35c',
-    messagingSenderId: '883544146901',
-    projectId: 'labuda-79de2',
-    storageBucket: 'labuda-79de2.firebasestorage.app',
-    iosBundleId: 'com.labuda.app',
-  );
-
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyADSSTsciRZw7DvCR_2QUoz3FB82GnCKeA',
-    appId: '1:883544146901:web:9d14717d7f9e5a5cfaf35c',
-    messagingSenderId: '883544146901',
-    projectId: 'labuda-79de2',
-    authDomain: 'labuda-79de2.firebaseapp.com',
-    storageBucket: 'labuda-79de2.firebasestorage.app',
-  );
 }

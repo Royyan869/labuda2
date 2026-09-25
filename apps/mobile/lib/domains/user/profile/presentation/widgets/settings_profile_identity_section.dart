@@ -38,8 +38,8 @@ class SettingsProfileIdentitySection extends StatelessWidget {
         ),
         _buildSettingsTile(
           icon: Icons.location_on_outlined,
-          title: 'Address & Contact',
-          subtitle: 'Manage shipping addresses',
+          title: 'Addresses',
+          subtitle: 'Manage your addresses',
           onTap: () => onNavigate('address'),
           isDark: isDark,
         ),
