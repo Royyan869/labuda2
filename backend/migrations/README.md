@@ -45,7 +45,7 @@ the authoritative schema for a clean Labuda installation.
 
 ## Adding new migrations
 
-New migrations start at `000012`. Use `NNNNNN_description.{up,down}.sql` naming.
+New migrations start at `000113`. Use `NNNNNN_description.{up,down}.sql` naming.
 Both `.up.sql` and `.down.sql` files are required.
 
 ## Legacy history

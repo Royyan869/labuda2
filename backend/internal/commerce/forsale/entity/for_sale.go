@@ -20,8 +20,9 @@ import (
 // MediaURLs/Variety/SizeCM/AgeMonths/Gender/Breeder/Bloodline/Certificates/
 // FarmAddressID/PreparationTime/PreparationNote mirrors were competing truth —
 // every consumer now reads the canonical Product. ForSaleType (single-valued
-// "fixed_price") was also removed: the concept carried no information and the
-// for_sale_type column is no longer read.
+// "fixed_price") was also removed: the concept carried no information. The
+// for_sale_type column itself is DROPPED (migration 000112) — do not
+// reintroduce either the concept or the column.
 type ForSale struct {
 	ID        uuid.UUID
 	ProductID uuid.UUID
