@@ -17,7 +17,7 @@ func auctionToDetailResponseWithSeller(
 	product *productEntity.Product,
 	viewerID *uuid.UUID,
 ) map[string]interface{} {
-	resp := auctionToResponseWithSeller(a, product, sellerInfo)
+	resp := auctionToResponseWithSeller(a, product, sellerInfo, viewerID)
 	sellerTrustActive := seller.Lifecycle != nil && *seller.Lifecycle == "active"
 	resp["viewer_capabilities"] = commerceshared.EvaluateAuctionViewerCapabilities(
 		commerceshared.AuctionViewerCapabilitiesInput{

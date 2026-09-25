@@ -327,7 +327,7 @@ func (h *AuctionHandler) CreateAuction(c *gin.Context) {
 		return
 	}
 
-	response.Created(c, auctionToResponse(auction, product))
+	response.Created(c, auctionToResponse(auction, product, sellerID))
 }
 
 // isAuctionTimingValidationError reports whether err is one of the
@@ -567,7 +567,7 @@ func (h *AuctionHandler) UpdateAuction(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, auctionToResponse(updatedAuction, updatedAuction.Product))
+	response.Success(c, auctionToResponse(updatedAuction, updatedAuction.Product, callerID))
 }
 
 // ScheduleAuction handles POST /api/v1/auctions/:id/schedule
@@ -1097,10 +1097,18 @@ func (h *AuctionHandler) ListAuctions(c *gin.Context) {
 		return
 	}
 
-	// Convert to response — Product is joined and attached to each auction
+	// Convert to response — Product is joined and attached to each auction.
+	// Scope 3 — raw internal status is owner-only: when the listing is the
+	// viewer's own seller workspace, rows carry `seller_status` with the exact
+	// state-machine value; public rows carry the coarsened public phase in
+	// `status` and null `seller_status`.
+	var ownerID *uuid.UUID
+	if filter.SellerID != nil && viewerID != uuid.Nil && *filter.SellerID == viewerID {
+		ownerID = &viewerID
+	}
 	data := make([]map[string]interface{}, len(result.Auctions))
 	for i, auction := range result.Auctions {
-		data[i] = auctionToResponseWithSeller(auction, auction.Product, sellerInfoByID[auction.SellerID])
+		data[i] = auctionToResponseWithSeller(auction, auction.Product, sellerInfoByID[auction.SellerID], ownerID)
 	}
 
 	response.Success(c, gin.H{
@@ -1165,6 +1173,14 @@ func (h *AuctionHandler) GetAuction(c *gin.Context) {
 			zap.String("auction_id", auctionID.String()),
 			zap.Error(err),
 		)
+		response.NotFound(c, "Auction not found")
+		return
+	}
+
+	// Scope 3 — draft is a private workspace state: 404 non-owners at the
+	// read boundary (parity with the for_sale private-visibility guard). The
+	// owner proceeds to the full detail projection with raw `seller_status`.
+	if auction.Status == entity.StatusDraft && auction.SellerID != viewerID {
 		response.NotFound(c, "Auction not found")
 		return
 	}
@@ -1324,12 +1340,24 @@ func buildAuctionSellerCard(
 	return &card
 }
 
+// sellerStatusForViewer returns the exact internal auction status only for
+// the owning seller; every other viewer gets null. The raw state-machine
+// value never crosses the public boundary (Scope 3).
+func sellerStatusForViewer(a *entity.Auction, viewerID *uuid.UUID) *string {
+	if viewerID == nil || *viewerID == uuid.Nil || *viewerID != a.SellerID {
+		return nil
+	}
+	s := string(a.Status)
+	return &s
+}
+
 // auctionToResponse converts an auction entity to API response.
 // Used for create/update/cancel responses. Caller is responsible for
 // passing the associated Product entity so title/description/media are
-// included in the response.
-func auctionToResponse(a *entity.Auction, product *productEntity.Product) map[string]interface{} {
-	return auctionToResponseWithSeller(a, product, sellerdisplay.Info{})
+// included in the response. These are owner-only write surfaces, so the
+// response carries the exact internal state as `seller_status`.
+func auctionToResponse(a *entity.Auction, product *productEntity.Product, ownerID uuid.UUID) map[string]interface{} {
+	return auctionToResponseWithSeller(a, product, sellerdisplay.Info{}, &ownerID)
 }
 
 // auctionToResponseWithSeller renders auction JSON with seller display
@@ -1341,10 +1369,17 @@ func auctionToResponse(a *entity.Auction, product *productEntity.Product) map[st
 //
 // Product content (title, description, media) is read from the Product
 // entity — the auction entity no longer carries duplicate content fields.
+//
+// Scope 3 — status boundary: `status` carries the coarsened public phase
+// vocabulary ({scheduled, active, waiting_settlement, ended, cancelled};
+// draft is never emitted). The exact internal state crosses the wire ONLY
+// via `seller_status`, and only when viewerID is the owning seller — for
+// every other viewer it is null. Anonymous callers pass nil.
 func auctionToResponseWithSeller(
 	a *entity.Auction,
 	product *productEntity.Product,
 	seller sellerdisplay.Info,
+	viewerID *uuid.UUID,
 ) map[string]interface{} {
 	auctionSellerCard := buildAuctionSellerCard(a, seller)
 
@@ -1390,8 +1425,9 @@ func auctionToResponseWithSeller(
 			}
 			return nil
 		}(),
-		"status":            string(a.Status),
+		"status":            a.Status.PublicPhase(),
 		"lifecycle":         a.Status.PublicLifecycle(),
+		"seller_status":     sellerStatusForViewer(a, viewerID),
 		"created_at":        a.CreatedAt.Format(time.RFC3339),
 		"updated_at":        a.UpdatedAt.Format(time.RFC3339),
 		"seller_username":   seller.Username,

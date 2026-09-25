@@ -77,7 +77,7 @@ func TestBrowseAuction_ActiveSeller_Visible(t *testing.T) {
 		SubscriptionStatus: "active",
 	}
 
-	resp := auctionToResponseWithSeller(auction, nil, seller)
+	resp := auctionToResponseWithSeller(auction, nil, seller, nil)
 	wire := marshalRoundtrip(t, resp)
 
 	// Verify seller identity fields populated
@@ -118,7 +118,7 @@ func TestBrowseAuction_SuspendedSeller_LifecycleUnavailable(t *testing.T) {
 		SubscriptionStatus: "active",
 	}
 
-	resp := auctionToResponseWithSeller(auction, nil, seller)
+	resp := auctionToResponseWithSeller(auction, nil, seller, nil)
 	wire := marshalRoundtrip(t, resp)
 
 	sellerCard := extractSellerCard(t, wire)
@@ -141,7 +141,7 @@ func TestBrowseAuction_BannedSeller_LifecycleUnavailable(t *testing.T) {
 		SubscriptionStatus: "active",
 	}
 
-	resp := auctionToResponseWithSeller(auction, nil, seller)
+	resp := auctionToResponseWithSeller(auction, nil, seller, nil)
 	wire := marshalRoundtrip(t, resp)
 
 	sellerCard := extractSellerCard(t, wire)
@@ -164,7 +164,7 @@ func TestBrowseAuction_RemovedSeller_LifecycleRemoved(t *testing.T) {
 		SubscriptionStatus: "active",
 	}
 
-	resp := auctionToResponseWithSeller(auction, nil, seller)
+	resp := auctionToResponseWithSeller(auction, nil, seller, nil)
 	wire := marshalRoundtrip(t, resp)
 
 	sellerCard := extractSellerCard(t, wire)
@@ -187,7 +187,7 @@ func TestBrowseAuction_ExpiredSeller_TrustLifecycleUnavailable(t *testing.T) {
 		SubscriptionStatus: "expired",
 	}
 
-	resp := auctionToResponseWithSeller(auction, nil, seller)
+	resp := auctionToResponseWithSeller(auction, nil, seller, nil)
 	wire := marshalRoundtrip(t, resp)
 
 	sellerCard := extractSellerCard(t, wire)
@@ -212,7 +212,7 @@ func TestBrowseAuction_EmptySeller_FailOpen(t *testing.T) {
 	auction := newBrowseAuction(t)
 	seller := sellerdisplay.Info{} // Zero value — simulates fetch miss
 
-	resp := auctionToResponseWithSeller(auction, nil, seller)
+	resp := auctionToResponseWithSeller(auction, nil, seller, nil)
 	wire := marshalRoundtrip(t, resp)
 
 	sellerCard := extractSellerCard(t, wire)

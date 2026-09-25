@@ -147,6 +147,37 @@ func (s Status) PublicLifecycle() string {
 	}
 }
 
+// PublicPhase returns the public PHASE vocabulary for this auction status.
+//
+// The vocabulary is closed: {scheduled, active, waiting_settlement, ended,
+// cancelled}. Unlike PublicLifecycle (2-value coarse card vocabulary), the
+// phase keeps the marketplace timing granularity the public UI needs
+// (countdown on scheduled, live bidding on active, winner settlement
+// window, terminal states).
+//
+// DRAFT IS NOT PART OF THE PUBLIC VOCABULARY. A draft is a private
+// workspace item: list SQL excludes it, detail 404s non-owners, search
+// excludes it. The defensive mapping below is deliberately conservative —
+// if a draft ever leaks through a bug it renders as cancelled (dead),
+// never as bid-able or upcoming. Owner surfaces must read the separate
+// owner-only `seller_status` wire field for the exact internal state.
+func (s Status) PublicPhase() string {
+	switch s {
+	case StatusScheduled:
+		return "scheduled"
+	case StatusActive:
+		return "active"
+	case StatusWaitingSettlement:
+		return "waiting_settlement"
+	case StatusEnded:
+		return "ended"
+	case StatusCancelled:
+		return "cancelled"
+	default: // StatusDraft and unknown — conservative defensive mapping
+		return "cancelled"
+	}
+}
+
 // String returns the string representation of the auction status.
 func (s Status) String() string {
 	return string(s)

@@ -221,7 +221,7 @@ func (searchProjectionAdapter) auctionPreviewsToResponse(
 			"buy_now_price":     a.BuyNowPrice,
 			"start_at":          a.StartAt.Format(time.RFC3339),
 			"end_at":            a.EndAt.Format(time.RFC3339),
-			"status":            a.Status,
+			"status":            auctionentity.Status(a.Status).PublicPhase(),
 			"thumbnail_url":     a.ThumbnailURL,
 			"bid_count":         a.BidCount,
 			"created_at":        a.CreatedAt.Format(time.RFC3339),

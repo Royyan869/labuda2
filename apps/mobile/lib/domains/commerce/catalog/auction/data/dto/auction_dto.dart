@@ -347,7 +347,15 @@ class AuctionDto extends Equatable {
   final String? currentWinnerId;
   final DateTime startTime;
   final DateTime endTime;
+  /// Public phase vocabulary from the backend (Status.PublicPhase()):
+  /// {scheduled, active, waiting_settlement, ended, cancelled}. Raw draft
+  /// never crosses the public boundary — owner workspaces read `seller_status`.
   final String status;
+  /// Exact internal state-machine value — owner-only wire slot. Backend emits
+  /// it ONLY when the viewer is the owning seller; null for every other
+  /// viewer (anonymous included). Mapper prefers this over [status] when
+  /// present so seller workspace logic keeps state-machine precision.
+  final String? sellerStatus;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -421,6 +429,7 @@ class AuctionDto extends Equatable {
     required this.startTime,
     required this.endTime,
     required this.status,
+    this.sellerStatus,
     required this.createdAt,
     required this.updatedAt,
     // Stage 2 identity parse-only fields
@@ -493,6 +502,7 @@ class AuctionDto extends Equatable {
       startTime: DateTime.parse(startAtRaw as String),
       endTime: DateTime.parse(endAtRaw as String),
       status: json['status'] as String,
+      sellerStatus: json['seller_status'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
       // Stage 2 identity parse-only fields. Tolerate old payload (null) and
@@ -520,7 +530,15 @@ class AuctionDto extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, sellerId, title, status, images, mediaItems];
+  List<Object?> get props => [
+    id,
+    sellerId,
+    title,
+    status,
+    sellerStatus,
+    images,
+    mediaItems,
+  ];
 }
 
 /// E8.2 — Extract the embedded seller user-identity lifecycle string from

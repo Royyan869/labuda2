@@ -114,7 +114,11 @@ class AuctionMapper {
       preparationNote: dto.preparationNote,
       startTime: dto.startTime,
       endTime: dto.endTime,
-      status: parseAuctionStatus(dto.status),
+      // Owner axis first: `seller_status` carries the exact internal state
+      // (owner-only wire slot); public viewers (null seller_status) resolve
+      // through the coarsened public phase vocabulary. Both feed the same
+      // canonical parse — unknown values fall back conservatively.
+      status: parseAuctionStatus(dto.sellerStatus ?? dto.status),
       // Canonical winner authority is current_winner_id only — phantom winner
       // object purged.
       winnerId: dto.currentWinnerId,
