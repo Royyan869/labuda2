@@ -329,14 +329,21 @@ class ForSaleListResponseDto extends Equatable {
   });
 
   factory ForSaleListResponseDto.fromJson(Map<String, dynamic> json) {
-    final forSalesData = json['for_sales'] as List<dynamic>? ?? [];
+    // Unified: handles {"for_sales": [...]} (canonical) and {"data": [...]} / {"auctions": [...]} (auction parity)
+    final raw = json['for_sales'] ?? json['data'] ?? json['auctions'];
+    final forSalesData = raw is List ? raw : <dynamic>[];
+    // Handle nested envelope {"data": [...]} inside apiResponse.data
+    final list = forSalesData.isNotEmpty
+        ? forSalesData
+        : (json['data'] is List ? json['data'] as List<dynamic> : <dynamic>[]);
+    final effective = forSalesData.isNotEmpty ? forSalesData : list;
     return ForSaleListResponseDto(
-      forSales: forSalesData
+      forSales: effective
           .map((e) => ForSaleResponseDto.fromJson(e as Map<String, dynamic>))
           .toList(),
       page: json['page'] as int? ?? 1,
       limit: json['limit'] as int? ?? 20,
-      total: json['total'] as int? ?? forSalesData.length,
+      total: json['total'] as int? ?? (json['has_more'] != null ? effective.length : effective.length),
     );
   }
 
