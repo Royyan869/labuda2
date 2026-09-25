@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_bid.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:labuda/shared/widgets/profile_avatar.dart';
 
 /// Bid history widget for auction detail
 class AuctionBidHistory extends StatelessWidget {
@@ -51,11 +52,13 @@ class AuctionBidHistory extends StatelessWidget {
                           : null);
                 return ListTile(
                   dense: true,
-                  leading: CircleAvatar(
-                    radius: 16,
-                    child: hasName
-                        ? Text(bid.bidderUsername[0].toUpperCase())
-                        : const Icon(Icons.person, size: 16),
+                  leading: ProfileAvatar(
+                    userId: bid.bidderId,
+                    size: 32,
+                    imageUrl:
+                        (hasName && bid.bidderAvatarUrl != null)
+                            ? bid.bidderAvatarUrl
+                            : null,
                   ),
                   title: displayName != null
                       ? Text(

@@ -323,7 +323,6 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
     DateTime? scheduledStartAt,
     required int durationHours,
     String? farmAddressId,
-    AuctionLocation? location,
     required List<String> shippingSetupIds,
     String? preparationNote,
   }) async {
@@ -346,7 +345,6 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
       scheduledStartAt: scheduledStartAt,
       durationHours: durationHours,
       farmAddressId: farmAddressId,
-      location: location,
       shippingSetupIds: shippingSetupIds,
       preparationNote: preparationNote,
     );
@@ -367,6 +365,17 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
       successMessage: 'Lelang berhasil dibuat',
       selectedAuction: result.data,
     );
+    // Invalidate discovery lists (one engine — Future) so marketplace/showcase reflect new auction immediately.
+    try {
+      ref.invalidate(marketplaceAuctionsProvider);
+      ref.invalidate(sellerAuctionsProvider(sellerId));
+      // ignore: unused_result
+      ref.invalidate(myAuctionsProvider((sellerId: sellerId, status: null)));
+      // Keep legacy Stream wrappers in sync for tests
+      ref.invalidate(marketplaceAuctionsStreamProvider);
+      ref.invalidate(userAuctionsStreamProvider(sellerId));
+      ref.invalidate(myAuctionsStreamProvider((sellerId: sellerId, status: null)));
+    } catch (_) {}
     return true;
   }
 
@@ -452,50 +461,71 @@ final auctionNotifierProvider =
       AuctionNotifier.new,
     );
 
-// ========== Stream Providers (for UI) ==========
+// ========== Unified Discovery Providers (ONE ENGINE — FutureProvider, like ForSale) ==========
+// Business truth: marketplace/showcase list is discovery (scheduled+active), not live.
+// Live is detail/bids only. Using FutureProvider + pull-to-refresh + invalidate
+// mirrors forSalesProvider and removes Timer/StreamController complexity.
 
-/// Stream provider for active auctions (marketplace tab)
-final marketplaceAuctionsStreamProvider = StreamProvider<List<Auction>>((ref) {
+/// Marketplace auctions — canonical discovery (scheduled+active, like ForSale active).
+/// Replaces polling StreamProvider; immediate fetch, no Timer.
+final marketplaceAuctionsProvider =
+    FutureProvider.autoDispose<List<Auction>>((ref) async {
   final repository = ref.watch(auctionRepositoryProvider);
-
-  return repository.watchActiveAuctions(limit: 50).map((auctions) {
+  final result = await repository.getActiveAuctions(limit: 50);
+  return result.fold((auctions) {
     final now = DateTime.now();
-
-    // Filter out auctions that have ended
-    final filtered = auctions
-        .where((auction) => auction.endTime.isAfter(now))
-        .toList();
-
-    // Sort by endTime (ending soon first)
+    final cutoff = now.subtract(const Duration(minutes: 5));
+    final filtered = auctions.where((a) => a.endTime.isAfter(cutoff)).toList();
     filtered.sort((a, b) => a.endTime.compareTo(b.endTime));
-
     return filtered;
-  });
+  }, (e) => throw Exception(e));
 });
 
-/// Stream provider for user auctions (seller dashboard)
+/// Seller showcase auctions — mirrors sellerForSalesProvider (Future, not Stream).
+/// Limit 50 = backend max (auction max 50, for-sale 100). 100 was 400.
+final sellerAuctionsProvider =
+    FutureProvider.autoDispose.family<List<Auction>, String>((ref, sellerId) async {
+  final repository = ref.watch(auctionRepositoryProvider);
+  final result = await repository.getUserAuctions(sellerId: sellerId, limit: 50);
+  return result.fold((a) => a, (e) => throw Exception(e));
+});
+
+/// Seller auctions with status filter (dashboard) — Future, not Stream.
+final myAuctionsProvider = FutureProvider.autoDispose
+    .family<List<Auction>, ({String sellerId, AuctionStatus? status})>(
+        (ref, params) async {
+  final repository = ref.watch(auctionRepositoryProvider);
+  final result = await repository.getUserAuctions(
+    sellerId: params.sellerId,
+    status: params.status,
+    limit: 50,
+  );
+  return result.fold((a) => a, (e) => throw Exception(e));
+});
+
+// ========== Legacy Stream Providers (kept for test compat, delegate to Future — no polling) ==========
+@Deprecated('Use marketplaceAuctionsProvider (Future) — one engine with ForSale')
+final marketplaceAuctionsStreamProvider = StreamProvider<List<Auction>>((ref) {
+  final future = ref.watch(marketplaceAuctionsProvider.future);
+  return Stream.fromFuture(future);
+});
+
+@Deprecated('Use sellerAuctionsProvider (Future) — one engine with ForSale')
 final userAuctionsStreamProvider = StreamProvider.family<List<Auction>, String>(
   (ref, sellerId) {
-    final repository = ref.watch(auctionRepositoryProvider);
-
-    return repository.watchUserAuctions(sellerId: sellerId, limit: 100);
+    final future = ref.watch(sellerAuctionsProvider(sellerId).future);
+    return Stream.fromFuture(future);
   },
 );
 
-/// Stream provider for user auctions with status filter
-/// Requires sellerId to be provided via a separate provider
+@Deprecated('Use myAuctionsProvider (Future)')
 final myAuctionsStreamProvider =
     StreamProvider.family<
       List<Auction>,
       ({String sellerId, AuctionStatus? status})
     >((ref, params) {
-      final repository = ref.watch(auctionRepositoryProvider);
-
-      return repository.watchUserAuctions(
-        sellerId: params.sellerId,
-        status: params.status,
-        limit: 100,
-      );
+      final future = ref.watch(myAuctionsProvider(params).future);
+      return Stream.fromFuture(future);
     });
 
 /// Stream provider for auction detail (real-time updates)

@@ -46,11 +46,12 @@ class AuctionDetailBottomBar extends StatelessWidget {
   }
 
   /// Check if auction is in a terminal state (no actions available)
-  /// BOUNDARY NORMALIZATION (PHASE 1D): Status-based check only
+  /// BOUNDARY NORMALIZATION (PHASE 1D): Status-based check only.
+  /// expired_bnr is not a backend state (purged) — settlement failure
+  /// returns the auction to draft.
   bool get _isTerminalState {
     return auction.status == AuctionStatus.cancelled ||
-        auction.status == AuctionStatus.ended ||
-        auction.status == AuctionStatus.expiredBNR;
+        auction.status == AuctionStatus.ended;
   }
 
   /// Expired-seller visibility — true when the auction's seller has lapsed
@@ -103,14 +104,6 @@ class AuctionDetailBottomBar extends StatelessWidget {
     // Scheduled auction
     if (auction.status == AuctionStatus.scheduled) {
       return 'Terjadwal';
-    }
-
-    // Expired BNR - winner didn't complete purchase
-    if (auction.status == AuctionStatus.expiredBNR) {
-      if (_isUserWinner) {
-        return 'Waktu Habis';
-      }
-      return 'Pembayaran Habis';
     }
 
     // Ended auction - differentiate between sold and expired

@@ -148,33 +148,23 @@ class AuctionCountdownTimer extends StatelessWidget {
     if (auction.status == AuctionStatus.waitingSettlement) {
       // Only show if current user is the winner
       if (currentUserId != null && auction.isUserWinner(currentUserId!)) {
+        // Canonical deadline derivation: end_at + 24h (backend
+        // Auction.SettlementDeadline()). Non-null by definition.
         final deadline = auction.settlementDeadline;
-        if (deadline != null) {
-          // TRANSACTION CLARITY: Show countdown to settlement deadline
-          final currentTime = DateTime.now();
-          final timeRemaining = deadline.difference(currentTime);
-          final hoursRemaining = timeRemaining.inHours;
 
-          // Format: "Harus diselesaikan dalam X jam" or "X jam Y menit"
-          final timeRemainingText = hoursRemaining > 0
-              ? '$hoursRemaining jam'
-              : '${timeRemaining.inMinutes.remainder(60)} menit';
+        // TRANSACTION CLARITY: Show countdown to settlement deadline
+        final currentTime = DateTime.now();
+        final timeRemaining = deadline.difference(currentTime);
+        final hoursRemaining = timeRemaining.inHours;
 
-          return _TimerDisplay(
-            label: '🏆 Anda Menang!',
-            subtitle: 'Harus diselesaikan dalam $timeRemainingText',
-            icon: Icons.emoji_events,
-            iconColor: Colors.orange,
-            textColor: Colors.orange,
-            backgroundColor: Colors.orange.shade50,
-            fontWeight: FontWeight.bold,
-          );
-        }
+        // Format: "Harus diselesaikan dalam X jam" or "X jam Y menit"
+        final timeRemainingText = hoursRemaining > 0
+            ? '$hoursRemaining jam'
+            : '${timeRemaining.inMinutes.remainder(60)} menit';
 
-        // Fallback if no deadline
         return _TimerDisplay(
           label: '🏆 Anda Menang!',
-          subtitle: 'Selesaikan pembayaran segera',
+          subtitle: 'Harus diselesaikan dalam $timeRemainingText',
           icon: Icons.emoji_events,
           iconColor: Colors.orange,
           textColor: Colors.orange,
@@ -195,34 +185,8 @@ class AuctionCountdownTimer extends StatelessWidget {
       );
     }
 
-    // Expired BNR - winner did not complete purchase on time
-    // STEP 5: EXPIRED BNR SCREEN - Enhanced warning message
-    if (auction.status == AuctionStatus.expiredBNR) {
-      // Show to the expired winner
-      if (currentUserId != null && auction.winnerId == currentUserId) {
-        return _TimerDisplay(
-          label: '⏰ Waktu Habis',
-          subtitle:
-              'Anda tidak menyelesaikan pembelian tepat waktu.\nItem telah dilepas dan dapat memengaruhi kepercayaan akun Anda.',
-          icon: Icons.error_outline,
-          iconColor: Colors.red,
-          textColor: Colors.red,
-          backgroundColor: Colors.red.shade50,
-          fontWeight: FontWeight.w500,
-        );
-      }
-
-      // General view for others
-      return _TimerDisplay(
-        label: 'Waktu Pembayaran Habis',
-        subtitle: 'Pemenang tidak menyelesaikan pembayaran tepat waktu',
-        icon: Icons.info,
-        iconColor: Colors.grey.shade600,
-        textColor: Colors.grey.shade700,
-        backgroundColor: Colors.grey.shade200,
-        fontWeight: FontWeight.w500,
-      );
-    }
+    // PURGED: expired_bnr branch — never a backend state. Settlement failure
+    // returns the auction to draft (TransitionToDraftOnSettlementFailure).
 
     // Ended auction - check for winner status
     // BOUNDARY NORMALIZATION: Status-based check only, not time-based

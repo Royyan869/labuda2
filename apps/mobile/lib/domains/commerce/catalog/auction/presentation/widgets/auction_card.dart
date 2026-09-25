@@ -68,6 +68,11 @@ class AuctionCard extends StatelessWidget {
                   const SizedBox(height: 8),
 
                   // Price row
+                  //
+                  // PURGED: "X bid" badge — the auction wire never emitted
+                  // total_bids, so the counter was always-zero fake truth.
+                  // Owner decision (2026-09-25): remove until the backend
+                  // emits a canonical bid-count field.
                   Row(
                     children: [
                       Icon(Icons.gavel, size: 16, color: AppColors.primaryRed),
@@ -81,30 +86,6 @@ class AuctionCard extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      if (auction.totalBidders > 0) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.neutralGray200.withValues(
-                              alpha: 0.5,
-                            ),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '${auction.totalBidders} bid',
-                            style: AppTypography.bodySmall.copyWith(
-                              color: isDark
-                                  ? AppColors.neutralGray400
-                                  : AppColors.neutralGray600,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
                   ),
 
@@ -154,16 +135,8 @@ class AuctionCard extends StatelessWidget {
                   ],
 
                   const SizedBox(height: 4),
-                  // Location
-                  if (auction.location != null)
-                    Text(
-                      auction.location!.cityName,
-                      style: AppTypography.bodySmall.copyWith(
-                        color: isDark
-                            ? AppColors.neutralGray400
-                            : AppColors.neutralGray600,
-                      ),
-                    ),
+                  // PURGED: location row — AuctionLocation was never hydrated
+                  // from any wire payload; the slot rendered nothing.
                 ],
               ),
             ),

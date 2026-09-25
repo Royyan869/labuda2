@@ -15,7 +15,6 @@ library;
 
 // Auction enums (backend-aligned)
 import 'auction_status.dart';
-import 'auction_condition.dart';
 
 // Import MediaEntity
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
@@ -30,89 +29,15 @@ import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
 
 // ============================================================
-// P11 PHASE 2: DECISION CONTRACT (Backend is Authority)
+// ACTION AUTHORITY (Backend is Authority)
 // ============================================================
-// All business decisions come from backend via decision contract.
-// Frontend MUST NOT compute state, allowed actions, or business rules.
-//
-// Use decision.allowed_actions for UI decisions (e.g., show bid button)
-// Use decision.state for authoritative business state
-// Use decision.display for UI rendering hints (badges, labels, warnings)
-
-/// Decision Contract from Backend
-class DecisionContract {
-  final String state;
-  final List<String> allowedActions;
-  final DisplayHints? display;
-
-  const DecisionContract({
-    required this.state,
-    this.allowedActions = const [],
-    this.display,
-  });
-
-  factory DecisionContract.fromJson(Map<String, dynamic>? json) {
-    if (json == null) {
-      return const DecisionContract(state: '', allowedActions: []);
-    }
-    return DecisionContract(
-      state: json['state'] as String? ?? '',
-      allowedActions:
-          (json['allowed_actions'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
-      display: json['display'] != null
-          ? DisplayHints.fromJson(json['display'] as Map<String, dynamic>)
-          : null,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-    'state': state,
-    'allowed_actions': allowedActions,
-    if (display != null) 'display': display!.toJson(),
-  };
-}
-
-/// Display Hints from Backend (NON-AUTHORITATIVE)
-class DisplayHints {
-  final String? badge;
-  final String? badgeVariant;
-  final String? primaryAction;
-  final String? warning;
-  final String? info;
-  final int? timeRemainingSeconds;
-
-  const DisplayHints({
-    this.badge,
-    this.badgeVariant,
-    this.primaryAction,
-    this.warning,
-    this.info,
-    this.timeRemainingSeconds,
-  });
-
-  factory DisplayHints.fromJson(Map<String, dynamic> json) {
-    return DisplayHints(
-      badge: json['badge'] as String?,
-      badgeVariant: json['badge_variant'] as String?,
-      primaryAction: json['primary_action'] as String?,
-      warning: json['warning'] as String?,
-      info: json['info'] as String?,
-      timeRemainingSeconds: json['time_remaining_seconds'] as int?,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-    'badge': badge,
-    'badge_variant': badgeVariant,
-    'primary_action': primaryAction,
-    'warning': warning,
-    'info': info,
-    'time_remaining_seconds': timeRemainingSeconds,
-  };
-}
+// All business decisions come from the backend.
+// The canonical per-viewer action authority for the auction detail surface
+// is `viewer_capabilities` (CommerceViewerCapabilities), emitted by
+// EvaluateAuctionViewerCapabilities on GET /api/v1/auctions/:id.
+// The legacy P11 DecisionContract (decision/allowed_actions) was a phantom
+// contract — the auction backend never emitted it — and is PURGED.
+// Buyer bid-position authority lives in GET /api/v1/bidding.
 
 /// Media type enum for auction media
 enum AuctionMediaType { photo, video }
@@ -178,46 +103,6 @@ class KoiDetails {
       sizeInCm.hashCode ^
       ageInMonths.hashCode ^
       gender.hashCode;
-}
-
-/// Location info - simplified for domain
-class AuctionLocation {
-  final String cityId;
-  final String cityName;
-  final String provinceId;
-  final String provinceName;
-
-  const AuctionLocation({
-    required this.cityId,
-    required this.cityName,
-    required this.provinceId,
-    required this.provinceName,
-  });
-
-  AuctionLocation copyWith({
-    String? cityId,
-    String? cityName,
-    String? provinceId,
-    String? provinceName,
-  }) {
-    return AuctionLocation(
-      cityId: cityId ?? this.cityId,
-      cityName: cityName ?? this.cityName,
-      provinceId: provinceId ?? this.provinceId,
-      provinceName: provinceName ?? this.provinceName,
-    );
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is AuctionLocation &&
-        other.cityId == cityId &&
-        other.provinceId == provinceId;
-  }
-
-  @override
-  int get hashCode => cityId.hashCode ^ provinceId.hashCode;
 }
 
 /// Auction entity - core business entity
@@ -289,7 +174,9 @@ class Auction {
   final int? buyNowPrice; // BIN - Buy It Now (optional)
 
   // Item details (backend-aligned)
-  final AuctionCondition? condition; // Item condition from backend
+  //
+  // PURGED: `condition` (AuctionCondition) — the auction wire never emitted a
+  // condition value (DTO parse was always null); the entity slot is dead.
 
   // Shipping Readiness — preparation time before the item can ship.
   // Read-only Product content carried on the auction detail wire
@@ -301,30 +188,28 @@ class Auction {
   // Timing (backend authority)
   final DateTime startTime;
   final DateTime endTime;
-  final DateTime?
-  startedAt; // Actual time when auction started (backend authority)
-  final DateTime? endedAt; // Actual time when auction ended (backend authority)
-  final DateTime?
-  settlementDeadline; // Deadline for winner to complete purchase (waiting_settlement state only)
-  final bool isScheduled;
+  //
+  // PURGED timing fields: startedAt/endedAt (backend never emits these on the
+  // auction wire), settlementDeadline as a wire field (now DERIVED below from
+  // end_at + 24h per Auction.SettlementDeadline()), and isScheduled (state
+  // derivable from status — status is the single lifecycle authority).
 
   // Auction State — canonical winner authority is winnerId (current_winner_id).
   final AuctionStatus status;
   final String? winnerId;
-  final int totalBidders;
-  final int totalViews;
+  //
+  // PURGED counters: totalBidders/totalViews — the auction wire never emitted
+  // total_bids/views_count, so these were always-zero fake truths. Bid count
+  // on the detail screen derives from the live bid stream (bids.length).
+
   final DateTime createdAt;
   final DateTime? updatedAt;
-  final int? version; // Optimistic locking version (backend authority)
-
-  // Location
-  final AuctionLocation? location;
+  //
+  // PURGED: version (optimistic-locking hint the backend never emitted) and
+  // location (AuctionLocation — never hydrated from any wire payload).
 
   // Shipping options
   final String? farmAddressId;
-
-  // P11 Phase 2: Decision Contract from Backend
-  final DecisionContract? decision;
 
   // Checkout integration - optional reference to product for checkout flow
   final String? productId;
@@ -347,25 +232,15 @@ class Auction {
     required this.currentBid,
     required this.bidIncrement,
     this.buyNowPrice,
-    this.condition,
     this.preparationTime,
     this.preparationNote,
     required this.startTime,
     required this.endTime,
-    this.startedAt,
-    this.endedAt,
-    this.settlementDeadline,
-    this.isScheduled = false,
     required this.status,
     this.winnerId,
-    this.totalBidders = 0,
-    this.totalViews = 0,
     required this.createdAt,
     this.updatedAt,
-    this.version,
-    this.location,
     this.farmAddressId,
-    this.decision,
     this.productId,
   });
 
@@ -414,6 +289,13 @@ class Auction {
   /// Backend determines this via winnerId field, not status
   bool get isExpired => status == AuctionStatus.ended && winnerId == null;
 
+  /// Canonical settlement deadline derivation (backend rule:
+  /// Auction.SettlementDeadline() = end_at + 24h). There is NO stored deadline
+  /// authority — backend derives it and so does the client, from the same
+  /// factual end_at field.
+  DateTime get settlementDeadline =>
+      endTime.add(const Duration(hours: 24));
+
   /// Check if current user is the winner (requires winnerId comparison)
   bool isUserWinner(String userId) => winnerId != null && winnerId == userId;
 
@@ -439,25 +321,15 @@ class Auction {
     int? currentBid,
     int? bidIncrement,
     int? buyNowPrice,
-    AuctionCondition? condition,
     PreparationTime? preparationTime,
     String? preparationNote,
     DateTime? startTime,
     DateTime? endTime,
-    DateTime? startedAt,
-    DateTime? endedAt,
-    DateTime? settlementDeadline,
-    bool? isScheduled,
     AuctionStatus? status,
     String? winnerId,
-    int? totalBidders,
-    int? totalViews,
     DateTime? createdAt,
     DateTime? updatedAt,
-    int? version,
-    AuctionLocation? location,
     String? farmAddressId,
-    DecisionContract? decision,
     String? productId,
   }) {
     return Auction(
@@ -478,25 +350,15 @@ class Auction {
       currentBid: currentBid ?? this.currentBid,
       bidIncrement: bidIncrement ?? this.bidIncrement,
       buyNowPrice: buyNowPrice ?? this.buyNowPrice,
-      condition: condition ?? this.condition,
       preparationTime: preparationTime ?? this.preparationTime,
       preparationNote: preparationNote ?? this.preparationNote,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
-      startedAt: startedAt ?? this.startedAt,
-      endedAt: endedAt ?? this.endedAt,
-      settlementDeadline: settlementDeadline ?? this.settlementDeadline,
-      isScheduled: isScheduled ?? this.isScheduled,
       status: status ?? this.status,
       winnerId: winnerId ?? this.winnerId,
-      totalBidders: totalBidders ?? this.totalBidders,
-      totalViews: totalViews ?? this.totalViews,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      version: version ?? this.version,
-      location: location ?? this.location,
       farmAddressId: farmAddressId ?? this.farmAddressId,
-      decision: decision ?? this.decision,
       productId: productId ?? this.productId,
     );
   }

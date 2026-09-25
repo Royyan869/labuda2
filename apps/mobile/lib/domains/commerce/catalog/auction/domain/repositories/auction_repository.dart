@@ -34,7 +34,6 @@ abstract class AuctionRepository {
     DateTime? scheduledStartAt,
     required int durationHours,
     String? farmAddressId,
-    AuctionLocation? location,
 
     /// Required — backend rejects creation without at least one option
     /// (auction is still a physical fish that must ship).
@@ -163,7 +162,6 @@ class CreateAuctionParams {
   final DateTime? scheduledStartAt;
   final int durationHours;
   final String? farmAddressId;
-  final AuctionLocation? location;
 
   /// Required — backend rejects creation without at least one option.
   final List<String> shippingSetupIds;
@@ -186,7 +184,6 @@ class CreateAuctionParams {
     this.scheduledStartAt,
     required this.durationHours,
     this.farmAddressId,
-    this.location,
     required this.shippingSetupIds,
     this.preparationNote,
   });
@@ -215,13 +212,6 @@ class CreateAuctionParams {
       'scheduledStartAt': scheduledStartAt!.toIso8601String(),
     'durationHours': durationHours,
     if (farmAddressId != null) 'farmAddressId': farmAddressId,
-    if (location != null)
-      'location': {
-        'cityId': location!.cityId,
-        'cityName': location!.cityName,
-        'provinceId': location!.provinceId,
-        'provinceName': location!.provinceName,
-      },
     'shippingSetupIds': shippingSetupIds,
     if (preparationNote != null) 'preparationNote': preparationNote,
   };

@@ -320,7 +320,6 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
           scheduledStartAt: scheduledStartAt,
           durationHours: durationHours,
           farmAddressId: null,
-          location: null,
           shippingSetupIds: _selectedShippingSetupIds,
           preparationNote: _preparationNoteController.text.trim().isEmpty
               ? null

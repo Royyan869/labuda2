@@ -8,15 +8,16 @@ import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
 
 /// Settlement status for seller display
+///
+/// PURGED: expiredBnr — never a backend auction status. Settlement failure
+/// returns the auction to DRAFT (TransitionToDraftOnSettlementFailure), where
+/// the monitor hides itself (only waiting_settlement/ended-with-winner render).
 enum SellerSettlementStatus {
   /// Waiting for winner to complete payment
   waitingSettlement,
 
   /// Winner has claimed/paid
   claimed,
-
-  /// Winner failed to complete payment
-  expiredBnr,
 }
 
 /// Widget that displays auction winner information and settlement status for sellers
@@ -62,11 +63,9 @@ class _AuctionSellerSettlementMonitorState
         widget.auction.winnerId != null) {
       // Ended with winner - waiting for claim
       return SellerSettlementStatus.waitingSettlement;
-    } else if (widget.auction.status == AuctionStatus.expiredBNR) {
-      return SellerSettlementStatus.expiredBnr;
     }
-    // Default to claimed if auction ended with winner and not in waiting/expired state
-    // This assumes backend transitions to a "claimed" state when winner completes payment
+    // Default to claimed if auction ended with winner and payment succeeded
+    // (payment success settles the auction to ENDED — canonical backend path).
     return SellerSettlementStatus.claimed;
   }
 
@@ -178,16 +177,13 @@ class _AuctionSellerSettlementMonitorState
         return _buildWaitingSettlementContent();
       case SellerSettlementStatus.claimed:
         return _buildClaimedContent();
-      case SellerSettlementStatus.expiredBnr:
-        return _buildExpiredBnrContent();
     }
   }
 
   Widget _buildWaitingSettlementContent() {
+    // Canonical deadline derivation: end_at + 24h (backend
+    // Auction.SettlementDeadline()). Non-null by definition.
     final deadline = widget.auction.settlementDeadline;
-    if (deadline == null) {
-      return const SizedBox.shrink();
-    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -252,26 +248,6 @@ class _AuctionSellerSettlementMonitorState
     );
   }
 
-  Widget _buildExpiredBnrContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Pemenang tidak menyelesaikan pembayaran',
-          style: TextStyle(fontSize: 13, color: _getStatusTextColor()),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Auction berakhir tanpa transaksi',
-          style: TextStyle(
-            fontSize: 12,
-            color: _getStatusTextColor().withValues(alpha: 0.8),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildCountdown(DateTime deadline) {
     return StreamBuilder(
       stream: Stream.periodic(const Duration(seconds: 1), (count) => count),
@@ -330,8 +306,6 @@ class _AuctionSellerSettlementMonitorState
         return const Color(0xFFFFF7ED); // Light orange
       case SellerSettlementStatus.claimed:
         return const Color(0xFFECFDF5); // Light green
-      case SellerSettlementStatus.expiredBnr:
-        return const Color(0xFFFEF2F2); // Light red
     }
   }
 
@@ -341,8 +315,6 @@ class _AuctionSellerSettlementMonitorState
         return const Color(0xFFF97316).withValues(alpha: 0.3);
       case SellerSettlementStatus.claimed:
         return const Color(0xFF10B981).withValues(alpha: 0.3);
-      case SellerSettlementStatus.expiredBnr:
-        return const Color(0xFFEF4444).withValues(alpha: 0.3);
     }
   }
 
@@ -352,8 +324,6 @@ class _AuctionSellerSettlementMonitorState
         return const Color(0xFF9A3412);
       case SellerSettlementStatus.claimed:
         return const Color(0xFF065F46);
-      case SellerSettlementStatus.expiredBnr:
-        return const Color(0xFF991B1B);
     }
   }
 
@@ -363,8 +333,6 @@ class _AuctionSellerSettlementMonitorState
         return const Color(0xFFF97316);
       case SellerSettlementStatus.claimed:
         return const Color(0xFF10B981);
-      case SellerSettlementStatus.expiredBnr:
-        return const Color(0xFFEF4444);
     }
   }
 
@@ -374,8 +342,6 @@ class _AuctionSellerSettlementMonitorState
         return Icons.schedule;
       case SellerSettlementStatus.claimed:
         return Icons.check_circle;
-      case SellerSettlementStatus.expiredBnr:
-        return Icons.cancel;
     }
   }
 
@@ -385,8 +351,6 @@ class _AuctionSellerSettlementMonitorState
         return 'Menunggu Pembayaran';
       case SellerSettlementStatus.claimed:
         return 'Pembayaran Diproses';
-      case SellerSettlementStatus.expiredBnr:
-        return 'Pembayaran Kadaluarsa';
     }
   }
 }

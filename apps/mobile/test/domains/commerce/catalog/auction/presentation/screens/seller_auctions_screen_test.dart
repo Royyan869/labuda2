@@ -70,7 +70,6 @@ class _FakeAuctionRepository implements AuctionRepository {
     DateTime? scheduledStartAt,
     required int durationHours,
     String? farmAddressId,
-    AuctionLocation? location,
     required List<String> shippingSetupIds,
     String? preparationNote,
   }) async {
@@ -201,8 +200,6 @@ Auction _auction({
   int openingBid = 1000000,
   int currentBid = 1200000,
   int bidIncrement = 100000,
-  int totalBidders = 0,
-  DateTime? settlementDeadline,
   String? winnerId,
   DateTime? startTime,
   DateTime? endTime,
@@ -230,10 +227,8 @@ Auction _auction({
     bidIncrement: bidIncrement,
     startTime: baseStart,
     endTime: baseEnd,
-    settlementDeadline: settlementDeadline,
     status: status,
     winnerId: winnerId,
-    totalBidders: totalBidders,
     createdAt: DateTime.utc(2026, 7, 1, 7),
   );
 }
@@ -611,7 +606,6 @@ void main() {
               status: AuctionStatus.waitingSettlement,
               currentBid: 1500000,
               winnerId: 'buyer-1',
-              settlementDeadline: DateTime.utc(2026, 7, 6),
             ),
           ]);
         },

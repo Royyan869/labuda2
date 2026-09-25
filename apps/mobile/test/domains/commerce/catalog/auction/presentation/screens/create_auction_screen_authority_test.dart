@@ -66,7 +66,6 @@ class _FakeAuctionNotifier extends AuctionNotifier {
     DateTime? scheduledStartAt,
     required int durationHours,
     String? farmAddressId,
-    AuctionLocation? location,
     required List<String> shippingSetupIds,
     String? preparationNote,
   }) async {

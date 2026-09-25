@@ -367,10 +367,6 @@ class _SellerAuctionCard extends StatelessWidget {
                     icon: Icons.trending_up_outlined,
                     label: 'Terkini Rp $currentBid',
                   ),
-                  _MetaChip(
-                    icon: Icons.emoji_events_outlined,
-                    label: '${auction.totalBidders} bid',
-                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -423,8 +419,6 @@ class _SellerAuctionCard extends StatelessWidget {
       case AuctionStatus.waitingSettlement:
         return 'Menunggu Penyelesaian';
       case AuctionStatus.ended:
-        return auction.winnerId == null ? 'Selesai' : 'Selesai';
-      case AuctionStatus.expiredBNR:
         return 'Selesai';
       case AuctionStatus.cancelled:
         return 'Selesai';
@@ -446,12 +440,9 @@ class _SellerAuctionCard extends StatelessWidget {
       case AuctionStatus.active:
         return 'Berakhir ${_formatDate(auction.endTime)}';
       case AuctionStatus.waitingSettlement:
-        return auction.settlementDeadline == null
-            ? 'Menunggu penyelesaian'
-            : 'Selesaikan sebelum ${_formatDate(auction.settlementDeadline!)}';
+        return 'Selesaikan sebelum ${_formatDate(auction.settlementDeadline)}';
       case AuctionStatus.ended:
         return 'Berakhir ${_formatDate(auction.endTime)}';
-      case AuctionStatus.expiredBNR:
       case AuctionStatus.cancelled:
         return 'Riwayat ${_formatDate(auction.endTime)}';
     }

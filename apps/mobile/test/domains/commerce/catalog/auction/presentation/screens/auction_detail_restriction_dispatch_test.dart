@@ -88,6 +88,7 @@ class _FakeShippingRepository implements ShippingRepository {
   ) async => Result.success(const [
     DeliveryOption(
       shippingSetupId: 'ship-1',
+      displayName: 'JNE',
       type: 'courier',
       rate: 15000,
     ),
@@ -249,8 +250,6 @@ Auction _auction({
     endTime: now.add(const Duration(days: 1)),
     status: status,
     winnerId: winnerId,
-    totalBidders: 2,
-    totalViews: 10,
     createdAt: now,
     updatedAt: now,
     productId: 'product-1',

@@ -55,7 +55,6 @@ class AuctionRepositoryImpl implements AuctionRepository {
     DateTime? scheduledStartAt,
     required int durationHours,
     String? farmAddressId,
-    AuctionLocation? location,
     required List<String> shippingSetupIds,
     String? preparationNote,
   }) async {
@@ -77,7 +76,6 @@ class AuctionRepositoryImpl implements AuctionRepository {
         scheduledStartAt: scheduledStartAt,
         durationHours: durationHours,
         farmAddressId: farmAddressId,
-        location: location,
         shippingSetupIds: shippingSetupIds,
         preparationNote: preparationNote,
       );
@@ -140,14 +138,22 @@ class AuctionRepositoryImpl implements AuctionRepository {
     String? lastAuctionId,
   }) async {
     try {
+      // Canonical browse = scheduled + active (backend default IN ('scheduled','active')).
+      // Previous strict 'active' hid scheduled upcoming auctions from marketplace & tests.
+      // Fetch default (no status filter) so scheduled upcoming is discoverable.
       final dtos = await _datasource.getAuctions(
-        status: 'active',
         limit: limit,
         cursor: lastAuctionId,
       );
 
       final entities = dtos.map(AuctionMapper.toEntity).toList();
-      return RepositoryResult.success(entities);
+      // Keep discoverable only (scheduled + active) – defensive filter for any future status drift.
+      final discoverable = entities
+          .where((a) =>
+              a.status == AuctionStatus.scheduled ||
+              a.status == AuctionStatus.active)
+          .toList();
+      return RepositoryResult.success(discoverable);
     } catch (e) {
       _logger.error('Failed to get active auctions: $e');
       return RepositoryResult.error(e.toString());
@@ -288,58 +294,27 @@ class AuctionRepositoryImpl implements AuctionRepository {
 
   // ========== Real-time Streams (Polling-based for API) ==========
 
+  // LIST discovery is NOT live — one-shot, like ForSale (forSalesProvider Future).
+  // Live polling remains only for detail/bids (watchAuction/watchBids).
+  // Errors surface as stream errors (not empty) to match test contract.
   @override
   Stream<List<Auction>> watchUserAuctions({
     required String sellerId,
     AuctionStatus? status,
     int limit = 100,
   }) {
-    // API implementation uses polling instead of Firestore streams
-    return Stream.periodic(
-      const Duration(seconds: 15),
-      (_) => sellerId,
-    ).asyncMap((_) async {
-      final result = await getUserAuctions(
-        sellerId: sellerId,
-        status: status,
-        limit: limit,
-      );
-      return result.fold((auctions) => auctions, (_) => <Auction>[]);
-    });
+    return Stream.fromFuture(
+      getUserAuctions(sellerId: sellerId, status: status, limit: limit)
+          .then((r) => r.fold((a) => a, (e) => throw StateError(e))),
+    );
   }
 
   @override
   Stream<List<Auction>> watchActiveAuctions({int limit = 50}) {
-    // Create a stream controller that emits immediately on listen
-    final controller = StreamController<List<Auction>>.broadcast();
-
-    // Fetch and emit initial data immediately
-    void fetchData() async {
-      final result = await getActiveAuctions(limit: limit);
-      final auctions = result.fold((auctions) => auctions, (_) => <Auction>[]);
-      if (!controller.isClosed) {
-        controller.add(auctions);
-      }
-    }
-
-    // Start polling when someone listens
-    Timer? pollingTimer;
-
-    controller.onListen = () {
-      // Fetch immediately
-      fetchData();
-
-      // Then poll every 30 seconds
-      pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-        fetchData();
-      });
-    };
-
-    controller.onCancel = () {
-      pollingTimer?.cancel();
-    };
-
-    return controller.stream;
+    return Stream.fromFuture(
+      getActiveAuctions(limit: limit)
+          .then((r) => r.fold((a) => a, (e) => throw StateError(e))),
+    );
   }
 
   @override

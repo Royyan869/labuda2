@@ -247,12 +247,11 @@ class AuctionLiveStatus extends LiveStatus {
         ? AuctionDisplayStatus.ended
         : AuctionDisplayStatus.active;
 
-    // Use backend decision contract for biddability if available
-    final isBiddable =
-        auction.decision?.allowedActions.contains('bid') ?? status.isActive;
-
-    // Extract time remaining from backend decision hints
-    final timeRemaining = auction.decision?.display?.timeRemainingSeconds;
+    // Biddability derives from the canonical backend status (status is the
+    // single lifecycle authority). The P11 DecisionContract was a phantom
+    // contract the auction wire never emitted and is purged. Viewer-scoped
+    // action authority on the detail surface is `viewer_capabilities`.
+    final isBiddable = status.isActive;
 
     return AuctionLiveStatus(
       status: status,
@@ -261,7 +260,6 @@ class AuctionLiveStatus extends LiveStatus {
       label: status.label,
       message: status.message,
       hasMismatch: status != snapshotStatus,
-      timeRemainingSeconds: timeRemaining,
       isBiddable: isBiddable,
     );
   }
@@ -494,8 +492,6 @@ enum AuctionDisplayStatus {
         return AuctionDisplayStatus.waitingSettlement;
       case AuctionStatus.cancelled:
         return AuctionDisplayStatus.cancelled;
-      case AuctionStatus.expiredBNR:
-        return AuctionDisplayStatus.ended;
     }
   }
 }

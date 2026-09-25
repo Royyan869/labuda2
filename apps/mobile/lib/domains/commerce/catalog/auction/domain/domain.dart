@@ -6,7 +6,6 @@ library;
 export 'entities/auction.dart';
 export 'entities/auction_bid.dart';
 export 'entities/auction_status.dart';
-export 'entities/auction_condition.dart';
 export 'entities/bidding_item.dart';
 
 // Repositories

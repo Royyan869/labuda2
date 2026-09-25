@@ -4,19 +4,30 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:labuda/domains/user/profile/profile.dart'
+    show profileStreamProvider;
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/governance/seller_tier_badge.dart';
+import 'package:labuda/shared/models/seller_identity_data.dart';
+import 'package:labuda/shared/widgets/seller_dual_avatar.dart';
 import 'package:labuda/shared/utils/commerce_seller_identity.dart';
 
 /// Seller card widget for auction detail
-class AuctionSellerCard extends StatelessWidget {
+class AuctionSellerCard extends ConsumerWidget {
   final Auction auction;
 
   const AuctionSellerCard({super.key, required this.auction});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Store truth for the dual avatar comes from the seller's profile stream
+    // (canonical FarmInfo); null while loading — never fabricated.
+    final profileAsync = ref.watch(profileStreamProvider(auction.sellerId));
+    final farmInfo = profileAsync.value?.farmInfo;
+    final storeImageUrl = farmInfo?.farmPhotoUrl;
+
     // E8.2 — Seller user-identity lifecycle redaction. When the seller's
     // user identity is degraded (banned/deleted), render an italic
     // placeholder + neutral avatar. The auction itself is controlled by
@@ -57,8 +68,6 @@ class AuctionSellerCard extends StatelessWidget {
     // Show the store/farm line as subtitle when present.
     final showHandleSubtitle = identity?.line2 != null;
 
-    final showAvatar = !sellerDegraded && auction.sellerAvatar != null;
-
     // Stage 2 — Seller tier badge. Visible only when:
     //   1. User-identity axis is active (sellerDegraded == false).
     //   2. Seller-trust axis is active (subscription not expired).
@@ -78,18 +87,16 @@ class AuctionSellerCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: sellerDegraded ? Colors.grey[200] : null,
-                backgroundImage: showAvatar
-                    ? NetworkImage(auction.sellerAvatar!)
-                    : null,
-                child: showAvatar
-                    ? null
-                    : Icon(
-                        Icons.person,
-                        color: sellerDegraded ? Colors.grey[500] : null,
-                      ),
+              SellerDualAvatar(
+                identity: SellerIdentityData(
+                  userId: auction.sellerId,
+                  username: auction.sellerUsername,
+                  storeName: auction.sellerFarmName,
+                  avatarUrl: auction.sellerAvatar,
+                  storeImageUrl: storeImageUrl,
+                  isSeller: true,
+                ),
+                size: 48,
               ),
               const SizedBox(width: 12),
               Expanded(

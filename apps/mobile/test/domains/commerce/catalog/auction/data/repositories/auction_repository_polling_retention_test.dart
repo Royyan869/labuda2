@@ -6,6 +6,7 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/repositories/auction_repository_impl.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/remote/auction_remote_datasource.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
+import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_media_identity.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
@@ -237,8 +238,6 @@ AuctionBid _bid({
     bidderUsername: bidderId,
     amount: amount,
     createdAt: DateTime.parse('2026-01-01T00:00:00.000Z'),
-    isWinning: true,
-    isOutbid: false,
   );
 }
 

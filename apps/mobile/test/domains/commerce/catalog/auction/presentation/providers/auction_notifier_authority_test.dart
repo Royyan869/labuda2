@@ -65,7 +65,6 @@ class _FakeAuctionRepository implements AuctionRepository {
     DateTime? scheduledStartAt,
     required int durationHours,
     String? farmAddressId,
-    AuctionLocation? location,
     required List<String> shippingSetupIds,
     String? preparationNote,
   }) async {

@@ -36,7 +36,6 @@ extension SellerAuctionFilterX on SellerAuctionFilter {
       case SellerAuctionFilter.finished:
         return auction.status == AuctionStatus.waitingSettlement ||
             auction.status == AuctionStatus.ended ||
-            auction.status == AuctionStatus.expiredBNR ||
             auction.status == AuctionStatus.cancelled;
     }
   }

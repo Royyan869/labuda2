@@ -20,13 +20,14 @@ class AuctionRemoteDatasource extends BaseApiRepository {
   // ========== Auction CRUD Operations ==========
 
   /// Get list of auctions with filters
+  /// Backend envelope: {"success":true,"data":{"data":[...],"next_cursor":"...","has_more":bool}}
   Future<List<AuctionDto>> getAuctions({
     String? status,
     String? sellerId,
     int limit = 20,
     String? cursor,
   }) async {
-    final result = await executeListRequest(
+    final result = await executeRequest(
       () => apiClient.get(
         '/auctions',
         queryParameters: {
@@ -36,7 +37,25 @@ class AuctionRemoteDatasource extends BaseApiRepository {
           'cursor': ?cursor,
         },
       ),
-      itemParser: (json) => AuctionDto.fromJson(json),
+      parser: (data) {
+        // Unified envelope: handles {"data": [...]}, {"auctions": [...]}, {"for_sales": [...]}
+        // Backend auction: {"data": [...], "next_cursor": ..., "has_more": ...}
+        // Backend for_sale: {"for_sales": [...], "page": ..., "total": ...}
+        final map = data as Map<String, dynamic>;
+        final candidates = [map['data'], map['auctions'], map['for_sales']];
+        for (final c in candidates) {
+          if (c is List) {
+            return c.map((e) => AuctionDto.fromJson(e as Map<String, dynamic>)).toList();
+          }
+        }
+        // Nested data.data (when apiResponse.data = {"data": [...]})
+        if (map['data'] is Map<String, dynamic> && (map['data'] as Map)['data'] is List) {
+          return ((map['data'] as Map)['data'] as List)
+              .map((e) => AuctionDto.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+        return <AuctionDto>[];
+      },
     );
 
     return result.fold((error) => throw Exception(error), (data) => data);

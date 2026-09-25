@@ -142,13 +142,13 @@ class AuctionBidPositionIndicator extends StatelessWidget {
     return 'Lelang ini telah berakhir';
   }
 
-  /// Get the claim deadline for auction winners
-  /// Uses endedAt if available, falls back to endTime
+  /// Get the claim deadline for auction winners.
+  /// Canonical derivation: end_at + 24h (backend Auction.SettlementDeadline()).
   String? _getClaimDeadline() {
     if (!auction.isUserWinner(currentUserId)) {
       return null;
     }
-    final deadline = auction.endedAt ?? auction.endTime;
+    final deadline = auction.settlementDeadline;
     final dateFormat = DateFormat('MMM dd, yyyy • HH:mm');
     return dateFormat.format(deadline.toLocal());
   }

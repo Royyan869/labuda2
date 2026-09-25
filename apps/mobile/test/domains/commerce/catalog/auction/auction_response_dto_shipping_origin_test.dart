@@ -62,8 +62,8 @@ void main() {
     expect(entity.preparationTime, isNotNull);
 
     // No fabricated origin/shipping surface: the read model's only
-    // location-related slots stay absent on the canonical payload.
-    expect(entity.location, isNull);
+    // location-related slot (farmAddressId) stays absent on the canonical
+    // payload. AuctionLocation itself is purged — never hydrated from wire.
     expect(entity.farmAddressId, isNull);
   });
 
@@ -88,8 +88,7 @@ void main() {
 
       // Parsed without exception, and the read model does NOT adopt any
       // origin/shipping state from the illegal keys.
-      expect(entity.location, isNull);
       expect(entity.farmAddressId, isNull);
     },
   );
-}
+}

@@ -25,9 +25,9 @@ class AuctionMapper {
   /// SEMANTIC: productId from DTO is included as optional metadata for checkout.
   /// The Auction entity is complete and independent.
   ///
-  /// NOTE: Anti-sniping fields (autoExtendCount, originalEndTime) are NOT
-  /// mapped to domain entity as they are false feature signals - backend
-  /// does not implement anti-sniping in production code.
+  /// Phantom purge: fields the backend never emits are not mapped. The
+  /// settlement deadline is DERIVED from end_at + 24h (canonical backend
+  /// rule: Auction.SettlementDeadline()).
   static Auction toEntity(AuctionDto dto) {
     // Convert backend images to MediaEntity
     final media = dto.images
@@ -84,9 +84,6 @@ class AuctionMapper {
       currentBid: factualCurrentBid,
       bidIncrement: dto.bidIncrement,
       buyNowPrice: dto.buyNowPrice,
-      condition: dto.condition != null
-          ? parseAuctionCondition(dto.condition)
-          : null,
       // Shipping readiness — canonical Product content from the detail wire.
       // Null/empty wire value stays null (absence is NOT defaulted to
       // immediate) so no canonical absence is masked.
@@ -97,52 +94,37 @@ class AuctionMapper {
       preparationNote: dto.preparationNote,
       startTime: dto.startTime,
       endTime: dto.endTime,
-      startedAt: dto.startedAt,
-      endedAt: dto.endedAt,
-      settlementDeadline: dto.settlementDeadline,
-      isScheduled: dto.status == 'scheduled',
       status: parseAuctionStatus(dto.status),
       // Canonical winner authority is current_winner_id only — phantom winner
       // object purged.
       winnerId: dto.currentWinnerId,
-      totalBidders: dto.totalBids,
-      totalViews: dto.viewsCount,
+      // Canonical settlement deadline derivation (backend rule:
+      // Auction.SettlementDeadline() = end_at + 24h). Derived from factual
+      // wire fields — never parsed from a wire field.
       createdAt: dto.createdAt,
       updatedAt: dto.updatedAt,
-      version: null,
-      location: null,
       farmAddressId: null,
-      decision: null,
       productId: dto.productId,
     );
   }
 
   /// Convert BidDto to AuctionBid domain entity
   ///
-  /// Owner Truth: bidderUsername is the public bidder identity.
-  /// No fullName/Anonymous/Bidder fake fallback — empty string indicates
-  /// absence of identity.
-  ///
-  /// D14 — Bidder identity now arrives nested as `dto.bidder` (a
-  /// `UserBriefDto` extended with avatar + lifecycle). The nested card
-  /// is preferred over the legacy flat `dto.bidderUsername` scalar; the
-  /// fallback is retained for rollback safety against pre-D14 payloads.
+  /// Owner Truth: bidder identity arrives nested as `dto.bidder` (a
+  /// `UserBriefDto` carrying username + avatar + coarsened lifecycle).
+  /// No fullName fallback (KYC field), no phantom winner flags — buyer
+  /// bid-position authority lives in GET /api/v1/bidding, not on the bid wire.
   static AuctionBid toBidEntity(BidDto dto) {
     final card = dto.bidder;
-    final username = (card?.username.isNotEmpty ?? false)
-        ? card!.username
-        : (dto.bidderUsername ?? '');
     return AuctionBid(
       id: dto.id,
       auctionId: dto.auctionId,
       bidderId: dto.bidderId,
-      bidderUsername: username,
+      bidderUsername: card?.username ?? '',
       bidderAvatarUrl: card?.avatarUrl,
       bidderLifecycle: card?.lifecycle,
       amount: dto.amount,
       createdAt: dto.createdAt,
-      isWinning: dto.isWinning,
-      isOutbid: dto.isOutbid,
     );
   }
 
@@ -219,13 +201,8 @@ class AuctionMapper {
   static KoiDetails _createKoiDetails(AuctionDto dto) {
     final variety = dto.variety;
     final gender = dto.gender;
-    final legacyVariety = dto.category;
     return KoiDetails(
-      variety: (variety == null || variety.isEmpty)
-          ? ((legacyVariety == null || legacyVariety.isEmpty)
-                ? 'Unknown'
-                : legacyVariety)
-          : variety,
+      variety: (variety == null || variety.isEmpty) ? 'Unknown' : variety,
       sizeInCm: (dto.sizeCm ?? 0).toDouble(),
       ageInMonths: dto.ageMonths ?? 0,
       gender: (gender == null || gender.isEmpty) ? 'unknown' : gender,

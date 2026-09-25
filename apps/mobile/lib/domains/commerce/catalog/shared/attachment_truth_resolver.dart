@@ -314,14 +314,6 @@ class AuctionAttachmentStatusData {
           message: 'Lelang telah selesai, menunggu penyelesaian',
           checkedAt: DateTime.now(),
         );
-
-      case AuctionStatus.expiredBNR:
-        return AuctionAttachmentStatusData(
-          status: AuctionAttachmentStatus.ended,
-          label: 'Waktu Habis',
-          message: 'Waktu penyelesaian habis',
-          checkedAt: DateTime.now(),
-        );
     }
   }
 

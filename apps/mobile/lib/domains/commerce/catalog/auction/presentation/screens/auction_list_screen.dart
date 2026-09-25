@@ -22,7 +22,7 @@ class AuctionListScreen extends ConsumerStatefulWidget {
 class _AuctionListScreenState extends ConsumerState<AuctionListScreen> {
   @override
   Widget build(BuildContext context) {
-    final auctionsAsync = ref.watch(marketplaceAuctionsStreamProvider);
+    final auctionsAsync = ref.watch(marketplaceAuctionsProvider);
 
     return PopScope(
       canPop: true,

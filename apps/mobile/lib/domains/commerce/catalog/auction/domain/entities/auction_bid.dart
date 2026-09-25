@@ -21,8 +21,11 @@ class AuctionBid {
   // and the wire emits an integer JSON literal (bidToResponseWithBidderCard).
   final int amount;
   final DateTime createdAt;
-  final bool isWinning;
-  final bool isOutbid;
+  //
+  // PURGED: isWinning/isOutbid — the bid wire (bidToResponseWithBidderCard)
+  // never emitted these flags; they were always-false dead state. Canonical
+  // buyer bid-position authority is GET /api/v1/bidding (leading | outbid |
+  // won | lost | waiting_claim) mapped to BiddingItem.
 
   const AuctionBid({
     required this.id,
@@ -33,8 +36,6 @@ class AuctionBid {
     this.bidderLifecycle,
     required this.amount,
     required this.createdAt,
-    this.isWinning = false,
-    this.isOutbid = false,
   });
 
   AuctionBid copyWith({
@@ -46,8 +47,6 @@ class AuctionBid {
     String? bidderLifecycle,
     int? amount,
     DateTime? createdAt,
-    bool? isWinning,
-    bool? isOutbid,
   }) {
     return AuctionBid(
       id: id ?? this.id,
@@ -58,8 +57,6 @@ class AuctionBid {
       bidderLifecycle: bidderLifecycle ?? this.bidderLifecycle,
       amount: amount ?? this.amount,
       createdAt: createdAt ?? this.createdAt,
-      isWinning: isWinning ?? this.isWinning,
-      isOutbid: isOutbid ?? this.isOutbid,
     );
   }
 

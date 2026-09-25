@@ -164,8 +164,6 @@ Auction _auction({
     startTime: now,
     endTime: now.add(const Duration(days: 1)),
     status: status,
-    totalBidders: 2,
-    totalViews: 10,
     createdAt: now,
     updatedAt: now,
     productId: 'product-1',

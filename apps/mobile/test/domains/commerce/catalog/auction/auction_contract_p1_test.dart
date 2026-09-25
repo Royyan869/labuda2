@@ -304,7 +304,6 @@ void main() {
         dto.createdAt.toUtc().toIso8601String(),
         '2026-06-01T01:00:00.000Z',
       );
-      expect(dto.bidTime.toUtc().toIso8601String(), '2026-06-01T01:00:00.000Z');
       expect(dto.bidder?.username, 'alice');
     });
   });

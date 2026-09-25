@@ -242,17 +242,14 @@ class UserBriefDto extends Equatable {
 /// SAFETY: productId is OPTIONAL metadata-only field.
 /// Auction has independent inventory - no stock sharing with product.
 ///
-/// FALSE FEATURE SIGNALS (PARKED): The following fields are PARSED from API
-/// but are NOT used in domain logic because backend does NOT implement
-/// anti-sniping in production code (only in tests):
-/// - originalEndTime: Tracks original end time before auto-extend
-/// - autoExtend: Whether auto-extend is enabled
-/// - autoExtendMinutes: Minutes to extend when sniped
-/// - autoExtendCount: Number of times auction has been extended
-/// - remainingExtensions: Remaining extensions allowed
-///
-/// These fields are kept in DTO for API compatibility but are explicitly
-/// NOT mapped to domain entity. See AuctionMapper.toEntity().
+/// CANONICAL WIRE (backend auctionToResponseWithSeller):
+/// Only backend-emitted keys are parsed here. Phantom keys that the backend
+/// never emits (total_bids, views_count, settlement_deadline, started_at,
+/// ended_at, auto_extend*, original_end_time, user_bid, highest_bidder,
+/// category, condition, legacy flat seller/bidder scalars) are PURGED —
+/// parsing them recreated fake truths (always-zero counters, dead state).
+/// The settlement deadline is DERIVED downstream from end_at + 24h
+/// (canonical backend rule: Auction.SettlementDeadline()).
 class AuctionDto extends Equatable {
   final String id;
   final String sellerId;
@@ -263,8 +260,6 @@ class AuctionDto extends Equatable {
   final String title;
   final String? description;
   final List<String> images;
-  final String? category;
-  final String? condition;
 
   // =========================================================================
   // CANONICAL DETAIL CONTENT (backend Product projection on the detail wire)
@@ -294,40 +289,22 @@ class AuctionDto extends Equatable {
   final int? buyNowPrice;
   final int? currentBid;
   final String? currentWinnerId;
-  final int totalBids;
   final DateTime startTime;
   final DateTime endTime;
-  final DateTime? originalEndTime;
-  final DateTime? settlementDeadline;
-  final int timeRemainingSeconds;
   final String status;
-  final bool autoExtend;
-  final int autoExtendMinutes;
-  final int autoExtendCount;
-  final int remainingExtensions;
-  final int viewsCount;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final DateTime? startedAt;
-  final DateTime? endedAt;
-  final UserBriefDto? seller;
-  final UserBriefDto? highestBidder;
-  final BidDto? userBid;
 
   // ===========================================================================
   // STAGE 2 — IDENTITY PARSE-ONLY FIELDS (Phase 5)
   // ===========================================================================
-  // Owner-truth identity scalars added by backend Stage 1 at auction top-level.
-  // Receive-only plumbing: nested `seller` / `highestBidder` UserBriefDto
-  // remains the field consumed by the auction mapper. Stage 3 will switch.
+  // Owner-truth identity scalars emitted by the backend at auction top-level.
   // - seller_username   = account/user identity
   // - seller_farm_name  = seller/store identity (Owner Truth: farm name)
   // - seller_avatar_url = display avatar
-  // - bidder_username   = highest bidder username scalar (auction-level)
   final String? sellerUsername;
   final String? sellerFarmName;
   final String? sellerAvatarUrl;
-  final String? bidderUsername;
 
   /// E8.2 — Canonical seller user-identity lifecycle.
   ///
@@ -370,8 +347,6 @@ class AuctionDto extends Equatable {
     required this.title,
     this.description,
     this.images = const [],
-    this.category,
-    this.condition,
     this.variety,
     this.sizeCm,
     this.ageMonths,
@@ -386,30 +361,15 @@ class AuctionDto extends Equatable {
     this.buyNowPrice,
     this.currentBid,
     this.currentWinnerId,
-    required this.totalBids,
     required this.startTime,
     required this.endTime,
-    this.originalEndTime,
-    this.settlementDeadline,
-    required this.timeRemainingSeconds,
     required this.status,
-    required this.autoExtend,
-    required this.autoExtendMinutes,
-    required this.autoExtendCount,
-    required this.remainingExtensions,
-    required this.viewsCount,
     required this.createdAt,
     required this.updatedAt,
-    this.startedAt,
-    this.endedAt,
-    this.seller,
-    this.highestBidder,
-    this.userBid,
     // Stage 2 identity parse-only fields
     this.sellerUsername,
     this.sellerFarmName,
     this.sellerAvatarUrl,
-    this.bidderUsername,
     // E8.2 seller user-axis lifecycle (nested wire slot)
     this.sellerUserLifecycle,
     // Expired-seller visibility — top-level seller-trust lifecycle.
@@ -451,8 +411,6 @@ class AuctionDto extends Equatable {
       title: json['title'] as String,
       description: json['description'] as String?,
       images: normalizedImages,
-      category: json['category'] as String?,
-      condition: json['condition'] as String?,
       variety: json['variety'] as String?,
       sizeCm: (json['size_cm'] as num?)?.toInt(),
       ageMonths: (json['age_months'] as num?)?.toInt(),
@@ -469,45 +427,16 @@ class AuctionDto extends Equatable {
       buyNowPrice: (json['buy_now_price'] as num?)?.toInt(),
       currentBid: (currentBidRaw as num?)?.toInt(),
       currentWinnerId: winnerRaw as String?,
-      totalBids: json['total_bids'] as int? ?? 0,
       startTime: DateTime.parse(startAtRaw as String),
       endTime: DateTime.parse(endAtRaw as String),
-      originalEndTime: json['original_end_time'] != null
-          ? DateTime.parse(json['original_end_time'] as String)
-          : null,
-      settlementDeadline: json['settlement_deadline'] != null
-          ? DateTime.parse(json['settlement_deadline'] as String)
-          : null,
-      timeRemainingSeconds: json['time_remaining_seconds'] as int? ?? 0,
       status: json['status'] as String,
-      autoExtend: json['auto_extend'] as bool? ?? false,
-      autoExtendMinutes: json['auto_extend_minutes'] as int? ?? 10,
-      autoExtendCount: json['auto_extend_count'] as int? ?? 0,
-      remainingExtensions: json['remaining_extensions'] as int? ?? 3,
-      viewsCount: json['views_count'] as int? ?? 0,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
-      startedAt: json['started_at'] != null
-          ? DateTime.parse(json['started_at'] as String)
-          : null,
-      endedAt: json['ended_at'] != null
-          ? DateTime.parse(json['ended_at'] as String)
-          : null,
-      seller: json['seller'] != null
-          ? UserBriefDto.fromJson(json['seller'])
-          : null,
-      highestBidder: json['highest_bidder'] != null
-          ? UserBriefDto.fromJson(json['highest_bidder'])
-          : null,
-      userBid: json['user_bid'] != null
-          ? BidDto.fromJson(json['user_bid'])
-          : null,
       // Stage 2 identity parse-only fields. Tolerate old payload (null) and
       // new payload. No fullName fallback — owner truth is username/farm.
       sellerUsername: json['seller_username'] as String?,
       sellerFarmName: json['seller_farm_name'] as String?,
       sellerAvatarUrl: json['seller_avatar_url'] as String?,
-      bidderUsername: json['bidder_username'] as String?,
       // E8.2 — Walk the nested canonical PublicCard wire slot
       // (`auction.seller.user.lifecycle`). Pre-E8.1 payloads omit it →
       // null fall-through.
@@ -528,7 +457,7 @@ class AuctionDto extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, sellerId, title, status, settlementDeadline];
+  List<Object?> get props => [id, sellerId, title, status];
 }
 
 /// E8.2 — Extract the embedded seller user-identity lifecycle string from
@@ -587,58 +516,38 @@ String? _readAuctionSellerTier(Map<String, dynamic> json) {
 }
 
 /// Bid response from API
+///
+/// Canonical wire: bidToResponseWithBidderCard — {id, auction_id, bidder_id,
+/// amount, created_at, bidder: UserCard}. Phantom keys the backend never
+/// emits (is_winning, is_outbid, bid_time, bidder_username) are PURGED;
+/// buyer bid-position authority lives in GET /api/v1/bidding, not here.
 class BidDto extends Equatable {
   final String id;
   final String auctionId;
   final String bidderId;
   final int amount;
-  final bool isWinning;
-  final bool isOutbid;
-  final DateTime bidTime;
   final DateTime createdAt;
   final UserBriefDto? bidder;
-
-  // ===========================================================================
-  // STAGE 2 — IDENTITY PARSE-ONLY FIELD (Phase 5)
-  // ===========================================================================
-  // Owner-truth bidder username scalar from backend Stage 1.
-  // Receive-only plumbing: nested `bidder` UserBriefDto is still the field
-  // consumed by AuctionMapper.toBidEntity. Stage 3 will switch the surface.
-  // - bidder_username = bidder username scalar (bid-level)
-  final String? bidderUsername;
 
   const BidDto({
     required this.id,
     required this.auctionId,
     required this.bidderId,
     required this.amount,
-    required this.isWinning,
-    required this.isOutbid,
-    required this.bidTime,
     required this.createdAt,
     this.bidder,
-    // Stage 2 identity parse-only field
-    this.bidderUsername,
   });
 
   factory BidDto.fromJson(Map<String, dynamic> json) {
-    final createdAtRaw = json['created_at'] ?? json['bid_time'];
-    final createdAtString = createdAtRaw as String;
     return BidDto(
       id: json['id'] as String,
       auctionId: json['auction_id'] as String,
       bidderId: json['bidder_id'] as String,
       amount: (json['amount'] as num).toInt(),
-      isWinning: json['is_winning'] as bool? ?? false,
-      isOutbid: json['is_outbid'] as bool? ?? false,
-      bidTime: DateTime.parse(createdAtString),
-      createdAt: DateTime.parse(createdAtString),
+      createdAt: DateTime.parse(json['created_at'] as String),
       bidder: json['bidder'] is Map<String, dynamic>
           ? UserBriefDto.fromJson(json['bidder'] as Map<String, dynamic>)
           : null,
-      // Stage 2 identity parse-only field. Tolerate old payload (null) and
-      // new payload. No fullName fallback — owner truth is username.
-      bidderUsername: json['bidder_username'] as String?,
     );
   }
 
