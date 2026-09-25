@@ -356,7 +356,8 @@ func (s *OrderCreationService) validateSaleSurfaceForCheckout(
 	return nil
 }
 
-// getFarmAddressSnapshot fetches and validates the farm address from saleSurface.FarmAddressID.
+// getFarmAddressSnapshot fetches and validates the farm address from the
+// canonical Product (saleSurface.Product.FarmAddressID).
 //
 // VALIDATION:
 // - FarmAddressID must exist (not nil/empty)
@@ -369,15 +370,15 @@ func (s *OrderCreationService) getFarmAddressSnapshot(
 	tx db.Tx,
 	saleSurface *entity.ForSale,
 ) (addressentity.AddressSnapshot, error) {
-	// Guard: FarmAddressID is required
-	if saleSurface.FarmAddressID == nil || *saleSurface.FarmAddressID == uuid.Nil {
+	// Guard: FarmAddressID is required — canonical authority is Product.
+	if saleSurface.Product == nil || saleSurface.Product.FarmAddressID == nil || *saleSurface.Product.FarmAddressID == uuid.Nil {
 		return addressentity.AddressSnapshot{}, fmt.Errorf("sale surface missing farm_address_id: sale_surface_id=%s", saleSurface.ID)
 	}
 
 	// Fetch farm address from database
-	farmAddress, err := s.addressRepo.GetByID(ctx, tx, *saleSurface.FarmAddressID)
+	farmAddress, err := s.addressRepo.GetByID(ctx, tx, *saleSurface.Product.FarmAddressID)
 	if err != nil {
-		return addressentity.AddressSnapshot{}, fmt.Errorf("farm address not found: address_id=%s, sale_surface_id=%s", *saleSurface.FarmAddressID, saleSurface.ID)
+		return addressentity.AddressSnapshot{}, fmt.Errorf("farm address not found: address_id=%s, sale_surface_id=%s", *saleSurface.Product.FarmAddressID, saleSurface.ID)
 	}
 
 	// Guard: Address must have purpose="sender" (seller shipping origin)
@@ -824,11 +825,6 @@ func (s *OrderCreationService) CreateFromAuction(
 		ID:                input.AuctionID,
 		ProductID:         product.ID,
 		SellerID:          product.SellerID,
-		Title:             product.Title,
-		Description:       product.Description,
-		FarmAddressID:     product.FarmAddressID,
-		PreparationTime:   entity.PreparationTime(product.PreparationTime),
-		PreparationNote:   product.PreparationNote,
 		Status:            entity.ForSaleStatusActive,
 		Visibility:        entity.ForSaleVisibilityPublic,
 		QuantityAvailable: 1,
@@ -988,7 +984,7 @@ func (s *OrderCreationService) CreateFromAuction(
 	// Apply shipping destination snapshot
 	order.ApplyAddressSnapshot(addressSnapshot)
 
-	// Apply shipping origin snapshot from saleSurface.FarmAddressID
+	// Apply shipping origin snapshot from the canonical Product's farm address
 	farmAddressSnapshot, err := s.getAuctionFarmAddressSnapshot(ctx, tx, product)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get farm address snapshot: %w", err)
@@ -1715,8 +1711,8 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 		shippingSetupID,                 // NULLABLE: nil when using a manual shipping quote
 		snapshot.ShippingSetupName,      // Option name from pricing snapshot
 		snapshot.ShippingTransportType,  // Transport type from pricing snapshot
-		string(forSale.PreparationTime), // SNAPSHOT: Freeze preparation time from sale surface
-		forSale.PreparationNote,         // SNAPSHOT: Freeze preparation note from sale surface
+		string(forSale.Product.PreparationTime), // SNAPSHOT: Freeze preparation time from canonical product
+		forSale.Product.PreparationNote,         // SNAPSHOT: Freeze preparation note from canonical product
 		snapshot.ShippingSource,         // Shipping source from pricing snapshot
 		shippingQuoteID,                 // TASK F: Quote ID
 		shippingQuotePrice,              // TASK F: Quote price snapshot
@@ -1727,7 +1723,7 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 	// Apply shipping destination snapshot
 	order.ApplyAddressSnapshot(addressSnapshot)
 
-	// Apply shipping origin snapshot from saleSurface.FarmAddressID
+	// Apply shipping origin snapshot from the canonical Product's farm address
 	farmAddressSnapshot, err := s.getFarmAddressSnapshot(ctx, tx, forSale)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get farm address snapshot: %w", err)
@@ -1768,7 +1764,7 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 		forSale.ProductID,
 		unitPrice,
 		input.Quantity,
-		forSale.Title,
+		forSale.Product.Title, // Canonical content authority — alias purged
 	)
 
 	// ============================================================

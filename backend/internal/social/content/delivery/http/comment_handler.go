@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -238,7 +239,10 @@ func (h *CommentHandler) buildCreateCommentResponse(ctx context.Context, comment
 				if lerr != nil {
 					return lerr
 				}
-				lp, lperr := contentApp.GetForSalePreviewFromForSale(forSale.ID, forSale.Title, forSale.PricePerUnit, forSale.MediaURLs, forSale.Status.String())
+				if forSale.Product == nil {
+					return fmt.Errorf("for_sale %s has no canonical product", forSaleID)
+				}
+				lp, lperr := contentApp.GetForSalePreviewFromForSale(forSale.ID, forSale.Product.Title, forSale.PricePerUnit, forSale.Product.MediaURLs, forSale.Status.String())
 				if lperr != nil {
 					return lperr
 				}
@@ -327,6 +331,62 @@ func (h *CommentHandler) DeleteComment(c *gin.Context) {
 	}
 
 	response.SuccessWithMessage(c, "Comment deleted successfully", nil)
+}
+
+// UpdateCommentRequest holds body for edit.
+type UpdateCommentRequest struct {
+	Body string `json:"body" binding:"required"`
+}
+
+// UpdateComment handles PUT /api/v1/comments/{id}
+func (h *CommentHandler) UpdateComment(c *gin.Context) {
+	ctx := c.Request.Context()
+	idStr := c.Param("id")
+	commentID, err := uuid.Parse(idStr)
+	if err != nil {
+		response.BadRequest(c, "Invalid comment ID")
+		return
+	}
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		response.InternalServerError(c, "Invalid user ID in context")
+		return
+	}
+	var req UpdateCommentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request body")
+		return
+	}
+	var updated *entity.Comment
+	err = h.db.WithTx(ctx, func(tx db.Tx) error {
+		var svcErr error
+		updated, svcErr = h.commentService.UpdateComment(ctx, tx, commentID, userID, req.Body)
+		return svcErr
+	})
+	if err != nil {
+		h.log.Error("Failed to update comment",
+			zap.String("comment_id", commentID.String()),
+			zap.String("user_id", userID.String()),
+			zap.Error(err),
+		)
+		if err.Error() == "only comment author can edit comment" {
+			response.Forbidden(c, "Access denied")
+			return
+		}
+		if err.Error() == "body cannot be empty" || err.Error() == "body too long" {
+			response.BadRequest(c, err.Error())
+			return
+		}
+		response.InternalServerError(c, "Failed to update comment")
+		return
+	}
+	resp := h.buildCreateCommentResponse(ctx, updated)
+	response.Success(c, resp)
 }
 
 // ListCommentsRequest holds the query parameters for forSale comments.
@@ -490,11 +550,17 @@ func (h *CommentHandler) ListComments(c *gin.Context) {
 				}
 
 				// Convert to preview
+				if forSale.Product == nil {
+					h.log.Warn("forSale without canonical product, skipping comment preview",
+						zap.String("for_sale_id", forSaleID.String()),
+					)
+					continue
+				}
 				preview, err := contentApp.GetForSalePreviewFromForSale(
 					forSale.ID,
-					forSale.Title,
+					forSale.Product.Title,
 					forSale.PricePerUnit,
-					forSale.MediaURLs,
+					forSale.Product.MediaURLs,
 					forSale.Status.String(),
 				)
 				if err != nil {

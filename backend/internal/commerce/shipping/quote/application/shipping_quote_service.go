@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -470,10 +469,19 @@ func buildShippingQuoteAttachmentJSONV2(
 		data["linked_item_id"] = quote.SourceID.String()
 
 		if forSale != nil {
-			data["linked_item_name"] = forSale.Title
+			// Canonical content authority is Product — alias fields purged.
+			linkedItemName := ""
+			var imageURL string
+			if forSale.Product != nil {
+				linkedItemName = forSale.Product.Title
+				if len(forSale.Product.MediaURLs) > 0 {
+					imageURL = forSale.Product.MediaURLs[0]
+				}
+			}
+			data["linked_item_name"] = linkedItemName
 			data["linked_item_price"] = forSale.PricePerUnit.Int64()
-			if imageURL := extractFirstForSaleMediaURL(forSale.MediaURLs); imageURL != nil {
-				data["linked_item_image"] = *imageURL
+			if imageURL != "" {
+				data["linked_item_image"] = imageURL
 			}
 		}
 	}
@@ -482,23 +490,6 @@ func buildShippingQuoteAttachmentJSONV2(
 		"type": "shipping_quote",
 		"data": data,
 	}
-}
-
-func extractFirstForSaleMediaURL(mediaURLs json.RawMessage) *string {
-	if len(mediaURLs) == 0 {
-		return nil
-	}
-
-	var urls []string
-	if err := json.Unmarshal(mediaURLs, &urls); err != nil || len(urls) == 0 {
-		return nil
-	}
-
-	if urls[0] == "" {
-		return nil
-	}
-
-	return &urls[0]
 }
 
 // ============================================================================

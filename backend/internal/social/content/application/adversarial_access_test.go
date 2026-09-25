@@ -139,6 +139,7 @@ func (f *fakeCommentRepoForAdversarial) SoftDelete(_ context.Context, _ db.Tx, _
 	return nil
 }
 func (f *fakeCommentRepoForAdversarial) Restore(_ context.Context, _ db.Tx, _ uuid.UUID) error { return nil }
+func (f *fakeCommentRepoForAdversarial) UpdateBody(_ context.Context, _ db.Tx, _ uuid.UUID, _ string) error { return nil }
 func (f *fakeCommentRepoForAdversarial) CountTopLevelCommentsByContent(_ context.Context, _ db.Tx, _ uuid.UUID) (int, error) {
 	return 0, nil
 }

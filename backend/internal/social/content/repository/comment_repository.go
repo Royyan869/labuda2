@@ -36,6 +36,9 @@ type CommentRepository interface {
 
 	// Restore restores a comment that was soft-deleted (sets deleted_at to NULL).
 	Restore(ctx context.Context, tx db.Tx, id uuid.UUID) error
+
+	// UpdateBody updates comment body (edit).
+	UpdateBody(ctx context.Context, tx db.Tx, id uuid.UUID, body string) error
 }
 
 

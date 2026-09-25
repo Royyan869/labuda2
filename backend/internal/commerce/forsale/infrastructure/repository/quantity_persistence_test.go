@@ -63,7 +63,7 @@ func TestForSaleRepository_Create_PersistsRealQuantity(t *testing.T) {
 		for_sale, err := entity.NewForSale(
 			sellerID, "Batch Koi", "5 units available", []byte(`[]`), "Kohaku",
 			nil, nil, nil, nil, nil, []string{"global"},
-			entity.ForSaleTypeFixedPrice, money.New(300000), 5, false,
+			money.New(300000), 5, false,
 			entity.ForSaleVisibilityPublic,
 			nil, entity.PreparationTimeImmediate, nil,
 		)
@@ -119,7 +119,7 @@ func TestForSaleRepository_ReduceRestoreCycle_PersistsThroughUpdateStock(t *test
 		for_sale, err := entity.NewForSale(
 			sellerID, "Batch Koi", "5 units available", []byte(`[]`), "Kohaku",
 			nil, nil, nil, nil, nil, []string{"global"},
-			entity.ForSaleTypeFixedPrice, money.New(300000), 5, false,
+			money.New(300000), 5, false,
 			entity.ForSaleVisibilityPublic,
 			nil, entity.PreparationTimeImmediate, nil,
 		)
@@ -256,7 +256,7 @@ func TestForSaleRepository_OversellRejected_DBStateUnchanged(t *testing.T) {
 		for_sale, err := entity.NewForSale(
 			sellerID, "Single Koi", "unique item", []byte(`[]`), "Showa",
 			nil, nil, nil, nil, nil, []string{"global"},
-			entity.ForSaleTypeFixedPrice, money.New(300000), 1, false,
+			money.New(300000), 1, false,
 			entity.ForSaleVisibilityPublic,
 			nil, entity.PreparationTimeImmediate, nil,
 		)
@@ -328,7 +328,7 @@ func TestForSaleRepository_UniqueItemDefault_QuantityOne(t *testing.T) {
 		for_sale, err := entity.NewForSale(
 			sellerID, "Unique Koi", "one of a kind", []byte(`[]`), "Sanke",
 			nil, nil, nil, nil, nil, []string{"global"},
-			entity.ForSaleTypeFixedPrice, money.New(500000), 1, false,
+			money.New(500000), 1, false,
 			entity.ForSaleVisibilityPublic,
 			nil, entity.PreparationTimeImmediate, nil,
 		)
@@ -382,7 +382,7 @@ func TestForSaleRepository_DirectQuantityEdit_PersistsThroughUpdate(t *testing.T
 		for_sale, err := entity.NewForSale(
 			sellerID, "Restock Koi", "seller increases stock", []byte(`[]`), "Kohaku",
 			nil, nil, nil, nil, nil, []string{"global"},
-			entity.ForSaleTypeFixedPrice, money.New(300000), 1, false,
+			money.New(300000), 1, false,
 			entity.ForSaleVisibilityPublic,
 			nil, entity.PreparationTimeImmediate, nil,
 		)

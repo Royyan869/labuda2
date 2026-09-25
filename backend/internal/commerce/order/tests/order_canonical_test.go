@@ -99,7 +99,7 @@ func TestDoubleCheckoutProtection(t *testing.T) {
 	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
 		return err
 	}
-	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(500000), 1, false, forsaleEntity.ForSaleVisibilityPublic)
+	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(500000), 1, false, forsaleEntity.ForSaleVisibilityPublic)
 	forSale.ProductID = forSale_product.ID
 	forSale.Product = forSale_product
 		if err != nil {
@@ -293,7 +293,7 @@ func TestStockRaceCondition(t *testing.T) {
 	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
 		return err
 	}
-	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(300000), initialStock, false, forsaleEntity.ForSaleVisibilityPublic)
+	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(300000), initialStock, false, forsaleEntity.ForSaleVisibilityPublic)
 	forSale.ProductID = forSale_product.ID
 	forSale.Product = forSale_product
 		if err != nil {
@@ -458,7 +458,7 @@ func TestOrderCreationIdempotency(t *testing.T) {
 	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
 		return err
 	}
-	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(100000), 3, false, forsaleEntity.ForSaleVisibilityPublic)
+	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(100000), 3, false, forsaleEntity.ForSaleVisibilityPublic)
 	forSale.ProductID = forSale_product.ID
 	forSale.Product = forSale_product
 		if err != nil {
@@ -598,7 +598,7 @@ func TestDifferentBuyersSameIdempotencyKey(t *testing.T) {
 	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
 		return err
 	}
-	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(100000), 2, false, forsaleEntity.ForSaleVisibilityPublic)
+	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(100000), 2, false, forsaleEntity.ForSaleVisibilityPublic)
 	forSale.ProductID = forSale_product.ID
 	forSale.Product = forSale_product
 		if err != nil {

@@ -521,7 +521,6 @@ func scanJoinedSaleFromRow(scanner interface {
 
 	sale.ProductID = saleProductID
 	sale.Product = product
-	sale.ForSaleType = entity.ForSaleTypeFixedPrice
 	sale.QuantityAvailable = quantityAvailable
 	sale.Visibility = derivedVisibility(entity.ForSaleStatus(saleStatus), publishedAt)
 	sale.Status = entity.ForSaleStatus(saleStatus)
@@ -531,20 +530,6 @@ func scanJoinedSaleFromRow(scanner interface {
 	sale.CreatedAt = saleCreatedAt
 	sale.UpdatedAt = saleUpdatedAt
 	sale.PricePerUnit = money.New(sale.PricePerUnit.Int64())
-	// Deprecated aliases — keep in sync for Social compatibility
-	sale.Title = productTitle
-	sale.Description = productDescription
-	sale.MediaURLs = mediaURLsRaw
-	sale.Variety = productVariety
-	sale.SizeCM = sizeCM
-	sale.AgeMonths = ageMonths
-	sale.Gender = gender
-	sale.Breeder = breeder
-	sale.Bloodline = bloodline
-	sale.Certificates = certificates
-	sale.FarmAddressID = productFarmAddressID
-	sale.PreparationTime = entity.PreparationTime(productPreparationTime)
-	sale.PreparationNote = preparationNote
 	_ = userID
 	_ = userAccountStatus
 	_ = deletedAt

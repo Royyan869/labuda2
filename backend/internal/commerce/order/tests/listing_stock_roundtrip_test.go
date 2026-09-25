@@ -84,7 +84,7 @@ func TestForSaleStockRoundTrip_Qty1(t *testing.T) {
 	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
 		return err
 	}
-	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(750000), 1, false, forsaleEntity.ForSaleVisibilityPublic)
+	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(750000), 1, false, forsaleEntity.ForSaleVisibilityPublic)
 	forSale.ProductID = forSale_product.ID
 	forSale.Product = forSale_product
 		require.NoError(t, err)
@@ -212,7 +212,7 @@ func TestForSaleStockRoundTrip_MultiQty(t *testing.T) {
 	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
 		return err
 	}
-	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(300000), 5, // qty=5
+	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(300000), 5, // qty=5
 			false, forsaleEntity.ForSaleVisibilityPublic)
 	forSale.ProductID = forSale_product.ID
 	forSale.Product = forSale_product
@@ -306,7 +306,7 @@ func TestNegativeQuantityStillBlocked(t *testing.T) {
 	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
 		return err
 	}
-	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(100000), 1, false, forsaleEntity.ForSaleVisibilityPublic)
+	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(100000), 1, false, forsaleEntity.ForSaleVisibilityPublic)
 	forSale.ProductID = forSale_product.ID
 	forSale.Product = forSale_product
 		require.NoError(t, err)

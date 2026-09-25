@@ -4,7 +4,6 @@
 package entity
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -17,32 +16,18 @@ import (
 // Product content (title, description, media, koi attributes, farm address,
 // preparation) is owned exclusively by Product — ForSale surface owns ONLY price/stock/visibility/status.
 //
-// Deprecated alias fields below (Title, Description, MediaURLs, Variety, SizeCM, AgeMonths, Gender, Breeder, Bloodline,
-// Certificates, FarmAddressID, PreparationTime/Note) are kept ONLY for Social/legacy read compatibility until
-// Fase 2.2 Social convergence removes them. They are ALWAYS synced from Product during hydration and writes —
-// Product is the sole persistence authority. Do NOT read/write these alias fields in new code; use Product directly.
+// DEPRECATED ALIAS FIELDS PURGED (closure scope): the former Title/Description/
+// MediaURLs/Variety/SizeCM/AgeMonths/Gender/Breeder/Bloodline/Certificates/
+// FarmAddressID/PreparationTime/PreparationNote mirrors were competing truth —
+// every consumer now reads the canonical Product. ForSaleType (single-valued
+// "fixed_price") was also removed: the concept carried no information and the
+// for_sale_type column is no longer read.
 type ForSale struct {
 	ID        uuid.UUID
 	ProductID uuid.UUID
 	SellerID  uuid.UUID
 
-	// Deprecated aliases — Product is authority. Kept for Social compatibility (revert per closure scope integrity).
-	Title       string          `json:"-"` // Deprecated: use Product.Title
-	Description string          `json:"-"` // Deprecated: use Product.Description
-	MediaURLs   json.RawMessage `json:"-"` // Deprecated: use Product.MediaURLs
-	Variety     string          `json:"-"` // Deprecated: use Product.Variety
-	SizeCM      *int            `json:"-"` // Deprecated: use Product.SizeCm
-	AgeMonths   *int            `json:"-"` // Deprecated: use Product.AgeMonths
-	Gender      *string         `json:"-"` // Deprecated: use Product.Gender
-	Breeder     *string         `json:"-"` // Deprecated: use Product.Breeder
-	Bloodline   *string         `json:"-"` // Deprecated: use Product.Bloodline
-	Certificates []string       `json:"-"` // Deprecated: use Product.Certificates
-	FarmAddressID *uuid.UUID    `json:"-"` // Deprecated: use Product.FarmAddressID
-	PreparationTime PreparationTime `json:"-"` // Deprecated: use Product.PreparationTime
-	PreparationNote *string         `json:"-"` // Deprecated: use Product.PreparationNote
-
 	// Pricing and inventory — ForSale surface authority
-	ForSaleType       ForSaleType
 	PricePerUnit      money.Money
 	QuantityAvailable int
 
@@ -279,13 +264,12 @@ func (l *ForSale) IsAvailable() bool {
 // This is the canonical constructor for production service code — no hidden Product creation.
 func NewForSaleSurface(
 	sellerID uuid.UUID,
-	for_saleType ForSaleType,
 	pricePerUnit money.Money,
 	quantityAvailable int,
 	negotiationEnabled bool,
 	visibility ForSaleVisibility,
 ) (*ForSale, error) {
-	if for_saleType == ForSaleTypeFixedPrice && quantityAvailable < 1 {
+	if quantityAvailable < 1 {
 		return nil, &InvalidQuantityError{Amount: quantityAvailable}
 	}
 	if pricePerUnit.IsNegative() {
@@ -295,7 +279,6 @@ func NewForSaleSurface(
 	return &ForSale{
 		ID:                 uuid.New(),
 		SellerID:           sellerID,
-		ForSaleType:        for_saleType,
 		PricePerUnit:       pricePerUnit,
 		QuantityAvailable:  quantityAvailable,
 		NegotiationEnabled: negotiationEnabled,

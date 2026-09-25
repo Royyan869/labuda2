@@ -520,7 +520,7 @@ func (s *CommentService) AddCommerceReferenceComment(
 		if forSale.Product != nil && len(forSale.Product.MediaURLs) > 0 {
 			imageURL = forSale.Product.MediaURLs[0]
 		}
-		saleTitle := forSale.Title
+		saleTitle := ""
 		if forSale.Product != nil {
 			saleTitle = forSale.Product.Title
 		}
@@ -709,6 +709,45 @@ func (s *CommentService) DeleteComment(
 	}
 
 	return nil
+}
+
+// UpdateComment edits a comment body.
+// AUTHORIZATION: Only author, not deleted, not commerce reference.
+func (s *CommentService) UpdateComment(
+	ctx context.Context,
+	tx db.Tx,
+	commentID, callerID uuid.UUID,
+	body string,
+) (*entity.Comment, error) {
+	if err := auth.ValidateCaller(callerID); err != nil {
+		return nil, err
+	}
+	trimmed := strings.TrimSpace(body)
+	if trimmed == "" {
+		return nil, &entity.ErrInvalidComment{Reason: "body cannot be empty"}
+	}
+	if len(trimmed) > 2000 {
+		return nil, &entity.ErrInvalidComment{Reason: "body too long"}
+	}
+	model, err := s.commentRepo.GetByID(ctx, tx, commentID)
+	if err != nil {
+		return nil, fmt.Errorf("get comment failed: %w", err)
+	}
+	if model.DeletedAt != nil {
+		return nil, &entity.ErrInvalidComment{Reason: "cannot edit deleted comment"}
+	}
+	if model.AuthorID != callerID {
+		return nil, fmt.Errorf("only comment author can edit comment")
+	}
+	// Commerce reference comments keep reference immutable; only body is editable
+	if err := s.commentRepo.UpdateBody(ctx, tx, commentID, trimmed); err != nil {
+		return nil, fmt.Errorf("update comment failed: %w", err)
+	}
+	updated, err := s.commentRepo.GetByID(ctx, tx, commentID)
+	if err != nil {
+		return nil, fmt.Errorf("get updated comment failed: %w", err)
+	}
+	return updated, nil
 }
 
 // SoftDeleteForModeration soft deletes a comment due to moderation action.

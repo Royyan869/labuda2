@@ -85,7 +85,7 @@ func TestStage5_RestoreListingStock_ResolvesSurfaceFromOrderSource(t *testing.T)
 	if err := productRepo.Create(ctx, tx, listing_product); err != nil {
 		return err
 	}
-	listing, err := fpsentity.NewForSaleSurface(sellerID, fpsentity.ForSaleTypeFixedPrice, money.New(50000), 2, false, fpsentity.ForSaleVisibilityPublic)
+	listing, err := fpsentity.NewForSaleSurface(sellerID, money.New(50000), 2, false, fpsentity.ForSaleVisibilityPublic)
 	listing.ProductID = listing_product.ID
 	listing.Product = listing_product
 		if err != nil {

@@ -213,6 +213,24 @@ func (r *CommentRepositoryImpl) loadComment(ctx context.Context, tx db.Tx, query
 	return comment, nil
 }
 
+// UpdateBody updates comment body for edit.
+func (r *CommentRepositoryImpl) UpdateBody(
+	ctx context.Context,
+	tx db.Tx,
+	id uuid.UUID,
+	body string,
+) error {
+	_, err := tx.Exec(ctx, `
+		UPDATE comments
+		SET body = $1, updated_at = NOW()
+		WHERE id = $2 AND deleted_at IS NULL
+	`, body, id)
+	if err != nil {
+		return fmt.Errorf("update comment failed: %w", err)
+	}
+	return nil
+}
+
 func scanCommentRow(row interface{ Scan(...any) error }) (*entity.Comment, error) {
 	var (
 		comment          entity.Comment

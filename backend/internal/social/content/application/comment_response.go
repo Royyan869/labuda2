@@ -1,7 +1,6 @@
 package application
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -178,16 +177,12 @@ func GetForSalePreviewFromForSale(
 	forSaleID uuid.UUID,
 	title string,
 	price money.Money,
-	mediaURLs json.RawMessage,
+	mediaURLs []string,
 	status string,
 ) (*ForSalePreview, error) {
-	// Parse media URLs from JSONB
-	var urls []string
-	if mediaURLs != nil {
-		if err := json.Unmarshal(mediaURLs, &urls); err != nil {
-			return nil, err
-		}
-	}
+	// Canonical media authority: callers pass Product.MediaURLs directly —
+	// the deprecated ForSale alias (json.RawMessage) was purged.
+	urls := mediaURLs
 
 	// Canonical additive thumbnail: first element of media_urls, nil when absent.
 	var thumbnail *string

@@ -36,7 +36,7 @@ func (r *CommentRepositoryImpl) FindTargetIDByCommerceReference(
 		SELECT c.target_id
 		FROM comments c
 		JOIN comment_commerce_references ccr ON ccr.comment_id = c.id
-		WHERE ccr.for_sale_id = $1
+		WHERE ccr.for_sale_id = $1 OR ccr.auction_id = $1
 		LIMIT 1
 	`
 

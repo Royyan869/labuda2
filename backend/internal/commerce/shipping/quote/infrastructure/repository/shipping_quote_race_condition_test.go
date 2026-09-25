@@ -228,7 +228,7 @@ func seedPublishedForSale(t *testing.T, ctx context.Context, tdb *testdb.TestDB,
 	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
 		return err
 	}
-	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(25000), 1, false, forsaleEntity.ForSaleVisibilityPrivate)
+	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(25000), 1, false, forsaleEntity.ForSaleVisibilityPrivate)
 	forSale.ProductID = forSale_product.ID
 	forSale.Product = forSale_product
 	require.NoError(t, err)

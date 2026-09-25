@@ -55,6 +55,7 @@ import (
 
 	forsaleentity "github.com/labuda/backend/internal/commerce/forsale/entity"
 	forsalerepo "github.com/labuda/backend/internal/commerce/forsale/repository"
+	productentity "github.com/labuda/backend/internal/commerce/product/entity"
 	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
 	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
 
@@ -261,14 +262,17 @@ func newHappyPathFixtures(_ *testing.T) (*OrderCreationService, CreateFromSaleSu
 		ID:                listingID,
 		ProductID:         productID,
 		SellerID:          sellerID,
-		Title:             "Kohaku Premium 40cm",
-		ForSaleType:       forsaleentity.ForSaleTypeFixedPrice,
 		PricePerUnit:      money.New(100_000),
 		QuantityAvailable: 5,
 		Status:            forsaleentity.ForSaleStatusActive,
 		Visibility:        forsaleentity.ForSaleVisibilityPublic,
-		FarmAddressID:     &farmAddressID,
-		PreparationTime:   forsaleentity.PreparationTimeImmediate,
+		// Content authority is Product — alias fields purged.
+		Product: &productentity.Product{
+			ID:              productID,
+			Title:           "Kohaku Premium 40cm",
+			FarmAddressID:   &farmAddressID,
+			PreparationTime: string(forsaleentity.PreparationTimeImmediate),
+		},
 	}
 
 	buyerAddress := &addressentity.Address{

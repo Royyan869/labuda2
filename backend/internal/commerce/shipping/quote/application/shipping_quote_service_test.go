@@ -34,9 +34,11 @@ func TestBuildShippingQuoteAttachmentJSON_Canonical(t *testing.T) {
 
 	forSale := &forsaleEntity.ForSale{
 		ID:           productID,
-		Title:        "ForSale Title",
 		PricePerUnit: money.New(125000),
-		MediaURLs:    []byte(`["https://example.com/for_sale.jpg"]`),
+		Product: &productEntity.Product{
+			Title:     "ForSale Title",
+			MediaURLs: []string{"https://example.com/for_sale.jpg"},
+		},
 	}
 
 	att := buildShippingQuoteAttachmentJSONV2(quote, forSale, nil)

@@ -210,7 +210,6 @@ type CreateForSaleInput struct {
 	Breeder            *string
 	Bloodline          *string
 	Certificates       []string
-	ForSaleType        entity.ForSaleType
 	PricePerUnit       money.Money
 	QuantityAvailable  int
 	NegotiationEnabled bool
@@ -282,7 +281,6 @@ func (s *ForSaleService) Create(
 	// Product content is handled explicitly below via ProductRepository.
 	for_sale, err := entity.NewForSaleSurface(
 		input.SellerID,
-		input.ForSaleType,
 		input.PricePerUnit,
 		input.QuantityAvailable,
 		input.NegotiationEnabled,

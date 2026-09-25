@@ -98,7 +98,7 @@ func seedFPS002PendingOrder(t *testing.T, ctx context.Context, tdb *testdb.TestD
 	if err := productRepo.Create(ctx, tx, listing_product); err != nil {
 		return err
 	}
-	listing, err := forsaleentity.NewForSaleSurface(sellerID, forsaleentity.ForSaleTypeFixedPrice, money.New(50000), 1, false, forsaleentity.ForSaleVisibilityPublic)
+	listing, err := forsaleentity.NewForSaleSurface(sellerID, money.New(50000), 1, false, forsaleentity.ForSaleVisibilityPublic)
 	listing.ProductID = listing_product.ID
 	listing.Product = listing_product
 		if err != nil {

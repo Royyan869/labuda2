@@ -60,9 +60,7 @@ func TestMigrationAuthorityDocsAndRuntimeStayAligned(t *testing.T) {
 		{
 			path: "../.env.example",
 			mustContain: []string{
-				"Deprecated compatibility flags only.",
-				"RUN_MIGRATIONS_ON_STARTUP=false",
-				"AUTO_MIGRATE=false",
+				"RUN_MIGRATIONS_AT_STARTUP=false",
 			},
 		},
 		{

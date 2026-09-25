@@ -242,7 +242,6 @@ func (h *ForSaleHandler) CreateForSale(c *gin.Context) {
 			Breeder:            req.Breeder,
 			Bloodline:          req.Bloodline,
 			Certificates:       req.Certificates,
-			ForSaleType:        entity.ForSaleTypeFixedPrice, // Default to fixed_price
 			PricePerUnit:       money.New(req.Price),
 			QuantityAvailable:  quantity,
 			NegotiationEnabled: req.NegotiationEnabled,
@@ -987,11 +986,9 @@ func for_saleToResponseWithSeller(
 ) map[string]interface{} {
 	product := l.Product
 
-	// Parse media URLs from JSONB
+	// Canonical media authority is Product.MediaURLs — the deprecated alias
+	// fallback (l.MediaURLs) was purged with the alias fields.
 	mediaURLs := product.MediaURLs
-	if len(mediaURLs) == 0 && len(l.MediaURLs) > 0 && string(l.MediaURLs) != "null" {
-		_ = json.Unmarshal(l.MediaURLs, &mediaURLs)
-	}
 
 	// Typed media items with type inference from URL extension.
 	mediaItems := for_saleResponseMediaItems(l)

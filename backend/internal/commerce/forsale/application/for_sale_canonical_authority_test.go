@@ -250,7 +250,7 @@ func TestCanonical_Workspace_DeletedDenied(t *testing.T) {
 // Ensure entity lifecycle still holds: private draft can be created via entity directly
 func TestCanonical_Entity_PrivateDraft_IsWorkspaceNotMarket(t *testing.T) {
 	seller := uuid.New()
-	fs, err := entity.NewForSaleSurface(seller, entity.ForSaleTypeFixedPrice, money.New(100000), 1, false, entity.ForSaleVisibilityPrivate)
+	fs, err := entity.NewForSaleSurface(seller, money.New(100000), 1, false, entity.ForSaleVisibilityPrivate)
 	require.NoError(t, err)
 	assert.Equal(t, entity.ForSaleStatusDraft, fs.Status)
 	assert.Equal(t, entity.ForSaleVisibilityPrivate, fs.Visibility)

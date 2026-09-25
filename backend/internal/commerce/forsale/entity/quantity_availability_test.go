@@ -17,7 +17,6 @@ func newActiveForSale(quantity int) *ForSale {
 	now := time.Now()
 	return &ForSale{
 		ID:                uuid.New(),
-		ForSaleType:       ForSaleTypeFixedPrice,
 		PricePerUnit:      money.New(100000),
 		QuantityAvailable: quantity,
 		Status:            ForSaleStatusActive,

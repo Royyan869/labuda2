@@ -63,7 +63,6 @@ func stage1ForSale(sellerID, productID uuid.UUID, title string, quantity int) *f
 	_ = title // legacy title not stored on surface; Product is authority
 	forSale, err := forsaleEntity.NewForSaleSurface(
 		sellerID,
-		forsaleEntity.ForSaleTypeFixedPrice,
 		money.New(100000),
 		quantity,
 		false,

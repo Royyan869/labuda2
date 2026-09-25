@@ -119,7 +119,7 @@ func insertLinkageTestForSale(
 	if err := productRepo.Create(ctx, tx, sale_product); err != nil {
 		t.Fatalf("productRepo.Create: %v", err)
 	}
-	sale, err := forsaleEntity.NewForSaleSurface(sellerID, forsaleEntity.ForSaleTypeFixedPrice, money.New(500000), 1, true, // negotiationEnabled
+	sale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(500000), 1, true, // negotiationEnabled
 		forsaleEntity.ForSaleVisibilityPublic)
 	sale.ProductID = sale_product.ID
 	sale.Product = sale_product

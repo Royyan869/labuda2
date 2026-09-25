@@ -40,7 +40,6 @@ func newPublicActiveForSaleForCheckout(sellerID uuid.UUID) *entity.ForSale {
 		Status:            entity.ForSaleStatusActive,
 		Visibility:        entity.ForSaleVisibilityPublic,
 		QuantityAvailable: 5,
-		ForSaleType:       entity.ForSaleTypeFixedPrice,
 	}
 }
 
