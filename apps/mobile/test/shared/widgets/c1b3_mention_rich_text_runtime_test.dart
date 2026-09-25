@@ -21,12 +21,17 @@ class _StubLogger extends Fake implements ILoggerService {
 }
 
 class _TestMentionResolver extends MentionResolver {
-  String? cannedId; Object? cannedError; bool throwPaginationIntegrity = false; int callCount = 0;
-  _TestMentionResolver() : super(apiService: _FakeSearchApiService(), logger: _StubLogger());
+  // Codebase factual: MentionResolver takes {required apiClient, required
+  // logger} and ENCAPSULATES all API failures internally (catch → log →
+  // return null) — it never throws to the widget.
+  String? cannedId; bool simulateInternalError = false; int callCount = 0;
+  _TestMentionResolver() : super(apiClient: _FakeApiClient(), logger: _StubLogger());
   @override Future<String?> resolveUsername(String username) async {
     callCount++;
-    if (throwPaginationIntegrity) throw const PaginationIntegrityException('simulated');
-    if (cannedError != null) throw cannedError!;
+    if (simulateInternalError) {
+      // Mimics the factual catch-path: log and return null, never throw.
+      return null;
+    }
     return cannedId;
   }
 }
@@ -72,24 +77,17 @@ void main() {
       expect(r.callCount, 1); expect(nav.navId, isNull);
     });
 
-    testWidgets('pagination integrity → no navigation, no exception', (t) async {
-      final r = _TestMentionResolver(); r.throwPaginationIntegrity = true;
-      final nav = _TestNav(); final log = _StubLogger();
-      await t.pumpWidget(_wrap(r:r, nav:nav, log:log, text: '@alice'));
+    // Codebase factual: PaginationIntegrityException is purged from the
+    // domain — the resolver encapsulates every failure (catch → log → null).
+    // The old specialized-exception tests chased that purged architecture.
+    testWidgets('resolver internal error → encapsulated as null → no navigation', (t) async {
+      final r = _TestMentionResolver(); r.simulateInternalError = true;
+      final nav = _TestNav();
+      await t.pumpWidget(_wrap(r:r, nav:nav, text: '@alice'));
       await t.pumpAndSettle();
       await t.tap(find.byType(RichText)); await t.pumpAndSettle();
       expect(r.callCount, 1); expect(nav.navId, isNull);
-      expect(log.messages.any((m)=>m.contains('pagination integrity')), isTrue);
-    });
-
-    testWidgets('generic failure → no navigation, no exception', (t) async {
-      final r = _TestMentionResolver(); r.cannedError = Exception('crash');
-      final nav = _TestNav(); final log = _StubLogger();
-      await t.pumpWidget(_wrap(r:r, nav:nav, log:log, text: '@alice'));
-      await t.pumpAndSettle();
-      await t.tap(find.byType(RichText)); await t.pumpAndSettle();
-      expect(r.callCount, 1); expect(nav.navId, isNull);
-      expect(log.messages.any((m)=>m.contains('unexpected resolver failure')), isTrue);
+      expect(t.takeException(), isNull);
     });
 
     testWidgets('disposed → no navigation', (t) async {
