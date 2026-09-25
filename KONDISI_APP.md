@@ -106,3 +106,23 @@ Engineering governance • Zero-to-one convergence
     DEPENDENCY tells us HOW TO CHANGE IT SAFELY.
     CLEANUP removes what SHOULD NO LONGER EXIST.
     Tujuan Labuda bukan sekadar aplikasi yang dapat build atau test yang hijau. Tujuannya adalah codebase dengan satu kebenaran canonical per konsep, domain boundary yang jelas, proof yang dapat dipertanggungjawabkan, dan tanpa residue yang dapat menghidupkan kembali kesalahan lama.
+14. Canonical Truths Terkunci — Convergence Record (Sept 2026)
+    Keputusan authority yang telah dikunci owner dan dieksekusi total. Semua dianggap canonical; menghidupkan kembali pola lama = violation.
+
+    • PRODUCT SATU AUTHORITY KONTEN. Title, description, media (termasuk typed metadata: type/dimensions/thumbnail/position), atribut ikan, farm address, preparation — semuanya milik Product. Entity ForSale dan Auction TIDAK lagi membawa salinan konten (13 alias field ForSale dihapus total; dual-write hydration dihapus). Konsumen membaca Product langsung dengan nil-guard eksplisit. Kolom DB for_sale_type dormant — drop = scope migrasi terpisah.
+
+    • FORSALE TYPE TIDAK ADA. Konsep ForSaleType/FixedPrice dihapus dari entity, input, factory, wire, dan seluruh test. Jangan direkonstruksi.
+
+    • WIRE MEDIA TYPED SATU BENTUK. commerce/shared MediaWireItems adalah satu helper projection media untuk kedua surface commerce (for_sale + auction detail). Blok `media` typed identik; `media_urls` flat tetap fallback universal untuk payload list.
+
+    • AUCTION DISCOVERY SATU ENGINE. List discovery auction = Future engine (mirror for_sale), limit canonical 50. StreamProvider legacy, watchActiveAuctions/watchUserAuctions dihapus — jangan dihidupkan untuk "test compat". Polling detail/bids satu loop bersama dengan dedup snapshot; satu surface gagal tidak membunuh surface lain.
+
+    • AUCTION STATUS BOUNDARY (keputusan owner). Wire publik `status` = kosakata phase tertutup {scheduled, active, waiting_settlement, ended, cancelled} (Status.PublicPhase). DRAFT TIDAK PERNAH menyeberang batas publik — dipetakan defensif ke cancelled. Nilai internal state-machine hanya lewat `seller_status`, hanya terisi untuk seller pemilik (owner surfaces), null untuk viewer lain. Detail draft 404 untuk non-owner. Search adapter coarsen juga. Mobile mapper memprioritaskan seller_status di atas status.
+
+    • EMAIL_VERIFICATION_REQUIRED KANONIK = SNACKBAR. Semua kanal (auction bid, checkout, chat) menampilkan error snackbar dengan pesan spesifik aksi — bukan dialog. Test yang mengejar dialog hantu telah di-align.
+
+    • FORSALE VISIBILITY TETAP DERIVED. visibility dihitung dari status+published_at; draft selalu private, detail di-guard 404 non-owner. Auction kini ber-paritas.
+
+    • DIPURGE JUGA: field hantu DTO auction (expiredBNR, bid history hantu), deadline settlement kini derived (end_at + 24 jam) — bukan wire field. `expired_bnr`/`sold`/`expired` bukan backend state; parser mobile menormalkannya ke canonical (draft/ended) tanpa nilai enum hantu.
+
+    Pre-existing debt terverifikasi baseline (bukan regression konvergensi): saved_item contract test, promoted feed HTTP-mock family, StableNetworkImage header test, /settings toggle, payment notifier compile debt. Sumber kebenaran commit: e1fb4ae, c9ab974, a00b230, 94c1ce8, 7b0b1c8, 64e9f24, 23d36d9.
