@@ -29,17 +29,37 @@ class AuctionMapper {
   /// settlement deadline is DERIVED from end_at + 24h (canonical backend
   /// rule: Auction.SettlementDeadline()).
   static Auction toEntity(AuctionDto dto) {
-    // Convert backend images to MediaEntity
-    final media = dto.images
-        .map(
-          (url) => MediaEntity(
-            id: _generateMediaId(url),
-            originalUrl: url,
-            type: MediaType.image,
-            createdAt: DateTime.now(),
-          ),
-        )
-        .toList();
+    // CONVERGED media parsing: prefer the typed media block (backend detail
+    // wire carries id/type/dimensions/thumbnail — identical shape to
+    // for_sale); fall back to string images (list wire) as image-only.
+    final media =
+        dto.mediaItems.isNotEmpty
+        ? dto.mediaItems
+              .map(
+                (item) => MediaEntity(
+                  id: item.id.isNotEmpty
+                      ? item.id
+                      : _generateMediaId(item.url),
+                  originalUrl: item.url,
+                  type: item.isVideo ? MediaType.video : MediaType.image,
+                  dimensions:
+                      (item.width != null && item.height != null)
+                      ? MediaDimensions(width: item.width!, height: item.height!)
+                      : null,
+                  createdAt: item.createdAt ?? DateTime.now(),
+                ),
+              )
+              .toList()
+        : dto.images
+              .map(
+                (url) => MediaEntity(
+                  id: _generateMediaId(url),
+                  originalUrl: url,
+                  type: MediaType.image,
+                  createdAt: DateTime.now(),
+                ),
+              )
+              .toList();
 
     // Owner Truth: username = account; farmName = seller/store; fullName = private/KYC.
     // Identity slots map directly from backend identity scalars:

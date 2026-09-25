@@ -250,6 +250,56 @@ class UserBriefDto extends Equatable {
 /// parsing them recreated fake truths (always-zero counters, dead state).
 /// The settlement deadline is DERIVED downstream from end_at + 24h
 /// (canonical backend rule: Auction.SettlementDeadline()).
+/// Typed media item from the backend detail wire — CONVERGED shape,
+/// identical to for_sale's ForSaleMediaItemDto (same fields, same parser
+/// tolerance) so both Product surfaces render through one model contract.
+class AuctionMediaItemDto {
+  final String id;
+  final String type; // "image" or "video"
+  final String url;
+  final int position;
+  final String? thumbnailUrl;
+  final int? width;
+  final int? height;
+  final int? duration;
+  final DateTime? createdAt;
+
+  const AuctionMediaItemDto({
+    required this.id,
+    required this.type,
+    required this.url,
+    required this.position,
+    this.thumbnailUrl,
+    this.width,
+    this.height,
+    this.duration,
+    this.createdAt,
+  });
+
+  factory AuctionMediaItemDto.fromJson(Map<String, dynamic> json) {
+    final thumbnail = json['thumbnail_url'];
+    final createdAtRaw = json['created_at'];
+    return AuctionMediaItemDto(
+      id: json['id'] as String? ?? '',
+      type: json['type'] as String? ?? 'image',
+      url: json['url'] as String? ?? '',
+      position: json['position'] as int? ?? 0,
+      // Backend renders thumbnail_url as "" when absent — normalize to null
+      // so callers treat it as genuinely absent instead of an empty URL.
+      thumbnailUrl: (thumbnail is String && thumbnail.isNotEmpty) ? thumbnail : null,
+      width: (json['width'] as num?)?.toInt(),
+      height: (json['height'] as num?)?.toInt(),
+      duration: (json['duration'] as num?)?.toInt(),
+      createdAt:
+          (createdAtRaw is String && createdAtRaw.isNotEmpty)
+          ? DateTime.tryParse(createdAtRaw)
+          : null,
+    );
+  }
+
+  bool get isVideo => type == 'video';
+}
+
 class AuctionDto extends Equatable {
   final String id;
   final String sellerId;
@@ -260,6 +310,12 @@ class AuctionDto extends Equatable {
   final String title;
   final String? description;
   final List<String> images;
+
+  /// Typed media block from the detail wire (backend commerce/shared
+  /// MediaWireItems) — the converged projection of Product.MediaURLs.
+  /// Empty/absent on list payloads; string [images] remains the universal
+  /// fallback so the parser stays shape-agnostic.
+  final List<AuctionMediaItemDto> mediaItems;
 
   // =========================================================================
   // CANONICAL DETAIL CONTENT (backend Product projection on the detail wire)
@@ -347,6 +403,7 @@ class AuctionDto extends Equatable {
     required this.title,
     this.description,
     this.images = const [],
+    this.mediaItems = const [],
     this.variety,
     this.sizeCm,
     this.ageMonths,
@@ -392,6 +449,11 @@ class AuctionDto extends Equatable {
     final imagesRaw = json['images'] as List<dynamic>?;
     final mediaUrlsRaw = json['media_urls'] as List<dynamic>?;
     final mediaRaw = json['media'] as List<dynamic>?;
+    final mediaItems =
+        (mediaRaw ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(AuctionMediaItemDto.fromJson)
+            .toList();
     final normalizedImages = (imagesRaw ?? mediaUrlsRaw ?? mediaRaw ?? const [])
         .map((e) {
           if (e is String) return e;
@@ -411,6 +473,7 @@ class AuctionDto extends Equatable {
       title: json['title'] as String,
       description: json['description'] as String?,
       images: normalizedImages,
+      mediaItems: mediaItems,
       variety: json['variety'] as String?,
       sizeCm: (json['size_cm'] as num?)?.toInt(),
       ageMonths: (json['age_months'] as num?)?.toInt(),
@@ -457,7 +520,7 @@ class AuctionDto extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, sellerId, title, status];
+  List<Object?> get props => [id, sellerId, title, status, images, mediaItems];
 }
 
 /// E8.2 — Extract the embedded seller user-identity lifecycle string from

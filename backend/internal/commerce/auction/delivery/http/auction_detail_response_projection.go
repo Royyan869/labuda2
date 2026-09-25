@@ -32,6 +32,10 @@ func auctionToDetailResponseWithSeller(
 		resp["title"] = product.Title
 		resp["description"] = product.Description
 		resp["media_urls"] = product.MediaURLs
+		// Typed media block — CONVERGED shared helper (identical shape to
+		// for_sale detail). Product.MediaURLs is the sole authority; the
+		// typed block is a projection of it.
+		resp["media"] = commerceshared.MediaWireItems(product.MediaURLs, a.CreatedAt)
 		resp["variety"] = product.Variety
 		resp["size_cm"] = product.SizeCm
 		resp["age_months"] = product.AgeMonths

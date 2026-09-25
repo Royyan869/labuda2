@@ -15,6 +15,7 @@ import (
 	for_saleApp "github.com/labuda/backend/internal/commerce/forsale/application"
 	"github.com/labuda/backend/internal/commerce/forsale/entity"
 	for_saleRepo "github.com/labuda/backend/internal/commerce/forsale/repository"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	orderRepo "github.com/labuda/backend/internal/commerce/order/repository"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	"github.com/labuda/backend/internal/governance/viewercontext"
@@ -987,16 +988,13 @@ func for_saleToResponseWithSeller(
 	product := l.Product
 
 	// Canonical media authority is Product.MediaURLs — the deprecated alias
-	// fallback (l.MediaURLs) was purged with the alias fields.
+	// fallback (l.MediaURLs) was purged with the alias fields. Typed media
+	// block is the CONVERGED shared helper (same shape as auction detail).
 	mediaURLs := product.MediaURLs
-
-	// Typed media items with type inference from URL extension.
-	mediaItems := for_saleResponseMediaItems(l)
-	renderedMedia := make([]map[string]interface{}, 0, len(mediaItems))
-	for _, item := range mediaItems {
-		renderedMedia = append(renderedMedia, renderForSaleMediaWire(item))
-	}
-	if renderedMedia == nil {
+	var renderedMedia []map[string]interface{}
+	if product != nil {
+		renderedMedia = commerceshared.MediaWireItems(product.MediaURLs, l.CreatedAt)
+	} else {
 		renderedMedia = []map[string]interface{}{}
 	}
 
