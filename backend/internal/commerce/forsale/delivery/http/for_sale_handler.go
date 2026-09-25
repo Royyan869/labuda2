@@ -285,7 +285,7 @@ func (h *ForSaleHandler) CreateForSale(c *gin.Context) {
 	// Store idempotency record if key was provided
 	if idempotencyKey != "" {
 		scopedKey := fmt.Sprintf("for_sale.create.%s.%s", sellerID.String(), idempotencyKey)
-		responseData := for_saleToResponse(for_sale)
+		responseData := for_saleToResponse(for_sale, sellerID)
 		responseDataJSON, _ := json.Marshal(responseData)
 
 		insertQuery := `
@@ -296,7 +296,7 @@ func (h *ForSaleHandler) CreateForSale(c *gin.Context) {
 		_, _ = h.db.Pool().Exec(ctx, insertQuery, scopedKey, sellerID, "for_sale.create", for_sale.ID, responseDataJSON, "completed")
 	}
 
-	response.Created(c, for_saleToResponse(for_sale))
+	response.Created(c, for_saleToResponse(for_sale, sellerID))
 }
 
 // UpdateForSaleRequest holds the request body for updating a for_sale.
@@ -524,7 +524,7 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, for_saleToResponse(updatedForSale))
+	response.Success(c, for_saleToResponse(updatedForSale, callerID))
 }
 
 // GetForSale handles GET /api/v1/for_sales/:id
@@ -819,7 +819,7 @@ func (h *ForSaleHandler) ListForSales(c *gin.Context) {
 	// Convert to response format
 	items := make([]map[string]interface{}, 0, len(for_sales))
 	for _, for_sale := range for_sales {
-		resp := for_saleToResponseWithSeller(for_sale, sellerInfoByID[for_sale.SellerID])
+		resp := for_saleToResponseWithSeller(for_sale, sellerInfoByID[for_sale.SellerID], &viewerID)
 		items = append(items, resp)
 	}
 
@@ -871,6 +871,15 @@ func (h *ForSaleHandler) SearchForSales(c *gin.Context) {
 	if err := c.ShouldBindQuery(&req); err != nil {
 		response.BadRequest(c, "Invalid request")
 		return
+	}
+
+	// Extract viewer ID (optional) — Scope 3 status boundary: the exact
+	// internal state crosses the wire ONLY for the owning seller.
+	var viewerID uuid.UUID
+	if userIDVal, exists := c.Get("userID"); exists {
+		if id, ok := userIDVal.(uuid.UUID); ok {
+			viewerID = id
+		}
 	}
 
 	// Set defaults
@@ -954,7 +963,7 @@ func (h *ForSaleHandler) SearchForSales(c *gin.Context) {
 	// Convert to response format
 	items := make([]map[string]interface{}, 0, len(result.ForSales))
 	for _, for_sale := range result.ForSales {
-		resp := for_saleToResponseWithSeller(for_sale, sellerInfoByID[for_sale.SellerID])
+		resp := for_saleToResponseWithSeller(for_sale, sellerInfoByID[for_sale.SellerID], &viewerID)
 		items = append(items, resp)
 	}
 
@@ -974,16 +983,55 @@ func (h *ForSaleHandler) SearchForSales(c *gin.Context) {
 //
 // These fields are ALWAYS present (empty string when absent) so the
 // shape is stable; existing fields are unchanged.
-func for_saleToResponse(l *entity.ForSale) map[string]interface{} {
-	return for_saleToResponseWithSeller(l, sellerdisplay.Info{})
+//
+// Owner-only write surfaces (create/update): the response carries the exact
+// internal state as `seller_status` for the owning seller (Scope 3).
+func for_saleToResponse(l *entity.ForSale, ownerID uuid.UUID) map[string]interface{} {
+	return for_saleToResponseWithSeller(l, sellerdisplay.Info{}, &ownerID)
+}
+
+// sellerStatusForViewer returns the exact internal for_sale status only for
+// the owning seller; every other viewer gets null. The raw state-machine
+// value never crosses the public boundary (Scope 3 parity with auction).
+func sellerStatusForViewer(l *entity.ForSale, viewerID *uuid.UUID) *string {
+	if viewerID == nil || *viewerID == uuid.Nil || *viewerID != l.SellerID {
+		return nil
+	}
+	s := string(l.Status)
+	return &s
+}
+
+// soldAtForViewer / withdrawnAtForViewer gate internal transition timestamps
+// to the owning seller; every other viewer reads null.
+func soldAtForViewer(l *entity.ForSale, viewerID *uuid.UUID) *time.Time {
+	if viewerID == nil || *viewerID == uuid.Nil || *viewerID != l.SellerID {
+		return nil
+	}
+	return l.SoldAt
+}
+
+func withdrawnAtForViewer(l *entity.ForSale, viewerID *uuid.UUID) *time.Time {
+	if viewerID == nil || *viewerID == uuid.Nil || *viewerID != l.SellerID {
+		return nil
+	}
+	return l.WithdrawnAt
 }
 
 // for_saleToResponseWithSeller renders for_sale JSON with seller display
 // fields hydrated from sellerdisplay.Info. Used by list/search/detail
 // endpoints that batch-fetch seller info to avoid N+1.
+//
+// Scope 3 — status boundary (parity with auction): `status` carries the
+// coarsened public lifecycle vocabulary via entity.ForSaleStatus
+// .PublicLifecycle() ({active, unavailable}; draft never crosses the public
+// boundary). The exact internal state crosses the wire ONLY via
+// `seller_status`, and only when viewerID is the owning seller — for every
+// other viewer it is null. Internal timestamps (sold_at/withdrawn_at) are
+// likewise gated to the owning seller.
 func for_saleToResponseWithSeller(
 	l *entity.ForSale,
 	seller sellerdisplay.Info,
+	viewerID *uuid.UUID,
 ) map[string]interface{} {
 	product := l.Product
 
@@ -1055,18 +1103,21 @@ func for_saleToResponseWithSeller(
 		"price":               l.PricePerUnit.Int64(),
 		"quantity":            l.QuantityAvailable,
 		"negotiation_enabled": l.NegotiationEnabled,
-		"visibility":          string(l.Visibility),
-		// PUBLIC BOUNDARY: `status` retains the raw enum string for legacy
-		// mobile compat; `lifecycle` is the canonical coarsened vocabulary
-		// and is the field new clients should consume. Both are surfaced
-		// during the transition. Future batches will retire the raw enum.
-		"status":           string(l.Status),
+		"visibility":       string(l.Visibility),
+		// PUBLIC BOUNDARY: `status` is the coarsened public lifecycle
+		// ({active, unavailable}); the raw internal enum crosses the wire
+		// ONLY via `seller_status` for the owning seller (Scope 3 parity
+		// with auction).
+		"status":           l.Status.PublicLifecycle(),
 		"lifecycle":        l.Status.PublicLifecycle(),
+		"seller_status":    sellerStatusForViewer(l, viewerID),
 		"preparation_time": product.PreparationTime,
 		"preparation_note": product.PreparationNote,
 		"published_at":     l.PublishedAt,
-		"sold_at":          l.SoldAt,
-		"withdrawn_at":     l.WithdrawnAt,
+		// Internal transition timestamps are owner-scoped truth — hidden
+		// from every other viewer (Scope 3 parity with auction).
+		"sold_at":      soldAtForViewer(l, viewerID),
+		"withdrawn_at": withdrawnAtForViewer(l, viewerID),
 		"created_at":       l.CreatedAt.Format(time.RFC3339),
 		"updated_at":       l.UpdatedAt.Format(time.RFC3339),
 		// Phase 5 Stage 1 additive seller convergence fields.

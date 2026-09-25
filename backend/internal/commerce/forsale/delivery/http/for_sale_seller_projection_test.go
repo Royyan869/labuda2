@@ -238,7 +238,7 @@ func TestForSaleToResponseWithSellerProjection_SerializesCanonicalSellerIdentity
 		Tier:               "pro",
 	}
 
-	resp := for_saleToResponseWithSeller(for_sale, sellerInfo)
+	resp := for_saleToResponseWithSeller(for_sale, sellerInfo, nil)
 	raw, err := json.Marshal(resp)
 	require.NoError(t, err)
 
@@ -278,7 +278,7 @@ func TestForSaleToDetailResponseWithSellerProjection_EmitsCanonicalSellerIdentit
 		AvatarURL: "  https://example.com/avatar.jpg  ",
 	}
 
-	resp := for_saleToResponseWithSeller(for_sale, sellerInfo)
+	resp := for_saleToResponseWithSeller(for_sale, sellerInfo, nil)
 	raw, err := json.Marshal(resp)
 	require.NoError(t, err)
 
@@ -317,7 +317,7 @@ func TestForSaleToDetailResponseWithSellerProjection_EmitsCanonicalProductFields
 		Tier:               "pro",
 	}
 
-	resp := for_saleToResponseWithSeller(for_sale, sellerInfo)
+	resp := for_saleToResponseWithSeller(for_sale, sellerInfo, nil)
 	raw, err := json.Marshal(resp)
 	require.NoError(t, err)
 
@@ -613,7 +613,7 @@ func TestForSaleToDetailResponseWithViewerCapabilities(t *testing.T) {
 	require.True(t, hasForSale)
 
 	// List/search/write base serializer must NOT carry viewer capabilities.
-	baseResp := for_saleToResponseWithSeller(for_sale, sellerInfo)
+	baseResp := for_saleToResponseWithSeller(for_sale, sellerInfo, nil)
 	baseRaw, err := json.Marshal(baseResp)
 	require.NoError(t, err)
 	var baseDecoded map[string]interface{}

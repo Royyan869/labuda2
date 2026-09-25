@@ -254,10 +254,14 @@ func (r *forSaleProjectionBatchResolver) ResolveForSales(
 			}
 
 			payload := chatApp.ForSaleLivePayload{
-				Title:             row.title,
-				ImageURL:          imageURL,
-				Price:             chatApp.ForSaleLivePrice{Amount: row.pricePerUnit, Currency: "IDR"},
-				Status:            row.status,
+				Title:    row.title,
+				ImageURL: imageURL,
+				Price:    chatApp.ForSaleLivePrice{Amount: row.pricePerUnit, Currency: "IDR"},
+				// Scope 3 — status boundary: coarsened public lifecycle only
+				// ({active, unavailable}); the raw internal enum (draft/sold/
+				// withdrawn) never crosses the chat wire. Parity with the
+				// chat auction projection.
+				Status:            fpsEntity.ForSaleStatus(row.status).PublicLifecycle(),
 				Seller:            buildForSaleLiveSeller(row, sellerLifecycle),
 				QuantityAvailable: row.quantityAvailable,
 			}

@@ -100,9 +100,28 @@ Dilarang rollback/restore dari GitHub — semua perbaikan maju.
   `user_profiles` (user authority); domain seller backend & mobile sudah
   bersih; satu-satunya sisa (fixture wizard test) di-align.
 
-### C. Keputusan owner — MENUNGGU
-- Audit wire for_sale dengan lensa Scope 3 (raw status sold/withdrawn
-  ke non-owner?).
+### C. Keputusan owner — SUDAH DIEKSEKUSI
+- ✅ Audit wire for_sale lensa Scope 3 (commit scope-3-forsale):
+  **KEBOCORAN TERKONFIRMASI & DITUTUP.** Temuan audit:
+  1. Detail for_sale mengirim raw `status` (draft/sold/withdrawn) +
+     `sold_at`/`withdrawn_at` ke siapa pun — kini coarsened
+     (`PublicLifecycle()` → {active, unavailable}) + `seller_status`
+     owner-only (persis pola auction). Write surfaces (create/update)
+     membawa `seller_status` untuk owner.
+  2. Chat projection for_sale kirim raw `row.status` ke semua peserta
+     chatroom (chat auction sudah coarsen) → kini coarsened, paritas
+     chat chat-auction/chat-for-sale tertutup.
+  3. Mobile DTO for_sale tanpa slot `seller_status` → ditambah + mapper
+     precedence `sellerStatus ?? status` (persis auction mapper);
+     `_mapStatus` mengenal vocab `unavailable` (→ draft, konservatif).
+  4. Aman tanpa perubahan: guard draft (derived private → 404),
+     SQL list/search (`status='active'`), owner-inventory branch.
+  Test: backend boundary 3 test baru (vocab/owner-only/timestamps) +
+  mobile boundary 6 test baru (precedence/vocab/fallback); for_sale
+  mobile 59/59; backend forsale + serverboot chat tests hijau.
+  Catatan: panic prometheus di full-suite serverboot = pre-existing
+  isolation issue jalur InitServices (domain payout, kerja lain);
+  test terkait lulus di isolasi.
 
 ## Komit acuan
 e1fb4ae, c9ab974, a00b230, 94c1ce8, 7b0b1c8, 64e9f24, 23d36d9, 30874c6,

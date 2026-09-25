@@ -100,7 +100,12 @@ class ForSaleDtoMapper {
       // Canonical per-viewer detail action authority. Null on list/search
       // payloads; present on the detail wire (viewer_capabilities).
       viewerCapabilities: dto.viewerCapabilities,
-      status: _mapStatus(dto.status),
+      // Owner axis first (Scope 3, parity with auction mapper):
+      // `seller_status` carries the exact internal state (owner-only wire
+      // slot); public viewers (null seller_status) resolve through the
+      // coarsened public lifecycle vocabulary. Both feed the same canonical
+      // parse — unknown values fall back conservatively.
+      status: _mapStatus(dto.sellerStatus ?? dto.status),
       visibility: _mapVisibility(dto.visibility),
       isNegotiable: dto.negotiationEnabled,
       viewCount: 0,
@@ -149,6 +154,13 @@ class ForSaleDtoMapper {
         return ForSaleStatus.withdrawn;
       case 'sold':
         return ForSaleStatus.sold;
+      case 'unavailable':
+        // Scope 3 — coarsened public lifecycle vocabulary
+        // (Status.PublicLifecycle(): draft/sold/withdrawn all coarsen
+        // here). Public viewers only need "not buyable"; the exact
+        // internal state arrives via the owner-only `seller_status` slot
+        // and is parsed above. Maps to draft = conservative not-buyable.
+        return ForSaleStatus.draft;
       default:
         // SAFETY: Unknown status defaults to draft (not active) to avoid false availability
         // This prevents showing unknown forSales as purchasable

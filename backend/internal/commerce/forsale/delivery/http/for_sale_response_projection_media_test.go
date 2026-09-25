@@ -36,7 +36,7 @@ func TestForSaleToResponseWithSeller_TypedMedia_InferredFromURL(t *testing.T) {
 		Tier:               "pro",
 	}
 
-	resp := for_saleToResponseWithSeller(for_sale, sellerInfo)
+	resp := for_saleToResponseWithSeller(for_sale, sellerInfo, nil)
 
 	media, ok := resp["media"].([]map[string]interface{})
 	if !ok {
@@ -87,7 +87,7 @@ func TestForSaleToResponseWithSeller_MixedMedia_ImageFirstVideoSecond(t *testing
 		SubscriptionStatus: "active",
 	}
 
-	resp := for_saleToResponseWithSeller(for_sale, sellerInfo)
+	resp := for_saleToResponseWithSeller(for_sale, sellerInfo, nil)
 
 	media, ok := resp["media"].([]map[string]interface{})
 	if !ok {
@@ -149,7 +149,7 @@ func TestForSaleToResponseWithSeller_PrefersProductMediaOverLegacyJSON(t *testin
 		Tier:               "pro",
 	}
 
-	resp := for_saleToResponseWithSeller(for_sale, sellerInfo)
+	resp := for_saleToResponseWithSeller(for_sale, sellerInfo, nil)
 	media, ok := resp["media"].([]map[string]interface{})
 	if !ok {
 		t.Fatalf("media = %#v; want []map[string]interface{}", resp["media"])

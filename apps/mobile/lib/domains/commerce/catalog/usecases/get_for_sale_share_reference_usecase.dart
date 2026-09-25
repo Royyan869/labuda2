@@ -34,9 +34,9 @@ class GetForSaleShareReferenceUseCase {
         // **BUSINESS LOGIC HERE - NOT IN UI**
         // AVAILABILITY ENFORCEMENT: Only allow attaching active fixed-price sales
         if (!forSale.status.isAvailableForCommerce) {
-      return Result.error(
-        'Produk dijual ini tidak tersedia. Status: ${forSale.status.displayName}',
-      );
+      // Scope 3 — no state name in the message: public viewers receive the
+      // coarsened lifecycle, so the exact internal status is unknown here.
+      return Result.error('Produk dijual ini tidak tersedia.');
     }
 
     // Stock validation (business rule)

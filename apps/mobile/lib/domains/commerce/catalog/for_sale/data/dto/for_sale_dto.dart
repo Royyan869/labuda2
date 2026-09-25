@@ -94,7 +94,14 @@ class ForSaleResponseDto extends Equatable {
   final int quantity;
   final bool negotiationEnabled;
   final String visibility;
+  /// Public lifecycle vocabulary from the backend (Status.PublicLifecycle()):
+  /// {active, unavailable}. Raw internal states (draft/sold/withdrawn) never
+  /// cross the public boundary — owner workspaces read [sellerStatus].
   final String status;
+  /// Exact internal state-machine value — owner-only wire slot (Scope 3,
+  /// parity with auction). Backend emits it ONLY when the viewer is the
+  /// owning seller; null for every other viewer.
+  final String? sellerStatus;
   final String? farmAddressId;
   final String? preparationTime;
   final String? preparationNote;
@@ -169,6 +176,11 @@ class ForSaleResponseDto extends Equatable {
     this.negotiationEnabled = false,
     required this.visibility,
     required this.status,
+    // Scope 3 — owner-only wire slot. Backend emits the exact internal
+    // state ONLY when the viewer is the owning seller; null for every
+    // other viewer (anonymous included). Mapper prefers this over
+    // [status] so owner workspace logic keeps state-machine precision.
+    this.sellerStatus,
     this.farmAddressId,
     this.preparationTime,
     this.preparationNote,
@@ -221,6 +233,8 @@ class ForSaleResponseDto extends Equatable {
       negotiationEnabled: json['negotiation_enabled'] as bool? ?? false,
       visibility: json['visibility'] as String? ?? 'public',
       status: json['status'] as String? ?? 'active',
+      // Scope 3 — owner-only slot; null for public viewers.
+      sellerStatus: json['seller_status'] as String?,
       farmAddressId: json['farm_address_id'] as String?,
       preparationTime: json['preparation_time'] as String?,
       preparationNote: json['preparation_note'] as String?,

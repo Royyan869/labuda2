@@ -17,7 +17,7 @@ func forSaleToDetailResponseWithViewerCapabilities(
 	seller sellerdisplay.Info,
 	viewerID *uuid.UUID,
 ) map[string]interface{} {
-	resp := for_saleToResponseWithSeller(l, seller)
+	resp := for_saleToResponseWithSeller(l, seller, viewerID)
 	resp["viewer_capabilities"] = buildForSaleViewerCapabilities(l, seller, viewerID)
 	return resp
 }
