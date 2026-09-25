@@ -77,6 +77,9 @@ class _RecordingNavigationHandler implements NavigationHandler {
   void navigateToForSaleDetail(String fixedPriceSaleId) {}
 
   @override
+  void navigateToSellerRenewal() {}
+
+  @override
   void navigateToLogin() {}
 
   @override

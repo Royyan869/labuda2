@@ -270,7 +270,9 @@ AuthUser _authUser({required String id, required String username}) {
     accountStatus: AccountStatus.active,
     roles: const [UserRole.user],
     provider: AuthProvider.email,
-    lifecycle: 'active',
+    // Codebase factual: AuthUser.lifecycle is the server-coarsened
+    // ContentLifecycle enum (ADR-006 §11) — never a raw string.
+    lifecycle: ContentLifecycle.active,
   );
 }
 

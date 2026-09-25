@@ -6,9 +6,9 @@ import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart'
 import 'package:labuda/domains/social/follow/data/follow_providers.dart';
 import 'package:labuda/domains/social/follow/domain/repositories/i_follow_repository.dart';
 import 'package:labuda/domains/social/follow/presentation/widgets/user_card.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/widgets/follow_button.dart';
-import 'package:labuda/shared/widgets/profile_avatar.dart';
 
 class _FakeAuthController extends AuthController {
   _FakeAuthController(this.stateValue);
@@ -145,7 +145,9 @@ AuthState _authenticatedState({
     isEmailVerified: true,
     roles: const [UserRole.user],
     provider: AuthProvider.email,
-    lifecycle: 'active',
+    // Codebase factual: AuthUser.lifecycle is the server-coarsened
+    // ContentLifecycle enum (ADR-006 §11).
+    lifecycle: ContentLifecycle.active,
   );
   return AuthState.authenticated(user, emailVerified: true);
 }
@@ -186,7 +188,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(ProfileAvatar), findsOneWidget);
+    // Codebase factual: UserCard renders CachedNetworkImage + person-icon
+    // placeholder — not ProfileAvatar.
+    expect(find.byType(CachedNetworkImage), findsOneWidget);
     expect(find.text('@alice'), findsOneWidget);
     expect(find.byType(FollowButton), findsOneWidget);
   });
@@ -210,8 +214,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(ProfileAvatar), findsOneWidget);
-    expect(find.text('User'), findsOneWidget);
+    // Codebase factual: avatar null → person-icon placeholder, no image.
+    expect(find.byType(CachedNetworkImage), findsNothing);
+    expect(find.byIcon(Icons.person), findsOneWidget);
+    // No generic "User" fallback label exists — the handle renders as the
+    // raw '@' + username interpolation.
+    expect(find.text('@'), findsOneWidget);
     expect(find.byType(FollowButton), findsNothing);
   });
 
@@ -234,7 +242,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(ProfileAvatar), findsOneWidget);
+    // Degraded users always show the placeholder — avatar URL is never
+    // rendered, image widget absent entirely.
+    expect(find.byType(CachedNetworkImage), findsNothing);
+    expect(find.byIcon(Icons.person), findsOneWidget);
     expect(find.text('Pengguna dihapus'), findsOneWidget);
     expect(find.byType(FollowButton), findsNothing);
 
