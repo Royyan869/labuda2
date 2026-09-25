@@ -155,9 +155,6 @@ class _MockApiClient implements ApiClient {
   }) async => throw UnimplementedError();
 
   @override
-  bool isNetworkError(DioException e) => false;
-
-  @override
   bool isNotFound(DioException e) => false;
 
   @override

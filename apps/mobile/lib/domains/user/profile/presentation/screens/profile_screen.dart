@@ -30,8 +30,10 @@ import 'package:labuda/domains/system/report/domain/entities/entities.dart';
 import 'package:labuda/domains/system/report/presentation/screens/report_screen.dart';
 import 'package:labuda/domains/user/preference/seller/seller.dart';
 import 'package:labuda/domains/social/share/share.dart';
+import 'package:labuda/domains/user/profile/presentation/screens/profile_screen/profile_share_builder.dart';
 import 'package:labuda/shared/widgets/empty_state.dart';
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/shared/governance/seller_tier_badge.dart';
 import 'package:labuda/shared/providers/block_state_provider.dart';
 import 'package:labuda/shared/widgets/block_confirmation_dialog.dart';
 
@@ -819,6 +821,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ),
           ),
 
+          // Seller reputation tier badge (pro/elite only; null/basic hides
+          // inside the widget itself). Ported from the purged duplicate
+          // header builder — profile header is a documented SellerTierBadge
+          // surface and the data was already prepared but never rendered.
+          if (profileData['sellerTier'] != null) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: SellerTierBadge(
+                  tier: profileData['sellerTier'] as String?,
+                ),
+              ),
+            ),
+          ],
+
           // Profile info section (location, bio)
           if (_hasProfileInfo(profileData, isSeller))
             Padding(
@@ -1145,14 +1163,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       data: (user) {
         if (user == null) return;
 
-        // Create ShareTarget for profile
-        final shareTarget = ShareTarget(
-          id: user.id,
-          type: ExternalShareType.profile,
-          title: user.username,
-          description: user.bio ?? 'Lihat profil @${user.username} di LABUDA',
-          imageUrl: user.avatarUrl,
+        // CANONICAL: payload built through the tested share-target builder
+        // (@handle title, default description for empty bio, lifecycle
+        // guard). Previously this screen duplicated that logic with raw
+        // username and no degraded-identity guard.
+        final shareTarget = buildProfileShareTarget(
+          userId: user.id,
+          username: user.username,
+          bio: user.bio,
+          avatarUrl: user.avatarUrl,
+          lifecycle: user.lifecycle,
         );
+        if (shareTarget == null) return;
 
         // Show share bottom sheet
         ShareBottomSheet.show(

@@ -241,16 +241,24 @@ void main() {
 
       expect(find.text('@alice'), findsOneWidget);
       expect(find.text('Pengguna tidak tersedia'), findsNothing);
+
+      // Factual ProfileAvatar contract (owner decision 2026-09-24): the
+      // user's photo is wired through StableNetworkImage (an Image.network
+      // with the user's URL inside the ListTile) — the old
+      // CircleAvatar/backgroundImage API no longer exists. The icon fallback
+      // legitimately stays visible while the photo is loading.
       expect(
         find.descendant(
           of: find.byType(ListTile),
-          matching: find.byIcon(Icons.person),
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Image &&
+                widget.image is NetworkImage &&
+                (widget.image as NetworkImage).url.contains('alice.png'),
+          ),
         ),
-        findsNothing,
+        findsOneWidget,
       );
-
-      final avatar = tester.widget<CircleAvatar>(find.byType(CircleAvatar));
-      expect(avatar.backgroundImage, isA<NetworkImage>());
     }, createHttpClient: (context) => _StaticImageHttpClient(avatarBytes));
   });
 
@@ -337,8 +345,16 @@ void main() {
       findsOneWidget,
     );
 
-    final avatar = tester.widget<CircleAvatar>(find.byType(CircleAvatar));
-    expect(avatar.backgroundImage, isNull);
+    // No photo URL → icon fallback only; no network image may be mounted.
+    expect(
+      find.descendant(
+        of: find.byType(ListTile),
+        matching: find.byWidgetPredicate(
+          (widget) => widget is Image && widget.image is NetworkImage,
+        ),
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets('unblock still sends the durable blocked-user ID', (

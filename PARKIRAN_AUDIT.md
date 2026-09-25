@@ -57,13 +57,33 @@ Dilarang rollback/restore dari GitHub — semua perbaikan maju.
    resolver factual = {apiClient, logger}, error dienkapsulasi
    (catch → log → null); PaginationIntegrityException purged — test
    error-path lama digabung jadi kontrak baru. 5/5 lulus.
-2. ~~`follow/*` 4 file~~ — ✅ SELESAI sebagian besar (124e7ca): race-safety
+2. ~~`follow/*` 4 file~~ — ✅ SELESAI (124e7ca + 04c40c6): race-safety
    guards (ref.mounted, sequence per-target, principal guard, watch auth)
-   di FollowStatusNotifier; 4 test file align ke kontrak factual. Suite
-   follow 66/67. Sisa 1: harness yang pump ProfileScreen sungguhan →
-   overflow 146rb px = defect layout profile screen, task terpisah:
-   **NEW TASK: audit layout ProfileScreen (overflow) + sisa error test
-   warisan profile/avatar refactor**.
+   di FollowStatusNotifier; 4 test file align ke kontrak factual; overflow
+   akhirnya beres — akar: `_sanitizeProfileLoadError` passthrough raw
+   `error.toString()` (300rb+ char stack dump) ke Text non-scrollable;
+   kini full detail → logger, UI = first line capped 200 char. Suite
+   follow **67/67**.
+3. ~~Audit layout ProfileScreen (overflow) + duplikasi header~~ — ✅ SELESAI
+   (04c40c6 + commit purge):
+   - Tidak ada duplikat class ProfileScreen; tapi ada **duplicate header
+     builder** (`profile_header_builder.dart`) tanpa konsumen produksi →
+     PURGED bersama 3 file saudaranya (`profile_appbar_actions.dart`,
+     `profile_sliver_delegates.dart` — nol konsumen).
+   - 5 test kontrak identitas di-port ke screen kanonik
+     (`profile_header_identity_canonical_test.dart`): @username-only,
+     seller farmName, redaction degraded/deleted — 5/5.
+   - **SellerTierBadge di-wire ulang ke header kanonik** (fitur hilang:
+     data `sellerTier` disiapkan tapi tak pernah dirender; dokumen badge
+     menyebut profile header sebagai surface).
+   - **`profile_share_builder.dart` di-wire** ke `_handleShareProfile`
+     (refactor setengah jalan agen sebelumnya: helper teruji 6 test tapi
+     tak pernah dipakai; screen memakai logika duplikat tanpa lifecycle
+     guard). Sekarang satu kebenaran.
+   - `blocked_users_screen_test` — 2 test mengejar API
+     `CircleAvatar(backgroundImage:)` lama → align ke kontrak ProfileAvatar
+     kanonik (StableNetworkImage + person icon fallback).
+   Suite profile **97/97**.
 3. ~~`seller_wizard_helpers_test` — param `bio`~~ ✅ SELESAI (ea8aca6,
    sesuai keputusan owner purge bio seller).
 4. Break lib lain: 7 warning `lib/` (unused import/element/field,
