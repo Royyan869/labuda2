@@ -20,7 +20,6 @@ import 'package:labuda/domains/user/profile/presentation/screens/settings_screen
 import 'package:labuda/domains/user/profile/presentation/screens/unified_edit_profile_screen.dart';
 import 'package:labuda/domains/user/profile/presentation/utils/profile_lifecycle_redaction.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/profile_actions.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/profile_avatar.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/profile_cover.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/profile_feed_tab.dart';
@@ -32,8 +31,7 @@ import 'package:labuda/domains/system/report/presentation/screens/report_screen.
 import 'package:labuda/domains/user/preference/seller/seller.dart';
 import 'package:labuda/domains/social/share/share.dart';
 import 'package:labuda/shared/widgets/empty_state.dart';
-import 'package:labuda/shared/shared.dart' hide ProfileAvatar;
-import 'package:labuda/shared/helpers/user_identity_formatter.dart';
+import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/providers/block_state_provider.dart';
 import 'package:labuda/shared/widgets/block_confirmation_dialog.dart';
 
@@ -447,7 +445,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       body: SafeArea(
         child: EmptyState.error(
           title: 'Profil belum bisa dimuat',
-          subtitle: _sanitizeProfileLoadError(error),
+          subtitle: _sanitizeProfileLoadError(error, userId: userId),
           onRetry: () => ref.invalidate(userDataProvider(userId)),
         ),
       ),
@@ -467,20 +465,41 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     );
   }
 
-  String _sanitizeProfileLoadError(Object error) {
-    final message = error.toString().trim();
-    if (message.isEmpty) {
+  /// Full error detail goes to the logger; the UI only ever receives the
+  /// first line of the message, hard-capped. Raw `error.toString()` (which
+  /// can embed provider/stack dumps hundreds of thousands of characters
+  /// long) must never reach a `Text` inside a non-scrollable Column —
+  /// that caused a 146k-pixel RenderFlex overflow.
+  String _sanitizeProfileLoadError(Object error, {String? userId}) {
+    final raw = error.toString().trim();
+    LoggerService.instance.error(
+      'ProfileScreen: load error${userId != null ? ' for userId=$userId' : ''}',
+      extra: {'error': raw},
+    );
+
+    if (raw.isEmpty) {
       return 'Profil belum bisa dimuat. Coba lagi.';
     }
 
+    var message = raw;
     if (message.startsWith('Exception: ')) {
       final stripped = message.substring('Exception: '.length).trim();
       if (stripped.isNotEmpty) {
-        return stripped;
+        message = stripped;
       }
     }
 
-    return message;
+    // First line only — the remainder is stack-trace noise.
+    final firstLine = message.split('\n').first.trim();
+    if (firstLine.isEmpty) {
+      return 'Profil belum bisa dimuat. Coba lagi.';
+    }
+
+    const maxUserFacingLength = 200;
+    if (firstLine.length <= maxUserFacingLength) {
+      return firstLine;
+    }
+    return '${firstLine.substring(0, maxUserFacingLength)}…';
   }
 
   Widget _buildBackButton(bool isDark) {
@@ -522,33 +541,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         ? AppColors.neutralBlack.withValues(alpha: 0.3)
         : Colors.transparent;
 
-    // E5.2 — Target-user actions are disabled when the profile lifecycle
-    // is degraded (suspended/banned/deleted). Block / report remain active
-    // — degraded identities must still be reportable / blockable.
+    // E5.2 — Share is target-user action; suppress on degraded. Block/report
+    // remain active — degraded identities must still be reportable/blockable.
     final actionsDisabled = profileLifecycleDisablesTargetActions(lifecycle);
 
-    // Consistent action icons for both expanded and collapsed states
+    // CANONICAL: AppBar is navigation/overflow only. Primary CTAs
+    // (Edit/Share/Follow/Message) live exclusively in ProfileActions
+    // below the header (single authority, no duplication).
     if (isOwnProfile) {
-      // Own profile: Edit, Share, Settings (Camera moved to cover area)
       return [
-        IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
-            child: Icon(Icons.edit_outlined, color: iconColor, size: 20),
-          ),
-          onPressed: () => _navigateToEditProfile(),
-          tooltip: 'Edit Profile',
-        ),
-        IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
-            child: Icon(Icons.share_outlined, color: iconColor, size: 20),
-          ),
-          onPressed: () => _handleShareProfile(),
-          tooltip: 'Share',
-        ),
         IconButton(
           icon: Container(
             padding: const EdgeInsets.all(6),
@@ -560,50 +561,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         ),
       ];
     } else {
-      // Other profile: Follow, Message, More (Share moved inside More menu)
-      // Watch follow status to show correct icon and color
-      final followState = ref.watch(followStatusProvider);
-      final isFollowing = followState.followStatusMap[userId] ?? false;
-
-      // E5.2 — follow + message + share are target-user actions; suppress
-      // them on degraded identities. Block / report remain available.
-      final disabledIconColor = isDark
-          ? AppColors.neutralGray500
-          : AppColors.neutralGray400;
-      final followIconColor = actionsDisabled
-          ? disabledIconColor
-          : (isFollowing ? AppColors.primaryRed : iconColor);
-      final messageIconColor = actionsDisabled ? disabledIconColor : iconColor;
-
       return [
-        IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
-            child: Icon(
-              isFollowing ? Icons.person_remove : Icons.person_add_outlined,
-              color: followIconColor,
-              size: 20,
-            ),
-          ),
-          onPressed: actionsDisabled ? null : () => _handleFollowAction(userId),
-          tooltip: isFollowing ? 'Unfollow' : 'Follow',
-        ),
-        IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
-            child: Icon(
-              Icons.chat_bubble_outline,
-              color: messageIconColor,
-              size: 20,
-            ),
-          ),
-          onPressed: actionsDisabled
-              ? null
-              : () => _handleMessageAction(userId),
-          tooltip: 'Message',
-        ),
         PopupMoreOptionsButton(
           contentType: PopupMoreOptionsContentType.profile,
           isCreator: false,
@@ -771,15 +729,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         Positioned(
           top: currentAvatarTop,
           left: currentAvatarLeft,
-          child: ProfileAvatar(
+          child: OnlineBadge(
             userId: userId,
-            avatarUrl: profileData['avatar'],
-            farmPhotoUrl: profileData['farmPhotoUrl'],
-            initials: UserIdentityFormatter.avatarInitials(profileData['name'] as String?),
-            isSeller: isSeller,
-            size: currentAvatarSize,
-            showOnlineStatus:
-                _collapseProgress < 0.5, // hide online indicator when collapsed
+            // hide online indicator when collapsed
+            enabled: _collapseProgress < 0.5,
+            child: SellerAvatar(
+              userId: userId,
+              avatarUrl: profileData['avatar'] as String?,
+              storeImageUrl: profileData['farmPhotoUrl'] as String?,
+              isSeller: isSeller,
+              size: currentAvatarSize,
+              onTap: () {},
+            ),
           ),
         ),
 
@@ -1116,51 +1077,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (context) => const SettingsScreen()));
-  }
-
-  Future<void> _handleFollowAction(String userId) async {
-    final authState = ref.read(authControllerProvider);
-
-    if (authState is! AuthStateAuthenticated) {
-      if (mounted) {
-        AppSnackBar.showError(context, 'Please login to follow users');
-      }
-      return;
-    }
-
-    final currentUserId = authState.user.id;
-
-    // Don't allow following yourself
-    if (currentUserId == userId) {
-      return;
-    }
-
-    try {
-      // Get current follow status
-      final followState = ref.read(followStatusProvider);
-      final isFollowing = followState.followStatusMap[userId] ?? false;
-
-      // Toggle follow status
-      if (isFollowing) {
-        await ref
-            .read(followStatusProvider.notifier)
-            .unfollowUser(followerId: currentUserId, followingId: userId);
-        if (mounted) {
-          AppSnackBar.showSuccess(context, 'Unfollowed user');
-        }
-      } else {
-        await ref
-            .read(followStatusProvider.notifier)
-            .followUser(followerId: currentUserId, followingId: userId);
-        if (mounted) {
-          AppSnackBar.showSuccess(context, 'Started following user');
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        AppSnackBar.showError(context, 'Failed to update follow status');
-      }
-    }
   }
 
   Future<void> _handleMessageAction(String userId) async {
