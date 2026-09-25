@@ -373,11 +373,17 @@ void main() {
           code: 'EMAIL_VERIFICATION_REQUIRED',
         );
 
-        expect(find.text('Verifikasi Email Diperlukan'), findsOneWidget);
+        // Canonical presentation is the ERROR SNACKBAR (aligned with the
+        // chat channel's identical EMAIL_VERIFICATION_REQUIRED handling) —
+        // NOT a dialog. The old dialog expectations chased UI that never
+        // existed in the checkout screen.
         expect(
-          find.textContaining('Untuk melakukan checkout'),
+          find.text(
+            'Verifikasi email kamu diperlukan sebelum melakukan checkout.',
+          ),
           findsOneWidget,
         );
+        expect(find.text('Verifikasi Email Diperlukan'), findsNothing);
         expect(harness.navigation.renewalCalls, 0);
         expect(harness.notifier.state.error, isNull);
         expect(tester.takeException(), isNull);

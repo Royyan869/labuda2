@@ -444,8 +444,15 @@ void main() {
 
         await _placeBidThroughUi(tester);
 
-        expect(find.text('Verifikasi Email Diperlukan'), findsOneWidget);
-        expect(find.textContaining('Untuk menempatkan bid'), findsOneWidget);
+        // Canonical presentation is the ERROR SNACKBAR (aligned with the
+        // chat channel's identical EMAIL_VERIFICATION_REQUIRED handling) —
+        // NOT a dialog. The old dialog expectations chased UI that never
+        // existed in the auction detail screen.
+        expect(
+          find.text('Verifikasi email kamu diperlukan sebelum menempatkan bid.'),
+          findsOneWidget,
+        );
+        expect(find.text('Verifikasi Email Diperlukan'), findsNothing);
         expect(harness.navigation.renewalCalls, 0);
         expect(tester.takeException(), isNull);
       },
