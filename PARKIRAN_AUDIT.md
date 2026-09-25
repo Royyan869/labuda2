@@ -53,9 +53,10 @@ Dilarang rollback/restore dari GitHub — semua perbaikan maju.
 ## Parkiran (perlu dikerjakan, belum dieksekusi)
 
 ### A. Di luar commerce — butuh audit factual dulu (bukan warisan audit)
-1. `c1b3_mention_rich_text_runtime_test` — 3 error compile: `apiClient`
-   required, `apiService` tidak ada, `PaginationIntegrityException` tidak
-   ada. Warisan refactor mention API.
+1. ~~`c1b3_mention_rich_text_runtime_test`~~ ✅ SELESAI (1d2b134):
+   resolver factual = {apiClient, logger}, error dienkapsulasi
+   (catch → log → null); PaginationIntegrityException purged — test
+   error-path lama digabung jadi kontrak baru. 5/5 lulus.
 2. ~~`follow/*` 4 file~~ — ✅ SELESAI sebagian besar (124e7ca): race-safety
    guards (ref.mounted, sequence per-target, principal guard, watch auth)
    di FollowStatusNotifier; 4 test file align ke kontrak factual. Suite
@@ -85,4 +86,4 @@ Dilarang rollback/restore dari GitHub — semua perbaikan maju.
 
 ## Komit acuan
 e1fb4ae, c9ab974, a00b230, 94c1ce8, 7b0b1c8, 64e9f24, 23d36d9, 30874c6,
-1b95590, b2dee89, ea8aca6, 124e7ca.
+1b95590, b2dee89, ea8aca6, 124e7ca, 1d2b134.
