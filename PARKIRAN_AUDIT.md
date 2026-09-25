@@ -56,11 +56,13 @@ Dilarang rollback/restore dari GitHub — semua perbaikan maju.
 1. `c1b3_mention_rich_text_runtime_test` — 3 error compile: `apiClient`
    required, `apiService` tidak ada, `PaginationIntegrityException` tidak
    ada. Warisan refactor mention API.
-2. `follow/*` 4 file — error compile + runtime. Saya mulai perbaiki
-   lalu saya tarik karena setengah jalan (residu). Perlu eksekusi utuh:
-   peta kontrak factual follow (FollowableUser.lifecycle string coarsened,
-   ContentLifecycle enum di AuthUser, NavigationHandler.navigateToSellerRenewal),
-   lalu align semua 4 file sekaligus.
+2. ~~`follow/*` 4 file~~ — ✅ SELESAI sebagian besar (124e7ca): race-safety
+   guards (ref.mounted, sequence per-target, principal guard, watch auth)
+   di FollowStatusNotifier; 4 test file align ke kontrak factual. Suite
+   follow 66/67. Sisa 1: harness yang pump ProfileScreen sungguhan →
+   overflow 146rb px = defect layout profile screen, task terpisah:
+   **NEW TASK: audit layout ProfileScreen (overflow) + sisa error test
+   warisan profile/avatar refactor**.
 3. ~~`seller_wizard_helpers_test` — param `bio`~~ ✅ SELESAI (ea8aca6,
    sesuai keputusan owner purge bio seller).
 4. Break lib lain: 7 warning `lib/` (unused import/element/field,
@@ -83,4 +85,4 @@ Dilarang rollback/restore dari GitHub — semua perbaikan maju.
 
 ## Komit acuan
 e1fb4ae, c9ab974, a00b230, 94c1ce8, 7b0b1c8, 64e9f24, 23d36d9, 30874c6,
-1b95590, b2dee89, ea8aca6.
+1b95590, b2dee89, ea8aca6, 124e7ca.
