@@ -140,20 +140,6 @@ class _FakeAuctionRepository implements AuctionRepository {
   }
 
   @override
-  Stream<List<Auction>> watchActiveAuctions({int limit = 50}) {
-    return Stream<List<Auction>>.value(auctions);
-  }
-
-  @override
-  Stream<List<Auction>> watchUserAuctions({
-    required String sellerId,
-    AuctionStatus? status,
-    int limit = 100,
-  }) {
-    return const Stream<List<Auction>>.empty();
-  }
-
-  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
@@ -195,7 +181,6 @@ Auction _auction({required String id, required String title}) {
     startTime: now,
     endTime: now.add(const Duration(days: 1)),
     status: AuctionStatus.active,
-    totalBidders: 2,
     createdAt: now,
   );
 }

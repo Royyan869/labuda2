@@ -43,8 +43,8 @@ class _FakeAuctionRepository implements AuctionRepository {
   String? lastSellerUsername;
   String? lastSellerAvatar;
   String? lastSellerFarmName;
-  int? lastWatchActiveLimit;
-  int? lastWatchUserLimit;
+  int? lastActiveLimit;
+  int? lastUserLimit;
   Completer<RepositoryResult<Auction>>? pendingCreate;
 
   @override
@@ -119,7 +119,10 @@ class _FakeAuctionRepository implements AuctionRepository {
     double? maxBid,
     int limit = 20,
     String? lastAuctionId,
-  }) async => throw UnimplementedError();
+  }) async {
+    lastActiveLimit = limit;
+    return RepositoryResult.success(<Auction>[]);
+  }
 
   @override
   Future<RepositoryResult<Auction>> getAuctionById(String auctionId) async =>
@@ -142,7 +145,10 @@ class _FakeAuctionRepository implements AuctionRepository {
     AuctionStatus? status,
     int limit = 20,
     String? lastAuctionId,
-  }) async => throw UnimplementedError();
+  }) async {
+    lastUserLimit = limit;
+    return RepositoryResult.success(<Auction>[]);
+  }
 
   @override
   Future<RepositoryResult<Auction>> updateAuction(
@@ -174,10 +180,6 @@ class _FakeAuctionRepository implements AuctionRepository {
   }) async => throw UnimplementedError();
 
   @override
-  Stream<List<Auction>> watchActiveAuctions({int limit = 50}) =>
-      _recordWatchActive(limit);
-
-  @override
   Stream<List<AuctionBid>> watchAuctionBids(
     String auctionId, {
     int limit = 50,
@@ -185,21 +187,6 @@ class _FakeAuctionRepository implements AuctionRepository {
 
   @override
   Stream<Auction?> watchAuction(String auctionId) => const Stream.empty();
-
-  @override
-  Stream<List<Auction>> watchUserAuctions({
-    required String sellerId,
-    AuctionStatus? status,
-    int limit = 50,
-  }) {
-    lastWatchUserLimit = limit;
-    return Stream<List<Auction>>.empty();
-  }
-
-  Stream<List<Auction>> _recordWatchActive(int limit) {
-    lastWatchActiveLimit = limit;
-    return Stream<List<Auction>>.empty();
-  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
@@ -362,22 +349,20 @@ void main() {
     addTearDown(container.dispose);
 
     final activeSub = container.listen(
-      marketplaceAuctionsStreamProvider,
+      marketplaceAuctionsProvider,
       (previous, next) {},
-      fireImmediately: true,
     );
     final userSub = container.listen(
-      userAuctionsStreamProvider('seller-1'),
+      sellerAuctionsProvider('seller-1'),
       (previous, next) {},
-      fireImmediately: true,
     );
     addTearDown(activeSub.close);
     addTearDown(userSub.close);
 
     await Future<void>.delayed(Duration.zero);
 
-    expect(repo.lastWatchActiveLimit, 50);
-    expect(repo.lastWatchUserLimit, 100);
+    expect(repo.lastActiveLimit, 50);
+    expect(repo.lastUserLimit, 50);
   });
 });
 }

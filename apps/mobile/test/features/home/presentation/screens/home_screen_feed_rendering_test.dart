@@ -14,6 +14,7 @@ import 'package:labuda/domains/social/like/presentation/providers/like_notifier.
 import 'package:labuda/features/home/home.dart';
 import 'package:labuda/features/home/presentation/providers/feed_renderers.dart';
 import 'package:labuda/shared/services/logger_service.dart';
+import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 // ============================================================================
@@ -168,8 +169,15 @@ class _FakeAuthenticatedAuthController extends AuthController {
 
 class _FakeAuctionRepository implements AuctionRepository {
   @override
-  Stream<List<Auction>> watchActiveAuctions({int limit = 50}) {
-    return Stream.value(const <Auction>[]);
+  Future<RepositoryResult<List<Auction>>> getActiveAuctions({
+    String? variety,
+    double? minSize,
+    double? maxSize,
+    double? maxBid,
+    int limit = 20,
+    String? lastAuctionId,
+  }) async {
+    return RepositoryResult.success(const <Auction>[]);
   }
 
   @override

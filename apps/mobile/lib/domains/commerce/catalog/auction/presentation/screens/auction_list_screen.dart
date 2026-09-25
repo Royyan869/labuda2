@@ -11,7 +11,7 @@ import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/a
 /// Auction List Screen
 ///
 /// Shows active auctions in a 2-column grid layout
-/// Uses marketplaceAuctionsStreamProvider from auction_refactor
+/// Uses marketplaceAuctionsProvider (Future — one engine with ForSale)
 class AuctionListScreen extends ConsumerStatefulWidget {
   const AuctionListScreen({super.key});
 

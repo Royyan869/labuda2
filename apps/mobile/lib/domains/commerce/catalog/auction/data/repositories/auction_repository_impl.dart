@@ -3,6 +3,7 @@
 library;
 
 import 'dart:async';
+import 'dart:collection';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/core/utils/polling_monitor.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
@@ -24,6 +25,11 @@ class AuctionRepositoryImpl implements AuctionRepository {
   final Map<String, StreamController<List<AuctionBid>>> _bidStreamControllers =
       {};
   final Map<String, Timer?> _pollingTimers = {};
+
+  // Last emitted snapshots per auctionId — polling dedup so identical
+  // responses never re-emit (no widget churn) while real changes always do.
+  final Map<String, Auction?> _lastAuctionSnapshot = {};
+  final Map<String, SplayTreeMap<String, AuctionBid>> _lastBidSnapshots = {};
 
   // Polling monitors for tracking auction polling status
   final Map<String, PollingMonitor> _auctionMonitors = {};
@@ -294,29 +300,9 @@ class AuctionRepositoryImpl implements AuctionRepository {
 
   // ========== Real-time Streams (Polling-based for API) ==========
 
-  // LIST discovery is NOT live — one-shot, like ForSale (forSalesProvider Future).
-  // Live polling remains only for detail/bids (watchAuction/watchBids).
-  // Errors surface as stream errors (not empty) to match test contract.
-  @override
-  Stream<List<Auction>> watchUserAuctions({
-    required String sellerId,
-    AuctionStatus? status,
-    int limit = 100,
-  }) {
-    return Stream.fromFuture(
-      getUserAuctions(sellerId: sellerId, status: status, limit: limit)
-          .then((r) => r.fold((a) => a, (e) => throw StateError(e))),
-    );
-  }
-
-  @override
-  Stream<List<Auction>> watchActiveAuctions({int limit = 50}) {
-    return Stream.fromFuture(
-      getActiveAuctions(limit: limit)
-          .then((r) => r.fold((a) => a, (e) => throw StateError(e))),
-    );
-  }
-
+  // Live polling is reserved for detail/bids (watchAuction/watchBids).
+  // LIST discovery lives in the presentation Future providers — one engine
+  // with ForSale, no stream path.
   @override
   Stream<Auction?> watchAuction(String auctionId) {
     // Create stream controller if not exists
@@ -327,14 +313,13 @@ class AuctionRepositoryImpl implements AuctionRepository {
             onCancel: () => _stopAuctionPolling(auctionId),
           );
 
-      // Fetch initial data
+      // Fetch initial data — goes through the shared dedup emitter so the
+      // first poll tick cannot re-emit the same snapshot.
       getAuctionById(auctionId).then((result) {
-        result.fold((auction) {
-          final controller = _auctionStreamControllers[auctionId];
-          if (controller != null && !controller.isClosed) {
-            controller.add(auction);
-          }
-        }, (_) => null);
+        result.fold(
+          (auction) => _emitAuction(auctionId, auction),
+          (_) => null,
+        );
       });
     }
 
@@ -354,14 +339,9 @@ class AuctionRepositoryImpl implements AuctionRepository {
             onCancel: () => _stopBidPolling(auctionId),
           );
 
-      // Fetch initial data
+      // Fetch initial data — shared dedup emitter (see _emitBids).
       getAuctionBids(auctionId: auctionId, limit: limit).then((result) {
-        result.fold((bids) {
-          final controller = _bidStreamControllers[auctionId];
-          if (controller != null && !controller.isClosed) {
-            controller.add(bids);
-          }
-        }, (_) => null);
+        result.fold((bids) => _emitBids(auctionId, bids), (_) => null);
       });
     }
 
@@ -390,7 +370,14 @@ class AuctionRepositoryImpl implements AuctionRepository {
   }
 
   void _scheduleAuctionPoll(String auctionId, PollingMonitor monitor) {
-    if (_auctionStreamControllers[auctionId]?.isClosed ?? true) {
+    // Keep the shared poll loop alive while EITHER live surface (detail or
+    // bids) still has a listener — bids-only screens need polling too.
+    final auctionController = _auctionStreamControllers[auctionId];
+    final bidController = _bidStreamControllers[auctionId];
+    final anySurfaceLive =
+        (auctionController != null && !auctionController.isClosed) ||
+        (bidController != null && !bidController.isClosed);
+    if (!anySurfaceLive) {
       return;
     }
 
@@ -418,36 +405,82 @@ class AuctionRepositoryImpl implements AuctionRepository {
       controller.close();
       _auctionStreamControllers.remove(auctionId);
     }
+  }  /// Emit a detail snapshot through the polling dedup gate: identical
+  /// snapshots (same public fingerprint) never re-emit; real changes always
+  /// do. Shared by initial fetch and poll ticks.
+  void _emitAuction(String auctionId, Auction? auction) {
+    if (auction == null) return;
+    final fingerprint = auctionSnapshotFingerprint(auction);
+    final last = _lastAuctionSnapshot[auctionId];
+    if (last != null && auctionSnapshotFingerprint(last) == fingerprint) {
+      return; // identical snapshot — suppress
+    }
+    _lastAuctionSnapshot[auctionId] = auction;
+    final controller = _auctionStreamControllers[auctionId];
+    if (controller != null && !controller.isClosed) {
+      controller.add(auction);
+    }
+  }
+
+  /// Emit a bids snapshot through the dedup gate keyed by bid id + amount.
+  void _emitBids(String auctionId, List<AuctionBid> bids) {
+    final next = SplayTreeMap<String, AuctionBid>();
+    for (final bid in bids) {
+      next[bid.id] = bid;
+    }
+    final last = _lastBidSnapshots[auctionId];
+    if (last != null && last.length == next.length) {
+      var identicalSnapshot = true;
+      for (final entry in next.entries) {
+        final prev = last[entry.key];
+        if (prev == null || prev.amount != entry.value.amount) {
+          identicalSnapshot = false;
+          break;
+        }
+      }
+      if (identicalSnapshot) return; // duplicate snapshot — suppress
+    }
+    _lastBidSnapshots[auctionId] = next;
+    final controller = _bidStreamControllers[auctionId];
+    if (controller != null && !controller.isClosed) {
+      controller.add(bids);
+    }
   }
 
   Future<void> _pollAuction(String auctionId) async {
+    // One shared poll tick drives BOTH live surfaces: detail + bids. The
+    // previous refactor split these and bids silently stopped refreshing.
+    // Each surface is isolated: a failure in one must not stop the other.
     final monitor = _auctionMonitors[auctionId];
-    final result = await getAuctionById(auctionId);
 
-    if (monitor != null) {
-      // Log with monitoring
-      try {
-        if (result.isSuccess) {
-          monitor.logSuccess();
-          final auction = result.data;
-          final controller = _auctionStreamControllers[auctionId];
-          if (controller != null && !controller.isClosed && auction != null) {
-            controller.add(auction);
+    try {
+      final result = await getAuctionById(auctionId);
+      if (monitor != null) {
+        try {
+          if (result.isSuccess) {
+            monitor.logSuccess();
+          } else {
+            monitor.logError(result.error ?? 'Unknown error');
           }
-        } else {
-          monitor.logError(result.error ?? 'Unknown error');
+        } catch (e) {
+          monitor.logError(e.toString());
         }
-      } catch (e) {
-        monitor.logError(e.toString());
       }
-    } else {
-      // Fallback without monitoring
-      result.fold((auction) {
-        final controller = _auctionStreamControllers[auctionId];
-        if (controller != null && !controller.isClosed) {
-          controller.add(auction);
-        }
-      }, (_) => null);
+      result.fold(
+        (auction) => _emitAuction(auctionId, auction),
+        (_) => null,
+      );
+    } catch (_) {
+      // Detail surface failure must not kill the bids surface.
+    }
+
+    try {
+      final bidController = _bidStreamControllers[auctionId];
+      if (bidController == null || !bidController.hasListener) return;
+      final bidsResult = await getAuctionBids(auctionId: auctionId);
+      bidsResult.fold((bids) => _emitBids(auctionId, bids), (_) => null);
+    } catch (_) {
+      // Transient failure — retain last data, retry next tick.
     }
   }
 

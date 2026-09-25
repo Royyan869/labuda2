@@ -371,10 +371,6 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
       ref.invalidate(sellerAuctionsProvider(sellerId));
       // ignore: unused_result
       ref.invalidate(myAuctionsProvider((sellerId: sellerId, status: null)));
-      // Keep legacy Stream wrappers in sync for tests
-      ref.invalidate(marketplaceAuctionsStreamProvider);
-      ref.invalidate(userAuctionsStreamProvider(sellerId));
-      ref.invalidate(myAuctionsStreamProvider((sellerId: sellerId, status: null)));
     } catch (_) {}
     return true;
   }
@@ -502,31 +498,6 @@ final myAuctionsProvider = FutureProvider.autoDispose
   );
   return result.fold((a) => a, (e) => throw Exception(e));
 });
-
-// ========== Legacy Stream Providers (kept for test compat, delegate to Future — no polling) ==========
-@Deprecated('Use marketplaceAuctionsProvider (Future) — one engine with ForSale')
-final marketplaceAuctionsStreamProvider = StreamProvider<List<Auction>>((ref) {
-  final future = ref.watch(marketplaceAuctionsProvider.future);
-  return Stream.fromFuture(future);
-});
-
-@Deprecated('Use sellerAuctionsProvider (Future) — one engine with ForSale')
-final userAuctionsStreamProvider = StreamProvider.family<List<Auction>, String>(
-  (ref, sellerId) {
-    final future = ref.watch(sellerAuctionsProvider(sellerId).future);
-    return Stream.fromFuture(future);
-  },
-);
-
-@Deprecated('Use myAuctionsProvider (Future)')
-final myAuctionsStreamProvider =
-    StreamProvider.family<
-      List<Auction>,
-      ({String sellerId, AuctionStatus? status})
-    >((ref, params) {
-      final future = ref.watch(myAuctionsProvider(params).future);
-      return Stream.fromFuture(future);
-    });
 
 /// Stream provider for auction detail (real-time updates)
 final auctionStreamProvider = StreamProvider.family<Auction?, String>((

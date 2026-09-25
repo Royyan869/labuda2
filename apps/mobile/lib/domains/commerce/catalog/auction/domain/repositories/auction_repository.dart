@@ -125,16 +125,9 @@ abstract class AuctionRepository {
   });
 
   // ========== Real-time Streams ==========
-
-  /// Watch user's auctions stream (realtime updates for seller dashboard)
-  Stream<List<Auction>> watchUserAuctions({
-    required String sellerId,
-    AuctionStatus? status,
-    int limit = 100,
-  });
-
-  /// Watch active auctions (for marketplace tab)
-  Stream<List<Auction>> watchActiveAuctions({int limit = 50});
+  // LIST discovery is NOT a stream — one engine (Future) with ForSale lives
+  // in the presentation providers (marketplaceAuctionsProvider etc).
+  // Streams are reserved for live detail surfaces only.
 
   /// Watch single auction (for detail screen real-time updates)
   Stream<Auction?> watchAuction(String auctionId);

@@ -171,10 +171,6 @@ class _FakeAuctionRepository implements AuctionRepository {
   }
 
   @override
-  Stream<List<Auction>> watchActiveAuctions({int limit = 50}) =>
-      const Stream.empty();
-
-  @override
   Stream<List<AuctionBid>> watchAuctionBids(
     String auctionId, {
     int limit = 50,
@@ -184,13 +180,6 @@ class _FakeAuctionRepository implements AuctionRepository {
   @override
   Stream<Auction?> watchAuction(String auctionId) => const Stream.empty();
 
-  @override
-  Stream<List<Auction>> watchUserAuctions({
-    required String sellerId,
-    AuctionStatus? status,
-    int limit = 50,
-  }) =>
-      const Stream.empty();
 }
 
 Auction _auction({

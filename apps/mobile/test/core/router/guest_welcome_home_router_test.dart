@@ -67,6 +67,7 @@ import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart'
 import 'package:labuda/domains/user/profile/presentation/providers/profile_view_provider.dart';
 import 'package:labuda/features/marketplace/marketplace.dart';
 import 'package:labuda/features/home/home.dart';
+import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 
 // ============================================================================
@@ -565,8 +566,15 @@ class _FakeLikeRepository extends Fake implements LikeRepository {
 
 class _FakeAuctionRepository extends Fake implements AuctionRepository {
   @override
-  Stream<List<Auction>> watchActiveAuctions({int limit = 50}) {
-    return Stream.value(const <Auction>[]);
+  Future<RepositoryResult<List<Auction>>> getActiveAuctions({
+    String? variety,
+    double? minSize,
+    double? maxSize,
+    double? maxBid,
+    int limit = 20,
+    String? lastAuctionId,
+  }) async {
+    return RepositoryResult.success(const <Auction>[]);
   }
 }
 
@@ -746,8 +754,8 @@ Future<ProviderContainer> _buildContainer({
     }),
 
     // == COMMERCE AUCTION (Explore) ======================================
-    marketplaceAuctionsStreamProvider.overrideWith((ref) {
-      return Stream.value(const <Auction>[]);
+    marketplaceAuctionsProvider.overrideWith((ref) async {
+      return const <Auction>[];
     }),
     getUserRatingSummaryProvider.overrideWith((ref, userId) async {
       return Result.success(const RatingSummary(

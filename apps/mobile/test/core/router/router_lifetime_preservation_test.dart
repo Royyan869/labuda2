@@ -114,7 +114,6 @@ ForSale _buildForSale() {
     status: ForSaleStatus.active,
     visibility: ForSaleVisibility.public,
     isNegotiable: true,
-    location: null,
     viewCount: 0,
     preparationTime: PreparationTime.immediate,
     createdAt: now,
@@ -150,12 +149,10 @@ Auction _buildAuction() {
     currentBid: 0,
     bidIncrement: 100000,
     buyNowPrice: null,
-    condition: AuctionCondition.good,
     startTime: now,
     endTime: now.add(const Duration(hours: 24)),
     status: AuctionStatus.active,
     createdAt: now,
-    decision: const DecisionContract(state: 'active'),
   );
 }
 
@@ -778,8 +775,8 @@ Future<ProviderContainer> _buildContainer({
     forSalesProvider.overrideWith((ref, params) async {
       return [forSale];
     }),
-    marketplaceAuctionsStreamProvider.overrideWith((ref) {
-      return Stream.value([auction]);
+    marketplaceAuctionsProvider.overrideWith((ref) async {
+      return [auction];
     }),
     forSaleDetailProvider.overrideWith((ref, forSaleId) async {
       if (forSaleId == forSale.forSaleId) {
