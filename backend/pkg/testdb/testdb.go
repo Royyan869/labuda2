@@ -17,9 +17,12 @@ package testdb
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -87,6 +90,15 @@ func Setup(t *testing.T, cfg *config.Config) (*TestDB, func()) {
 	// preventing concurrent test binaries from dropping the public schema
 	// while this binary's tests are active.
 	if err := acquireLifecycleLock(dsn); err != nil {
+		if isDatabaseUnreachable(err) {
+			// The test database is simply not running: skip fast instead of
+			// hanging until the package timeout. CI sets REQUIRE_TEST_DB=true
+			// so a missing database still fails the build.
+			if os.Getenv("REQUIRE_TEST_DB") == "true" {
+				t.Fatalf("Test database unreachable (REQUIRE_TEST_DB=true): %v", err)
+			}
+			t.Skipf("SKIPPED: test database unreachable — start it with `docker compose up -d postgres`: %v", err)
+		}
 		t.Fatalf("Failed to acquire lifecycle advisory lock: %v", err)
 	}
 
@@ -106,6 +118,14 @@ func Setup(t *testing.T, cfg *config.Config) (*TestDB, func()) {
 	})
 	if migrateErr != nil {
 		releaseLifecycleLock()
+		// Unreachable or stuck database: skip fast (CI forces a failure with
+		// REQUIRE_TEST_DB=true) rather than failing a package for missing infra.
+		if isDatabaseUnreachable(migrateErr) {
+			if os.Getenv("REQUIRE_TEST_DB") == "true" {
+				t.Fatalf("Test database migration failed (REQUIRE_TEST_DB=true): %v", migrateErr)
+			}
+			t.Skipf("SKIPPED: test database migration did not finish — is another test run holding it? %v", migrateErr)
+		}
 		t.Fatalf("Failed to run test database migrations: %v", migrateErr)
 	}
 
@@ -437,17 +457,23 @@ var lifecycleLockConn *pgxpool.Conn
 // This prevents a concurrent test binary from dropping the public schema
 // while this binary's tests are actively using it.
 func acquireLifecycleLock(dsn string) error {
-	pool, err := pgxpool.New(context.Background(), dsn)
+	// BOUNDED DIAL: without a deadline, acquiring against an unreachable
+	// host blocks until the whole package times out — the suite reads as a
+	// hang instead of an answer. Every wait here shares connectionTimeout.
+	ctx, cancel := context.WithTimeout(context.Background(), connectionTimeout)
+	defer cancel()
+
+	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
 		return fmt.Errorf("open lifecycle lock connection: %w", err)
 	}
-	conn, err := pool.Acquire(context.Background())
+	conn, err := pool.Acquire(ctx)
 	if err != nil {
 		pool.Close()
 		return fmt.Errorf("acquire lifecycle lock connection: %w", err)
 	}
 
-	if _, err := conn.Exec(context.Background(), `SELECT pg_advisory_lock(hashtextextended($1, 0))`, testDBMigrationLockKey); err != nil {
+	if _, err := conn.Exec(ctx, `SELECT pg_advisory_lock(hashtextextended($1, 0))`, testDBMigrationLockKey); err != nil {
 		conn.Release()
 		pool.Close()
 		return fmt.Errorf("acquire lifecycle advisory lock: %w", err)
@@ -455,6 +481,28 @@ func acquireLifecycleLock(dsn string) error {
 	lifecycleLockPool = pool
 	lifecycleLockConn = conn
 	return nil
+}
+
+// isDatabaseUnreachable reports whether err means the database is simply not
+// running (dial refused, DNS dead, timeout) rather than a misconfiguration
+// such as a wrong test-DB name — the first must skip fast, the second must
+// fail loudly.
+func isDatabaseUnreachable(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		return true
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		return true
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "connection refused") ||
+		strings.Contains(msg, "no such host") ||
+		strings.Contains(msg, "i/o timeout") ||
+		strings.Contains(msg, "connect: ")
 }
 
 // releaseLifecycleLock releases the advisory lock acquired by
@@ -504,13 +552,18 @@ func runMigrationsRaw(cfg *config.Config, logf func(string, ...any)) error {
 	// Discard any stale public-schema objects and the extensions that the
 	// canonical migration chain recreates. This keeps the disposable test
 	// database alive while still giving us a clean bootstrap state.
+	// BOUNDED: every wait below shares one deadline so a blocked DDL lock
+	// surfaces as an error instead of an infinite hang.
+	migrateCtx, cancelMigrate := context.WithTimeout(context.Background(), migrationTimeout)
+	defer cancelMigrate()
+
 	resetPool, err := pgxpool.New(context.Background(), cfg.Database.GetTestDSN())
 	if err != nil {
 		return fmt.Errorf("open migration cleanup connection: %w", err)
 	}
 	defer resetPool.Close()
 
-	conn, err := resetPool.Acquire(context.Background())
+	conn, err := resetPool.Acquire(migrateCtx)
 	if err != nil {
 		return fmt.Errorf("acquire migration cleanup connection: %w", err)
 	}
@@ -527,7 +580,7 @@ func runMigrationsRaw(cfg *config.Config, logf func(string, ...any)) error {
 		`DROP SCHEMA IF EXISTS public CASCADE`,
 		`CREATE SCHEMA IF NOT EXISTS public`,
 	} {
-		if _, err := conn.Exec(context.Background(), stmt); err != nil {
+		if _, err := conn.Exec(migrateCtx, stmt); err != nil {
 			return fmt.Errorf("reset statement %q: %w", stmt, err)
 		}
 	}
@@ -541,7 +594,7 @@ func runMigrationsRaw(cfg *config.Config, logf func(string, ...any)) error {
 	}
 	defer runPool.Close()
 
-	if err := migration.Run(context.Background(), runPool, migrationsDir); err != nil {
+	if err := migration.Run(migrateCtx, runPool, migrationsDir); err != nil {
 		return fmt.Errorf("run migrations: %w", err)
 	}
 
@@ -553,6 +606,11 @@ func runMigrationsRaw(cfg *config.Config, logf func(string, ...any)) error {
 
 // Connection timeout for test database
 const connectionTimeout = 10 * time.Second
+
+// migrationTimeout bounds the schema reset + migration run. Without it a
+// stale session holding a DDL lock blocks the suite forever — which reads as
+// a hang, not as a failure.
+const migrationTimeout = 60 * time.Second
 
 // redactPassword removes password from DSN for safe logging
 func redactPassword(dsn string) string {
