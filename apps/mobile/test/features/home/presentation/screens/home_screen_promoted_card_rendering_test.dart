@@ -482,7 +482,7 @@ void main() {
       expect(find.text('Koi Kohaku Grade A'), findsOneWidget);
 
       // Price must be rendered (7500000 minor units = Rp75rb).
-      expect(find.text('Rp75rb'), findsOneWidget);
+      expect(find.text('Rp 75.000'), findsOneWidget);
 
       // Dipromosikan badge must be present on the CommerceMarketplaceCardShell.
       expect(find.text('Dipromosikan'), findsOneWidget);
@@ -549,7 +549,7 @@ void main() {
 
       expect(find.byType(PromotedForSaleCard), findsOneWidget);
       // 100000 minor → 1000 rupiah → Rp1rb
-      expect(find.text('Rp1rb'), findsOneWidget);
+      expect(find.text('Rp 1.000'), findsOneWidget);
     });
 
     testWidgets('promoted forSale reference ID is preserved', (tester) async {
@@ -650,7 +650,7 @@ void main() {
       expect(find.text('Grand Champion Showa'), findsOneWidget);
 
       // Current bid display (8500000 minor → Rp85rb).
-      expect(find.text('Rp85rb'), findsOneWidget);
+      expect(find.text('Rp 85.000'), findsOneWidget);
 
       // Bid count metadata (7 bids).
       expect(find.text('7 bid'), findsOneWidget);
@@ -691,7 +691,7 @@ void main() {
 
       expect(find.byType(PromotedAuctionCard), findsOneWidget);
       // Start price displayed (2000000 minor → Rp20rb).
-      expect(find.text('Rp20rb'), findsOneWidget);
+      expect(find.text('Rp 20.000'), findsOneWidget);
       // Label should be "Mulai dari".
       expect(find.text('Mulai dari'), findsOneWidget);
       // No bid count when 0.

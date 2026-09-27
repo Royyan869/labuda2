@@ -708,12 +708,52 @@ Terekam & terverifikasi:
 - **Untuk baseline penuh (sekali jalan, di luar tool):**
   `cd backend && docker compose up -d postgres && go test -timeout 120s ./...`
   dan `cd apps/mobile && flutter test --reporter expanded` → simpan grep
-  `' [E]'` sebagai daftar gagal bertanggal.
-
-### Masih terbuka
-- Commit — **ditahan atas permintaan owner**; risiko 453+24 file tetap berdiri.
+  `' [E]'` sebagai daftar gagal bertanggal.### Masih terbuka
+- Commit — **ditahan atas permintaan owner**; risiko453+24 file tetap berdiri.
 - Owner retest device: chat share for_sale/auction LIVE+TOMBSTONE, comment
   attachment, harga discovery.
 - Keputusan: shorthand pasar `Rp1.5jt/Rp500rb` disatukan ke
   `CurrencyUtils.formatShorthand` (output berubah jadi `Rp 1.5Jt`),
   i18n layar seller (judul Inggris dipin test), guard DB untuk test backend.
+
+## Batch keputusan tertahan (2026-09-27, sesi yang sama)
+
+Semua keputusan yang tertahan kini dieksekusi — hasil, bukan opsi:
+
+1. **Shorthand pasar DISATUKAN, arahnya ke format grouped.** Discovery harus
+   menampilkan string yang sama untuk angka yang sama; `Rp75rb` di feed vs
+   `Rp 75.000` di search row = dua kebenaran. `feed_renderers._formatPrice`
+   kini `Rp ${formatGroupedAmount(minor ~/ 100)}`; allowlist `jt/rb` di DUA
+   ratchet uang DIHAPUS (justru ratchet jadi lebih ketat). Shorthand kompak
+   (`Rp 1.5Jt`, `Rp 500K`) tetap hidup sebagai fitur dashboard di
+   `CurrencyUtils.formatShorthand` — satu implementasi, konteks terpisah.
+   4 pin test promo di-align (`Rp75rb` → `Rp 75.000`, dst).
+2. **i18n layar penghasilan seller.** `seller_earnings_screen` kini id-first
+   (appbar, 4 kartu + subtitle, seksi info, tombol `Tarik Dana`, pesan error).
+   Test exposure di-align maju sesuai doktrin "test mengikuti codebase";
+   sisa pin Inggris yang tertinggal (`'Pending Balance'`) ikut dikejar.
+   SISA: `withdraw_dialog`, `seller_renewal_screen`, `seller_upgrade_wizard`
+   masih campur — pemindaian menyeluruh butuh sapuan terpisah.
+3. **Guard DB backend.** Akar hang BUKAN koneksi, tapi `runMigrationsRaw`
+   memakai `context.Background()` di semua query — sesi basi yang menahan
+   lock DDL membuat suite membaca sebagai hang selamanya. Kini:
+   `acquireLifecycleLock` + reset + `migration.Run` berbagi deadline
+   (`connectionTimeout`10s / `migrationTimeout`60s), DB tak terjangkau atau
+   migrasi macet → `t.Skip` cepat (CI paksa gagal dengan `REQUIRE_TEST_DB=true`).
+   Bukti: paket subscription dulunya hang >90s, kini selesai **60.3s** dengan
+   sisa kegagalan hanya unit test prasyarat.
+
+### Verifikasi batch ini
+- `flutter analyze lib test` → **185 issues, 0 error** (= baseline60+125).
+- Ratchet uang/snapshot/paritas/object + exposure test → **55 PASS**.
+-2 gagal tersisa = `home_screen_promoted_card_rendering_test` SCENARIO 4
+  (state feed kosong = harness) — **terbukti pre-existing**: saat edit feed
+  saya di-stash sementara, tes yang sama tetap gagal (bahkan lebih banyak,
+  karena pin dan kode sengaja tidak cocok saat itu).
+- `go vet ./pkg/testdb/` bersih; `go test ./internal/commerce/subscription/
+  application/` → **tidak lagi hang**, selesai60s; gagal tersisa
+  `TestProcessSuccessfulPaymentTx_SplitsPrincipalAndFeeFromSnapshot`
+  (4 assert tanda ledger, unit test tanpa DB — pre-existing, di luar sapuan ini).
+- **Temuan operasional:** ada `go.exe` yatim (PID15016, start12:08:08) dari
+  run yang kena kill — kemungkinan ia yang memegang lock sehingga migrasi test
+  DB macet. Tidak kubunuh karena kepemilikannya bisa jadi agen lain.

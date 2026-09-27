@@ -46,14 +46,14 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Earnings'),
+        title: const Text('Penghasilan'),
         backgroundColor: AppColors.primaryRed,
         foregroundColor: Colors.white,
       ),
       body: earningsAsync.when(
         data: (earnings) => _buildEarningsContent(earnings, sellerId),
         loading: () => _buildLoading(),
-        error: (e, _) => _buildError('Failed to load earnings: $e'),
+        error: (e, _) => _buildError('Gagal memuat penghasilan: $e'),
       ),
     );
   }
@@ -76,8 +76,8 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
           children: [
             // Available Balance Card (Primary)
             _buildBalanceCard(
-              title: 'Available Balance',
-              subtitle: 'Ready to withdraw',
+              title: 'Saldo Tersedia',
+              subtitle: 'Siap ditarik',
               amount: earnings.availableBalance,
               icon: Icons.account_balance_wallet,
               color: AppColors.primaryRed,
@@ -93,8 +93,8 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
 
             // Total Earned Card
             _buildBalanceCard(
-              title: 'Total Earned',
-              subtitle: 'Lifetime earnings',
+              title: 'Total Penghasilan',
+              subtitle: 'Akumulasi sepanjang waktu',
               amount: earnings.totalRevenue,
               icon: Icons.trending_up,
               color: AppColors.successGreen,
@@ -104,8 +104,8 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
 
             // Pending Balance Card
             _buildBalanceCard(
-              title: 'Pending Balance',
-              subtitle: 'In escrow (awaiting delivery)',
+              title: 'Saldo Tertahan',
+              subtitle: 'Dalam eskrow (menunggu pengiriman)',
               amount: earnings.pendingRevenue,
               icon: Icons.hourglass_empty,
               color: Colors.orange,
@@ -115,8 +115,8 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
 
             // Total Withdrawn Card
             _buildBalanceCard(
-              title: 'Total Withdrawn',
-              subtitle: 'Successfully withdrawn',
+              title: 'Total Penarikan',
+              subtitle: 'Berhasil ditarik',
               amount: earnings.totalWithdrawn,
               icon: Icons.download_done,
               color: Colors.blue,
@@ -247,7 +247,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'About Earnings',
+                  'Tentang Penghasilan',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -258,20 +258,21 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
             ),
             const SizedBox(height: 12),
             _buildInfoItem(
-              'Available Balance',
-              'Funds that have matured and are ready to withdraw',
+              'Saldo Tersedia',
+              'Dana yang sudah jatuh tempo dan siap ditarik',
             ),
             const Divider(height: 16),
             _buildInfoItem(
-              'Pending Balance',
-              'Funds from shipped orders held in escrow until delivery confirmation',
+              'Saldo Tertahan',
+              'Dana dari pesanan terkirim ditahan dalam eskrow '
+                  'sampai pengiriman dikonfirmasi',
             ),
             const Divider(height: 16),
             _buildInfoItem(
-              'Minimum Withdrawal',
+              'Penarikan Minimum',
               // The minimum is owned by WithdrawRequest.minAmount — a copy
               // literal here once drifted from the enforced value.
-              'Minimum withdrawal amount is '
+              'Jumlah penarikan minimum '
                   'Rp ${formatGroupedAmount(WithdrawRequest.minAmount.round())}',
             ),
           ],
@@ -370,7 +371,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: const Text(
-          'Withdraw Funds',
+          'Tarik Dana',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
       ),

@@ -396,17 +396,19 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Production balance card titles (English, canonical).
-        // 'Available Balance' and 'Pending Balance' also appear in the
-        // 'About Earnings' info section, so use findsWidgets.
-        expect(find.text('Available Balance'), findsWidgets);
-        expect(find.text('Total Earned'), findsOneWidget);
-        expect(find.text('Pending Balance'), findsWidgets);
-        expect(find.text('Total Withdrawn'), findsOneWidget);
+        // Production balance card titles (Indonesian — this screen is id-first;
+        // the old English pins were aligned to the codebase, per doctrine
+        // "test mengikuti codebase").
+        // 'Saldo Tersedia' and 'Saldo Tertahan' also appear in the
+        // 'Tentang Penghasilan' info section, so use findsWidgets.
+        expect(find.text('Saldo Tersedia'), findsWidgets);
+        expect(find.text('Total Penghasilan'), findsOneWidget);
+        expect(find.text('Saldo Tertahan'), findsWidgets);
+        expect(find.text('Total Penarikan'), findsOneWidget);
 
         // Production withdraw button text.
         expect(
-          find.widgetWithText(ElevatedButton, 'Withdraw Funds'),
+          find.widgetWithText(ElevatedButton, 'Tarik Dana'),
           findsOneWidget,
         );
 
@@ -415,7 +417,7 @@ void main() {
 
         // Withdraw button is enabled (balance >= minimum).
         final button = tester.widget<ElevatedButton>(
-          find.widgetWithText(ElevatedButton, 'Withdraw Funds'),
+          find.widgetWithText(ElevatedButton, 'Tarik Dana'),
         );
         expect(button.onPressed, isNotNull);
       },
@@ -452,7 +454,7 @@ void main() {
         // the WithdrawDialog, not at the button level.
         final withdrawButton = find.widgetWithText(
           ElevatedButton,
-          'Withdraw Funds',
+          'Tarik Dana',
         );
         await tester.scrollUntilVisible(
           withdrawButton,
@@ -508,8 +510,8 @@ void main() {
 
         // Pending Balance card is rendered (production uses this exact title
         // unconditionally, regardless of zero/non-zero pendingRevenue).
-        // The text also appears in the 'About Earnings' info section.
-        expect(find.text('Pending Balance'), findsWidgets);
+        // The text also appears in the 'Tentang Penghasilan' info section.
+        expect(find.text('Saldo Tertahan'), findsWidgets);
       },
     );
 

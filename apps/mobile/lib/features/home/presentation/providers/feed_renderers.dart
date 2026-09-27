@@ -808,16 +808,13 @@ class _PromotedBadge extends StatelessWidget {
 }
 
 /// Formats a price in IDR minor units to a display string.
+///
+/// Discovery shows the SAME string for the same number on every surface; the
+/// market shorthand (`Rp75rb`) made this feed row disagree with search rows
+/// and cards, so grouping goes through the single authority.
 String _formatPrice(int? priceMinor) {
   if (priceMinor == null) return '-';
-  final rupiah = priceMinor ~/ 100;
-  if (rupiah >= 1000000) {
-    return 'Rp${(rupiah / 1000000).toStringAsFixed(1)}jt';
-  }
-  if (rupiah >= 1000) {
-    return 'Rp${(rupiah / 1000).toStringAsFixed(0)}rb';
-  }
-  return 'Rp${formatGroupedAmount(rupiah)}';
+  return 'Rp ${formatGroupedAmount(priceMinor ~/ 100)}';
 }
 
 /// Promoted forSale card — shows forSale image, title, price, seller.

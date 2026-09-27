@@ -364,13 +364,6 @@ void main() {
         if (path == 'lib/shared/utils/currency_utils.dart') continue;
         for (final line in entity.readAsLinesSync()) {
           if (!pattern.hasMatch(line)) continue;
-          // Compact market shorthand (`Rp1.5jt`, `Rp500rb`) is not a grouping
-          // formatter; it is allowed to round, but nothing else in that file is.
-          if (path ==
-                  'lib/features/home/presentation/providers/feed_renderers.dart' &&
-              (line.contains("}jt'") || line.contains("}rb'"))) {
-            continue;
-          }
           offenders.add('$path: $line');
         }
       }
@@ -400,12 +393,6 @@ void main() {
         for (final line in entity.readAsLinesSync()) {
           if (!pattern.hasMatch(line)) continue;
           if (line.contains('formatGroupedAmount(')) continue;
-          // Compact market shorthand (`Rp1.5jt`, `Rp500rb`) rounds on purpose.
-          if (path ==
-                  'lib/features/home/presentation/providers/feed_renderers.dart' &&
-              (line.contains("}jt'") || line.contains("}rb'"))) {
-            continue;
-          }
           // Bid input hint: digits-only field, the validator rejects '.', so a
           // grouped hint would invite input that must fail (design exception).
           if (line.contains('hintText:')) continue;
